@@ -674,13 +674,13 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 			Query query = (new Heuristics(universe))
 					.applyHeuristicSimplifications(context, assertValue);
 
+			universe.setUseBackwardSubstitution(true);
 			if (acslPredicates2why3.length == 0
 					&& !ReservedLogicFunctionCallEvaluator
 							.hasReservedLogicFunctionCalls(universe,
 									query.query))
 				resultType = universe.reasoner(query.context).valid(query.query)
 						.getResultType();
-			// universe.setUseBackwardSubstitution(true);
 			if (resultType == ResultType.MAYBE)
 				resultType = universe
 						.why3Reasoner(query.context, acslPredicates2why3)
@@ -694,10 +694,10 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 				resultType = universe.why3Reasoner(context, acslPredicates2why3)
 						.valid(assertValue).getResultType();
 			}
+			universe.setUseBackwardSubstitution(false);
 		} else
 			resultType = universe.reasoner(context).valid(assertValue)
 					.getResultType();
-		// universe.setUseBackwardSubstitution(false);
 		if (resultType != ResultType.YES) {
 			StringBuilder message = new StringBuilder();
 			Pair<State, String> messageResult = this.symbolicAnalyzer
