@@ -361,7 +361,7 @@ public class ImmutableDynamicScope implements DynamicScope {
 		SymbolicExpression[] newValues = null;
 
 		for (Variable variable : this.lexicalScope.variables()) {
-			if (variable.isConst() || variable.isInput())
+			if (variable.isConst())
 				continue;
 
 			int vid = variable.vid();
