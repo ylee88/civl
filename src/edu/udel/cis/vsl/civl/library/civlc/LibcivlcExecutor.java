@@ -674,7 +674,7 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 			Query query = (new Heuristics(universe))
 					.applyHeuristicSimplifications(context, assertValue);
 
-			universe.setUseBackwardSubstitution(true);
+			// universe.setUseBackwardSubstitution(true);
 			if (acslPredicates2why3.length == 0
 					&& !ReservedLogicFunctionCallEvaluator
 							.hasReservedLogicFunctionCalls(universe,
@@ -694,7 +694,6 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 				resultType = universe.why3Reasoner(context, acslPredicates2why3)
 						.valid(assertValue).getResultType();
 			}
-			universe.setUseBackwardSubstitution(false);
 		} else
 			resultType = universe.reasoner(context).valid(assertValue)
 					.getResultType();
