@@ -168,6 +168,7 @@ OPTION_NAME
     | '-svcomp17'
     | '-sysIncludePath'
     | '-timeout'
+    | '-testGen'
     | '-trace'
     | '-unpreproc'
     | '-userIncludePath'

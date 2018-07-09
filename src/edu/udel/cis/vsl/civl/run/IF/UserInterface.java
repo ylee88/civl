@@ -298,25 +298,36 @@ public class UserInterface {
 			ModelTranslator modelTranslator = new ModelTranslator(gmcConfig,
 					gmcSection, commandLine.files(),
 					commandLine.getCoreFileName());
+			boolean result;
 
+			if (modelTranslator.config.isSARLTestGenerationEnabled())
+				modelTranslator.universe.enableSARLTestGeneration(true);
 			switch (kind) {
 				case SHOW :
-					return runShow(modelTranslator);
+					result = runShow(modelTranslator);
+					break;
 				case VERIFY :
-					return runVerify(commandLine.getCommandString(),
+					result = runVerify(commandLine.getCommandString(),
 							modelTranslator);
+					break;
 				case REPLAY :
-					return runReplay(commandLine.getCommandString(),
+					result = runReplay(commandLine.getCommandString(),
 							modelTranslator, traceFile);
+					break;
 				case RUN :
-					return runRun(commandLine.getCommandString(),
+					result = runRun(commandLine.getCommandString(),
 							modelTranslator);
+					break;
 				default :
 					throw new CIVLInternalException(
 							"missing implementation for command of "
 									+ commandLine.normalCommandKind() + " kind",
 							(CIVLSource) null);
 			}
+			if (modelTranslator.config.isSARLTestGenerationEnabled())
+				modelTranslator.universe
+						.generateTestClass(commandLine.getCoreFileName());
+			return result;
 		}
 		return true;
 	}

@@ -146,8 +146,8 @@ public class SteppedUniversalCombination extends ExpressionVisitor
 	 * <p>
 	 * Given a set of N forall clauses (N >= step): <code>
 	 * X<sub>0</sub>(k), X<sub>1</sub>(k), ..., X<sub>N-1</sub>(k)
-	 * </code>, attempt find out "step" of them that satisfy such relations:
-	 * <code>
+	 * </code>, attempt to find out a "step" of them that satisfy such
+	 * relations: <code>
 	 * {X<sub>i</sub>(k) | X<sub>i</sub>(k+1) == X<sub>i+1</sub>(k+1), 0 &lt= i &lt step }.
 	 * </code>
 	 * </p>

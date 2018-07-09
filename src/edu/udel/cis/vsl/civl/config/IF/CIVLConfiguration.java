@@ -272,7 +272,10 @@ public class CIVLConfiguration {
 	 */
 	private boolean loopInvariantEnabled = false;
 
-	// private boolean pthreadOnly = true;
+	/**
+	 * set to true iff CIVL will generate Junit test class for SARL:
+	 */
+	private boolean generateTestsForSARL;
 
 	/**
 	 * Constructs a new CIVL configuration object from the command line
@@ -399,6 +402,12 @@ public class CIVLConfiguration {
 		this.sliceAnalysis = config.isTrue(CIVLConstants.sliceAnalysisO);
 		this.witness = config.isTrue(CIVLConstants.witnessO);
 		this.prob = config.isTrue(CIVLConstants.probO);
+		if (config.getValue(CIVLConstants.SARLTestGenO) != null)
+			this.generateTestsForSARL = (boolean) config
+					.getValue(CIVLConstants.SARLTestGenO);
+		else
+			this.generateTestsForSARL = (boolean) CIVLConstants.SARLTestGenO
+					.defaultValue();
 		if (this.svcomp16) {
 			if (config.getValue(CIVLConstants.checkMemoryLeakO) == null)
 				this.checkMemoryLeak = false;
@@ -983,6 +992,14 @@ public class CIVLConfiguration {
 
 	public void setMaxProcs(int maxProcs) {
 		this.maxProcs = maxProcs;
+	}
+
+	/**
+	 * @return true iff the SARL test generation has been specified as enabled
+	 *         from UI.
+	 */
+	public boolean isSARLTestGenerationEnabled() {
+		return this.generateTestsForSARL;
 	}
 
 	/**

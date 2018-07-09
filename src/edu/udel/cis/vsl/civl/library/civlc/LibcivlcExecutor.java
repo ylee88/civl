@@ -674,23 +674,24 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 			Query query = (new Heuristics(universe))
 					.applyHeuristicSimplifications(context, assertValue);
 
+			context = query.context;
+			assertValue = query.query;
 			// universe.setUseBackwardSubstitution(true);
 			if (acslPredicates2why3.length == 0
 					&& !ReservedLogicFunctionCallEvaluator
 							.hasReservedLogicFunctionCalls(universe,
-									query.query))
-				resultType = universe.reasoner(query.context).valid(query.query)
+									assertValue))
+				resultType = universe.reasoner(context).valid(assertValue)
 						.getResultType();
 			if (resultType == ResultType.MAYBE)
-				resultType = universe
-						.why3Reasoner(query.context, acslPredicates2why3)
-						.valid(query.query).getResultType();
+				resultType = universe.why3Reasoner(context, acslPredicates2why3)
+						.valid(assertValue).getResultType();
 			if (resultType == ResultType.MAYBE) {
 				UniversalNormalization uniNorm = new UniversalNormalization(
 						universe);
 
-				context = (BooleanExpression) uniNorm.apply(query.context);
-				assertValue = (BooleanExpression) uniNorm.apply(query.query);
+				context = (BooleanExpression) uniNorm.apply(context);
+				assertValue = (BooleanExpression) uniNorm.apply(assertValue);
 				resultType = universe.why3Reasoner(context, acslPredicates2why3)
 						.valid(assertValue).getResultType();
 			}
@@ -731,6 +732,12 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 			state = stateFactory.addToPathcondition(state, pid,
 					(BooleanExpression) argumentValues[0]);
 		}
+		if (civlConfig.isSARLTestGenerationEnabled())
+			if (resultType == ResultType.YES)
+				universe.saveValidCallAsSARLTest(context, assertValue,
+						acslPredicates2why3, resultType,
+						"assert_" + universe.numProverValidCalls(),
+						"context: " + context, "predicate: " + assertValue);
 		return state;
 	}
 }

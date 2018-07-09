@@ -181,6 +181,7 @@ public class CIVLConstants {
 	public static String WITNESS = "witness";
 	public static String DIRECT = "direct";
 	public static String INTBIT = "int_bit";
+	public static String TEST_GEN = "testGen";
 
 	// Option objects
 
@@ -633,6 +634,15 @@ public class CIVLConstants {
 			"Direct branching at line numbers in the given file", null);
 
 	/**
+	 * An option to enable test generation for SARL, i.e. generate SARL tests
+	 * for some validity checks that CIVL encounters during a run.
+	 */
+	public final static Option SARLTestGenO = Option.newScalarOption(TEST_GEN,
+			BOOLEAN,
+			"Generating SARL Junit tests for some validity tests that CIVL encountered",
+			false);
+
+	/**
 	 * The name of the CIVL system function, which is the starting point of a
 	 * CIVL model.
 	 */
@@ -659,7 +669,7 @@ public class CIVLConstants {
 				CIVLMacroO, analyzeAbsO, strictCompareO, collectOutputO,
 				checkDivisionByZeroO, checkMemoryLeakO, timeoutO, unpreprocO,
 				sliceAnalysisO, witnessO, direct0, intBit,
-				intOperationTransformer, maxProcsO};
+				intOperationTransformer, maxProcsO, SARLTestGenO};
 	}
 
 	// headers...
