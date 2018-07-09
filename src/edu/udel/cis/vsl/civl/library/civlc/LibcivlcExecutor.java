@@ -735,7 +735,7 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 		if (civlConfig.isSARLTestGenerationEnabled())
 			if (resultType == ResultType.YES)
 				universe.saveValidCallAsSARLTest(context, assertValue,
-						acslPredicates2why3, resultType,
+						acslPredicates2why3, resultType, false,
 						"assert_" + universe.numProverValidCalls(),
 						"context: " + context, "predicate: " + assertValue);
 		return state;
