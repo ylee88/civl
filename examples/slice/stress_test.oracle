@@ -1,0 +1,14 @@
+=== Sliced PC ===
+Y0 + 1 <= 0 #Z3# (<= (+ Y0 1) 0) #TYPES# Y0 int 
+Y2 + 1 <= 0 #Z3# (<= (+ Y2 1) 0) #TYPES# Y2 int 
+Y3 + 1 <= 0 #Z3# (<= (+ Y3 1) 0) #TYPES# Y3 int 
+=== END ===
+=== ACF Mapping ===
+Y0 x
+Y1 y
+Y2 z
+Y3 z
+=== END ===
+=== Number sliced ===
+1
+=== END ===

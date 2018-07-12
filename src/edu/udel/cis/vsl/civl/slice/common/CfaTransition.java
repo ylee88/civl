@@ -9,5 +9,13 @@ public class CfaTransition {
 	public CfaTransition (Statement s) {
 		this.statement = s;
 	}
+	
+	public String toString() {
+		if (statement != null) {
+			return statement.toString();
+		} else {
+			return "No source statement.";
+		}
+	}
 
 }

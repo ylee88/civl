@@ -530,7 +530,9 @@ public class GeneralWorker extends BaseWorker {
 	 */
 	private void processMalloc(ASTNode currentNode) throws SyntaxException {
 		/* Determine the type of the current node. */
-		if (currentNode instanceof FunctionCallNode) {
+		if (currentNode instanceof FunctionCallNode &&
+				((FunctionCallNode) currentNode).getFunction().
+				expressionKind() == ExpressionKind.IDENTIFIER_EXPRESSION) {
 			FunctionCallNode funcCallNode = (FunctionCallNode) currentNode;
 			Source funcCallSource = funcCallNode.getSource();
 			IdentifierNode funcIdNode = ((IdentifierExpressionNode) funcCallNode

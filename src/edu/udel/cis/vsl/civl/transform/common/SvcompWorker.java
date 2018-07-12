@@ -35,12 +35,6 @@ public class SvcompWorker extends BaseWorker {
 
 	private final static String VERIFIER_ATOMIC_END = "__VERIFIER_atomic_end";
 
-	private final static String VERIFIER_NONDET_INT = "__VERIFIER_nondet_int";
-
-	private final static String VERIFIER_NONDET_UINT = "__VERIFIER_nondet_uint";
-
-	private final static String NONDET_INT = "int";
-
 	private String UNSIGINED_BOUND;
 
 	private CIVLConfiguration config;
@@ -345,7 +339,7 @@ public class SvcompWorker extends BaseWorker {
 					process_atomic_begin_end(funcDef.getBody());
 				}
 			}
-			process_nondet_int(item);
+			//process_nondet_int(item);
 		}
 	}
 
@@ -354,6 +348,9 @@ public class SvcompWorker extends BaseWorker {
 	 * 
 	 * @param node
 	 */
+	/* 
+	 * The following transformation is incorrect in general
+	 * 
 	private void process_nondet_int(ASTNode node) {
 		if (node instanceof FunctionCallNode) {
 			FunctionCallNode callNode = (FunctionCallNode) node;
@@ -378,7 +375,7 @@ public class SvcompWorker extends BaseWorker {
 				process_nondet_int(child);
 		}
 	}
-
+    */
 	private List<BlockItemNode> removeVariableDeclarations(
 			List<BlockItemNode> nodes) {
 		List<BlockItemNode> declarations = new LinkedList<>();

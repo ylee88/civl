@@ -33,7 +33,6 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +62,6 @@ import edu.udel.cis.vsl.civl.gui.IF.CIVL_GUI;
 import edu.udel.cis.vsl.civl.kripke.IF.CIVLStateManager;
 import edu.udel.cis.vsl.civl.kripke.common.WitnessGenerator;
 import edu.udel.cis.vsl.civl.model.IF.CIVLException;
-import edu.udel.cis.vsl.civl.model.IF.CIVLFunction;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSyntaxException;
@@ -71,7 +69,6 @@ import edu.udel.cis.vsl.civl.model.IF.CIVLUnimplementedFeatureException;
 import edu.udel.cis.vsl.civl.model.IF.Model;
 import edu.udel.cis.vsl.civl.model.IF.ModelBuilder;
 import edu.udel.cis.vsl.civl.model.IF.Models;
-import edu.udel.cis.vsl.civl.model.IF.location.Location;
 import edu.udel.cis.vsl.civl.run.common.CIVLCommand;
 import edu.udel.cis.vsl.civl.run.common.CIVLCommandFactory;
 import edu.udel.cis.vsl.civl.run.common.CompareCommandLine;
@@ -81,10 +78,8 @@ import edu.udel.cis.vsl.civl.run.common.NormalCommandLine.NormalCommandKind;
 import edu.udel.cis.vsl.civl.run.common.VerificationStatus;
 import edu.udel.cis.vsl.civl.semantics.IF.SymbolicAnalyzer;
 import edu.udel.cis.vsl.civl.semantics.IF.Transition;
-import edu.udel.cis.vsl.civl.slice.common.CfaLoc;
-import edu.udel.cis.vsl.civl.slice.common.ControlDependence;
-import edu.udel.cis.vsl.civl.slice.common.ControlFlowAutomaton;
-import edu.udel.cis.vsl.civl.slice.common.ErrorAutomaton;
+import edu.udel.cis.vsl.civl.slice.IF.Slice;
+import edu.udel.cis.vsl.civl.slice.common.CommonSlice;
 import edu.udel.cis.vsl.civl.state.IF.State;
 import edu.udel.cis.vsl.civl.util.IF.BranchConstraints;
 import edu.udel.cis.vsl.civl.util.IF.Pair;
@@ -630,21 +625,8 @@ public class UserInterface {
 				out.println();
 			}
 			if (sliceMode) {
-				out.println("*** Printing Slice Analysis ***");
-				Map<CfaLoc, CfaLoc> ipds = new HashMap<>();
-				Map<Location, CfaLoc> locToCfaLoc = new HashMap<>();
-				for (CIVLFunction f : model.functions()) {
-					if (f.isSystemFunction()
-							|| f.toString().startsWith("__VERIFIER_"))
-						continue;
-					ControlFlowAutomaton cfa = new ControlFlowAutomaton(f);
-					ipds.putAll(cfa.immediatePostDominators);
-					locToCfaLoc.putAll(cfa.locToCfaLoc);
-				}
-				ErrorAutomaton errorTrace = new ErrorAutomaton(model, trace);
-				ControlDependence cd = new ControlDependence(errorTrace, ipds,
-						locToCfaLoc, traceFile);
-				cd.collectControlDependencyStack();
+				Slice slice = new CommonSlice(trace, model);
+				slice.print();
 			}
 			if (witnessMode) {
 				out.println("*** Printing Witness ***\n");

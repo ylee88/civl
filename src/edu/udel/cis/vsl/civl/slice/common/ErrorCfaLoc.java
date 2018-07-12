@@ -1,6 +1,7 @@
 package edu.udel.cis.vsl.civl.slice.common;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -61,16 +62,25 @@ public class ErrorCfaLoc {
 	
 	@Override
 	public boolean equals (Object o) {
-		if (o instanceof ErrorCfaLoc) {
-			return ((ErrorCfaLoc) o).location.equals(this.location);
+		if (this == o) {
+			return true;
 		} else {
-			return false;
+			if (o instanceof ErrorCfaLoc && this.isExitLocation) {
+				return ((ErrorCfaLoc) o).isExitLocation;
+			} else {
+				return false;
+			}
 		}
 	}
 	
 	@Override
 	public int hashCode() {
-	    return (isExitLocation ? 0 : location.hashCode());
+		if (isExitLocation) {
+			return 0;
+		} else {
+			return Objects.hash(state);
+		}		
+	    //return (isExitLocation ? 0 : location.hashCode());
 	}
 
 	@Override
@@ -88,8 +98,13 @@ public class ErrorCfaLoc {
 		Matcher m = p.matcher(locationString);
 		String line = "";
 		if (m.find()) line = m.group(1);
-		assert !line.isEmpty() : locationString+" has no line. Aborting.";
+		//assert !line.isEmpty() : locationString+" has no line. Aborting.";
+		if (line.isEmpty()) {
+			return "0";
+		} else {
+			return line;
+		}
 		
-		return line;
+		//return line;
 	}
 }

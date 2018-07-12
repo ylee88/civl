@@ -321,8 +321,12 @@ public class ImmutableStateFactory implements StateFactory {
 			boolean collectScopes, boolean collectHeaps,
 			boolean collectSymbolicConstants, boolean simplify,
 			Set<HeapErrorKind> toBeIgnored) throws CIVLHeapException {
-		return canonicWork(state, collectProcesses, collectScopes, collectHeaps,
+		if (config.sliceAnalysis()) { 
+			return (ImmutableState) state; 
+		} else {
+			return canonicWork(state, collectProcesses, collectScopes, collectHeaps,
 				collectSymbolicConstants, simplify, toBeIgnored);
+		}
 	}
 
 	/**
@@ -1724,8 +1728,12 @@ public class ImmutableStateFactory implements StateFactory {
 	 * @return True iff the given claim is evaluated to be false.
 	 */
 	private boolean nsat(BooleanExpression claim) {
-		return trueContextReasoner.unsat(claim)
-				.getResultType() == ResultType.YES;
+		if (config.sliceAnalysis() || config.svcomp()) {
+			return trueContextReasoner.unsat(claim).getResultType() == ResultType.YES;
+		} else {
+			return trueContextReasoner.unsat(claim)
+					.getResultType() == ResultType.YES;
+		}
 	}
 
 	/**

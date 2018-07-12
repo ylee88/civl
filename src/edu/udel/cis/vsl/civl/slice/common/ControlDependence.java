@@ -1,11 +1,11 @@
 package edu.udel.cis.vsl.civl.slice.common;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
@@ -16,6 +16,11 @@ import edu.udel.cis.vsl.sarl.SARL;
 import edu.udel.cis.vsl.sarl.IF.Reasoner;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.expr.BooleanExpression;
+import edu.udel.cis.vsl.sarl.preuniverse.IF.FactorySystem;
+import edu.udel.cis.vsl.sarl.preuniverse.IF.PreUniverse;
+import edu.udel.cis.vsl.sarl.preuniverse.IF.PreUniverses;
+import edu.udel.cis.vsl.sarl.prove.z3.Z3Translator;
+import edu.udel.cis.vsl.sarl.util.FastList;
 
 public class ControlDependence {
 	
@@ -23,24 +28,24 @@ public class ControlDependence {
 	Map<CfaLoc,CfaLoc> ipdMap; /* One big map */
 	Map<Location,CfaLoc> locToCfaLoc; /* One big map */
 	Stack<ControlDependencyElement> cds;
+	Map<ErrorCfaLoc,Stack<ControlDependencyElement>> cdsMap;
 	Set<BooleanExpression> slicedPC;
 	Set<BooleanExpression> minimizedSlice;
-	File traceFile;
 	boolean debug = false;
 	
 	/** Stdout: where most output is going to go, including error reports */
 	private PrintStream out = System.out;
 	
 	public ControlDependence (ErrorAutomaton tr, Map<CfaLoc,CfaLoc> ipd,
-			Map<Location,CfaLoc> locationMap, File f) {
+			Map<Location,CfaLoc> locationMap) {
 		
 		trace = tr;
 		ipdMap = ipd;
 		locToCfaLoc = locationMap;
 		cds = new Stack<>();
+		cdsMap = new HashMap<>();
 		slicedPC = new HashSet<>();
 		minimizedSlice = new HashSet<>();
-		traceFile = f;
 		
 	}
 	
@@ -49,6 +54,7 @@ public class ControlDependence {
 		for (ErrorCfaLoc l : trace.errorTrace) {	
 			if (isMerging(l)) mergingLogic(l);
 			if (isBranching(l)) branchingLogic(l);
+			updateCdsMap(l,cds);
 		}
 		if (debug) {
 			out.println("\nControl Dependence Stack:\n");
@@ -63,16 +69,6 @@ public class ControlDependence {
 			}
 		}
 		
-		out.println("\nBEGIN Guidance Lines\n");
-		assert !cds.isEmpty() : "The Control Dependency Stack is empty.";
-		for (ControlDependencyElement e : cds) {
-			if (debug) out.println("CDS element: "+e);
-			for (ErrorCfaLoc bp : e.branchPoints) {
-				out.println("  "+bp.sourceLine);
-			}
-		}
-		out.println("\nEND Guidance Lines\n");
-		
 		assert BranchConstraints.evaluator != null : "BranchConstraints has no evaluator";
 		for (ControlDependencyElement e : cds) {
 			for (ErrorCfaLoc bp : e.branchPoints) {
@@ -80,21 +76,52 @@ public class ControlDependence {
 				slicedPC.add(bp.branchConstraint);
 			}
 		}
-		
-		minimizedSlice = makeMinimizedPC(slicedPC);
-		
-		out.println("\nBEGIN Control Dependent Slice\n");
-		for (BooleanExpression e : minimizedSlice) {
-			out.println("  "+e);
+		/* The following method can take a long time; we bound its running time */
+		boolean minimize = false;
+		if (minimize) {
+			minimizedSlice = makeMinimizedPC(slicedPC);
+		} else {
+			minimizedSlice = slicedPC;
 		}
-		out.println("\nEND Control Dependent Slice\n");
 		
-		outputSlicedPC(traceFile);
+		/* Test CdsMap collection */
+		if (debug) printCdsMap();
+		/* Test smt2 output format */
+		if (debug) smt2SliceStrings();
 		
 		return cds;
 		
 	}
 	
+	private void updateCdsMap(ErrorCfaLoc l, Stack<ControlDependencyElement> currentCds) {
+		Stack<ControlDependencyElement> cdsValue = new Stack<>();
+		List<ControlDependencyElement> cdsList = new ArrayList<>();
+		for (ControlDependencyElement e : currentCds) {
+			cdsList.add(e);
+		}
+		cdsValue.addAll(cdsList);
+		cdsMap.put(l, cdsValue);
+		if (debug) {
+			out.println("Updating map for ErrorCfaLoc: "+l);
+			for (ControlDependencyElement e : cdsValue) {
+				out.println("     "+e);
+			}
+		}
+	}
+	
+	private void printCdsMap() {
+		out.println("\n  Printing CDS map: \n\n");
+		for (ErrorCfaLoc l : cdsMap.keySet()) {
+			if (l.isExitLocation()) continue;
+			out.println("   Stmt: "+l.nextTransition());
+			out.println("    Stack:");
+			for (ControlDependencyElement e : cdsMap.get(l)) {
+				out.println("     "+e);
+			}
+			out.println();
+		}
+	}
+
 	public Set<BooleanExpression> getSlicedPC() {
 		return slicedPC;
 	}
@@ -133,9 +160,17 @@ public class ControlDependence {
 			return false;
 		} else {
 			Location loc = l.getCIVLLocation();
+			assert loc != null : "No CIVL Location found for: "+l;
 			CfaLoc cfaLoc = locToCfaLoc.get(loc);
 			
-			return cfaLoc.isIPD;
+			/* The instrumented branch directives don't have 
+			 * corresponding cfaLocs */
+			if (cfaLoc == null) {
+				return false;
+			} else {
+				return cfaLoc.isIPD;
+			}
+			
 		}
 	}
 	
@@ -150,7 +185,11 @@ public class ControlDependence {
 			Location loc = l.getCIVLLocation();
 			CfaLoc cfaLoc = locToCfaLoc.get(loc);
 			
-			if (cfaLoc.isBranching) {
+			/* The instrumented branch directives don't have 
+			 * corresponding cfaLocs */
+			if (cfaLoc == null) {
+				return false;
+			} else if (cfaLoc.isBranching) {
 				String guardString = cfaLoc.location.getOutgoing(0).guard().toString(); 
 				if (guardString.startsWith("$sef$")) {
 					return false; // This is an instrumented branch directive
@@ -203,41 +242,28 @@ public class ControlDependence {
 		
 		
 	}
-
-	private void outputSlicedPC(File traceFile) throws IOException {
-		
-		BufferedWriter output = null;
-		String sliceFileName = traceFile.getAbsolutePath() + ".slice";
-		try {
-			File file = new File(sliceFileName);
-            output = new BufferedWriter(new FileWriter(file));
-            
-			output.write(sliceStrings());
-        } finally {
-          if ( output != null ) {
-            output.close();
-          }
-        }
-	}
 	
 	private Set<BooleanExpression> makeMinimizedPC(Set<BooleanExpression> clauses) {
+		
+		boolean localDebug = true;
 		Set<BooleanExpression> impliedClauses = new HashSet<BooleanExpression>();
 		
 		SymbolicUniverse universe = SARL.newStandardUniverse();
-			
-		BooleanExpression context = universe.trueExpression();
-		Reasoner reasoner = universe.reasoner(context);
-						
+		Reasoner trueContextReasoner = universe.reasoner(universe.trueExpression());
+		
 		for (BooleanExpression c : clauses) {
 			BooleanExpression antecedent = universe.trueExpression();
 			for (BooleanExpression other : clauses) {
 				if (other.equals(c)) continue;
 				antecedent = universe.and(antecedent, other);
 			}
-			
+			// Print out antecedent and c
+			if (localDebug) out.println("Antecedent of stalling implication: "+antecedent);
+			if (localDebug) out.println("Consequent of stalling implication: "+c);
 			BooleanExpression implication = universe.implies(antecedent, c);
+			if (localDebug) out.println("Stalling implication: "+implication);
 			
-			if (reasoner.isValid(implication)) {
+			if (trueContextReasoner.isValid(implication)) {
 				impliedClauses.add(c);
 			}
 		}
@@ -248,16 +274,28 @@ public class ControlDependence {
 		
 		return minimizedClauses;
 	}
-
-	private String sliceStrings () {
-		
+	
+	private String smt2SliceStrings () {
 		String s = "";
-		s += "*** Original PC ***\n";
-		for (BooleanExpression c : slicedPC) s += "   "+c+"\n";
 		
-		s += "*** Minimized PC ***\n";
-		for (BooleanExpression c : minimizedSlice) s += "   "+c+"\n";
+		FactorySystem factorySystem = PreUniverses.newIdealFactorySystem();
+		PreUniverse universe = PreUniverses.newPreUniverse(factorySystem);
+		BooleanExpression context = universe.trueExpression();
+		
+		Z3Translator startingContext = new Z3Translator(universe,context,true);
+		
+		for (BooleanExpression expression : minimizedSlice) {
+			Z3Translator translator = new Z3Translator(startingContext, expression);
+			FastList<String> predicateDecls = translator.getDeclarations();
+			FastList<String> predicateText = translator.getTranslation();
+			
+			out.println("SMT2 Representation of "+expression+":\n");
+			predicateDecls.print(out);
+			predicateText.print(out);
+			out.println();
+		}
 		
 		return s;
 	}
+
 }

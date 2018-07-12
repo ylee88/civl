@@ -262,6 +262,10 @@ public class DirectingWorker extends BaseWorker {
 	 *   $assume($direct_array[LbranchIdx++] ? Cond : ! Cond );
 	 */
 	private StatementNode instrumentAssume(Source src, ExpressionNode cond) throws SyntaxException {
+		/* Boolean casts not happening when the condition is "1" or "0", so forcing this with the following hack */
+		if (cond.prettyRepresentation().toString().equals("1")) cond = nodeFactory.newBooleanConstantNode(src, true);
+		if (cond.prettyRepresentation().toString().equals("0")) cond = nodeFactory.newBooleanConstantNode(src, false);
+		
 		ExpressionNode branchArray = nodeFactory.newIdentifierExpressionNode(src, nodeFactory.newIdentifierNode(src, arrayVarName));
 		ExpressionNode branchIdx = nodeFactory.newIdentifierExpressionNode(src, nodeFactory.newIdentifierNode(src, indexVarName));
 		List<ExpressionNode> accessArgs = new LinkedList<ExpressionNode>();
@@ -277,11 +281,11 @@ public class DirectingWorker extends BaseWorker {
 		plusArgs.add(negCond);
 		
 		ExpressionNode qmarkExpr = nodeFactory.newOperatorNode(src, Operator.CONDITIONAL, plusArgs);	
-		IntegerConstantNode oneNode = nodeFactory.newIntegerConstantNode(src,  "1");
-		ExpressionNode equalsNode = nodeFactory.newOperatorNode(src,  Operator.EQUALS, qmarkExpr, oneNode);
+		//IntegerConstantNode oneNode = nodeFactory.newIntegerConstantNode(src,  "1");
+		//ExpressionNode equalsNode = nodeFactory.newOperatorNode(src,  Operator.EQUALS, qmarkExpr, oneNode);
 		
 		IdentifierExpressionNode vAssume = nodeFactory.newIdentifierExpressionNode(src, nodeFactory.newIdentifierNode(src, "$assume"));
-		StatementNode assumeStatement = nodeFactory.newExpressionStatementNode(nodeFactory.newFunctionCallNode(src, vAssume, Arrays.asList(equalsNode), null));
+		StatementNode assumeStatement = nodeFactory.newExpressionStatementNode(nodeFactory.newFunctionCallNode(src, vAssume, Arrays.asList(qmarkExpr), null));
 		
 		/* This asserts that the branch index doesn't run past the array of given directions */
 		StatementNode assertStatement = instrumentAssert(src, branchIdx);
@@ -328,7 +332,7 @@ public class DirectingWorker extends BaseWorker {
 		
 		if (node.getKind() == LoopKind.WHILE) {
 
-			ExpressionNode trueCondition = nodeFactory.newIntegerConstantNode(src, "1");
+			ExpressionNode trueCondition = nodeFactory.newIntegerConstantNode(src, "1"); 
 			
 			List<BlockItemNode> statements = new LinkedList<BlockItemNode>();
 			statements.add(instrumentAssume(src, cond));
