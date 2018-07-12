@@ -1,5 +1,6 @@
 package edu.udel.cis.vsl.civl.library.civlc;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -9,6 +10,7 @@ import java.util.Set;
 
 import edu.udel.cis.vsl.civl.library.civlc.StepRestrictedForallStructureCollection.StepRestrictedForall;
 import edu.udel.cis.vsl.sarl.IF.CoreUniverse.ForallStructure;
+import edu.udel.cis.vsl.sarl.IF.Reasoner;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.UnaryOperator;
 import edu.udel.cis.vsl.sarl.IF.expr.BooleanExpression;
@@ -17,18 +19,22 @@ import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
 import edu.udel.cis.vsl.sarl.IF.number.IntegerNumber;
 import edu.udel.cis.vsl.sarl.IF.object.SymbolicObject;
+import edu.udel.cis.vsl.sarl.IF.type.SymbolicType.SymbolicTypeKind;
 
 /**
  * <p>
- * Given a set of <code>n</code> universal quantified expressions: <code> 
- * { FORALL i : low &lt= i &lt high && i % n == m ==> P<sub>j</sub>(i) | 0 &lt= j &lt n}
- * </code>, if one can prove that <code>
- * FORALL i, j : 0 &lt= j &lt n-1 ==> P<sub>j</sub>(i+1) == P<sub>j+1</sub>(i);
+ * Given a set of <code>n</code> universal quantified expressions:
+ * <code>                                                                                                    
+ * { FORALL i : low &lt= i &lt high && i % n == m ==> P<sub>j</sub>(i) | 0 &lt= j &lt n}                                                                                     
+ * </code>, if one can prove that
+ * <code>                                                                                                                                     
+ * FORALL i, j : 0 &lt= j &lt n-1 ==> P<sub>j</sub>(i+1) == P<sub>j+1</sub>(i);                                                                                              
  * </code> The whole set of universal quantified expressions can be combined to
- * <code>
- * FORALL i : low' &lt= i &lt high' ==> P<sub>0</sub>(i)
- * </code> where <code>low' == low + abs(low % n - m)</code> and
- * <code>high' == high - abs(high % n - m) + n - 1</code>.
+ * <code>                                                                                                                                                                    
+ * FORALL i : low' &lt= i &lt high' ==> P<sub>0</sub>(i)                                                                                                                     
+ * </code> where <code>low' == low + (low % n == m ? 0 : n - m)</code> and
+ * <code>high' == high % n == m ? high : (high % n &lt m ? h - h % n + m : h - h % n + m + n)</code>
+ * .
  * </p>
  * 
  * <p>
@@ -48,7 +54,7 @@ public class SteppedUniversalCombination extends ExpressionVisitor
 	/**
 	 * The applied expression:
 	 */
-	private SymbolicExpression x;
+	private BooleanExpression x;
 
 	SteppedUniversalCombination(SymbolicUniverse universe) {
 		super(universe);
@@ -56,8 +62,9 @@ public class SteppedUniversalCombination extends ExpressionVisitor
 	}
 
 	@Override
-	public SymbolicExpression apply(SymbolicExpression x) {
-		this.x = x;
+	public BooleanExpression apply(SymbolicExpression x) {
+		assert x.type().typeKind() == SymbolicTypeKind.BOOLEAN;
+		this.x = (BooleanExpression) x;
 		if (x.operator() == SymbolicOperator.AND) {
 			List<BooleanExpression> cnfClauses = new LinkedList<>();
 
@@ -248,41 +255,75 @@ public class SteppedUniversalCombination extends ExpressionVisitor
 						universe.add(theBaseForall.forall.upperBound,
 								universe.oneInt()),
 						theBaseForall.bodyWithoutStep);
-		x = universe.make(SymbolicOperator.AND, universe.booleanType(),
-				xNewArgs);
+		x = (BooleanExpression) universe.make(SymbolicOperator.AND,
+				universe.booleanType(), xNewArgs);
 	}
 
 	/**
 	 * 
 	 * Update lower bound of the given forall clause to
-	 * <code>low' == low + abs(low % n - m)</code> and the upper bound to
-	 * <code>high' == high - abs(low % n - m) + n - 1</code>.
+	 * <code>low' == low + (low % n == m ? 0 : n - m)</code> and
+	 * <code>high' == high % n == m ? high : (high % n &lt m ? h - h % n + m : h - h % n + m + n)</code>
 	 * 
 	 * @param forall
 	 */
 	private void updateBounds(StepRestrictedForall forall) {
-		NumericExpression newLow = universe.add(forall.forall.lowerBound,
-				absInt(universe.subtract(
-						universe.modulo(forall.forall.lowerBound,
-								universe.number(forall.step)),
-						forall.step_offset)));
-		NumericExpression newUp = universe.subtract(forall.forall.upperBound,
-				absInt(universe.subtract(
-						universe.modulo(forall.forall.upperBound,
-								universe.number(forall.step)),
-						forall.step_offset)));
+		NumericExpression newLow = newLow(forall.forall.lowerBound,
+				universe.number(forall.step), forall.step_offset);
+		NumericExpression newUp = newHigh(forall.forall.upperBound,
+				universe.number(forall.step), forall.step_offset);
 
-		newUp = universe.subtract(
-				universe.add(newUp, universe.number(forall.step)),
-				universe.oneInt());
 		forall.forall.lowerBound = newLow;
 		forall.forall.upperBound = newUp;
 	}
 
-	private NumericExpression absInt(NumericExpression n) {
-		assert n.type().isInteger();
-		return (NumericExpression) universe.cond(
-				universe.lessThanEquals(universe.zeroInt(), n), n,
-				universe.minus(n));
+	/**
+	 * n is step, m is offset:
+	 * <code>low' == low + (low % n == m ? 0 : n - m)</code>
+	 * 
+	 * @return
+	 */
+	private NumericExpression newLow(NumericExpression low,
+			NumericExpression step, NumericExpression offset) {
+		Reasoner reasoner = universe.reasoner(x);
+		BooleanExpression cond = universe.equals(universe.modulo(low, step),
+				offset);
+
+		if (reasoner.isValid(cond))
+			return low;
+		else if (reasoner.isValid(universe.not(cond)))
+			return universe
+					.add(Arrays.asList(low, step, universe.minus(offset)));
+		return (NumericExpression) universe.cond(cond, low,
+				universe.add(Arrays.asList(low, step, universe.minus(offset))));
+	}
+
+	/**
+	 * n is step, m is offset:
+	 * <code>high' == high % n == m ? high : (high % n &lt m ? h - h % n + m : h - h % n + m + n)</code>
+	 * 
+	 * @return
+	 */
+	private NumericExpression newHigh(NumericExpression high,
+			NumericExpression step, NumericExpression offset) {
+		Reasoner reasoner = universe.reasoner(x);
+		BooleanExpression cond0 = universe.equals(universe.modulo(high, step),
+				offset);
+		BooleanExpression cond1 = universe.lessThan(universe.modulo(high, step),
+				offset);
+		NumericExpression newHigh0 = universe.add(Arrays.asList(high,
+				universe.minus(universe.modulo(high, step)), offset));
+		NumericExpression newHigh1 = universe.add(newHigh0, step);
+
+		if (reasoner.isValid(cond0))
+			return high;
+		else if (reasoner.isValid(universe.not(cond0))) {
+			if (reasoner.isValid(cond1))
+				return newHigh0;
+			else if (reasoner.isValid(universe.not(cond1)))
+				return newHigh1;
+		}
+		return (NumericExpression) universe.cond(cond0, high,
+				universe.cond(cond1, newHigh0, newHigh1));
 	}
 }
