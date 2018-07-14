@@ -423,7 +423,9 @@ public class QuantifiedExpressionEvaluator
 		}
 		switch (quant) {
 			case SUM :
-				result = universe.sigma(low, high, lambda);
+				// Higher bound in SARL's sigma is exclusive:
+				result = universe.sigma(low,
+						universe.add(high, universe.oneInt()), lambda);
 				break;
 			default :
 				throw new CIVLUnimplementedFeatureException(
