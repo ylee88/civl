@@ -66,6 +66,14 @@ public class SlowLoopInvariantsWithAssignsTest2 {
 				filename("/Jans_example/invariant.cvl")));
 	}
 
+	@Test
+	public void adderCompare() {
+		assertTrue(ui.run("compare", TestConstants.QUIET, "-loop",
+				TestConstants.SPEC, "-loop", filename("/compare/adder_spec.c"),
+				TestConstants.IMPL, "-loop", "-input_mpi_nprocs=3",
+				filename("/compare/adder_par.c")));
+	}
+
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
 		ui = null;
