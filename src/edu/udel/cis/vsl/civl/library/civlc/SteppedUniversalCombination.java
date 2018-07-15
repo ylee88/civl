@@ -32,9 +32,36 @@ import edu.udel.cis.vsl.sarl.IF.type.SymbolicType.SymbolicTypeKind;
  * </code> The whole set of universal quantified expressions can be combined to
  * <code>                                                                                                                                                                    
  * FORALL i : low' &lt= i &lt high' ==> P<sub>0</sub>(i)                                                                                                                     
- * </code> where <code>low' == low + (low % n == m ? 0 : n - m)</code> and
- * <code>high' == high % n == m ? high : (high % n &lt m ? h - h % n + m : h - h % n + m + n)</code>
+ * </code> where <br>
+ * <code>low' == low % n == m ? low : 
+ *                              (low % n &lt m ? low - low % n + m : low - low %n + n + m)</code>
+ * and <code>high' == high % n == m ? (high + n - 1) : 
+ *                                (high % n &lt m ? high - high % n + m - 1 : high - high % n + m + n - 1)</code>
  * .
+ * </p>
+ * 
+ * <p>
+ * Some description for the new lower and higher bounds <code>low'</code> and
+ * <code>high'</code>: <code>low'</code> is suppose to be the minimum number
+ * that is greater than or equal to <code>low</code> and
+ * <code>low' % n == m</code>. So there are three cases: 1) if
+ * <code>low % n == m</code>, <code>low' == low</code>; 2) else if
+ * <code>low % n &lt m</code>, then the new lower can be obtained by adding an
+ * offset <code>m - low % n </code> to <code>low</code>; 3) Otherwise, the new
+ * lower is obtained by adding an offset <code>n - low % n + m</code> to
+ * <code>low</code>
+ * </p>
+ * 
+ * <p>
+ * Smimilarly, <code>higher'</code> is suppose to be the number that is obtained
+ * via adding <code>n - 1</code> to the maximum number <code>max</code> that is
+ * less than or equal to <code>high</code> and <code>max % n == m</code>. So
+ * there are three cases: 1) if <code>high % n == m</code>,
+ * <code>high == max</code>, then <code>high' = max + n - 1</code>; 2) else if
+ * <code>high % n &lt m</code>, then <code>max</code> can be obtained by adding
+ * an offset <code>m - n - high % n </code> to <code>high</code>; 3) Otherwise,
+ * the <code>max</code> is obtained by adding an offset
+ * <code>m - high % n</code> to <code>high</code>
  * </p>
  * 
  * <p>
@@ -278,29 +305,41 @@ public class SteppedUniversalCombination extends ExpressionVisitor
 	}
 
 	/**
-	 * n is step, m is offset:
-	 * <code>low' == low + (low % n == m ? 0 : n - m)</code>
+	 * n is step, m is offset: <code>low' == low % n == m ? low : 
+	*                              (low % n &lt m ? low - low % n + m : low - low % n + n + m)</code>
 	 * 
 	 * @return
 	 */
 	private NumericExpression newLow(NumericExpression low,
 			NumericExpression step, NumericExpression offset) {
 		Reasoner reasoner = universe.reasoner(x);
-		BooleanExpression cond = universe.equals(universe.modulo(low, step),
+		BooleanExpression cond0 = universe.equals(universe.modulo(low, step),
+				offset);
+		BooleanExpression cond1 = universe.lessThan(universe.modulo(low, step),
 				offset);
 
-		if (reasoner.isValid(cond))
-			return low;
-		else if (reasoner.isValid(universe.not(cond)))
-			return universe
-					.add(Arrays.asList(low, step, universe.minus(offset)));
-		return (NumericExpression) universe.cond(cond, low,
-				universe.add(Arrays.asList(low, step, universe.minus(offset))));
+		NumericExpression newLow0 = low;
+		NumericExpression newLow1 = universe.add(Arrays.asList(low, offset,
+				universe.minus(universe.modulo(low, step)), offset,
+				universe.minus(universe.oneInt())));
+		NumericExpression newLow2 = universe.add(Arrays.asList(low, step,
+				offset, universe.minus(universe.modulo(low, step))));
+
+		if (reasoner.isValid(cond0))
+			return newLow0;
+		else if (reasoner.isValid(universe.not(cond0)))
+			if (reasoner.isValid(cond1))
+				return newLow1;
+			else if (reasoner.isValid(universe.not(cond1)))
+				return newLow2;
+		return (NumericExpression) universe.cond(cond0, newLow0,
+				universe.cond(cond1, newLow1, newLow2));
 	}
 
 	/**
-	 * n is step, m is offset:
-	 * <code>high' == high % n == m ? high : (high % n &lt m ? h - h % n + m : h - h % n + m + n)</code>
+	 * n is step, m is offset: <br>
+	 * <code>high' == high % n == m ? (high + n - 1) : 
+	 *                                (high % n &lt m ? h - h % n + m - 1 : h - h % n + m + n - 1)</code>
 	 * 
 	 * @return
 	 */
@@ -311,19 +350,23 @@ public class SteppedUniversalCombination extends ExpressionVisitor
 				offset);
 		BooleanExpression cond1 = universe.lessThan(universe.modulo(high, step),
 				offset);
-		NumericExpression newHigh0 = universe.add(Arrays.asList(high,
-				universe.minus(universe.modulo(high, step)), offset));
-		NumericExpression newHigh1 = universe.add(newHigh0, step);
+
+		NumericExpression newHigh0 = universe.add(
+				Arrays.asList(high, step, universe.minus(universe.oneInt())));
+		NumericExpression newHigh1 = universe.add(
+				Arrays.asList(high, universe.minus(universe.modulo(high, step)),
+						offset, universe.minus(universe.oneInt())));
+		NumericExpression newHigh2 = universe.add(newHigh1, step);
 
 		if (reasoner.isValid(cond0))
-			return high;
+			return newHigh0;
 		else if (reasoner.isValid(universe.not(cond0))) {
 			if (reasoner.isValid(cond1))
-				return newHigh0;
-			else if (reasoner.isValid(universe.not(cond1)))
 				return newHigh1;
+			else if (reasoner.isValid(universe.not(cond1)))
+				return newHigh2;
 		}
-		return (NumericExpression) universe.cond(cond0, high,
-				universe.cond(cond1, newHigh0, newHigh1));
+		return (NumericExpression) universe.cond(cond0, newHigh0,
+				universe.cond(cond1, newHigh1, newHigh2));
 	}
 }

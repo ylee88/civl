@@ -62,8 +62,7 @@ public class ContractTest {
 	@Test
 	public void gather() {
 		assertTrue(ui.run(VERIFY, "-input_mpi_nprocs=2", "-mpiContract=gather",
-				// TestConstants.QUIET,
-				"-showPathCondition=BLOCK", "-collectSymbolicConstants=true",
+				TestConstants.QUIET, "-collectSymbolicConstants=true",
 				filename("/contractsMPI/allgather.c")));
 	}
 
