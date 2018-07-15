@@ -1,3 +1,7 @@
+/* A variant of the verification attemptation of the 'invariant.cvl'
+ * example under this directory: the point is replace all non-linear
+ * term uin[i][j] * uin[i][j] to a function call in annotations.
+ */
 #include <stdio.h>
 #include <string.h>
 #ifdef _CIVL
@@ -17,6 +21,9 @@ int main(int argc, char** argv) {
   double u1[ni][nj];
   double u2[ni][nj];
 
+  $abstract double square(double x);
+  $assume($forall (double x) square(x) == x * x);
+
   $assume($forall (int i : 0 .. ni-1) 
 	  ($forall (int j : 0 .. nj-1) u1[i][j] == 0 && u2[i][j] == 0)
 	  );
@@ -24,7 +31,7 @@ int main(int argc, char** argv) {
   double tmp1[ni][nj];
 
   $assume($forall (int i : 1 .. ni-2) 
-	  ($forall (int j : 1 .. nj-2) tmp1[i][j] == uin[i][j] * uin[i][j])
+	  ($forall (int j : 1 .. nj-2) tmp1[i][j] == square(uin[i][j]))
 	  );
   $assume($forall (int j : 0 .. nj-1) tmp1[0][j] == 0 && tmp1[ni-1][j] == 0);
   $assume($forall (int i : 0 .. ni - 1) tmp1[i][0] == 0 &&  tmp1[i][nj-1] == 0);
@@ -44,7 +51,7 @@ int main(int argc, char** argv) {
   /*@ loop invariant 1 <= i <= ni-1;  
     @ loop invariant 1 < i ==> (nj - 2 <= j <= nj - 1 && j % 2 != 0); // needed for the rest of the code
     @ loop invariant \forall int t, k; 1 <= t < i && 1 <= k < nj - 2 && k % 2 != 0
-    @                     ==> u2[t][k] == uin[t][k]*uin[t][k] && u2[t][k+1] == uin[t][k+1]*uin[t][k+1];
+    @                     ==> u2[t][k] == square(uin[t][k]) && u2[t][k+1] == square(uin[t][k+1]);
     @ loop invariant i % 2 != 0;
     @ loop assigns u2[1 .. ni-2][1 .. nj-2], i, j;
     @*/
@@ -52,7 +59,7 @@ int main(int argc, char** argv) {
   /*@ loop invariant 1 <= i < ni-2;  
     @ loop invariant 1 <= j <= nj-1;
     @ loop invariant \forall int k; 1 <= k < j 
-    @                  ==> u2[i][k] == uin[i][k]*uin[i][k] && u2[i+1][k] == uin[i+1][k]*uin[i+1][k] ;
+    @                  ==> u2[i][k] == square(uin[i][k]) && u2[i+1][k] == square(uin[i+1][k]) ;
     @ loop invariant i % 2 != 0 && j % 2 != 0;
     @ loop assigns u2[i][1 .. nj-2], u2[i+1][1 .. nj-2], j;
     @*/
@@ -67,7 +74,7 @@ int main(int argc, char** argv) {
   if(i==ni-2) {
     /*@ loop invariant 1 <= jr <= nj-1;
       @ loop invariant \forall int t; 1 <= t < jr ==>
-      @                    u2[i][t] == uin[i][t]*uin[i][t];
+      @                    u2[i][t] == square(uin[i][t]);
       @ loop assigns   jr, u2[i][1 .. nj-2];
       @*/
     for(jr=1;jr<nj-1;jr++) {
@@ -77,7 +84,7 @@ int main(int argc, char** argv) {
   if(j==nj-2) {
     /*@ loop invariant 1 <= ir <= ni-1;
       @ loop invariant \forall int t; 1 <= t < ir ==>
-      @                    u2[t][j] == uin[t][j]*uin[t][j];
+      @                    u2[t][j] == square(uin[t][j]);
       @ loop assigns   ir, u2[1 .. ni-2][j];
       @*/
     for(ir=1;ir<ni-1;ir++) {
