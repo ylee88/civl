@@ -31,8 +31,22 @@ int main(int argc, char** argv) {
       }
     }
     */
-    
-    
+    $havoc(&u1);
+    $havoc(&u2); 
+    $assume($forall (int i : 0 .. ni-1) u1[i][0] == 0 &&  u1[i][nj-1] == 0 && u2[i][0] == 0 &&  u2[i][nj-1] == 0);
+    $assume($forall (int j : 0 .. nj-1) u1[0][j] == 0 &&  u1[ni-1][j] == 0 && u2[0][j] == 0 &&  u2[ni-1][j] == 0);
+    $assume($forall (int i : 1 .. ni-2) ($forall (int j : 1 .. nj-2) u1[i][j] == uin[i][j] * uin[i][j]));
+
+    if (ni > 2) {
+      i = ni - 1;	
+      if (nj > 2)
+	j = nj - 1;
+      else
+	j = 1;
+    } else {
+      i = 1;
+      j = nj;
+    }
     
     // blocked loop nest
     for(i=1;i<ni-bi;i=i+bi) {
@@ -67,21 +81,6 @@ int main(int argc, char** argv) {
       }
     }
 
-    // print
-    //printf("uout1:%s","\n");
-    //for(i=0;i<ni;i++) {
-    //  for(j=0;j<nj;j++) {
-    //    printf("%f ",u1[i][j]);
-    //  }
-    //  printf("\n");
-    //}
-    //printf("uout2:%s","\n");
-    //for(i=0;i<ni;i++) {
-    //  for(j=0;j<nj;j++) {
-    //    printf("%f ",u2[i][j]);
-    //  }
-    //  printf("\n");
-    //}
 
     // assert equality of u1 and u2
     for(i=0;i<ni;i++) {
