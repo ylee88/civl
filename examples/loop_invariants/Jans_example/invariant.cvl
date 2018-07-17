@@ -16,20 +16,52 @@ int main(int argc, char** argv) {
   int i,j,ir,jr;
   double u1[ni][nj];
   double u2[ni][nj];
+  
+  /*@ loop invariant 0 <= i <= ni;
+    @ loop invariant \forall int t; 0 <= t < i ==>
+    @                  (\forall int k; 0 <= k < nj ==> u1[t][k]==0 && u2[t][k]==0);
+    @ loop invariant i > 0 ==> j == nj;
+    @ loop assigns   u1[0 .. ni-1][0 .. nj-1], u2[0 .. ni-1][0 .. nj-1], i, j;
+    @*/
+  for(i=0;i<ni;i++) {
+    /*@ loop invariant 0 <= j <= nj;
+      @ loop invariant \forall int k; 0 <= k < j ==> u1[i][k]==0 && u2[i][k]==0;
+      @ loop assigns u1[i][0 .. nj-1], u2[i][0 .. nj-1], j;
+      @*/
+    for(j=0;j<nj;j++) {
+      u1[i][j] = 0;
+      u2[i][j] = 0;
+    }
+  }
 
-  $assume($forall (int i : 0 .. ni-1) 
-	  ($forall (int j : 0 .. nj-1) u1[i][j] == 0 && u2[i][j] == 0)
-	  );
+  // straightforward loop nest
+  /*@ loop invariant 1 <= i <= ni-1;
+    @ loop invariant \forall int t; 1 <= t < i ==>
+    @                  (\forall int k; 1 <= k < nj-1 ==> u1[t][k] == uin[t][k] * uin[t][k]);
+    @ loop invariant i > 1 ==> j == nj - 1;
+    @ loop assigns   u1[1 .. ni-2][1 .. nj-2], u2[1 .. ni-2][1 .. nj-2], i, j;
+    @*/
+  for(i=1;i<ni-1;i++) {
+    /*@ loop invariant 1 <= j <= nj-1;
+      @ loop invariant \forall int k; 1 <= k < j ==> u1[i][k] == uin[i][k] * uin[i][k];
+      @ loop assigns u1[i][1 .. nj-2], u2[i][1 .. nj-2], j;
+      @*/
+    for(j=1;j<nj-1;j++) {
+      u1[i][j] = uin[i][j]*uin[i][j];
+    }
+  }
 
-  double tmp1[ni][nj];
-
-  $assume($forall (int i : 1 .. ni-2) 
-	  ($forall (int j : 1 .. nj-2) tmp1[i][j] == uin[i][j] * uin[i][j])
-	  );
-  $assume($forall (int j : 0 .. nj-1) tmp1[0][j] == 0 && tmp1[ni-1][j] == 0);
-  $assume($forall (int i : 0 .. ni - 1) tmp1[i][0] == 0 &&  tmp1[i][nj-1] == 0);
-  memcpy(u1, tmp1, sizeof(double) * ni * nj);
-
+  if (ni > 2) {
+    $assert(i == ni - 1);	
+    if (nj > 2)
+      $assert(j == nj - 1);
+    else
+      $assert(j == 1);
+  } else {
+    $assert(i == 1);
+    $assert(j == nj);
+  }
+  /*
   if (ni > 2) {
     i = ni - 1;	
     if (nj > 2)
@@ -40,6 +72,7 @@ int main(int argc, char** argv) {
     i = 1;
     j = nj;
   }
+  */
 
   /*@ loop invariant 1 <= i <= ni-1;  
     @ loop invariant 1 < i ==> (nj - 2 <= j <= nj - 1 && j % 2 != 0); // needed for the rest of the code
@@ -85,7 +118,7 @@ int main(int argc, char** argv) {
     }
   }
   if(i==ni-2 && j==nj-2) u2[i][j] = uin[i][j]*uin[i][j];
-
+  
   $assert($forall (int i: 0 .. ni-1) 
 	  ($forall (int j: 0 .. nj-1) u1[i][j] == u2[i][j])
 	  );
