@@ -1,5 +1,5 @@
 CIVL=civl
-OPTION=-collectSymbolicConstants=true
+OPTION=-loop
 VERIFY=$(CIVL) verify $(OPTION) 
 
 all : $(patsubst %.cvl, verify_%, $(wildcard *))
