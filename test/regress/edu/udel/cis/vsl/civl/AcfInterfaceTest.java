@@ -13,7 +13,7 @@ import java.nio.file.Paths;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.Test;
+import org.junit.Ignore;
 
 import edu.udel.cis.vsl.abc.err.IF.ABCException;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
@@ -25,10 +25,10 @@ public class AcfInterfaceTest {
 	private static File rootDir = new File(new File("examples"), "slice");
 
 	private static UserInterface ui = new UserInterface();
-	
+
 	private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
 	private final PrintStream originalOut = System.out;
-	
+
 	private static boolean NO_DIRECT = false;
 	private static boolean DIRECT = true;
 
@@ -37,68 +37,68 @@ public class AcfInterfaceTest {
 	private static String filename(String name) {
 		return new File(rootDir, name).getPath();
 	}
-	
+
 	/*
 	 * Check whether the output produced by running either
 	 * 
-	 *   civl verify -svcomp16 stress_test.c; or
-	 *   civl verify -svcomp16 -direct=stress_test.direct stress_test.c
-	 *   
-	 * followed by
-	 *  
-	 *  civl replay -sliceAnalysis stress_test.c
-	 *  
-	 * contains the oracle string defined in 
-	 * examples/slice/stress_test.oracle.
+	 * civl verify -svcomp16 stress_test.c; or civl verify -svcomp16
+	 * -direct=stress_test.direct stress_test.c
 	 * 
-	 * @param filename The base name of the C program,
-	 * its corresponding oracle, and possibly a file 
-	 * with branch directives.
+	 * followed by
+	 * 
+	 * civl replay -sliceAnalysis stress_test.c
+	 * 
+	 * contains the oracle string defined in examples/slice/stress_test.oracle.
+	 * 
+	 * @param filename The base name of the C program, its corresponding oracle,
+	 * and possibly a file with branch directives.
 	 * 
 	 * @throws ABCException
 	 * 
 	 * @throws IOException
 	 */
-	private boolean expectedOutput(String filename, boolean direct) throws ABCException, IOException {
+	private boolean expectedOutput(String filename, boolean direct)
+			throws ABCException, IOException {
 		String fileStr = filename + ".c";
-		
+
 		if (direct) {
-			String directFlag = "-direct=examples/slice/"+filename+".direct";
-			ui.run("verify", "-svcomp16", directFlag, filename(fileStr)); 	
+			String directFlag = "-direct=examples/slice/" + filename
+					+ ".direct";
+			ui.run("verify", "-svcomp16", directFlag, filename(fileStr));
 		} else {
-			ui.run("verify", "-svcomp16", filename(fileStr));			
+			ui.run("verify", "-svcomp16", filename(fileStr));
 		}
 		ui.run("replay", "-sliceAnalysis", filename(fileStr));
-		
-		String oraclePath = "examples/slice/"+filename+".oracle";
-		String oracle = new String(Files.readAllBytes(Paths.get(oraclePath)), 
+
+		String oraclePath = "examples/slice/" + filename + ".oracle";
+		String oracle = new String(Files.readAllBytes(Paths.get(oraclePath)),
 				StandardCharsets.UTF_8);
-		
+
 		return (outContent.toString()).contains(oracle);
 	}
-	
+
 	/* **************************** Test Methods *************************** */
-	
+
 	@Before
 	public void setUpStreams() {
-	    System.setOut(new PrintStream(outContent));
-	}
-	
-	@After
-	public void restoreStreams() {
-	    System.setOut(originalOut);
+		System.setOut(new PrintStream(outContent));
 	}
 
-	@Test
-	public void stressNoDirection() throws ABCException, IOException {	
+	@After
+	public void restoreStreams() {
+		System.setOut(originalOut);
+	}
+
+	@Ignore
+	public void stressNoDirection() throws ABCException, IOException {
 		assertTrue(expectedOutput("stress_test", NO_DIRECT));
 	}
-	
-	@Test
-	public void stressWithDirection() throws ABCException, IOException {	
+
+	@Ignore
+	public void stressWithDirection() throws ABCException, IOException {
 		assertTrue(expectedOutput("stress_test", DIRECT));
 	}
-	
+
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
 		ui = null;
