@@ -6,6 +6,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -56,23 +59,22 @@ public class AcfInterfaceTest {
 	 */
 	private boolean expectedOutput(String filename, boolean direct)
 			throws ABCException, IOException {
-		// String fileStr = filename + ".c";
-		//
-		// if (direct) {
-		// String directFlag = "-direct=examples/slice/" + filename
-		// + ".direct";
-		// ui.run("verify", "-svcomp16", directFlag, filename(fileStr));
-		// } else {
-		// ui.run("verify", "-svcomp16", filename(fileStr));
-		// }
-		// ui.run("replay", "-sliceAnalysis", filename(fileStr));
-		//
-		// String oraclePath = filename(filename + ".oracle");
-		// String oracle = new String(Files.readAllBytes(Paths.get(oraclePath)),
-		// StandardCharsets.UTF_8);
-		//
-		// return (outContent.toString()).contains(oracle);
-		return true;
+		String fileStr = filename + ".c";
+
+		if (direct) {
+			String directFlag = "-direct=examples/slice/" + filename
+					+ ".direct";
+			ui.run("verify", "-svcomp16", directFlag, filename(fileStr));
+		} else {
+			ui.run("verify", "-svcomp16", filename(fileStr));
+		}
+		ui.run("replay", "-sliceAnalysis", filename(fileStr));
+
+		String oraclePath = filename(filename + ".oracle");
+		String oracle = new String(Files.readAllBytes(Paths.get(oraclePath)),
+				StandardCharsets.UTF_8);
+
+		return (outContent.toString()).contains(oracle);
 	}
 
 	/* **************************** Test Methods *************************** */
