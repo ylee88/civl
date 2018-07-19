@@ -32,7 +32,7 @@ public class BackendTest {
 	/* **************************** Test Methods *************************** */
 	@Test
 	public void printExpr() {
-		assertTrue(ui.run(VERIFY, QUIET, filename("printExpr.cvl")));
+		assertTrue(ui.run(VERIFY, QUIET, filename("printExpr.cvl"))); 
 	}
 
 	@Test
