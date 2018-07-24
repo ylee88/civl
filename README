@@ -1,5 +1,5 @@
       CIVL: The Concurrency Intermediate Verification Language
-                               v1.16
+                               v1.17
 
 ------------------------------ Overview -------------------------------
 
@@ -47,25 +47,19 @@ General Public License.  However, the libraries used by CIVL
 licenses.  See directory licenses for the license of each component.
 
 
--------------------------- Updates from v1.15.1 -------------------------
+-------------------------- Updates from v1.16.1 -------------------------
 -- CIVL functionalities
-    - enable CIVL to parse ACSL expressions (“a<b<c”) correctly
-    - ACSL annotations requires pragma ACSL
-    - improve the handling on symbolic constants with pointer type
+	- support more omp reduction operators besides sum
+    - Svcomp unpreprocess transformer is deleted since it won't be used anymore
 -- CIVL output
-    - improve the printing of source file names.
-    - improve the printing of errors related with bundle data.
+    - put Why3 script files into CIVLREP when running CIVL
+    - improve the assumptions over datatype sizes
+    - improve the indent of the printed source code and highlight on generated code
 -- Stability
-    - handle exceptions caused by missing source files
-    - handle exceptions related with incomplete struct
-    - handle exceptions related with incorrect macro definitions
-    - handle JVM Out-Of-Memory-Error exceptions
+    - simplifier improved to verify some loop invariant test cases
+    - fix a bug in Z3 translator when translating TUPLE_READ
 -- Misc.
-    - fix SARL internal defects
-    - fix CIVL internal defects
-    - fix loop invariants transformer
-    - fix the grammar of ACSL-FORALL expressions
-    - fix the grammar of range structure
+    - clean up some redundant code in class FrontEnd
    
    
 ------------------------- Binary Installation -------------------------
