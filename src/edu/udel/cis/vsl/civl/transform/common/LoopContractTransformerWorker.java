@@ -172,6 +172,17 @@ public class LoopContractTransformerWorker extends BaseWorker {
 	 */
 	private static final String violationMessage = "\"loop invariants violation\"";
 
+	/**
+	 * The token used to construct a {@link StringLiteral} which is used to
+	 * report assertion establish violation.
+	 */
+	private final CivlcToken loopInvariantsEstablishViolationMessageToken;
+
+	/**
+	 * The static string literal of loop invariants establish violation messages
+	 */
+	private static final String establishViolationMessage = "\"loop invariants establish violation\"";
+
 	/* ******************** static methods ********************** */
 	/**
 	 * @param node
@@ -292,6 +303,9 @@ public class LoopContractTransformerWorker extends BaseWorker {
 		loopInvariantsViolationMessageToken = tokenFactory.newCivlcToken(
 				CivlcTokenConstant.STRING_LITERAL, violationMessage,
 				feedBackformation);
+		loopInvariantsEstablishViolationMessageToken = tokenFactory
+				.newCivlcToken(CivlcTokenConstant.STRING_LITERAL,
+						establishViolationMessage, feedBackformation);
 		LEAST_NUM_ITERATIONS = nodeFactory.newIntegerConstantNode(
 				tokenFactory.newSource(wideningCondToken), "2");
 	}
@@ -404,8 +418,7 @@ public class LoopContractTransformerWorker extends BaseWorker {
 		LISEComponents = transformLoopEntrance(loop, auxVarNames);
 		// transforms loop body:
 		transformLoopBody(loop, auxVarNames);
-		// transforms the loop to a while(true) loop using 'break's to
-		// terminate:
+		// transforms the loop to a while(true|false) loop :
 		newLoop = toWhileLoop(loop, auxVarNames);
 		// completes the while loop transformation by adding the very first
 		// condition test if the loop is NOT a do-while loop:
@@ -500,7 +513,11 @@ public class LoopContractTransformerWorker extends BaseWorker {
 			}
 		}
 		// base case assertion:
-		results.add(createAssertion(loop.getLoopInvariants(nodeFactory)));
+		ExpressionNode baseCasePredicate = nodeFactory.newOperatorNode(source,
+				Operator.IMPLIES, loop.getLoopNode().getCondition().copy(),
+				loop.getLoopInvariants(nodeFactory));
+
+		results.add(createAssertion(baseCasePredicate, true));
 
 		// loop pre-state declaration :
 		IdentifierNode preStateVarIdentifier = identifier(
@@ -551,8 +568,7 @@ public class LoopContractTransformerWorker extends BaseWorker {
 
 		body.remove();
 		// Push assumptions:
-		results.add(
-				createAssumptionPush(loopInvariantsAndCondition, auxVarNames));
+		results.add(createAssumptionPush(loopInvariantsAndCondition));
 		// Push write set (start monitoring):
 		results.add(createWriteSetPush(source));
 		// Process loop jumpers in the loop body:
@@ -579,18 +595,26 @@ public class LoopContractTransformerWorker extends BaseWorker {
 						continueJumperTargetLabel, continueJumperTarget));
 			}
 		}
-		// Asserts loop invariants:
+		// Asserts for loop invariants preservation:
+		StatementNode preserveAssertion;
+
 		if (continueJumperTarget == null) {
 			continueJumperTarget = createAssertion(
-					loop.getLoopInvariants(nodeFactory));
+					loop.getLoopInvariants(nodeFactory), false);
 			continueJumperTargetLabel = nodeFactory
 					.newStandardLabelDeclarationNode(source,
 							continueJumperLabelIdentifier,
 							continueJumperTarget);
-			results.add(nodeFactory.newLabeledStatementNode(source,
-					continueJumperTargetLabel, continueJumperTarget));
+			preserveAssertion = nodeFactory.newLabeledStatementNode(source,
+					continueJumperTargetLabel, continueJumperTarget);
 		} else
-			results.add(createAssertion(loop.getLoopInvariants(nodeFactory)));
+			preserveAssertion = createAssertion(
+					loop.getLoopInvariants(nodeFactory), false);
+
+		// temporarily assume frame conditions:
+		results.addAll(wrapAssuming(
+				identifierExpression(auxVarNames.loop_mem_assumption),
+				preserveAssertion));
 
 		StatementNode newBody = nodeFactory.newCompoundStatementNode(source,
 				results);
@@ -646,10 +670,12 @@ public class LoopContractTransformerWorker extends BaseWorker {
 		results.add(createAssumptionPop(source));
 		// ND choice of enter or exit:
 		if (!loop.getLoopAssignSet().isEmpty())
-			results.add(nodeFactory.newExpressionStatementNode(
-					nodeFactory.newOperatorNode(source, Operator.ASSIGN,
-							identifierExpression(auxVarNames.loop_new_cond),
-							createNDBinaryChoice(source))));
+			results.add(
+					nodeFactory.newExpressionStatementNode(
+							nodeFactory.newOperatorNode(source, Operator.ASSIGN,
+									identifierExpression(
+											auxVarNames.loop_new_cond),
+									createNDBinaryChoice(source))));
 
 		StatementNode newBody = nodeFactory.newCompoundStatementNode(source,
 				results);
@@ -695,10 +721,12 @@ public class LoopContractTransformerWorker extends BaseWorker {
 									Arrays.asList(identifierExpression(
 											auxVarNames.loop_write_set)),
 									null)))));
-			results.add(nodeFactory.newExpressionStatementNode(
-					nodeFactory.newOperatorNode(source, Operator.ASSIGN,
-							identifierExpression(auxVarNames.loop_new_cond),
-							createNDBinaryChoice(source))));
+			results.add(
+					nodeFactory.newExpressionStatementNode(
+							nodeFactory.newOperatorNode(source, Operator.ASSIGN,
+									identifierExpression(
+											auxVarNames.loop_new_cond),
+									createNDBinaryChoice(source))));
 
 		}
 		// Refresh write set:
@@ -941,7 +969,8 @@ public class LoopContractTransformerWorker extends BaseWorker {
 		Source source = breakJumper.getSource();
 
 		// Asserts loop invariants:
-		results.add(createAssertion(loop.getLoopInvariants(nodeFactory)));
+		results.add(
+				createAssertion(loop.getLoopInvariants(nodeFactory), false));
 		// // END_MONITORING:
 		// results.addAll(writeSetPopAndUpdate(source, loop, auxVarNames));
 		// // Refresh write set:
@@ -1019,7 +1048,8 @@ public class LoopContractTransformerWorker extends BaseWorker {
 		Source source = returnJumper.getSource();
 
 		// Asserts loop invariants:
-		results.add(createAssertion(loop.getLoopInvariants(nodeFactory)));
+		results.add(
+				createAssertion(loop.getLoopInvariants(nodeFactory), false));
 		// // END_MONITORING:
 		// results.addAll(writeSetPopAndUpdate(source, loop, auxVarNames));
 		// // Refresh write set:
@@ -1141,14 +1171,17 @@ public class LoopContractTransformerWorker extends BaseWorker {
 	 * @return A created assert call statement node;
 	 * @throws SyntaxException
 	 */
-	private StatementNode createAssertion(ExpressionNode predicate)
-			throws SyntaxException {
+	private StatementNode createAssertion(ExpressionNode predicate,
+			boolean isEstablish) throws SyntaxException {
 		ExpressionNode assertIdentifier = identifierExpression(
 				BaseWorker.ASSERT);
 		StringLiteralNode messageNode = nodeFactory.newStringLiteralNode(
-				predicate.getSource(), violationMessage,
+				predicate.getSource(),
+				isEstablish ? establishViolationMessage : violationMessage,
 				astFactory.getTokenFactory()
-						.newStringToken(loopInvariantsViolationMessageToken)
+						.newStringToken(isEstablish
+								? loopInvariantsEstablishViolationMessageToken
+								: loopInvariantsViolationMessageToken)
 						.getStringLiteral());
 
 		FunctionCallNode assumeCall = nodeFactory.newFunctionCallNode(
@@ -1187,15 +1220,11 @@ public class LoopContractTransformerWorker extends BaseWorker {
 	 *            the only argument of an assumption call.
 	 * @return A created assumption call statement node;
 	 */
-	private StatementNode createAssumptionPush(ExpressionNode predicate,
-			AuxiliaryVariableNames auxVarNames) {
+	private StatementNode createAssumptionPush(ExpressionNode predicate) {
 		ExpressionNode assumeIdentifier = identifierExpression(ASSUME_PUSH);
-		ExpressionNode assumption = nodeFactory.newOperatorNode(
-				predicate.getSource(), Operator.LAND, predicate.copy(),
-				identifierExpression(auxVarNames.loop_mem_assumption));
 		FunctionCallNode assumeCall = nodeFactory.newFunctionCallNode(
 				predicate.getSource(), assumeIdentifier,
-				Arrays.asList(assumption), null);
+				Arrays.asList(predicate.copy()), null);
 
 		return nodeFactory.newExpressionStatementNode(assumeCall);
 	}
@@ -1425,10 +1454,12 @@ public class LoopContractTransformerWorker extends BaseWorker {
 				identifierExpression(LOOP_WRITE_SET_WIDENING),
 				Arrays.asList(identifierExpression(auxVarNames.loop_write_set)),
 				null);
-		wideningThenNDChoice.add(nodeFactory.newExpressionStatementNode(
-				nodeFactory.newOperatorNode(source, Operator.ASSIGN,
-						identifierExpression(auxVarNames.loop_write_set),
-						wideningCall)));
+		wideningThenNDChoice
+				.add(nodeFactory.newExpressionStatementNode(
+						nodeFactory.newOperatorNode(source, Operator.ASSIGN,
+								identifierExpression(
+										auxVarNames.loop_write_set),
+								wideningCall)));
 		wideningThenNDChoice.add(nodeFactory.newExpressionStatementNode(
 				nodeFactory.newOperatorNode(source, Operator.ASSIGN,
 						termCondVar, createNDBinaryChoice(source))));
@@ -1444,11 +1475,10 @@ public class LoopContractTransformerWorker extends BaseWorker {
 	/**
 	 * Wrap a {@link BlockItemNode} with an $assuming block
 	 */
-	@SuppressWarnings("unused")
 	private List<BlockItemNode> wrapAssuming(ExpressionNode assumption,
-			BlockItemNode body, AuxiliaryVariableNames auxVarNames) {
+			BlockItemNode body) {
 		List<BlockItemNode> results = new LinkedList<>();
-		results.add(createAssumptionPush(assumption, auxVarNames));
+		results.add(createAssumptionPush(assumption));
 		results.add(body);
 		results.add(createAssumptionPop(body.getSource()));
 		return results;
