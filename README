@@ -1,5 +1,5 @@
       CIVL: The Concurrency Intermediate Verification Language
-                               v1.17
+                               v1.17.1
 
 ------------------------------ Overview -------------------------------
 
@@ -46,7 +46,10 @@ General Public License.  However, the libraries used by CIVL
 (and incorporated into the complete distribution) use various
 licenses.  See directory licenses for the license of each component.
 
-
+-------------------------- Updates from v1.17 -------------------------
+-- fixed some bugs appear during the preparation of VerifyThis 2017 solutions
+   including a fix for the z3 compressed translation bug.
+   
 -------------------------- Updates from v1.16.1 -------------------------
 -- CIVL functionalities
 	- support more omp reduction operators besides sum
