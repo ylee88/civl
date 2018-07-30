@@ -86,4 +86,21 @@ public class VerifyThisTest {
 				filename("treeBuffer/driver_heap_bound.cvl"),
 				filename("treeBuffer/treebuffer.cvl")));
 	}
+
+	@Test
+	public void pairInsertionSort() {
+		assertTrue(ui.run(VERIFY, QUIET, filename("pairInsertSort.cvl")));
+	}
+
+	@Test
+	public void parallelOddEvenSort() {
+		assertTrue(ui.run(VERIFY, QUIET, "-input_mpi_nprocs=3", "-inputN=3",
+				filename("parallelOddEvenSort.cvl")));
+	}
+
+	@Test
+	public void oddEvenSort() {
+		assertTrue(ui.run(VERIFY, QUIET, "-inputN=3",
+				filename("oddEvenSort.cvl")));
+	}
 }

@@ -1,0 +1,69 @@
+/* VerifyThis 2017, Challenge 3: part 2: the concurrent algorithm.
+ * I have implemented the algorithm using MPI, the standard message-passing interface.
+ * It follows the pseudo-code almost exactly.
+ * Verification succeeds for up to N=5 (N=number of procs=length of array).
+ * Author: Stephen Siegel.
+ */
+#include <mpi.h>
+#define T double
+#define MPI_T MPI_DOUBLE
+$input int N = 4; // size of array: can be specified on command line with -inputN=...
+$input T A[N]; // input array : constant, fixed forever
+T myvalue; // this is a local variable for each process in MPI
+
+/* Counts the number of occurences of val in the array
+ * starting at p consisting of n ints */ 
+int count(int n, T *p, T val) {
+  int result = 0;
+  for (int i=0; i < n; i++) if ((p[i]) == val) result++;
+  return result;
+}
+
+/* Asserts the sequence starting at p2 is the permutation of that
+ * starting at p1 with elements occurring in nondecreasing order */
+void assertSortOf(int n, T *p1, T *p2) {
+  $assert($forall (int i : 0..n-2) p2[i]<=p2[i+1]);
+  $assert($forall (int i : 0..n-1)
+	  $exists (int j : 0..n-1) p1[i]==p2[j]);
+  for (int i=0; i<n; i++)
+    $assert(count(n, p1, p2[i]) == count(n, p2, p2[i])); 
+}
+
+void oddEvenPar(int n, int id) {
+  T othervalue;
+  for (int i=0; i<n; i++) {
+    if ((i+id)%2 == 0) {
+      if (id<n-1) {
+	MPI_Send(&myvalue, 1, MPI_T, id+1, 0, MPI_COMM_WORLD);
+	MPI_Recv(&othervalue, 1, MPI_T, id+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	if (othervalue < myvalue)
+	  myvalue = othervalue;
+      }
+    } else { // odd
+      if (id>0) {
+	MPI_Send(&myvalue, 1, MPI_T, id-1, 0, MPI_COMM_WORLD);
+	MPI_Recv(&othervalue, 1, MPI_T, id-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	if (othervalue > myvalue)
+        myvalue = othervalue;
+      }
+    }
+  }
+}
+
+int main() {
+  int nprocs, rank;
+  MPI_Init(NULL, NULL); // initialize MPI
+  MPI_Comm_size(MPI_COMM_WORLD, &nprocs); // get the number of procs
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank); // get my "rank" (id)
+  $assert(nprocs == N); // number of procs must equal N
+  myvalue = A[rank]; // get my value from the global input array A
+  oddEvenPar(nprocs, rank); // call the function that does the work
+  if (rank == 0) { // proc 0 will gather all data and check it is correct
+    T a[N]; // used for verification---gather all elements into one array on proc 0
+    MPI_Gather(&myvalue, 1, MPI_T, a, 1, MPI_T, 0, MPI_COMM_WORLD);
+    assertSortOf(N, A, a);
+  } else {
+    MPI_Gather(&myvalue, 1, MPI_T, NULL, 0, MPI_T, 0, MPI_COMM_WORLD);
+  }
+  MPI_Finalize();
+}

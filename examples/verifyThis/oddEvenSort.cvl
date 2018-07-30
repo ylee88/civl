@@ -1,0 +1,59 @@
+/* Challenge 3: part 1: the simple sequential algorithm
+ * is verified.
+ */
+#include <stdbool.h>
+typedef double T;
+$input int n, N = 5;
+$assume(1<=n && n<=N);
+$input T A[n]; // input: constant, fixed forever
+
+/* Counts the number of occurences of val in the array
+ * starting at p consisting of n ints */ 
+int count(int n, T *p, T val) {
+  int result = 0;
+  for (int i=0; i < n; i++) if ((p[i]) == val) result++;
+  return result;
+}
+
+/* Asserts the sequence starting at p2 is the permutation of that
+ * starting at p1 with elements occurring in nondecreasing order */
+void assertSortOf(int n, T *p1, T *p2) {
+  $assert($forall (int i : 0..n-2) p2[i]<=p2[i+1]);
+  $assert($forall (int i : 0..n-1)
+	  $exists (int j : 0..n-1) p1[i]==p2[j]);
+  for (int i=0; i<n; i++)
+    $assert(count(n, p1, p2[i]) == count(n, p2, p2[i])); 
+}
+
+void swap(T *p, int i, int j) {
+  T temp = p[i];
+  p[i] = p[j];
+  p[j] = temp;
+}
+
+void oddEvenSort(int n, T *list) {
+  _Bool sorted = false;
+  
+  while (!sorted) {
+    sorted = true;
+    for (int i = 1; i < n-1; i += 2) {
+      if (list[i] > list[i+1]) {
+        swap(list, i, i+1);
+        sorted = false;
+      }
+    }
+    for (int i = 0; i < n-1; i += 2) {
+      if (list[i] > list[i+1]) {
+        swap(list, i, i+1);
+        sorted = false;
+      }
+    }
+  }
+}
+
+int main() {
+  T a[n];
+  for (int i=0; i<n; i++) a[i] = A[i];
+  oddEvenSort(n, a);
+  assertSortOf(n, A, a);
+}
