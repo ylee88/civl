@@ -4,8 +4,9 @@
 #pragma CIVL ACSL
 #endif
 
-#define UP_ONE_REM(up, step) ((up) + (1 - (up) % (step)))
 #define UP_MUL_REM(up, step) ((up) - ((up) % (step) - 1) + (step))
+#define UP(up, step) ((up) % (step) == 1 ? (up) :\
+		      ((up) % (step) == 0 ? ((up)+1) : UP_MUL_REM(up, step)))
 
 #ifdef _CIVL
 $input int ni,nj;
@@ -58,7 +59,7 @@ int main(int argc, char** argv) {
       @
       @ predicate oneRemain(int upper, int step) = upper % step == 0;
       @*/
-    
+
     $choose {
       $when (1) $assume(noRemain(ni-bi, bi));
       $when (1) $assume(oneRemain(ni-bi, bi));
@@ -69,44 +70,40 @@ int main(int argc, char** argv) {
       $when (1) $assume(noRemain(nj-bj, bj));
       $when (1) $assume(oneRemain(nj-bj, bj));
       $when (1) $assume(!noRemain(nj-bj, bj) && !oneRemain(nj-bj, bj));
-    }
+      }
     
     // blocked loop nest
 
-    /*@ loop invariant noRemain(ni-bi, bi) ==> (1 <= i <= ni-bi);
-      @ loop invariant oneRemain(ni-bi, bi) ==> 1 <= i <= UP_ONE_REM(ni-bi, bi);
+    /*@ loop invariant noRemain(ni-bi, bi) ==> 1 <= i <= ni-bi;
+      @ loop invariant oneRemain(ni-bi, bi) ==> 1 <= i <= ni-bi+1;
       @ loop invariant (!noRemain(ni-bi, bi) && !oneRemain(ni-bi, bi)) ==> 1 <= i <= UP_MUL_REM(ni-bi,bi);
-      @ loop invariant i % bi == 1;
-      @ loop invariant noRemain(nj-bj, bj) ==> 
-      @                  (\forall int t; 1 <= t < i ==> 
-      @                    (\forall int k; 1 <= k < nj-bj ==> 
-      @                      u2[t][k] == uin[t][k]*uin[t][k]));
-      @ loop invariant oneRemain(nj-bj, bj) ==>
-      @                  (\forall int t; 1 <= t < i ==> 
-      @                    (\forall int k; 1 <= k < UP_ONE_REM(nj-bj, bj) ==> 
-      @                      u2[t][k] == uin[t][k]*uin[t][k]));
-      @ loop invariant !oneRemain(nj-bj, bj) && !noRemain(nj-bj, bj) ==>
-      @                  (\forall int t; 1 <= t < i ==> 
-      @                    (\forall int k; 1 <= k < UP_MUL_REM(nj-bj, bj) ==> 
+      @ loop invariant bi > 1 ==> i % bi == 1;
+      @ loop invariant \forall int t; 1 <= t < i ==> 
+      @                    (\forall int k; 1 <= k < UP(nj-bj,bj) ==> 
+      @                      u2[t][k] == uin[t][k]*uin[t][k]);
+      @ loop invariant oneRemain(ni-bi, bi) && i > ni-bi ==>
+      @                    (\forall int k; 1 <= k < UP(nj-bj,bj) ==> 
+      @                      u2[ni-bi][k] == uin[ni-bi][k]*uin[ni-bi][k]);
+      @ loop invariant !oneRemain(ni-bi, bi) && !noRemain(ni-bi, bi) && i > ni-bi ==>
+      @                  (\forall int t; ni-bi-1 <= t < UP_MUL_REM(ni-bi, bi) ==> 
+      @                    (\forall int k; 1 <= k < UP(nj-bj, bj) ==> 
       @                      u2[t][k] == uin[t][k]*uin[t][k]));
       @ loop assigns i, j, ib, jb, u2[1 .. ni-2][1 .. nj-2];
       @*/
     for(i=1;i<ni-bi;i=i+bi) {
       /*@ loop invariant noRemain(nj-bj, bj) ==> 1 <= j <= nj-bj;
-	@ loop invariant oneRemain(nj-bj, bj) ==> 1 <= j <= UP_ONE_REM(nj-bj,bj);
-	@ loop invariant !noRemain(nj-bj, bj) && !oneRemain(nj-bj, bj) ==> 1 <= j <= UP_MUL_REM(nj-bj,bj);
-	@ loop invariant j % bj == 1;
-	@ loop invariant noRemain(nj-bj, bj) ==> 
+	@ loop invariant oneRemain(nj-bj, bj) ==> 1 <= j <= nj-bj+1;
+	@ loop invariant (!noRemain(nj-bj, bj) && !oneRemain(nj-bj, bj)) ==> 1 <= j <= UP_MUL_REM(nj-bj,bj);
+	@ loop invariant bj > 1 ==> j % bj == 1;
+	@ loop invariant \forall int j0; 1 <= j0 < j ==>
+	@                   (\forall int t; 0 <= t < bi ==> 
+	@                       u2[i+t][j0] == uin[i+t][j0]*uin[i+t][j0]);
+	@ loop invariant oneRemain(nj-bj, bj) && j > nj-bj ==> 
 	@                  (\forall int t; 0 <= t < bi ==> 
-	@                    (\forall int k; 1 <= k < nj-bj ==> 
-	@                      u2[i+t][k] == uin[i+t][k]*uin[i+t][k]));
-	@ loop invariant oneRemain(nj-bj, bj) ==> 
+	@                    u2[i+t][nj-bj] == uin[i+t][nj-bj]*uin[i+t][nj-bj]);
+	@ loop invariant !noRemain(nj-bj, bj) && !oneRemain(nj-bj, bj) && j > nj-bj ==>
 	@                  (\forall int t; 0 <= t < bi ==> 
-	@                    (\forall int k; 1 <= k < UP_ONE_REM(nj-bj, bj) ==> 
-	@                      u2[i+t][k] == uin[i+t][k]*uin[i+t][k]));
-	@ loop invariant !noRemain(nj-bj, bj) && !oneRemain(nj-bj, bj) ==>
-	@                  (\forall int t; 0 <= t < bi ==> 
-	@                    (\forall int k; 1 <= k < UP_MUL_REM(nj-bj, bj) ==> 
+	@                    (\forall int k; (nj-bj - 1) <= k < UP_MUL_REM(nj-bj, bj) ==>
 	@                      u2[i+t][k] == uin[i+t][k]*uin[i+t][k]));
 	@ loop assigns j, ib, jb, u2[i .. i + bi - 1][1 .. nj - 2];
 	@*/
