@@ -48,18 +48,14 @@ public class LogicFunctionInterpretor {
 					"Unexpected heap exception when creating an initial state.",
 					evaluator.modelFactory().model().getSource());
 		}
+		for (LogicFunction logicFunc : logicFunctions)
+			if (logicFunc.definition() != null) {
+				ProverFunctionInterpretation interpret = evaluateLogicFunction(
+						logicFunc, state, evaluator);
 
-		try {
-			for (LogicFunction pred : logicFunctions) {
-				if (pred.definition() != null)
-					logicFunctionInterprets[i++] = evaluateLogicFunction(pred,
-							state, evaluator);
+				if (interpret != null)
+					logicFunctionInterprets[i++] = interpret;
 			}
-		} catch (UnsatisfiablePathConditionException e) {
-			throw new CIVLInternalException(
-					"Unexpected unsatisfiable path condition exception when computing logic function values.",
-					evaluator.modelFactory().model().getSource());
-		}
 		return Arrays.copyOf(logicFunctionInterprets, i);
 	}
 
@@ -69,8 +65,7 @@ public class LogicFunctionInterpretor {
 	 *             if the definition of the logic function is unsatisfiable.
 	 */
 	static private ProverFunctionInterpretation evaluateLogicFunction(
-			LogicFunction logicFunc, State state, Evaluator evaluator)
-			throws UnsatisfiablePathConditionException {
+			LogicFunction logicFunc, State state, Evaluator evaluator) {
 		ProverFunctionInterpretation result = logicFunc.getConstantValue();
 		SymbolicUniverse su = evaluator.universe();
 		StateFactory sf = evaluator.stateFactory();
@@ -122,11 +117,19 @@ public class LogicFunctionInterpretor {
 			i++;
 		}
 
-		Evaluation eval = evaluator.evaluate(state, 0, logicFunc.definition());
+		Evaluation eval = null;
 
+		try {
+			eval = evaluator.evaluate(state, 0, logicFunc.definition());
+		} catch (UnsatisfiablePathConditionException e) {
+			System.err.println(
+					"UnsatisfiablePathConditionException thrown during interpretation"
+							+ " of logic function:" + logicFunc.name());
+			return null;
+		}
 		result = ProverFunctionInterpretation.newProverPredicate(
 				evaluator.universe(), logicFunc.name().name(), actualArg,
-				eval.value);
+				eval == null ? null : eval.value);
 		logicFunc.setConstantValue(result);
 		return result;
 	}

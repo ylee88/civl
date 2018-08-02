@@ -63,7 +63,25 @@ public class SlowLoopInvariantsWithAssignsTest2 {
 	@Test
 	public void JanLoop() {
 		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
-				filename("/Jans_example/invariant.cvl")));
+				filename("/Jans_example/fixed_block/invariant.cvl")));
+	}
+
+	@Test
+	public void JanLoop2__main_loop() {
+		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
+				filename("/Jans_example/arbitrary_block/main_loop.cvl")));
+	}
+
+	@Test
+	public void JanLoop2__main_loopBadInvariants() {
+		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop", filename(
+				"/Jans_example/arbitrary_block/main_loop-bad_invariants.cvl")));
+	}
+
+	@Test
+	public void JanLoop2__main_loopBadAssert() {
+		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop", filename(
+				"/Jans_example/arbitrary_block/main_loop-bad_assert.cvl")));
 	}
 
 	@Test

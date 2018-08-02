@@ -456,10 +456,10 @@ public class CommonEvaluator implements Evaluator {
 	 *            false only when executing $copy function.
 	 * @param muteErrorSideEffects
 	 *            Should this method mute error side-effects ? i.e.
-	 *            Dereferencing a pointer with error side-effects
-	 *            <strong> results an undefined value of the same type as the
-	 *            dereference expression </strong> iff this parameter set to
-	 *            true. Otherwise, an error will be reported and
+	 *            Dereferencing a pointer with error side-effects <strong>
+	 *            results an undefined value of the same type as the dereference
+	 *            expression </strong> iff this parameter set to true.
+	 *            Otherwise, an error will be reported and
 	 *            UnsatisfiablePathConditionException will be thrown.
 	 * @return A possibly new state and the value of memory space pointed by the
 	 *         pointer.
@@ -568,10 +568,10 @@ public class CommonEvaluator implements Evaluator {
 	 *            The pointer to be dereferenced.
 	 * @param muteErrorSideEffects
 	 *            Should this method mute error side-effects ? i.e.
-	 *            Dereferencing a pointer with error side-effects
-	 *            <strong> results an undefined value of the same type as the
-	 *            dereference expression </strong> iff this parameter set to
-	 *            true. Otherwise, an error will be reported and
+	 *            Dereferencing a pointer with error side-effects <strong>
+	 *            results an undefined value of the same type as the dereference
+	 *            expression </strong> iff this parameter set to true.
+	 *            Otherwise, an error will be reported and
 	 *            UnsatisfiablePathConditionException will be thrown.
 	 * @param source
 	 *            The {@link CIVLSource} associates with the dereference
@@ -3876,10 +3876,25 @@ public class CommonEvaluator implements Evaluator {
 		// else, it is a user-defined logic function:
 		ProverFunctionInterpretation logicFuncInterpret = logicFunction
 				.getConstantValue();
-		SymbolicExpression predCallValue = universe.symbolicConstant(
-				universe.stringObject(logicFunction.name().name()),
-				logicFuncInterpret.function.type());
+		SymbolicExpression predCallValue;
+		SymbolicFunctionType type;
 
+		if (logicFuncInterpret == null) {
+			// logic function without definition must be the case that there is
+			// something wrong during interpreting the logic function
+			// definition:
+			SymbolicType retType = logicFunction.returnType()
+					.getDynamicType(universe);
+			List<SymbolicType> argType = new LinkedList<>();
+
+			for (CIVLType formalType : logicFunction.functionType()
+					.parameterTypes())
+				argType.add(formalType.getDynamicType(universe));
+			type = universe.functionType(argType, retType);
+		} else
+			type = (SymbolicFunctionType) logicFuncInterpret.function.type();
+		predCallValue = universe.symbolicConstant(
+				universe.stringObject(logicFunction.name().name()), type);
 		return new Evaluation(state,
 				universe.apply(predCallValue, argumentValues));
 	}
@@ -4047,13 +4062,11 @@ public class CommonEvaluator implements Evaluator {
 				state = eval.state;
 				// A single character is not acceptable.
 				if (eval.value.numArguments() <= 1) {
-					this.errorLogger
-							.logSimpleError(source, state, process,
-									this.symbolicAnalyzer.stateInformation(
-											state),
-									ErrorKind.OTHER,
-									"Try to obtain a string from a sequence of char has length"
-											+ " less than or equal to one");
+					this.errorLogger.logSimpleError(source, state, process,
+							this.symbolicAnalyzer.stateInformation(state),
+							ErrorKind.OTHER,
+							"Try to obtain a string from a sequence of char has length"
+									+ " less than or equal to one");
 					throw new UnsatisfiablePathConditionException();
 				} else {
 					originalArray = eval.value;

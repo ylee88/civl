@@ -228,56 +228,56 @@ public class SlowLoopInvariantsWithAssignsTest {
 
 	@Test
 	public void JanLoop1st() {
-		assertTrue(ui.run("verify", "-loop", TestConstants.QUIET,
-				filename("../Jans_example/invariant_1st_loop.cvl")));
+		assertTrue(ui.run("verify", "-loop", TestConstants.QUIET, filename(
+				"../Jans_example/fixed_block/invariant_1st_loop.cvl")));
 	}
 
 	@Test
 	public void JanLoop1stBadAssert() {
-		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET,
-				filename("../Jans_example/invariant_1st_loop-bad_assert.cvl")));
+		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET, filename(
+				"../Jans_example/fixed_block/invariant_1st_loop-bad_assert.cvl")));
 	}
 
 	@Test
 	public void JanLoop1stBadAssigns() {
 		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET, filename(
-				"../Jans_example/invariant_1st_loop-bad_assigns.cvl")));
+				"../Jans_examp/Jans_example/fixed_block/fixed_block/fixed_block/st_loop-bad_assigns.cvl")));
 	}
 
 	@Test
 	public void JanLoop2nd() {
-		assertTrue(ui.run("verify", "-loop", TestConstants.QUIET,
-				filename("../Jans_example/invariant_2nd_loop.cvl")));
+		assertTrue(ui.run("verify", "-loop", TestConstants.QUIET, filename(
+				"../Jans_example/fixed_block/invariant_2nd_loop.cvl")));
 	}
 
 	@Test
 	public void JanLoop2ndBadAssert() {
-		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET,
-				filename("../Jans_example/invariant_2nd_loop_bad-assert.cvl")));
+		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET, filename(
+				"../Jans_example/fixed_block/invariant_2nd_loop_bad-assert.cvl")));
 	}
 
 	@Test
 	public void JanLoop2ndBadAssigns() {
 		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET, filename(
-				"../Jans_example/invariant_2nd_loop_bad-assigns.cvl")));
+				"../Jans_example/fixed_block/invariant_2nd_loop_bad-assigns.cvl")));
 	}
 
 	@Test
 	public void JanLoop3rd() {
-		assertTrue(ui.run("verify", "-loop", TestConstants.QUIET,
-				filename("../Jans_example/invariant_3rd_loop.cvl")));
+		assertTrue(ui.run("verify", "-loop", TestConstants.QUIET, filename(
+				"../Jans_example/fixed_block/invariant_3rd_loop.cvl")));
 	}
 
 	@Test
 	public void JanLoop3rdBadAssert() {
-		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET,
-				filename("../Jans_example/invariant_3rd_loop-bad_assert.cvl")));
+		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET, filename(
+				"../Jans_example/fixed_block/invariant_3rd_loop-bad_assert.cvl")));
 	}
 
 	@Test
 	public void JanLoop3rdBadAssigns() {
 		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET, filename(
-				"../Jans_example/invariant_3rd_loop-bad_assigns.cvl")));
+				"../Jans_example/fixed_block/invariant_3rd_loop-bad_assigns.cvl")));
 	}
 
 	@Test
