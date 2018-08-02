@@ -8,6 +8,7 @@ import edu.udel.cis.vsl.civl.model.IF.LogicFunction;
 import edu.udel.cis.vsl.civl.model.IF.ModelFactory;
 import edu.udel.cis.vsl.civl.model.IF.Scope;
 import edu.udel.cis.vsl.civl.model.IF.expression.Expression;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.sarl.prove.IF.ProverFunctionInterpretation;
 
@@ -30,11 +31,11 @@ public class CommonLogicFunction extends CommonFunction
 
 	public CommonLogicFunction(CIVLSource source, Identifier name,
 			Scope parameterScope, List<Variable> parameters,
-			int[] pointerToArrayMap, Scope containingScope, int fid,
-			ModelFactory factory, Expression definition) {
-		super(source, true, name, parameterScope, parameters,
-				factory.typeFactory().booleanType(), containingScope, fid,
-				factory.location(source, parameterScope), factory);
+			CIVLType outputType, int[] pointerToArrayMap, Scope containingScope,
+			int fid, ModelFactory factory, Expression definition) {
+		super(source, true, name, parameterScope, parameters, outputType,
+				containingScope, fid, factory.location(source, parameterScope),
+				factory);
 		this.definition = definition;
 		this.pointerToArrayMap = pointerToArrayMap;
 	}

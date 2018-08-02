@@ -34,6 +34,7 @@ import edu.udel.cis.vsl.civl.semantics.IF.LibraryExecutorLoader;
 import edu.udel.cis.vsl.civl.semantics.IF.Semantics;
 import edu.udel.cis.vsl.civl.semantics.IF.SymbolicAnalyzer;
 import edu.udel.cis.vsl.civl.semantics.IF.Transition;
+import edu.udel.cis.vsl.civl.semantics.common.LogicFunctionInterpretor;
 import edu.udel.cis.vsl.civl.state.IF.MemoryUnitFactory;
 import edu.udel.cis.vsl.civl.state.IF.State;
 import edu.udel.cis.vsl.civl.state.IF.StateFactory;
@@ -186,6 +187,16 @@ public abstract class Player {
 		stateManager = Kripkes.newStateManager((Enabler) enabler, executor,
 				symbolicAnalyzer, log, civlConfig);
 		universe.setErrFile("CIVLREP/" + sessionName + "_ProverOutput.txt");
+		// use evaluator to evaluate constant values of logic functions:
+		// make up a dummy state and process ID:
+		model.setLogicFunctionInterpretations(LogicFunctionInterpretor
+				.evaluateLogicFunctions(model.getAllLogicFunctions(),
+						Semantics.newErrorSideEffectFreeEvaluator(modelFactory,
+								stateFactory, libraryEvaluatorLoader,
+								libraryExecutorLoader, symbolicUtil,
+								symbolicAnalyzer, memUnitFactory, log,
+								civlConfig),
+						stateFactory));
 	}
 
 	// protected CIVLExecutionException getCurrentViolation() {

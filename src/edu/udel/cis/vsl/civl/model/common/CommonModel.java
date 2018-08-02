@@ -14,6 +14,7 @@ import java.util.Stack;
 import edu.udel.cis.vsl.abc.program.IF.Program;
 import edu.udel.cis.vsl.civl.model.IF.CIVLFunction;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
+import edu.udel.cis.vsl.civl.model.IF.LogicFunction;
 import edu.udel.cis.vsl.civl.model.IF.Model;
 import edu.udel.cis.vsl.civl.model.IF.ModelFactory;
 import edu.udel.cis.vsl.civl.model.IF.Scope;
@@ -22,6 +23,7 @@ import edu.udel.cis.vsl.civl.model.IF.statement.MallocStatement;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLBundleType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
+import edu.udel.cis.vsl.sarl.prove.IF.ProverFunctionInterpretation;
 
 /**
  * <p>
@@ -48,6 +50,17 @@ public class CommonModel extends CommonSourceable implements Model {
 	private boolean hasFscanf;
 	private Location sleep = null;
 	private boolean hasStateRef = false;
+
+	/**
+	 * All translated {@link LogicFunction}s during model building:
+	 */
+	private List<LogicFunction> seenLogicFunctions = null;
+
+	/**
+	 * Constant interpretations ({@link ProverFunctionInterpretation}) of all
+	 * seen logic functions:
+	 */
+	private ProverFunctionInterpretation[] logicFunctionInterpretations = null;
 
 	/**
 	 * A model of a Chapel program.
@@ -340,5 +353,30 @@ public class CommonModel extends CommonSourceable implements Model {
 	@Override
 	public boolean hasStateRefVariables() {
 		return this.hasStateRef;
+	}
+
+	@Override
+	public List<LogicFunction> getAllLogicFunctions() {
+		if (seenLogicFunctions == null)
+			seenLogicFunctions = new LinkedList<>();
+		return seenLogicFunctions;
+	}
+
+	@Override
+	public void setLogicFunctionInterpretations(
+			ProverFunctionInterpretation[] interpretations) {
+		this.logicFunctionInterpretations = interpretations;
+	}
+
+	@Override
+	public ProverFunctionInterpretation[] getLogicFunctionInterpretations() {
+		if (this.logicFunctionInterpretations == null)
+			this.logicFunctionInterpretations = new ProverFunctionInterpretation[0];
+		return this.logicFunctionInterpretations;
+	}
+
+	@Override
+	public void setLogicFunctions(List<LogicFunction> logicFunctions) {
+		seenLogicFunctions = logicFunctions;
 	}
 }

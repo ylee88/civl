@@ -34,6 +34,7 @@ import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.CIVLTypeFactory;
 import edu.udel.cis.vsl.civl.model.IF.Identifier;
+import edu.udel.cis.vsl.civl.model.IF.LogicFunction;
 import edu.udel.cis.vsl.civl.model.IF.Model;
 import edu.udel.cis.vsl.civl.model.IF.ModelConfiguration;
 import edu.udel.cis.vsl.civl.model.IF.ModelFactory;
@@ -332,6 +333,11 @@ public class ModelBuilderWorker {
 	Map<Type, CIVLType> typeMap = new HashMap<Type, CIVLType>();
 
 	CIVLFunction rootFunction;
+
+	/**
+	 * All translated {@link LogicFunction}s during model building:
+	 */
+	List<LogicFunction> seenLogicFunctions = new LinkedList<>();
 
 	/* **************************** Constructors *************************** */
 
@@ -735,6 +741,7 @@ public class ModelBuilderWorker {
 		model.setSleepLocation(
 				new CommonLocation(factory.systemSource(), true));
 		// }
+		model.setLogicFunctions(seenLogicFunctions);
 		model.complete();
 		// TODO check scope/proc/pointers of variables.
 	}

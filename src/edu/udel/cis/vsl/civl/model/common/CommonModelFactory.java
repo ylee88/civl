@@ -337,11 +337,6 @@ public class CommonModelFactory implements ModelFactory {
 
 	private FunctionIdentifierExpression elaborateDomainFuncPointer = null;
 
-	/**
-	 * All translated {@link LogicFunction}s during model building:
-	 */
-	private List<LogicFunction> seenLogicFunctions = null;
-
 	/* **************************** Constructors *************************** */
 
 	/**
@@ -445,9 +440,9 @@ public class CommonModelFactory implements ModelFactory {
 				CIVLType processExpr = left.getExpressionType();
 
 				if (!processExpr.isIntegerType())
-					throw new CIVLException("Incompatible types to "
-							+ BINARY_OPERATOR.REMOTE
-							+ " operand. The left hand side expression must have a integer type.",
+					throw new CIVLException(
+							"Incompatible types to " + BINARY_OPERATOR.REMOTE
+									+ " operand. The left hand side expression must have a integer type.",
 							source);
 				return new CommonBinaryExpression(source, expressionScope,
 						lowestScope, right.getExpressionType(), operator, left,
@@ -497,8 +492,9 @@ public class CommonModelFactory implements ModelFactory {
 						// .setExpressionType(integerType());
 						resultType = typeFactory.integerType;
 					else
-						throw new CIVLException(leftType + " and " + rightType
-								+ " are not pointers to compatiable types",
+						throw new CIVLException(
+								leftType + " and " + rightType
+										+ " are not pointers to compatiable types",
 								source);
 				} else if (leftType.equals(rightType)) {
 					// ((CommonBinaryExpression)
@@ -2094,23 +2090,16 @@ public class CommonModelFactory implements ModelFactory {
 	@Override
 	public LogicFunction logicFunction(CIVLSource source, Identifier name,
 			Scope parameterScope, List<Variable> parameters,
-			int[] pointerToHeap, Scope containingScope, Expression definition) {
+			CIVLType outputType, int[] pointerToHeap, Scope containingScope,
+			Expression definition) {
 		LogicFunction logicFunction = new CommonLogicFunction(source, name,
-				parameterScope, parameters, pointerToHeap, containingScope,
+				parameterScope, parameters, outputType, pointerToHeap,
+				containingScope,
 				containingScope != null ? containingScope.numFunctions() : -1,
 				this, definition);
-
-		if (seenLogicFunctions == null)
-			seenLogicFunctions = new LinkedList<>();
-		seenLogicFunctions.add(logicFunction);
+		// add logic function to model:
+		modelBuilder.seenLogicFunctions.add(logicFunction);
 		logicFunction.setLogic(true);
 		return logicFunction;
-	}
-
-	@Override
-	public List<LogicFunction> getAllLogicFunctions() {
-		if (seenLogicFunctions == null)
-			seenLogicFunctions = new LinkedList<>();
-		return seenLogicFunctions;
 	}
 }

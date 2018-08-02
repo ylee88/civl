@@ -133,6 +133,7 @@ import edu.udel.cis.vsl.sarl.IF.type.SymbolicType.SymbolicTypeKind;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicUnionType;
 import edu.udel.cis.vsl.sarl.expr.cnf.BooleanPrimitive;
 import edu.udel.cis.vsl.sarl.number.IF.Numbers;
+import edu.udel.cis.vsl.sarl.prove.IF.ProverFunctionInterpretation;
 
 /**
  * An evaluator is used to evaluate expressions.
@@ -3847,7 +3848,6 @@ public class CommonEvaluator implements Evaluator {
 			FunctionCallExpression logicCall)
 			throws UnsatisfiablePathConditionException {
 		List<SymbolicExpression> argumentValues = new LinkedList<>();
-		List<SymbolicType> paraTypes = new LinkedList<>();
 		LogicFunction logicFunction = (LogicFunction) logicCall.callStatement()
 				.function();
 		SymbolicType symbolicPointerType = modelFactory.typeFactory()
@@ -3861,7 +3861,6 @@ public class CommonEvaluator implements Evaluator {
 						actualArg);
 			assert state == eval.state : "Logic function call argument has side-effects.";
 			argumentValues.add(eval.value);
-			paraTypes.add(eval.value.type());
 		}
 		// check if the predicate is a reserved predicate:
 		if (logicFunction.isReservedFunction()) {
@@ -3874,11 +3873,12 @@ public class CommonEvaluator implements Evaluator {
 							this, logicFunction, argValArray,
 							logicCall.getSource()));
 		}
-		// else, it is a user-defined predicate:
-		SymbolicFunctionType funcType = universe.functionType(paraTypes,
-				universe.booleanType());
+		// else, it is a user-defined logic function:
+		ProverFunctionInterpretation logicFuncInterpret = logicFunction
+				.getConstantValue();
 		SymbolicExpression predCallValue = universe.symbolicConstant(
-				universe.stringObject(logicFunction.name().name()), funcType);
+				universe.stringObject(logicFunction.name().name()),
+				logicFuncInterpret.function.type());
 
 		return new Evaluation(state,
 				universe.apply(predCallValue, argumentValues));

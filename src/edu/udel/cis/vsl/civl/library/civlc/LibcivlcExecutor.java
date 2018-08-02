@@ -666,9 +666,8 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 		BooleanExpression assertValue = (BooleanExpression) argumentValues[0];
 		BooleanExpression context = state.getPathCondition(universe);
 		ResultType resultType = ResultType.MAYBE;
-		ProverFunctionInterpretation[] acslPredicates2why3 = LogicFunctionInterpretor
-				.evaluateLogicFunctions(modelFactory.getAllLogicFunctions(),
-						state, pid, errSideEffectFreeEvaluator);
+		ProverFunctionInterpretation[] logicFunctionDefinitions = model
+				.getLogicFunctionInterpretations();
 
 		if (!civlConfig.prob()) {
 			Query query = (new Heuristics(universe))
@@ -676,15 +675,14 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 
 			context = query.context;
 			assertValue = query.query;
-			// universe.setUseBackwardSubstitution(true);
-			if (acslPredicates2why3.length == 0
-					&& !ReservedLogicFunctionCallEvaluator
-							.hasReservedLogicFunctionCalls(universe,
-									assertValue))
-				resultType = universe.reasoner(context).valid(assertValue)
-						.getResultType();
+			if (!ReservedLogicFunctionCallEvaluator
+					.hasReservedLogicFunctionCalls(universe, assertValue))
+				resultType = universe
+						.reasoner(context, logicFunctionDefinitions)
+						.valid(assertValue).getResultType();
 			if (resultType == ResultType.MAYBE)
-				resultType = universe.why3Reasoner(context, acslPredicates2why3)
+				resultType = universe
+						.why3Reasoner(context, logicFunctionDefinitions)
 						.valid(assertValue).getResultType();
 			if (resultType == ResultType.MAYBE) {
 				UniversalNormalization uniNorm = new UniversalNormalization(
@@ -692,7 +690,8 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 
 				context = (BooleanExpression) uniNorm.apply(context);
 				assertValue = (BooleanExpression) uniNorm.apply(assertValue);
-				resultType = universe.why3Reasoner(context, acslPredicates2why3)
+				resultType = universe
+						.why3Reasoner(context, logicFunctionDefinitions)
 						.valid(assertValue).getResultType();
 			}
 		} else
@@ -735,7 +734,7 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 		if (civlConfig.isSARLTestGenerationEnabled())
 			if (resultType == ResultType.YES)
 				universe.saveValidCallAsSARLTest(context, assertValue,
-						acslPredicates2why3, resultType, false,
+						logicFunctionDefinitions, resultType, false,
 						"assert_" + universe.numProverValidCalls(),
 						"context: " + context, "predicate: " + assertValue);
 		return state;

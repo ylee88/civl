@@ -1,13 +1,15 @@
-package edu.udel.cis.vsl.civl.library.civlc;
+package edu.udel.cis.vsl.civl.semantics.common;
 
 import java.util.Arrays;
 import java.util.List;
 
+import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.LogicFunction;
 import edu.udel.cis.vsl.civl.model.IF.Scope;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.civl.semantics.IF.Evaluation;
 import edu.udel.cis.vsl.civl.semantics.IF.Evaluator;
+import edu.udel.cis.vsl.civl.state.IF.CIVLHeapException;
 import edu.udel.cis.vsl.civl.state.IF.State;
 import edu.udel.cis.vsl.civl.state.IF.StateFactory;
 import edu.udel.cis.vsl.civl.state.IF.UnsatisfiablePathConditionException;
@@ -31,18 +33,34 @@ public class LogicFunctionInterpretor {
 	 * 
 	 */
 	static public ProverFunctionInterpretation[] evaluateLogicFunctions(
-			List<LogicFunction> logicFunctions, State state, int pid,
-			Evaluator evaluator) throws UnsatisfiablePathConditionException {
-		ProverFunctionInterpretation why3Preds[] = new ProverFunctionInterpretation[logicFunctions
+			List<LogicFunction> logicFunctions, Evaluator evaluator,
+			StateFactory stateFactory) {
+		ProverFunctionInterpretation logicFunctionInterprets[] = new ProverFunctionInterpretation[logicFunctions
 				.size()];
 		int i = 0;
+		State state;
 
-		for (LogicFunction pred : logicFunctions) {
-			if (pred.definition() != null)
-				why3Preds[i++] = evaluateLogicFunction(pred, state, pid,
-						evaluator);
+		try {
+			// dummy state and pid:
+			state = stateFactory.initialState(evaluator.modelFactory().model());
+		} catch (CIVLHeapException he) {
+			throw new CIVLInternalException(
+					"Unexpected heap exception when creating an initial state.",
+					evaluator.modelFactory().model().getSource());
 		}
-		return Arrays.copyOf(why3Preds, i);
+
+		try {
+			for (LogicFunction pred : logicFunctions) {
+				if (pred.definition() != null)
+					logicFunctionInterprets[i++] = evaluateLogicFunction(pred,
+							state, evaluator);
+			}
+		} catch (UnsatisfiablePathConditionException e) {
+			throw new CIVLInternalException(
+					"Unexpected unsatisfiable path condition exception when computing logic function values.",
+					evaluator.modelFactory().model().getSource());
+		}
+		return Arrays.copyOf(logicFunctionInterprets, i);
 	}
 
 	/**
@@ -51,9 +69,9 @@ public class LogicFunctionInterpretor {
 	 *             if the definition of the logic function is unsatisfiable.
 	 */
 	static private ProverFunctionInterpretation evaluateLogicFunction(
-			LogicFunction pred, State state, int pid, Evaluator evaluator)
+			LogicFunction logicFunc, State state, Evaluator evaluator)
 			throws UnsatisfiablePathConditionException {
-		ProverFunctionInterpretation result = pred.getConstantValue();
+		ProverFunctionInterpretation result = logicFunc.getConstantValue();
 		SymbolicUniverse su = evaluator.universe();
 		StateFactory sf = evaluator.stateFactory();
 
@@ -61,12 +79,12 @@ public class LogicFunctionInterpretor {
 			return result;
 
 		// evaluate arguments:
-		SymbolicConstant[] actualArg = new SymbolicConstant[pred.parameters()
-				.size()];
+		SymbolicConstant[] actualArg = new SymbolicConstant[logicFunc
+				.parameters().size()];
 		int i = 0;
 
 		// TODO: check pointer restriction:
-		for (Variable var : pred.parameters()) {
+		for (Variable var : logicFunc.parameters()) {
 			if (var.type().isPointerType())
 				actualArg[i++] = null; // will be set later
 			else
@@ -74,10 +92,10 @@ public class LogicFunctionInterpretor {
 						su.stringObject(var.name().name()),
 						var.type().getDynamicType(su));
 		}
-		state = sf.pushCallStack(state, pid, pred, actualArg);
+		state = sf.pushCallStack(state, 0, logicFunc, actualArg);
 
 		// the parameter dynamic scope
-		int dyscopeId = state.getProcessState(pid).getDyscopeId();
+		int dyscopeId = state.getProcessState(0).getDyscopeId();
 		// the parameter lexical scope, note that if there is any pointer type
 		// argument, this scope will contain dummy "heap" variable for it.
 		// This is the way of achieving the state-independent. The pointer type
@@ -86,9 +104,9 @@ public class LogicFunctionInterpretor {
 
 		i = 0;
 		// set pointer to dummy heap; set heap to arbitrary arrayof T:
-		for (Variable var : pred.parameters()) {
+		for (Variable var : logicFunc.parameters()) {
 			if (var.type().isPointerType()) {
-				int heapVid = pred.pointerToHeapVidMap()[i];
+				int heapVid = logicFunc.pointerToHeapVidMap()[i];
 				Variable heapVar = lexScope.variable(heapVid);
 				SymbolicConstant heapVal = su.symbolicConstant(
 						su.stringObject(heapVar.name().name()),
@@ -104,11 +122,12 @@ public class LogicFunctionInterpretor {
 			i++;
 		}
 
-		Evaluation eval = evaluator.evaluate(state, pid, pred.definition());
+		Evaluation eval = evaluator.evaluate(state, 0, logicFunc.definition());
 
-		result = ProverFunctionInterpretation
-				.newProverPredicate(pred.name().name(), actualArg, eval.value);
-		pred.setConstantValue(result);
+		result = ProverFunctionInterpretation.newProverPredicate(
+				evaluator.universe(), logicFunc.name().name(), actualArg,
+				eval.value);
+		logicFunc.setConstantValue(result);
 		return result;
 	}
 }

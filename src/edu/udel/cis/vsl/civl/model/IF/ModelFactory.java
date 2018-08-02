@@ -1275,7 +1275,7 @@ public interface ModelFactory {
 	 */
 	LogicFunction logicFunction(CIVLSource source, Identifier name,
 			Scope parameterScope, List<Variable> parameters,
-			int[] pointerToHeapMap, Scope containingScope,
+			CIVLType outputType, int[] pointerToHeapMap, Scope containingScope,
 			Expression definition);
 
 	CIVLFunction nondetFunction(CIVLSource source, Identifier name,
@@ -1762,9 +1762,4 @@ public interface ModelFactory {
 	 */
 	ValueAtExpression valueAtExpression(CIVLSource source, Expression state,
 			Expression pid, Expression expression);
-
-	/**
-	 * @return All seen {@link LogicFunction}s that are with definitions.
-	 */
-	List<LogicFunction> getAllLogicFunctions();
 }
