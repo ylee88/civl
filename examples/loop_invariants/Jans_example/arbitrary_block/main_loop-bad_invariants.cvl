@@ -1,0 +1,75 @@
+#include <stdio.h>
+#include <civlc.cvh>
+#pragma CIVL ACSL
+
+$input int ni,nj;
+$input int bi,bj;  //TODO: bounds of block sizes ?
+$assume(ni > 1);
+$assume(nj > 1);
+$assume(ni > bi && bi > 0);
+$assume(nj > bj && bj > 0);
+$input double uin[ni][nj];
+
+double u2[ni][nj];
+
+int main(int argc, char** argv) {
+    int i,j,ir,jr,ib,jb;
+    
+    /*  actual definition:
+     *  "logic int UP(int up, int step) = up % step == 1 ? up : up % step == 0 ?
+     *                                                    up + 1 : up - (up % step - 1) + step;"
+     */
+    $abstract int UP(int up, int step);
+    /*  actual definition "i % step == offset || step == 1"
+     */ 
+    $abstract _Bool moduloed(int i, int step, int offset);  
+
+    $havoc(&i);
+    $assume(0 <= i && i < ni - bi);
+
+    // lemmas for UP:
+    $assume($forall (int x) (moduloed(x, bj, 1) && nj-bj > x => UP(nj-bj, bj) >= x + bj));
+    $assume($forall (int x) (moduloed(x, bi, 1) && ni-bi > x => UP(ni-bi, bi) >= x + bi));
+    $assume($forall (int x) moduloed(x, bj, 1) => moduloed(x+bj, bj, 1));
+    $assume($forall (int x) moduloed(x, bi, 1) => moduloed(x+bi, bi, 1));
+    $assume(moduloed(1, bj, 1));
+    $assume(moduloed(1, bi, 1));
+    $assume($forall (int x) (moduloed(x, bj, 1) && x >= nj-bj => x >= UP(nj-bj, bj)));
+    $assume($forall (int x) (moduloed(x, bi, 1) && x >= ni-bi => x >= UP(ni-bi, bi)));
+    // end of lemmas
+    
+    /*@ loop invariant 1 <= i <= UP(ni-bi, bi) ;
+      @ loop invariant moduloed(i, bi, 1);
+      @ loop invariant \forall int t; 1 <= t < i  ==>
+      @                   (\forall int j0; 1 <= j0 < UP(nj-bj, bj) ==> 
+      @                       u2[t][j0] == uin[t][j0]*uin[t][j0]);
+      @ loop assigns i, j, ib, jb, u2[1 .. ni - 2][1 .. nj - 2];
+      @*/
+    for(i=1;i<ni-bi;i=i+bi) {    
+      /*@ loop invariant 1 <= j <= UP(nj-bj, bj);
+	@ loop invariant moduloed(j, bj, 1);
+	@ loop invariant \forall int t; i <= t < i + bi ==>
+	@                   (\forall int j0; 1 <= j0 <= j ==> 
+	@                       u2[t][j0] == uin[t][j0]*uin[t][j0]);
+	@ loop assigns j, ib, jb, u2[i .. i + bi - 1][1 .. nj - 2];
+	@*/
+      for(j=1;j<nj-bj;j=j+bj) {
+	/*@ loop invariant 0 <= ib <= bi;
+	  @ loop invariant \forall int t; i <= t < i + ib ==> 
+	  @                   (\forall int k; j <= k < j + bj ==> u2[t][k] == uin[t][k]*uin[t][k]);
+	  @ loop assigns   ib, jb, u2[i .. (i + bi - 1)][j .. (j + bj - 1)];
+	  @*/
+	for(ib=0;ib<bi;ib++) {
+	  /*@ loop invariant 0 <= jb <= bj;
+	    @ loop invariant \forall int k; j <= k < j + jb ==> u2[i+ib][k] == uin[i+ib][k]*uin[i+ib][k];
+	    @ loop assigns   jb, u2[i + ib][j .. (j + bj - 1)];
+	    @*/
+	  for(jb=0;jb<bj;jb++) {
+	    u2[i+ib][j+jb] = uin[i+ib][j+jb]*uin[i+ib][j+jb];
+	  }
+	}
+      }
+      $assert(j == UP(nj-bj,bj));
+    }
+    $assert(i == UP(ni-bi,bi));
+}

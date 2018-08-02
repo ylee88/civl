@@ -15,8 +15,14 @@ double u2[ni][nj];
 int main(int argc, char** argv) {
     int i,j,ir,jr,ib,jb;
     
+    /*  actual definition:
+     *  "logic int UP(int up, int step) = up % step == 1 ? up : up % step == 0 ?
+     *                                                    up + 1 : up - (up % step - 1) + step;"
+     */
     $abstract int UP(int up, int step);
-    $abstract _Bool moduloed(int i, int step, int offset);
+    /*  actual definition "i % step == offset || step == 1"
+     */ 
+    $abstract _Bool moduloed(int i, int step, int offset);  
 
     $havoc(&i);
     $assume(0 <= i && i < ni - bi);
@@ -31,13 +37,6 @@ int main(int argc, char** argv) {
     $assume($forall (int x) (moduloed(x, bj, 1) && x >= nj-bj => x >= UP(nj-bj, bj)));
     $assume($forall (int x) (moduloed(x, bi, 1) && x >= ni-bi => x >= UP(ni-bi, bi)));
     // end of lemmas
-    /*  Lemmas above are suppose to be easily proved when the moduloed
-     *  predicate is assigned a definition with real modulo and the UP
-     *  logic function is assigned a definition below:
-     *  
-     *  logic int UP(int up, int step) = up % step == 1 ? up : up % step == 0 ?
-     *                                                    up + 1 : up - (up % step - 1) + step;
-     */
     
     /*@ loop invariant 1 <= i <= UP(ni-bi, bi) ;
       @ loop invariant moduloed(i, bi, 1);

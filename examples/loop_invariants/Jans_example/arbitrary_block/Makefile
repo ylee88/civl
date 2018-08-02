@@ -1,4 +1,4 @@
-CIVL=civl
+CIVL=civl-current
 VERIFY=$(CIVL) verify -loop
 
 all:  ml_inner_three  ml_all_four
