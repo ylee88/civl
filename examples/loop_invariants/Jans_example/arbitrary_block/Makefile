@@ -1,15 +1,11 @@
-CIVL=civl-current
+CIVL=civl
 VERIFY=$(CIVL) verify -loop
 
-all:  ml_inner_three  ml_all_four
+all:  main_loop
 
-ml_inner_three: inner_three.cvl	
+main_loop: main_loop.cvl
 	$(VERIFY) $<
 
-
-
-ml_all_four: all_four.cvl
-	$(VERIFY) $<
 
 clean:
 	rm -rf *~ .sarl	CIVLREP
