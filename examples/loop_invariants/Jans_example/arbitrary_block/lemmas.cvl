@@ -1,0 +1,64 @@
+// #include <stdio.h>
+#pragma CIVL ACSL
+
+$input int ni,nj,bi,bj;
+
+int main(int argc, char** argv) {
+  /*@ logic int UP(int up, int step) = (up % step == 1 || step == 1) ? up : up % step == 0 ?
+    @                                   up + 1 : up - (up % step - 1) + step;
+    @
+    @ predicate moduloed(int i, int step, int offset) = 
+    @             i > 0 && (i % step == offset || step == 1);
+    @
+    @*/ 
+  int prove_choice = $choose_int(3);
+  
+  if (prove_choice == 0) {
+    /* Proving the lemmas that only involves nj and bj : */
+    $assume(ni > 1);
+    $assume(ni > bi && bi > 0);
+    $choose {
+      $when(1) $assume(bj > 1 && (nj - bj) % bj == 1);
+      $when(1) $assume(bj > 1 && (nj - bj) % bj == 0);
+      $when(1) $assume(bj > 1 && (nj - bj) % bj > 1);
+      $when(1) $assume(bj == 1);
+    }
+    // Lemmas: 
+    $assert($forall (int x) (moduloed(x, bj, 1) && nj-bj > x => UP(nj-bj, bj) >= x + bj));
+    $assert($forall (int x) (moduloed(x, bj, 1) && x >= nj-bj => x >= UP(nj-bj, bj)));
+    $assert(nj-bj <= UP(nj-bj, bj) && UP(nj-bj, bj) < nj);
+  } else if (prove_choice == 1){
+    /* Proving the lemmas that only involves ni and bi : */
+    $assume(nj > 1);
+    $assume(nj > bj && bj > 0);
+    $choose {
+      $when(1) $assume(bi > 1 && (ni - bi) % bi == 1);
+      $when(1) $assume(bi > 1 && (ni - bi) % bi == 0);
+      $when(1) $assume(bi > 1 && (ni - bi) % bi > 1);
+      $when(1) $assume(bi == 1);
+    } 
+    // Lemmas: 
+    $assert($forall (int x) (moduloed(x, bi, 1) && ni-bi > x => UP(ni-bi, bi) >= x + bi)); 
+    $assert($forall (int x) (moduloed(x, bi, 1) && x >= ni-bi => x >= UP(ni-bi, bi))); 
+    $assert(ni-bi <= UP(ni-bi, bi) && UP(ni-bi, bi) < ni);
+  } else {
+    /* Proving the lemmas that only involves predicate 'moduloed': */
+    $assume(nj > 1);
+    $assume(nj > bj && bj > 0);
+    $assume(ni > 1);
+    $assume(ni > bi && bi > 0);
+    $choose {
+      $when(1) $assume(bi == 1);
+      $when(1) $assume(bi > 1);
+    }
+    $choose {
+      $when(1) $assume(bj == 1);
+      $when(1) $assume(bj > 1);
+    }
+    // Lemmas: 
+    $assert($forall (int x) moduloed(x, bi, 1) => moduloed(x+bi, bi, 1));
+    $assert($forall (int x) moduloed(x, bj, 1) => moduloed(x+bj, bj, 1)); 
+    $assert(moduloed(1, bj, 1)); 
+    $assert(moduloed(1, bi, 1)); 
+  }
+}

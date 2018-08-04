@@ -67,21 +67,31 @@ public class SlowLoopInvariantsWithAssignsTest2 {
 	}
 
 	@Test
-	public void JanLoop2__main_loop() {
+	public void JanLoopAbitraryBlock() {
 		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
-				filename("/Jans_example/arbitrary_block/main_loop.cvl")));
+				filename("/Jans_example/arbitrary_block/arbitrary_block.cvl")));
 	}
 
 	@Test
-	public void JanLoop2__main_loopBadInvariants() {
+	public void JanLoopAbitraryBlockBadAssert() {
 		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop", filename(
-				"/Jans_example/arbitrary_block/main_loop-bad_invariants.cvl")));
+				"/Jans_example/arbitrary_block/arbitrary_block-bad_assert.cvl")));
 	}
 
 	@Test
-	public void JanLoop2__main_loopBadAssert() {
+	public void JanLoopAbitraryBlockBadInv() {
 		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop", filename(
-				"/Jans_example/arbitrary_block/main_loop-bad_assert.cvl")));
+				"/Jans_example/arbitrary_block/arbitrary_block-bad_invariants1.cvl")));
+	}
+	@Test
+	public void JanLoopAbitraryBlockBadInv2() {
+		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop", filename(
+				"/Jans_example/arbitrary_block/arbitrary_block-bad_invariants2.cvl")));
+	}
+	@Test
+	public void JanLoopAbitraryBlockBadInv3() {
+		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop", filename(
+				"/Jans_example/arbitrary_block/arbitrary_block-bad_invariants3.cvl")));
 	}
 
 	@Test

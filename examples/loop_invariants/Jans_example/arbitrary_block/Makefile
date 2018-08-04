@@ -1,9 +1,12 @@
 CIVL=civl
 VERIFY=$(CIVL) verify -loop
 
-all:  main_loop
+all:  main lemmas
 
-main_loop: main_loop.cvl
+main: arbitrary_block.cvl
+	$(VERIFY) $<
+
+lemmas: lemmas.cvl
 	$(VERIFY) $<
 
 
