@@ -41,7 +41,6 @@ import edu.udel.cis.vsl.sarl.IF.type.SymbolicArrayType;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicTupleType;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicTypeSequence;
-import edu.udel.cis.vsl.sarl.prove.IF.ProverFunctionInterpretation;
 
 /**
  * Implementation of the execution for system functions declared civlc.h.
@@ -666,8 +665,6 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 		BooleanExpression assertValue = (BooleanExpression) argumentValues[0];
 		BooleanExpression context = state.getPathCondition(universe);
 		ResultType resultType = ResultType.MAYBE;
-		ProverFunctionInterpretation[] logicFunctionDefinitions = model
-				.getLogicFunctionInterpretations();
 
 		if (!civlConfig.prob()) {
 			Query query = (new Heuristics(universe))
@@ -677,22 +674,19 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 			assertValue = query.query;
 			if (!ReservedLogicFunctionCallEvaluator
 					.hasReservedLogicFunctionCalls(universe, assertValue))
-				resultType = universe
-						.reasoner(context, logicFunctionDefinitions)
-						.valid(assertValue).getResultType();
+				resultType = universe.reasoner(context).valid(assertValue)
+						.getResultType();
 			if (resultType == ResultType.MAYBE)
-				resultType = universe
-						.why3Reasoner(context, logicFunctionDefinitions)
-						.valid(assertValue).getResultType();
+				resultType = universe.why3Reasoner(context).valid(assertValue)
+						.getResultType();
 			if (resultType == ResultType.MAYBE) {
 				UniversalNormalization uniNorm = new UniversalNormalization(
 						universe);
 
 				context = (BooleanExpression) uniNorm.apply(context);
 				assertValue = (BooleanExpression) uniNorm.apply(assertValue);
-				resultType = universe
-						.why3Reasoner(context, logicFunctionDefinitions)
-						.valid(assertValue).getResultType();
+				resultType = universe.why3Reasoner(context).valid(assertValue)
+						.getResultType();
 			}
 		} else
 			resultType = universe.reasoner(context).valid(assertValue)
@@ -734,7 +728,7 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 		if (civlConfig.isSARLTestGenerationEnabled())
 			if (resultType == ResultType.YES)
 				universe.saveValidCallAsSARLTest(context, assertValue,
-						logicFunctionDefinitions, resultType, false,
+						resultType, false,
 						"assert_" + universe.numProverValidCalls(),
 						"context: " + context, "predicate: " + assertValue);
 		return state;

@@ -189,7 +189,7 @@ public abstract class Player {
 		universe.setErrFile("CIVLREP/" + sessionName + "_ProverOutput.txt");
 		// use evaluator to evaluate constant values of logic functions:
 		// make up a dummy state and process ID:
-		model.setLogicFunctionInterpretations(LogicFunctionInterpretor
+		universe.setLogicFunctions(LogicFunctionInterpretor
 				.evaluateLogicFunctions(model.getAllLogicFunctions(),
 						Semantics.newErrorSideEffectFreeEvaluator(modelFactory,
 								stateFactory, libraryEvaluatorLoader,

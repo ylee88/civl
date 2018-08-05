@@ -23,7 +23,6 @@ import edu.udel.cis.vsl.civl.model.IF.statement.MallocStatement;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLBundleType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
-import edu.udel.cis.vsl.sarl.prove.IF.ProverFunctionInterpretation;
 
 /**
  * <p>
@@ -55,12 +54,6 @@ public class CommonModel extends CommonSourceable implements Model {
 	 * All translated {@link LogicFunction}s during model building:
 	 */
 	private List<LogicFunction> seenLogicFunctions = null;
-
-	/**
-	 * Constant interpretations ({@link ProverFunctionInterpretation}) of all
-	 * seen logic functions:
-	 */
-	private ProverFunctionInterpretation[] logicFunctionInterpretations = null;
 
 	/**
 	 * A model of a Chapel program.
@@ -360,19 +353,6 @@ public class CommonModel extends CommonSourceable implements Model {
 		if (seenLogicFunctions == null)
 			seenLogicFunctions = new LinkedList<>();
 		return seenLogicFunctions;
-	}
-
-	@Override
-	public void setLogicFunctionInterpretations(
-			ProverFunctionInterpretation[] interpretations) {
-		this.logicFunctionInterpretations = interpretations;
-	}
-
-	@Override
-	public ProverFunctionInterpretation[] getLogicFunctionInterpretations() {
-		if (this.logicFunctionInterpretations == null)
-			this.logicFunctionInterpretations = new ProverFunctionInterpretation[0];
-		return this.logicFunctionInterpretations;
 	}
 
 	@Override

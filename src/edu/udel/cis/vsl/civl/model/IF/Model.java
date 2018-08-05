@@ -11,7 +11,6 @@ import edu.udel.cis.vsl.civl.model.IF.statement.MallocStatement;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLBundleType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
-import edu.udel.cis.vsl.sarl.prove.IF.ProverFunctionInterpretation;
 
 /**
  * A model of a CIVL program. This is the "low-level" intermediate
@@ -223,15 +222,4 @@ public interface Model extends Sourceable {
 	 *            the translated logic functions that will be added to the model
 	 */
 	void setLogicFunctions(List<LogicFunction> logicFunctions);
-
-	/**
-	 * set the constant interpretations of all logic functions
-	 */
-	void setLogicFunctionInterpretations(
-			ProverFunctionInterpretation[] interpretations);
-
-	/**
-	 * get the constant interpretations of all logic functions
-	 */
-	ProverFunctionInterpretation[] getLogicFunctionInterpretations();
 }
