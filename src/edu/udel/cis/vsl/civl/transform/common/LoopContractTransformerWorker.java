@@ -224,15 +224,6 @@ public class LoopContractTransformerWorker extends BaseWorker {
 		return loop.getKind() == LoopKind.FOR;
 	}
 
-	/**
-	 * @param loop
-	 *            An {@link LoopNode}.
-	 * @return true iff the given {@link LoopNode} represents a do-while loop.
-	 */
-	static private boolean isDoWhileLoop(LoopNode loop) {
-		return loop.getKind() == LoopKind.DO_WHILE;
-	}
-
 	/* ******************* Constructor ********************** */
 	/**
 	 * @return A unique identifier name for a $loop_write_set type object
@@ -420,12 +411,7 @@ public class LoopContractTransformerWorker extends BaseWorker {
 		transformLoopBody(loop, auxVarNames);
 		// transforms the loop to a while(true|false) loop :
 		newLoop = toWhileLoop(loop, auxVarNames);
-		// completes the while loop transformation by adding the very first
-		// condition test if the loop is NOT a do-while loop:
-		// "if (loop condition) while(true)-loop;"
-		if (!isDoWhileLoop(loop.getLoopNode()))
-			LISEComponents.add(nodeFactory.newIfNode(source,
-					loop.getLoopNode().getCondition().copy(), newLoop));
+		LISEComponents.add(newLoop);
 		// transforms termination of a loop:
 		LISEComponents.addAll(transformLoopExit(loop, auxVarNames));
 		LISEBlock = nodeFactory.newCompoundStatementNode(source,
@@ -513,11 +499,7 @@ public class LoopContractTransformerWorker extends BaseWorker {
 			}
 		}
 		// base case assertion:
-		ExpressionNode baseCasePredicate = nodeFactory.newOperatorNode(source,
-				Operator.IMPLIES, loop.getLoopNode().getCondition().copy(),
-				loop.getLoopInvariants(nodeFactory));
-
-		results.add(createAssertion(baseCasePredicate, true));
+		results.add(createAssertion(loop.getLoopInvariants(nodeFactory), true));
 
 		// loop pre-state declaration :
 		IdentifierNode preStateVarIdentifier = identifier(
@@ -670,12 +652,10 @@ public class LoopContractTransformerWorker extends BaseWorker {
 		results.add(createAssumptionPop(source));
 		// ND choice of enter or exit:
 		if (!loop.getLoopAssignSet().isEmpty())
-			results.add(
-					nodeFactory.newExpressionStatementNode(
-							nodeFactory.newOperatorNode(source, Operator.ASSIGN,
-									identifierExpression(
-											auxVarNames.loop_new_cond),
-									createNDBinaryChoice(source))));
+			results.add(nodeFactory.newExpressionStatementNode(
+					nodeFactory.newOperatorNode(source, Operator.ASSIGN,
+							identifierExpression(auxVarNames.loop_new_cond),
+							createNDBinaryChoice(source))));
 
 		StatementNode newBody = nodeFactory.newCompoundStatementNode(source,
 				results);
@@ -721,12 +701,10 @@ public class LoopContractTransformerWorker extends BaseWorker {
 									Arrays.asList(identifierExpression(
 											auxVarNames.loop_write_set)),
 									null)))));
-			results.add(
-					nodeFactory.newExpressionStatementNode(
-							nodeFactory.newOperatorNode(source, Operator.ASSIGN,
-									identifierExpression(
-											auxVarNames.loop_new_cond),
-									createNDBinaryChoice(source))));
+			results.add(nodeFactory.newExpressionStatementNode(
+					nodeFactory.newOperatorNode(source, Operator.ASSIGN,
+							identifierExpression(auxVarNames.loop_new_cond),
+							createNDBinaryChoice(source))));
 
 		}
 		// Refresh write set:
@@ -1118,12 +1096,12 @@ public class LoopContractTransformerWorker extends BaseWorker {
 
 		trueBranch.add(nodeFactory.newVariableDeclarationNode(source,
 				identifier(ws_ptrs), pointerArrayType));
-		trueBranch
-				.add(nodeFactory.newExpressionStatementNode(functionCall(source,
-						MEM_TO_POINTER_ARRAY, Arrays.asList(writeSet.copy(),
+		trueBranch.add(nodeFactory.newExpressionStatementNode(
+				functionCall(source, MEM_TO_POINTER_ARRAY,
+						Arrays.asList(writeSet.copy(),
 								nodeFactory.newOperatorNode(source,
-										Operator.ADDRESSOF, identifierExpression(
-												ws_ptrs))))));
+										Operator.ADDRESSOF,
+										identifierExpression(ws_ptrs))))));
 		// asserted existence:
 		ExpressionNode ptrInAssignedLocations = memoryLocationManager
 				.pointerBelongsToMemoryLocationSet(
@@ -1454,12 +1432,10 @@ public class LoopContractTransformerWorker extends BaseWorker {
 				identifierExpression(LOOP_WRITE_SET_WIDENING),
 				Arrays.asList(identifierExpression(auxVarNames.loop_write_set)),
 				null);
-		wideningThenNDChoice
-				.add(nodeFactory.newExpressionStatementNode(
-						nodeFactory.newOperatorNode(source, Operator.ASSIGN,
-								identifierExpression(
-										auxVarNames.loop_write_set),
-								wideningCall)));
+		wideningThenNDChoice.add(nodeFactory.newExpressionStatementNode(
+				nodeFactory.newOperatorNode(source, Operator.ASSIGN,
+						identifierExpression(auxVarNames.loop_write_set),
+						wideningCall)));
 		wideningThenNDChoice.add(nodeFactory.newExpressionStatementNode(
 				nodeFactory.newOperatorNode(source, Operator.ASSIGN,
 						termCondVar, createNDBinaryChoice(source))));
