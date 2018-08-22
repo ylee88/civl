@@ -1,0 +1,12 @@
+$input int n;
+$assume(n > 0);
+
+int b[2 * n];
+
+int main() {
+  int a[n] = (int[n])$lambda(int i) 1;
+ 
+  b = (int[2*n])$lambda(int i)(i%2==0 ? a[i/2] : b[i]);
+  $assert($forall (int i | 0 <= i && i < 2*n && i%2 == 0) b[i] == 1);
+  $assert($forall (int i | 0 <= i && i < 2*n && i%2 != 0) b[i] == 0);
+}
