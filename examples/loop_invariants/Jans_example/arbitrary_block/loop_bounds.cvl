@@ -1,0 +1,37 @@
+/* Theory loop_bounds.  Two parameters: n and b.
+ * To prove consistency of this theory:
+ *   civl verify -D_PROVE loop_bounds.cvl
+ * To use this theory in a program:
+ *   1. Add #include "loop_bounds.cvl" somewhere before first use of the theory
+ *   2. Add instantiate_theory_loop_bounds(n,b) for each pair of vars n,b you wish
+ *      to generate the lemmas for.
+ */
+#pragma CIVL ACSL
+#ifdef _PROVE
+#define $ASSUME $assume
+#define $ASSERT $assert
+$input int n,b,o;
+/*@ logic int loop_max(int offset, int up, int step) = up > offset ? up+step-1-(up-offset-1)%step : offset;
+  @   
+  @ // describing the relationship among variables in a loop : for (int i = offset; i < up; i+=step)
+  @ predicate in_stride(int offset, int i, int step) = i - offset >= 0 && ((i - offset) % step == 0);
+  @*/
+int main() {
+#else
+#define $ASSUME $assert
+#define $ASSERT $assume
+  $abstract int loop_max(int offset, int up, int step);
+  $abstract _Bool in_stride(int offset, int i, int step);
+#endif
+#define instantiate_theory_loop_bounds(n,b,o)	\
+  $ASSUME(0<b && b<n && 0 <= o && o <= b); \
+  $ASSERT($forall (int x) (in_stride(o, x, b) && n-b > x && o < n-b => loop_max(o, n-b, b) >= x + b)); \
+  $ASSERT($forall (int x| x>0) in_stride(o, x, b) => in_stride(o, x+b, b)); \
+  $ASSERT(in_stride(o, o, b));					\
+  $ASSERT($forall (int x) (in_stride(o, x, b) && x >= n-b => x >= loop_max(o, n-b, b))); \
+  $ASSERT(n-b <= loop_max(o, n-b, b) && loop_max(o, n-b, b) < n);
+#define in_range(i, offset, up, step)  (in_stride((offset), (i), (step)) && 1 <= (i) && (i) <= loop_max((offset), (up), (step)))
+#ifdef _PROVE
+ instantiate_theory_loop_bounds(n,b,o)
+}
+#endif
