@@ -14,6 +14,7 @@ import java.util.Set;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.CIVLTypeFactory;
+import edu.udel.cis.vsl.civl.model.IF.CIVLUnimplementedFeatureException;
 import edu.udel.cis.vsl.civl.model.IF.Identifier;
 import edu.udel.cis.vsl.civl.model.IF.ModelConfiguration;
 import edu.udel.cis.vsl.civl.model.IF.expression.Expression;
@@ -26,6 +27,7 @@ import edu.udel.cis.vsl.civl.model.IF.type.CIVLDomainType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLEnumType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLFunctionType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLHeapType;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLMemType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPointerType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType.PrimitiveTypeKind;
@@ -42,6 +44,7 @@ import edu.udel.cis.vsl.civl.model.common.type.CommonDomainType;
 import edu.udel.cis.vsl.civl.model.common.type.CommonEnumType;
 import edu.udel.cis.vsl.civl.model.common.type.CommonFunctionType;
 import edu.udel.cis.vsl.civl.model.common.type.CommonHeapType;
+import edu.udel.cis.vsl.civl.model.common.type.CommonMemType;
 import edu.udel.cis.vsl.civl.model.common.type.CommonPointerType;
 import edu.udel.cis.vsl.civl.model.common.type.CommonPrimitiveType;
 import edu.udel.cis.vsl.civl.model.common.type.CommonRegularRangeType;
@@ -739,5 +742,19 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	@Override
 	public CIVLType getStaticTypeOfDynamicType(SymbolicExpression typeId) {
 		return dynamicTypeID2staticType.get(typeId);
+	}
+
+	@Override
+	public CIVLMemType memType() {
+		return new CommonMemType(memSymbolicType(),
+				sizeofPrimitiveType(PrimitiveTypeKind.MEM),
+				universe.trueExpression());
+	}
+
+	@Override
+	public SymbolicType memSymbolicType() {
+		// TODO Auto-generated method stub
+		throw new CIVLUnimplementedFeatureException(
+				"Dynamic type of $mem type has not been implemneted yet");
 	}
 }

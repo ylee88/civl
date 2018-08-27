@@ -15,6 +15,7 @@ import edu.udel.cis.vsl.civl.model.IF.type.CIVLDomainType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLEnumType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLFunctionType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLHeapType;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLMemType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPointerType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLScopeType;
@@ -285,6 +286,15 @@ public interface CIVLTypeFactory {
 	 */
 	CIVLPrimitiveType voidType();
 
+	/**
+	 * Returns the {@link CIVLMemType}. A mem type is the type of all
+	 * expressions representing a set of pointers.
+	 * 
+	 * @return the mem type, which is the type of all expressions representing a
+	 *         set of pointers
+	 */
+	CIVLMemType memType();
+
 	/*
 	 * ************************************************************************
 	 * SARL symbolic types
@@ -327,6 +337,13 @@ public interface CIVLTypeFactory {
 	 * @return the symbolic type used to represent scope values
 	 */
 	SymbolicType scopeSymbolicType();
+
+	/**
+	 * Returns the symbolic type used to represent mem values
+	 * 
+	 * @return the symbolic type used to represent mem values
+	 */
+	SymbolicType memSymbolicType();
 
 	SymbolicType voidSymbolicType();
 

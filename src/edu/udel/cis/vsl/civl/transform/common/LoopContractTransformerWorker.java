@@ -474,7 +474,7 @@ public class LoopContractTransformerWorker extends BaseWorker {
 				nodeFactory.newIntegerConstantNode(source, "1")));
 		results.add(nodeFactory.newVariableDeclarationNode(source,
 				loopNewCondIdentifier, boolTypeNode.copy(),
-				nodeFactory.newIntegerConstantNode(source, "1")));
+				createNDBinaryChoice(source)));
 		results.add(nodeFactory.newVariableDeclarationNode(source,
 				loopLeastItersIdentifier, intTypeNode,
 				nodeFactory.newIntegerConstantNode(source, "0")));

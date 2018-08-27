@@ -1,20 +1,44 @@
-/* Partially verify the sorting algorithm for unbounded number of
- * elements.  So far one can not express "permutation" in CIVL and the
- * ACSL subset supported by CIVL.
+/* VerifyThis 2017: CIVL Solution to Challenge 1 : Pair Insertion Sort
+ * Stephen Siegel
+ *
+ * Modification by Ziqing Luo: 
+ *  1. Got rid of the upper bound over n.
+ *
+ *  2. Manual side-effect removing.  The loop invariants transformer
+ *  relies on the fact of side-effect free in loop conditions. It
+ *  copies and moves the loop conditions hence side-effects can make
+ *  it wrong.  Applying side-effect remover introduces jump statements
+ *  which are not handled well by the loop invariants transformer.
  */
 #include <stdio.h>
+#include <string.h>
+
 #pragma CIVL ACSL
+
 $input int n; // size of array
 $assume(1<=n);
+$input int A[n];
 $input int LEFT;
 $input int RIGHT;
-$assume(1<=LEFT && LEFT < RIGHT && RIGHT<n-1);
+$assume(1<=LEFT && LEFT <= RIGHT && RIGHT<n);
+
+int count(int n, int* p, int val) {
+  int result = 0;
+  for (int i=0; i < n; i++)
+    if ((p[i]) == val)
+      result++;
+  return result;
+}
 
 int main() {
+  // this is the "sentinel" assumption...
+  $assume($forall (int j : LEFT .. RIGHT) A[j] >= A[LEFT-1]);
+
   int a[n];
 
-  // assumption: a[LEFT-1] is less than every thing of right of LEFT:
-  $assume($forall (int j : LEFT .. RIGHT) a[j] >= a[LEFT-1]);
+  memcpy(a, A, n * sizeof(int));
+  printf("n=%d\n", n);
+
   int left = LEFT, right = RIGHT;
   int k = left;
   
@@ -26,7 +50,7 @@ int main() {
     @ loop invariant \forall int t; LEFT <= t && t <= RIGHT ==> a[LEFT-1] <= a[t];
     @ loop assigns k, left, a[LEFT .. n-1];
     @*/
-  for (;left <= right;) {
+  for (; left <= right; k = left++) {
     int a1 = a[k], a2 = a[left];
 
     if (a1 < a2) {
@@ -56,12 +80,32 @@ int main() {
       @ loop assigns k, a[LEFT .. n-1];
       @*/
     while (a2 < a[k]) {
-      a[k + 1] = a[k]; 
+      printf("k=%d, LEFT=%d\n", k, LEFT);
+      a[k + 1] = a[k];
       k--;
     }
     a[k + 1] = a2;
-    k = ++left;
     left++;
   }
+
   $assert( $forall (int i : LEFT .. RIGHT-2) a[i] <= a[i+1] );
+  
+  int last = a[right--];
+  
+  /*@ loop invariant LEFT-1 <= right && right <= RIGHT-1;
+    @ loop invariant right < RIGHT-1 ==>
+    @                   (\forall int i; LEFT <= i && i <= RIGHT ==>
+    @                     a[i-1] <= a[i]); 
+    @ loop invariant right == RIGHT-1 ==> 
+    @                 (\forall int i; LEFT <= i && i <= RIGHT-1 ==>
+    @                     a[i-1] <= a[i]);
+    @ loop invariant right < RIGHT-1 ==> last < a[right+1];
+    @ loop assigns right, a[LEFT .. RIGHT];
+    @*/
+  while (last < a[right]) {
+    a[right + 1] = a[right];
+    right--;
+  }
+  a[right + 1] = last;
+  $assert( $forall (int i : LEFT .. RIGHT-1) a[i] <= a[i+1] );
 }

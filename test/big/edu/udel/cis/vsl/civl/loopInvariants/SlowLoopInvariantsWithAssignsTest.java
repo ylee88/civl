@@ -283,85 +283,85 @@ public class SlowLoopInvariantsWithAssignsTest {
 	@Test
 	public void relaxedPrefix() {
 		assertTrue(ui.run("verify", "-loop", TestConstants.QUIET, filename(
-				"../verifyThisNB/relaxedPrefix/relaxedPrefix_loop.cvl")));
+				"../verifyThisUB/relaxedPrefix/relaxedPrefix_loop.cvl")));
 	}
 
 	@Test
 	public void relaxedPrefixWeak() {
 		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET, filename(
-				"../verifyThisNB/relaxedPrefix/relaxedPrefix_loop-bad_weak.cvl")));
+				"../verifyThisUB/relaxedPrefix/relaxedPrefix_loop-bad_weak.cvl")));
 	}
 
 	@Test
 	public void relaxedPrefixWeak2() {
 		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET, filename(
-				"../verifyThisNB/relaxedPrefix/relaxedPrefix_loop-bad_weak2.cvl")));
+				"../verifyThisUB/relaxedPrefix/relaxedPrefix_loop-bad_weak2.cvl")));
 	}
 
 	@Test
 	public void relaxedPrefixBadAssert() {
 		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET, filename(
-				"../verifyThisNB/relaxedPrefix/relaxedPrefix_loop-bad_assert.cvl")));
+				"../verifyThisUB/relaxedPrefix/relaxedPrefix_loop-bad_assert.cvl")));
 	}
 
 	@Test
 	public void relaxedPrefixWeak4Assert() {
 		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET, filename(
-				"../verifyThisNB/relaxedPrefix/relaxedPrefix_loop-bad_weak4assert.cvl")));
+				"../verifyThisUB/relaxedPrefix/relaxedPrefix_loop-bad_weak4assert.cvl")));
 	}
 
 	@Test
 	public void sort() {
 		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop", filename(
-				"../verifyThisNB/longestRepeatedSubstring/sort_deductive.cvl")));
+				"../verifyThisUB/longestRepeatedSubstring/sort_deductive.cvl")));
 	}
 
 	@Test
 	public void sortBadInvariant() {
 		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop", filename(
-				"../verifyThisNB/longestRepeatedSubstring/sort-bad_invariant.cvl")));
+				"../verifyThisUB/longestRepeatedSubstring/sort-bad_invariant.cvl")));
 	}
 
 	@Test
 	public void sortBadAssert() {
 		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop", filename(
-				"../verifyThisNB/longestRepeatedSubstring/sort-bad_assert.cvl")));
+				"../verifyThisUB/longestRepeatedSubstring/sort-bad_assert.cvl")));
 	}
 
 	@Test
 	public void lrsBadInvariant() {
 		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop", filename(
-				"../verifyThisNB/longestRepeatedSubstring/lrs-bad_invariant.cvl")));
+				"../verifyThisUB/longestRepeatedSubstring/lrs-bad_invariant.cvl")));
 	}
 
 	@Test
 	public void lrsBadAssert() {
 		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop", filename(
-				"../verifyThisNB/longestRepeatedSubstring/lrs-bad_assert.cvl")));
+				"../verifyThisUB/longestRepeatedSubstring/lrs-bad_assert.cvl")));
 	}
 
 	@Test
 	public void lrs() {
 		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop", filename(
-				"../verifyThisNB/longestRepeatedSubstring/lrs_deductive.cvl ")));
+				"../verifyThisUB/longestRepeatedSubstring/lrs_deductive.cvl ")));
 	}
 
 	@Test
 	public void pairInsertion() {
 		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop", filename(
-				"../verifyThisNB/pairInsertSort/pairInsertSort_partial.cvl")));
+				"../verifyThisUB/pairInsertSort/pairInsertSort_partial.cvl")));
 	}
 
 	@Test
 	public void pairInsertionBadAssert() {
 		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop", filename(
-				"../verifyThisNB/pairInsertSort/pairInsertSort_partial-bad_assert.cvl")));
+				"../verifyThisUB/pairInsertSort/pairInsertSort_partial-bad_assert.cvl")));
 	}
 
 	@Ignore // requires why3 with TIMEOUT > 10 seconds
 	public void lcp2() {
 		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop", filename(
-				"../verifyThisNB/longestRepeatedSubstring/lcp2.cvl ")));
+				"../verifyThisUB/longestRepeatedSubstring/lcp2.cvl ")));
 	}
 
 	@AfterClass

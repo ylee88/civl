@@ -19,7 +19,12 @@ public interface CIVLPrimitiveType extends CIVLType {
 		 * An object of a STATE type represents a canonicalized state in CIVL-C
 		 * language.
 		 */
-		STATE, VOID, CHAR, MEMORY
+		STATE, VOID, CHAR,
+		/**
+		 * An object of a MEM type represents a set of pointers in CIVL-C
+		 * language
+		 */
+		MEM
 	};
 
 	/**

@@ -86,8 +86,8 @@ public class CommonPrimitiveType extends CommonType
 				return "void";
 			case CHAR :
 				return "char";
-			case MEMORY :
-				return "$memory";
+			case MEM :
+				return "$mem";
 			default :
 				throw new CIVLInternalException(
 						"Unknown primitive type kind: " + kind,
