@@ -1,0 +1,22 @@
+/* 
+ * A MXM driver written in CIVL-C for CIVL verifier.
+ * 
+ */
+
+$input int size;
+$assume(0 < size && size < 5);
+$input double a[size][size], b[size][size];
+$output double o[size][size];
+
+void MXM(double a[][], int* n1, double b[][], int* n2, double c[][], int* n3);
+
+void main(){
+    int n = size;
+    double c[size][size];
+    
+    MXM(a,&n,b,&n,c,&n);
+    
+    for (int i=0; i<n; i++) 
+      for (int j=0; j<n; j++)
+        o[i][j] = c[i][j];
+}

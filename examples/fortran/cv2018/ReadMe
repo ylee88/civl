@@ -1,0 +1,24 @@
+Result:
+
+ID		result		#states		time (sec)	mem. (Mb)	note
+										
+0 division 	detected	2		0.87		268.44		
+bad index	detected	3		0.74		268.44		
+										
+harmonic	equivalent	326		16.2		490.73		
+resid		equivalent	39		1.97		268.44		
+										
+matmul		equivalent	1050		2.67		268.44		size < 5
+matmul_bad	not equivalent	568		2.49		268.44		size < 5
+
+matmul		equivalent	13018		4.26		268.44		size < 10
+matmul_bad	not equivalent	4325		3.34		268.44		size < 10
+
+matmul		equivalent	60942		20.78		268.44		size < 15
+matmul_bad	not equivalent	14263		6.44		268.44		size < 15
+
+matmul		equivalent	185271		242.01		322.96		size < 20
+matmul_bad	not equivalent	24227		13.24		268.44		size < 20
+
+matmul		equivalent	441865		2511.12		528.48		size < 25
+matmul_bad	not equivalent	65013		62.59		268.44		size < 25
