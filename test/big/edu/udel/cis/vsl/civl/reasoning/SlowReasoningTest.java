@@ -23,8 +23,8 @@ public class SlowReasoningTest {
 
 	@Test
 	public void lemmasOfArbitraryBlock() {
-		assertTrue(ui.run("verify", TestConstants.QUIET, filename(loopInvDir,
-				"Jans_example/arbitrary_block/lemmas.cvl")));
+		assertTrue(ui.run("verify -D_PROVE", TestConstants.QUIET, filename(
+				loopInvDir, "Jans_example/arbitrary_block/loop_bounds.cvl")));
 	}
 
 	@AfterClass
@@ -34,3 +34,4 @@ public class SlowReasoningTest {
 		System.gc();
 	}
 }
+
