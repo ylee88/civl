@@ -59,4 +59,15 @@ public class ACSLTransformTest {
 				filename("predicate-bad_decl_twice.cvl")));
 	}
 
+	@Test
+	public void logicFunctionTest() {
+		assertTrue(ui.run("verify", QUIET, filename("acslLogicFunctions.cvl")));
+	}
+
+	@Test
+	public void logicFunctionBadTest() {
+		assertFalse(
+				ui.run("verify", QUIET, filename("acslLogicFunctionsBad.cvl")));
+	}
+
 }

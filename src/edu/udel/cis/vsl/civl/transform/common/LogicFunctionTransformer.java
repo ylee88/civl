@@ -23,6 +23,7 @@ import edu.udel.cis.vsl.abc.ast.node.IF.expression.FunctionCallNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.IdentifierExpressionNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.OperatorNode.Operator;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.QuantifiedExpressionNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.type.ArrayTypeNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.type.FunctionTypeNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.type.PointerTypeNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.type.TypeNode;
@@ -467,12 +468,30 @@ public class LogicFunctionTransformer {
 			TypeNode referredType = ((PointerTypeNode) typeNode)
 					.referencedType();
 
-			if (referredType.kind() == TypeNodeKind.BASIC)
+			if (noPointerIn(referredType))
 				return;
 		}
 		throw new CIVLUnimplementedFeatureException(
 				"A formal parameter of logic function has non-scalar type,"
 						+ " pointer to pointer type or pointer to non-scalar type.",
 				formal.getSource());
+	}
+
+	/**
+	 * @return true iff the given type node contains no sub-type which is a
+	 *         pointer type. e.g. if the given type node represents an array of
+	 *         int type, there is NO sub-type in it is a pointer type; if the
+	 *         given type node represents an array of pointer to int, then there
+	 *         IS sub-type in it is a pointer type.
+	 */
+	private boolean noPointerIn(TypeNode typeNode) {
+		if (typeNode.kind() == TypeNodeKind.POINTER)
+			return false;
+		if (typeNode.kind() == TypeNodeKind.BASIC)
+			return true;
+		if (typeNode.kind() == TypeNodeKind.ARRAY) {
+			return noPointerIn(((ArrayTypeNode) typeNode).getElementType());
+		}
+		return false;
 	}
 }

@@ -1204,9 +1204,10 @@ public class FunctionTranslator {
 		try {
 			condition = modelFactory.booleanExpression(condition);
 		} catch (ModelFactoryException err) {
-			throw new CIVLSyntaxException("The condition of the loop statement "
-					+ condition + " is of " + condition.getExpressionType()
-					+ " type which cannot be converted to boolean type.",
+			throw new CIVLSyntaxException(
+					"The condition of the loop statement " + condition
+							+ " is of " + condition.getExpressionType()
+							+ " type which cannot be converted to boolean type.",
 					condition.getSource());
 		}
 		loopEntranceLocation = modelFactory.location(condition.getSource(),
@@ -2668,8 +2669,9 @@ public class FunctionTranslator {
 			Expression definition;
 
 			if (!defnExpression.isSideEffectFree(false))
-				throw new CIVLSyntaxException("A logic function (or predicate) "
-						+ "definition must be a side-effect free expression.",
+				throw new CIVLSyntaxException(
+						"A logic function (or predicate) "
+								+ "definition must be a side-effect free expression.",
 						defnExpression.getSource());
 
 			int pointerToArrayMap[] = new int[parameters.size()];
@@ -2715,11 +2717,17 @@ public class FunctionTranslator {
 	}
 
 	/**
-	 * Check if logic function formal parameter type is supported
+	 * Check if logic function formal parameter type is supported. Currently
+	 * only scalar types or pointer to
+	 * <ul>
+	 * <li>1. non-pointer scalar type</li>
+	 * <li>ARRAY type</li>
+	 * </ul>
+	 * are supported.
 	 * 
 	 * @param formal
 	 */
-	void checkSupportedFormalType(Variable formal) {
+	private void checkSupportedFormalType(Variable formal) {
 		CIVLType type = formal.type();
 
 		if (type.isScalar() && !type.isPointerType())
@@ -2728,6 +2736,8 @@ public class FunctionTranslator {
 			CIVLType referredType = ((CIVLPointerType) type).baseType();
 
 			if (referredType.isScalar() && !referredType.isPointerType())
+				return;
+			else if (referredType.isArrayType())
 				return;
 		}
 		// this error is triggered only if the supported type checking in
@@ -2984,9 +2994,10 @@ public class FunctionTranslator {
 		try {
 			expression = modelFactory.booleanExpression(expression);
 		} catch (ModelFactoryException err) {
-			throw new CIVLSyntaxException("The condition of the if statement "
-					+ expression + " is of " + expression.getExpressionType()
-					+ " type which cannot be converted to boolean type.",
+			throw new CIVLSyntaxException(
+					"The condition of the if statement " + expression
+							+ " is of " + expression.getExpressionType()
+							+ " type which cannot be converted to boolean type.",
 					expression.getSource());
 		}
 		if (modelFactory.anonFragment() != null) {
@@ -3314,8 +3325,8 @@ public class FunctionTranslator {
 		Statement defaultExit = null;
 		Set<Statement> breaks;
 		Location location = modelFactory.location(
-				modelFactory.sourceOfSpan(
-						modelFactory.sourceOfBeginning(switchNode),
+				modelFactory.sourceOfSpan(modelFactory
+						.sourceOfBeginning(switchNode),
 						modelFactory.sourceOfBeginning(switchNode.child(1))),
 				scope);
 
@@ -4653,9 +4664,10 @@ public class FunctionTranslator {
 					if (expression instanceof LHSExpression) {
 						expression = modelFactory.addressOfExpression(source,
 								modelFactory.subscriptExpression(source,
-										(LHSExpression) expression,
-										modelFactory.integerLiteralExpression(
-												source, BigInteger.ZERO)));
+										(LHSExpression) expression, modelFactory
+												.integerLiteralExpression(
+														source,
+														BigInteger.ZERO)));
 					} else if (expressionKind == Expression.ExpressionKind.ARRAY_LITERAL
 							|| expressionKind == Expression.ExpressionKind.ARRAY_LAMBDA) {
 						// creates anonymous variable in the root scope for this
