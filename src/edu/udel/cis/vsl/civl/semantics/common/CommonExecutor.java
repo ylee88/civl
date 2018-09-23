@@ -1482,8 +1482,7 @@ public class CommonExecutor implements Executor {
 	 *             if the memory represented by the lhs expression is invalid
 	 */
 	private State assignLHS(State state, int pid, String process,
-			LHSExpression lhs, SymbolicExpression value,
-			boolean isInitializer)
+			LHSExpression lhs, SymbolicExpression value, boolean isInitializer)
 			throws UnsatisfiablePathConditionException {
 		LHSExpressionKind kind = lhs.lhsExpressionKind();
 
@@ -1577,8 +1576,8 @@ public class CommonExecutor implements Executor {
 	 * <li>IF lhs has a complete array-of-T0 type "t0", rhs must have a complete
 	 * array-of-T1 type "t1". T0 and T1 must be compatible for assignment. The
 	 * extent of "t0" must equal to the extent of "t1".</li>
-	 * <li>IF lhs has an incomplete array-of-T type, rhs must have complete
-	 * array-of-T type.</li>
+	 * <li>IF lhs has an incomplete array-of-T type, rhs must have array-of-T
+	 * type.</li>
 	 * <li>IF lhs has a tuple type, rhs must have a tuple type as well. The
 	 * tuple types of lhs and rhs must have same amount of component types. Each
 	 * pair of component types in the tuple types of the lhs and rhs must be
