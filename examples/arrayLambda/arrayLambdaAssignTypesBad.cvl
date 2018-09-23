@@ -1,11 +1,8 @@
 $input int n;
 $assume(n > 0);
-
 int b[3 * n];
-
 int main() {
   int a[n] = (int[n])$lambda(int i) i;
- 
-  b = (int[3*n])$lambda(int i)(i < n ? b[i] : i < 2 * n ? a[i-n] : b[i]);
+  b = (int[n])$lambda(int i)(i < n ? b[i] : i < 2 * n ? a[i-n] : b[i]);
   $assert($forall (int i : n .. 2*n-1) b[i] == a[i-n]);
 }

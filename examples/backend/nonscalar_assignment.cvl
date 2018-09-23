@@ -1,0 +1,16 @@
+$input int N;
+
+typedef  struct {
+  int i;
+  char c;
+  double d[N];
+} T;
+
+int main() {
+  T y;
+  T x[10];
+
+  $havoc(&y);
+  x = (T[10])$lambda(int i)y;
+  $assert(x[0].c == y.c);
+}
