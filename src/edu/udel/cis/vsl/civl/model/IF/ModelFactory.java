@@ -807,13 +807,13 @@ public interface ModelFactory {
 	 *            The left hand side of the assignment.
 	 * @param rhs
 	 *            The right hand side of the assignment.
-	 * @param isInitialization
+	 * @param isInitializer
 	 *            True iff the assign statement to create is translated from a
 	 *            the initialization node of variable declaration node.
 	 * @return A new assignment statement.
 	 */
 	AssignStatement assignStatement(CIVLSource civlSource, Location source,
-			LHSExpression lhs, Expression rhs, boolean isInitialization);
+			LHSExpression lhs, Expression rhs, boolean isInitializer);
 
 	/**
 	 * Generate an atomic fragment based on a certain fragment, by adding one
@@ -851,11 +851,16 @@ public interface ModelFactory {
 	 *            The arguments to the function.
 	 * @param guard
 	 *            The guard of the statement
+	 * @param isInitializer
+	 *            A boolean value indicating that if the return value of the
+	 *            creating call statement will initialize a left-hand side
+	 *            expression
 	 * @return the new call or spawn statement
 	 */
 	CallOrSpawnStatement callOrSpawnStatement(CIVLSource sourceOf,
 			Location location, boolean isCall, Expression function,
-			List<Expression> arguments, Expression guard);
+			List<Expression> arguments, Expression guard,
+			boolean isInitializer);
 
 	/**
 	 * creates a <code>$parfor</code> enter statement to start the execution of

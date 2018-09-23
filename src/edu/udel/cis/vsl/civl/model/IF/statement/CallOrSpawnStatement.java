@@ -47,6 +47,14 @@ public interface CallOrSpawnStatement extends Statement {
 	boolean isRun();
 
 	/**
+	 * 
+	 * @return true iff the {@link #lhs()} expression will be initialized by the
+	 *         return value of this call statement, i.e. the function call is an
+	 *         initializer of a declaration.
+	 */
+	boolean isInitializer();
+
+	/**
 	 * @return The left hand side expression if applicable. Else null.
 	 */
 	LHSExpression lhs();

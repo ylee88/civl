@@ -964,7 +964,8 @@ public class CommonModelFactory implements ModelFactory {
 	@Override
 	public CallOrSpawnStatement callOrSpawnStatement(CIVLSource civlSource,
 			Location source, boolean isCall, Expression function,
-			List<Expression> arguments, Expression guard) {
+			List<Expression> arguments, Expression guard,
+			boolean isInitialization) {
 		Scope statementScope = null;
 
 		for (Expression arg : arguments) {
@@ -973,7 +974,7 @@ public class CommonModelFactory implements ModelFactory {
 		return new CommonCallStatement(civlSource, statementScope,
 				getLowerScope(arguments), source,
 				guard != null ? guard : this.trueExpression(civlSource), isCall,
-				null, function, arguments);
+				null, function, arguments, isInitialization);
 	}
 
 	@Override

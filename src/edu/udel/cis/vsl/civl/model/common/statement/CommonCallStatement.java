@@ -38,6 +38,12 @@ public class CommonCallStatement extends CommonStatement
 
 	private boolean isRun;
 
+	/**
+	 * Set to true iff the {@link #lhs()} is initialized by the return value of
+	 * this call statement
+	 */
+	private boolean isInitializer;
+
 	private LHSExpression lhs = null;
 
 	private Expression functionExpression;
@@ -59,12 +65,13 @@ public class CommonCallStatement extends CommonStatement
 	public CommonCallStatement(CIVLSource civlSource, Scope hscope,
 			Scope lscope, Location source, Expression guard, boolean isCall,
 			LHSExpression lhs, Expression functionExpression,
-			List<Expression> arguments) {
+			List<Expression> arguments, boolean isInitializer) {
 		super(civlSource, hscope, lscope, source, guard);
 		this.isCall = isCall;
 		this.lhs = lhs;
 		this.functionExpression = functionExpression;
 		this.arguments = arguments;
+		this.isInitializer = isInitializer;
 	}
 
 	/**
@@ -245,7 +252,7 @@ public class CommonCallStatement extends CommonStatement
 			newStatement = new CommonCallStatement(this.getSource(),
 					this.statementScope, this.lowestScope, this.source(),
 					newGuard, this.isCall, lhs, this.functionExpression,
-					this.arguments);
+					this.arguments, this.isInitializer);
 		} else {
 			boolean hasNewArg = false;
 			ArrayList<Expression> newArgs = new ArrayList<Expression>();
@@ -269,7 +276,7 @@ public class CommonCallStatement extends CommonStatement
 				newStatement = new CommonCallStatement(this.getSource(),
 						this.statementScope, this.lowestScope, this.source(),
 						this.guard(), this.isCall, lhs, this.functionExpression,
-						newArgs);
+						newArgs, this.isInitializer);
 			}
 		}
 		return newStatement;
@@ -407,5 +414,10 @@ public class CommonCallStatement extends CommonStatement
 			}
 		}
 		return false;
+	}
+
+	@Override
+	public boolean isInitializer() {
+		return this.isInitializer;
 	}
 }

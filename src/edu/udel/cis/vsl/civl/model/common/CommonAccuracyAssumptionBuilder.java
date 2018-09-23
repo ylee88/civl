@@ -516,7 +516,7 @@ public class CommonAccuracyAssumptionBuilder
 				factory.location(source, scope), true, null,
 				Arrays.asList(
 						createAssumptionExpression(source, 0, expression)),
-				null);
+				null, false);
 
 		assumeCall.setFunction(factory.functionIdentifierExpression(source,
 				factory.systemFunction(source,
@@ -632,7 +632,7 @@ public class CommonAccuracyAssumptionBuilder
 							factory.location(source, scope), true, null,
 							Arrays.asList((Expression) factory.binaryExpression(
 									source, BINARY_OPERATOR.EQUAL, lhs, rhs)),
-							null);
+							null, false);
 
 			Scope paraScope = factory.scope(source,
 					expression.expressionScope(), new ArrayList<Variable>(0),
@@ -726,9 +726,11 @@ public class CommonAccuracyAssumptionBuilder
 				rhs = factory.binaryExpression(source, op, rhs, newTerm);
 			}
 		}
-		rhs = factory.binaryExpression(source, BINARY_OPERATOR.PLUS, rhs,
-				factory.unaryExpression(source, UNARY_OPERATOR.BIG_O, multiple(
-						source, separatedExpression, function.continuity())));
+		rhs = factory
+				.binaryExpression(source, BINARY_OPERATOR.PLUS, rhs,
+						factory.unaryExpression(source, UNARY_OPERATOR.BIG_O,
+								multiple(source, separatedExpression,
+										function.continuity())));
 		return factory.binaryExpression(source, BINARY_OPERATOR.EQUAL, lhs,
 				rhs);
 	}

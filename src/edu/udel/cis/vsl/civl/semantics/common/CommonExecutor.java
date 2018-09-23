@@ -85,7 +85,11 @@ import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
 import edu.udel.cis.vsl.sarl.IF.number.IntegerNumber;
 import edu.udel.cis.vsl.sarl.IF.object.IntObject;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicArrayType;
+import edu.udel.cis.vsl.sarl.IF.type.SymbolicCompleteArrayType;
+import edu.udel.cis.vsl.sarl.IF.type.SymbolicTupleType;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
+import edu.udel.cis.vsl.sarl.IF.type.SymbolicType.SymbolicTypeKind;
+import edu.udel.cis.vsl.sarl.IF.type.SymbolicUnionType;
 
 /**
  * An executor is used to execute a CIVL statement. The basic method provided
@@ -300,7 +304,8 @@ public class CommonExecutor implements Executor {
 						functionType.returnType().getDynamicType(universe));
 
 				state = eval.state;
-				state = this.assign(state, pid, "p" + pid, lhs, eval.value);
+				state = this.assign(state, pid, "p" + pid, lhs, eval.value,
+						statement.isInitializer());
 			}
 			state = stateFactory.setLocation(state, pid, statement.target(),
 					true);
@@ -376,7 +381,7 @@ public class CommonExecutor implements Executor {
 							+ funcName);
 			if (call.lhs() != null)
 				state = this.assign(state, pid, process, call.lhs(),
-						universe.nullExpression());
+						universe.nullExpression(), call.isInitializer());
 			state = this.stateFactory.setLocation(state, pid, call.target());
 			return new Evaluation(state, universe.nullExpression());
 		}
@@ -482,7 +487,11 @@ public class CommonExecutor implements Executor {
 		}
 		state = mallocResult.left;
 		if (lhs != null)
-			state = assign(state, pid, process, lhs, mallocResult.right);
+			// note that malloc only assigns pointers which have scalar type, so
+			// weather they are initialized by the malloc statement is not
+			// important because initialization flag is used to help checking
+			// dynamic types compatible of assignments for non-scalar types.
+			state = assign(state, pid, process, lhs, mallocResult.right, false);
 		state = stateFactory.setLocation(state, pid, statement.target(),
 				lhs != null);
 		return state;
@@ -575,7 +584,8 @@ public class CommonExecutor implements Executor {
 									+ " has returned without a return value.");
 					returnValue = universe.nullExpression();
 				}
-				state = assign(state, pid, process, call.lhs(), returnValue);
+				state = assign(state, pid, process, call.lhs(), returnValue,
+						call.isInitializer());
 			}
 			state = stateFactory.setLocation(state, pid, call.target(),
 					call.lhs() != null);
@@ -649,7 +659,8 @@ public class CommonExecutor implements Executor {
 					selfDestructable);
 		if (statement.lhs() != null)
 			state = assign(state, pid, process, statement.lhs(),
-					stateFactory.processValue(newPid));
+					stateFactory.processValue(newPid),
+					statement.isInitializer());
 		state = stateFactory.setLocation(state, pid, statement.target(),
 				statement.lhs() != null);
 		// state = stateFactory.computeReachableMemUnits(state, newPid);
@@ -792,7 +803,7 @@ public class CommonExecutor implements Executor {
 		domainValue = eval.value;
 		state = eval.state;
 		domSizeValue = symbolicUtil.getDomainSize(domainValue);
-		state = this.assign(state, pid, process, domSize, domSizeValue);
+		state = assign(state, pid, process, domSize, domSizeValue, false);
 		number_domSize = (IntegerNumber) reasoner.extractNumber(domSizeValue);
 		if (number_domSize == null) {
 			this.errorLogger.logSimpleError(source, state, process,
@@ -861,7 +872,8 @@ public class CommonExecutor implements Executor {
 		state = this.assign(state, pid, process, parProcsVar,
 				universe.array(
 						this.modelFactory.typeFactory().processSymbolicType(),
-						processes));
+						processes),
+				true);
 		return state;
 	}
 
@@ -1331,7 +1343,7 @@ public class CommonExecutor implements Executor {
 	 * @throws UnsatisfiablePathConditionException
 	 *             if the memory represented by the lhs expression is invalid
 	 */
-	private State assignCore(CIVLSource source, State state, int pid,
+	private State assignToPointer(CIVLSource source, State state, int pid,
 			SymbolicExpression pointer, SymbolicExpression value,
 			boolean isInitialization, boolean toCheckPointer)
 			throws UnsatisfiablePathConditionException {
@@ -1460,7 +1472,7 @@ public class CommonExecutor implements Executor {
 	 *            written
 	 * @param value
 	 *            the value to be used for the assignment
-	 * @param isInitialization
+	 * @param isInitializer
 	 *            true iff this is an initialization assignment in the model. if
 	 *            this is true, then the checking of write-to-input-variable
 	 *            error is disable.
@@ -1471,10 +1483,11 @@ public class CommonExecutor implements Executor {
 	 */
 	private State assignLHS(State state, int pid, String process,
 			LHSExpression lhs, SymbolicExpression value,
-			boolean isInitialization)
+			boolean isInitializer)
 			throws UnsatisfiablePathConditionException {
 		LHSExpressionKind kind = lhs.lhsExpressionKind();
 
+		checkDynamicTypesAssignable(state, pid, lhs, value, isInitializer);
 		if (kind == LHSExpressionKind.VARIABLE) {
 			Variable variable = ((VariableExpression) lhs).variable();
 			int dyscopeId = state.getDyscopeID(pid, variable);
@@ -1489,8 +1502,180 @@ public class CommonExecutor implements Executor {
 			boolean toCheckPointer = kind == LHSExpressionKind.DEREFERENCE;
 
 			// TODO check if lhs is constant or input value
-			return assignCore(lhs.getSource(), eval.state, pid, eval.value,
-					value, isInitialization, toCheckPointer);
+			return assignToPointer(lhs.getSource(), eval.state, pid, eval.value,
+					value, isInitializer, toCheckPointer);
+		}
+	}
+
+	/**
+	 * <p>
+	 * Check if a value is assignable to a {@link LHSExpression} via checking if
+	 * they have compatible dynamic types. The definition of the compatibility
+	 * of dynamic types for assignment is given by
+	 * {@link #areDynamicTypesCompatiableForAssign(SymbolicType, SymbolicType)}.
+	 * </p>
+	 * 
+	 * @param state
+	 *            the current state
+	 * @param pid
+	 *            the PID of the running process
+	 * @param lhs
+	 *            an instance of {@link LHSExpression} which is going to be
+	 *            assigned
+	 * @param value
+	 *            the value that will assign to a {@link LHSExpression}, it is
+	 *            an instance of {@link SymbolicExpression}
+	 * @param isInitialization
+	 *            true iff this assign operation is an initialization of a
+	 *            variable.
+	 * @throws UnsatisfiablePathConditionException
+	 */
+	void checkDynamicTypesAssignable(State state, int pid, LHSExpression lhs,
+			SymbolicExpression value, boolean isInitialization)
+			throws UnsatisfiablePathConditionException {
+		String process = state.getProcessState(pid).name();
+
+		// When types of lhs and rhs are non-scalar types and non-bundle
+		// type check if the types of lhs and rhs are compatiable:
+		if (!lhs.getExpressionType().isScalar()
+				&& !lhs.getExpressionType().isBundleType()) {
+			SymbolicType lhsType;
+			SymbolicType rhsType = value.type();
+
+			if (!isInitialization)
+				lhsType = evaluator.evaluate(state, pid, lhs).value.type();
+			else
+				lhsType = evaluator.getDynamicType(state, pid,
+						lhs.getExpressionType(), lhs.getSource(), false).type;
+			if (!areDynamicTypesCompatiableForAssign(lhsType, rhsType))
+				errorLogger.logSimpleError(lhs.getSource(), state, process,
+						symbolicAnalyzer.stateInformation(state),
+						ErrorKind.OTHER,
+						"The dynamic types of the left-hand side and "
+								+ "the right-hand side expression of the assignment\n"
+								+ "operation are not compatible.\n"
+								+ "LHS type: " + lhsType + "\nRHS type: "
+								+ rhsType);
+		}
+	}
+
+	/**
+	 * <p>
+	 * Check if the dynamic types of the left-hand side (lhs) and right-hand
+	 * side (rhs) expression are compatiable for assignment operation.
+	 * </p>
+	 * 
+	 * <p>
+	 * If the type of lhs or rhs is a numeric/boolean/char/uninterpreted type,
+	 * their dynamic types must be exactly the same.
+	 * </p>
+	 * 
+	 * <p>
+	 * If the type of lhs or rhs is non-scalar type, the following rules will be
+	 * recursively applied to check their compatibility:
+	 * <ul>
+	 * <li>IF lhs has a complete array-of-T0 type "t0", rhs must have a complete
+	 * array-of-T1 type "t1". T0 and T1 must be compatible for assignment. The
+	 * extent of "t0" must equal to the extent of "t1".</li>
+	 * <li>IF lhs has an incomplete array-of-T type, rhs must have complete
+	 * array-of-T type.</li>
+	 * <li>IF lhs has a tuple type, rhs must have a tuple type as well. The
+	 * tuple types of lhs and rhs must have same amount of component types. Each
+	 * pair of component types in the tuple types of the lhs and rhs must be
+	 * compatiable</li>
+	 * <li>IF lhs has a union type, rhs must have a union type as well. The
+	 * union types of lhs and rhs must have same amount of component types. Each
+	 * pair of component types in the union types of the lhs and rhs must be
+	 * compatiable</li>
+	 * </ul>
+	 * </p>
+	 * 
+	 * @param lhsType
+	 *            The dynamic type of the left-hand side expression
+	 * @param rhsType
+	 *            The dynamic type of the right-hand side expression
+	 * @return true iff the given two dynamic types are compatible for an
+	 *         assignment operation
+	 */
+	private boolean areDynamicTypesCompatiableForAssign(SymbolicType lhsType,
+			SymbolicType rhsType) {
+		switch (lhsType.typeKind()) {
+
+			case BOOLEAN :
+			case CHAR :
+			case INTEGER :
+			case REAL :
+			case UNINTERPRETED :
+				return lhsType == rhsType;
+			case ARRAY :
+				SymbolicArrayType rhsArrType,
+						lhsArrType = (SymbolicArrayType) lhsType;
+
+				if (rhsType.typeKind() != SymbolicTypeKind.ARRAY)
+					return false;
+				rhsArrType = (SymbolicArrayType) rhsType;
+				if (lhsArrType.isComplete()) {
+					if (!rhsArrType.isComplete())
+						return false;
+					if (!((SymbolicCompleteArrayType) lhsArrType).extent()
+							.equals(((SymbolicCompleteArrayType) rhsArrType)
+									.extent()))
+						return false;
+					return areDynamicTypesCompatiableForAssign(
+							lhsArrType.elementType(), rhsArrType.elementType());
+				} else
+					return areDynamicTypesCompatiableForAssign(
+							lhsArrType.elementType(), rhsArrType.elementType());
+			case TUPLE : {
+				SymbolicTupleType lhsTupleType = (SymbolicTupleType) lhsType,
+						rhsTupleType;
+
+				if (rhsType.typeKind() != SymbolicTypeKind.TUPLE)
+					return false;
+				rhsTupleType = (SymbolicTupleType) rhsType;
+				if (lhsTupleType.sequence().numTypes() != rhsTupleType
+						.sequence().numTypes())
+					return false;
+				else {
+					int numTypes = lhsTupleType.sequence().numTypes();
+
+					for (int i = 0; i < numTypes; i++)
+						if (!areDynamicTypesCompatiableForAssign(
+								lhsTupleType.sequence().getType(i),
+								rhsTupleType.sequence().getType(i)))
+							return false;
+					return true;
+				}
+			}
+			case UNION : {
+				SymbolicUnionType lhsUnionType = (SymbolicUnionType) lhsType,
+						rhsUnionType;
+
+				if (rhsType.typeKind() != SymbolicTypeKind.UNION)
+					return false;
+				rhsUnionType = (SymbolicUnionType) rhsType;
+				if (lhsUnionType.sequence().numTypes() != rhsUnionType
+						.sequence().numTypes())
+					return false;
+				else {
+					int numTypes = lhsUnionType.sequence().numTypes();
+
+					for (int i = 0; i < numTypes; i++)
+						if (!areDynamicTypesCompatiableForAssign(
+								lhsUnionType.sequence().getType(i),
+								rhsUnionType.sequence().getType(i)))
+							return false;
+					return true;
+				}
+			}
+			// either not supported yet or not possible as a lhs expression
+			case FUNCTION :
+				return false;
+			case MAP :
+			case SET :
+			default :
+				throw new CIVLUnimplementedFeatureException(
+						"Left-hand side expression has type: " + lhsType);
 		}
 	}
 
@@ -1500,14 +1685,15 @@ public class CommonExecutor implements Executor {
 	public State assign(CIVLSource source, State state, int pid,
 			SymbolicExpression pointer, SymbolicExpression value)
 			throws UnsatisfiablePathConditionException {
-		return this.assignCore(source, state, pid, pointer, value, false, true);
+		return this.assignToPointer(source, state, pid, pointer, value, false,
+				true);
 	}
 
 	@Override
 	public State assign(State state, int pid, String process, LHSExpression lhs,
-			SymbolicExpression value)
+			SymbolicExpression value, boolean isInitializer)
 			throws UnsatisfiablePathConditionException {
-		return this.assignLHS(state, pid, process, lhs, value, false);
+		return this.assignLHS(state, pid, process, lhs, value, isInitializer);
 	}
 
 	@Override

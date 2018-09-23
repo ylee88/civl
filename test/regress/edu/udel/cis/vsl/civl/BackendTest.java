@@ -32,7 +32,7 @@ public class BackendTest {
 	/* **************************** Test Methods *************************** */
 	@Test
 	public void printExpr() {
-		assertTrue(ui.run(VERIFY, QUIET, filename("printExpr.cvl"))); 
+		assertTrue(ui.run(VERIFY, QUIET, filename("printExpr.cvl")));
 	}
 
 	@Test
@@ -116,6 +116,23 @@ public class BackendTest {
 	@Test
 	public void original() {
 		ui.run(VERIFY, QUIET, filename("original.cvl"));
+	}
+
+	@Test
+	public void dynamicTypesCompatiableForAssignment() {
+		assertTrue(ui.run(VERIFY, QUIET, filename("nonscalar_assignment.cvl")));
+	}
+
+	@Test
+	public void dynamicTypesCompatiableForAssignment2() {
+		assertTrue(
+				ui.run(VERIFY, QUIET, filename("nonscalar_assignment2.cvl")));
+	}
+
+	@Test
+	public void dynamicTypesCompatiableForAssignmentBad() {
+		assertFalse(ui.run(VERIFY, QUIET,
+				filename("nonscalar_assignment-bad.cvl")));
 	}
 
 	@AfterClass

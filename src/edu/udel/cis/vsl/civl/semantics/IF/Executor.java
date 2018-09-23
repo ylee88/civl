@@ -55,11 +55,14 @@ public interface Executor {
 	 *            a left-hand-side expression
 	 * @param value
 	 *            the value being assigned to the left-hand-side
+	 * @param isInitializer
+	 *            boolean value indicating if the given left-hand side
+	 *            expression will be INITIALIZED by the given value
 	 * @return the new state
 	 * @throws UnsatisfiablePathConditionException
 	 */
 	State assign(State state, int pid, String process, LHSExpression lhs,
-			SymbolicExpression value)
+			SymbolicExpression value, boolean isInitializer)
 			throws UnsatisfiablePathConditionException;
 
 	/**

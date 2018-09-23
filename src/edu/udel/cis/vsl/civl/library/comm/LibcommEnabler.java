@@ -307,7 +307,8 @@ public class LibcommEnabler extends BaseLibraryEnabler
 					sourceExpr, tagExpr, possibleSources, call.getSource(),
 					call.function().parameters(), arguments,
 					call.function().returnType(), call.statementScope(),
-					call.guard(), call.target(), call.lhs());
+					call.guard(), call.target(), call.lhs(),
+					call.isInitializer());
 			for (int j = 0; j < callWorkers.size(); j++)
 				localTransitions.add(Semantics.newTransition(pid, clause,
 						callWorkers.get(j), atomicLockAction));
@@ -350,6 +351,9 @@ public class LibcommEnabler extends BaseLibraryEnabler
 	 *            The assignment statement for the atomic lock variable, should
 	 *            be null except that the process is going to re-obtain the
 	 *            atomic lock variable.
+	 * @param initializeLHS
+	 *            a boolean value indicating if the returned value of this call
+	 *            statement will initialize a left-hand side expression
 	 * @return
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -358,7 +362,8 @@ public class LibcommEnabler extends BaseLibraryEnabler
 			CIVLSource civlsource, List<Variable> parameters,
 			List<Expression> arguments, CIVLType returnType,
 			Scope containingScope, Expression callGuard, Location callTarget,
-			LHSExpression lhs) throws UnsatisfiablePathConditionException {
+			LHSExpression lhs, boolean initializeLHS)
+			throws UnsatisfiablePathConditionException {
 		CallOrSpawnStatement callWorker;
 		List<Statement> transitionStatements = new LinkedList<>();
 		List<Expression> newArgs;
@@ -405,7 +410,8 @@ public class LibcommEnabler extends BaseLibraryEnabler
 							arguments.get(1).getSource(),
 							BigInteger.valueOf(int_newSource)));
 			callWorker = modelFactory.callOrSpawnStatement(civlsource,
-					newLocation, true, dequeueWorkPointer, newArgs, callGuard);
+					newLocation, true, dequeueWorkPointer, newArgs, callGuard,
+					initializeLHS);
 			callWorker.setTargetTemp(callTarget);
 			// callWorker.setFunction(dequeueWorkPointer);
 			callWorker.setLhs(lhs);

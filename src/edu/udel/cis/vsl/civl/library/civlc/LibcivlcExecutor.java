@@ -119,7 +119,7 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 		state = eval.state;
 		if (lhs != null && eval.value != null)
 			state = this.primaryExecutor.assign(state, pid, process, lhs,
-					eval.value);
+					eval.value, call.isInitializer());
 		if (target != null && !state.getProcessState(pid).hasEmptyStack())
 			state = this.stateFactory.setLocation(state, pid, target);
 		eval.state = state;

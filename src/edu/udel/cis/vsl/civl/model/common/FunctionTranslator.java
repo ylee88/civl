@@ -582,8 +582,8 @@ public class FunctionTranslator {
 		FunctionCallNode funcCall = update.getFunctionCall();
 		CIVLSource udpateFuncSource = modelFactory.sourceOf(funcCall);
 		CallOrSpawnStatement call = (CallOrSpawnStatement) this
-				.translateFunctionCallNode(scope, update.getFunctionCall(),
-						udpateFuncSource)
+				.translateFunctionCallNodeAsExpressionWithnoLHS(scope,
+						update.getFunctionCall(), udpateFuncSource)
 				.uniqueFinalStatement();
 		CIVLFunction updateFunc;
 		Location location = modelFactory.location(source, scope);
@@ -868,7 +868,8 @@ public class FunctionTranslator {
 		proc = modelFactory.subscriptExpression(processArray.getSource(),
 				processArray, loopIdentifier);
 		waitStmt = modelFactory.callOrSpawnStatement(source, waitLocation, true,
-				modelFactory.waitFunctionPointer(), Arrays.asList(proc), null);
+				modelFactory.waitFunctionPointer(), Arrays.asList(proc), null,
+				false);
 		// I thought CIVL can figure out the guard of system functions by itself
 		// (at runtime, the older version CIVL did that and changes happened
 		// after POR contracts I believe) but it seems not the case. Not
@@ -1008,7 +1009,7 @@ public class FunctionTranslator {
 	 */
 	private Fragment assignStatement(CIVLSource source, LHSExpression lhs,
 			ExpressionNode rhsNode, boolean isInitializer, Scope scope) {
-		Statement[] stmts = null;
+		Statement stmt = null;
 		Location location;
 		Statement assign;
 
@@ -1039,27 +1040,23 @@ public class FunctionTranslator {
 						.variableExpression(source, tmpVar);
 				Expression castTmp;
 
-				stmts = translateFunctionCall(scope, tmpLhs, functionCallNode,
-						isCall, source);
-				assert stmts.length == 1 || stmts.length == 2;
-				result = stmts.length == 1
-						? new CommonFragment(stmts[0])
-						: new CommonFragment(stmts[0], stmts[1]);
+				// the intermediate variable "tmpVar" is just declared here, so
+				// this function call must be an initializer:
+				stmt = translateFunctionCall(scope, tmpLhs, functionCallNode,
+						isCall, true, source);
+				result = new CommonFragment(stmt);
 				tmpLhs = this.modelFactory.variableExpression(source, tmpVar);
 				castTmp = this.applyConversions(scope, functionCallNode,
 						tmpLhs);
 				assign = modelFactory.assignStatement(source,
 						this.modelFactory.location(source, scope), lhs, castTmp,
-						false);
+						isInitializer);
 				result.addNewStatement(assign);
 				return result;
 			} else {
-				stmts = translateFunctionCall(scope, lhs, functionCallNode,
-						isCall, source);
-				assert stmts.length == 1 || stmts.length == 2;
-				return stmts.length == 1
-						? new CommonFragment(stmts[0])
-						: new CommonFragment(stmts[0], stmts[1]);
+				stmt = translateFunctionCall(scope, lhs, functionCallNode,
+						isCall, isInitializer, source);
+				return new CommonFragment(stmt);
 			}
 
 		} else {
@@ -1103,11 +1100,15 @@ public class FunctionTranslator {
 	 * @param isCall
 	 *            True when the node is a call node, otherwise the node is a
 	 *            spawn node
+	 * @param isInitialization
+	 *            a boolean value indicating if the return value of this call
+	 *            statement will initialize a left-hand side expression
 	 * @return the CallOrSpawnStatement
 	 */
 	private CallOrSpawnStatement callOrSpawnStatement(Scope scope,
 			Location location, FunctionCallNode callNode, LHSExpression lhs,
-			List<Expression> arguments, boolean isCall, CIVLSource source) {
+			List<Expression> arguments, boolean isCall, CIVLSource source,
+			boolean isInitialization) {
 		ExpressionNode functionExpression = ((FunctionCallNode) callNode)
 				.getFunction();
 		CallOrSpawnStatement result;
@@ -1125,7 +1126,7 @@ public class FunctionTranslator {
 				case FUNCTION :
 					callee = (Function) entity;
 					result = modelFactory.callOrSpawnStatement(source, location,
-							isCall, null, arguments, null);
+							isCall, null, arguments, null, isInitialization);
 					break;
 				case VARIABLE :
 					Expression function = this.translateExpressionNode(
@@ -1133,7 +1134,8 @@ public class FunctionTranslator {
 
 					callee = null;
 					result = modelFactory.callOrSpawnStatement(source, location,
-							isCall, function, arguments, null);
+							isCall, function, arguments, null,
+							isInitialization);
 					// added function guard expression since the function could
 					// be a
 					// system function which has an outstanding guard, only when
@@ -1154,7 +1156,7 @@ public class FunctionTranslator {
 
 			callee = null;
 			result = modelFactory.callOrSpawnStatement(source, location, isCall,
-					function, arguments, null);
+					function, arguments, null, isInitialization);
 			// added function guard expression since the function could be a
 			// system function which has an outstanding guard, only when it
 			// is a call statement
@@ -2260,7 +2262,7 @@ public class FunctionTranslator {
 				result = translateSpawnNode(scope, (SpawnNode) expressionNode);
 				break;
 			case FUNCTION_CALL :
-				result = translateFunctionCallNode(scope,
+				result = translateFunctionCallNodeAsExpressionWithnoLHS(scope,
 						(FunctionCallNode) expressionNode,
 						modelFactory.sourceOf(expressionNode));
 				break;
@@ -2394,13 +2396,14 @@ public class FunctionTranslator {
 	 *            The scope
 	 * @param functionCallNode
 	 *            The function call node
-	 * @return one or two statements. If the returned statement is a
-	 *         {@link ContractedFunctionCallStatement}, it returns two
-	 *         statements. Otherwise, it returns one statement.
+	 * @param isInitialization
+	 *            a boolean value indicating if the returned value of this call
+	 *            statement will initialize a left-hand side expression
+	 * @return the translated statement
 	 */
-	private Statement[] translateFunctionCall(Scope scope, LHSExpression lhs,
+	private Statement translateFunctionCall(Scope scope, LHSExpression lhs,
 			FunctionCallNode functionCallNode, boolean isCall,
-			CIVLSource source) {
+			boolean isInitialization, CIVLSource source) {
 		// CIVLSource source =
 		// modelFactory.sourceOfBeginning(functionCallNode);TODO:Changed
 		ArrayList<Expression> arguments = new ArrayList<Expression>();
@@ -2408,7 +2411,7 @@ public class FunctionTranslator {
 		CIVLFunction civlFunction = null;
 		ExpressionNode functionExpression = functionCallNode.getFunction();
 		CallOrSpawnStatement callStmt;
-		Statement result[] = new Statement[1];
+		Statement result;
 		CIVLFunctionType functionType = null;
 		CIVLType[] types = null;
 		int typesLen = 0;
@@ -2456,10 +2459,10 @@ public class FunctionTranslator {
 						arguments.get(0), arguments.get(1));
 
 				if (lhs != null)
-					result[0] = modelFactory.assignStatement(source, location,
-							lhs, binary, false);
+					result = modelFactory.assignStatement(source, location, lhs,
+							binary, isInitialization);
 				else
-					result[0] = modelFactory.noopStatement(source, location,
+					result = modelFactory.noopStatement(source, location,
 							binary);
 			} else {
 				if (civlFunction.isAbstractFunction()) {
@@ -2469,28 +2472,29 @@ public class FunctionTranslator {
 									(AbstractFunction) civlFunction, arguments);
 
 					if (lhs != null)
-						result[0] = modelFactory.assignStatement(source,
-								location, lhs, abstractFunctionCall, false);
+						result = modelFactory.assignStatement(source, location,
+								lhs, abstractFunctionCall, isInitialization);
 					else
 						// An abstract function call without left-hand side
 						// expression is just a no-op:
-						result[0] = modelFactory.noopStatement(source, location,
+						result = modelFactory.noopStatement(source, location,
 								abstractFunctionCall);
 					return result;
 				}
 				callStmt = callOrSpawnStatement(scope, location,
-						functionCallNode, lhs, arguments, isCall, source);
+						functionCallNode, lhs, arguments, isCall, source,
+						isInitialization);
 				callStmt.setFunction(modelFactory.functionIdentifierExpression(
 						civlFunction.getSource(), civlFunction));
 				if (callStmt.isSystemCall())
 					callStmt.setGuard(
 							modelFactory.systemGuardExpression(callStmt));
-				result[0] = callStmt;
+				result = callStmt;
 			}
 		} else
 			// call on a function pointer
-			result[0] = callOrSpawnStatement(scope, location, functionCallNode,
-					lhs, arguments, isCall, source);
+			result = callOrSpawnStatement(scope, location, functionCallNode,
+					lhs, arguments, isCall, source, isInitialization);
 		return result;
 	}
 
@@ -2504,16 +2508,12 @@ public class FunctionTranslator {
 	 *            The function call node
 	 * @return the fragment containing the function call statement
 	 */
-	private Fragment translateFunctionCallNode(Scope scope,
+	private Fragment translateFunctionCallNodeAsExpressionWithnoLHS(Scope scope,
 			FunctionCallNode functionCallNode, CIVLSource source) {
-		Statement functionCalls[] = translateFunctionCall(scope, null,
-				functionCallNode, true, source);
+		Statement functionCall = translateFunctionCall(scope, null,
+				functionCallNode, true, false, source);
 
-		assert functionCalls.length == 2 || functionCalls.length == 1;
-		if (functionCalls.length == 1)
-			return new CommonFragment(functionCalls[0]);
-		else
-			return new CommonFragment(functionCalls[0], functionCalls[1]);
+		return new CommonFragment(functionCall);
 	}
 
 	/**
@@ -2939,7 +2939,7 @@ public class FunctionTranslator {
 		Location location = modelFactory.location(source, scope);
 		CallOrSpawnStatement call = this.modelFactory.callOrSpawnStatement(
 				source, location, true, modelFactory.elaborateDomainPointer(),
-				Arrays.asList(domain), null);
+				Arrays.asList(domain), null, false);
 
 		return call;
 	}
@@ -3302,7 +3302,7 @@ public class FunctionTranslator {
 	private Fragment translateSpawnNode(Scope scope, SpawnNode spawnNode) {
 		return new CommonFragment(
 				translateFunctionCall(scope, null, spawnNode.getCall(), false,
-						modelFactory.sourceOf(spawnNode))[0]);
+						false, modelFactory.sourceOf(spawnNode)));
 	}
 
 	/**
@@ -3822,7 +3822,7 @@ public class FunctionTranslator {
 		functionIdentifier = modelFactory
 				.functionIdentifierExpression(startSource, anonRunFunc);
 		stmt = modelFactory.callOrSpawnStatement(civlsource, currentLocation,
-				false, functionIdentifier, Arrays.asList(), null);
+				false, functionIdentifier, Arrays.asList(), null, false);
 		// Set the callOrSpawnStatement as a $spawn translated from $run:
 		stmt.setAsRun(true);
 		result = new CommonFragment(stmt);
@@ -4984,8 +4984,9 @@ public class FunctionTranslator {
 		if (civlFunction.isLogic() || ((civlFunction.isSystemFunction())
 				&& (civlFunction.isPureFunction()
 						|| civlFunction.isStateFunction()))) {
-			Fragment fragment = this.translateFunctionCallNode(scope, callNode,
-					source);
+			Fragment fragment = this
+					.translateFunctionCallNodeAsExpressionWithnoLHS(scope,
+							callNode, source);
 			CallOrSpawnStatement callStmt = (CallOrSpawnStatement) fragment
 					.uniqueFinalStatement();
 

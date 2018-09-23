@@ -143,16 +143,19 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 		} else if (!this.symbolicUtil.isPointerToHeap(firstElementPointer)
 				|| !this.symbolicUtil.isMallocPointer(source,
 						firstElementPointer)) {
-			this.errorLogger.logSimpleError(source, state, process,
-					symbolicAnalyzer.stateInformation(state),
-					ErrorKind.MEMORY_MANAGE,
-					"the argument of free "
-							+ symbolicAnalyzer.symbolicExpressionToString(
-									source, state,
-									arguments[0].getExpressionType(),
-									firstElementPointer)
-							+ " is not a pointer returned by a memory "
-							+ "management method");
+			this.errorLogger
+					.logSimpleError(source, state, process,
+							symbolicAnalyzer.stateInformation(state),
+							ErrorKind.MEMORY_MANAGE,
+							"the argument of free "
+									+ symbolicAnalyzer
+											.symbolicExpressionToString(source,
+													state,
+													arguments[0]
+															.getExpressionType(),
+													firstElementPointer)
+									+ " is not a pointer returned by a memory "
+									+ "management method");
 		} else {
 			Evaluation eval;
 			SymbolicExpression heapObject = null;
@@ -284,7 +287,7 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 		state = eval.state;
 		if (lhs != null && eval.value != null)
 			state = this.primaryExecutor.assign(state, pid, process, lhs,
-					eval.value);
+					eval.value, call.isInitializer());
 		if (target != null && !state.getProcessState(pid).hasEmptyStack())
 			state = this.stateFactory.setLocation(state, pid, target);
 		eval.state = state;
