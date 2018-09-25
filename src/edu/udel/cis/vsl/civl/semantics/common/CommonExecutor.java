@@ -53,6 +53,7 @@ import edu.udel.cis.vsl.civl.model.IF.type.CIVLFunctionType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPointerType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLStructOrUnionType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLType.TypeKind;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.civl.semantics.IF.Evaluation;
 import edu.udel.cis.vsl.civl.semantics.IF.Evaluator;
@@ -1524,24 +1525,26 @@ public class CommonExecutor implements Executor {
 	 * @param value
 	 *            the value that will assign to a {@link LHSExpression}, it is
 	 *            an instance of {@link SymbolicExpression}
-	 * @param isInitialization
+	 * @param isInitializer
 	 *            true iff this assign operation is an initialization of a
 	 *            variable.
 	 * @throws UnsatisfiablePathConditionException
 	 */
 	void checkDynamicTypesAssignable(State state, int pid, LHSExpression lhs,
-			SymbolicExpression value, boolean isInitialization)
+			SymbolicExpression value, boolean isInitializer)
 			throws UnsatisfiablePathConditionException {
 		String process = state.getProcessState(pid).name();
 
-		// When types of lhs and rhs are non-scalar types and non-bundle
-		// type check if the types of lhs and rhs are compatiable:
+		// When types of lhs and rhs are 1) non-scalar types, 2) non-bundle
+		// type and 3) non-mem type, check if the types of lhs and rhs are
+		// compatiable:
 		if (!lhs.getExpressionType().isScalar()
-				&& !lhs.getExpressionType().isBundleType()) {
+				&& !lhs.getExpressionType().isBundleType()
+				&& lhs.getExpressionType().typeKind() != TypeKind.MEM) {
 			SymbolicType lhsType;
 			SymbolicType rhsType = value.type();
 
-			if (!isInitialization)
+			if (!isInitializer)
 				lhsType = evaluator.evaluate(state, pid, lhs).value.type();
 			else
 				lhsType = evaluator.getDynamicType(state, pid,

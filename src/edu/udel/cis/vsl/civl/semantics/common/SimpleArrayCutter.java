@@ -3,7 +3,7 @@ package edu.udel.cis.vsl.civl.semantics.common;
 import java.util.ArrayList;
 import java.util.List;
 
-import edu.udel.cis.vsl.civl.semantics.IF.ArrayRazor;
+import edu.udel.cis.vsl.civl.semantics.IF.ArrayCutter;
 import edu.udel.cis.vsl.civl.semantics.IF.ArrayReshaper;
 import edu.udel.cis.vsl.civl.semantics.IF.ArrayToolBox.ArrayShape;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
@@ -16,12 +16,12 @@ import edu.udel.cis.vsl.sarl.IF.number.Number;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
 
 /**
- * A simple implementation of {@link ArrayRazor} where no prover is called.
+ * A simple implementation of {@link ArrayCutter} where no prover is called.
  * 
  * @author ziqing
  *
  */
-public class SimpleArrayRazor implements ArrayRazor {
+public class SimpleArrayCutter implements ArrayCutter {
 	/**
 	 * a reference to {@link SymbolicUniverse}.
 	 */
@@ -32,7 +32,7 @@ public class SimpleArrayRazor implements ArrayRazor {
 	 */
 	private ArrayReshaper reshaper;
 
-	SimpleArrayRazor(SymbolicUniverse universe, ArrayReshaper reshaper) {
+	SimpleArrayCutter(SymbolicUniverse universe, ArrayReshaper reshaper) {
 		this.universe = universe;
 		this.reshaper = reshaper;
 	}
@@ -43,10 +43,22 @@ public class SimpleArrayRazor implements ArrayRazor {
 			NumericExpression count) {
 		assert shape.dimensions == indices.length;
 		Number countConcreteValue = universe.extractNumber(count);
+		NumericExpression zero = universe.zeroInt();
+		boolean isWholeArray = true;
 
+		// special case 1: if the slice is the whole array
+		for (NumericExpression idx : indices)
+			if (idx != zero) {
+				isWholeArray = false;
+				break;
+			}
+		if (isWholeArray && shape.arraySize == count)
+			return array;
+		// special case 2: if count is concrete
 		if (countConcreteValue != null)
 			return arraySlice(array, shape, indices,
 					((IntegerNumber) countConcreteValue).intValue());
+		// general case:
 		return arraySlice_general(array, shape, indices, count);
 	}
 

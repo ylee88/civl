@@ -338,13 +338,6 @@ public interface CIVLTypeFactory {
 	 */
 	SymbolicType scopeSymbolicType();
 
-	/**
-	 * Returns the symbolic type used to represent mem values
-	 * 
-	 * @return the symbolic type used to represent mem values
-	 */
-	SymbolicType memSymbolicType();
-
 	SymbolicType voidSymbolicType();
 
 	/*

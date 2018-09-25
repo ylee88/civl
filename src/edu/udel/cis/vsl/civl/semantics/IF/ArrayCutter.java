@@ -15,7 +15,7 @@ import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
  * 
  * @author ziqing
  */
-public interface ArrayRazor {
+public interface ArrayCutter {
 	/**
 	 * <p>
 	 * Return an array slice value which is an one-dimensional array of elements

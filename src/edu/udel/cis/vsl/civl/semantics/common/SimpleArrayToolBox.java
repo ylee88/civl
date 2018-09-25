@@ -2,7 +2,7 @@ package edu.udel.cis.vsl.civl.semantics.common;
 
 import java.util.Arrays;
 
-import edu.udel.cis.vsl.civl.semantics.IF.ArrayRazor;
+import edu.udel.cis.vsl.civl.semantics.IF.ArrayCutter;
 import edu.udel.cis.vsl.civl.semantics.IF.ArrayReshaper;
 import edu.udel.cis.vsl.civl.semantics.IF.ArrayToolBox;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
@@ -45,9 +45,9 @@ public class SimpleArrayToolBox implements ArrayToolBox {
 	 */
 	private ArrayReshaper arrayReshaper;
 	/**
-	 * a reference to {@link ArrayRazor}
+	 * a reference to {@link ArrayCutter}
 	 */
-	private ArrayRazor arrayCutter;
+	private ArrayCutter arrayCutter;
 
 	/**
 	 * a reference to {@link SymbolicUniverse}
@@ -57,7 +57,7 @@ public class SimpleArrayToolBox implements ArrayToolBox {
 	public SimpleArrayToolBox(SymbolicUniverse universe) {
 		this.universe = universe;
 		this.arrayReshaper = new SimpleArrayReshaper(universe);
-		this.arrayCutter = new SimpleArrayRazor(universe, arrayReshaper);
+		this.arrayCutter = new SimpleArrayCutter(universe, arrayReshaper);
 	}
 
 	@Override

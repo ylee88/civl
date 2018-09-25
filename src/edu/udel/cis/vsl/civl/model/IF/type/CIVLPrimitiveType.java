@@ -20,11 +20,6 @@ public interface CIVLPrimitiveType extends CIVLType {
 		 * language.
 		 */
 		STATE, VOID, CHAR,
-		/**
-		 * An object of a MEM type represents a set of pointers in CIVL-C
-		 * language
-		 */
-		MEM
 	};
 
 	/**

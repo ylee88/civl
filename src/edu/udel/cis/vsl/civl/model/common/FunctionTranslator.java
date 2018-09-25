@@ -4721,7 +4721,9 @@ public class FunctionTranslator {
 					break;
 				case LVALUE :
 					break;
-				case MEMORY :
+				case MEM :
+					expression = modelFactory.castExpression(source,
+							typeFactory.memType(), expression);
 					break;
 				case NULL_POINTER : {
 					// result is a null pointer to new type
@@ -5847,9 +5849,6 @@ public class FunctionTranslator {
 		modelBuilder.typeMap.put(type, result);
 		if (!isSystemType)
 			switch (tag) {
-				case ModelConfiguration.MEM_TYPE :
-					typeFactory.addSystemType(tag, structType);
-					break;
 				case ModelConfiguration.MESSAGE_TYPE :
 					modelBuilder.messageType = result;
 					break;
@@ -6012,7 +6011,7 @@ public class FunctionTranslator {
 				case RANGE :
 				case DOMAIN :
 				case LAMBDA :
-				case MEMORY :
+				case MEM :
 					return translateABCType(source, scope, abcType);
 				case TYPEOF :
 				case ATOMIC :
@@ -6128,6 +6127,8 @@ public class FunctionTranslator {
 							(FunctionType) abcType);
 				case RANGE :
 					return typeFactory.rangeType();
+				case MEM :
+					return typeFactory.memType();
 				case DOMAIN :
 					return translateABCDomainType(source, scope,
 							(DomainType) abcType);

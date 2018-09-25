@@ -13,7 +13,6 @@ import edu.udel.cis.vsl.civl.library.common.BaseLibraryExecutor;
 import edu.udel.cis.vsl.civl.library.mem.WriteSetOperations.AssignableRefreshment;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
-import edu.udel.cis.vsl.civl.model.IF.ModelConfiguration;
 import edu.udel.cis.vsl.civl.model.IF.ModelFactory;
 import edu.udel.cis.vsl.civl.model.IF.expression.Expression;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
@@ -219,7 +218,7 @@ public class LibmemExecutor extends BaseLibraryExecutor
 			Expression[] arguments, SymbolicExpression[] argumentValues,
 			CIVLSource source) throws UnsatisfiablePathConditionException {
 		// SymbolicExpression memPointer = argumentValues[0];
-		CIVLType memType = typeFactory.systemType(ModelConfiguration.MEM_TYPE);
+		CIVLType memType = typeFactory.memType();
 		// Evaluation eval = evaluator.dereference(source, state, process,
 		// memPointer, false, true);
 
@@ -259,7 +258,7 @@ public class LibmemExecutor extends BaseLibraryExecutor
 	private Evaluation executeWriteSetPeek(State state, int pid,
 			Expression[] arguments, SymbolicExpression[] argumentValues,
 			CIVLSource source) throws UnsatisfiablePathConditionException {
-		CIVLType memType = typeFactory.systemType(ModelConfiguration.MEM_TYPE);
+		CIVLType memType = typeFactory.memType();
 		// Evaluation eval = evaluator.dereference(source, state, process,
 		// memPointer, false, true);
 
@@ -311,8 +310,7 @@ public class LibmemExecutor extends BaseLibraryExecutor
 		tupleComponents.add(universe.integer(newSize));
 		tupleComponents.add(newPointerArray);
 		return new Evaluation(state,
-				universe.tuple((SymbolicTupleType) typeFactory
-						.systemType(ModelConfiguration.MEM_TYPE)
+				universe.tuple((SymbolicTupleType) typeFactory.memType()
 						.getDynamicType(universe), tupleComponents));
 
 	}
@@ -345,8 +343,7 @@ public class LibmemExecutor extends BaseLibraryExecutor
 				.apply(pointers);
 		List<SymbolicExpression> memValueComponents = new LinkedList<>();
 		SymbolicTupleType memValueType = (SymbolicTupleType) typeFactory
-				.systemType(ModelConfiguration.MEM_TYPE)
-				.getDynamicType(universe);
+				.memType().getDynamicType(universe);
 		List<SymbolicExpression> groupsArray = new LinkedList<>();
 
 		for (TreeSet<SymbolicExpression> group : groups) {
@@ -412,8 +409,7 @@ public class LibmemExecutor extends BaseLibraryExecutor
 		SymbolicExpression newSize = universe.length(pointerArray);
 
 		mem = universe.tuple(
-				(SymbolicTupleType) typeFactory
-						.systemType(ModelConfiguration.MEM_TYPE)
+				(SymbolicTupleType) typeFactory.memType()
 						.getDynamicType(universe),
 				Arrays.asList(newSize, pointerArray));
 		return new Evaluation(state, mem);
@@ -520,7 +516,7 @@ public class LibmemExecutor extends BaseLibraryExecutor
 	private Evaluation executeNewMem(State state, int pid,
 			Expression[] arguments, SymbolicExpression[] argumentValues,
 			CIVLSource source) throws UnsatisfiablePathConditionException {
-		CIVLType memType = typeFactory.systemType(ModelConfiguration.MEM_TYPE);
+		CIVLType memType = typeFactory.memType();
 		SymbolicTupleType symbolicMemType = (SymbolicTupleType) memType
 				.getDynamicType(universe);
 		List<SymbolicExpression> memObjectComponents = new LinkedList<>();
@@ -554,8 +550,7 @@ public class LibmemExecutor extends BaseLibraryExecutor
 				.array(typeFactory.pointerSymbolicType(), pointers);
 		List<SymbolicExpression> memValueComponents = new LinkedList<>();
 		SymbolicTupleType memValueType = (SymbolicTupleType) typeFactory
-				.systemType(ModelConfiguration.MEM_TYPE)
-				.getDynamicType(universe);
+				.memType().getDynamicType(universe);
 
 		memValueComponents.add(universe.integer(pointers.length));
 		memValueComponents.add(pointerArray);

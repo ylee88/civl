@@ -24,6 +24,7 @@ import edu.udel.cis.vsl.civl.model.IF.type.CIVLPointerType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLStructOrUnionType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLType.TypeKind;
 import edu.udel.cis.vsl.civl.model.IF.type.StructOrUnionField;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 
@@ -409,7 +410,9 @@ public class CommonScope extends CommonSourceable implements Scope {
 				containsPointerType = containsPointerType
 						|| elementContainsPointer;
 			}
-		}
+		} else if (type.typeKind() == TypeKind.MEM)
+			// MEM type is a set of pointers hence contains scope refs:
+			containsPointerType = true;
 		return containsPointerType;
 	}
 

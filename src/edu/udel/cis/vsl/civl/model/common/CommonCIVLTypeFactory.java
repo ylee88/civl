@@ -14,7 +14,6 @@ import java.util.Set;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.CIVLTypeFactory;
-import edu.udel.cis.vsl.civl.model.IF.CIVLUnimplementedFeatureException;
 import edu.udel.cis.vsl.civl.model.IF.Identifier;
 import edu.udel.cis.vsl.civl.model.IF.ModelConfiguration;
 import edu.udel.cis.vsl.civl.model.IF.expression.Expression;
@@ -97,6 +96,11 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	 * The CIVL domain type.
 	 */
 	CIVLDomainType domainType = null;
+
+	/**
+	 * The CIVL mem type.
+	 */
+	CIVLMemType memType = null;
 
 	/**
 	 * The unique dynamic symbolic type used in the system.
@@ -746,15 +750,9 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 
 	@Override
 	public CIVLMemType memType() {
-		return new CommonMemType(memSymbolicType(),
-				sizeofPrimitiveType(PrimitiveTypeKind.MEM),
-				universe.trueExpression());
-	}
-
-	@Override
-	public SymbolicType memSymbolicType() {
-		// TODO Auto-generated method stub
-		throw new CIVLUnimplementedFeatureException(
-				"Dynamic type of $mem type has not been implemneted yet");
+		if (memType == null) {
+			memType = new CommonMemType(pointerType(voidType));
+		}
+		return memType;
 	}
 }

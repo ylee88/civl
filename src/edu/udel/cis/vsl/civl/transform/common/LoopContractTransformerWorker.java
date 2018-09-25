@@ -83,8 +83,6 @@ public class LoopContractTransformerWorker extends BaseWorker {
 	/* *** Type names *** */
 	private final static String LOOP_WRITE_SET_TYPE = "$loop_write_set";
 
-	private final static String MEM_TYPE = "$mem";
-
 	private final static String STATE_TYPE = "$state";
 
 	/* *** Generated identifier prefixes: *** */
@@ -652,10 +650,12 @@ public class LoopContractTransformerWorker extends BaseWorker {
 		results.add(createAssumptionPop(source));
 		// ND choice of enter or exit:
 		if (!loop.getLoopAssignSet().isEmpty())
-			results.add(nodeFactory.newExpressionStatementNode(
-					nodeFactory.newOperatorNode(source, Operator.ASSIGN,
-							identifierExpression(auxVarNames.loop_new_cond),
-							createNDBinaryChoice(source))));
+			results.add(
+					nodeFactory.newExpressionStatementNode(
+							nodeFactory.newOperatorNode(source, Operator.ASSIGN,
+									identifierExpression(
+											auxVarNames.loop_new_cond),
+									createNDBinaryChoice(source))));
 
 		StatementNode newBody = nodeFactory.newCompoundStatementNode(source,
 				results);
@@ -701,10 +701,12 @@ public class LoopContractTransformerWorker extends BaseWorker {
 									Arrays.asList(identifierExpression(
 											auxVarNames.loop_write_set)),
 									null)))));
-			results.add(nodeFactory.newExpressionStatementNode(
-					nodeFactory.newOperatorNode(source, Operator.ASSIGN,
-							identifierExpression(auxVarNames.loop_new_cond),
-							createNDBinaryChoice(source))));
+			results.add(
+					nodeFactory.newExpressionStatementNode(
+							nodeFactory.newOperatorNode(source, Operator.ASSIGN,
+									identifierExpression(
+											auxVarNames.loop_new_cond),
+									createNDBinaryChoice(source))));
 
 		}
 		// Refresh write set:
@@ -738,8 +740,8 @@ public class LoopContractTransformerWorker extends BaseWorker {
 		List<BlockItemNode> results = new LinkedList<>();
 		MemoryLocationManager memoryLocationManager = new MemoryLocationManager(
 				nodeFactory);
-		TypeNode memType = nodeFactory.newTypedefNameNode(identifier(MEM_TYPE),
-				null);
+		TypeNode memType = nodeFactory
+				.newMemTypeNode(newSource("$mem", CivlcTokenConstant.MEM_TYPE));
 		String ws_mem = nextLoopTmpIdentifier();
 
 		// check if every element in write_set belongs to the "loop assigns"
@@ -1096,12 +1098,12 @@ public class LoopContractTransformerWorker extends BaseWorker {
 
 		trueBranch.add(nodeFactory.newVariableDeclarationNode(source,
 				identifier(ws_ptrs), pointerArrayType));
-		trueBranch.add(nodeFactory.newExpressionStatementNode(
-				functionCall(source, MEM_TO_POINTER_ARRAY,
-						Arrays.asList(writeSet.copy(),
+		trueBranch
+				.add(nodeFactory.newExpressionStatementNode(functionCall(source,
+						MEM_TO_POINTER_ARRAY, Arrays.asList(writeSet.copy(),
 								nodeFactory.newOperatorNode(source,
-										Operator.ADDRESSOF,
-										identifierExpression(ws_ptrs))))));
+										Operator.ADDRESSOF, identifierExpression(
+												ws_ptrs))))));
 		// asserted existence:
 		ExpressionNode ptrInAssignedLocations = memoryLocationManager
 				.pointerBelongsToMemoryLocationSet(
@@ -1432,10 +1434,12 @@ public class LoopContractTransformerWorker extends BaseWorker {
 				identifierExpression(LOOP_WRITE_SET_WIDENING),
 				Arrays.asList(identifierExpression(auxVarNames.loop_write_set)),
 				null);
-		wideningThenNDChoice.add(nodeFactory.newExpressionStatementNode(
-				nodeFactory.newOperatorNode(source, Operator.ASSIGN,
-						identifierExpression(auxVarNames.loop_write_set),
-						wideningCall)));
+		wideningThenNDChoice
+				.add(nodeFactory.newExpressionStatementNode(
+						nodeFactory.newOperatorNode(source, Operator.ASSIGN,
+								identifierExpression(
+										auxVarNames.loop_write_set),
+								wideningCall)));
 		wideningThenNDChoice.add(nodeFactory.newExpressionStatementNode(
 				nodeFactory.newOperatorNode(source, Operator.ASSIGN,
 						termCondVar, createNDBinaryChoice(source))));
