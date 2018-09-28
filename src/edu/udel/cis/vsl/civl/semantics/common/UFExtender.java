@@ -74,57 +74,65 @@ public class UFExtender implements CIVLUnaryOperator<SymbolicExpression> {
 		this.universe = universe;
 	}
 
+	/**
+	 * Substitutes all appearances of the {@link inputType} to
+	 * {@link outputType} in the given argument: type.
+	 * 
+	 * @param type
+	 *            a symbolic type where substitution happens
+	 * @return
+	 */
 	private SymbolicType newType(SymbolicType type) {
 		if (inputType.equals(type))
 			return outputType;
 		switch (type.typeKind()) {
-		case BOOLEAN:
-		case CHAR:
-		case INTEGER:
-		case REAL:
-			return type;
-		case ARRAY: {
-			SymbolicArrayType arrayType = (SymbolicArrayType) type;
+			case BOOLEAN :
+			case CHAR :
+			case INTEGER :
+			case REAL :
+				return type;
+			case ARRAY : {
+				SymbolicArrayType arrayType = (SymbolicArrayType) type;
 
-			if (arrayType.isComplete())
-				return universe.arrayType(newType(arrayType.elementType()),
-						((SymbolicCompleteArrayType) arrayType).extent());
-			else
-				return universe.arrayType(newType(arrayType.elementType()));
-		}
-		case FUNCTION: {
-			SymbolicFunctionType functionType = (SymbolicFunctionType) type;
-			List<SymbolicType> newInputTypes = new ArrayList<>();
-
-			for (SymbolicType inputType : functionType.inputTypes()) {
-				newInputTypes.add(newType(inputType));
+				if (arrayType.isComplete())
+					return universe.arrayType(newType(arrayType.elementType()),
+							((SymbolicCompleteArrayType) arrayType).extent());
+				else
+					return universe.arrayType(newType(arrayType.elementType()));
 			}
-			return universe.functionType(newInputTypes,
-					this.newType(functionType.outputType()));
-		}
-		case TUPLE: {
-			SymbolicTupleType tupleType = (SymbolicTupleType) type;
-			List<SymbolicType> fieldTypes = new ArrayList<>();
+			case FUNCTION : {
+				SymbolicFunctionType functionType = (SymbolicFunctionType) type;
+				List<SymbolicType> newInputTypes = new ArrayList<>();
 
-			for (SymbolicType fieldType : tupleType.sequence()) {
-				fieldTypes.add(newType(fieldType));
+				for (SymbolicType inputType : functionType.inputTypes()) {
+					newInputTypes.add(newType(inputType));
+				}
+				return universe.functionType(newInputTypes,
+						this.newType(functionType.outputType()));
 			}
-			return universe.tupleType(tupleType.name(), fieldTypes);
-		}
-		case UNION: {
-			SymbolicUnionType unionType = (SymbolicUnionType) type;
-			List<SymbolicType> fieldTypes = new ArrayList<>();
+			case TUPLE : {
+				SymbolicTupleType tupleType = (SymbolicTupleType) type;
+				List<SymbolicType> fieldTypes = new ArrayList<>();
 
-			for (SymbolicType fieldType : unionType.sequence()) {
-				fieldTypes.add(newType(fieldType));
+				for (SymbolicType fieldType : tupleType.sequence()) {
+					fieldTypes.add(newType(fieldType));
+				}
+				return universe.tupleType(tupleType.name(), fieldTypes);
 			}
-			return universe.unionType(unionType.name(), fieldTypes);
-		}
-		case MAP:// TODO
-		case SET:
-			// TODO
-		default:
-			throw new SARLInternalException("unreachable");
+			case UNION : {
+				SymbolicUnionType unionType = (SymbolicUnionType) type;
+				List<SymbolicType> fieldTypes = new ArrayList<>();
+
+				for (SymbolicType fieldType : unionType.sequence()) {
+					fieldTypes.add(newType(fieldType));
+				}
+				return universe.unionType(unionType.name(), fieldTypes);
+			}
+			case MAP :// TODO
+			case SET :
+				// TODO
+			default :
+				throw new SARLInternalException("unreachable");
 		}
 	}
 
@@ -135,86 +143,87 @@ public class UFExtender implements CIVLUnaryOperator<SymbolicExpression> {
 		SymbolicType type = expr.type();
 
 		switch (op) {
-		case ARRAY_READ:
-			return universe.arrayRead(
-					apply(context, (SymbolicExpression) expr.argument(0),
-							civlType), (NumericExpression) expr.argument(1));
-		case ARRAY_WRITE:
-			return universe.arrayWrite(
-					apply(context, (SymbolicExpression) expr.argument(0),
-							civlType),
-					(NumericExpression) expr.argument(1),
-					apply(context, (SymbolicExpression) expr.argument(2),
-							civlType));
-		case DENSE_ARRAY_WRITE: {
-			@SuppressWarnings("unchecked")
-			SymbolicSequence<? extends SymbolicExpression> oldElements = (SymbolicSequence<? extends SymbolicExpression>) expr
-					.argument(1);
-			int size = oldElements.size();
-			SymbolicExpression[] newElements = new SymbolicExpression[size];
+			case ARRAY_READ :
+				return universe.arrayRead(
+						apply(context, (SymbolicExpression) expr.argument(0),
+								civlType),
+						(NumericExpression) expr.argument(1));
+			case ARRAY_WRITE :
+				return universe.arrayWrite(
+						apply(context, (SymbolicExpression) expr.argument(0),
+								civlType),
+						(NumericExpression) expr.argument(1),
+						apply(context, (SymbolicExpression) expr.argument(2),
+								civlType));
+			case DENSE_ARRAY_WRITE : {
+				@SuppressWarnings("unchecked")
+				SymbolicSequence<? extends SymbolicExpression> oldElements = (SymbolicSequence<? extends SymbolicExpression>) expr
+						.argument(1);
+				int size = oldElements.size();
+				SymbolicExpression[] newElements = new SymbolicExpression[size];
 
-			for (int i = 0; i < size; i++)
-				newElements[i] = apply(context, oldElements.get(i), civlType);
-			return universe.denseArrayWrite(
-					apply(context, (SymbolicExpression) expr.argument(0),
-							civlType), Arrays.asList(newElements));
-		}
-		case LAMBDA:
-			return universe.lambda(
-					(SymbolicConstant) expr.argument(0),
-					apply(context, (SymbolicExpression) expr.argument(1),
-							civlType));
-		case TUPLE_READ:
-			return universe.tupleRead(
-					apply(context, (SymbolicExpression) expr.argument(0),
-							civlType), (IntObject) expr.argument(1));
-		case ARRAY: {
-			int n = expr.numArguments();
-			SymbolicExpression[] newArgs = new SymbolicExpression[n];
-
-			for (int i = 0; i < n; i++)
-				newArgs[i] = apply(context,
-						(SymbolicExpression) expr.argument(i), civlType);
-			return universe.array(
-					newType(((SymbolicArrayType) type).elementType()), newArgs);
-		}
-		case TUPLE: {
-			if (type.equals(this.inputType))
-				return this.rootOperation.apply(context, expr, civlType);
-
-			int n = expr.numArguments();
-			SymbolicExpression[] newArgs = new SymbolicExpression[n];
-
-			for (int i = 0; i < n; i++)
-				newArgs[i] = apply(context,
-						(SymbolicExpression) expr.argument(i), civlType);
-			return universe.tuple((SymbolicTupleType) newType(type), newArgs);
-		}
-		case ARRAY_LAMBDA:
-			// TODO
-		case COND:
-			return universe.cond(
-					(BooleanExpression) expr.argument(0),
-					apply(context, (SymbolicExpression) expr.argument(1),
-							civlType),
-					apply(context, (SymbolicExpression) expr.argument(2),
-							civlType));
-		default:
-			if (type.equals(inputType))
-				return rootOperation.apply(context, expr, civlType);
-			if (type.equals(outputType))
-				return expr;
-
-			SymbolicConstant f = uninterpretedFunctions.get(type);
-
-			if (f == null) {
-				f = universe.symbolicConstant(
-						rootName,
-						universe.functionType(Arrays.asList(type),
-								this.newType(type)));
-				uninterpretedFunctions.put(type, f);
+				for (int i = 0; i < size; i++)
+					newElements[i] = apply(context, oldElements.get(i),
+							civlType);
+				return universe.denseArrayWrite(apply(context,
+						(SymbolicExpression) expr.argument(0), civlType),
+						Arrays.asList(newElements));
 			}
-			return universe.apply(f, Arrays.asList(expr));
+			case LAMBDA :
+				return universe.lambda((SymbolicConstant) expr.argument(0),
+						apply(context, (SymbolicExpression) expr.argument(1),
+								civlType));
+			case TUPLE_READ :
+				return universe.tupleRead(apply(context,
+						(SymbolicExpression) expr.argument(0), civlType),
+						(IntObject) expr.argument(1));
+			case ARRAY : {
+				int n = expr.numArguments();
+				SymbolicExpression[] newArgs = new SymbolicExpression[n];
+
+				for (int i = 0; i < n; i++)
+					newArgs[i] = apply(context,
+							(SymbolicExpression) expr.argument(i), civlType);
+				return universe.array(
+						newType(((SymbolicArrayType) type).elementType()),
+						newArgs);
+			}
+			case TUPLE : {
+				if (type.equals(this.inputType))
+					return this.rootOperation.apply(context, expr, civlType);
+
+				int n = expr.numArguments();
+				SymbolicExpression[] newArgs = new SymbolicExpression[n];
+
+				for (int i = 0; i < n; i++)
+					newArgs[i] = apply(context,
+							(SymbolicExpression) expr.argument(i), civlType);
+				return universe.tuple((SymbolicTupleType) newType(type),
+						newArgs);
+			}
+			case COND :
+				return universe.cond((BooleanExpression) expr.argument(0),
+						apply(context, (SymbolicExpression) expr.argument(1),
+								civlType),
+						apply(context, (SymbolicExpression) expr.argument(2),
+								civlType));
+			case ARRAY_LAMBDA :
+				// TODO
+			default :
+				if (type.equals(inputType))
+					return rootOperation.apply(context, expr, civlType);
+				if (type.equals(outputType))
+					return expr;
+
+				SymbolicConstant f = uninterpretedFunctions.get(type);
+
+				if (f == null) {
+					f = universe.symbolicConstant(rootName,
+							universe.functionType(Arrays.asList(type),
+									this.newType(type)));
+					uninterpretedFunctions.put(type, f);
+				}
+				return universe.apply(f, Arrays.asList(expr));
 		}
 	}
 }
