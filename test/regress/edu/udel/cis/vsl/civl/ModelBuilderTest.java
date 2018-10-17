@@ -53,6 +53,11 @@ public class ModelBuilderTest {
 	}
 
 	@Test
+	public void copyStringLiteral() {
+		assertTrue(ui.run(VERIFY, QUIET, filename("copyStringLiteral.cvl")));
+	}
+
+	@Test
 	public void stateFunction() {
 		assertTrue(ui.run(VERIFY, QUIET, filename("stateFunction.cvl")));
 	}
