@@ -234,6 +234,24 @@ public interface SymbolicUtility {
 	boolean isInitialized(SymbolicExpression value);
 
 	/**
+	 * Test if the given value is within the range, which is given by an
+	 * inclusibe lower bound, an exclusibe upper bound and a step
+	 * 
+	 * @param value
+	 *            a numeric value to be tested if it is in range.
+	 * @param low
+	 *            the inclusive lower bound of the range
+	 * @param upper
+	 *            the exclusive upper bound of the range
+	 * @param step
+	 *            the step of the range
+	 * @return True iff the given value is within the index-th range of a
+	 *         certain domain.
+	 */
+	BooleanExpression isInRange(NumericExpression value, NumericExpression low,
+			NumericExpression upper, NumericExpression step);
+
+	/**
 	 * Checks if the given value is within the index-th range of a certain
 	 * rectangular domain.
 	 * 
@@ -819,6 +837,26 @@ public interface SymbolicUtility {
 	 * @return
 	 */
 	IntObject getMallocID(SymbolicExpression pointer);
+
+	/**
+	 * <p>
+	 * Creating a bound variable of the given "type", which is an instance of
+	 * {@link SymbolicConstant}, whose name has no conflict with any other
+	 * symbolic constants in the given set of "expressions".
+	 * </p>
+	 * 
+	 * @param type
+	 *            the type of the returning bound variable
+	 * 
+	 * @param expressions
+	 *            a set of expressions in the scope of the returning bound
+	 *            variable
+	 * @return a bound variable of the given "type" whose name has no conflict
+	 *         with any other symbolic constants in the given set of
+	 *         "expressions".
+	 */
+	SymbolicConstant freshBoundVariableFor(SymbolicType type,
+			SymbolicExpression... expressions);
 
 	SymbolicExpression makeFunctionPointer(int dyscopeID, int fid);
 

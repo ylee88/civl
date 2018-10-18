@@ -705,7 +705,13 @@ public class LanguageFeaturesTest {
 
 	@Test
 	public void initVal() throws ABCException {
-		assertFalse(ui.run(VERIFY, QUIET, filename("initialValues.cvl")));
+		assertTrue(ui.run(VERIFY, QUIET, filename("initialValues.cvl")));
+	}
+
+	@Test
+	public void initCompound() throws ABCException {
+		assertTrue(
+				ui.run(VERIFY, QUIET, filename("initialCompoundValues.cvl")));
 	}
 
 	@Test

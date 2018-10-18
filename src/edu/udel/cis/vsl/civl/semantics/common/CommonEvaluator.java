@@ -2894,7 +2894,8 @@ public class CommonEvaluator implements Evaluator {
 	// }
 
 	// TODO: add doc here
-	private Evaluation initialValueOfType(State state, int pid, CIVLType type)
+	@Override
+	public Evaluation initialValueOfType(State state, int pid, CIVLType type)
 			throws UnsatisfiablePathConditionException {
 		TypeKind kind = type.typeKind();
 		Evaluation eval = null;

@@ -80,6 +80,7 @@ import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.ValidityResult.ResultType;
 import edu.udel.cis.vsl.sarl.IF.expr.BooleanExpression;
 import edu.udel.cis.vsl.sarl.IF.expr.NumericExpression;
+import edu.udel.cis.vsl.sarl.IF.expr.NumericSymbolicConstant;
 import edu.udel.cis.vsl.sarl.IF.expr.ReferenceExpression;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
@@ -1486,8 +1487,11 @@ public class CommonExecutor implements Executor {
 			LHSExpression lhs, SymbolicExpression value, boolean isInitializer)
 			throws UnsatisfiablePathConditionException {
 		LHSExpressionKind kind = lhs.lhsExpressionKind();
+		Evaluation eval = processRHSValue(state, pid, lhs, value,
+				isInitializer);
 
-		checkDynamicTypesAssignable(state, pid, lhs, value, isInitializer);
+		value = eval.value;
+		state = eval.state;
 		if (kind == LHSExpressionKind.VARIABLE) {
 			Variable variable = ((VariableExpression) lhs).variable();
 			int dyscopeId = state.getDyscopeID(pid, variable);
@@ -1498,9 +1502,9 @@ public class CommonExecutor implements Executor {
 								universe.identityReference()));
 			return stateFactory.setVariable(state, variable, pid, value);
 		} else {
-			Evaluation eval = evaluator.reference(state, pid, lhs);
 			boolean toCheckPointer = kind == LHSExpressionKind.DEREFERENCE;
 
+			eval = evaluator.reference(state, pid, lhs);
 			// TODO check if lhs is constant or input value
 			return assignToPointer(lhs.getSource(), eval.state, pid, eval.value,
 					value, isInitializer, toCheckPointer);
@@ -1509,10 +1513,18 @@ public class CommonExecutor implements Executor {
 
 	/**
 	 * <p>
-	 * Check if a value is assignable to a {@link LHSExpression} via checking if
-	 * they have compatible dynamic types. The definition of the compatibility
-	 * of dynamic types for assignment is given by
+	 * This method processes the dynamic value of the right-hand side expression
+	 * in two aspects:
+	 * <ol>
+	 * <li>1) Check if a value is assignable to a {@link LHSExpression} via
+	 * checking if they have compatible dynamic types. The definition of the
+	 * compatibility of dynamic types for assignment is given by
 	 * {@link #areDynamicTypesCompatiableForAssign(SymbolicType, SymbolicType)}.
+	 * </li>
+	 * <li>2) If right-hand side is an array literal (and possibly has less
+	 * elements), converting it to the correct value corresponding to the
+	 * left-hand side expression.</li>
+	 * </ol>
 	 * </p>
 	 * 
 	 * @param state
@@ -1529,11 +1541,13 @@ public class CommonExecutor implements Executor {
 	 *            true iff this assign operation is an initialization of a
 	 *            variable.
 	 * @throws UnsatisfiablePathConditionException
+	 * @return the (maybe) updated right-hand side value
 	 */
-	void checkDynamicTypesAssignable(State state, int pid, LHSExpression lhs,
+	Evaluation processRHSValue(State state, int pid, LHSExpression lhs,
 			SymbolicExpression value, boolean isInitializer)
 			throws UnsatisfiablePathConditionException {
 		String process = state.getProcessState(pid).name();
+		Evaluation eval = new Evaluation(state, value);
 
 		// When types of lhs and rhs are 1) non-scalar types, 2) non-bundle
 		// type and 3) non-mem type, check if the types of lhs and rhs are
@@ -1541,14 +1555,18 @@ public class CommonExecutor implements Executor {
 		if (!lhs.getExpressionType().isScalar()
 				&& !lhs.getExpressionType().isBundleType()
 				&& lhs.getExpressionType().typeKind() != TypeKind.MEM) {
-			SymbolicType lhsType;
-			SymbolicType rhsType = value.type();
+			SymbolicType lhsType, rhsType;
 
 			if (!isInitializer)
 				lhsType = evaluator.evaluate(state, pid, lhs).value.type();
 			else
 				lhsType = evaluator.getDynamicType(state, pid,
 						lhs.getExpressionType(), lhs.getSource(), false).type;
+			// if right hand-side expression is a compound/string literal, the
+			// RHS value needs to be adjusted:
+			eval = convertingArrayLiteral(state, pid, lhs, lhsType, value,
+					isInitializer);
+			rhsType = eval.value.type();
 			if (!areDynamicTypesCompatiableForAssign(lhsType, rhsType))
 				errorLogger.logSimpleError(lhs.getSource(), state, process,
 						symbolicAnalyzer.stateInformation(state),
@@ -1559,6 +1577,75 @@ public class CommonExecutor implements Executor {
 								+ "LHS type: " + lhsType + "\nRHS type: "
 								+ rhsType);
 		}
+		return eval;
+	}
+
+	/**
+	 * <p>
+	 * Converting an "array literal" initializer to values of compatiable types
+	 * with the type of left-hand side expression. An array literal is either a
+	 * compound literal that initializes an array or a string literal.
+	 * </p>
+	 * 
+	 * <p>
+	 * When the "array literal" has NOT ENOUGH elements to initialize every
+	 * element of the left-hand side expression, the rest of the elements are
+	 * initialized to zero.
+	 * </p>
+	 * 
+	 * @param lhs
+	 *            the left-hand side expression, instance of
+	 *            {@link LHSExpression}
+	 * @param lhsDyType
+	 *            the dynamic type of the left-hand side expression
+	 * @param rhsValue
+	 *            the value of the right-hand side expression.
+	 * @param isInitialization
+	 *            if the right-hand side expression is an initializer ?
+	 * @return the converted right-hand side value
+	 * @throws UnsatisfiablePathConditionException
+	 */
+	private Evaluation convertingArrayLiteral(State state, int pid,
+			LHSExpression lhs, SymbolicType lhsDyType,
+			SymbolicExpression rhsValue, boolean isInitialization)
+			throws UnsatisfiablePathConditionException {
+		if (!isInitialization || !lhs.getExpressionType().isArrayType())
+			return new Evaluation(state, rhsValue);
+		assert lhsDyType.typeKind() == SymbolicTypeKind.ARRAY;
+		CIVLType lhsElementType = ((CIVLArrayType) lhs.getExpressionType())
+				.elementType();
+		SymbolicArrayType arrType = (SymbolicArrayType) lhsDyType;
+		Evaluation eval;
+
+		if (rhsValue.type().equals(arrType) || !arrType.isComplete())
+			return new Evaluation(state, rhsValue);
+		eval = evaluator.initialValueOfType(state, pid, lhsElementType);
+		if (rhsValue.operator() == SymbolicOperator.ARRAY) {
+			NumericSymbolicConstant i = (NumericSymbolicConstant) symbolicUtil
+					.freshBoundVariableFor(universe.integerType());
+			SymbolicExpression base = universe.arrayLambda(
+					(SymbolicCompleteArrayType) arrType,
+					universe.lambda(i, eval.value));
+
+			@SuppressWarnings("unchecked")
+			Iterable<SymbolicExpression> initializerElements = (Iterable<SymbolicExpression>) rhsValue
+					.getArguments();
+
+			rhsValue = universe.denseArrayWrite(base, initializerElements);
+		} else {
+			NumericExpression extent = universe.length(rhsValue);
+			NumericSymbolicConstant bv = (NumericSymbolicConstant) symbolicUtil
+					.freshBoundVariableFor(universe.integerType(), rhsValue);
+			SymbolicExpression lambdaFunc = universe.cond(
+					symbolicUtil.isInRange(bv, universe.zeroInt(), extent,
+							universe.oneInt()),
+					universe.arrayRead(rhsValue, bv), eval.value);
+
+			rhsValue = universe.arrayLambda((SymbolicCompleteArrayType) arrType,
+					universe.lambda(bv, lambdaFunc));
+		}
+		eval.value = rhsValue;
+		return eval;
 	}
 
 	/**

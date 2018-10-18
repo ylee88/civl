@@ -418,6 +418,23 @@ public interface Evaluator {
 			throws UnsatisfiablePathConditionException;
 
 	/**
+	 * Given a {@link CIVLType} t, returns the default initial value of an
+	 * object of t as if the object has static storage.
+	 * 
+	 * @param state
+	 *            the current state
+	 * @param pid
+	 *            the PID of the running process
+	 * @param type
+	 *            the {@link CIVLType}, of which variable's initial value will
+	 *            be returned
+	 * @returnthe default initial value of an object of the given type as if the
+	 *            object has static storage
+	 */
+	Evaluation initialValueOfType(State state, int pid, CIVLType type)
+			throws UnsatisfiablePathConditionException;
+
+	/**
 	 * Return a new {@link ArrayToolBox}
 	 * 
 	 * @param universe

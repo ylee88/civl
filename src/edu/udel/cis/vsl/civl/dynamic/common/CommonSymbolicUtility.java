@@ -6,6 +6,7 @@ import java.util.BitSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.Stack;
 
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
@@ -668,6 +669,17 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 			return universe.lessThanEquals((NumericExpression) high,
 					(NumericExpression) value);
 		return universe.or(positiveStepResult, negativeStepResult);
+	}
+
+	@Override
+	public BooleanExpression isInRange(NumericExpression value,
+			NumericExpression low, NumericExpression upper,
+			NumericExpression step) {
+		return universe.and(Arrays.asList(universe.lessThanEquals(low, value),
+				universe.lessThan(value, upper),
+				universe.equals(
+						universe.modulo(universe.subtract(value, low), step),
+						zero)));
 	}
 
 	@Override
@@ -1418,5 +1430,25 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 		CIVLMemoryBlock blk1 = heapAnalyzer.memoryBlock(ptr1);
 
 		return blk0.compare(blk1);
+	}
+
+	@Override
+	public SymbolicConstant freshBoundVariableFor(SymbolicType type,
+			SymbolicExpression... expressions) {
+		int nameSuffix = 0;
+		SymbolicConstant bv = universe.symbolicConstant(
+				universe.stringObject("i" + nameSuffix++), type);
+		Set<SymbolicConstant> freeVars;
+
+		if (expressions.length < 1)
+			return bv;
+		freeVars = expressions[0].getFreeVars();
+		for (int i = 1; i < expressions.length; i++)
+			freeVars.addAll(expressions[i].getFreeVars());
+		do {
+			bv = universe.symbolicConstant(
+					universe.stringObject("i" + nameSuffix++), type);
+		} while (freeVars.contains(bv));
+		return bv;
 	}
 }
