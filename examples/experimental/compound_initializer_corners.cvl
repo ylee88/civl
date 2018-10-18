@@ -1,0 +1,58 @@
+#include <assert.h>
+
+struct T {
+  int w;
+  struct {
+    int x;
+    int y;
+  };
+  int z;
+};
+
+union U {
+  int w;
+  struct {
+    int x;
+    int y;
+  };
+  int z;
+};
+
+int c[10] = {[2]=3};
+
+int main() {
+  struct T a0 = {1, 2, 3, 4};
+  struct T a1 = {1, {2, 3}, 4}; 
+  struct T a2 = {1, {2, 3}};                 // .w = 1 .x = 2 .y = 3
+  /* struct T a3 = {{2, 3}, 4};
+   *
+   * The brace is not matching the sub-struct correctly.  C11
+   * Sec. 6.7.9 (20) describes such situation.  My understand of C11
+   * is that "{2, 3}" will be used to initialize the first named
+   * member which is w.  Unnamed members will not be initialized.
+   *  
+   * CIVL reports error for this case while both GCC and Clang accepts.
+   */
+  /*  struct T a4 = {.x = 1, .y = 2, .x = 3};    
+   *  Can unnamed members be initialized with designators ?
+   *  CIVL reports error for this case while both GCC and Clang accepts.
+   */
+
+  assert(a2.y == 3 && a2.z == 0);
+  //  assert(a3.w == 2 && a3.x == 4);
+  //  assert(a4.x == 3 && a4.y == 2);
+
+  union U b0 = {4, 2, 3, 1};    // start from the first member .w = 1, ignore rest
+  // same as above, GCC doesn't accepts this though according to C11 it is acceptable, CIVL accpets this:
+  union U b1 = {1, {2, 3}, 4};  
+  // CIVL reports error for the followings:
+  // union U b2 = {{2, 3}, 4};    brace unmatch, CIVL reports error for this
+  // union U b3 = {{2, 3}};        same as above
+  // union U b4 = {.x = 1, .z = 2};// override to .z = 2
+
+  assert(b0.w == 4);
+  assert(b1.w == 1);
+  //assert(b2.w == 2);
+  //assert(b3.w == 2);
+  //assert(b4.z == 2);
+}
