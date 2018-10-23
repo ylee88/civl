@@ -6,6 +6,7 @@ import java.util.List;
 
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
+import edu.udel.cis.vsl.civl.model.IF.CIVLTypeFactory;
 import edu.udel.cis.vsl.civl.state.IF.UnsatisfiablePathConditionException;
 import edu.udel.cis.vsl.civl.util.IF.Pair;
 import edu.udel.cis.vsl.sarl.IF.Reasoner;
@@ -15,6 +16,7 @@ import edu.udel.cis.vsl.sarl.IF.expr.NumericExpression;
 import edu.udel.cis.vsl.sarl.IF.expr.ReferenceExpression;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicConstant;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
+import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
 import edu.udel.cis.vsl.sarl.IF.object.IntObject;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicCompleteArrayType;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicTupleType;
@@ -837,6 +839,24 @@ public interface SymbolicUtility {
 	 * @return
 	 */
 	IntObject getMallocID(SymbolicExpression pointer);
+
+	/**
+	 * <p>
+	 * Tests if the given symbolic expression is a concrete pointer value. A
+	 * symbolic expression is a concrete pointer value iff the expression has
+	 * {@link CIVLTypeFactory#pointerSymbolicType()} and the expression's
+	 * operator is {@link SymbolicOperator#TUPLE} and the arguments of the Tuple
+	 * are respectively instances of:
+	 * <code>IntObject, SymbolicExpression (of Scope type), ReferenceExpression</code>
+	 * </p>
+	 * 
+	 * @param pointer
+	 *            a symbolic expression that will be tested if it is a concrete
+	 *            pointer value
+	 * @return true iff the given symbolic expression satisfies the description
+	 *         above
+	 */
+	boolean isConcretePointer(SymbolicExpression pointer);
 
 	/**
 	 * <p>

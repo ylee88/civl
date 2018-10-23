@@ -1451,4 +1451,22 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 		} while (freeVars.contains(bv));
 		return bv;
 	}
+
+	@Override
+	public boolean isConcretePointer(SymbolicExpression pointer) {
+		if (pointer.type() != typeFactory.pointerSymbolicType())
+			return false;
+		if (pointer.operator() != SymbolicOperator.TUPLE)
+			return false;
+		if (pointer.argument(0).symbolicObjectKind() != SymbolicObjectKind.INT)
+			return false;
+		if (pointer.argument(2)
+				.symbolicObjectKind() != SymbolicObjectKind.EXPRESSION)
+			return false;
+		if (((SymbolicExpression) pointer.argument(2)).type() != universe
+				.referenceType())
+			return false;
+		return true;
+
+	}
 }

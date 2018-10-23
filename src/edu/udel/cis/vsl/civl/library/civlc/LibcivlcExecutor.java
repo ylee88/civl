@@ -154,6 +154,10 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 			case "$choose_int_work" :
 				callEval = new Evaluation(state, argumentValues[0]);
 				break;
+			case "$default_value" :
+				callEval = executeDefaultValue(state, pid, arguments,
+						argumentValues, source);
+				break;
 			case "$heap_size" :
 				callEval = executeGetHeapSize(state, pid, process, arguments,
 						argumentValues, source);
@@ -407,6 +411,67 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 
 		state = stateFactory.addToPathcondition(state, pid, assumeValue);
 		return new Evaluation(state, null);
+	}
+
+	/**
+	 * <p>
+	 * Corresponds to CIVL-C function:
+	 * <code>$system void $default_value(void *ptr);
+	 * </code> which assigns default value to the object referred by the given
+	 * pointer "ptr" as if the object has static storage. The definition of
+	 * default values of objects having static storage conforms C11 standard.
+	 * </p>
+	 * 
+	 * <p>
+	 * The object pointed by "ptr" must have some type.
+	 * </p>
+	 * 
+	 * @param state
+	 *            the current state
+	 * @param pid
+	 *            the PID of the running process
+	 * @param arguments
+	 *            {@link Expression}s of function arguments:
+	 *            <code>{void * ptr}</code>
+	 * @param argumentValues
+	 *            values, which are instances of {@link SymbolicExpression}s, of
+	 *            function arguments
+	 * @param source
+	 *            the {@link CIVLSource} that is related to the function call
+	 * @return an {@link Evaluation} consists of the state after return and the
+	 *         returning value
+	 * @throws UnsatisfiablePathConditionException
+	 */
+	private Evaluation executeDefaultValue(State state, int pid,
+			Expression[] arguments, SymbolicExpression[] argumentValues,
+			CIVLSource source) throws UnsatisfiablePathConditionException {
+		// check if the object pointed by the pointer has some type:
+		SymbolicExpression pointer = argumentValues[0];
+		CIVLSource argSource = arguments[0].getSource();
+		String process = state.getProcessState(pid).name();
+
+		if (!symbolicUtil.isConcretePointer(pointer))
+			errorLogger.logSimpleError(argSource, state, process,
+					symbolicAnalyzer.stateInformation(state), ErrorKind.POINTER,
+					"Attempt to assign to a non-concrete pointer: "
+							+ arguments[0] + "\nValue: " + pointer);
+
+		SymbolicExpression scope = symbolicUtil.getScopeValue(pointer);
+
+		if (stateFactory.undefinedScopeValue() == scope)
+			errorLogger.logSimpleError(argSource, state, process,
+					symbolicAnalyzer.stateInformation(state), ErrorKind.POINTER,
+					"Attempt to assign to a invalid pointer: " + arguments[0]
+							+ "\nValue: " + pointer);
+
+		CIVLType type = symbolicAnalyzer.civlTypeOfObjByPointer(
+				arguments[0].getSource(), state, argumentValues[0]);
+		Evaluation eval = evaluator.initialValueOfType(state, pid, type);
+
+		eval.state = primaryExecutor.assign(source, eval.state, pid, pointer,
+				eval.value);
+		eval.value = universe.nullExpression();
+		return eval;
 	}
 
 	private Evaluation executeNextTimeCount(State state, int pid,
