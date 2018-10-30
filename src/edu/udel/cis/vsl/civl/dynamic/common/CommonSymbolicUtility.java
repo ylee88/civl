@@ -1458,7 +1458,17 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 			return false;
 		if (pointer.operator() != SymbolicOperator.TUPLE)
 			return false;
-		if (pointer.argument(0).symbolicObjectKind() != SymbolicObjectKind.INT)
+		if (pointer.argument(0)
+				.symbolicObjectKind() != SymbolicObjectKind.EXPRESSION)
+			return false;
+		if (((SymbolicExpression) pointer.argument(0)).type() != typeFactory
+				.scopeSymbolicType())
+			return false;
+		if (pointer.argument(1)
+				.symbolicObjectKind() != SymbolicObjectKind.EXPRESSION)
+			return false;
+		if (((SymbolicExpression) pointer.argument(1)).type() != universe
+				.integerType())
 			return false;
 		if (pointer.argument(2)
 				.symbolicObjectKind() != SymbolicObjectKind.EXPRESSION)
