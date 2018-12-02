@@ -153,7 +153,9 @@ public class ShortCircuitTransformerWorker extends BaseWorker {
 
 	private static String ASSUME_PUSH_NAME = "$assume_push";
 
-	private static String ACSL_ASSERT_NAME = "$assert";
+	private static String CIVL_ASSERT_NAME = "$assert";
+
+	private static String C_ASSERT_NAME = "assert";
 
 	/**
 	 * <p>
@@ -305,7 +307,8 @@ public class ShortCircuitTransformerWorker extends BaseWorker {
 				String name = ((IdentifierExpressionNode) functionIdentifier)
 						.getIdentifier().name();
 
-				return name.equals(ACSL_ASSERT_NAME);
+				return name.equals(CIVL_ASSERT_NAME)
+						|| name.equals(C_ASSERT_NAME);
 			}
 		}
 		return false;

@@ -32,9 +32,6 @@ import edu.udel.cis.vsl.abc.ast.node.IF.acsl.MPIContractConstantNode.MPIConstant
 import edu.udel.cis.vsl.abc.ast.node.IF.acsl.MPIContractExpressionNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.acsl.MPIContractExpressionNode.MPIContractExpressionKind;
 import edu.udel.cis.vsl.abc.ast.node.IF.compound.CompoundInitializerNode;
-import edu.udel.cis.vsl.abc.ast.node.IF.compound.CompoundLiteralObject;
-import edu.udel.cis.vsl.abc.ast.node.IF.compound.LiteralObject;
-import edu.udel.cis.vsl.abc.ast.node.IF.compound.ScalarLiteralObject;
 import edu.udel.cis.vsl.abc.ast.node.IF.declaration.AbstractFunctionDefinitionNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.declaration.FieldDeclarationNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.declaration.FunctionDeclarationNode;
@@ -1206,10 +1203,9 @@ public class FunctionTranslator {
 		try {
 			condition = modelFactory.booleanExpression(condition);
 		} catch (ModelFactoryException err) {
-			throw new CIVLSyntaxException(
-					"The condition of the loop statement " + condition
-							+ " is of " + condition.getExpressionType()
-							+ " type which cannot be converted to boolean type.",
+			throw new CIVLSyntaxException("The condition of the loop statement "
+					+ condition + " is of " + condition.getExpressionType()
+					+ " type which cannot be converted to boolean type.",
 					condition.getSource());
 		}
 		loopEntranceLocation = modelFactory.location(condition.getSource(),
@@ -2669,9 +2665,8 @@ public class FunctionTranslator {
 			Expression definition;
 
 			if (!defnExpression.isSideEffectFree(false))
-				throw new CIVLSyntaxException(
-						"A logic function (or predicate) "
-								+ "definition must be a side-effect free expression.",
+				throw new CIVLSyntaxException("A logic function (or predicate) "
+						+ "definition must be a side-effect free expression.",
 						defnExpression.getSource());
 
 			int pointerToArrayMap[] = new int[parameters.size()];
@@ -2994,10 +2989,9 @@ public class FunctionTranslator {
 		try {
 			expression = modelFactory.booleanExpression(expression);
 		} catch (ModelFactoryException err) {
-			throw new CIVLSyntaxException(
-					"The condition of the if statement " + expression
-							+ " is of " + expression.getExpressionType()
-							+ " type which cannot be converted to boolean type.",
+			throw new CIVLSyntaxException("The condition of the if statement "
+					+ expression + " is of " + expression.getExpressionType()
+					+ " type which cannot be converted to boolean type.",
 					expression.getSource());
 		}
 		if (modelFactory.anonFragment() != null) {
@@ -3325,8 +3319,8 @@ public class FunctionTranslator {
 		Statement defaultExit = null;
 		Set<Statement> breaks;
 		Location location = modelFactory.location(
-				modelFactory.sourceOfSpan(modelFactory
-						.sourceOfBeginning(switchNode),
+				modelFactory.sourceOfSpan(
+						modelFactory.sourceOfBeginning(switchNode),
 						modelFactory.sourceOfBeginning(switchNode.child(1))),
 				scope);
 
@@ -3586,11 +3580,9 @@ public class FunctionTranslator {
 		LHSExpression lhs = modelFactory
 				.variableExpression(modelFactory.sourceOf(node), variable);
 
+		assert !(init instanceof StringLiteralNode) : "StringLiteralNode as "
+				+ "initializer has been translated away by ABC";
 		if (init != null) {
-			Statement assignStatement, anonStatement = null;
-			Expression rhs;
-			CIVLSource initSource = modelFactory.sourceOf(init);
-
 			if (!(init instanceof ExpressionNode)
 					&& !(init instanceof CompoundInitializerNode))
 				throw new CIVLUnimplementedFeatureException(
@@ -3602,34 +3594,15 @@ public class FunctionTranslator {
 			if (init instanceof ExpressionNode) {
 				initFragment = this.assignStatement(modelFactory.sourceOf(node),
 						lhs, (ExpressionNode) init, true, scope);
-			} else {
-				CIVLType variableType = variable.type();
-
-				rhs = translateCompoundInitializer(
-						((CompoundInitializerNode) init), scope, variableType);
-				if (variableType.isPointerType()) {
-					Variable anonVariable = modelFactory
-							.newAnonymousVariableForArrayLiteral(initSource,
-									(CIVLArrayType) rhs.getExpressionType());
-
-					anonStatement = modelFactory.assignStatement(initSource,
-							modelFactory.location(initSource, scope),
-							modelFactory.variableExpression(initSource,
-									anonVariable),
-							rhs, true);
-					rhs = arrayToPointer(modelFactory
-							.variableExpression(initSource, anonVariable));
-					rhs.setErrorFree(true);
-				}
-				assignStatement = modelFactory.assignStatement(
-						modelFactory.sourceOf(node), location, lhs, rhs, true);
-				initFragment = new CommonFragment(assignStatement);
-			}
-			// initFragment = new CommonFragment(assignStatement);
-			if (anonStatement != null) {
-				initFragment = new CommonFragment(anonStatement)
-						.combineWith(initFragment);
-			}
+			} else
+				/*
+				 * Compound initializer nodes that are not children of $domain
+				 * literals have been translated away by ABC"
+				 */
+				throw new CIVLInternalException(
+						"Unexpected compound initializer node "
+								+ init.prettyRepresentation(),
+						node.getSource());
 			if (!modelFactory.anonFragment().isEmpty()) {
 				initFragment = modelFactory.anonFragment()
 						.combineWith(initFragment);
@@ -3643,6 +3616,9 @@ public class FunctionTranslator {
 			CompoundLiteralNode compoundNode, Scope scope) {
 		// TODO: check this. Make sure that users don't need to specify the
 		// dimension when using compound literal statement for DomainType.
+		assert compoundNode.getType()
+				.kind() == TypeKind.DOMAIN : "Compound literal nodes other than"
+						+ " $domain literals have been translated away by ABC";
 		CIVLType type = translateABCType(
 				modelFactory.sourceOf(compoundNode.getTypeNode()), scope,
 				compoundNode.getType());
@@ -3657,19 +3633,17 @@ public class FunctionTranslator {
 		int size = compoundInit.numChildren();
 		List<Expression> expressions = new ArrayList<>(size);
 
-		if (!type.isDomainType()) {
-			return this.translateLiteralObject(source, scope,
-					compoundInit.getLiteralObject(), type);
-		} else {
-			int dimension;
+		assert type
+				.isDomainType() : "Compound initializer nodes that are not children of"
+						+ " $domain literals have been translated away by ABC";
+		int dimension;
 
-			if (!(type instanceof CIVLCompleteDomainType))
-				throw new CIVLSyntaxException(
-						"It is illegal to define a $domain literal without the dimension specified.",
-						source);
-			dimension = ((CIVLCompleteDomainType) type).getDimension();
-			assert size == dimension;
-		}
+		if (!(type instanceof CIVLCompleteDomainType))
+			throw new CIVLSyntaxException(
+					"It is illegal to define a $domain literal without the dimension specified.",
+					source);
+		dimension = ((CIVLCompleteDomainType) type).getDimension();
+		assert size == dimension;
 		for (int i = 0; i < size; i++)
 			expressions.add(translateInitializerNode(
 					compoundInit.getSequenceChild(i).getRight(), scope,
@@ -3678,70 +3652,24 @@ public class FunctionTranslator {
 				type);
 	}
 
-	private Expression translateLiteralObject(CIVLSource source, Scope scope,
-			LiteralObject literal, CIVLType type) {
-		if (literal instanceof ScalarLiteralObject) {
-			ScalarLiteralObject scalar = (ScalarLiteralObject) literal;
-
-			return this.translateExpressionNode(scalar.getExpression(), scope,
-					true);
-		} else {
-			CompoundLiteralObject compound = (CompoundLiteralObject) literal;
-			int size = compound.size();
-			List<Expression> expressions = new ArrayList<>(size);
-			List<CIVLType> types = new ArrayList<>(size);
-			int myType; // 0: arrayType, 1: struct or union, -1: other
-			CIVLType finalType = type;
-
-			if (type.isArrayType() || type.isPointerType()) {
-				if (type.isPointerType()) {
-					finalType = typeFactory.completeArrayType(
-							((CIVLPointerType) type).baseType(),
-							modelFactory.integerLiteralExpression(null,
-									BigInteger.valueOf(size)));
-				}
-				for (int i = 0; i < size; i++)
-					types.add(((CIVLArrayType) finalType).elementType());
-				myType = 0;
-			} else if (type.isStructType() || type.isUnionType()) {
-				CIVLStructOrUnionType structType = (CIVLStructOrUnionType) type;
-
-				for (int i = 0; i < size; i++) {
-					types.add(structType.getField(i).type());
-				}
-				myType = 1;
-			} else
-				throw new CIVLSyntaxException(
-						"Compound initializer of " + type + " type is invalid.",
-						source);
-			for (int i = 0; i < size; i++)
-				expressions.add(this.translateLiteralObject(source, scope,
-						compound.get(i), types.get(i)));
-			if (myType == 0)
-				return modelFactory.arrayLiteralExpression(source,
-						(CIVLArrayType) finalType, expressions);
-			else if (myType == 1)
-				return modelFactory.structOrUnionLiteralExpression(source,
-						(CIVLStructOrUnionType) finalType, expressions);
-			else
-				throw new CIVLUnimplementedFeatureException(
-						"translating literal object which is of neither array or struct/union type",
-						source);
-		}
-
-	}
-
 	private Expression translateInitializerNode(InitializerNode initNode,
 			Scope scope, CIVLType type) {
 		Expression initExpr;
 
+		assert !(initNode instanceof StringLiteralNode) : "StringLiteralNode as "
+				+ "initializer has been translated away by ABC";
 		if (initNode instanceof ExpressionNode)
-			initExpr = this.translateExpressionNode((ExpressionNode) initNode,
-					scope, true);
-		else if (initNode instanceof CompoundInitializerNode) {
-			initExpr = this.translateCompoundInitializer(
-					(CompoundInitializerNode) initNode, scope, type);
-		} else
+			initExpr = translateExpressionNode((ExpressionNode) initNode, scope,
+					true);
+		else if (initNode instanceof CompoundInitializerNode)
+			/*
+			 * Compound initializer nodes that are not children of $domain
+			 * literals have been translated away by ABC"
+			 */
+			throw new CIVLInternalException(
+					"Unexpected compound initializer node: " + initNode,
+					initNode.getSource());
+		else
 			throw new CIVLSyntaxException(
 					"Invalid initializer node: " + initNode,
 					initNode.getSource());
@@ -4664,10 +4592,9 @@ public class FunctionTranslator {
 					if (expression instanceof LHSExpression) {
 						expression = modelFactory.addressOfExpression(source,
 								modelFactory.subscriptExpression(source,
-										(LHSExpression) expression, modelFactory
-												.integerLiteralExpression(
-														source,
-														BigInteger.ZERO)));
+										(LHSExpression) expression,
+										modelFactory.integerLiteralExpression(
+												source, BigInteger.ZERO)));
 					} else if (expressionKind == Expression.ExpressionKind.ARRAY_LITERAL
 							|| expressionKind == Expression.ExpressionKind.ARRAY_LAMBDA) {
 						// creates anonymous variable in the root scope for this

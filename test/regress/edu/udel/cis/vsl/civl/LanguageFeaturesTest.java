@@ -715,6 +715,12 @@ public class LanguageFeaturesTest {
 	}
 
 	@Test
+	public void initCompound2() throws ABCException {
+		assertTrue(
+				ui.run(VERIFY, QUIET, filename("initialCompoundValues2.cvl")));
+	}
+
+	@Test
 	public void valueUndefinedTest() {
 		assertFalse(ui.run(VERIFY, errorBound(10), QUIET,
 				filename("civlValueUndefined.cvl")));
