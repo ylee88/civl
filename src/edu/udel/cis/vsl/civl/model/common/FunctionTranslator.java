@@ -1764,7 +1764,8 @@ public class FunctionTranslator {
 							modelFactory.sourceOf(node));
 				else
 					throw new CIVLUnimplementedFeatureException(
-							"Unsupported block element",
+							"Unsupported block element: "
+									+ node.prettyRepresentation(),
 							modelFactory.sourceOf(node));
 		}
 		return result;

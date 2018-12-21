@@ -683,8 +683,7 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 	 * 
 	 * @param op
 	 *            The given {@link OmpReductionOperator}
-	 * @return The index of the CIVLOperator corresponding with
-	 *         <code>op</code>
+	 * @return The index of the CIVLOperator corresponding with <code>op</code>
 	 */
 	private String OmpReduceOp2CIVLOpCode(OmpReductionOperator op) {
 		switch (op) {
@@ -824,6 +823,7 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 		 * CIVLConstants.CIVL_OMP), EMPTY_MACRO_MAP); newAst =
 		 * this.combineASTs(civlcOmpAST, newAst); }
 		 */
+		// newAst.prettyPrint(System.out, true);
 		return newAst;
 	}
 
@@ -2058,6 +2058,8 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 					}
 				}
 
+				items.add(0, flushAllCall(node.getSource()));
+				items.add(flushAllCall(node.getSource()));
 				body = nodeFactory.newCompoundStatementNode(newSource(atomicSrc,
 						CivlcTokenConstant.COMPOUND_STATEMENT), items);
 
@@ -2169,6 +2171,15 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 							reductionIDs, firstPrivateIDs, threadPrivateIDs);
 				}
 
+			} else if (syncKind.equals("FLUSH")) {
+				List<BlockItemNode> translation = translateOmpFlush(
+						(OmpSyncNode) node);
+				ASTNode parent = node.parent();
+				int childIdx = node.childIndex();
+
+				node.remove();
+				parent.setChild(childIdx, nodeFactory.newCompoundStatementNode(
+						node.getSource(), translation));
 			}
 		} else if (node instanceof OmpWorksharingNode) {
 			Iterable<ASTNode> children = node.children();
@@ -4120,4 +4131,59 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 		return false;
 	}
 
+	/**
+	 * Translates a flush with a list of identifiers to a list of calls to
+	 * <code>$omp_flush</code> or a flush without a list of identifiers to a
+	 * call to <code>$omp_flush_all</code>
+	 * 
+	 * @param flushNode
+	 * @return a list of translated statement
+	 */
+	private List<BlockItemNode> translateOmpFlush(OmpSyncNode flushNode) {
+		SequenceNode<IdentifierExpressionNode> flushedObjs = flushNode
+				.flushedList();
+		String flushFuncName = "$omp_flush";
+		List<BlockItemNode> results = new LinkedList<>();
+
+		if (flushedObjs == null) {
+			results.add(flushAllCall(flushNode.getSource()));
+		} else {
+			for (IdentifierExpressionNode flushedObj : flushedObjs) {
+				String localVarName = "_omp_"
+						+ flushedObj.getIdentifier().name() + "_local";
+				String sharedVarName = "_omp_"
+						+ flushedObj.getIdentifier().name() + "_shared";
+				ExpressionNode localVarIdent = identifierExpression(
+						localVarName);
+				ExpressionNode sharedVarIdent = identifierExpression(
+						sharedVarName);
+				ExpressionNode addrofLocalVar = nodeFactory.newOperatorNode(
+						flushedObj.getSource(), Operator.ADDRESSOF,
+						localVarIdent);
+				ExpressionNode flushFuncCall = nodeFactory.newFunctionCallNode(
+						flushedObj.getSource(),
+						identifierExpression(flushFuncName),
+						Arrays.asList(sharedVarIdent, addrofLocalVar), null);
+
+				results.add(
+						nodeFactory.newExpressionStatementNode(flushFuncCall));
+			}
+		}
+		return results;
+	}
+
+	/**
+	 * 
+	 * @param source
+	 *            a source that is related to the created node
+	 * @return a statement that calls <code>$omp_flush_all(_omp_team)</code>
+	 */
+	private BlockItemNode flushAllCall(Source source) {
+		String flushAllFuncName = "$omp_flush_all";
+		ExpressionNode flushFuncCall = nodeFactory.newFunctionCallNode(source,
+				identifierExpression(flushAllFuncName),
+				Arrays.asList(identifierExpression("_omp_team")), null);
+
+		return nodeFactory.newExpressionStatementNode(flushFuncCall);
+	}
 }

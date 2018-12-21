@@ -1,0 +1,50 @@
+#define N 3
+double A[N];
+
+void fill_rand(int n, double* p) {
+  for (int i = 0; i < n; i++)
+    $havoc(p+i);
+}
+
+double Sum_array(int n, double* p) {
+  double sum = 0;
+
+  for (int i = 0; i < n; i++)
+    sum += p[i];
+  return sum;
+}
+
+
+int main() {
+  double sum = 0;
+  int flag=0, flg_tmp;
+
+#pragma omp parallel sections shared(A, flag, sum) private(flg_tmp)
+  {
+#pragma omp section
+    {
+      for (int i = 0; i < N; i++) {
+	double tmp;
+	
+	$havoc(&tmp);
+	A[i] = tmp;
+      }
+      //#pragma omp flush
+#pragma omp atomic write
+      flag=1;
+      //#pragma omp flush(flag)
+    }
+#pragma omp section
+    {
+      while (1) {
+	//#pragma omp flush(flag)
+#pragma omp atomic read
+	flg_tmp = flag;
+	if (flg_tmp == 1) break;
+      }
+      //#pragma omp flush
+      for (int i = 0; i < N; i++)
+	sum += A[i];
+    }
+  }
+}

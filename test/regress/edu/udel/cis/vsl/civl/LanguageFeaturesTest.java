@@ -783,7 +783,7 @@ public class LanguageFeaturesTest {
 	@Test
 	public void inputProblem() {
 		assertTrue(ui.run(VERIFY, "-showProgram", filename("inputProblem1.cvl"),
-				filename("inputProblem2.cvl")));
+				QUIET, filename("inputProblem2.cvl")));
 	}
 
 	@Test
@@ -793,7 +793,7 @@ public class LanguageFeaturesTest {
 
 	@Test
 	public void typedefRemoverBug() {
-		assertTrue(ui.run(VERIFY, filename("typedefbugMain.c"),
+		assertTrue(ui.run(VERIFY, filename("typedefbugMain.c"), QUIET,
 				filename("typedefbugSource.c")));
 	}
 
@@ -836,7 +836,7 @@ public class LanguageFeaturesTest {
 
 	@Test
 	public void sizeofBadTest() {
-		assertFalse(ui.run(VERIFY, filename("sizeofTestBad.cvl")));
+		assertFalse(ui.run(VERIFY, QUIET, filename("sizeofTestBad.cvl")));
 	}
 
 	@AfterClass

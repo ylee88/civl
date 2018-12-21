@@ -37,6 +37,12 @@ public class OpenMP2CIVLTransformerTest {
 	/* **************************** Test Methods *************************** */
 
 	@Test
+	public void overflush() {
+		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, QUIET,
+				filename("overflush.cvl")));
+	}
+
+	@Test
 	public void dotProduct1() {
 		assertTrue(ui.run(VERIFY, NO_PRINTF, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
 				filename("dotProduct1.c")));
@@ -103,7 +109,7 @@ public class OpenMP2CIVLTransformerTest {
 		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
 				filename(simpleDir, "omp_reduce_bad2.c")));
 	}
-	
+
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
 		ui = null;
