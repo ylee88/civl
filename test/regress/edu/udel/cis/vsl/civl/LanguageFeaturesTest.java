@@ -710,8 +710,8 @@ public class LanguageFeaturesTest {
 
 	@Test
 	public void initCompound() throws ABCException {
-		assertTrue(
-				ui.run(VERIFY, QUIET, filename("initialCompoundValues.cvl")));
+		assertTrue(ui.run(VERIFY, QUIET,
+				filename("initialCompoundValues.cvl")));
 	}
 
 	@Test
@@ -782,8 +782,8 @@ public class LanguageFeaturesTest {
 
 	@Test
 	public void inputProblem() {
-		assertTrue(ui.run(VERIFY, "-showProgram", filename("inputProblem1.cvl"),
-				QUIET, filename("inputProblem2.cvl")));
+		assertTrue(ui.run(VERIFY, QUIET, filename("inputProblem1.cvl"),
+				filename("inputProblem2.cvl")));
 	}
 
 	@Test
@@ -793,7 +793,7 @@ public class LanguageFeaturesTest {
 
 	@Test
 	public void typedefRemoverBug() {
-		assertTrue(ui.run(VERIFY, filename("typedefbugMain.c"), QUIET,
+		assertTrue(ui.run(VERIFY, QUIET, filename("typedefbugMain.c"),
 				filename("typedefbugSource.c")));
 	}
 

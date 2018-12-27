@@ -1,5 +1,6 @@
 package edu.udel.cis.vsl.civl;
 
+import static edu.udel.cis.vsl.civl.TestConstants.QUIET;
 import static edu.udel.cis.vsl.civl.TestConstants.VERIFY;
 import static org.junit.Assert.assertTrue;
 
@@ -13,7 +14,6 @@ import org.junit.Test;
 
 import edu.udel.cis.vsl.abc.err.IF.ABCException;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
-
 public class RobustnessTest {
 
 	/* *************************** Static Fields *************************** */
@@ -55,7 +55,7 @@ public class RobustnessTest {
 	 */
 	@Test
 	public void missing_source_file() throws ABCException {
-		assertTrue(ui.run(VERIFY, filename("missing_source_file.cvl")));
+		assertTrue(ui.run(VERIFY, QUIET, filename("missing_source_file.cvl")));
 	}
 
 }
