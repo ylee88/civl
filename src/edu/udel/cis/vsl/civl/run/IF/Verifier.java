@@ -392,9 +392,11 @@ public class Verifier extends Player {
 					if (!workRemains)
 						break;
 					violationFound = true;
+					
 					CIVLLogEntry entry = new CIVLLogEntry(civlConfig, config,
 							this.predicate.getUnreportedViolation(),
 							evaluator.universe());
+					
 					log.report(entry); // may throw ExcessiveErrorException
 				}
 			} catch (ExcessiveErrorException e) {
@@ -415,7 +417,6 @@ public class Verifier extends Player {
 				}
 			} else {
 				result = "The standard properties hold for all executions.";
-				// result = "No violations found.";
 			}
 			this.verificationStatus = new VerificationStatus(
 					stateManager.maxProcs(), stateManager.numStatesExplored(),

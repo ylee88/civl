@@ -51,7 +51,6 @@ public class TracePlayer extends Player {
 
 		result.civlConfig.setReplay(true);
 		result.chooser = guidedChooser;
-		result.simulator.setLength(guidedChooser.getLength());
 		return result;
 	}
 
@@ -85,25 +84,13 @@ public class TracePlayer extends Player {
 	TracePlayer(GMCConfiguration config, Model model, PrintStream out,
 			PrintStream err) throws CommandLineException {
 		super(config, model, out, err, false);
-		// turn the following off because they duplicate what
-		// the Replayer prints:
-		// TODO check here
-		// stateManager.setShowStates(false);
-		// stateManager.setShowSavedStates(false);
-		// civlConfig.setShowStates(false);
 		civlConfig.setShowSavedStates(config.getAnonymousSection()
 				.isTrue(CIVLConstants.showSavedStatesO));
-		// if
-		// (config.getAnonymousSection().getValue(CIVLConstants.showTransitionsO)
-		// == null)
-		// civlConfig.setShowTransitions(true);
 		civlConfig.setVerbose(false);
 		log.setSearcher(null);
 		simulator = new Simulator<State, Transition>(stateManager, out);
 		simulator.setPrintAllStates(false);
 		simulator.setQuiet(civlConfig.isQuiet());
-		// replayer.setPrintAllStates(civlConfig.showStates()
-		// || civlConfig.debugOrVerbose() || civlConfig.showSavedStates());
 		simulator.setPredicate(predicate);
 	}
 
@@ -148,14 +135,8 @@ public class TracePlayer extends Player {
 				.println("   max process count   : " + stateManager.maxProcs());
 		civlConfig.out().print("   states              : ");
 		civlConfig.out().println(stateManager.numStatesExplored());
-		// TODO replayer don't know the number of states saved since it doesn't
-		// use searcher.
-		// civlConfig.out().print(" states Saved : ");
-		// civlConfig.out().println(stateManager.getNumStatesSaved());
-
 		if (isRandom)
 			civlConfig.out().println("   seed                : " + seed);
-
 	}
 
 	/**

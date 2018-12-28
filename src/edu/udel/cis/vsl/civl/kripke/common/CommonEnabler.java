@@ -250,15 +250,7 @@ public abstract class CommonEnabler implements Enabler {
 		Evaluation eval;
 
 		try {
-			// TODO think about errors as side effects in the evaluator
-			// Reasoner reasoner = universe.reasoner(universe.trueExpression());
-			// BooleanExpression pcUnchanged;
-			//
 			eval = evaluator.evaluate(state, pid, statement.guard());
-			// pcUnchanged = universe.equals(state.getPathCondition(),
-			// eval.state.getPathCondition());
-			// if (pcUnchanged.isTrue() || reasoner.isValid(pcUnchanged))
-			// return (BooleanExpression) eval.value;
 			return (BooleanExpression) eval.value;
 		} catch (UnsatisfiablePathConditionException ex) {
 			return universe.falseExpression();
@@ -945,11 +937,10 @@ public abstract class CommonEnabler implements Enabler {
 						source,
 						modelFactory.dereferenceExpression(source,
 								modelFactory.subscriptExpression(source,
-										stateQueueExpr, modelFactory
-												.integerLiteralExpression(
-														source,
-														BigInteger
-																.valueOf(i)))),
+										stateQueueExpr,
+										modelFactory.integerLiteralExpression(
+												source,
+												BigInteger.valueOf(i)))),
 						1);// (*queue[i]).state
 
 				colState = stateFactory.addExternalProcess(colState, state, pid,

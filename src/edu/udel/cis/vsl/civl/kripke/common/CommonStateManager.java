@@ -151,16 +151,18 @@ public class CommonStateManager extends CIVLStateManager {
 
 	/* *************************** Private Methods ************************* */
 	/**
-	 * Execute a transition (obtained by the enabler) of a state. When the
-	 * corresponding process is in atomic/atom execution, continue to execute
-	 * more statements as many as possible. Also execute more statements if
+	 * Execute a transition (obtained by the enabler) from a state. When the
+	 * corresponding process is in atomic/atom execution, continues to execute
+	 * more statements---as many as possible. Also executes more statements if
 	 * possible.
 	 * 
 	 * @param state
-	 *            The current state
+	 *            the current state
 	 * @param transition
-	 *            The transition to be executed.
-	 * @return the resulting trace step after executing the state.
+	 *            the transition to be executed from that state
+	 * @param traceStep
+	 *            the trace step that will be modified by appending the result
+	 *            of execution
 	 * @throws UnsatisfiablePathConditionException
 	 */
 	protected void nextStateWork(State state, Transition transition,
@@ -354,11 +356,11 @@ public class CommonStateManager extends CIVLStateManager {
 			if (assumption != null) {
 				config.out().print(" [$assume(");
 				config.out()
-						.print(symbolicAnalyzer.symbolicExpressionToString(
-								stmt.getSource(),
-								currentState, this.enabler.modelFactory
-										.typeFactory().booleanType(),
-								assumption));
+						.print(symbolicAnalyzer
+								.symbolicExpressionToString(stmt.getSource(),
+										currentState, this.enabler.modelFactory
+												.typeFactory().booleanType(),
+										assumption));
 				config.out().print(")]");
 			}
 		}
@@ -588,8 +590,8 @@ public class CommonStateManager extends CIVLStateManager {
 			else
 				config.out()
 						.println(this.symbolicAnalyzer.pathconditionToString(
-								null, finalState, "\t", finalState
-										.getPathCondition(enabler.universe)));
+								null, finalState, "\t",
+								finalState.getPathCondition(enabler.universe)));
 			config.out().flush();
 		}
 	}
