@@ -64,9 +64,11 @@ public class AcfInterfaceTest {
 		if (direct) {
 			String directFlag = "-direct=examples/slice/" + filename
 					+ ".direct";
-			ui.run("verify", "-svcomp16", directFlag, filename(fileStr));
+			ui.run("verify", TestConstants.QUIET, "-svcomp16", directFlag,
+					filename(fileStr));
 		} else {
-			ui.run("verify", "-svcomp16", filename(fileStr));
+			ui.run("verify", TestConstants.QUIET, "-svcomp16",
+					filename(fileStr));
 		}
 		ui.run("replay", "-sliceAnalysis", filename(fileStr));
 

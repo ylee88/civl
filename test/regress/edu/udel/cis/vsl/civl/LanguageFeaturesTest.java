@@ -710,8 +710,8 @@ public class LanguageFeaturesTest {
 
 	@Test
 	public void initCompound() throws ABCException {
-		assertTrue(ui.run(VERIFY, QUIET,
-				filename("initialCompoundValues.cvl")));
+		assertTrue(
+				ui.run(VERIFY, QUIET, filename("initialCompoundValues.cvl")));
 	}
 
 	@Test
@@ -825,13 +825,12 @@ public class LanguageFeaturesTest {
 
 	@Test
 	public void incompleteStruct() {
-		assertTrue(
-				ui.run(VERIFY, "-showProgram", filename("incompleteStruct.c")));
+		assertTrue(ui.run(VERIFY, QUIET, filename("incompleteStruct.c")));
 	}
 
 	@Test
 	public void sizeofTest() {
-		assertTrue(ui.run(VERIFY, filename("sizeofTest.cvl")));
+		assertTrue(ui.run(VERIFY, QUIET, filename("sizeofTest.cvl")));
 	}
 
 	@Test
