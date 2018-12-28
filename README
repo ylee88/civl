@@ -1,5 +1,5 @@
       CIVL: The Concurrency Intermediate Verification Language
-                               v1.17.1
+                               v1.18
 
 ------------------------------ Overview -------------------------------
 
@@ -46,24 +46,19 @@ General Public License.  However, the libraries used by CIVL
 (and incorporated into the complete distribution) use various
 licenses.  See directory licenses for the license of each component.
 
--------------------------- Updates from v1.17 -------------------------
--- fixed some bugs appear during the preparation of VerifyThis 2017 solutions
-   including a fix for the z3 compressed translation bug.
-   
--------------------------- Updates from v1.16.1 -------------------------
--- CIVL functionalities
-	- support more omp reduction operators besides sum
-    - Svcomp unpreprocess transformer is deleted since it won't be used anymore
--- CIVL output
-    - put Why3 script files into CIVLREP when running CIVL
-    - improve the assumptions over datatype sizes
-    - improve the indent of the printed source code and highlight on generated code
--- Stability
-    - simplifier improved to verify some loop invariant test cases
-    - fix a bug in Z3 translator when translating TUPLE_READ
--- Misc.
-    - clean up some redundant code in class FrontEnd
-   
+-------------------------- Updates from v1.17.1 -------------------------
+-- fixed a bug in semantics analysis on ACSL annotations
+-- fixed a bug which made crash when compiling incomplete pragmas
+-- fixed a bug which made the replay mode miss errors that were caught in verification mode
+-- fixed a bug which allowed transformers to set illegal child nodes to an AST node
+-- fixed several bugs that caused syntax errors for theorem provers
+-- fixed a bug which allowed non-lvalue expression be the argument of an ADDRESS_OF operator
+-- fixed a infinite simplification bug in SARL which caused stack overflow
+-- fixed a bug which caused non-scalar type variables have incorrect dynamic types after initialization
+-- CIVL will no longer ignore theorem prover syntax errors
+-- CIVL will always make sure that the two operands of an assignment have compatible dynamic types
+-- improved source information for AST nodes that are inserted by transformers
+-- improved conditional-expression and array-read-write simplification in SARL
    
 ------------------------- Binary Installation -------------------------
 
