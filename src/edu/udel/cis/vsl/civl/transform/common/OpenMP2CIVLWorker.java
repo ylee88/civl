@@ -809,10 +809,11 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 		externalList.addAll(result.first);
 		newRootNode = nodeFactory.newSequenceNode(null, "TranslationUnit",
 				externalList);
-		completeSources(newRootNode);
 		this.processOmpLockCalls(newRootNode);
 		newAst = astFactory.newAST(newRootNode, ast.getSourceFiles(),
 				ast.isWholeProgram());
+		completeSources(newRootNode);
+		
 		/*
 		 * boolean ompHeader = false; for (SourceFile sourceFile :
 		 * ast.getSourceFiles()) { String filename = sourceFile.getName();
