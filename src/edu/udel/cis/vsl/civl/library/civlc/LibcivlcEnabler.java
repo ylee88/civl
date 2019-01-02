@@ -111,6 +111,13 @@ public class LibcivlcEnabler extends BaseLibraryEnabler
 				return localTransitions;
 			}
 			case "$choose_int" :
+				if (call.lhs() == null) {
+					// if no left-hand side expression, this is a no-op
+					// transition:
+					localTransitions.add(Semantics.newNoopTransition(pid,
+							clause, call, false, atomicLockAction));
+					return localTransitions;
+				}
 				argumentsEval = evaluateArguments(state, pid, arguments);
 				state = argumentsEval.left;
 

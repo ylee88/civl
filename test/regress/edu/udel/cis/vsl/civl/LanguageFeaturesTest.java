@@ -222,6 +222,12 @@ public class LanguageFeaturesTest {
 	}
 
 	@Test
+	public void choose_int_nolhs() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, NO_PRINTF,
+				filename("choose_int_nolhs.cvl")));
+	}
+
+	@Test
 	public void compare() throws ABCException {
 		assertTrue(ui.run(VERIFY, QUIET, NO_PRINTF, filename("compare.cvl")));
 	}

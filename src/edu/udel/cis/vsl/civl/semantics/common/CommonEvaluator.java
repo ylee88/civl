@@ -2416,7 +2416,7 @@ public class CommonEvaluator implements Evaluator {
 	 * @param pid
 	 *            The pid of the currently executing process.
 	 * @param expression
-	 *            The array index expression.
+	 *            The array subscript expression.
 	 * @param muteErrorSideEffect
 	 *            Array index out-of bound error will NOT be reported iff this
 	 *            parameter sets to true.
