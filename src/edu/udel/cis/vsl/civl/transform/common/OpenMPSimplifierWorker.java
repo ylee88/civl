@@ -752,13 +752,18 @@ public class OpenMPSimplifierWorker extends BaseWorker {
 		// For each entity in writeVars, if it is not in the local-declaration
 		// collection, add it to sharedWrites (modified by Ziqing):
 		for (Entity entity : writeVars) {
-			if (!locallyDeclaredEntities.contains(entity)) {
+			boolean contains = false;
+
+			for (Set<Entity> stackEntry : locallyDeclaredEntities)
+				if (stackEntry.contains(entity)) {
+					contains = true;
+					break;
+				}
+			if (!contains) {
 				sharedWrites.add(entity);
 				if (entity.getEntityKind() == EntityKind.VARIABLE)
-					if (((Variable) entity).getType().isScalar()) {
+					if (((Variable) entity).getType().isScalar())
 						independent = false;
-						break;
-					}
 			}
 		}
 
@@ -1358,11 +1363,16 @@ public class OpenMPSimplifierWorker extends BaseWorker {
 		while (visitor != null) {
 			if (visitor instanceof IdentifierNode) {
 				Entity entity = ((IdentifierNode) visitor).getEntity();
+				boolean contains = false;
 
-				if (writeVars.contains(entity)
-						&& !locallyDeclaredEntities.contains(entity)) {
-					hasWrittenEntities++;
-					break;
+				if (writeVars.contains(entity)) {
+					for (Set<Entity> entry : locallyDeclaredEntities)
+						if (entry.contains(entity)) {
+							contains = true;
+							break;
+						}
+					if (!contains)
+						hasWrittenEntities++;
 				}
 			}
 			visitor = visitor.nextDFS();
@@ -1377,10 +1387,16 @@ public class OpenMPSimplifierWorker extends BaseWorker {
 			if (visitor instanceof IdentifierNode) {
 				Entity entity = ((IdentifierNode) visitor).getEntity();
 
-				if (writeVars.contains(entity)
-						&& !locallyDeclaredEntities.contains(entity)) {
-					hasWrittenEntities++;
-					break;
+				boolean contains = false;
+
+				if (writeVars.contains(entity)) {
+					for (Set<Entity> entry : locallyDeclaredEntities)
+						if (entry.contains(entity)) {
+							contains = true;
+							break;
+						}
+					if (!contains)
+						hasWrittenEntities++;
 				}
 			}
 			visitor = visitor.nextDFS();
