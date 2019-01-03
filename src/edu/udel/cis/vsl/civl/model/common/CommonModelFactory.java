@@ -212,7 +212,7 @@ public class CommonModelFactory implements ModelFactory {
 	 * 
 	 */
 	public enum TempVariableKind {
-		CONDITIONAL
+	CONDITIONAL
 	}
 
 	/* *************************** Static Fields *************************** */
@@ -440,9 +440,9 @@ public class CommonModelFactory implements ModelFactory {
 				CIVLType processExpr = left.getExpressionType();
 
 				if (!processExpr.isIntegerType())
-					throw new CIVLException(
-							"Incompatible types to " + BINARY_OPERATOR.REMOTE
-									+ " operand. The left hand side expression must have a integer type.",
+					throw new CIVLException("Incompatible types to "
+							+ BINARY_OPERATOR.REMOTE
+							+ " operand. The left hand side expression must have a integer type.",
 							source);
 				return new CommonBinaryExpression(source, expressionScope,
 						lowestScope, right.getExpressionType(), operator, left,
@@ -492,9 +492,8 @@ public class CommonModelFactory implements ModelFactory {
 						// .setExpressionType(integerType());
 						resultType = typeFactory.integerType;
 					else
-						throw new CIVLException(
-								leftType + " and " + rightType
-										+ " are not pointers to compatiable types",
+						throw new CIVLException(leftType + " and " + rightType
+								+ " are not pointers to compatiable types",
 								source);
 				} else if (leftType.equals(rightType)) {
 					// ((CommonBinaryExpression)
@@ -599,6 +598,19 @@ public class CommonModelFactory implements ModelFactory {
 	public ConditionalExpression conditionalExpression(CIVLSource source,
 			Expression condition, Expression trueBranch,
 			Expression falseBranch) {
+		// Front-end ABC has already guaranteed that both branches have the
+		// exact type in the perspective of pure C, where has no bool type.
+		// CIVL has bool type. Given two expressions "1" and "!1", both have
+		// integer type in C and ABC but the latter one has bool type in CIVL.
+		// The following casts deal with such cases.
+		if (trueBranch.getExpressionType().isBoolType()
+				&& !falseBranch.getExpressionType().isBoolType())
+			falseBranch = castExpression(source, trueBranch.getExpressionType(),
+					falseBranch);
+		if (!trueBranch.getExpressionType().isBoolType()
+				&& falseBranch.getExpressionType().isBoolType())
+			trueBranch = castExpression(source, falseBranch.getExpressionType(),
+					trueBranch);
 		return new CommonConditionalExpression(source,
 				joinScope(Arrays.asList(condition, trueBranch, falseBranch)),
 				getLowerScope(
