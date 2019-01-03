@@ -110,6 +110,11 @@ public class ModelBuilderTest {
 				filename("file_scope_extern4_lib.c")));
 	}
 
+	@Test
+	public void conditionalCastNormalForm() {
+		assertTrue(ui.run(VERIFY, QUIET, filename("conditionalCastNorm.cvl")));
+	}
+
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
 		ui = null;

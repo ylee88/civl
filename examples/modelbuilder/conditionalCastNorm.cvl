@@ -1,0 +1,18 @@
+/* CIVL v1.18 will crash on this example (when z3 or cvc4 is used)
+   because in CIVL model, the conditional expression has an int type
+   true branch and an bool type false branch.  The type inconsistency
+   is due to the fact that an implicit cast on the conditional
+   expression doesn't get applied to branches. So we decided that a
+   normal form of a cast on a conditional expression will be that the
+   cast will recursively applied to its branches. */
+$input int N;
+$input int M;
+$input int a[N];
+$input int b[N];
+$assume($forall (int i : 0 .. N-1) a[i] == b[i]);
+
+int main() {
+  $assert($forall (int i : 0 .. N-1) 
+	  i < M ? a[i] == b[i] : i >= M ? 1 : a[i] != b[i] + 1
+	  );
+}
