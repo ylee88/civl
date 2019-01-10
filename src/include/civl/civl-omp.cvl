@@ -208,9 +208,14 @@ void $omp_read($omp_shared shared, void *result, void *ref) {
   $atomic{
     int otherTid = $omp_modified_tid(shared, ref);
     
-    $assert(otherTid < 0, "Thread %d can't perform $omp_read on object referred by %p, because\n"
-	    "thread %d has written to the same object and hasn't flushed yet.\n",
-	    shared->tid, shared->gshared->original, otherTid);
+    if (otherTid >= 0) {
+      void * p = $translate_ptr(ref, shared->gshared->original);
+ 
+
+      $assert($false, "Thread %d can not safely read memory location %p, "
+	      "because thread %d has written to\nthat memory location and hasn't flushed yet.",
+	      shared->tid, p, otherTid);
+    }
     if($is_identity_ref(ref)){
       if($leaf_nodes_equal_to(shared->status, EMPTY)){
 	$copy(ref, shared->gshared->original); // copy shared to local
@@ -236,9 +241,13 @@ void $omp_write($omp_shared shared, void *ref, void *value) {
   $atomic{
   int otherTid = $omp_modified_tid(shared, ref);
 
-  $assert(otherTid < 0, "Thread %d can't perform $omp_write on object referred by %p, because\n"
-	  "thread %d has written to the same variable and hasn't flushed yet.\n",
-	  shared->tid, shared->gshared->original, otherTid);
+  if (otherTid >= 0) {
+    void *p = $translate_ptr(ref, shared->gshared->original);
+    
+    $assert($false, "Thread %d can not safely write to memory location %p, because thread %d has\n"
+	    "written to that memory location and hasn't flushed yet.",
+	    shared->tid, p, otherTid);
+  }
   $copy(ref, value);
   if($is_identity_ref(ref)){
      $set_leaf_nodes(shared->status, MODIFIED);
