@@ -3,9 +3,11 @@ package edu.udel.cis.vsl.civl.transform.common;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Set;
 
 import edu.udel.cis.vsl.abc.ast.IF.AST;
 import edu.udel.cis.vsl.abc.ast.IF.ASTFactory;
@@ -26,13 +28,16 @@ import edu.udel.cis.vsl.abc.ast.node.IF.declaration.InitializerNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.declaration.TypedefDeclarationNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.declaration.VariableDeclarationNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.CompoundLiteralNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.expression.DotNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode.ExpressionKind;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.FunctionCallNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.IdentifierExpressionNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.IntegerConstantNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.OperatorNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.OperatorNode.Operator;
 import edu.udel.cis.vsl.abc.ast.node.IF.label.SwitchLabelNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.omp.OmpAtomicNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.omp.OmpDeclarativeNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.omp.OmpExecutableNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.omp.OmpForNode;
@@ -76,6 +81,7 @@ import edu.udel.cis.vsl.civl.config.IF.CIVLConstants;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSyntaxException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLUnimplementedFeatureException;
 import edu.udel.cis.vsl.civl.transform.IF.OpenMP2CIVLTransformer;
+import edu.udel.cis.vsl.civl.transform.common.OpenMPAtomicAnalyzer.OpenMPAtomicAnalysis;
 import edu.udel.cis.vsl.civl.util.IF.Pair;
 import edu.udel.cis.vsl.civl.util.IF.Triple;
 
@@ -813,7 +819,7 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 		newAst = astFactory.newAST(newRootNode, ast.getSourceFiles(),
 				ast.isWholeProgram());
 		completeSources(newRootNode);
-		
+
 		/*
 		 * boolean ompHeader = false; for (SourceFile sourceFile :
 		 * ast.getSourceFiles()) { String filename = sourceFile.getName();
@@ -2039,46 +2045,35 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 
 			} else if (syncKind.equals("OMPATOMIC")) {
 				String atomicSrc = "ompAtomic";
+				OmpAtomicNode ompAtomicNode = (OmpAtomicNode) node;
 				AtomicNode atomicNode;
+				OpenMPAtomicAnalysis analysis = new OpenMPAtomicAnalyzer()
+						.analyzeFlushList(ompAtomicNode);
+				Set<Entity> sharedEntities = new HashSet<>();
+				List<BlockItemNode> transformedFlushes;
 
-				int i = 0;
-				for (ASTNode child : node.children()) {
-					if (child instanceof CompoundStatementNode) {
-						int j = 0;
-						for (ASTNode child2 : child.children()) {
-							child.removeChild(j);
-							items.add((BlockItemNode) child2);
-							j++;
-						}
-						node.removeChild(i);
-						i++;
-					} else {
-						node.removeChild(i);
-						items.add((BlockItemNode) child);
-						i++;
-					}
-				}
-
-				items.add(0, flushAllCall(node.getSource()));
-				items.add(flushAllCall(node.getSource()));
+				for (IdentifierExpressionNode sharedID : sharedIDs)
+					sharedEntities.add(sharedID.getIdentifier().getEntity());
+				transformedFlushes = transformFlushList(analysis.flushList(),
+						sharedEntities, ompAtomicNode.getSource());
+				items.addAll(transformedFlushes);
+				items.add(ompAtomicNode.statementNode());
+				ompAtomicNode.statementNode().remove();
+				for (BlockItemNode transformedFlush : transformedFlushes)
+					items.add(transformedFlush.copy());
 				body = nodeFactory.newCompoundStatementNode(newSource(atomicSrc,
 						CivlcTokenConstant.COMPOUND_STATEMENT), items);
-
+				replaceOMPPragmas(body, privateIDs, sharedIDs, reductionIDs,
+						firstPrivateIDs, threadPrivateIDs);
 				atomicNode = nodeFactory.newAtomicStatementNode(
 						newSource(atomicSrc, CivlcTokenConstant.ATOMIC), false,
 						body);
 
-				int index = node.childIndex();
-				ASTNode parent = node.parent();
+				int index = ompAtomicNode.childIndex();
+				ASTNode parent = ompAtomicNode.parent();
+
+				ompAtomicNode.remove();
 				parent.setChild(index, atomicNode);
-
-				Iterable<ASTNode> children = body.children();
-
-				// Visit all the child to check for omp code
-				for (ASTNode child : children) {
-					replaceOMPPragmas(child, privateIDs, sharedIDs,
-							reductionIDs, firstPrivateIDs, threadPrivateIDs);
-				}
 			} else if (syncKind.equals("BARRIER")) {
 				// Replace omp barrier with $omp_barrier_and_flush
 				ExpressionStatementNode barrierAndFlush = barrierAndFlush(TEAM);
@@ -4186,5 +4181,147 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 				Arrays.asList(identifierExpression("_omp_team")), null);
 
 		return nodeFactory.newExpressionStatementNode(flushFuncCall);
+	}
+
+	/**
+	 * Given a list of expression that will be flushed and a set of shared
+	 * variable entities, returns a list of transformed flush statements which
+	 * flush non-purely local expressions in the given list.
+	 * 
+	 * @param list
+	 *            a list of expression that will be flushed
+	 * @param sharedEntities
+	 *            a set of shared variable entities that used for testing if a
+	 *            flushing expression is purely local or not
+	 * @param source
+	 *            the Source related to the flush list
+	 * @return
+	 */
+	private List<BlockItemNode> transformFlushList(List<ExpressionNode> list,
+			Set<Entity> sharedEntities, Source source) {
+		List<BlockItemNode> results = new LinkedList<>();
+
+		if (!list.isEmpty()) {
+			for (ExpressionNode flushee : list) {
+				Pair<IdentifierNode, ExpressionNode> flushArgs = sharedVarAndReference(
+						flushee);
+
+				if (sharedEntities.contains(flushArgs.left.getEntity())) {
+					// generate a flush call
+					ExpressionNode shared = identifierExpression(
+							"_omp_" + flushArgs.left.name() + "_shared");
+
+					results.add(flushCall(shared, flushArgs.right,
+							flushee.getSource()));
+				}
+			}
+		} else
+			results.add(flushAllCall(source));
+		return results;
+	}
+
+	/**
+	 * <p>
+	 * Given a shared lvalue expression <code>expr</code>, returns a pair:
+	 * <code>
+	 * (id, &expr[_omp_id_local / id])
+	 * </code> where <code>id</code> is the variable (id) contains the memory
+	 * location referred by the lvalue expression,
+	 * <code>&expr[_omp_id_local / id]</code> is address of the given lvalue
+	 * expression but replace the variable identifier "id" with "_omp_id_local".
+	 * </p>
+	 * 
+	 * @param lvalue
+	 * @return
+	 */
+	private Pair<IdentifierNode, ExpressionNode> sharedVarAndReference(
+			ExpressionNode lvalue) {
+		ExpressionNode expr = lvalue;
+		IdentifierExpressionNode id = null;
+		boolean deref = false, found = false;
+		LinkedList<ExpressionNode> stack = new LinkedList<>();
+		Source source = lvalue.getSource();
+
+		// find the variable contains the location referred by the given lvalue:
+		while (!deref && !found) {
+			switch (expr.expressionKind()) {
+				case CONSTANT :
+				case COMPOUND_LITERAL :
+					throw new CIVLSyntaxException(
+							"invalid omp atomic operation "
+									+ lvalue.prettyRepresentation(),
+							lvalue.getSource());
+				case ARROW :
+					deref = true;
+					break;
+				case DOT :
+					stack.push(expr);
+					expr = ((DotNode) expr).getStructure();
+					break;
+				case IDENTIFIER_EXPRESSION : {
+					id = (IdentifierExpressionNode) expr;
+					found = true;
+					break;
+				}
+				case OPERATOR : {
+					OperatorNode operatorNode = (OperatorNode) expr;
+
+					switch (operatorNode.getOperator()) {
+						case DEREFERENCE :
+							deref = true;
+							break;
+						case SUBSCRIPT : {
+							expr = operatorNode.getArgument(0);
+							stack.push(operatorNode);
+							break;
+						}
+						default :
+					}
+				}
+				default :
+			}
+		}
+		if (deref)
+			throw new CIVLUnimplementedFeatureException(
+					"Cannot flush such lvalue expression :"
+							+ lvalue.prettyRepresentation() + ".",
+					lvalue.getSource());
+		assert id != null;
+
+		// create shared structure and the reference to the local structure
+		// associated with the found variable:
+		ExpressionNode ref = identifierExpression(
+				"_omp_" + id.getIdentifier().name() + "_local");
+
+		while (!stack.isEmpty()) {
+			ExpressionNode op = stack.pop();
+
+			if (op.expressionKind() == ExpressionKind.DOT) {
+				IdentifierNode field = ((DotNode) op).getFieldName().copy();
+
+				field.setEntity(((DotNode) op).getFieldName().getEntity());
+				ref = nodeFactory.newDotNode(source, ref, field);
+			} else {
+				assert op.expressionKind() == ExpressionKind.OPERATOR;
+				assert ((OperatorNode) op).getOperator() == Operator.SUBSCRIPT;
+				ExpressionNode index = ((OperatorNode) op).getArgument(1)
+						.copy();
+
+				ref = nodeFactory.newOperatorNode(source, Operator.SUBSCRIPT,
+						ref, index);
+			}
+		}
+		ref = nodeFactory.newOperatorNode(source, Operator.ADDRESSOF, ref);
+		return new Pair<>(id.getIdentifier(), ref);
+	}
+
+	// create a $omp_flush call:
+	private BlockItemNode flushCall(ExpressionNode sharedVar,
+			ExpressionNode ref, Source source) {
+		ExpressionNode flushFuncId = identifierExpression("$omp_flush");
+
+		return nodeFactory.newExpressionStatementNode(
+				nodeFactory.newFunctionCallNode(source, flushFuncId,
+						Arrays.asList(sharedVar.copy(), ref.copy()), null));
 	}
 }

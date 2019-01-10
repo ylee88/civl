@@ -208,8 +208,9 @@ void $omp_read($omp_shared shared, void *result, void *ref) {
   $atomic{
     int otherTid = $omp_modified_tid(shared, ref);
     
-    $assert(otherTid < 0, "Thread %d can't perform $omp_read because thread %d has written to the same variable and hasn't flushed yet.\n",
-	    shared->tid, otherTid);
+    $assert(otherTid < 0, "Thread %d can't perform $omp_read on object referred by %p, because\n"
+	    "thread %d has written to the same object and hasn't flushed yet.\n",
+	    shared->tid, shared->gshared->original, otherTid);
     if($is_identity_ref(ref)){
       if($leaf_nodes_equal_to(shared->status, EMPTY)){
 	$copy(ref, shared->gshared->original); // copy shared to local
@@ -235,8 +236,9 @@ void $omp_write($omp_shared shared, void *ref, void *value) {
   $atomic{
   int otherTid = $omp_modified_tid(shared, ref);
 
-  $assert(otherTid < 0, "Thread %d can't perform $omp_write because thread %d has written to the same variable and hasn't flushed yet.\n",
-    shared->tid, otherTid);
+  $assert(otherTid < 0, "Thread %d can't perform $omp_write on object referred by %p, because\n"
+	  "thread %d has written to the same variable and hasn't flushed yet.\n",
+	  shared->tid, shared->gshared->original, otherTid);
   $copy(ref, value);
   if($is_identity_ref(ref)){
      $set_leaf_nodes(shared->status, MODIFIED);

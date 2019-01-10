@@ -29,7 +29,7 @@ int main() {
 	$havoc(&tmp);
 	A[i] = tmp;
       }
-      //#pragma omp flush
+#pragma omp flush
 #pragma omp atomic write
       flag=1;
       //#pragma omp flush(flag)
@@ -42,7 +42,7 @@ int main() {
 	flg_tmp = flag;
 	if (flg_tmp == 1) break;
       }
-      //#pragma omp flush
+#pragma omp flush
       for (int i = 0; i < N; i++)
 	sum += A[i];
     }

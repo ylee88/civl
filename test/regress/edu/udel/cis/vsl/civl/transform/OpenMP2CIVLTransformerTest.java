@@ -14,6 +14,7 @@ import org.junit.AfterClass;
 import org.junit.Test;
 
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
+import jdk.nashorn.internal.ir.annotations.Ignore;
 
 public class OpenMP2CIVLTransformerTest {
 
@@ -34,7 +35,41 @@ public class OpenMP2CIVLTransformerTest {
 		return new File(dir, fname).getPath();
 	}
 
+	private static String atomicFilename(String fname) {
+		return new File(new File(rootDir, "atomics"), fname).getPath();
+	}
+
 	/* **************************** Test Methods *************************** */
+
+	@Test
+	public void atomicReadWrite() {
+		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, QUIET,
+				atomicFilename("atomic_read_write.c")));
+	}
+
+	@Test
+	public void atomicDefault() {
+		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, QUIET,
+				atomicFilename("atomic_default.c")));
+	}
+
+	@Test
+	public void atomicUpdate() {
+		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, QUIET,
+				atomicFilename("atomic_update.c")));
+	}
+
+	@Ignore
+	public void atomicReadWriteDot() {
+		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, "-showProgram", // QUIET,
+				atomicFilename("atomic_read_write_dot.c")));
+	}
+
+	@Ignore
+	public void atomicReadWriteArray() {
+		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, "-showProgram", // QUIET,
+				atomicFilename("atomic_read_write_array.c")));
+	}
 
 	@Test
 	public void overflush() {
