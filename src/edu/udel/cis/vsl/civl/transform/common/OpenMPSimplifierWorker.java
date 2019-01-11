@@ -562,10 +562,11 @@ public class OpenMPSimplifierWorker extends BaseWorker {
 		 * transformed as long as its parent is the "omp parallel", i.e., no
 		 * additional statements follow it in the "omp parallel"
 		 */
-		if (ompFor.nowait()) {
-			if (!(ompFor.parent() instanceof OmpParallelNode))
+		if (ompFor.nowait())
+			if (!(ompFor.parent() instanceof OmpParallelNode)) {
+				this.allIndependent = false;
 				return;
-		}
+			}
 
 		/*
 		 * Need to handle collapse through the use of a sequence of iteration
