@@ -1125,11 +1125,11 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 								.argument(0).symbolicObjectKind();
 
 						if (objectKind == SymbolicObjectKind.SEQUENCE) {
-							result.append(
-									symbolicSequenceToString(source, state,
-											(SymbolicSequence<? extends SymbolicExpression>) symbolicExpression
-													.argument(0),
-											civlType, separator, prefix));
+							result.append(symbolicSequenceToString(source,
+									state,
+									(SymbolicSequence<? extends SymbolicExpression>) symbolicExpression
+											.argument(0),
+									civlType, separator, prefix));
 						} else {
 							result.append(symbolicExpression.argument(0)
 									.toStringBuffer(true));
@@ -2913,5 +2913,88 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 	public StringBuffer memoryUnitToString(State state, MemoryUnit mu) {
 		return this.variableReferenceToString(state, null, true, mu.dyscopeID(),
 				mu.varID(), mu.reference());
+	}
+
+	@Override
+	public boolean areDynamicTypesCompatiableForAssign(SymbolicType lhsType,
+			SymbolicType rhsType) {
+		switch (lhsType.typeKind()) {
+
+			case BOOLEAN :
+			case CHAR :
+			case INTEGER :
+			case REAL :
+			case UNINTERPRETED :
+				return lhsType == rhsType;
+			case ARRAY :
+				SymbolicArrayType rhsArrType,
+						lhsArrType = (SymbolicArrayType) lhsType;
+
+				if (rhsType.typeKind() != SymbolicTypeKind.ARRAY)
+					return false;
+				rhsArrType = (SymbolicArrayType) rhsType;
+				if (lhsArrType.isComplete()) {
+					if (!rhsArrType.isComplete())
+						return false;
+					if (!((SymbolicCompleteArrayType) lhsArrType).extent()
+							.equals(((SymbolicCompleteArrayType) rhsArrType)
+									.extent()))
+						return false;
+					return areDynamicTypesCompatiableForAssign(
+							lhsArrType.elementType(), rhsArrType.elementType());
+				} else
+					return areDynamicTypesCompatiableForAssign(
+							lhsArrType.elementType(), rhsArrType.elementType());
+			case TUPLE : {
+				SymbolicTupleType lhsTupleType = (SymbolicTupleType) lhsType,
+						rhsTupleType;
+
+				if (rhsType.typeKind() != SymbolicTypeKind.TUPLE)
+					return false;
+				rhsTupleType = (SymbolicTupleType) rhsType;
+				if (lhsTupleType.sequence().numTypes() != rhsTupleType
+						.sequence().numTypes())
+					return false;
+				else {
+					int numTypes = lhsTupleType.sequence().numTypes();
+
+					for (int i = 0; i < numTypes; i++)
+						if (!areDynamicTypesCompatiableForAssign(
+								lhsTupleType.sequence().getType(i),
+								rhsTupleType.sequence().getType(i)))
+							return false;
+					return true;
+				}
+			}
+			case UNION : {
+				SymbolicUnionType lhsUnionType = (SymbolicUnionType) lhsType,
+						rhsUnionType;
+
+				if (rhsType.typeKind() != SymbolicTypeKind.UNION)
+					return false;
+				rhsUnionType = (SymbolicUnionType) rhsType;
+				if (lhsUnionType.sequence().numTypes() != rhsUnionType
+						.sequence().numTypes())
+					return false;
+				else {
+					int numTypes = lhsUnionType.sequence().numTypes();
+
+					for (int i = 0; i < numTypes; i++)
+						if (!areDynamicTypesCompatiableForAssign(
+								lhsUnionType.sequence().getType(i),
+								rhsUnionType.sequence().getType(i)))
+							return false;
+					return true;
+				}
+			}
+			// either not supported yet or not possible as a lhs expression
+			case FUNCTION :
+				return false;
+			case MAP :
+			case SET :
+			default :
+				throw new CIVLUnimplementedFeatureException(
+						"Left-hand side expression has type: " + lhsType);
+		}
 	}
 }

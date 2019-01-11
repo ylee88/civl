@@ -1417,17 +1417,12 @@ public class CommonModelFactory implements ModelFactory {
 
 	@Override
 	public StructOrUnionLiteralExpression structOrUnionLiteralExpression(
-			CIVLSource source, CIVLType structType, List<Expression> fields) {
-		return new CommonStructOrUnionLiteralExpression(source,
-				joinScope(fields), getLowerScope(fields), structType, fields);
-	}
-
-	@Override
-	public StructOrUnionLiteralExpression structOrUnionLiteralExpression(
-			CIVLSource source, Scope exprScope, CIVLType structType,
+			CIVLSource source, Scope exprScope,
+			CIVLStructOrUnionType structOrUnionType,
 			SymbolicExpression constantValue) {
+		assert constantValue != null;
 		return new CommonStructOrUnionLiteralExpression(source, exprScope,
-				exprScope, structType, constantValue);
+				exprScope, structOrUnionType, constantValue);
 	}
 
 	@Override

@@ -86,11 +86,7 @@ import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
 import edu.udel.cis.vsl.sarl.IF.number.IntegerNumber;
 import edu.udel.cis.vsl.sarl.IF.object.IntObject;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicArrayType;
-import edu.udel.cis.vsl.sarl.IF.type.SymbolicCompleteArrayType;
-import edu.udel.cis.vsl.sarl.IF.type.SymbolicTupleType;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
-import edu.udel.cis.vsl.sarl.IF.type.SymbolicType.SymbolicTypeKind;
-import edu.udel.cis.vsl.sarl.IF.type.SymbolicUnionType;
 
 /**
  * An executor is used to execute a CIVL statement. The basic method provided
@@ -1559,7 +1555,8 @@ public class CommonExecutor implements Executor {
 				lhsType = evaluator.getDynamicType(state, pid,
 						lhs.getExpressionType(), lhs.getSource(), false).type;
 			rhsType = eval.value.type();
-			if (!areDynamicTypesCompatiableForAssign(lhsType, rhsType))
+			if (!symbolicAnalyzer.areDynamicTypesCompatiableForAssign(lhsType,
+					rhsType))
 				errorLogger.logSimpleError(lhs.getSource(), state, process,
 						symbolicAnalyzer.stateInformation(state),
 						ErrorKind.OTHER,
@@ -1570,126 +1567,6 @@ public class CommonExecutor implements Executor {
 								+ rhsType);
 		}
 		return eval;
-	}
-
-	/**
-	 * <p>
-	 * Check if the dynamic types of the left-hand side (lhs) and right-hand
-	 * side (rhs) expression are compatiable for assignment operation.
-	 * </p>
-	 * 
-	 * <p>
-	 * If the type of lhs or rhs is a numeric/boolean/char/uninterpreted type,
-	 * their dynamic types must be exactly the same.
-	 * </p>
-	 * 
-	 * <p>
-	 * If the type of lhs or rhs is non-scalar type, the following rules will be
-	 * recursively applied to check their compatibility:
-	 * <ul>
-	 * <li>IF lhs has a complete array-of-T0 type "t0", rhs must have a complete
-	 * array-of-T1 type "t1". T0 and T1 must be compatible for assignment. The
-	 * extent of "t0" must equal to the extent of "t1".</li>
-	 * <li>IF lhs has an incomplete array-of-T type, rhs must have array-of-T
-	 * type.</li>
-	 * <li>IF lhs has a tuple type, rhs must have a tuple type as well. The
-	 * tuple types of lhs and rhs must have same amount of component types. Each
-	 * pair of component types in the tuple types of the lhs and rhs must be
-	 * compatiable</li>
-	 * <li>IF lhs has a union type, rhs must have a union type as well. The
-	 * union types of lhs and rhs must have same amount of component types. Each
-	 * pair of component types in the union types of the lhs and rhs must be
-	 * compatiable</li>
-	 * </ul>
-	 * </p>
-	 * 
-	 * @param lhsType
-	 *            The dynamic type of the left-hand side expression
-	 * @param rhsType
-	 *            The dynamic type of the right-hand side expression
-	 * @return true iff the given two dynamic types are compatible for an
-	 *         assignment operation
-	 */
-	private boolean areDynamicTypesCompatiableForAssign(SymbolicType lhsType,
-			SymbolicType rhsType) {
-		switch (lhsType.typeKind()) {
-
-			case BOOLEAN :
-			case CHAR :
-			case INTEGER :
-			case REAL :
-			case UNINTERPRETED :
-				return lhsType == rhsType;
-			case ARRAY :
-				SymbolicArrayType rhsArrType,
-						lhsArrType = (SymbolicArrayType) lhsType;
-
-				if (rhsType.typeKind() != SymbolicTypeKind.ARRAY)
-					return false;
-				rhsArrType = (SymbolicArrayType) rhsType;
-				if (lhsArrType.isComplete()) {
-					if (!rhsArrType.isComplete())
-						return false;
-					if (!((SymbolicCompleteArrayType) lhsArrType).extent()
-							.equals(((SymbolicCompleteArrayType) rhsArrType)
-									.extent()))
-						return false;
-					return areDynamicTypesCompatiableForAssign(
-							lhsArrType.elementType(), rhsArrType.elementType());
-				} else
-					return areDynamicTypesCompatiableForAssign(
-							lhsArrType.elementType(), rhsArrType.elementType());
-			case TUPLE : {
-				SymbolicTupleType lhsTupleType = (SymbolicTupleType) lhsType,
-						rhsTupleType;
-
-				if (rhsType.typeKind() != SymbolicTypeKind.TUPLE)
-					return false;
-				rhsTupleType = (SymbolicTupleType) rhsType;
-				if (lhsTupleType.sequence().numTypes() != rhsTupleType
-						.sequence().numTypes())
-					return false;
-				else {
-					int numTypes = lhsTupleType.sequence().numTypes();
-
-					for (int i = 0; i < numTypes; i++)
-						if (!areDynamicTypesCompatiableForAssign(
-								lhsTupleType.sequence().getType(i),
-								rhsTupleType.sequence().getType(i)))
-							return false;
-					return true;
-				}
-			}
-			case UNION : {
-				SymbolicUnionType lhsUnionType = (SymbolicUnionType) lhsType,
-						rhsUnionType;
-
-				if (rhsType.typeKind() != SymbolicTypeKind.UNION)
-					return false;
-				rhsUnionType = (SymbolicUnionType) rhsType;
-				if (lhsUnionType.sequence().numTypes() != rhsUnionType
-						.sequence().numTypes())
-					return false;
-				else {
-					int numTypes = lhsUnionType.sequence().numTypes();
-
-					for (int i = 0; i < numTypes; i++)
-						if (!areDynamicTypesCompatiableForAssign(
-								lhsUnionType.sequence().getType(i),
-								rhsUnionType.sequence().getType(i)))
-							return false;
-					return true;
-				}
-			}
-			// either not supported yet or not possible as a lhs expression
-			case FUNCTION :
-				return false;
-			case MAP :
-			case SET :
-			default :
-				throw new CIVLUnimplementedFeatureException(
-						"Left-hand side expression has type: " + lhsType);
-		}
 	}
 
 	/* *********************** Methods from Executor *********************** */

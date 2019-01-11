@@ -83,6 +83,7 @@ import edu.udel.cis.vsl.civl.model.IF.statement.WithStatement;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLArrayType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLFunctionType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPointerType;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLStructOrUnionType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.civl.model.common.ModelFactoryException;
@@ -580,20 +581,6 @@ public interface ModelFactory {
 			Expression argument);
 
 	/**
-	 * Creates a new instance of struct or union literal expression
-	 * 
-	 * @param source
-	 *            the source of the literal expression
-	 * @param type
-	 *            the type of the literal expression
-	 * @param fields
-	 *            the fields of the struct/union expression
-	 * @return the new struct or union literal expression
-	 */
-	StructOrUnionLiteralExpression structOrUnionLiteralExpression(
-			CIVLSource source, CIVLType type, List<Expression> fields);
-
-	/**
 	 * Creates a new instance of struct or union literal expression, which has a
 	 * constant value.
 	 * 
@@ -609,7 +596,7 @@ public interface ModelFactory {
 	 *         constant value
 	 */
 	StructOrUnionLiteralExpression structOrUnionLiteralExpression(
-			CIVLSource source, Scope exprScope, CIVLType type,
+			CIVLSource source, Scope exprScope, CIVLStructOrUnionType type,
 			SymbolicExpression constantValue);
 
 	/**

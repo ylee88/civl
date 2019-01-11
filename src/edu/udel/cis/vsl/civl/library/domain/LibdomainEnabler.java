@@ -24,7 +24,7 @@ import edu.udel.cis.vsl.civl.model.IF.expression.StructOrUnionLiteralExpression;
 import edu.udel.cis.vsl.civl.model.IF.statement.AssignStatement;
 import edu.udel.cis.vsl.civl.model.IF.statement.CallOrSpawnStatement;
 import edu.udel.cis.vsl.civl.model.IF.statement.Statement;
-import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLStructOrUnionType;
 import edu.udel.cis.vsl.civl.semantics.IF.Evaluation;
 import edu.udel.cis.vsl.civl.semantics.IF.Evaluator;
 import edu.udel.cis.vsl.civl.semantics.IF.LibraryEvaluatorLoader;
@@ -122,13 +122,15 @@ public class LibdomainEnabler extends BaseLibraryEnabler
 			case ModelConfiguration.DECOMP_ALL :
 				List<SymbolicExpression> subDecomp;
 				SymbolicExpression[] argValues = new SymbolicExpression[3];
+				CIVLStructOrUnionType domDecompType = (CIVLStructOrUnionType) call
+						.lhs().getExpressionType();
 
 				Arrays.asList(domain, strategy, nthreads).toArray(argValues);
 				subDecomp = evaluateDomDecompAllPartition(state, pid, process,
 						arguments, argValues, call.getSource());
-				statements.addAll(this.allDecompStatements(call,
+				statements.addAll(allDecompStatements(call,
 						arguments[0].expressionScope(),
-						call.lhs().getExpressionType(), subDecomp,
+						(CIVLStructOrUnionType) domDecompType, subDecomp,
 						arguments[0].getSource()));
 				break;
 			case ModelConfiguration.DECOMP_ROUND_ROBIN :
@@ -146,7 +148,7 @@ public class LibdomainEnabler extends BaseLibraryEnabler
 	}
 
 	private List<AssignStatement> allDecompStatements(CallOrSpawnStatement call,
-			Scope exprScope, CIVLType exprType,
+			Scope exprScope, CIVLStructOrUnionType exprType,
 			List<SymbolicExpression> subDecomp, CIVLSource sourceOfLocation) {
 		StructOrUnionLiteralExpression decompsConstantExpr;
 		List<AssignStatement> assignStatements = new LinkedList<>();
@@ -158,7 +160,7 @@ public class LibdomainEnabler extends BaseLibraryEnabler
 			decompsConstantExpr = modelFactory.structOrUnionLiteralExpression(
 					sourceOfLocation, exprScope, exprType, decomp);
 			assignStatement = modelFactory.assignStatement(call.getSource(),
-					null, call.lhs(), decompsConstantExpr, false);
+					call.source(), call.lhs(), decompsConstantExpr, false);
 			assignStatement.setTargetTemp(call.target());
 			assignStatements.add(assignStatement);
 			assignStatement.source().removeOutgoing(assignStatement);

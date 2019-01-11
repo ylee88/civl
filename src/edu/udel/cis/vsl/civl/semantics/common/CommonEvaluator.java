@@ -2602,34 +2602,21 @@ public class CommonEvaluator implements Evaluator {
 	protected Evaluation evaluateStructOrUnionLiteral(State state, int pid,
 			StructOrUnionLiteralExpression expression)
 			throws UnsatisfiablePathConditionException {
-		Expression[] fields = expression.fields();
-		SymbolicType dynamicStructType = expression.getExpressionType()
+		// check if type of value is compatible with the expression type:
+		SymbolicExpression constVal = expression.constantValue();
+		SymbolicType dynamicExprType = expression.getExpressionType()
 				.getDynamicType(universe);
-		ArrayList<SymbolicExpression> symbolicFields = new ArrayList<>();
-		Evaluation eval;
 
-		if (expression.isStruct()) {
-			for (Expression field : fields) {
-				eval = evaluate(state, pid, field);
-				symbolicFields.add(eval.value);
-				state = eval.state;
-			}
-			assert dynamicStructType instanceof SymbolicTupleType;
-			return new Evaluation(state, universe.tuple(
-					(SymbolicTupleType) dynamicStructType, symbolicFields));
-		} else {
-			int numberOfMembers = fields.length;
-			SymbolicExpression unionValue;
-			SymbolicUnionType unionType = (SymbolicUnionType) dynamicStructType;
-
-			assert dynamicStructType instanceof SymbolicUnionType;
-			eval = evaluate(state, pid, fields[numberOfMembers - 1]);
-			state = eval.state;
-			unionValue = universe.unionInject(unionType,
-					universe.intObject(numberOfMembers - 1), eval.value);
-
-			return new Evaluation(state, unionValue);
-		}
+		if (!symbolicAnalyzer.areDynamicTypesCompatiableForAssign(
+				dynamicExprType, constVal.type()))
+			// throw internal exception because StructOrUnionLiteralExpressions
+			// are only created by back-end implementations:
+			throw new CIVLInternalException(
+					"StructOrUnionLiteralExpression has incompatible constant value: "
+							+ constVal + "\nExpression type: "
+							+ expression.getExpressionType(),
+					expression);
+		return new Evaluation(state, constVal);
 	}
 
 	/**

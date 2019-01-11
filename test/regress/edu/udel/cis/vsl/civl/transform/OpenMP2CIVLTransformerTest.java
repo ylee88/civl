@@ -72,6 +72,13 @@ public class OpenMP2CIVLTransformerTest {
 	}
 
 	@Test
+	public void eijkhout() {
+		assertFalse(ui.run(VERIFY, OMP_THREAD_TWO, "-ompNoSimplify",
+				"-ompLoopDecomp=ALL",
+				filename(new File(rootDir, "simple"), "eijkhout.c")));
+	}
+
+	@Test
 	public void overflush() {
 		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, QUIET,
 				filename("overflush.cvl")));

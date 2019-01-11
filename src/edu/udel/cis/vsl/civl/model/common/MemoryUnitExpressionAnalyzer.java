@@ -33,7 +33,6 @@ import edu.udel.cis.vsl.civl.model.IF.expression.RecDomainLiteralExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.RegularRangeExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.ScopeofExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.SizeofExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.StructOrUnionLiteralExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.SubscriptExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.UnaryExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.ValueAtExpression;
@@ -568,15 +567,7 @@ public class MemoryUnitExpressionAnalyzer {
 				break;
 			case STRING_LITERAL :
 				break;
-			case STRUCT_OR_UNION_LITERAL : {
-				Expression[] fields = ((StructOrUnionLiteralExpression) expression)
-						.fields();
-
-				for (Expression field : fields) {
-					computeImpactMemoryUnitsOfExpression(writableVars, field,
-							result, derefCount);
-				}
-			}
+			case STRUCT_OR_UNION_LITERAL :
 				break;
 			case SUBSCRIPT :
 				computeImpactMemoryUnitsOfExpression(writableVars,

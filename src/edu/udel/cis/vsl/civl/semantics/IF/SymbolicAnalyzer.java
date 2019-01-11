@@ -320,4 +320,45 @@ public interface SymbolicAnalyzer {
 	 * @return
 	 */
 	StringBuffer memoryUnitToString(State state, MemoryUnit mu);
+
+	/**
+	 * <p>
+	 * Check if the dynamic types of the left-hand side (lhs) and right-hand
+	 * side (rhs) expression are compatiable for assignment operation.
+	 * </p>
+	 * 
+	 * <p>
+	 * If the type of lhs or rhs is a numeric/boolean/char/uninterpreted type,
+	 * their dynamic types must be exactly the same.
+	 * </p>
+	 * 
+	 * <p>
+	 * If the type of lhs or rhs is non-scalar type, the following rules will be
+	 * recursively applied to check their compatibility:
+	 * <ul>
+	 * <li>IF lhs has a complete array-of-T0 type "t0", rhs must have a complete
+	 * array-of-T1 type "t1". T0 and T1 must be compatible for assignment. The
+	 * extent of "t0" must equal to the extent of "t1".</li>
+	 * <li>IF lhs has an incomplete array-of-T type, rhs must have array-of-T
+	 * type.</li>
+	 * <li>IF lhs has a tuple type, rhs must have a tuple type as well. The
+	 * tuple types of lhs and rhs must have same amount of component types. Each
+	 * pair of component types in the tuple types of the lhs and rhs must be
+	 * compatiable</li>
+	 * <li>IF lhs has a union type, rhs must have a union type as well. The
+	 * union types of lhs and rhs must have same amount of component types. Each
+	 * pair of component types in the union types of the lhs and rhs must be
+	 * compatiable</li>
+	 * </ul>
+	 * </p>
+	 * 
+	 * @param lhsType
+	 *            The dynamic type of the left-hand side expression
+	 * @param rhsType
+	 *            The dynamic type of the right-hand side expression
+	 * @return true iff the given two dynamic types are compatible for an
+	 *         assignment operation
+	 */
+	boolean areDynamicTypesCompatiableForAssign(SymbolicType lhsType,
+			SymbolicType rhsType);
 }
