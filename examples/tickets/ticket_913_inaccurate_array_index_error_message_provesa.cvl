@@ -1,0 +1,139 @@
+#pragma CIVL ACSL
+#include "ticket_913_loop_bounds.cvl"
+$input int ni,nj,bi,bj;
+$assume(0<bi && bi<ni && 0<bj && bj<nj);
+$input double uin[ni][nj];
+double u1[ni][nj], u2[ni][nj];
+instantiate_theory_loop_bounds(ni,bi,1);
+instantiate_theory_loop_bounds(nj,bj,1);
+
+// loop invariant i == loop_max(ni-bi, bi, 1) ==> j == loop_max(nj-bj, bj, 1); // frame condition for j
+
+int main() {
+    int i=0,j=0,ir,jr,ib,jb;
+    $assume($forall (int i : 1 .. ni-2) ($forall (int j : 1 .. nj-2) u1[i][j] == uin[i][j] * uin[i][j]));
+    /*@ loop invariant 1 <= i <= loop_max(ni-bi, bi, 1) ;
+      @ 
+      @ loop invariant in_stride(i, bi, 1);
+      @ loop invariant \forall int t; 1 <= t < i  ==>
+      @                   (\forall int j0; 1 <= j0 < loop_max(nj-bj, bj, 1) ==> 
+      @                       u2[t][j0] == uin[t][j0]*uin[t][j0]);
+      @ loop assigns i, j, ib, jb, u2[1 .. ni - 2][1 .. nj - 2];
+      @*/
+    for(i=1;i<ni-bi;i=i+bi) {    
+      /*@ loop invariant 1 <= j <= loop_max(nj-bj, bj, 1);
+	@ loop invariant in_stride(j, bj, 1);
+	@ loop invariant \forall int t; i <= t < i + bi ==>
+	@                   (\forall int j0; 1 <= j0 < j ==> 
+	@                       u2[t][j0] == uin[t][j0]*uin[t][j0]);
+	@ loop assigns j, ib, jb, u2[i .. i + bi - 1][1 .. nj - 2];
+	@*/
+      for(j=1;j<nj-bj;j=j+bj) {
+	/*@ loop invariant 0 <= ib <= bi;
+	  @ loop invariant \forall int t; i <= t < i + ib ==> 
+	  @                   (\forall int k; j <= k < j + bj ==> u2[t][k] == uin[t][k]*uin[t][k]);
+	  @ loop assigns   ib, jb, u2[i .. (i + bi - 1)][j .. (j + bj - 1)];
+	  @*/
+	for(ib=0;ib<bi;ib++) {
+	  /*@ loop invariant 0 <= jb <= bj;
+	    @ loop invariant \forall int k; j <= k < j + jb ==> u2[i+ib][k] == uin[i+ib][k]*uin[i+ib][k];
+	    @ loop assigns   jb, u2[i + ib][j .. (j + bj - 1)];
+	    @*/
+	  for(jb=0;jb<bj;jb++) {
+	    u2[i+ib][j+jb] = uin[i+ib][j+jb]*uin[i+ib][j+jb];
+	  }
+	}
+      }
+    }
+    /*
+    $assert(i == loop_max(ni-bi,bi,1));
+    $assert(j == loop_max(nj-bj,bj,1));
+    $assert($forall (int i | 1 <= i && i < loop_max(ni-bi, bi,1)) 
+	    $forall (int j | 1 <= j && j < loop_max(nj-bj, bj,1)) u2[i][j] == uin[i][j]*uin[i][j]);
+    */
+
+    // remainder i
+    /*@ loop invariant i <= ir <= ni-1;
+      @ loop invariant \forall int t; i <= t < ir ==>
+      @                  (\forall int k; 1 <= k < loop_max(nj - bj, bj, 1) ==>
+      @                     u2[t][k] == uin[t][k]*uin[t][k]);
+      @ loop assigns ir, jr, jb, u2[i .. ni - 2][1 .. nj - 2];
+      @*/
+    for(ir=i;ir<ni-1;ir++) {
+      /*@ loop invariant 1 <= jr <= loop_max(nj - bj, bj, 1) && in_stride(jr, bj, 1);
+	@ loop invariant \forall int t; 1 <= t < jr ==>
+	@                               u2[ir][t] == uin[ir][t]*uin[ir][t];
+	@ loop assigns jr, jb, u2[ir][1 .. nj - 2];
+	@*/      
+      for(jr=1;jr<nj-bj;jr=jr + bj) {
+	/*@ loop invariant 0 <= jb <= bj;
+	  @ loop invariant \forall int t; jr <= t < jr + jb ==>
+	  @                               u2[ir][t] == uin[ir][t]*uin[ir][t];
+	  @ loop assigns jb, u2[ir][jr .. jr+bj-1];
+	  @*/
+	for(jb=0;jb<bj;jb++) {
+	  u2[ir][jr+jb] = uin[ir][jr+jb]*uin[ir][jr+jb];
+	}
+      }
+    }
+
+    /*
+    $assert($forall (int i | loop_max(ni-bi,bi,1) <= i && i < ni - 1) 
+	    $forall (int j | 1 <= j && j < loop_max(nj-bj,bj,1)) u2[i][j] == uin[i][j] * uin[i][j]);
+    */
+
+    // remainder j
+    /*@ loop invariant j <= jr <= nj-1;
+      @ loop invariant \forall int t; 1 <= t < loop_max(ni - bi, bi, 1) ==>
+      @                   (\forall int k; j <= k < jr ==>
+      @                      u2[t][k] == uin[t][k]*uin[t][k]);
+      @ loop assigns jr, ir, ib, u2[1 .. ni - 2][j .. nj-2];
+      @*/
+    for(jr = j; jr < nj-1; jr++) {
+      /*@ loop invariant 1 <= ir <= loop_max(ni - bi, bi, 1) && in_stride(ir, bi, 1);
+	@ loop invariant \forall int t; 1 <= t < ir ==>
+	@                               u2[t][jr] == uin[t][jr]*uin[t][jr];
+	@ loop assigns ir, ib, u2[1 .. ni - 2][jr];
+	@*/
+      for(ir = 1; ir < ni-bi; ir+=bi) {
+	/*@ loop invariant 0 <= ib <= bi;
+	  @ loop invariant \forall int t; ir <= t < ir + ib ==>
+	  @                               u2[t][jr] == uin[t][jr]*uin[t][jr];
+	  @ loop assigns ib, u2[ir .. ir + bi - 1][jr];
+	  @*/
+        for(ib = 0; ib < bi; ib++) {
+          u2[ir+ib][jr] = uin[ir+ib][jr]*uin[ir+ib][jr];
+	}
+      }
+    }
+
+    /*
+    $assert($forall (int i | 1 <= i && i < loop_max(ni-bi, bi, 1)) 
+	    $forall (int j | loop_max(nj-bj, bj, 1) <= j && j < nj - 1) u2[i][j] == uin[i][j] * uin[i][j]);
+    */
+    
+    // remainder ij
+
+    /*@ loop invariant i <= ir <= ni-1;
+      @ loop invariant \forall int t; i <= t < ir ==>
+      @                  (\forall int k; j <= k < nj-1 ==> u2[t][k] == uin[t][k]*uin[t][k]);
+      @ loop assigns ir, jr, u2[i .. ni-2][j .. nj-2];
+      @*/
+    for(ir = i;ir < ni-1;ir++) {
+      /*@ loop invariant j <= jr <= nj-1;
+	@ loop invariant \forall int t; j <= t < jr ==> u2[ir][t] == uin[ir][t]*uin[ir][t];
+	@ loop assigns jr, u2[ir][j .. nj-2];
+	@*/
+      for(jr = j;jr < nj-1;jr++) {
+        u2[ir][jr] = uin[ir][jr]*uin[ir][jr];
+      }
+    }
+
+    /*
+    $assert($forall (int i0 | i <= i0 && i0 < ni-1)
+	    $forall (int j0 | j <= j0 && j0 < nj-1) u2[i0][j0] == uin[i0][j0]*uin[i0][j0]);
+    */
+
+    // final assertion:
+    $assert($forall (int i : 0 .. ni-1)  $forall (int j : 0 .. nj-1) u1[i][j] == u2[i][j]);
+}

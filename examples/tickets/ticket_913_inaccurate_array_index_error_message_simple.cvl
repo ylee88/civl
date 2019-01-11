@@ -1,0 +1,28 @@
+#include <civlc.cvh>
+
+$input int E;
+$assume(0 < E && E < 5);
+$input int B;
+$assume(-10 < B && B < 0);
+$input int V;
+$assume(-4 < V && V < 4);
+
+int main () {
+  int x = B;
+  int y = B;
+  int arr[10000000000][10000000000];
+
+  for (int i=0; i<E; i++) {
+    x *= B;
+    x += V;
+    y += x;
+  }
+  y = (y*y+1);
+  y = y / B;
+    
+  int d1 = x+y;
+  int d2 = 0*x*y/(y*y+1);
+  
+  arr[d2][d1] = 1;
+  return  arr[d2][d1];
+}

@@ -82,6 +82,7 @@ import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType.TypeKind;
 import edu.udel.cis.vsl.civl.model.IF.type.StructOrUnionField;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
+import edu.udel.cis.vsl.civl.model.common.ABC_CIVLSource;
 import edu.udel.cis.vsl.civl.semantics.IF.ArrayToolBox;
 import edu.udel.cis.vsl.civl.semantics.IF.Evaluation;
 import edu.udel.cis.vsl.civl.semantics.IF.Evaluator;
@@ -2435,16 +2436,19 @@ public class CommonEvaluator implements Evaluator {
 		eval = evaluate(state, pid, expression.index());
 		index = (NumericExpression) eval.value;
 		if (!muteErrorSideEffect)
-			eval.state = checkArrayIndexInBound(eval.state, pid,
-					expression.getSource(), arrayType, array, index, false);
+			eval.state = checkArrayIndexInBound(eval.state, pid, expression,
+					arrayType, array, index, false);
 		eval.value = universe.arrayRead(array, index);
 		return eval;
 	}
 
 	private State checkArrayIndexInBound(State state, int pid,
-			CIVLSource source, SymbolicArrayType arrayType,
+			SubscriptExpression expression, SymbolicArrayType arrayType,
 			SymbolicExpression array, NumericExpression index,
 			boolean addressOnly) throws UnsatisfiablePathConditionException {
+		CIVLSource arraySource = expression.array().getSource();
+		CIVLSource indexSource = expression.index().getSource();
+
 		if (!this.civlConfig.svcomp() && arrayType.isComplete()) {
 			NumericExpression length = universe.length(array);
 			BooleanExpression assumption = state.getPathCondition(universe);
@@ -2461,17 +2465,26 @@ public class CommonEvaluator implements Evaluator {
 						universe.lessThan(index, length));
 			resultType = reasoner.valid(claim).getResultType();
 			if (resultType != ResultType.YES) {
+				StringBuilder sb = new StringBuilder();
+
 				if (!reasoner.isValid(notNegative))
-					state = errorLogger.logError(source, state, pid,
-							symbolicAnalyzer.stateInformation(state), claim,
-							resultType, ErrorKind.OUT_OF_BOUNDS,
-							"possible negative array index: " + index);
+					sb.append("\nPossible negative array index:");
 				else
-					state = errorLogger.logError(source, state, pid,
-							symbolicAnalyzer.stateInformation(state), claim,
-							resultType, ErrorKind.OUT_OF_BOUNDS,
-							"out of bounds array index:\nindex = " + index
-									+ "\nlength = " + length);
+					sb.append("\nOut of bounds array index:");
+				sb.append("\nArray expression: ");
+				sb.append(((ABC_CIVLSource) arraySource).getABCSource()
+						.getFirstToken().getText());
+				sb.append("\nArray type: ");
+				sb.append(arrayType);
+				sb.append("\nIndex exprssion: ");
+				sb.append(((ABC_CIVLSource) indexSource).getABCSource()
+						.getFirstToken().getText());
+				sb.append("\nIndex value: ");
+				sb.append(index);
+				sb.append("\n");
+				state = errorLogger.logError(indexSource, state, pid,
+						symbolicAnalyzer.stateInformation(state), claim,
+						resultType, ErrorKind.OUT_OF_BOUNDS, sb.toString());
 			}
 		}
 		return state;
@@ -4374,7 +4387,8 @@ public class CommonEvaluator implements Evaluator {
 						.getDynamicType(universe);
 			if (!operand.isErrorFree())
 				result.state = this.checkArrayIndexInBound(state, pid,
-						operand.getSource(), arrayType, array, index, true);
+						(SubscriptExpression) operand, arrayType, array, index,
+						true);
 			newSymRef = universe.arrayElementReference(oldSymRef, index);
 			result.value = symbolicUtil.setSymRef(arrayPointer, newSymRef);
 		} else if (operand instanceof DereferenceExpression) {
