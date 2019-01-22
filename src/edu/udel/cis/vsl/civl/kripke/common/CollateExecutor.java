@@ -6,13 +6,16 @@ import java.util.HashSet;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.kripke.IF.Enabler;
 import edu.udel.cis.vsl.civl.log.IF.CIVLErrorLogger;
+import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
 import edu.udel.cis.vsl.civl.predicate.IF.CIVLStatePredicate;
 import edu.udel.cis.vsl.civl.predicate.IF.Predicates;
 import edu.udel.cis.vsl.civl.semantics.IF.Executor;
 import edu.udel.cis.vsl.civl.semantics.IF.Transition;
 import edu.udel.cis.vsl.civl.state.IF.CIVLHeapException;
 import edu.udel.cis.vsl.civl.state.IF.State;
+import edu.udel.cis.vsl.civl.state.IF.UnsatisfiablePathConditionException;
 import edu.udel.cis.vsl.gmc.GMCConfiguration;
+import edu.udel.cis.vsl.gmc.StateSpaceCycleException;
 import edu.udel.cis.vsl.gmc.seq.DfsSearcher;
 
 public class CollateExecutor {
@@ -79,7 +82,8 @@ public class CollateExecutor {
 	// }
 
 	Collection<State> run2Completion(State realState, int pid, State initState,
-			CIVLConfiguration oldConfig) {
+			CIVLConfiguration oldConfig)
+			throws UnsatisfiablePathConditionException {
 		ColStateManager colStateManager = new ColStateManager(enabler, executor,
 				executor.evaluator().symbolicAnalyzer(), errorLogger, config);
 		DfsSearcher<State, Transition> searcher = new DfsSearcher<State, Transition>(
@@ -109,7 +113,23 @@ public class CollateExecutor {
 			config.out().println(executor.evaluator().symbolicAnalyzer()
 					.stateToString(initState));
 		}
-		while (searcher.search(initState));
+		try {
+			while (searcher.search(initState));
+		} catch (StateSpaceCycleException e) {
+			int stackSize = searcher.stack().size();
+			int stackPos = e.stackPos();
+			Transition lastTran = (stackPos < stackSize - 1)
+					? searcher.stack().get(stackSize - 2).peek()
+					: searcher.stack().peek().peek();
+			State lastState = searcher.stack().peek().getState();
+			String process = lastState.getProcessState(lastTran.pid()).name();
+			StringBuffer stateString = executor.evaluator().symbolicAnalyzer()
+					.stateInformation(lastState);
+
+			errorLogger.logSimpleError(lastTran.statement().getSource(),
+					lastState, process, stateString, ErrorKind.TERMINATION,
+					"A cycle in state space detected.  This execution will not terminate.");
+		}
 		if (this.config.showTransitions() || this.config.showStates()
 				|| config.showSavedStates() || config.debugOrVerbose())
 			config.out().println(

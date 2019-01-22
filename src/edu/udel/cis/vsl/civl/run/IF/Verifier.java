@@ -22,6 +22,8 @@ import java.util.concurrent.TimeUnit;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConstants;
 import edu.udel.cis.vsl.civl.log.IF.CIVLExecutionException;
 import edu.udel.cis.vsl.civl.log.IF.CIVLLogEntry;
+import edu.udel.cis.vsl.civl.model.IF.CIVLException.Certainty;
+import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.Model;
@@ -35,6 +37,7 @@ import edu.udel.cis.vsl.civl.util.IF.Printable;
 import edu.udel.cis.vsl.gmc.CommandLineException;
 import edu.udel.cis.vsl.gmc.ExcessiveErrorException;
 import edu.udel.cis.vsl.gmc.GMCConfiguration;
+import edu.udel.cis.vsl.gmc.StateSpaceCycleException;
 import edu.udel.cis.vsl.gmc.seq.DfsSearcher;
 import edu.udel.cis.vsl.sarl.IF.expr.BooleanExpression;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
@@ -247,9 +250,9 @@ public class Verifier extends Player {
 				predicate, config);
 		if (civlConfig.debug())
 			searcher.setDebugOut(out);
+		searcher.setReportCycleAsViolation(civlConfig.cyclesViolate());
 		searcher.setName(sessionName);
 		log.setSearcher(searcher);
-		// stateManager.setStack(searcher.stack());
 		if (minimize)
 			log.setMinimize(true);
 		if (config.getAnonymousSection().getValue(maxdepthO) != null)
@@ -262,8 +265,6 @@ public class Verifier extends Player {
 			updater = new SearchUpdater();
 		}
 		stateManager.setUpdater(updater);
-		errorBoundExceeds = "errorBoundExceeds";
-		// this.shortFileNamesShown = shortFileNamesShown;
 		this.errorBoundExceeds = "Terminating search after finding "
 				+ this.log.errorBound() + " violation";
 		if (log.errorBound() > 1)
@@ -380,23 +381,46 @@ public class Verifier extends Player {
 				while (true) {
 					boolean workRemains;
 
-					if (violationFound) {
-						// may throw ExcessiveErrorException...
-						workRemains = searcher.proceedToNewState()
-								? searcher.search()
-								: false;
-					} else {
-						// may throw ExcessiveErrorException...
-						workRemains = searcher.search(initialState);
+					try {
+						if (violationFound) {
+							// may throw ExcessiveErrorException...
+							workRemains = searcher.proceedToNewState()
+									? searcher.search()
+									: false;
+						} else {
+							// may throw ExcessiveErrorException...
+							workRemains = searcher.search(initialState);
+						}
+						if (!workRemains)
+							break;
+					} catch (StateSpaceCycleException e) {
+						// a cycle in state space detected:
+						int stackPos = e.stackPos();
+						int stackSize = searcher.stack().size();
+						Transition lastTran = (stackPos < stackSize - 1)
+								? searcher.stack().get(stackSize - 2).peek()
+								: searcher.stack().peek().peek();
+						State lastState = searcher.stack().peek().getState();
+						String process = lastState
+								.getProcessState(lastTran.pid()).name();
+						CIVLSource source = lastTran.statement().getSource();
+						CIVLExecutionException cycleException = new CIVLExecutionException(
+								ErrorKind.TERMINATION, Certainty.CONCRETE,
+								process,
+								"A cycle in state space detected.  This execution will not terminate.",
+								lastState, source);
+						CIVLLogEntry entry = new CIVLLogEntry(civlConfig,
+								config, cycleException, evaluator.universe());
+
+						log.report(entry); // may throw ExcessiveErrorException
+						continue; // cycle violation logged, continue the search
 					}
-					if (!workRemains)
-						break;
 					violationFound = true;
-					
+
 					CIVLLogEntry entry = new CIVLLogEntry(civlConfig, config,
 							this.predicate.getUnreportedViolation(),
 							evaluator.universe());
-					
+
 					log.report(entry); // may throw ExcessiveErrorException
 				}
 			} catch (ExcessiveErrorException e) {

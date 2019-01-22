@@ -78,6 +78,12 @@ public class OpenMP2CIVLTransformerTest {
 	}
 
 	@Test
+	public void overflushCycleViolate() {
+		assertFalse(ui.run(VERIFY, OMP_THREAD_TWO, QUIET, "-cyclesViolate",
+				filename("overflush.cvl")));
+	}
+
+	@Test
 	public void overflush() {
 		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, QUIET,
 				filename("overflush.cvl")));

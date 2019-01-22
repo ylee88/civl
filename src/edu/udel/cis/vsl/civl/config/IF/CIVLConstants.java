@@ -182,6 +182,7 @@ public class CIVLConstants {
 	public static String DIRECT = "direct";
 	public static String INTBIT = "int_bit";
 	public static String TEST_GEN = "testGen";
+	public static String CYCLES_VIOLATE = "cyclesViolate";
 
 	// Option objects
 
@@ -633,6 +634,10 @@ public class CIVLConstants {
 	public final static Option direct0 = Option.newScalarOption(DIRECT, STRING,
 			"Direct branching at line numbers in the given file", null);
 
+	public final static Option cyclesViolateO = Option.newScalarOption(
+			CYCLES_VIOLATE, BOOLEAN,
+			"Report cycles in the state space as violations", false);
+
 	/**
 	 * An option to enable test generation for SARL, i.e. generate SARL tests
 	 * for some validity checks that CIVL encounters during a run.
@@ -669,7 +674,8 @@ public class CIVLConstants {
 				CIVLMacroO, analyzeAbsO, strictCompareO, collectOutputO,
 				checkDivisionByZeroO, checkMemoryLeakO, timeoutO, unpreprocO,
 				sliceAnalysisO, witnessO, direct0, intBit,
-				intOperationTransformer, maxProcsO, SARLTestGenO};
+				intOperationTransformer, maxProcsO, SARLTestGenO,
+				cyclesViolateO};
 	}
 
 	// headers...

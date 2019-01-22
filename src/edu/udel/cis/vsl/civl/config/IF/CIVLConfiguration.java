@@ -278,6 +278,10 @@ public class CIVLConfiguration {
 	private boolean generateTestsForSARL;
 
 	/**
+	 * whether report cycles in state space as violations
+	 */
+	private boolean cyclesViolate;
+	/**
 	 * Constructs a new CIVL configuration object from the command line
 	 * configuration.
 	 * 
@@ -402,6 +406,7 @@ public class CIVLConfiguration {
 		this.sliceAnalysis = config.isTrue(CIVLConstants.sliceAnalysisO);
 		this.witness = config.isTrue(CIVLConstants.witnessO);
 		this.prob = config.isTrue(CIVLConstants.probO);
+		this.cyclesViolate = config.isTrue(CIVLConstants.cyclesViolateO);
 		if (config.getValue(CIVLConstants.SARLTestGenO) != null)
 			this.generateTestsForSARL = (boolean) config
 					.getValue(CIVLConstants.SARLTestGenO);
@@ -1007,5 +1012,14 @@ public class CIVLConfiguration {
 	 */
 	public boolean loopInvariantEnabled() {
 		return this.loopInvariantEnabled;
+	}
+
+	/**
+	 * 
+	 * @return true if to report cycles in state space as violation; false,
+	 *         otherwise
+	 */
+	public boolean cyclesViolate() {
+		return this.cyclesViolate;
 	}
 }
