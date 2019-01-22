@@ -2515,6 +2515,15 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 					result.append(")");
 					break;
 				}
+				case VARIABLE : {
+					SymbolicExpression val = state.valueOf(pid,
+							((VariableExpression) expression).variable());
+					// not report any error during printing
+					result.append(
+							symbolicExpressionToString(expression.getSource(),
+									state, exprType, val, "", ""));
+					break;
+				}
 				case ADDRESS_OF :
 				case ARRAY_LITERAL :
 				case BOOLEAN_LITERAL :
@@ -2532,7 +2541,6 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 				case STRING_LITERAL :
 				case STRUCT_OR_UNION_LITERAL :
 				case SUBSCRIPT :
-				case VARIABLE :
 				case LAMBDA :
 				case ARRAY_LAMBDA :
 				case REC_DOMAIN_LITERAL : {
