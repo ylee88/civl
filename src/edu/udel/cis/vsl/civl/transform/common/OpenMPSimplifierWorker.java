@@ -774,10 +774,11 @@ public class OpenMPSimplifierWorker extends BaseWorker {
 		/*
 		 * Check for array-based dependences.
 		 */
+		Set<OperatorNode> readWriteArrayRefs = new HashSet<>(readArrayRefs);
 
+		readWriteArrayRefs.addAll(writeArrayRefs);
 		independent &= noArrayRefDependences(boundingConditions, writeArrayRefs,
-				readArrayRefs);
-
+				readWriteArrayRefs);
 		if (debug) {
 			System.out.println(
 					"Found " + (independent ? "independent" : "dependent")
