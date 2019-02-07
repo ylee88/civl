@@ -1,0 +1,12 @@
+typedef  struct {
+  char c;
+  $scope s;
+} T;
+
+int main() {
+  T y, x;
+
+  $havoc(&x);
+  $havoc(&y);
+  $assert(x.c == y.c);
+}

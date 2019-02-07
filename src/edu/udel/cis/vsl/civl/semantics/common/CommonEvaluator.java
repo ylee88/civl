@@ -325,12 +325,6 @@ public class CommonEvaluator implements Evaluator {
 	//
 	// private SymbolicConstant int2PointerFunc;
 
-	private UFExtender char2IntCaster;
-
-	private UFExtender int2CharCaster;
-	private UFExtender pointer2IntCaster;
-	private UFExtender int2PointerCaster;
-
 	/**
 	 * A bit-vector type which representing a boolean array with a concrete
 	 * length corresponding to the bit-length of an integer define by the
@@ -408,20 +402,6 @@ public class CommonEvaluator implements Evaluator {
 		// int2PointerFunc = universe.symbolicConstant(universe
 		// .stringObject(INT_TO_POINTER_FUNCTION), universe.functionType(
 		// Arrays.asList(this.universe.integerType()), this.pointerType));
-		this.char2IntCaster = new UFExtender(this.universe,
-				CHAR_TO_INT_FUNCTION, charType, universe.integerType(),
-				new Char2IntCaster(this.universe, this.symbolicUtil));
-		this.int2CharCaster = new UFExtender(this.universe,
-				INT_TO_CHAR_FUNCTION, universe.integerType(), charType,
-				new Int2CharCaster(this.universe, this.symbolicUtil));
-		pointer2IntCaster = new UFExtender(this.universe,
-				POINTER_TO_INT_FUNCTION, this.pointerType,
-				universe.integerType(), new Pointer2IntCaster(universe,
-						symbolicUtil, this.pointerType));
-		int2PointerCaster = new UFExtender(this.universe,
-				INT_TO_POINTER_FUNCTION, universe.integerType(),
-				this.pointerType, new Int2PointerCaster(universe, symbolicUtil,
-						this.pointerType));
 		this.civlConfig = config;
 		// this.zeroOrOne = (NumericExpression) universe.symbolicConstant(
 		// universe.stringObject("ZeroOrOne"), universe.integerType());
@@ -1101,15 +1081,34 @@ public class CommonEvaluator implements Evaluator {
 		if (argType.isDomainType() && castType.isDomainType()) {
 			return new Evaluation(state, value);
 		} else if (argType.isBoolType() && castType.isIntegerType()) {
-			eval.value = this.booleanToInteger(value);
+			eval.value = value.isTrue()
+					? one
+					: value.isFalse()
+							? zero
+							: universe.cond((BooleanExpression) value, one,
+									zero);
+			return eval;
+		} else if (argType.isIntegerType() && castType.isBoolType()) {
+			if (value.type().isBoolean())
+				eval.value = value;
+			else
+				eval.value = universe.not(universe.equals(value, zero));
 			return eval;
 		} else if (argType.isIntegerType() && castType.isPointerType()) {
-			eval.value = this.int2PointerCaster
-					.apply(state.getPathCondition(universe), value, castType);
+			SymbolicType type = value.type();
+
+			assert type.isInteger();
+			eval.value = (new Int2PointerCaster(universe, symbolicUtil,
+					this.pointerType)).apply(state.getPathCondition(universe),
+							value, castType);
 			return eval;
 		} else if (argType.isPointerType() && castType.isIntegerType()) {
-			eval.value = this.pointer2IntCaster
-					.apply(state.getPathCondition(universe), value, null);
+			SymbolicType type = value.type();
+
+			assert type == pointerType;
+			eval.value = (new Pointer2IntCaster(universe, symbolicUtil,
+					this.pointerType)).apply(state.getPathCondition(universe),
+							value, castType);
 			return eval;
 		} else if (argType.isPointerType() && castType.isPointerType()) {
 			// pointer to pointer: for now...no change.
@@ -1127,20 +1126,6 @@ public class CommonEvaluator implements Evaluator {
 								+ " to pointer-to-" + castBaseType,
 						arg.getSource());
 			}
-			return eval;
-		} else if (argType.isIntegerType() && castType.isBoolType()) {
-			if (value.type().isBoolean())
-				eval.value = value;
-			else
-				eval.value = universe.not(universe.equals(value, zero));
-			return eval;
-		} else if (argType.isIntegerType() && castType.isCharType()) {
-			eval.value = this.int2CharCaster
-					.apply(state.getPathCondition(universe), value, null);
-			return eval;
-		} else if (argType.isCharType() && castType.isIntegerType()) {
-			eval.value = this.char2IntCaster
-					.apply(state.getPathCondition(universe), value, null);
 			return eval;
 		} else if (argType.isRealType() && castType.isIntegerType()) {
 			eval.value = realToIntegerCastWorker(state, pid,
@@ -1761,11 +1746,10 @@ public class CommonEvaluator implements Evaluator {
 				this.isValueDefined(eval.state, process, expression.right(),
 						right);
 				// }
-				if (leftType.isBoolean() && rightType.isInteger()) {
-					left = booleanToInteger(left);
-				} else if (leftType.isInteger() && rightType.isBoolean()) {
-					right = booleanToInteger(right);
-				}
+				if (leftType.isBoolean() && rightType.isInteger())
+					left = universe.cast(rightType, left);
+				else if (leftType.isInteger() && rightType.isBoolean())
+					right = universe.cast(leftType, right);
 				eval.value = universe.equals(left, right);
 				break;
 			}
@@ -1776,11 +1760,11 @@ public class CommonEvaluator implements Evaluator {
 						left);
 				this.isValueDefined(eval.state, process, expression.right(),
 						right);
-				if (leftType.isBoolean() && rightType.isInteger()) {
-					left = booleanToInteger(left);
-				} else if (leftType.isInteger() && rightType.isBoolean()) {
-					right = booleanToInteger(right);
-				}
+				if (leftType.isBoolean() && rightType.isInteger())
+					left = universe.cast(rightType, left);
+				else if (leftType.isInteger() && rightType.isBoolean())
+					right = universe.cast(leftType, right);
+
 				eval.value = universe.neq(left, right);
 				break;
 			}
@@ -1984,17 +1968,6 @@ public class CommonEvaluator implements Evaluator {
 			throw new UnsatisfiablePathConditionException();
 		}
 		return new Evaluation(state, result);
-	}
-
-	private SymbolicExpression booleanToInteger(
-			SymbolicExpression booleanValue) {
-		if (booleanValue.isTrue())
-			return one;
-		else if (booleanValue.isFalse())
-			return zero;
-		else
-			return this.universe.cond((BooleanExpression) booleanValue, one,
-					zero);
 	}
 
 	/**

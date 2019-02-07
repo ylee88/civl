@@ -4,6 +4,7 @@ import static edu.udel.cis.vsl.civl.TestConstants.LOOP;
 import static edu.udel.cis.vsl.civl.TestConstants.QUIET;
 import static edu.udel.cis.vsl.civl.TestConstants.VERIFY;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 
@@ -73,4 +74,30 @@ public class TicketsFixTest {
 				"ticket_913_inaccurate_array_index_error_message_simple.cvl")));
 	}
 
+	/**
+	 * See: https://vsl.cis.udel.edu/trac/civl/ticket/919 </br>
+	 * This test executes the example mentioned in the ticket.
+	 * 
+	 * @author Wenhao Wu (wuwenhao@udel.edu)
+	 * @throws ABCException
+	 */
+	@Test
+	public void ticket_919_char_to_int_cast1() throws ABCException {
+		assertFalse(
+				ui.run(VERIFY, filename("ticket_919_char_to_int_cast1.cvl")));
+	}
+
+	/**
+	 * See: https://vsl.cis.udel.edu/trac/civl/ticket/919#comment:8 </br>
+	 * This test executes an additional example to verify the correctness of the
+	 * solution.
+	 * 
+	 * @author Wenhao Wu (wuwenhao@udel.edu)
+	 * @throws ABCException
+	 */
+	@Test
+	public void ticket_919_char_to_int_cast2() throws ABCException {
+		assertTrue(
+				ui.run(VERIFY, filename("ticket_919_char_to_int_cast2.cvl")));
+	}
 }

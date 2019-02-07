@@ -660,13 +660,13 @@ public class LanguageFeaturesTest {
 	}
 
 	@Test
-	public void int2charBad() {
-		assertFalse(ui.run(VERIFY, QUIET, filename("int2charBad.cvl")));
+	public void int2char2() {
+		assertTrue(ui.run(VERIFY, QUIET, filename("int2char2.cvl")));
 	}
 
 	@Test
-	public void int2charBad2() {
-		assertFalse(ui.run(VERIFY, QUIET, filename("int2charBad2.cvl")));
+	public void int2charBad() {
+		assertFalse(ui.run(VERIFY, QUIET, filename("int2charBad.cvl")));
 	}
 
 	@Test
