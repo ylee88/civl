@@ -1,5 +1,5 @@
       CIVL: The Concurrency Intermediate Verification Language
-                               v1.18
+                               v1.19
 
 ------------------------------ Overview -------------------------------
 
@@ -29,7 +29,6 @@ Mitchell Gerrard
 Ziqing Luo
 Stephen F. Siegel
 Wenhao Wu
-Yihao Yan
 
 Inactive Developers:
 John Edenhofner
@@ -38,6 +37,7 @@ Michael Rogers
 Timothy K. Zirkel
 Si Li
 Manchun Zheng
+Yihao Yan
 
 ------------------------------- License -------------------------------
 
@@ -46,19 +46,21 @@ General Public License.  However, the libraries used by CIVL
 (and incorporated into the complete distribution) use various
 licenses.  See directory licenses for the license of each component.
 
--------------------------- Updates from v1.17.1 -------------------------
--- fixed a bug in semantics analysis on ACSL annotations
--- fixed a bug which made crash when compiling incomplete pragmas
--- fixed a bug which made the replay mode miss errors that were caught in verification mode
--- fixed a bug which allowed transformers to set illegal child nodes to an AST node
--- fixed several bugs that caused syntax errors for theorem provers
--- fixed a bug which allowed non-lvalue expression be the argument of an ADDRESS_OF operator
--- fixed a infinite simplification bug in SARL which caused stack overflow
--- fixed a bug which caused non-scalar type variables have incorrect dynamic types after initialization
--- CIVL will no longer ignore theorem prover syntax errors
--- CIVL will always make sure that the two operands of an assignment have compatible dynamic types
--- improved source information for AST nodes that are inserted by transformers
--- improved conditional-expression and array-read-write simplification in SARL
+-------------------------- Updates from v1.18 -------------------------
+-- improved simplification for array-read & array-write symbolic expressions
+-- improved error message for detected data race in OpenMP programs
+-- improved error message for array out-of-bound errors
+-- added a new option in CIVL for users to decide whether to report cycles, which means possible non-termination
+-- fixed a bug which may caused CIVL crash when casting non-concrete char type expression to int
+-- fixed a bug in OpenMP Simplifier which didn't carefully check for the case of write-write data race
+-- fixed a bug which caused CIVL crash if a $choose_int has no left-hand side expression
+-- fixed a bug in casting conditional expressions which may caused branches in a condition expression
+   have different types
+-- fixed bugs in semantics analysis of compound initializers
+-- fixed a bug which may incorrectly changed the type of an array variable after its initialization
+-- fixed bugs which may caused crash when transforming OpenMP atomic and flush constructs
+-- fixed a bug related to using pragmas to control the parsing of ACSL annotations
+-- fixed bugs that were caught and marked as warning by the static analyzer of a newer version of Eclipse
    
 ------------------------- Binary Installation -------------------------
 
