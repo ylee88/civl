@@ -37,6 +37,7 @@ import edu.udel.cis.vsl.abc.ast.type.IF.Type;
 import edu.udel.cis.vsl.abc.ast.type.IF.Type.TypeKind;
 import edu.udel.cis.vsl.abc.front.IF.CivlcTokenConstant;
 import edu.udel.cis.vsl.abc.token.IF.CivlcToken;
+import edu.udel.cis.vsl.abc.token.IF.CivlcToken.TokenVocabulary;
 import edu.udel.cis.vsl.abc.token.IF.Formation;
 import edu.udel.cis.vsl.abc.token.IF.Source;
 import edu.udel.cis.vsl.abc.token.IF.StringLiteral;
@@ -287,14 +288,15 @@ public class LoopContractTransformerWorker extends BaseWorker {
 				.newTransformFormation(transformerName, "widening condition");
 		CivlcToken wideningCondToken = tokenFactory.newCivlcToken(
 				CivlcTokenConstant.INTEGER_CONSTANT, "2",
-				wideningConditionFormation);
+				wideningConditionFormation, TokenVocabulary.DUMMY);
 
 		loopInvariantsViolationMessageToken = tokenFactory.newCivlcToken(
 				CivlcTokenConstant.STRING_LITERAL, violationMessage,
-				feedBackformation);
+				feedBackformation, TokenVocabulary.DUMMY);
 		loopInvariantsEstablishViolationMessageToken = tokenFactory
 				.newCivlcToken(CivlcTokenConstant.STRING_LITERAL,
-						establishViolationMessage, feedBackformation);
+						establishViolationMessage, feedBackformation,
+						TokenVocabulary.DUMMY);
 		LEAST_NUM_ITERATIONS = nodeFactory.newIntegerConstantNode(
 				tokenFactory.newSource(wideningCondToken), "2");
 	}
@@ -650,12 +652,10 @@ public class LoopContractTransformerWorker extends BaseWorker {
 		results.add(createAssumptionPop(source));
 		// ND choice of enter or exit:
 		if (!loop.getLoopAssignSet().isEmpty())
-			results.add(
-					nodeFactory.newExpressionStatementNode(
-							nodeFactory.newOperatorNode(source, Operator.ASSIGN,
-									identifierExpression(
-											auxVarNames.loop_new_cond),
-									createNDBinaryChoice(source))));
+			results.add(nodeFactory.newExpressionStatementNode(
+					nodeFactory.newOperatorNode(source, Operator.ASSIGN,
+							identifierExpression(auxVarNames.loop_new_cond),
+							createNDBinaryChoice(source))));
 
 		StatementNode newBody = nodeFactory.newCompoundStatementNode(source,
 				results);
@@ -701,12 +701,10 @@ public class LoopContractTransformerWorker extends BaseWorker {
 									Arrays.asList(identifierExpression(
 											auxVarNames.loop_write_set)),
 									null)))));
-			results.add(
-					nodeFactory.newExpressionStatementNode(
-							nodeFactory.newOperatorNode(source, Operator.ASSIGN,
-									identifierExpression(
-											auxVarNames.loop_new_cond),
-									createNDBinaryChoice(source))));
+			results.add(nodeFactory.newExpressionStatementNode(
+					nodeFactory.newOperatorNode(source, Operator.ASSIGN,
+							identifierExpression(auxVarNames.loop_new_cond),
+							createNDBinaryChoice(source))));
 
 		}
 		// Refresh write set:
@@ -1098,12 +1096,12 @@ public class LoopContractTransformerWorker extends BaseWorker {
 
 		trueBranch.add(nodeFactory.newVariableDeclarationNode(source,
 				identifier(ws_ptrs), pointerArrayType));
-		trueBranch
-				.add(nodeFactory.newExpressionStatementNode(functionCall(source,
-						MEM_TO_POINTER_ARRAY, Arrays.asList(writeSet.copy(),
+		trueBranch.add(nodeFactory.newExpressionStatementNode(
+				functionCall(source, MEM_TO_POINTER_ARRAY,
+						Arrays.asList(writeSet.copy(),
 								nodeFactory.newOperatorNode(source,
-										Operator.ADDRESSOF, identifierExpression(
-												ws_ptrs))))));
+										Operator.ADDRESSOF,
+										identifierExpression(ws_ptrs))))));
 		// asserted existence:
 		ExpressionNode ptrInAssignedLocations = memoryLocationManager
 				.pointerBelongsToMemoryLocationSet(
@@ -1434,12 +1432,10 @@ public class LoopContractTransformerWorker extends BaseWorker {
 				identifierExpression(LOOP_WRITE_SET_WIDENING),
 				Arrays.asList(identifierExpression(auxVarNames.loop_write_set)),
 				null);
-		wideningThenNDChoice
-				.add(nodeFactory.newExpressionStatementNode(
-						nodeFactory.newOperatorNode(source, Operator.ASSIGN,
-								identifierExpression(
-										auxVarNames.loop_write_set),
-								wideningCall)));
+		wideningThenNDChoice.add(nodeFactory.newExpressionStatementNode(
+				nodeFactory.newOperatorNode(source, Operator.ASSIGN,
+						identifierExpression(auxVarNames.loop_write_set),
+						wideningCall)));
 		wideningThenNDChoice.add(nodeFactory.newExpressionStatementNode(
 				nodeFactory.newOperatorNode(source, Operator.ASSIGN,
 						termCondVar, createNDBinaryChoice(source))));

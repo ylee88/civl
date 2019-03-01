@@ -40,6 +40,7 @@ import edu.udel.cis.vsl.abc.ast.value.IF.Value;
 import edu.udel.cis.vsl.abc.ast.value.IF.ValueFactory.Answer;
 import edu.udel.cis.vsl.abc.front.IF.CivlcTokenConstant;
 import edu.udel.cis.vsl.abc.token.IF.CivlcToken;
+import edu.udel.cis.vsl.abc.token.IF.CivlcToken.TokenVocabulary;
 import edu.udel.cis.vsl.abc.token.IF.Formation;
 import edu.udel.cis.vsl.abc.token.IF.Source;
 import edu.udel.cis.vsl.abc.token.IF.SyntaxException;
@@ -905,7 +906,7 @@ class ContractClauseTransformer {
 				ContractClauseTransformerName,
 				"Elaborate " + expression.prettyRepresentation());
 		CivlcToken token = tokenFactory.newCivlcToken(CivlcTokenConstant.FOR,
-				"inserted text", formation);
+				"inserted text", formation, TokenVocabulary.DUMMY);
 		Source source = tokenFactory.newSource(token);
 		IdentifierExpressionNode forLoopVarExpr = nodeFactory
 				.newIdentifierExpressionNode(source,

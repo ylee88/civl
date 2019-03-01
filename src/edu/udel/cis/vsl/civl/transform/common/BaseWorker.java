@@ -59,6 +59,7 @@ import edu.udel.cis.vsl.abc.main.TranslationTask;
 import edu.udel.cis.vsl.abc.main.TranslationTask.TranslationStage;
 import edu.udel.cis.vsl.abc.main.UnitTask;
 import edu.udel.cis.vsl.abc.token.IF.CivlcToken;
+import edu.udel.cis.vsl.abc.token.IF.CivlcToken.TokenVocabulary;
 import edu.udel.cis.vsl.abc.token.IF.Formation;
 import edu.udel.cis.vsl.abc.token.IF.Source;
 import edu.udel.cis.vsl.abc.token.IF.SourceFile;
@@ -445,16 +446,14 @@ public abstract class BaseWorker {
 						"formal parameter types",
 						new LinkedList<VariableDeclarationNode>()),
 				false);
-		newMainFunction = nodeFactory
-				.newFunctionDefinitionNode(
+		newMainFunction = nodeFactory.newFunctionDefinitionNode(
+				this.newSource("new main function",
+						CivlcTokenConstant.FUNCTION_DEFINITION),
+				this.identifier(MAIN), mainFuncType, null,
+				nodeFactory.newCompoundStatementNode(
 						this.newSource("new main function",
-								CivlcTokenConstant.FUNCTION_DEFINITION),
-						this.identifier(MAIN), mainFuncType, null,
-						nodeFactory
-								.newCompoundStatementNode(
-										this.newSource("new main function",
-												CivlcTokenConstant.BODY),
-										blockItems));
+								CivlcTokenConstant.BODY),
+						blockItems));
 		root.addSequenceChild(newMainFunction);
 	}
 
@@ -590,7 +589,7 @@ public abstract class BaseWorker {
 		// "inserted text" is just something temporary for now, and it will be
 		// fixed when complete source is done in the transformer
 		CivlcToken token = tokenFactory.newCivlcToken(tokenType,
-				"inserted text", formation);
+				"inserted text", formation, TokenVocabulary.DUMMY);
 		Source source = tokenFactory.newSource(token);
 
 		return source;
@@ -1150,7 +1149,8 @@ public abstract class BaseWorker {
 		Formation formation = tokenFactory
 				.newTransformFormation(this.transformerName, "stringLiteral");
 		CivlcToken ctoke = tokenFactory.newCivlcToken(
-				CivlcTokenConstant.STRING_LITERAL, string, formation);
+				CivlcTokenConstant.STRING_LITERAL, string, formation,
+				TokenVocabulary.DUMMY);
 		StringToken stringToken = tokenFactory.newStringToken(ctoke);
 
 		return nodeFactory.newStringLiteralNode(tokenFactory.newSource(ctoke),
@@ -1231,23 +1231,16 @@ public abstract class BaseWorker {
 					ExpressionNode extent = arrayType.getVariableSize();
 
 					if (extent != null) {
-						condition = this.nodeFactory
-								.newOperatorNode(expr.getSource(),
-										Operator.LAND,
-										Arrays.asList(
-												nodeFactory.newOperatorNode(
-														expr.getSource(),
-														Operator.LEQ,
-														Arrays.asList(
-																this.integerConstant(
-																		0),
-																index.copy())),
-												nodeFactory.newOperatorNode(
-														expr.getSource(),
-														Operator.LEQ,
-														Arrays.asList(
-																index.copy(),
-																extent.copy()))));
+						condition = this.nodeFactory.newOperatorNode(
+								expr.getSource(), Operator.LAND,
+								Arrays.asList(nodeFactory.newOperatorNode(
+										expr.getSource(), Operator.LEQ,
+										Arrays.asList(this.integerConstant(0),
+												index.copy())),
+										nodeFactory.newOperatorNode(
+												expr.getSource(), Operator.LEQ,
+												Arrays.asList(index.copy(),
+														extent.copy()))));
 					}
 				}
 			} else if (op == Operator.DEREFERENCE) {
