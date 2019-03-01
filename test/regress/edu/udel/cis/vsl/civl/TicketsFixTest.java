@@ -100,4 +100,16 @@ public class TicketsFixTest {
 		assertTrue(
 				ui.run(VERIFY, filename("ticket_919_char_to_int_cast2.cvl")));
 	}
+
+	/**
+	 * See: https://vsl.cis.udel.edu/trac/civl/ticket/853 </br>
+	 * 
+	 * @author Wenhao Wu (wuwenhao@udel.edu)
+	 * @throws ABCException
+	 */
+	@Test
+	public void ticket_853_valid_arg_for_pow() throws ABCException {
+		assertFalse(
+				ui.run(VERIFY, filename("ticket_853_valid_arg_for_pow.cvl")));
+	}
 }

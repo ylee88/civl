@@ -933,21 +933,46 @@ long double hypotl(long double x, long double y) {
   return sqrtl(xsqrPLUSysqr);
 }
 
+/* See C18 7.12.7.4 The pow functions
+ * The pow functions compute x raised to the power y. 
+ * A domain error occurs if x is finite and negative and y is finite and not an integer value. 
+ * A range error may occur. 
+ * A domain error may occur if x is zero and y is zero. 
+ * A domain error or pole error may occur if x is zero and y is less than zero.
+ */
 double pow(double x, double y) {
-   $assert(x != 0 || y > 0, "It's invalid that argument x "
-    "is 0 and y is no greater than 0.");
+   $assert(x != 0 || y > 0, 
+    "pow(double x, double y): "
+    "It's invalid that argument x is 0 "
+    "and y is no greater than 0.");
+  $assert(x >= 0 || (y==rint(y)), 
+    "pow(double x, double y): "
+    "It's invalid that argument x is infinite "
+    "and negative and y is not an integer value.");
   return $pow(x, y);
 }
 
 float powf(float x, float y) {
-  $assert(x != 0 || y > 0, "It's invalid that argument x "
-    "is 0 and y is no greater than 0.");
+  $assert(x != 0 || y > 0, 
+    "powf(float x, float y): "
+    "It's invalid that argument x is 0 "
+    "and y is no greater than 0.");
+  $assert(x >= 0 || (y==rintf(y)), 
+    "powf(float x, float y): "
+    "It's invalid that argument x is infinite "
+    "and negative and y is not an integer value.");
   return $pow(x, y);
 }
 
 long double powl(long double x, long double y) {
-  $assert(x != 0 || y > 0, "It's invalid that argument x "
-    "is 0 and y is no greater than 0.");
+  $assert(x != 0 || y > 0, 
+    "powl(long double x, long double y): "
+    "It's invalid that argument x is 0 "
+    "and y is no greater than 0.");
+  $assert(x >= 0 || (y==rintl(y)), 
+    "powl(long double x, long double y): "
+    "It's invalid that argument x is infinite "
+    "and negative and y is not an integer value.");
   return $pow(x, y);
 }
 
