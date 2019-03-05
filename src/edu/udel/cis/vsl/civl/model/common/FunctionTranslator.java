@@ -59,7 +59,6 @@ import edu.udel.cis.vsl.abc.ast.node.IF.expression.OperatorNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.OperatorNode.Operator;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.QuantifiedExpressionNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.RegularRangeNode;
-import edu.udel.cis.vsl.abc.ast.node.IF.expression.RemoteOnExpressionNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ResultNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ScopeOfNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.SizeableNode;
@@ -4213,9 +4212,6 @@ public class FunctionTranslator {
 								modelFactory.sourceOf(expressionNode), scope,
 								expressionNode.getConvertedType()));
 			}
-			case REMOTE_REFERENCE :
-				return translateRemoteReferenceNode(
-						(RemoteOnExpressionNode) expressionNode, scope);
 			case EXTENDED_QUANTIFIED :
 				result = translateExtendedQuantifiedExpression(
 						(ExtendedQuantifiedExpressionNode) expressionNode,
@@ -4235,29 +4231,6 @@ public class FunctionTranslator {
 			result = applyConversions(scope, expressionNode, result);
 		}
 		return result;
-	}
-
-	/**
-	 * Translate a {@link RemoteOnExpressionNode} to a {@link BinaryExpression}
-	 * whose operator is {@link BINARY_OPERATOR#REMOTE}.
-	 * 
-	 * @param expressionNode
-	 * @param scope
-	 * @return
-	 */
-	private Expression translateRemoteReferenceNode(
-			RemoteOnExpressionNode expressionNode, Scope scope) {
-		ExpressionNode processNode = expressionNode.getProcessExpression();
-		ExpressionNode foreignExprNode = expressionNode
-				.getForeignExpressionNode();
-		Expression expr;
-		Expression process;
-
-		expr = translateExpressionNode(foreignExprNode, scope, true);
-		process = this.translateExpressionNode(processNode, scope, false);
-		return modelFactory.binaryExpression(
-				modelFactory.sourceOf(expressionNode), BINARY_OPERATOR.REMOTE,
-				process, expr);
 	}
 
 	/**
@@ -5021,10 +4994,6 @@ public class FunctionTranslator {
 				}
 				break;
 			}
-			case HASH :
-				return modelFactory.binaryExpression(source,
-						BINARY_OPERATOR.REMOTE, arguments.get(0),
-						arguments.get(1));
 			case BIG_O :
 				result = modelFactory.unaryExpression(source,
 						UNARY_OPERATOR.BIG_O, arguments.get(0));

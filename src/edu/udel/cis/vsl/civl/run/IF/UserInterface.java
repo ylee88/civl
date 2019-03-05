@@ -94,6 +94,7 @@ import edu.udel.cis.vsl.sarl.SARL;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.config.Configurations;
 import edu.udel.cis.vsl.sarl.IF.config.ProverInfo;
+import edu.udel.cis.vsl.sarl.IF.config.SARLConfig;
 import edu.udel.cis.vsl.sarl.IF.expr.BooleanExpression;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
 
@@ -1220,12 +1221,13 @@ public class UserInterface {
 		// round up time to nearest 1/100th of second...
 		long numValidCalls = universe.numValidCalls();
 		long numProverCalls = universe.numProverValidCalls();
+		SARLConfig sarlConfig = Configurations.getDefaultConfiguration();
 		Iterable<ProverInfo> provers;
 		int i = 0;
 
 		out.print("   valid calls         : ");
 		out.println(numValidCalls);
-		provers = Configurations.getDefaultConfiguration().getProvers();
+		provers = sarlConfig.getProvers();
 		out.print("   provers             : ");
 		for (ProverInfo prover : provers) {
 			if (i != 0)
@@ -1233,6 +1235,8 @@ public class UserInterface {
 			out.print(prover);
 			i++;
 		}
+		if (sarlConfig.getWhy3ProvePlatform() != null)
+			out.print(", why3");
 		out.println();
 		out.print("   prover calls        : ");
 		out.println(numProverCalls);

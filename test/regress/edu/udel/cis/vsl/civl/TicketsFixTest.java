@@ -83,8 +83,8 @@ public class TicketsFixTest {
 	 */
 	@Test
 	public void ticket_919_char_to_int_cast1() throws ABCException {
-		assertFalse(
-				ui.run(VERIFY, filename("ticket_919_char_to_int_cast1.cvl")));
+		assertFalse(ui.run(VERIFY, QUIET,
+				filename("ticket_919_char_to_int_cast1.cvl")));
 	}
 
 	/**
@@ -97,8 +97,8 @@ public class TicketsFixTest {
 	 */
 	@Test
 	public void ticket_919_char_to_int_cast2() throws ABCException {
-		assertTrue(
-				ui.run(VERIFY, filename("ticket_919_char_to_int_cast2.cvl")));
+		assertTrue(ui.run(VERIFY, QUIET,
+				filename("ticket_919_char_to_int_cast2.cvl")));
 	}
 
 	/**
@@ -109,7 +109,7 @@ public class TicketsFixTest {
 	 */
 	@Test
 	public void ticket_853_valid_arg_for_pow() throws ABCException {
-		assertFalse(
-				ui.run(VERIFY, filename("ticket_853_valid_arg_for_pow.cvl")));
+		assertFalse(ui.run(VERIFY, QUIET,
+				filename("ticket_853_valid_arg_for_pow.cvl")));
 	}
 }

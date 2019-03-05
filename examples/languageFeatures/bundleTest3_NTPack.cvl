@@ -1,0 +1,49 @@
+#include <bundle.cvh>
+
+$input int M, N, L, I;
+$assume( 10 < M && 10 < N && 10 < L && 0 <= I && I < 10);
+
+$input int X[M][N];
+$input int Y[N][M];
+$input int Z[L][M][N];
+
+int x[M][N];
+int y[N][M];
+int z[L][M][N];
+int zz[L][N][M];
+int w[M][L][N];
+
+int main() {
+  /* $bundle bun = $bundle_pack(Z[I][M-I-1], sizeof(int) * N * I);
+  $bundle_unpack(bun, z[I]);
+  $assert($forall (int i : 0 .. (I-1)) 
+	  ($forall (int j : 0 .. (N-1))
+	  z[I][i][j] == Z[I][M-I-1+i][j]));*/
+
+  $bundle bun = $bundle_pack(&X[0][I], sizeof(int) * N);
+
+  // slice (&X[0][I], N * sizeof_int) -> x[0][0]
+  $bundle_unpack(bun, x);
+  $assert($forall (int i : 0 .. (N-I-1)) x[0][i] == X[0][I+i]);
+  $assert($forall (int i : N-I .. N-1) x[0][i] == X[1][i-(N-I)]);
+
+  bun = $bundle_pack(Z[I][I], sizeof(int) * N);
+
+  // slice (&Z[I][I][0], N * sizeof_int) -> x[0][0]
+  $bundle_unpack(bun, x);
+  $assert($forall (int i : 0 .. (N-1)) x[0][i] == Z[I][I][i]);
+
+  // slice (&Z[I][M-I-1][0], I* N * sizeof_int) -> x[0][0]
+  bun = $bundle_pack(Z[I][M-I-1], sizeof(int) * N * I);
+  $bundle_unpack(bun, x);
+  $assert($forall (int i : 0 .. (I-1)) 
+	  ($forall (int j : 0 .. (N-1))
+	   x[i][j] == Z[I][M-I-1+i][j]));
+
+  // slice (&Z[I][M-I-1][0], I * N * sizeof_int) -> z[I][0][0]
+  $bundle_unpack(bun, z[I]);
+  $assert($forall (int i : 0 .. (I-1)) 
+	  ($forall (int j : 0 .. (N-1))
+	   z[I][i][j] == Z[I][M-I-1+i][j]));
+
+}

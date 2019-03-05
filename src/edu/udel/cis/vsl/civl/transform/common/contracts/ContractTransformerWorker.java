@@ -1,5 +1,6 @@
 package edu.udel.cis.vsl.civl.transform.common.contracts;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -17,6 +18,7 @@ import edu.udel.cis.vsl.abc.ast.node.IF.declaration.FunctionDefinitionNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.declaration.VariableDeclarationNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.CastNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode.ExpressionKind;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.FunctionCallNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.IntegerConstantNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.OperatorNode.Operator;
@@ -34,12 +36,14 @@ import edu.udel.cis.vsl.abc.token.IF.Source;
 import edu.udel.cis.vsl.abc.token.IF.SyntaxException;
 import edu.udel.cis.vsl.abc.util.IF.Pair;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
+import edu.udel.cis.vsl.civl.config.IF.CIVLConstants;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSyntaxException;
 import edu.udel.cis.vsl.civl.transform.IF.ContractTransformer;
 import edu.udel.cis.vsl.civl.transform.common.BaseWorker;
-import edu.udel.cis.vsl.civl.transform.common.contracts.FunctionContractBlock.ConditionalClauses;
-import edu.udel.cis.vsl.civl.transform.common.contracts.ContractClauseTransformer.TransformPair;
-import edu.udel.cis.vsl.civl.transform.common.contracts.MPIContractUtilities.TransformConfiguration;
+import edu.udel.cis.vsl.civl.transform.common.contracts.ClauseTransformGuideGenerator.ClauseTransformGuide;
+import edu.udel.cis.vsl.civl.transform.common.contracts.ContractClauseTransformer.TransformedPair;
+import edu.udel.cis.vsl.civl.transform.common.contracts.ContractTransformerWorker.FunctionContractTransformGuide.REGuidePair;
+import edu.udel.cis.vsl.civl.transform.common.contracts.ContractTransformerWorker.SourceFileWithContractedFunctions.ContractedFunction;
 
 /**
  * This transformer serves for CIVL Contracts mode.
@@ -48,6 +52,23 @@ import edu.udel.cis.vsl.civl.transform.common.contracts.MPIContractUtilities.Tra
  *
  */
 public class ContractTransformerWorker extends BaseWorker {
+
+	/**
+	 * Naming suffix for a generated function that contains the original body of
+	 * a verifying function:
+	 */
+	static private final String originalSuffix = "_$origin";
+
+	/**
+	 * Naming suffix for a generated function that drives the verification of a
+	 * verifying function:
+	 */
+	static private final String driverSuffix = "_$driver";
+
+	/**
+	 * The name of main function:
+	 */
+	private final static String MAIN_NAME = "main";
 
 	/**
 	 * MPI_Comm typedef name:
@@ -69,15 +90,6 @@ public class ContractTransformerWorker extends BaseWorker {
 	private final static String MPI_FINALIZE_CALL = "MPI_Finalize";
 
 	/**
-	 * Within each function (either non-target : )
-	 */
-
-	/**
-	 * The name prefix for a driver function
-	 */
-	private final static String DRIVER_PREFIX = "_driver_";
-
-	/**
 	 * A string source for a return statement:
 	 */
 	private final static String RETURN_RESULT = "return $result;";
@@ -86,6 +98,11 @@ public class ContractTransformerWorker extends BaseWorker {
 	 * Set of all global variables in source files:
 	 */
 	private Set<VariableDeclarationNode> globalVarDecls = new HashSet<>();
+
+	/**
+	 * Names of all driver functions for all verifying functions:
+	 */
+	private Set<String> allDriverNames = new HashSet<>();
 
 	/* ********************* Private class fields: ********************** */
 	/**
@@ -106,8 +123,6 @@ public class ContractTransformerWorker extends BaseWorker {
 	 */
 	private TypeNode intTypeNode;
 
-	TransformConfiguration config;
-
 	public ContractTransformerWorker(ASTFactory astFactory,
 			String targetFunctionName, CIVLConfiguration civlConfig) {
 		super(ContractTransformer.LONG_NAME, astFactory);
@@ -115,7 +130,6 @@ public class ContractTransformerWorker extends BaseWorker {
 		this.targetFunctionName = targetFunctionName;
 		intTypeNode = nodeFactory.newBasicTypeNode(
 				newSource("int", CivlcTokenConstant.TYPE), BasicTypeKind.INT);
-		config = MPIContractUtilities.getTransformConfiguration();
 		this.mpiCommRankSource = this.newSource("$mpi_comm_rank",
 				CivlcTokenConstant.IDENTIFIER);
 		this.mpiCommSizeSource = this.newSource("$mpi_comm_size",
@@ -126,9 +140,7 @@ public class ContractTransformerWorker extends BaseWorker {
 	@Override
 	public AST transform(AST ast) throws SyntaxException {
 		SequenceNode<BlockItemNode> root = ast.getRootNode();
-		String sourceFileName;
 		List<BlockItemNode> externalList = new LinkedList<>();
-		Pair<FunctionDefinitionNode, List<BlockItemNode>> processedSourceFiles;
 		SequenceNode<BlockItemNode> newRootNode;
 		List<BlockItemNode> sourceFiles = new LinkedList<>();
 		List<BlockItemNode> globalVarHavocs;
@@ -136,28 +148,31 @@ public class ContractTransformerWorker extends BaseWorker {
 		AST newAst;
 		int count;
 
-		ast.release();
-		/*
-		 * process source file: For all functions f in source file, if f is the
-		 * target function, transform f with "transformTargetFunction"; Else if
-		 * f is contracted, transform f with "transformAnnotatedFunction"; Else,
-		 * keep f unchanged (f might be executed with it's definition or may
-		 * never be used).
-		 */
-		for (BlockItemNode child : root) {
-			if (child == null || child.getSource() == null)
-				continue;
-			sourceFileName = child.getSource().getFirstToken().getSourceFile()
-					.getName();
-			if (sourceFileName.endsWith(".c"))
-				sourceFiles.add(child);
-			if (!hasMPI && sourceFileName.equals("mpi.h"))
-				hasMPI = true;
-		}
+		hasMPI = findMPIAndNodesofSourceFiles(root, sourceFiles);
 		globalVarHavocs = havocForGlobalVariables(sourceFiles);
-		// process function definitions and declarations in source files:
-		processedSourceFiles = processSourceFileNodes(sourceFiles, hasMPI);
-		// create declarations for all functions that will be used later:
+
+		// extracted function declarations and other source file nodes:
+		SourceFileWithContractedFunctions contractedFuncsInSrc;
+		// transformed contracted functions:
+		List<BlockItemNode> transformedContractedFuncs;
+		List<FunctionContractTransformGuide> callees = new LinkedList<>();
+		List<FunctionContractTransformGuide> targets;
+
+		// extract function definitions and declarations from source files:
+		contractedFuncsInSrc = extractContractedFunctionsFromSourceFileNodes(
+				sourceFiles);
+		targets = analysisContractedFunctions(contractedFuncsInSrc, callees);
+		ast.release();
+		transformedContractedFuncs = processContractedFunctions(targets,
+				callees, hasMPI);
+		// takes off the rest in the source files:
+		sourceFiles.clear();
+		for (BlockItemNode otherInSrc : contractedFuncsInSrc.others)
+			if (otherInSrc != null) {
+				sourceFiles.add(otherInSrc);
+				otherInSrc.remove();
+			}
+		// inserting the rests in the AST to the new tree:
 		count = root.numChildren();
 		for (int i = 0; i < count; i++) {
 			BlockItemNode child = root.getSequenceChild(i);
@@ -167,12 +182,13 @@ public class ContractTransformerWorker extends BaseWorker {
 				externalList.add(child);
 			}
 		}
-		// externalList.addAll(createDeclarationsForUsedFunctions());
-		externalList.addAll(processedSourceFiles.right);
+		// adds the rest in the source files to the new tree:
+		externalList.addAll(sourceFiles);
+		// adding transformed functions:
+		externalList.addAll(transformedContractedFuncs);
 		// $havoc for all global variables:
 		externalList.addAll(globalVarHavocs);
-		processedSourceFiles.left.remove();
-		externalList.add(mainFunction(processedSourceFiles.left, hasMPI));
+		externalList.add(mainFunction(hasMPI));
 		newRootNode = nodeFactory.newSequenceNode(
 				newSource("TranslationUnit",
 						CivlcTokenConstant.TRANSLATION_UNIT),
@@ -197,9 +213,8 @@ public class ContractTransformerWorker extends BaseWorker {
 	/* ******************* Primary transforming methods: ******************** */
 	/**
 	 * <p>
-	 * <b>Summary: </b> Create a new main function which creates variables for
-	 * each formal parameters of the driver function, then calls the driver
-	 * function. If the MPI library is included, wrap the call to driver with a
+	 * <b>Summary: </b> Create a new main function which enables all driver
+	 * functions. If the MPI library is included, wrap the call to driver with a
 	 * pair of <code>MPI_Init and MPI_Finalize</code>.
 	 * 
 	 * @param targetFunc
@@ -210,35 +225,75 @@ public class ContractTransformerWorker extends BaseWorker {
 	 * @return The created main function definition node
 	 * @throws SyntaxException
 	 */
-	private FunctionDefinitionNode mainFunction(
-			FunctionDefinitionNode targetFunc, boolean hasMPI)
+	private FunctionDefinitionNode mainFunction(boolean hasMPI)
 			throws SyntaxException {
 		List<BlockItemNode> items = new LinkedList<BlockItemNode>();
-		StatementNode callDriver;
+		List<StatementNode> callDrivers = new LinkedList<>();
+		Source combinedSource = null;
 
-		callDriver = nodeFactory
-				.newExpressionStatementNode(nodeFactory.newFunctionCallNode(
-						newSource(targetFunc.getName() + "(...);",
-								CivlcTokenConstant.CALL),
-						identifierExpression(
-								DRIVER_PREFIX + targetFunc.getName()),
-						Arrays.asList(), null));
+		// To enable multiple driver functions without letting their assumptions
+		// interfere with each other, non-deterministic choice is used. i.e.
+		// x = choose_int(#drivers);
+		// if (x == 0) call driver1;
+		// if (x == 1) call driver2;
+
+		// the name of the variable taking result of $choose_int:
+		String ndVerifyChoicerName = "CIVL_choose";
+		int driverCounter = 0;
+
+		for (String driverName : allDriverNames) {
+			// creating calls to drivers with a branch condition for
+			// non-determinism:
+			Source source = newSource(targetFunctionName + "(...);",
+					CivlcTokenConstant.CALL);
+			StatementNode callDriver = nodeFactory.newExpressionStatementNode(
+					nodeFactory.newFunctionCallNode(source,
+							identifierExpression(driverName), Arrays.asList(),
+							null));
+			ExpressionNode choiceCond;
+
+			choiceCond = nodeFactory.newOperatorNode(source, Operator.EQUALS,
+					Arrays.asList(identifierExpression(ndVerifyChoicerName),
+							nodeFactory.newIntConstantNode(source,
+									driverCounter++)));
+			callDriver = nodeFactory.newIfNode(source, choiceCond, callDriver);
+			callDrivers.add(callDriver);
+			combinedSource = combinedSource == null
+					? source
+					: astFactory.getTokenFactory().join(source, combinedSource);
+		}
+		// build the body of the generated main function:
+
+		// choose_int call:
+		ExpressionNode ndVerifyChoicesCall = functionCall(combinedSource,
+				CHOOSE_INT,
+				Arrays.asList(nodeFactory.newIntConstantNode(combinedSource,
+						callDrivers.size())));
+		StatementNode ndVerifyChoices = nodeFactory.newExpressionStatementNode(
+				nodeFactory.newOperatorNode(combinedSource, Operator.ASSIGN,
+						Arrays.asList(identifierExpression(ndVerifyChoicerName),
+								ndVerifyChoicesCall)));
+		BlockItemNode ndChoicerDecl = nodeFactory.newVariableDeclarationNode(
+				combinedSource, identifier(ndVerifyChoicerName), nodeFactory
+						.newBasicTypeNode(combinedSource, BasicTypeKind.INT));
+
+		items.add(ndChoicerDecl);
+		items.add(ndVerifyChoices);
 		if (hasMPI) {
 			// insert MPI_Init and MPI_Destroy
 			items.add(createMPIInitCall());
-			items.add(callDriver);
+			items.addAll(callDrivers);
 			items.add(createMPIFinalizeCall());
 		} else
-			items.add(callDriver);
+			items.addAll(callDrivers);
 
 		CompoundStatementNode mainBody = nodeFactory.newCompoundStatementNode(
 				newSource("main body", CivlcTokenConstant.COMPOUND_STATEMENT),
 				items);
 		SequenceNode<VariableDeclarationNode> mainFormals = nodeFactory
-				.newSequenceNode(
-						this.newSource(
-								"formal parameter of the declaration of the main function",
-								CivlcTokenConstant.DECLARATION_LIST),
+				.newSequenceNode(this.newSource(
+						"formal parameter of the declaration of the main function",
+						CivlcTokenConstant.DECLARATION_LIST),
 						"FormalParameterDeclarations",
 						new ArrayList<VariableDeclarationNode>());
 		FunctionTypeNode mainType = nodeFactory.newFunctionTypeNode(
@@ -249,24 +304,24 @@ public class ContractTransformerWorker extends BaseWorker {
 		return nodeFactory.newFunctionDefinitionNode(
 				this.newSource("definition of the main function",
 						CivlcTokenConstant.FUNCTION_DEFINITION),
-				this.identifier("main"), mainType, null, mainBody);
+				this.identifier(MAIN_NAME), mainType, null, mainBody);
 	}
 
 	/**
-	 * For functions with contracts but are not the target function, replacing a
-	 * new deductive definition for them; for the target function, create a
-	 * driver function for it.
+	 * Classify ASTNodes in source files to 3 groups: target functions T and
+	 * their contracts, callee functions C and their contracts and others. Note
+	 * that T and C may have overlap.
 	 * 
-	 * @param sourceFileNodes
-	 * @return A pair of a {@link FunctionDefinitionNode} which represents the
-	 *         target function and a list of processed source file contents.
+	 * @return an instance of {@link SourceFileWithContractedFunctions} which is
+	 *         the result of the classification
 	 * @throws SyntaxException
 	 */
-	private Pair<FunctionDefinitionNode, List<BlockItemNode>> processSourceFileNodes(
-			List<BlockItemNode> sourceFileNodes, boolean hasMpi)
-			throws SyntaxException {
-		List<BlockItemNode> newSourceFileNodes = new LinkedList<>();
-		FunctionDefinitionNode target = null;
+	private SourceFileWithContractedFunctions extractContractedFunctionsFromSourceFileNodes(
+			List<BlockItemNode> sourceFileNodes) throws SyntaxException {
+		List<FunctionDefinitionNode> targets = new LinkedList<>();
+		List<FunctionDeclarationNode> callees = new LinkedList<>();
+		List<BlockItemNode> others = new LinkedList<>();
+		boolean verifyAll = targetFunctionName == CIVLConstants.CONTRACT_CHECK_ALL;
 
 		for (BlockItemNode child : sourceFileNodes) {
 			if (child.nodeKind() == NodeKind.FUNCTION_DECLARATION
@@ -276,53 +331,156 @@ public class ContractTransformerWorker extends BaseWorker {
 				// If the function declaration has definition, test if it is
 				// the target function:
 				if (funcDecl.isDefinition()) {
-					FunctionDefinitionNode funcDefi = (FunctionDefinitionNode) funcDecl;
+					boolean isTarget = funcDecl.getName()
+							.equals(targetFunctionName);
 
-					if (funcDefi.getName().equals(targetFunctionName)) {
-						// Keep the original function definition of the
-						// target function:
-						newSourceFileNodes.add(funcDefi);
-						if (funcDefi.getContract() != null) {
-							newSourceFileNodes.add(
-									transformTargetFunction(funcDefi, hasMpi));
-							target = funcDefi;
-							target.remove();
-							target.getContract().remove();
-							continue;
-						} else
+					if (verifyAll || isTarget)
+						if (funcDecl.getContract() != null)
+							targets.add((FunctionDefinitionNode) funcDecl);
+						else if (!verifyAll)
 							throw new CIVLSyntaxException(
 									"No contracts specified for the target function");
-					}
-				} else
-					newSourceFileNodes.add(funcDecl);
-				// If the function declaration is contracted, create a
-				// harness definition for it, it's original definition will not
-				// be added into the new source file components if it is defined
-				// in source files:
-				// TODO: think about both definition and declaration have
-				// contracts.
+				}
+				// If a function f declaration is contracted, replace its body
+				// with abstraction based on its contract, and creates a mirror
+				// function f_origin which contains its original body.
 				if (funcDecl.getContract() != null) {
-					FunctionDefinitionNode defiOfThis;
 					TypeNode funcDeclTypeNode = funcDecl.getTypeNode();
 
 					if (funcDeclTypeNode
 							.kind() == TypeNode.TypeNodeKind.FUNCTION)
-						newSourceFileNodes.add(transformCalleeFunction(funcDecl,
-								(FunctionTypeNode) funcDeclTypeNode, hasMpi));
-					if ((defiOfThis = funcDecl.getEntity()
-							.getDefinition()) != null)
-						defiOfThis.remove();
+						callees.add(funcDecl);
 				}
-			} else {
-				child.remove();
-				newSourceFileNodes.add(child);
-				continue;
-			}
+			} else
+				others.add(child);
 		}
-		if (target == null)
+		if (targets.isEmpty() && !verifyAll)
 			throw new CIVLSyntaxException("Target function: "
 					+ this.targetFunctionName + " not exist!");
-		return new Pair<>(target, newSourceFileNodes);
+		if (targets.isEmpty() && verifyAll)
+			throw new CIVLSyntaxException(
+					"No function will be verified because no function definition has a contract");
+		return new SourceFileWithContractedFunctions(targets, callees, others);
+	}
+
+	/**
+	 * Transform all contracted functions with the given guides
+	 * 
+	 * @throws SyntaxException
+	 */
+	private List<BlockItemNode> processContractedFunctions(
+			List<FunctionContractTransformGuide> targets,
+			List<FunctionContractTransformGuide> callees, boolean hasMPI)
+			throws SyntaxException {
+		List<BlockItemNode> results = new LinkedList<>();
+		FunctionDefinitionNode driver;
+
+		// transform callees:
+		for (FunctionContractTransformGuide callee : callees) {
+			FunctionDefinitionNode defn = callee.function.getEntity()
+					.getDefinition();
+
+			if (defn != null)
+				defn.remove();
+			// special handling for main function: remove it from the ASTS
+			// main is never be called:
+			if (defn.getName().equals(MAIN_NAME))
+				continue;
+			// replace body with abstraction based on contracts:
+			results.add(transformCalleeFunction(callee.function,
+					(FunctionTypeNode) callee.function.getTypeNode(), callee));
+			callee.function.remove();
+		}
+		// transform targets:
+		for (FunctionContractTransformGuide target : targets) {
+			// add driver function for verification:
+			driver = transformTargetFunction(
+					(FunctionDefinitionNode) target.function, target, hasMPI);
+
+			// add a mirror function which contains its original body:
+			FunctionDefinitionNode defn = (FunctionDefinitionNode) target.function;
+			FunctionTypeNode funcType = defn.getTypeNode();
+			CompoundStatementNode defnBody = defn.getBody();
+
+			defn.remove();
+			funcType.remove();
+			defnBody.remove();
+			defn = nodeFactory.newFunctionDefinitionNode(defn.getSource(),
+					identifier(target.getFunctionNameForOriginalBody()),
+					funcType, null, defnBody);
+			results.add(defn);
+			results.add(driver);
+			allDriverNames.add(driver.getName());
+
+		}
+		return results;
+	}
+
+	/**
+	 * <p>
+	 * Analyzes the contracted functions and their contracts in source files and
+	 * generates transform guides for those contracts.
+	 * </p>
+	 * 
+	 * @param contractedFuncsInSrc
+	 *            an instance of {@link SourceFileWithContractedFunctions}
+	 * @param callees
+	 *            output, a list of {@link FunctionContractTransformGuide}s for
+	 *            all contracted callee functions
+	 * @return the {@link FunctionContractTransformGuide} for the contracted
+	 *         target function
+	 * @throws SyntaxException
+	 */
+	private List<FunctionContractTransformGuide> analysisContractedFunctions(
+			SourceFileWithContractedFunctions contractedFuncsInSrc,
+			List<FunctionContractTransformGuide> callees)
+			throws SyntaxException {
+		// analyze callees:
+		for (ContractedFunction callee : contractedFuncsInSrc.callees) {
+			MemoryLocationManager memoryLocationManager = new MemoryLocationManager(
+					nodeFactory);
+			ContractClauseTransformer clauseTransformer = new ContractClauseTransformer(
+					astFactory, memoryLocationManager);
+			boolean purelyLocal = callee.contracts.size() == 1
+					&& callee.contracts.get(0).isSequentialBlock();
+			FunctionContractTransformGuide info = new FunctionContractTransformGuide(
+					callee.function, memoryLocationManager);
+
+			for (FunctionContractBlock block : callee.contracts) {
+				List<ClauseTransformGuide> requiresTuples = new LinkedList<>();
+				List<ClauseTransformGuide> ensuresTuples = new LinkedList<>();
+
+				clauseTransformer.analysisContractBlock(block, true,
+						purelyLocal, requiresTuples, ensuresTuples);
+				info.addGuide(block, requiresTuples, ensuresTuples);
+			}
+			callees.add(info);
+		}
+		// analyze target:
+		MemoryLocationManager memoryLocationManager = new MemoryLocationManager(
+				nodeFactory);
+		ContractClauseTransformer clauseTransformer = new ContractClauseTransformer(
+				astFactory, memoryLocationManager);
+		List<ContractedFunction> targets = contractedFuncsInSrc.targets;
+		List<FunctionContractTransformGuide> targetInfos = new LinkedList<>();
+
+		for (ContractedFunction target : targets) {
+			boolean purelyLocal = target.contracts.size() == 1
+					&& target.contracts.get(0).isSequentialBlock();
+			FunctionContractTransformGuide targetInfo = new FunctionContractTransformGuide(
+					target.function, memoryLocationManager);
+
+			for (FunctionContractBlock block : target.contracts) {
+				List<ClauseTransformGuide> requiresTuples = new LinkedList<>();
+				List<ClauseTransformGuide> ensuresTuples = new LinkedList<>();
+
+				clauseTransformer.analysisContractBlock(block, false,
+						purelyLocal, requiresTuples, ensuresTuples);
+				targetInfo.addGuide(block, requiresTuples, ensuresTuples);
+			}
+			targetInfos.add(targetInfo);
+		}
+		return targetInfos;
 	}
 
 	/**
@@ -364,123 +522,59 @@ public class ContractTransformerWorker extends BaseWorker {
 	 */
 	private FunctionDefinitionNode transformCalleeFunction(
 			FunctionDeclarationNode funcDecl, FunctionTypeNode funcTypeNode,
-			boolean hasMpi) throws SyntaxException {
+			FunctionContractTransformGuide guide) throws SyntaxException {
 		CompoundStatementNode body;
-		Source contractSource = funcDecl.getContract().getSource();
-		List<FunctionContractBlock> contractBlocks;
+		Source contractSource = funcDecl.getContract().getSource();;
 		ContractClauseTransformer clauseTransformer = new ContractClauseTransformer(
-				astFactory);
+				astFactory, guide.memoryLocationManager);
 		/*
-		 * Requirements (including assigns) of callees will be transformed to
-		 * assertions
+		 * Requirements (TODO: including assigns) of callees will be transformed
+		 * to assertions
 		 */
 		List<BlockItemNode> transformedRequirements = new LinkedList<>();
 		/* Ensurances of callees will be transformed to assumptions */
 		List<BlockItemNode> transformedEnsurances = new LinkedList<>();
-		FunctionContractBlock localBlock = null;
+		List<ClauseTransformGuide> reqGuides4SideCond = new LinkedList<>();
+		List<ClauseTransformGuide> ensGuides4SideCond = new LinkedList<>();
 
-		contractBlocks = FunctionContractBlock
-				.parseContract(funcDecl.getContract(), nodeFactory);
-		// callee shall not do allocation:
-		config.setAlloc4Valid(false);
-		if (contractBlocks.get(0).isSequentialBlock())
-			localBlock = contractBlocks.remove(0);
-		if (localBlock != null) {
-			/*
-			 * Transform sequential contracts:
-			 */
-			config.setInMPIBlock(false);
-			for (ConditionalClauses condClause : localBlock
-					.getConditionalClauses()) {
-				ExpressionNode requires = condClause.getRequires(nodeFactory);
-				ExpressionNode ensures = condClause.getEnsures(nodeFactory);
-				StatementNode assumptions;
-				List<BlockItemNode> tmpContainer = new LinkedList<>();
-				Pair<List<BlockItemNode>, ExpressionNode> sideEffects;
+		if (guide.localBlock != null) {
+			TransformedPair localPair = clauseTransformer.transformLocalBlock(
+					guide.localREGuides.requiresGuides,
+					guide.localREGuides.ensuresGuides, guide.localBlock,
+					guide.collectiveREGuides.isEmpty(), true);
 
-				if (requires != null) {
-					config.setIgnoreOld(true);
-					config.setNoResult(true);
-					config.setAlloc4Valid(false);
-					sideEffects = clauseTransformer
-							.ACSLSideEffectRemoving(requires, config);
-					tmpContainer.addAll(sideEffects.left);
-					requires = clauseTransformer
-							.ACSLPrimitives2CIVLC(sideEffects.right, config);
-					tmpContainer
-							.add(clauseTransformer.createAssertion(requires));
-				}
-				tmpContainer.addAll(
-						clauseTransformer.transformAssignsClause(condClause));
-				if (condClause.condition != null) {
-					ExpressionNode cond = condClause.condition;
-					StatementNode compound = nodeFactory
-							.newCompoundStatementNode(
-									tmpContainer.get(0).getSource(),
-									tmpContainer);
-
-					transformedRequirements.add(nodeFactory.newIfNode(
-							cond.getSource(), cond.copy(), compound));
-				}
-				if (ensures != null) {
-					tmpContainer.clear();
-					config.setIgnoreOld(false);
-					config.setNoResult(false);
-					config.setAlloc4Valid(false);
-					sideEffects = clauseTransformer
-							.ACSLSideEffectRemoving(ensures, config);
-					tmpContainer.addAll(sideEffects.left);
-					ensures = clauseTransformer
-							.ACSLPrimitives2CIVLC(sideEffects.right, config);
-					assumptions = clauseTransformer.createAssumption(ensures);
-					tmpContainer.add(assumptions);
-					if (condClause.condition != null) {
-						StatementNode compountStmt = nodeFactory
-								.newCompoundStatementNode(ensures.getSource(),
-										tmpContainer);
-
-						transformedEnsurances.add(nodeFactory.newIfNode(
-								condClause.condition.getSource(),
-								condClause.condition.copy(), compountStmt));
-					}
-				}
-			}
+			reqGuides4SideCond.addAll(guide.localREGuides.requiresGuides);
+			ensGuides4SideCond.addAll(guide.localREGuides.ensuresGuides);
+			transformedRequirements.addAll(localPair.before);
+			transformedEnsurances.addAll(localPair.after);
 		}
+		for (Pair<FunctionContractBlock, REGuidePair> collectiveTuples : guide.collectiveREGuides) {
+			TransformedPair transformedBlockPair = clauseTransformer
+					.transformMPICollectiveBlock(
+							collectiveTuples.right.requiresGuides,
+							collectiveTuples.right.ensuresGuides,
+							collectiveTuples.left, false);
+
+			reqGuides4SideCond.addAll(collectiveTuples.right.requiresGuides);
+			ensGuides4SideCond.addAll(collectiveTuples.right.ensuresGuides);
+			transformedRequirements.addAll(transformedBlockPair.before);
+			transformedEnsurances.addAll(transformedBlockPair.after);
+		}
+		/* check side conditions */
+		transformedRequirements.addAll(
+				clauseTransformer.checkSideConditions(reqGuides4SideCond));
+		transformedEnsurances.addAll(
+				clauseTransformer.checkSideConditions(ensGuides4SideCond));
 
 		/* inserts $mpi_comm_rank and $mpi_comm_size: */
-		transformedRequirements
-				.add(nodeFactory.newVariableDeclarationNode(mpiCommRankSource,
+		transformedRequirements.add(0,
+				nodeFactory.newVariableDeclarationNode(mpiCommRankSource,
 						identifier(MPIContractUtilities.MPI_COMM_RANK_CONST),
 						intTypeNode.copy()));
-		transformedRequirements
-				.add(nodeFactory.newVariableDeclarationNode(mpiCommSizeSource,
+		transformedRequirements.add(0,
+				nodeFactory.newVariableDeclarationNode(mpiCommSizeSource,
 						identifier(MPIContractUtilities.MPI_COMM_SIZE_CONST),
 						intTypeNode.copy()));
-
-		config.setInMPIBlock(true);
-		config.setRunWithArrived(true);
-		for (FunctionContractBlock mpiBlock : contractBlocks) {
-			TransformPair transformedBlockPair = clauseTransformer
-					.transformMPICollectiveBlock4Callee(mpiBlock, config);
-
-			transformedRequirements.addAll(transformedBlockPair.requirements);
-			transformedEnsurances.addAll(transformedBlockPair.ensurances);
-		}
-		// Unsnapshots for preState and postState:
-		for (FunctionContractBlock mpiBlock : contractBlocks) {
-			StatementNode unsnapshotPre = nodeFactory
-					.newExpressionStatementNode(createMPIUnsnapshotCall(
-							mpiBlock.getMPIComm().copy(), identifierExpression(
-									MPIContractUtilities.COLLATE_PRE_STATE)));
-			StatementNode unsnapshotPost = nodeFactory
-					.newExpressionStatementNode(createMPIUnsnapshotCall(
-							mpiBlock.getMPIComm().copy(), identifierExpression(
-									MPIContractUtilities.COLLATE_POST_STATE)));
-
-			transformedEnsurances.add(unsnapshotPre);
-			transformedEnsurances.add(unsnapshotPost);
-		}
-
 		List<BlockItemNode> bodyItems = new LinkedList<>();
 		boolean returnVoid = false;
 
@@ -538,121 +632,70 @@ public class ContractTransformerWorker extends BaseWorker {
 	 * @throws SyntaxException
 	 */
 	private FunctionDefinitionNode transformTargetFunction(
-			FunctionDefinitionNode funcDefi, boolean hasMpi)
+			FunctionDefinitionNode funcDefi,
+			FunctionContractTransformGuide guide, boolean hasMPI)
 			throws SyntaxException {
 		CompoundStatementNode body;
-		String driverName = DRIVER_PREFIX + funcDefi.getName();
+		String driverName = guide.getDriverNameForVerification();
 		Source contractSource = funcDefi.getContract().getSource();
 		Source driverSource = newSource(driverName,
 				CivlcTokenConstant.FUNCTION_DEFINITION);
 		ContractClauseTransformer clauseTransformer = new ContractClauseTransformer(
-				astFactory);
+				astFactory, guide.memoryLocationManager);
 
 		List<BlockItemNode> requirements = new LinkedList<>();
 		List<BlockItemNode> ensurances = new LinkedList<>();
-		List<FunctionContractBlock> parsedContractBlocks = FunctionContractBlock
-				.parseContract(funcDefi.getContract(), nodeFactory);
-		FunctionContractBlock localBlock = null;
-		TransformConfiguration config = MPIContractUtilities
-				.getTransformConfiguration();
+		List<ClauseTransformGuide> reqGuides4SideCond = new LinkedList<>();
+		List<ClauseTransformGuide> ensGuides4SideCond = new LinkedList<>();
 
-		if (parsedContractBlocks.get(0).isSequentialBlock())
-			localBlock = parsedContractBlocks.remove(0);
-		config.setInMPIBlock(true);
-		if (localBlock != null) {
-			// transform local contracts:
-			for (ConditionalClauses condClause : localBlock
-					.getConditionalClauses()) {
-				ExpressionNode requires, ensures;
-				List<BlockItemNode> tmpContainer = new LinkedList<>();
+		if (guide.localBlock != null) {
+			TransformedPair localPair = clauseTransformer.transformLocalBlock(
+					guide.localREGuides.requiresGuides,
+					guide.localREGuides.ensuresGuides, guide.localBlock,
+					guide.collectiveREGuides.isEmpty(), false);
 
-				requires = condClause.getRequires(nodeFactory);
-				if (requires != null) {
-					StatementNode assumptions;
-					Pair<List<BlockItemNode>, ExpressionNode> sideEffects;
-
-					config.setIgnoreOld(true);
-					config.setNoResult(true);
-					config.setAlloc4Valid(true);
-					sideEffects = clauseTransformer
-							.ACSLSideEffectRemoving(requires, config);
-					tmpContainer.addAll(sideEffects.left);
-					requires = clauseTransformer
-							.ACSLPrimitives2CIVLC(sideEffects.right, config);
-					assumptions = clauseTransformer.createAssumption(requires);
-					tmpContainer.add(assumptions);
-				}
-				// TODO: check assigns for target function
-				// tmpContainer.addAll(clauseTransformer
-				// .transformAssignsClause(condClause.getAssignsArgs()));
-				if (condClause.condition != null) {
-					StatementNode compound = nodeFactory
-							.newCompoundStatementNode(requires.getSource(),
-									tmpContainer);
-
-					requirements.add(nodeFactory.newIfNode(
-							condClause.condition.getSource(),
-							condClause.condition, compound));
-				} else
-					requirements.addAll(tmpContainer);
-				ensures = condClause.getEnsures(nodeFactory);
-				if (ensures != null) {
-					StatementNode assertion;
-					Pair<List<BlockItemNode>, ExpressionNode> sideEffects;
-
-					config.setIgnoreOld(false);
-					config.setNoResult(false);
-					config.setAlloc4Valid(false);
-					sideEffects = clauseTransformer
-							.ACSLSideEffectRemoving(ensures, config);
-					ensurances.addAll(sideEffects.left);
-					ensures = clauseTransformer
-							.ACSLPrimitives2CIVLC(sideEffects.right, config);
-					assertion = clauseTransformer.createAssertion(ensures);
-					if (condClause.condition != null)
-						assertion = nodeFactory.newIfNode(
-								condClause.condition.getSource(),
-								condClause.condition, assertion);
-					ensurances.add(assertion);
-				}
-			}
+			reqGuides4SideCond.addAll(guide.localREGuides.requiresGuides);
+			ensGuides4SideCond.addAll(guide.localREGuides.ensuresGuides);
+			requirements.addAll(localPair.before);
+			ensurances.addAll(localPair.after);
 		}
-
-		// add $mpi_comm_rank and $mpi_comm_size variables:
-		requirements
-				.add(nodeFactory.newVariableDeclarationNode(mpiCommRankSource,
-						identifier(MPIContractUtilities.MPI_COMM_RANK_CONST),
-						intTypeNode.copy()));
-		requirements
-				.add(nodeFactory.newVariableDeclarationNode(mpiCommSizeSource,
-						identifier(MPIContractUtilities.MPI_COMM_SIZE_CONST),
-						intTypeNode.copy()));
 		// for each MPI block, translate requirements:
-		config.setInMPIBlock(true);
-		config.setWithComplete(true);
-		for (FunctionContractBlock mpiBlock : parsedContractBlocks) {
-			TransformPair pair = clauseTransformer
-					.transformMPICollectiveBlock4Target(mpiBlock, config);
+		for (Pair<FunctionContractBlock, REGuidePair> collectiveGuide : guide.collectiveREGuides) {
+			TransformedPair pair = clauseTransformer
+					.transformMPICollectiveBlock(
+							collectiveGuide.right.requiresGuides,
+							collectiveGuide.right.ensuresGuides,
+							collectiveGuide.left, true);
 
-			requirements.addAll(pair.requirements);
-			ensurances.addAll(pair.ensurances);
+			reqGuides4SideCond.addAll(collectiveGuide.right.requiresGuides);
+			ensGuides4SideCond.addAll(collectiveGuide.right.ensuresGuides);
+			requirements.addAll(pair.before);
+			ensurances.addAll(pair.after);
 		}
-		// Unsnapshots for pre- and post-:
-		for (FunctionContractBlock mpiBlock : parsedContractBlocks) {
-			ensurances.add(nodeFactory.newExpressionStatementNode(
-					createMPIUnsnapshotCall(mpiBlock.getMPIComm().copy(),
-							identifierExpression(
-									MPIContractUtilities.COLLATE_PRE_STATE))));
-			ensurances.add(nodeFactory.newExpressionStatementNode(
-					createMPIUnsnapshotCall(mpiBlock.getMPIComm().copy(),
-							identifierExpression(
-									MPIContractUtilities.COLLATE_POST_STATE))));
+		/* check side conditions */
+		requirements.addAll(
+				clauseTransformer.checkSideConditions(reqGuides4SideCond));
+		ensurances.addAll(
+				clauseTransformer.checkSideConditions(ensGuides4SideCond));
+
+		if (hasMPI) {
+			// add $mpi_comm_rank and $mpi_comm_size variables:
+			requirements.add(0,
+					nodeFactory.newVariableDeclarationNode(mpiCommRankSource,
+							identifier(
+									MPIContractUtilities.MPI_COMM_RANK_CONST),
+							intTypeNode.copy()));
+			requirements.add(0,
+					nodeFactory.newVariableDeclarationNode(mpiCommSizeSource,
+							identifier(
+									MPIContractUtilities.MPI_COMM_SIZE_CONST),
+							intTypeNode.copy()));
 		}
 
 		List<BlockItemNode> driverComponents = new LinkedList<>();
 		ExpressionNode targetCall;
-		ExpressionNode funcIdentifier = identifierExpression(
-				funcDefi.getName());
+		ExpressionNode originalBodyIdentifier = identifierExpression(
+				guide.getFunctionNameForOriginalBody());
 		FunctionTypeNode funcTypeNode = funcDefi.getTypeNode();
 		List<ExpressionNode> funcParamIdentfiers = new LinkedList<>();
 
@@ -660,7 +703,7 @@ public class ContractTransformerWorker extends BaseWorker {
 			funcParamIdentfiers
 					.add(identifierExpression(param.getIdentifier().name()));
 		targetCall = nodeFactory.newFunctionCallNode(driverSource,
-				funcIdentifier.copy(), funcParamIdentfiers, null);
+				originalBodyIdentifier, funcParamIdentfiers, null);
 
 		// Create variable declarations which are actual parameters of the
 		// target function:
@@ -675,6 +718,15 @@ public class ContractTransformerWorker extends BaseWorker {
 		else
 			driverComponents
 					.add(nodeFactory.newExpressionStatementNode(targetCall));
+
+		if (hasMPI)
+			// if function has collective contract, add a Barrier with
+			// MPI_COMM_WORLD at the end of the driver:
+			driverComponents
+					.add(nodeFactory.newExpressionStatementNode(functionCall(
+							driverSource, MPIContractUtilities.MPI_BARRIER_CALL,
+							Arrays.asList(identifierExpression(
+									MPIContractUtilities.MPI_COMM_WORLD)))));
 		driverComponents.addAll(ensurances);
 		body = nodeFactory.newCompoundStatementNode(driverSource,
 				driverComponents);
@@ -691,29 +743,6 @@ public class ContractTransformerWorker extends BaseWorker {
 	/*
 	 * ************************* Utility methods ****************************
 	 */
-
-	/**
-	 * <p>
-	 * <b>Summary: </b> Creates an $mpi_unsnapshot function call:<code>
-	 * $mpi_unsnapshot(mpiComm);</code>
-	 * </p>
-	 * 
-	 * @param mpiComm
-	 *            An {@link ExpressionNode} representing an MPI communicator.
-	 * @return The created $mpi_unsnapshot call statement node.
-	 */
-	private ExpressionNode createMPIUnsnapshotCall(ExpressionNode mpiComm,
-			ExpressionNode collateStateRef) {
-		Source source = newSource(MPIContractUtilities.MPI_UNSNAPSHOT,
-				CivlcTokenConstant.CALL);
-		ExpressionNode callIdentifier = identifierExpression(
-				MPIContractUtilities.MPI_UNSNAPSHOT);
-		FunctionCallNode call = nodeFactory.newFunctionCallNode(source,
-				callIdentifier, Arrays.asList(mpiComm, collateStateRef), null);
-
-		return call;
-	}
-
 	/**
 	 * Creates an <code>MPI_Init(NULL, NULL);</code> call statememt node.
 	 * 
@@ -797,8 +826,7 @@ public class ContractTransformerWorker extends BaseWorker {
 			VariableDeclarationNode actualDecl;
 
 			// TODO: need a better way: currently for MPI_Comm type
-			// parameters,
-			// it is always replaced with MPI_COMM_WORLD:
+			// parameters, it is always replaced with MPI_COMM_WORLD:
 			if (varDecl.getTypeNode().getType()
 					.kind() == TypeKind.STRUCTURE_OR_UNION) {
 				StructureOrUnionType structType = (StructureOrUnionType) varDecl
@@ -848,5 +876,240 @@ public class ContractTransformerWorker extends BaseWorker {
 			}
 		}
 		return havocs;
+	}
+
+	/**
+	 * Return a list of {@link BlockItemNode}s which comes from source code in
+	 * "source file"s. Here a "source file" is a file with ".c, .cvl, .h" or
+	 * ".cvh" suffix and NOT under the system include path.
+	 * 
+	 * @param root
+	 *            the root node of an AST
+	 * @param srcFileNodes
+	 *            OUTPUT. all the block item nodes in the given AST that come
+	 *            from "source files"
+	 * @return true iff there is at least one node comes from "mpi.h"
+	 */
+	private boolean findMPIAndNodesofSourceFiles(
+			SequenceNode<BlockItemNode> root,
+			List<BlockItemNode> srcFileNodes) {
+		Path civlIncludePath = CIVLConstants.CIVL_INCLUDE_PATH.toPath();
+		Path frontendIncludePath = CIVLConstants.FRONT_END_INCLUDE_PATH
+				.toPath();
+		boolean hasMPI = false;
+
+		for (BlockItemNode node : root) {
+			if (node == null)
+				continue;
+
+			Path sourceFilePath = node.getSource().getFirstToken()
+					.getSourceFile().getFile().toPath();
+			String sourceFileName = sourceFilePath.getFileName().toString();
+
+			if (sourceFilePath.startsWith(civlIncludePath)
+					|| sourceFilePath.startsWith(frontendIncludePath)) {
+				if (!hasMPI && sourceFileName.equals("mpi.h"))
+					hasMPI = true;
+				continue;
+			}
+			srcFileNodes.add(node);
+
+			assert sourceFileName.endsWith(".c")
+					|| sourceFileName.endsWith(".cvl")
+					|| sourceFileName.endsWith(".h")
+					|| sourceFileName.endsWith(".cvh");
+		}
+		return hasMPI;
+	}
+
+	/**
+	 * <p>
+	 * This class represents a transformation guide for a whole function
+	 * contract. A function contract guide consists of
+	 * {@link ClauseTransformGuide}s for contract clauses and an instance of
+	 * {@link MemoryLocationManager} which is a stateful object deals with
+	 * allocation and refreshment.
+	 * </p>
+	 * 
+	 * TODO: make a guide for assigns and waitsfor too ?
+	 * 
+	 * @author ziqingluo
+	 *
+	 */
+	class FunctionContractTransformGuide {
+
+		/**
+		 * a reference to the function declaration
+		 */
+		FunctionDeclarationNode function;
+		/**
+		 * a sole local block, a function will have at most one local function
+		 * contract block
+		 */
+		FunctionContractBlock localBlock;
+		/**
+		 * a pair of {@link ClauseTransformGuide}s for requirements and ensures
+		 * in the local contract block
+		 */
+		REGuidePair localREGuides;
+		/**
+		 * a list of {@link ClauseTransformGuide}s for requirements and ensures
+		 * in collective contract blocks
+		 */
+		List<Pair<FunctionContractBlock, REGuidePair>> collectiveREGuides;
+		/**
+		 * a instance of a {@link MemoryLocationManager}
+		 */
+		MemoryLocationManager memoryLocationManager;
+
+		FunctionContractTransformGuide(FunctionDeclarationNode function,
+				MemoryLocationManager memoryLocationManager) {
+			this.function = function;
+			this.localREGuides = new REGuidePair();
+			this.collectiveREGuides = new LinkedList<>();
+			this.memoryLocationManager = memoryLocationManager;
+			localBlock = null;
+		}
+
+		void addGuide(FunctionContractBlock block,
+				List<ClauseTransformGuide> requiresGuides,
+				List<ClauseTransformGuide> ensuresGuides) {
+			if (block.isSequentialBlock()) {
+				assert localBlock == null;
+				localBlock = block;
+				localREGuides.requiresGuides.addAll(requiresGuides);
+				localREGuides.ensuresGuides.addAll(ensuresGuides);
+			} else {
+				REGuidePair coPair = new REGuidePair();
+
+				coPair.requiresGuides.addAll(requiresGuides);
+				coPair.ensuresGuides.addAll(ensuresGuides);
+				this.collectiveREGuides.add(new Pair<>(block, coPair));
+			}
+		}
+
+		/**
+		 * @return the name of the function that contains the original function
+		 *         body of the corresponding function
+		 */
+		String getFunctionNameForOriginalBody() {
+			return this.function.getName() + originalSuffix;
+		}
+
+		/**
+		 * @return the name of the function that launches the contract
+		 *         verification of this function
+		 */
+		String getDriverNameForVerification() {
+			return this.function.getName() + driverSuffix;
+		}
+
+		/**
+		 * a simple data structure for clause transform guides of
+		 * <code>requires</code> and <code>ensures</code>
+		 * 
+		 * @author ziqingluo
+		 *
+		 */
+		class REGuidePair {
+			List<ClauseTransformGuide> requiresGuides;
+			List<ClauseTransformGuide> ensuresGuides;
+
+			REGuidePair() {
+				this.requiresGuides = new LinkedList<>();
+				this.ensuresGuides = new LinkedList<>();
+			}
+		}
+	}
+
+	/**
+	 * <p>
+	 * This class is a data structure represents the source files (excludes
+	 * CIVL-C libraries). The ASTNodes of source files are organized in three
+	 * (non-overlapping) groups:
+	 * <ul>
+	 * <li>The target function definitions and their contracts,
+	 * {@link SourceFileWithContractedFunctions#targets}</li>
+	 * <li>The first encountered contracted callee function declarations and
+	 * their contracts, {@link SourceFileWithContractedFunctions#callees}</li>
+	 * <li>The rest of the ASTNodes in the source files,
+	 * {@link SourceFileWithContractedFunctions#others}</li>
+	 * </ul>
+	 * </p>
+	 * 
+	 * note that group 1 and group 2 may have overlaps.
+	 * 
+	 * TODO: think about conjunctions of contracts over multiple declarations of
+	 * the same function
+	 * 
+	 * @author ziqingluo
+	 */
+	class SourceFileWithContractedFunctions {
+		/**
+		 * A contracted function data structure, including a set of
+		 * {@link FunctionContractBlock} and a {@link FunctionDeclarationNode}
+		 * of the function.
+		 * 
+		 * @author ziqingluo
+		 */
+		class ContractedFunction {
+
+			final List<FunctionContractBlock> contracts;
+
+			final FunctionDeclarationNode function;
+
+			ContractedFunction(FunctionDeclarationNode function) {
+				this.function = function;
+				this.contracts = FunctionContractBlock
+						.parseContract(function.getContract(), nodeFactory);
+			}
+		}
+
+		/**
+		 * the target function definitions and its contracts
+		 */
+		final List<ContractedFunction> targets;
+
+		/**
+		 * the first encountered contracted callee function declarations and
+		 * their contracts
+		 */
+		final List<ContractedFunction> callees;
+
+		/**
+		 * the rest of the ASTNodes in the source files
+		 */
+		final List<BlockItemNode> others;
+
+		SourceFileWithContractedFunctions(List<FunctionDefinitionNode> targets,
+				List<FunctionDeclarationNode> callees,
+				List<BlockItemNode> others) {
+			this.targets = new LinkedList<>();
+			for (FunctionDefinitionNode target : targets)
+				this.targets.add(new ContractedFunction(target));
+			this.callees = new LinkedList<>();
+			for (FunctionDeclarationNode callee : callees)
+				this.callees.add(new ContractedFunction(callee));
+			this.others = others;
+		}
+	}
+
+	/**
+	 * If the given expression is a cast-expression: <code>(T) expr</code>,
+	 * return an expression representing <code>expr</code>, otherwise no-op.
+	 * 
+	 * @param expression
+	 *            An instance of {@link ExpressionNode}
+	 * @return An expression who is the argument of a cast expression iff the
+	 *         input is a cast expression, otherwise returns input itself.(i.e.
+	 *         no-op).
+	 */
+	static ExpressionNode decast(ExpressionNode expression) {
+		if (expression.expressionKind() == ExpressionKind.CAST) {
+			CastNode castNode = (CastNode) expression;
+
+			return castNode.getArgument();
+		}
+		return expression;
 	}
 }

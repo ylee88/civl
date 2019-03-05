@@ -231,12 +231,12 @@ public interface CIVLTypeFactory {
 	 */
 	CIVLScopeType scopeType();
 
-	SymbolicTupleType stateSymbolicType();
+	SymbolicType stateSymbolicType();
 
 	/**
-	 * Get the $state primitive type in CIVL-C language
+	 * Get the CIVL-C state type
 	 * 
-	 * @return The state primitive type.
+	 * @return an instance representing the CIVL-C state type.
 	 */
 	CIVLStateType stateType();
 

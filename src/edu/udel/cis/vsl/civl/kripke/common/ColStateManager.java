@@ -86,6 +86,10 @@ public class ColStateManager extends CommonStateManager {
 		return result;
 	}
 
+	public Collection<State> getFinalCollateStates() {
+		return this.finalColStates;
+	}
+
 	private boolean isFinalCollateState(State state) {
 		int numProcs = state.numProcs();
 
@@ -98,11 +102,6 @@ public class ColStateManager extends CommonStateManager {
 		}
 		return true;
 	}
-
-	public Collection<State> getFinalCollateStates() {
-		return this.finalColStates;
-	}
-
 	@Override
 	public void normalize(TraceStepIF<State> traceStepIF) {
 		super.normalize(traceStepIF);

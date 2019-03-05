@@ -210,10 +210,6 @@ public class CommonBinaryExpression extends CommonExpression
 
 	@Override
 	public String toString() {
-		if (this.operator == BINARY_OPERATOR.REMOTE) {
-			return this.operatorToString() + " (" + left + ", " + right + ")";
-		}
-
 		String op = this.operatorToString();
 
 		return "(" + left + op + right + ")";
@@ -370,9 +366,6 @@ public class CommonBinaryExpression extends CommonExpression
 				break;
 			case SHIFTRIGHT :
 				op = ">>";
-				break;
-			case REMOTE :
-				op = "$on";
 				break;
 			case VALID :
 				op = " valid-operator ";

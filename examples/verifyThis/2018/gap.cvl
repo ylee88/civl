@@ -1,0 +1,179 @@
+#include<pointer.cvh>
+#include<string.h>
+#include<stdlib.h>
+
+$input int K;   // growing step
+$assume(K > 0);
+int N;          // initial length of the array, havoced at main
+int * a;        // pointer to the arbitrary array of length N
+int l, r;       // l and r, havoed at main
+
+void left() {
+  if (l != 0) {
+    l--;
+    r--;
+    a[r] = a[l];
+  }
+}
+
+void right() {
+  if (r < N) {
+    a[l] = a[r];
+    r++;
+    l++;
+  }
+}
+
+void delete() {
+  if (l > 0) {
+    l--;
+  }
+}
+
+void grow() {
+  int * b = (int *)malloc(sizeof(int) * (N + K));
+  
+  memcpy(b, a, sizeof(int) * l);
+  memcpy(b+r+K, a+r, sizeof(int) * (N-r));
+  r += K;
+  N += K;
+  free(a);
+  a = b;
+}
+
+void insert(int x) {
+  if (l == r) grow();
+  a[l] = x;
+  l++;
+}
+
+/* ********************** Drivers ******************** */
+void left_driver() {
+  $assume_push(l <= r && 0 <= l && r < N);
+
+  int pre_text[N-r+l];     // the text content at pre-state
+
+  a = (int *)malloc(sizeof(int) * N);
+  memcpy(pre_text, a, l * sizeof(int));
+  memcpy(pre_text+l, a+r, (N-r) * sizeof(int));
+  // call left:
+  left();
+
+  int text[N-r+l];        // the text content at post-state
+
+  memcpy(text, a, l * sizeof(int));
+  memcpy(text+l, a+r, (N-r) * sizeof(int));  
+  // text content preserves:
+  $assert_equals(&text, &pre_text);
+  free(a);
+  $assume_pop();
+}
+
+void right_driver() {
+  // assumptions and assertions are identical to left_driver.
+  $assume_push(l <= r && 0 <= l && r < N);
+
+  int pre_text[N-r+l];
+
+  a = (int *)malloc(sizeof(int) * N);
+  memcpy(pre_text, a, l * sizeof(int));
+  memcpy(pre_text+l, a+r, (N-r) * sizeof(int));
+  // call right:
+  right();
+
+  int text[N-r+l];
+
+  memcpy(text, a, l * sizeof(int));
+  memcpy(text+l, a+r, (N-r) * sizeof(int));  
+  $assert_equals(&text, &pre_text);
+  free(a);
+  $assume_pop();
+}
+
+void delete_driver() {
+  $assume_push(l <= r && 0 <= l && r < N);
+  
+  int pre_text[N-r+l];    // the text content at pre-state
+  int pre_l = l;          // value of l at pre-state
+
+  a = (int *)malloc(sizeof(int) * N);
+  memcpy(pre_text, a, l * sizeof(int));
+  memcpy(pre_text+l, a+r, (N-r) * sizeof(int));
+  // call delete:
+  delete();
+
+  int text[N-r+l];         // the text content at post-state
+  int numDel = pre_l - l;  // the number of deleted element, either 1 or 0
+
+  memcpy(text, a, l * sizeof(int));
+  memcpy(text+l, a+r, (N-r) * sizeof(int));  
+  // text content before l - 1 preserves:
+  $assert($forall (int i : 0 .. l-2) pre_text[i] == text[i]);
+  // text content after l - 1 preserves but shift to left by numDel:
+  $assert($forall (int i : l .. (N-r+l-1)) pre_text[i+numDel] == text[i]);
+  free(a);
+  $assume_pop();
+}
+
+void insert_driver() {
+  $assume_push(l <= r && 0 <= l && r < N);
+  
+  int pre_text[N-r+l];  // the text content at pre-state
+  int x;                // the arbitrary inserted value
+
+  a = (int *)malloc(sizeof(int) * N);
+  $havoc(&x);
+  memcpy(pre_text, a, l * sizeof(int));
+  memcpy(pre_text+l, a+r, (N-r) * sizeof(int));
+  // call delete:
+  insert(x);
+  
+  int text[N-r+l];     // the text content at post-state
+  
+  memcpy(text, a, l * sizeof(int));
+  memcpy(text+l, a+r, (N-r) * sizeof(int));  
+  // The text content before l-1 preserves:
+  $assert($forall (int i : 0 .. l-2) pre_text[i] == text[i]);
+  // The element at l-1 is the inserted one:
+  $assert(text[l-1] == x);
+  // The text content after l-1 preserves but shift to right by one:
+  $assert($forall (int i : l .. (N-r+l-1)) pre_text[i-1] == text[i]);
+  free(a);
+  $assume_pop();
+}
+
+void grow_driver() {
+  $assume_push(l <= r && 0 <= l && r < N);
+
+  int pre_text[N-r+l];  // the text content at pre-state
+
+  a = (int *)malloc(sizeof(int) * N);
+  memcpy(pre_text, a, l * sizeof(int));
+  memcpy(pre_text+l, a+r, (N-r) * sizeof(int));
+  // call grow:
+  grow();
+
+  int text[N-r+l];     // the text content at post-state
+
+  memcpy(text, a, l * sizeof(int));
+  memcpy(text+l, a+r, (N-r) * sizeof(int));
+  // the text content is preserved:
+  $assert_equals(&text, &pre_text);
+  free(a);
+  $assume_pop();
+}
+
+/* **************** Main: the Entry ************** */
+
+int main() {
+  $havoc(&N);
+  $assume(N > 0);
+  $havoc(&l); 
+  $havoc(&r);
+  left_driver();
+  right_driver();
+  delete_driver();
+  grow_driver();
+  insert_driver();
+  return 0;
+}

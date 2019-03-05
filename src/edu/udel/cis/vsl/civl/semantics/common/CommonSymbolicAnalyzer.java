@@ -2321,34 +2321,18 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 				case BINARY : {
 					BinaryExpression binary = (BinaryExpression) expression;
 
-					if (binary.operator() != BINARY_OPERATOR.REMOTE) {
-						if (!isTopLevel)
-							result.append("(");
+					result.append(binary.operatorToString());
+					result.append(" (");
+					temp = this.expressionEvaluationWorker(state, pid,
+							binary.left(), true, false);
+					state = temp.left;
+					if (temp.right == null)
 						temp = this.expressionEvaluationWorker(state, pid,
-								binary.left(), resultOnly, false);
-						state = temp.left;
-						result.append(temp.right);
-						result.append(binary.operatorToString());
-						temp = this.expressionEvaluationWorker(state, pid,
-								binary.right(), resultOnly, false);
-						state = temp.left;
-						result.append(temp.right);
-						if (!isTopLevel)
-							result.append(")");
-					} else {
-						result.append(binary.operatorToString());
-						result.append(" (");
-						temp = this.expressionEvaluationWorker(state, pid,
-								binary.left(), true, false);
-						state = temp.left;
-						if (temp.right == null)
-							temp = this.expressionEvaluationWorker(state, pid,
-									binary.left(), false, false);
-						result.append(temp.right);
-						result.append(", ");
-						result.append(binary.right());
-						result.append(")");
-					}
+								binary.left(), false, false);
+					result.append(temp.right);
+					result.append(", ");
+					result.append(binary.right());
+					result.append(")");
 					break;
 				}
 				case CAST : {
@@ -2488,6 +2472,7 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 				}
 				case VALUE_AT : {
 					ValueAtExpression valueAt = (ValueAtExpression) expression;
+					CIVLStateType stateType = typeFactory.stateType();
 
 					result.append("$value_at(");
 					temp = this.expressionEvaluationWorker(state, pid,
@@ -2503,13 +2488,13 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 
 					Evaluation eval = evaluator.evaluate(state, pid,
 							valueAt.state());
-					CIVLStateType stateType = typeFactory.stateType();
+
 					UnaryOperator<SymbolicExpression> substituter = null;
 					State newState;
 
-					if (eval.value == modelFactory.statenullConstantValue()) {
+					if (eval.value == modelFactory.statenullConstantValue())
 						newState = state;
-					} else {
+					else {
 						newState = evaluator.stateFactory().getStateByReference(
 								stateType.selectStateKey(universe, eval.value));
 						substituter = evaluator.stateFactory()
@@ -2519,23 +2504,22 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 					}
 
 					Number newPid;
+					int newPidInt;
 
 					eval = evaluator.evaluate(eval.state, pid, valueAt.pid());
 					state = eval.state;
 					newPid = universe
 							.extractNumber((NumericExpression) eval.value);
-					if (newPid == null)
-						result.append(valueAt.expression());
-					else {
-						eval = evaluator.evaluate(newState,
-								((IntegerNumber) newPid).intValue(),
-								valueAt.expression());
-						if (substituter != null)
-							substituter.apply(eval.value);
-						result.append(symbolicExpressionToString(
-								valueAt.getSource(), newState,
-								valueAt.getExpressionType(), eval.value));
-					}
+					newPidInt = newPid == null
+							? pid
+							: ((IntegerNumber) newPid).intValue();
+					eval = evaluator.evaluate(newState, newPidInt,
+							valueAt.expression());
+					if (substituter != null)
+						substituter.apply(eval.value);
+					result.append(symbolicExpressionToString(
+							valueAt.getSource(), newState,
+							valueAt.getExpressionType(), eval.value));
 					result.append(")");
 					break;
 				}
@@ -2587,7 +2571,6 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 				case UNDEFINED_PROC :
 				case PROC_NULL :
 				case STATE_NULL :
-				case STATE_REF :
 					result.append(expression.toString());
 					break;
 				default :

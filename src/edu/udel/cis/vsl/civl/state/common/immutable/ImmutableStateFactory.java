@@ -118,10 +118,10 @@ public class ImmutableStateFactory implements StateFactory {
 			100000);
 
 	/**
-	 * An instance of {@link CollateStateStorage} which is used to save collate
+	 * An instance of {@link ReferredStateStorage} which is used to save collate
 	 * states.
 	 */
-	private CollateStateStorage collateStateStorage;
+	private ReferredStateStorage collateStateStorage;
 
 	/**
 	 * When normalizing a state s, there is a set T of states that are referred
@@ -287,7 +287,7 @@ public class ImmutableStateFactory implements StateFactory {
 				new Singleton<SymbolicExpression>(universe.integer(-2)));
 		this.maxProcs = config.getMaxProcs();
 		this.processValues = new SymbolicExpression[maxProcs];
-		this.collateStateStorage = new CollateStateStorage();
+		this.collateStateStorage = new ReferredStateStorage();
 		for (HeapErrorKind kind : HeapErrorKind.class.getEnumConstants())
 			fullHeapErrorSet.add(kind);
 		for (int i = 0; i < maxProcs; i++) {
@@ -1214,7 +1214,8 @@ public class ImmutableStateFactory implements StateFactory {
 	 */
 	private List<Pair<Integer, List<SymbolicExpression>>> getStateReferences(
 			ImmutableState state) {
-		SymbolicType stateType = modelFactory.typeFactory().stateSymbolicType();
+		SymbolicType symbolicStateType = modelFactory.typeFactory()
+				.stateSymbolicType();
 		List<Pair<Integer, List<SymbolicExpression>>> allStateRefs = new LinkedList<>();
 		int numDyscopes = state.numDyscopes();
 
@@ -1228,7 +1229,7 @@ public class ImmutableStateFactory implements StateFactory {
 				int vid = var.vid();
 				SymbolicExpression value = dyscope.getValue(vid);
 				List<SymbolicExpression> stateRefs = getSubExpressionsOfType(
-						stateType, value);
+						symbolicStateType, value);
 
 				for (SymbolicExpression stateRef : stateRefs)
 					stateValues.add(stateRef);
@@ -2532,7 +2533,6 @@ public class ImmutableStateFactory implements StateFactory {
 		return typeFactory.stateType().buildStateValue(universe,
 				snapshotAndID.left,
 				universe.array(typeFactory.scopeSymbolicType(), scopeValues));
-
 	}
 
 	/**
@@ -2597,6 +2597,7 @@ public class ImmutableStateFactory implements StateFactory {
 					state.getProcessState(pid).getLocation());
 		}
 	}
+
 
 	@Override
 	public SymbolicExpression addInternalProcess(SymbolicExpression stateValue,

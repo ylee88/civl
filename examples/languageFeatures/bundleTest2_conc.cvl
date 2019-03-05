@@ -1,0 +1,74 @@
+#include <bundle.cvh>
+
+$input int M = 50;
+$input int N = 40;
+$input int L = 35; 
+$input int I;
+$assume( 10 < M && 10 < N && 10 < L && 0 <= I && I < 10);
+
+$input int X[M][N];
+$input int Y[N][M];
+$input int Z[L][M][N];
+
+int x[M][N];
+int y[N][M];
+int z[L][M][N];
+int zz[L][N][M];
+int w[M][L][N];
+
+#define MN  (M*N-1)
+
+int main() {
+  int dat = 6;
+  $bundle bun = $bundle_pack(&dat, sizeof(int));
+
+  $bundle_unpack(bun, &w[1][2][3]);
+  $assert(w[1][2][3] == dat);
+
+  bun = $bundle_pack(X, sizeof(int) * M * N);
+  // [M][N] in [M][L][N] from [0][0][0]
+  $bundle_unpack(bun, w);
+  $assert(
+	  w[ 0 ][ 0 ][ 0 ] == 
+	  X[ 0 ][ 0 ]
+	  );
+  $assert(
+	  w[0][1][1] == X[1][1] && w[0][0][1] == X[0][1] && w[0][2][2] == X[2][2]
+	  );
+  $assert(w[ MN / (L*N) ][ (MN % (L*N)) / N ][ (MN % (L*N)) % N] == 
+	    X[M-1][N-1]
+	 );
+
+    /*
+      SALR bug, following will crash ... 
+      $assert($forall (int i : 0 .. (M*N)-1)
+      w[ i / (N*L) ][ (i % (N*L)) / N ][ ((i % (N*L))) % N ] == 
+      X[ i / N ][ i % N ]
+      );
+    */
+  $bundle_unpack(bun, x);
+  $assert($forall (int i : 0 .. M-1) ($forall (int j : 0 .. N-1) 
+				      x[i][j] == X[i][j]
+				      ));
+  // [M][N] -> [N][M]
+  $bundle_unpack(bun, y);
+  $assert($forall (int i : 0 .. N-1) ($forall (int j : 0 .. M-1) 
+				      y[i][j] == X[(i*M + j) / N][(i*M + j) % N]
+				      ));
+
+  $bundle_unpack(bun, z);
+  $assert($forall (int i : 0 .. M-1) ($forall (int j : 0 .. N-1) 
+				      z[0][i][j] == X[i][j]
+				      ));
+
+  $bundle_unpack(bun, z[I]);
+  $assert($forall (int i : 0 .. M-1) ($forall (int j : 0 .. N-1) 
+				      z[I][i][j] == X[i][j]
+				      ));
+
+  // [M][N] -> [N][M]
+  $bundle_unpack(bun, zz[I]);
+  $assert($forall (int i : 0 .. N-1) ($forall (int j : 0 .. M-1) 
+				      zz[I][i][j] == X[(i*M + j) / N][(i*M + j) % N]
+				      ));
+}

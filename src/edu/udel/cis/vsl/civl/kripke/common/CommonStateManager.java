@@ -64,7 +64,7 @@ public class CommonStateManager extends CIVLStateManager {
 	/**
 	 * The maximal number of processes at a state, initialized as 0.
 	 */
-	private AtomicInteger maxProcs = new AtomicInteger(0);
+	protected AtomicInteger maxProcs = new AtomicInteger(0);
 
 	/**
 	 * The unique state factory used by the system.
@@ -94,17 +94,17 @@ public class CommonStateManager extends CIVLStateManager {
 
 	protected BooleanExpression falseExpr;
 
-	private AtomicInteger numStatesExplored = new AtomicInteger(1);
+	protected AtomicInteger numStatesExplored = new AtomicInteger(1);
 
 	private AtomicInteger MaxNormalizedId = new AtomicInteger(0);;
 
 	private OutputCollector outputCollector;
 
-	private boolean printTransitions;
+	protected boolean printTransitions;
 
-	private boolean printAllStates;
+	protected boolean printAllStates;
 
-	private boolean printSavedStates;
+	protected boolean printSavedStates;
 
 	protected Set<HeapErrorKind> ignoredHeapErrors;
 
@@ -243,7 +243,7 @@ public class CommonStateManager extends CIVLStateManager {
 	 * @return
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	private StateStatus singleEnabled(State state, int pid, int atomCount,
+	protected StateStatus singleEnabled(State state, int pid, int atomCount,
 			String process) throws UnsatisfiablePathConditionException {
 		List<Transition> enabled;
 		ProcessState procState = state.getProcessState(pid);
@@ -335,7 +335,7 @@ public class CommonStateManager extends CIVLStateManager {
 	 *            execution of the statement.
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	private void printStatement(State currentState, State newState,
+	protected void printStatement(State currentState, State newState,
 			Transition transition) {
 		Statement stmt = transition.statement();
 

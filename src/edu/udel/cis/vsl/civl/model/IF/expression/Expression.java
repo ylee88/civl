@@ -49,7 +49,7 @@ public interface Expression extends Sourceable {
 		/**
 		 * A $state_null constant, instance of {@link StatenullExpression}
 		 */
-		STATE_NULL, STATE_REF,
+		STATE_NULL,
 		/**
 		 * instance of {@link FunctionCallExpression}
 		 */

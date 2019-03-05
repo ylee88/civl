@@ -1,0 +1,122 @@
+(* 
+   This is an example that the query is too complex that even why3 cannot handle it.
+   Without any further simplification, only goal G0 and G1 can be proved.
+   
+   By looking at the symbolic expression of this query, I found that
+   at least goal G3 is valid. But some further simplification is
+   needed. If I replace the "(get Y13 1)" with "(get Y12 0)", G2 can
+   be fastly proved.  And human beings can easily decide that (get Y12 0) == (get Y13 1).
+
+   Here I put the SARL symbolic expression version of the query as reference:
+
+Context:
+  0==(_uf_$mpi_sizeof(10) - 1*SIZEOF_REAL)
+  0==(Y10[0:=Y11[0]][Y0 + 1:=Y12[0]][Y0] - 1*Y13[0:=Y14[0]][Y5 + 1:=Y15[0]][0])
+  0==(Y10[0:=Y11[0]][Y0 + 1:=Y12[0]][1] - 1*Y15[0])
+  0==(Y10[0:=Y11[0]][Y0 + 1:=Y12[0]][0] - 1*Y13[0:=Y14[0]][Y5 + 1:=Y15[0]][Y5])
+  0==(Y13[0:=Y14[0]][Y5 + 1:=Y15[0]][1] - 1*Y12[0])
+  0==(Y2 - 1*Y7)
+  forall _cc_bv_0 : int . ((0 == Y10[0:=Y11[0]][Y0 + 1:=Y12[0]][_cc_bv_0] - 1*Y3[_cc_bv_0]) || (0 <= Y0 - 1*_cc_bv_0))
+  forall _cc_bv_0 : int . ((0 == Y10[0:=Y11[0]][Y0 + 1:=Y12[0]][_cc_bv_0] - 1*Y3[_cc_bv_0]) || (0 <= _cc_bv_0 - 1))
+  forall _cc_bv_0 : int . ((0 == Y13[0:=Y14[0]][Y5 + 1:=Y15[0]][_cc_bv_0] - 1*Y8[_cc_bv_0]) || (0 <= Y5 - 1*_cc_bv_0))
+  forall _cc_bv_0 : int . ((0 == Y13[0:=Y14[0]][Y5 + 1:=Y15[0]][_cc_bv_0] - 1*Y8[_cc_bv_0]) || (0 <= _cc_bv_0 - 1))
+  forall i : int . ((0 == Y10[0:=Y11[0]][Y0 + 1:=Y12[0]][i - 1]*Y2 + Y10[0:=Y11[0]][Y0 + 1:=Y12[0]][i + 1]*Y2 - 2*Y10[0:=Y11[0]][Y0 + 1:=Y12[0]][i]*Y2 + Y10[0:=Y11[0]][Y0 + 1:=Y12[0]][i] - 1*Y3[i]) || (Y0 - 1*i + 1 <= 0) || (i <= 0))
+  forall i : int . ((0 == Y13[0:=Y14[0]][Y5 + 1:=Y15[0]][i - 1]*Y7 + Y13[0:=Y14[0]][Y5 + 1:=Y15[0]][i + 1]*Y7 - 2*Y13[0:=Y14[0]][Y5 + 1:=Y15[0]][i]*Y7 + Y13[0:=Y14[0]][Y5 + 1:=Y15[0]][i] - 1*Y8[i]) || (Y5 - 1*i + 1 <= 0) || (i <= 0))
+  0<Y2
+  0<Y7
+  (Y0-1023)<=0
+  (Y5-1023)<=0
+  0<=(SIZEOF(540)-1)
+  0<=(SIZEOF(544)-1)
+  0<=(SIZEOF(566)-1)
+  0<=(SIZEOF(568)-1)
+  0<=(SIZEOF(571)-1)
+  0<=(SIZEOF(573)-1)
+  0<=(SIZEOF(576)-1)
+  0<=(SIZEOF_REAL-1)
+  0<=(X__mpi_nprocs_hi-2)
+  0<=(Y0-1)
+  0<=(Y5-1)
+
+Assertion:
+  (0==(Y3[Y0 + 1] - 1*Y13[1]))&&
+  (0==(Y3[0] - 1*Y13[Y5]))&&
+  ((0==((Y10[Y0 - 1] - 2*Y10[Y0] + Y13[1])*Y2 + Y10[Y0] - 1*Y3[Y0]))||((Y0-1)<=0))&&
+  ((0==((Y10[1] + (-1/2)*Y10[2] + (-1/2)*Y13[Y5])*Y2 + (-1/2)*Y10[1] + (1/2)*Y3[1]))||((Y0-1)<=0))&&
+  ((0==((Y10[1] + (-1/2)*Y13[Y5] + (-1/2)*Y13[1])*Y2 + (-1/2)*Y10[1] + (1/2)*Y3[1]))||(0!=(Y0-1)))
+ *)
+
+theory SARL_REAL
+use import real.Real
+function add (a b : real) : real = a + b
+function sub (a b : real) : real = a - b
+function mul (a b : real) : real = a * b
+function neg (a : real) : real = (-a)
+function (:-) (a b : real) : real = a / b
+predicate lt (a b : real) = a < b
+predicate lte (a b : real) = a <= b
+end
+theory Why3Query_93
+use import map.Map
+use import SARL_REAL as SR
+use import int.Int
+type _tuple_0 = {_t0 : int;}
+
+constant _SIZEOF_REAL : int
+
+constant _X__mpi_nprocs_hi : int
+
+constant _Y13 : (map int real)
+
+constant _sc_0 : _tuple_0
+
+constant _Y14 : (map int real)
+
+constant _sc_1 : _tuple_0
+
+constant _Y15 : (map int real)
+
+constant _sc_2 : _tuple_0
+
+function __uf__mpi_sizeof (int) : int
+constant _sc_3 : _tuple_0
+
+constant _sc_4 : _tuple_0
+
+constant _Y10 : (map int real)
+
+constant _sc_5 : _tuple_0
+
+constant _Y11 : (map int real)
+
+constant _sc_6 : _tuple_0
+
+constant _Y0 : int
+
+constant _Y12 : (map int real)
+
+function _SIZEOF (_tuple_0) : int
+constant _Y3 : (map int real)
+
+constant _Y2 : real
+
+constant _Y5 : int
+
+constant _Y7 : real
+
+constant _Y8 : (map int real)
+
+predicate _Axcontext = ((0  =  ((__uf__mpi_sizeof 10 )  +  (-1  *  _SIZEOF_REAL)))  &&  (0.0  =   ( SR.add (get (set (set _Y10 0 (get _Y11 0)) (_Y0  +  1) (get _Y12 0)) _Y0)  ( SR.mul (SR.neg 1.0) (get (set (set _Y13 0 (get _Y14 0)) (_Y5  +  1) (get _Y15 0)) 0))))  &&  (0.0  =   ( SR.add (get (set (set _Y10 0 (get _Y11 0)) (_Y0  +  1) (get _Y12 0)) 1)  ( SR.mul (SR.neg 1.0) (get _Y15 0))))  &&  (0.0  =   ( SR.add (get (set (set _Y10 0 (get _Y11 0)) (_Y0  +  1) (get _Y12 0)) 0)  ( SR.mul (SR.neg 1.0) (get (set (set _Y13 0 (get _Y14 0)) (_Y5  +  1) (get _Y15 0)) _Y5))))  &&  (0.0  =   ( SR.add (get (set (set _Y13 0 (get _Y14 0)) (_Y5  +  1) (get _Y15 0)) 1)  ( SR.mul (SR.neg 1.0) (get _Y12 0))))  &&  (0.0  =   ( SR.add _Y2  ( SR.mul (SR.neg 1.0) _Y7)))  &&  (forall __cc_bv_0 : int. ((0.0  =   ( SR.add (get (set (set _Y10 0 (get _Y11 0)) (_Y0  +  1) (get _Y12 0)) __cc_bv_0)  ( SR.mul (SR.neg 1.0) (get _Y3 __cc_bv_0))))  ||  (0  <=  (_Y0  +  (-1  *  __cc_bv_0)))))  &&  (forall __cc_bv_0 : int. ((0.0  =   ( SR.add (get (set (set _Y10 0 (get _Y11 0)) (_Y0  +  1) (get _Y12 0)) __cc_bv_0)  ( SR.mul (SR.neg 1.0) (get _Y3 __cc_bv_0))))  ||  (0  <=  (__cc_bv_0  +  -1))))  &&  (forall __cc_bv_0 : int. ((0.0  =   ( SR.add (get (set (set _Y13 0 (get _Y14 0)) (_Y5  +  1) (get _Y15 0)) __cc_bv_0)  ( SR.mul (SR.neg 1.0) (get _Y8 __cc_bv_0))))  ||  (0  <=  (_Y5  +  (-1  *  __cc_bv_0)))))  &&  (forall __cc_bv_0 : int. ((0.0  =   ( SR.add (get (set (set _Y13 0 (get _Y14 0)) (_Y5  +  1) (get _Y15 0)) __cc_bv_0)  ( SR.mul (SR.neg 1.0) (get _Y8 __cc_bv_0))))  ||  (0  <=  (__cc_bv_0  +  -1))))  &&  (forall _i : int. ((0.0  =   ( SR.add ( SR.add ( SR.add ( SR.add  ( SR.mul (get (set (set _Y10 0 (get _Y11 0)) (_Y0  +  1) (get _Y12 0)) (_i  +  -1)) _Y2)  ( SR.mul (get (set (set _Y10 0 (get _Y11 0)) (_Y0  +  1) (get _Y12 0)) (_i  +  1)) _Y2))  ( SR.mul (SR.neg 2.0)  ( SR.mul (get (set (set _Y10 0 (get _Y11 0)) (_Y0  +  1) (get _Y12 0)) _i) _Y2))) (get (set (set _Y10 0 (get _Y11 0)) (_Y0  +  1) (get _Y12 0)) _i))  ( SR.mul (SR.neg 1.0) (get _Y3 _i))))  ||  ((_Y0  +  (-1  *  _i)  +  1)  <=  0)  ||  (_i  <=  0)))  &&  (forall _i : int. ((0.0  =   ( SR.add ( SR.add ( SR.add ( SR.add  ( SR.mul (get (set (set _Y13 0 (get _Y14 0)) (_Y5  +  1) (get _Y15 0)) (_i  +  -1)) _Y7)  ( SR.mul (get (set (set _Y13 0 (get _Y14 0)) (_Y5  +  1) (get _Y15 0)) (_i  +  1)) _Y7))  ( SR.mul (SR.neg 2.0)  ( SR.mul (get (set (set _Y13 0 (get _Y14 0)) (_Y5  +  1) (get _Y15 0)) _i) _Y7))) (get (set (set _Y13 0 (get _Y14 0)) (_Y5  +  1) (get _Y15 0)) _i))  ( SR.mul (SR.neg 1.0) (get _Y8 _i))))  ||  ((_Y5  +  (-1  *  _i)  +  1)  <=  0)  ||  (_i  <=  0)))  &&  ( ( SR.lt 0.0 _Y2))  &&  ( ( SR.lt 0.0 _Y7))  &&  ((_Y0  +  -1023)  <=  0)  &&  ((_Y5  +  -1023)  <=  0)  &&  (0  <=  ((_SIZEOF {_sc_0 with _t0 = 540; } )  +  -1))  &&  (0  <=  ((_SIZEOF {_sc_1 with _t0 = 544; } )  +  -1))  &&  (0  <=  ((_SIZEOF {_sc_2 with _t0 = 566; } )  +  -1))  &&  (0  <=  ((_SIZEOF {_sc_3 with _t0 = 568; } )  +  -1))  &&  (0  <=  ((_SIZEOF {_sc_4 with _t0 = 571; } )  +  -1))  &&  (0  <=  ((_SIZEOF {_sc_5 with _t0 = 573; } )  +  -1))  &&  (0  <=  ((_SIZEOF {_sc_6 with _t0 = 576; } )  +  -1))  &&  (0  <=  (_SIZEOF_REAL  +  -1))  &&  (0  <=  (_X__mpi_nprocs_hi  +  -2))  &&  (0  <=  (_Y0  +  -1))  &&  (0  <=  (_Y5  +  -1)))
+predicate context = _Axcontext
+
+goal G0: context -> (0.0  =   ( SR.add (get _Y3 (_Y0  +  1))  ( SR.mul (SR.neg 1.0) (get _Y13 1))))
+goal G1: context -> 
+  (0.0  =   ( SR.add (get _Y3 0)  ( SR.mul (SR.neg 1.0) (get _Y13 _Y5))))
+goal G2: context ->
+  ((0.0  =   ( SR.add ( SR.add  ( SR.mul  ( SR.add ( SR.add (get _Y10 (_Y0  +  -1))  ( SR.mul (SR.neg 2.0) (get _Y10 _Y0))) (get _Y13 1)) _Y2) (get _Y10 _Y0))  ( SR.mul (SR.neg 1.0) (get _Y3 _Y0)))) || ((_Y0  +  -1)  <=  0))
+goal G3: (context &&  (not ((_Y0  +  -1)  <=  0) ))->
+  ((0.0  =   ( SR.add ( SR.add  ( SR.mul  ( SR.add ( SR.add (get _Y10 1)  ( SR.mul (SR.neg (1.0 :- 2.0)) (get _Y10 2)))  ( SR.mul (SR.neg (1.0 :- 2.0)) (get _Y13 _Y5))) _Y2)  ( SR.mul (SR.neg (1.0 :- 2.0)) (get _Y10 1)))  ( SR.mul (1.0 :- 2.0) (get _Y3 1))))  ) 
+goal G4: context -> 
+  ((0.0  =   ( SR.add ( SR.add  ( SR.mul  ( SR.add ( SR.add (get _Y10 1)  ( SR.mul (SR.neg (1.0 :- 2.0)) (get _Y13 _Y5)))  ( SR.mul (SR.neg (1.0 :- 2.0)) (get _Y13 1))) _Y2)  ( SR.mul (SR.neg (1.0 :- 2.0)) (get _Y10 1)))  ( SR.mul (1.0 :- 2.0) (get _Y3 1))))  ||  (not (0  =  (_Y0  +  -1))))
+
+end

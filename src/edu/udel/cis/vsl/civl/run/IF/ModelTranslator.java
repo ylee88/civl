@@ -42,6 +42,7 @@ import edu.udel.cis.vsl.civl.model.IF.Model;
 import edu.udel.cis.vsl.civl.model.IF.ModelBuilder;
 import edu.udel.cis.vsl.civl.model.IF.Models;
 import edu.udel.cis.vsl.civl.run.common.ParseSystemLibrary;
+import edu.udel.cis.vsl.civl.transform.IF.ContractTransformer;
 import edu.udel.cis.vsl.civl.transform.IF.LoopContractTransformer;
 import edu.udel.cis.vsl.civl.transform.IF.TransformerFactory;
 import edu.udel.cis.vsl.civl.transform.IF.Transforms;
@@ -264,6 +265,11 @@ public class ModelTranslator {
 		if (config.loopInvariantEnabled())
 			files.addAll(0,
 					Arrays.asList(LoopContractTransformer.additionalLibraries));
+		else if (config.isEnableMpiContract())
+			// contract transformer requires a subset of the libs that loop
+			// transformer requires:
+			files.addAll(0,
+					Arrays.asList(ContractTransformer.additionalLibraries));
 		unitTasks = new UnitTask[files.size()];
 		for (int i = 0; i < unitTasks.length; i++) {
 			unitTasks[i] = new UnitTask(new File[]{files.get(i)});

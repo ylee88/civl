@@ -11,7 +11,9 @@
 #include <stdio.h>
 #include<civl-stdio.cvh>
 #include <seq.cvh>
+
 #pragma CIVL ACSL 
+
 /* ******************************* Types ******************************* */
 
 /* Represents an actual file: something with a name and contents.

@@ -16,9 +16,9 @@ public class CommonCIVLStateType extends CommonPrimitiveType
 		implements
 			CIVLStateType {
 
-	private final SymbolicUninterpretedType stateKeyType;
+	private SymbolicUninterpretedType stateKeyType;
 
-	private final Function<SymbolicExpression, IntObject> selector;
+	private Function<SymbolicExpression, IntObject> selector;
 
 	public CommonCIVLStateType(SymbolicType symbolicType,
 			NumericExpression sizeofExpression, BooleanExpression facts) {
@@ -30,8 +30,8 @@ public class CommonCIVLStateType extends CommonPrimitiveType
 	}
 
 	@Override
-	public SymbolicExpression selectScopeValuesMap(SymbolicUniverse universe,
-			SymbolicExpression stateValue) {
+	public SymbolicExpression selectScopeValuesMap(
+			SymbolicUniverse universe, SymbolicExpression stateValue) {
 		return universe.tupleRead(stateValue, universe.intObject(1));
 	}
 
@@ -41,6 +41,96 @@ public class CommonCIVLStateType extends CommonPrimitiveType
 		return selector
 				.apply(universe.tupleRead(stateValue, universe.intObject(0)))
 				.getInt();
+	}
+
+	@Override
+	public boolean isNumericType() {
+		return false;
+	}
+
+	@Override
+	public boolean isIntegerType() {
+		return false;
+	}
+
+	@Override
+	public boolean isRealType() {
+		return false;
+	}
+
+	@Override
+	public boolean isPointerType() {
+		return false;
+	}
+
+	@Override
+	public boolean isProcessType() {
+		return false;
+	}
+
+	@Override
+	public boolean isStateType() {
+		return true;
+	}
+
+	@Override
+	public boolean isScopeType() {
+		return false;
+	}
+
+	@Override
+	public boolean isVoidType() {
+		return false;
+	}
+
+	@Override
+	public boolean isHeapType() {
+		return false;
+	}
+
+	@Override
+	public boolean isBundleType() {
+		return false;
+	}
+
+	@Override
+	public boolean isStructType() {
+		return false;
+	}
+
+	@Override
+	public boolean isUnionType() {
+		return false;
+	}
+
+	@Override
+	public boolean isArrayType() {
+		return false;
+	}
+
+	@Override
+	public boolean isIncompleteArrayType() {
+		return false;
+	}
+
+	@Override
+	public boolean isCharType() {
+		return false;
+	}
+
+	@Override
+	public boolean isEnumerationType() {
+		return false;
+	}
+
+	@Override
+	public boolean isBoolType() {
+		return false;
+	}
+
+	@Override
+	public boolean isDomainType() {
+		return false;
 	}
 
 	@Override

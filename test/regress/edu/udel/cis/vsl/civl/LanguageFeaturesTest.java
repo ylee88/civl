@@ -171,8 +171,27 @@ public class LanguageFeaturesTest {
 	}
 
 	@Test
+	public void bundleTest2NonConc() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, filename("bundleTest2_nonconc.cvl")));
+	}
+	@Test
+	public void bundleTest2Conc() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, filename("bundleTest2_conc.cvl")));
+	}
+
+	@Test
+	public void bundleTest3NTPack() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, filename("bundleTest3_NTPack.cvl")));
+	}
+
+	@Test
 	public void bundleTestBad() throws ABCException {
 		assertFalse(ui.run(VERIFY, QUIET, filename("bundleTestBad.cvl")));
+	}
+
+	@Test
+	public void bundlePackBad() throws ABCException {
+		assertFalse(ui.run(VERIFY, QUIET, filename("bundlePackBad.cvl")));
 	}
 
 	@Test

@@ -920,7 +920,6 @@ public class CommonEvaluator implements Evaluator {
 			case EQUAL :
 				return evaluateNumericOperations(state, pid, process,
 						expression);
-			case REMOTE :
 			case VALID :
 				return evaluateValid(state, pid, expression.left(),
 						expression.right(), expression.getSource());
@@ -3700,13 +3699,13 @@ public class CommonEvaluator implements Evaluator {
 		Expression process = valueAt.pid();
 		Expression expression = valueAt.expression();
 		Evaluation eval;
-		SymbolicExpression stateRefVal, processVal;
+		SymbolicExpression stateValue, processVal;
 		State evaluationState;
 		CIVLStateType stateType = typeFactory.stateType();
 
 		eval = evaluate(currentState, pid, stateRef);
 		currentState = eval.state;
-		stateRefVal = eval.value;
+		stateValue = eval.value;
 		eval = evaluate(currentState, pid, process);
 		currentState = eval.state;
 		processVal = eval.value;
@@ -3714,13 +3713,13 @@ public class CommonEvaluator implements Evaluator {
 
 		UnaryOperator<SymbolicExpression> substituter = null;
 
-		if (stateRefVal == modelFactory.statenullConstantValue())
+		if (stateValue == modelFactory.statenullConstantValue())
 			evaluationState = currentState;
 		else {
 			evaluationState = stateFactory.getStateByReference(
-					stateType.selectStateKey(universe, stateRefVal));
+					stateType.selectStateKey(universe, stateValue));
 			substituter = stateFactory.stateValueHelper()
-					.scopeSubstituterForCurrentState(currentState, stateRefVal);
+					.scopeSubstituterForCurrentState(currentState, stateValue);
 		}
 
 		Number processNumber = universe

@@ -1434,6 +1434,8 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 	}
 	/* ********** end-of methods for specific heap structures ******** */
 
+	/* ********** end-of methods for specific heap structures ******** */
+
 	@Override
 	public SymbolicConstant freshBoundVariableFor(SymbolicType type,
 			SymbolicExpression... expressions) {

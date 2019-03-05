@@ -371,21 +371,28 @@ public class LibmpiEvaluator extends BaseLibraryEvaluator
 		// 1. The object type pointed by the given pointer must be consistent
 		// with the given datatype;
 		// 2. The given pointer is dereferable;
-		// 3. The given pointer added with (count * \mpi_extent(datatype)) is
-		// dereferable.
+		// 3. The given pointer must be an array element reference &a[i]
+		// and length(a) > i + (count * \mpi_extent(datatype))
 		Pair<SymbolicExpression, NumericExpression> mpiPtr_datatypeSize;
+		ReferenceExpression mpiPtrRef;
 
 		mpiPtr_datatypeSize = processMPIPointer(state, pid, process, ptrExpr,
 				ptr, datatypeExpr, datatype, expression.getSource());
+		mpiPtrRef = symbolicUtil.getSymRef(mpiPtr_datatypeSize.left);
 		// ptr + (real_count - 1):
 		realOffset = universe.subtract(
 				universe.multiply(count, mpiPtr_datatypeSize.right), one);
+		result = symbolicAnalyzer.isDerefablePointer(state,
+				mpiPtr_datatypeSize.left).left;
+		if (!mpiPtrRef.isArrayElementReference()) {
+			eval.value = universe.equals(result,
+					universe.equals(realOffset, universe.zeroInt()));
+			return eval;
+		}
 		eval = evaluator.arrayElementReferenceAdd(state, pid,
 				mpiPtr_datatypeSize.left, realOffset,
 				expression.getSource()).left;
 		state = eval.state;
-		result = symbolicAnalyzer.isDerefablePointer(state,
-				mpiPtr_datatypeSize.left).left;
 		result = universe.and(result,
 				symbolicAnalyzer.isDerefablePointer(state, eval.value).left);
 		eval.value = result;

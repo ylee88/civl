@@ -56,7 +56,6 @@ import edu.udel.cis.vsl.civl.model.IF.expression.ScopeofExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.SelfExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.SizeofExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.SizeofTypeExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.StateExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.StatenullExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.StructOrUnionLiteralExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.SubscriptExpression;
@@ -419,8 +418,6 @@ public interface ModelFactory {
 	 * @return the new <code>$state_null</code> constant expression
 	 */
 	StatenullExpression statenullExpression(CIVLSource source);
-
-	StateExpression stateExpression(CIVLSource source, Scope scope, int id);
 
 	/**
 	 * Creates a new quantified expression.

@@ -53,13 +53,19 @@ public class CIVLConstants {
 			File.separator + "include");
 
 	/**
-	 * Where the CIVL header files (suffix .h and .cvh) and associated
-	 * implementations (.cvl) are located. This path is relative to the class
-	 * path. Since the "include" directory is in the class path, this will cause
-	 * ABC to look in include/civl.
+	 * Where the CIVL library implementations files (.cvl) are located. This
+	 * path is relative to the class path. Since the "include" directory is in
+	 * the class path, this will cause ABC to look in include/civl.
 	 */
 	public final static File CIVL_INCLUDE_PATH = new File(ROOT_INCLUDE_PATH,
 			"civl");
+
+	/**
+	 * Where the CIVL header files (suffix .h and .cvh) are located. This path
+	 * is relative to the class path.
+	 */
+	public final static File FRONT_END_INCLUDE_PATH = new File(
+			ROOT_INCLUDE_PATH, "abc");
 
 	/** The version of this release of CIVL. */
 	public final static String version = "1.19";
@@ -185,6 +191,15 @@ public class CIVLConstants {
 	public static String CYCLES_VIOLATE = "cyclesViolate";
 
 	// Option objects
+	/**
+	 * Default option value for -mpiContract option {@link #mpiContractO}
+	 */
+	public final static String CONTRACT_CHECK_ALL = "_CIVL_CONTRACT_ALL";
+
+	/**
+	 * Default option value for -mpiContract option {@link #mpiContractO}
+	 */
+	public final static String CONTRACT_CHECK_NONE = "_CIVL_CONTRACT_NONE";
 
 	/**
 	 * Debug option, false by default.
@@ -275,8 +290,12 @@ public class CIVLConstants {
 	 */
 	public final static Option mpiContractO = Option.newScalarOption(
 			MPI_CONTRACT, STRING,
-			"MPI contract mode, specify the name of the function to be verified",
-			null);
+			"MPI contract mode, specify the name of the function to be verified, "
+					+ "or specify \"" + CONTRACT_CHECK_ALL
+					+ "\" for checking all annotated functions."
+					+ " Default value \"" + CONTRACT_CHECK_NONE
+					+ "\" is equivalent to disble MPI contract mode",
+			CONTRACT_CHECK_NONE);
 
 	/**
 	 * Enable all settings that are required for verifying with loop invariants.

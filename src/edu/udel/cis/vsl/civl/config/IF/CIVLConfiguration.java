@@ -868,11 +868,16 @@ public class CIVLConfiguration {
 	}
 
 	public boolean isEnableMpiContract() {
-		return mpiContractFunction != null;
+		return mpiContractFunction != CIVLConstants.CONTRACT_CHECK_NONE;
 	}
 
 	public void setMpiContractFunction(String function) {
-		mpiContractFunction = function;
+		if (function.equals(CIVLConstants.CONTRACT_CHECK_ALL))
+			mpiContractFunction = CIVLConstants.CONTRACT_CHECK_ALL;
+		else if (function.equals(CIVLConstants.CONTRACT_CHECK_NONE))
+			mpiContractFunction = CIVLConstants.CONTRACT_CHECK_NONE;
+		else
+			mpiContractFunction = function;
 	}
 
 	public boolean checkDivisionByZero() {
@@ -914,6 +919,12 @@ public class CIVLConfiguration {
 		this.unpreproc = unpreproc;
 	}
 
+	/**
+	 * @return the target function name which is the only one will be verified
+	 *         under (mpi-)contract mode. Absent of the target function name
+	 *         will cause this method returns <code>null</code> which means
+	 *         verify all annotated functions.
+	 */
 	public String mpiContractFunction() {
 		return this.mpiContractFunction;
 	}

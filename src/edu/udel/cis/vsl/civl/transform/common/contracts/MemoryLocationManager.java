@@ -76,18 +76,52 @@ public class MemoryLocationManager {
 	 * A map from entities to pairs of pointer type <code>T*</code> and the
 	 * number of objects of type <code>T</code>.
 	 */
-	private Map<Entity, Pair<Type, ExpressionNode>> memoryLocationSet;
+	private Map<Entity, List<Pair<Type, ExpressionNode>>> memoryLocationSet;
 
 	public MemoryLocationManager(NodeFactory nodeFactory) {
 		this.nodeFactory = nodeFactory;
 		this.memoryLocationSet = new HashMap<>();
 	}
 
+	/**
+	 * <p>
+	 * Save a memory location set, which is represented as
+	 * <code>p + l ... h</code>, where p is a pointer to T type identifier
+	 * expression and <code>l .. h</code> is a regular range.
+	 * </p>
+	 * <p>
+	 * The the memory location set is thus equivalent to a memory block of type:
+	 * <code>T[h-l]</code>.
+	 * </p>
+	 * <p>
+	 * The memory location set is saved with the correspondence to the pointer
+	 * identifier p. It means that this is one of the memory blocks that are
+	 * possibly pointed by p.
+	 * </p>
+	 */
 	public void addMemoryLocationSet(ExpressionNode ptr, ExpressionNode count) {
-		Entity entity = parseMemoryLocationSet(ptr).left;
 		Pair<Type, ExpressionNode> value = new Pair<>(ptr.getType(), count);
+		/*
+		 * For the pointer type expression, currently only identifier expression
+		 * or cast of identifier expression kinds are supported.
+		 */
+		if (ptr.expressionKind() == ExpressionKind.CAST)
+			ptr = ((CastNode) ptr).getArgument();
+		if (ptr.expressionKind() != ExpressionKind.IDENTIFIER_EXPRESSION)
+			throw new CIVLUnimplementedFeatureException(
+					"Transform \\valid expressions containing "
+							+ "pointer type expressions that are NOT identifiers",
+					ptr.getSource());
 
-		memoryLocationSet.put(entity, value);
+		Variable entity = (Variable) ((IdentifierExpressionNode) ptr)
+				.getIdentifier().getEntity();
+		List<Pair<Type, ExpressionNode>> memLocInfos = memoryLocationSet
+				.get(entity);
+
+		if (memLocInfos == null)
+			memLocInfos = new LinkedList<>();
+		memLocInfos.add(value);
+		memoryLocationSet.put(entity, memLocInfos);
 	}
 
 	public Variable variableContainingMemoryLocationSet(
@@ -102,15 +136,21 @@ public class MemoryLocationManager {
 						+ memoryLocationSet.prettyRepresentation());
 	}
 
-	public MemoryBlock getMemoryLocationSize(ExpressionNode memset)
+	/**
+	 * 
+	 * @return a list of {@link MemoryBlock}s that are associated with the given
+	 *         <code>memset</code> expression.
+	 * @throws SyntaxException
+	 */
+	public List<MemoryBlock> getMemoryLocationSize(ExpressionNode memset)
 			throws SyntaxException {
 		Pair<Entity, ExpressionNode> entity_identifier = parseMemoryLocationSet(
 				memset);
 		Entity entity = entity_identifier.left;
-		Pair<Type, ExpressionNode> typeSigniture = memoryLocationSet
+		List<Pair<Type, ExpressionNode>> typeSignatures = memoryLocationSet
 				.get(entity);
 
-		if (typeSigniture == null) {
+		if (typeSignatures == null) {
 			if (entity.getEntityKind() == EntityKind.VARIABLE
 					&& ((Variable) entity).getType()
 							.kind() != TypeKind.POINTER) {
@@ -120,11 +160,14 @@ public class MemoryLocationManager {
 				ExpressionNode addr = nodeFactory.newOperatorNode(source,
 						Operator.ADDRESSOF, entity_identifier.right);
 
-				return new MemoryBlock(addr, var.getType(), null);
+				return Arrays
+						.asList(new MemoryBlock(addr, var.getType(), null));
 			} else if (memset.expressionKind() == ExpressionKind.OPERATOR) {
 				OperatorNode opNode = (OperatorNode) memset;
-				// the memory set expression has the form : var[low .. high],
-				// where var can only have an array of T or pointer to T type
+				// the memory set expression has the form : var[low ..
+				// high],
+				// where var can only have an array of T or pointer to T
+				// type
 				// and T is a non-pointer type:
 				MemoryBlock result = null;
 
@@ -135,28 +178,33 @@ public class MemoryLocationManager {
 					result = getMemoryBlockSizeFromDereference(
 							memset.getSource(), opNode);
 				if (result != null)
-					return result;
+					return Arrays.asList(result);
 			}
 			throw new CIVLUnimplementedFeatureException(
 					"statically parse the memory locations expressed: "
 							+ memset.prettyRepresentation());
 		}
 
-		Type type = typeSigniture.left;
-		ExpressionNode count = typeSigniture.right;
+		List<MemoryBlock> results = new LinkedList<>();
 
-		assert type.kind() == TypeKind.POINTER;
-		// TODO: filed should associate to a struct object entity
-		if (entity.getEntityKind() == EntityKind.FIELD)
-			return new MemoryBlock(entity_identifier.right,
-					((PointerType) type).referencedType(), count);
-		else if (entity.getEntityKind() == EntityKind.VARIABLE)
-			return new MemoryBlock(entity_identifier.right,
-					((PointerType) type).referencedType(), count);
-		else
-			throw new CIVLSyntaxException(
-					"Fail to recognize memory location set expression "
-							+ memset.prettyRepresentation());
+		for (Pair<Type, ExpressionNode> typeSignature : typeSignatures) {
+			Type type = typeSignature.left;
+			ExpressionNode count = typeSignature.right;
+
+			assert type.kind() == TypeKind.POINTER;
+			// TODO: filed should associate to a struct object entity
+			if (entity.getEntityKind() == EntityKind.FIELD)
+				results.add(new MemoryBlock(entity_identifier.right,
+						((PointerType) type).referencedType(), count));
+			else if (entity.getEntityKind() == EntityKind.VARIABLE)
+				results.add(new MemoryBlock(entity_identifier.right,
+						((PointerType) type).referencedType(), count));
+			else
+				throw new CIVLSyntaxException(
+						"Fail to recognize memory location set expression "
+								+ memset.prettyRepresentation());
+		}
+		return results;
 	}
 
 	/**

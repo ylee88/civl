@@ -118,3 +118,4 @@ public class LibcollateConstantsAndUtils {
 				universe.intObject(GCOLLATE_STATE_STATE));
 	}
 }
+

@@ -1,0 +1,20 @@
+$input int N;
+$assume(N > 10);
+$input double x[N];
+
+int main() {  
+  $assume($forall (int i | 1 <= i && i < (N-3) && i % 4 == 1) x[i] == 0);
+  $assume($forall (int i | 1 <= i && i < (N-3) && i % 4 == 1) x[i+1] == 0);
+  $assume($forall (int i | 1 <= i && i < (N-3) && i % 4 == 1) x[i+2] == 0);
+  $assume($forall (int i | 1 <= i && i < (N-3) && i % 4 == 1) x[i+3] == 0);
+
+  /*
+   * n is step, m is offset: <br>
+   * <code>high' == high % n == m ? (high + n - 1) : 
+   *                                (high % n &lt m ? h - h % n + m - 1 : h - h % n + m + n - 1)</code>
+   */
+  int new_upper = (N-4)%4 == 1 ? ((N-4) + 4 - 1) :
+    ((N-4) % 4 < 1) ? (N-4) - (N-4)%4 + 1 - 1 : (N-4) - (N-4)%4 + 1 - 1 + 1;
+  
+  $assert($forall (int i : 1 .. new_upper) x[i] == 0);
+}

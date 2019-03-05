@@ -78,7 +78,6 @@ import edu.udel.cis.vsl.civl.model.IF.expression.ScopeofExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.SelfExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.SizeofExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.SizeofTypeExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.StateExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.StatenullExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.StructOrUnionLiteralExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.SubscriptExpression;
@@ -151,7 +150,6 @@ import edu.udel.cis.vsl.civl.model.common.expression.CommonScopeofExpression;
 import edu.udel.cis.vsl.civl.model.common.expression.CommonSelfExpression;
 import edu.udel.cis.vsl.civl.model.common.expression.CommonSizeofExpression;
 import edu.udel.cis.vsl.civl.model.common.expression.CommonSizeofTypeExpression;
-import edu.udel.cis.vsl.civl.model.common.expression.CommonStateExpression;
 import edu.udel.cis.vsl.civl.model.common.expression.CommonStatenullExpression;
 import edu.udel.cis.vsl.civl.model.common.expression.CommonStructOrUnionLiteralExpression;
 import edu.udel.cis.vsl.civl.model.common.expression.CommonSubscriptExpression;
@@ -450,17 +448,6 @@ public class CommonModelFactory implements ModelFactory {
 		Scope lowestScope = getLower(left.lowestScope(), right.lowestScope());
 
 		switch (operator) {
-			case REMOTE :
-				CIVLType processExpr = left.getExpressionType();
-
-				if (!processExpr.isIntegerType())
-					throw new CIVLException("Incompatible types to "
-							+ BINARY_OPERATOR.REMOTE
-							+ " operand. The left hand side expression must have a integer type.",
-							source);
-				return new CommonBinaryExpression(source, expressionScope,
-						lowestScope, right.getExpressionType(), operator, left,
-						right);
 			case AND :
 			case EQUAL :
 			case LESS_THAN :
@@ -2148,13 +2135,6 @@ public class CommonModelFactory implements ModelFactory {
 			Expression colStateExpr, CIVLFunction function) {
 		return new CommonWithStatement(source, srcLoc,
 				this.trueExpression(source), colStateExpr, function);
-	}
-
-	@Override
-	public StateExpression stateExpression(CIVLSource source, Scope scope,
-			int id) {
-		return new CommonStateExpression(source, scope,
-				this.typeFactory.stateType, id);
 	}
 
 	@Override

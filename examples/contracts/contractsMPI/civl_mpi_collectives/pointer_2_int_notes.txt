@@ -1,0 +1,87 @@
+pointer_t {
+  int b;
+  int offset;
+}
+
+CASE 0:
+requires \valid(p);
+assigns  *p;
+ensures  *p == 0;
+f(int * p);
+
+PROPOSED SOLUTION 0:
+int H0[1][];
+pointer_t p';
+requires p' == {0, 0};
+assigns H0[p'.b][p'.offset + 0];
+ensures H0[p'.b][p'.offset + 0] == 0;
+p = &H0[p'.b][p'.offset];
+f(p);
+
+##############################################################
+
+CASE 1:
+typedef struct t {
+  int * x;
+} T;
+
+requires \valid(p) && \valid(p->x + 0 .. 10);
+assigns  *(p->x);
+ensures  (p->x[0]) == 0;
+f(T * p);
+
+PROPOSED SOLUTION 1:
+T H0[1][];
+int H1[2][];
+int p';
+requires p' == {0,0} && H0[p'.b][p'.offset].x' == {1, 0};
+assigns  H1[H0[p'][0].x'.b][H0[p'][0].x'.offset + 0];
+ensures  H1[H0[p'][0].x'.b][H0[p'][0].x'.offset + 0] == 0;
+p = H0[p'];
+p->x = H1[H0[p'][0].x'];
+f(p);
+
+##############################################################
+
+CASE 2:
+requires \valid(p) || p == MPI_IN_PLACE;
+f(void *p);
+
+PROPOSED_SOLUTION 2:
+char H0[1][];
+int  H1[2][];
+int p';
+int MIPS = 1;
+H1[MIPS][0] = MPI_IN_PLACE_SPOT;
+requires p' == 0 || p' == MIPS;
+
+##############################################################
+
+CASE 3:
+requires \valid(p + 0 .. 10) && \valid(p[0 .. 10] + 0 .. 10);
+assigns  p[0 .. 10][0 .. 10];
+f(void **p);
+
+PROPOSED_SOLUTION 2:
+int H0[1][];   //'char *' is 'int' as well
+char H1[11][];
+
+requires p' == 0 && FORALL i; 0<=i<=10 ==> H0[p'][i] == 1 + i;
+assigns  H1[H0[p'][0 .. 10]][0 .. 10];
+
+##############################################################
+
+Possible patterns of pointer p in expressions:
+p[n] ->  H0[p'][n]
+
+p->x ->  H0[p'].x
+
+*p   ->  H0[p'][0]
+
+p + n ->  &H0[p'][0] + n
+
+p - q -> UNIMPLEMENTED/ either within an array or UNDEFINED
+
+
+
+

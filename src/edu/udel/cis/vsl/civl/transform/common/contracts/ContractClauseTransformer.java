@@ -1,11 +1,12 @@
 package edu.udel.cis.vsl.civl.transform.common.contracts;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import edu.udel.cis.vsl.abc.ast.IF.ASTFactory;
 import edu.udel.cis.vsl.abc.ast.node.IF.ASTNode;
@@ -17,27 +18,18 @@ import edu.udel.cis.vsl.abc.ast.node.IF.acsl.MPIContractExpressionNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.acsl.MPIContractExpressionNode.MPIContractExpressionKind;
 import edu.udel.cis.vsl.abc.ast.node.IF.declaration.InitializerNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.declaration.VariableDeclarationNode;
-import edu.udel.cis.vsl.abc.ast.node.IF.expression.CastNode;
-import edu.udel.cis.vsl.abc.ast.node.IF.expression.EnumerationConstantNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode.ExpressionKind;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.FunctionCallNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.IdentifierExpressionNode;
-import edu.udel.cis.vsl.abc.ast.node.IF.expression.OperatorNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.OperatorNode.Operator;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.RegularRangeNode;
-import edu.udel.cis.vsl.abc.ast.node.IF.expression.RemoteOnExpressionNode;
-import edu.udel.cis.vsl.abc.ast.node.IF.expression.ResultNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.BlockItemNode;
-import edu.udel.cis.vsl.abc.ast.node.IF.statement.DeclarationListNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.ForLoopInitializerNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.StatementNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.type.TypeNode;
-import edu.udel.cis.vsl.abc.ast.type.IF.PointerType;
 import edu.udel.cis.vsl.abc.ast.type.IF.StandardBasicType.BasicTypeKind;
 import edu.udel.cis.vsl.abc.ast.type.IF.Type.TypeKind;
-import edu.udel.cis.vsl.abc.ast.value.IF.Value;
-import edu.udel.cis.vsl.abc.ast.value.IF.ValueFactory.Answer;
 import edu.udel.cis.vsl.abc.front.IF.CivlcTokenConstant;
 import edu.udel.cis.vsl.abc.token.IF.CivlcToken;
 import edu.udel.cis.vsl.abc.token.IF.CivlcToken.TokenVocabulary;
@@ -45,28 +37,14 @@ import edu.udel.cis.vsl.abc.token.IF.Formation;
 import edu.udel.cis.vsl.abc.token.IF.Source;
 import edu.udel.cis.vsl.abc.token.IF.SyntaxException;
 import edu.udel.cis.vsl.abc.token.IF.TokenFactory;
-import edu.udel.cis.vsl.abc.util.IF.Pair;
-import edu.udel.cis.vsl.civl.model.IF.CIVLSyntaxException;
+import edu.udel.cis.vsl.civl.transform.SubstituteGuide;
 import edu.udel.cis.vsl.civl.transform.common.BaseWorker;
+import edu.udel.cis.vsl.civl.transform.common.contracts.ClauseTransformGuideGenerator.ClauseTransformGuide;
 import edu.udel.cis.vsl.civl.transform.common.contracts.FunctionContractBlock.ConditionalClauses;
-import edu.udel.cis.vsl.civl.transform.common.contracts.MPIContractUtilities.TransformConfiguration;
+import edu.udel.cis.vsl.civl.transform.common.contracts.FunctionContractBlock.ContractClause;
 class ContractClauseTransformer {
 
 	public static final String ContractClauseTransformerName = "Contract-clause";
-
-	private int tmpHeapCounter = 0;
-
-	private int tmpAssignCounter = 0;
-
-	private int tmpExtentCounter = 0;
-
-	Map<String, String> datatype2counter;
-
-	/**
-	 * Conditions that should be implied by requirements of the function
-	 * contract otherwise there are side-effect errors.
-	 */
-	LinkedList<ExpressionNode> sideEffectConditions;
 
 	/**
 	 * A reference to an instance of {@link NodeFactory}
@@ -78,189 +56,342 @@ class ContractClauseTransformer {
 	 */
 	private ASTFactory astFactory;
 
-	class TransformPair {
-		List<BlockItemNode> requirements;
-		List<BlockItemNode> ensurances;
+	// /**
+	// * A reference to an instance of {@link MemoryLocationManager}
+	// */
+	// private MemoryLocationManager memoryLocationManager;
 
-		TransformPair(List<BlockItemNode> preNodes,
-				List<BlockItemNode> postNodes) {
-			this.requirements = preNodes;
-			this.ensurances = postNodes;
+	/**
+	 * <p>
+	 * This class consists of the final transformed ASTNodes which are divided
+	 * into two groups: ASTNodes before the "function" and ASTNodes after the
+	 * "function".
+	 * </p>
+	 * 
+	 * <p>
+	 * Here "function" refers to two kinds of code:
+	 * <ol>
+	 * <li>The target function call in the driver of the target function</li>
+	 * <li>The transformation of "assigns" clauses of the callee functions since
+	 * these are the parts "simulate" the side-effect modification of the
+	 * function.</li>
+	 * </ol>
+	 * </p>
+	 * 
+	 * @author ziqingluo
+	 */
+	class TransformedPair {
+		List<BlockItemNode> before;
+		List<BlockItemNode> after;
+
+		TransformedPair(List<BlockItemNode> before, List<BlockItemNode> after) {
+			this.before = before;
+			this.after = after;
 		}
 	}
 
-	ContractClauseTransformer(ASTFactory astFactory) {
+	ContractClauseTransformer(ASTFactory astFactory,
+			MemoryLocationManager memoryLocationManager) {
 		this.astFactory = astFactory;
 		this.nodeFactory = astFactory.getNodeFactory();
-		this.datatype2counter = new HashMap<>();
-		this.sideEffectConditions = new LinkedList<>();
+		// this.memoryLocationManager = memoryLocationManager;
 	}
 
 	/**
-	 * Replace ACSL constructs to CIVL-C primitives
+	 * <p>
+	 * This methods analyzes the given {@link FunctionContractBlock}, creates
+	 * {@link ClauseTransformGuide}s for requirements and ensurances. A
+	 * {@link ClauseTransformGuide} is associated with one ACSL clauses such as
+	 * a <code>requires</code> or a <code>ensures</code> clause.
+	 * </p>
+	 * 
+	 * <p>
+	 * The analysis process does not modify the ASTree hence this is suppose to
+	 * happen before the release of the tree. During the analysis, new nodes
+	 * will be generated in {@link ClauseTransformGuide}s which encodes the
+	 * information of how to transform (modify) the program with those generated
+	 * nodes.
+	 * </p>
+	 * 
+	 * @param block
+	 *            The {@link FunctionContractBlock} which is either the
+	 *            sequential contract block or one of the MPI collective blocks
+	 * @param isCallee
+	 *            true iff the given contracts belong to a callee function
+	 * @param isPurelyLocalFunction
+	 *            true iff the given contracts is sequential contract and it
+	 *            belongs to a function has no MPI collective contract
+	 * @param requiresGuides
+	 *            output. {@link ClauseTransformGuide}s for
+	 *            <code>requires</code> clauses
+	 * @param ensuresGuides
+	 *            output. {@link ClauseTransformGuide}s for <code>ensures</code>
+	 *            clauses
+	 * @throws SyntaxException
 	 */
-	ExpressionNode ACSLPrimitives2CIVLC(ExpressionNode predicate,
-			TransformConfiguration config) throws SyntaxException {
-		predicate = old2ValueAt(predicate, null, config);
-		return on2ValueAt(predicate, null, config);
-	}
+	void analysisContractBlock(FunctionContractBlock block, boolean isCallee,
+			boolean isPurelyLocalFunction,
+			List<ClauseTransformGuide> requiresGuides,
+			List<ClauseTransformGuide> ensuresGuides) throws SyntaxException {
+		int nameCounter = 0;
+		Map<String, String> mpiDatatype2intermediateName = new HashMap<>();
 
-	ExpressionNode ACSLPrimitives2CIVLC(ExpressionNode predicate,
-			ExpressionNode preCollateState, TransformConfiguration config)
-			throws SyntaxException {
-		ExpressionNode state = createCollateGetStateCall(preCollateState,
-				predicate.getSource());
+		for (ConditionalClauses condClause : block.getConditionalClauses()) {
+			ContractClause requires = condClause.getRequires();
+			ContractClause ensures = condClause.getEnsures();
+			ClauseTransformGuide reqTransGuide = new ClauseTransformGuide(
+					requires, condClause.getConditions(),
+					condClause.getWaitsfors(), mpiDatatype2intermediateName,
+					nameCounter);
+			boolean isLocal = block.isSequentialBlock();
 
-		predicate = on2ValueAt(predicate, null, config);
-		predicate = old2ValueAt(predicate, state, config);
-		return result2intermediate(predicate, config);
-	}
+			if (isCallee)
+				ClauseTransformGuideGenerator.transformAssert(requires,
+						astFactory, isLocal, !isPurelyLocalFunction, null,
+						reqTransGuide);
+			else
+				ClauseTransformGuideGenerator.transformAssume(requires,
+						astFactory, isLocal, !isPurelyLocalFunction, null,
+						reqTransGuide);
 
-	Pair<List<BlockItemNode>, ExpressionNode> ACSLSideEffectRemoving(
-			ExpressionNode predicate, TransformConfiguration config)
-			throws SyntaxException {
-		Pair<List<BlockItemNode>, ExpressionNode> result = mpiExtentSERemove(
-				predicate);
-		Pair<List<BlockItemNode>, ExpressionNode> subResult = MPIDatatype2datatypeExtentSERemove(
-				predicate);
+			nameCounter = reqTransGuide.nameCounter; // update name counter
+			ClauseTransformGuide ensTransGuide = new ClauseTransformGuide(
+					ensures, condClause.getConditions(),
+					condClause.getWaitsfors(), mpiDatatype2intermediateName,
+					nameCounter);
+			ExpressionNode civlcPreState = identifierExpressionNode(
+					block.getContractBlockSource(),
+					MPIContractUtilities.PRE_STATE);
 
-		result.left.addAll(subResult.left);
-		result.right = subResult.right;
-		if (config.alloc4Valid()) {
-			subResult = allocation4Valids(result.right, config);
-			result.left.addAll(subResult.left);
-			result.right = subResult.right;
+			if (isCallee)
+				ClauseTransformGuideGenerator.transformAssume(ensures,
+						astFactory, isLocal, !isPurelyLocalFunction,
+						civlcPreState, ensTransGuide);
+			else
+				ClauseTransformGuideGenerator.transformAssert(ensures,
+						astFactory, isLocal, !isPurelyLocalFunction,
+						civlcPreState, ensTransGuide);
+			nameCounter = ensTransGuide.nameCounter; // update name counter
+			requiresGuides.add(reqTransGuide);
+			ensuresGuides.add(ensTransGuide);
 		}
-		return result;
 	}
 
-	TransformPair transformMPICollectiveBlock4Callee(
-			FunctionContractBlock mpiBlock, TransformConfiguration config)
-			throws SyntaxException {
-		LinkedList<BlockItemNode> requirements = new LinkedList<>();
-		LinkedList<BlockItemNode> ensurances = new LinkedList<>();
-		ExpressionNode mpiComm = mpiBlock.getMPIComm();
-		Source source = mpiComm.getSource();
-		VariableDeclarationNode preStateDecl = createCollateStateInitializer(
-				MPIContractUtilities.COLLATE_PRE_STATE, mpiComm);
-		ExpressionNode preState = nodeFactory.newIdentifierExpressionNode(
-				source,
-				nodeFactory.newIdentifierNode(source, preStateDecl.getName()));
-		VariableDeclarationNode postStateDecl = createCollateStateInitializer(
-				MPIContractUtilities.COLLATE_POST_STATE, mpiComm);
-		ExpressionNode postState = nodeFactory.newIdentifierExpressionNode(
-				source,
-				nodeFactory.newIdentifierNode(source, postStateDecl.getName()));
+	/**
+	 * <p>
+	 * Transform sequential function contracts to a {@link TransformedPair}.
+	 * This process will actually modify the AST hence it must happen after the
+	 * release of the AST.
+	 * </p>
+	 * 
+	 * @param requiresGuides
+	 *            a list of {@link ClauseTransformGuide} for
+	 *            <code>requires</code> clauses
+	 * @param ensuresGuides
+	 *            a list of {@link ClauseTransformGuide} for
+	 *            <code>ensures</code> clauses
+	 * @param localBlock
+	 *            The {@link FunctionContractBlock} which contains (but not only
+	 *            contains) the <code>requires</code> and <code>ensures</code>
+	 *            clauses, which are associated with the given guides.
+	 * @param isPurelyLocalFunction
+	 *            true iff the function, to which the contract belongs, has no
+	 *            MPI collective contract
+	 * @param isCallee
+	 *            true iff the function, to which the contract belongs, is not
+	 *            the target function
+	 * @return a {@link TransformedPair} which is the result of the
+	 *         transformation of the given contract block
+	 * @throws SyntaxException
+	 */
+	TransformedPair transformLocalBlock(
+			List<ClauseTransformGuide> requiresGuides,
+			List<ClauseTransformGuide> ensuresGuides,
+			FunctionContractBlock localBlock, boolean isPurelyLocalFunction,
+			boolean isCallee) throws SyntaxException {
+		List<BlockItemNode> reqTranslations = new LinkedList<>();
+		List<BlockItemNode> ensTranslations = new LinkedList<>();
+		List<BlockItemNode> assignsTranslations = new LinkedList<>();
 
-		requirements.addAll(mpiConstantsInitialization(mpiComm));
-		requirements.add(preStateDecl);
-		ensurances.add(postStateDecl);
-
-		for (ConditionalClauses condClause : mpiBlock.getConditionalClauses()) {
-			ExpressionNode requires = condClause.getRequires(nodeFactory);
-			ExpressionNode ensures = condClause.getEnsures(nodeFactory);
-			Pair<List<BlockItemNode>, ExpressionNode> sideEffects;
-
-			if (requires != null) {
-				config.setIgnoreOld(true);
-				config.setNoResult(true);
-				config.setAlloc4Valid(false);
-				sideEffects = ACSLSideEffectRemoving(requires, config);
-				requirements.addAll(0, sideEffects.left);
-				requires = ACSLPrimitives2CIVLC(sideEffects.right, preState,
-						config);
-				requirements.addAll(
-						transformClause2Checking(condClause.condition, requires,
-								preState, condClause.getWaitsfors(), config));
-			}
-			requirements.addAll(transformAssignsClause(condClause));
-			if (ensures != null) {
-				config.setIgnoreOld(false);
-				config.setNoResult(false);
-				config.setAlloc4Valid(false);
-				sideEffects = ACSLSideEffectRemoving(ensures, config);
-				ensures = ACSLPrimitives2CIVLC(sideEffects.right, preState,
-						config);
-				ensurances.addAll(0, sideEffects.left);
-				ensurances.addAll(transformClause2Assumption(
-						condClause.condition, ensures, postState,
-						condClause.getWaitsfors(), config));
-			}
+		// transform requires:
+		for (ClauseTransformGuide reqGuide : requiresGuides)
+			reqTranslations.addAll(reqGuide.prefix);
+		for (ClauseTransformGuide reqGuide : requiresGuides) {
+			substitute(reqGuide);
+			reqTranslations.addAll(createConditionalAssumeOrAssert(!isCallee,
+					reqGuide.conditions,
+					reqGuide.clause.getClauseExpressions()));
 		}
-		return new TransformPair(requirements, ensurances);
+		for (ClauseTransformGuide reqGuide : requiresGuides)
+			reqTranslations.addAll(reqGuide.suffix);
+
+		// transform ensures:
+		for (ClauseTransformGuide ensGuide : ensuresGuides)
+			ensTranslations.addAll(ensGuide.prefix);
+		for (ClauseTransformGuide ensGuide : ensuresGuides) {
+			substitute(ensGuide);
+			ensTranslations.addAll(createConditionalAssumeOrAssert(isCallee,
+					ensGuide.conditions,
+					ensGuide.clause.getClauseExpressions()));
+		}
+		for (ClauseTransformGuide ensGuide : ensuresGuides)
+			ensTranslations.addAll(ensGuide.suffix);
+
+		if (isCallee) {
+			// Transformation of "assigns" ...
+			for (ConditionalClauses condClause : localBlock
+					.getConditionalClauses())
+				assignsTranslations
+						.addAll(transformAssignsClause(!isCallee, condClause));
+		}
+		// TODO: check assigns for target (!isCallee)
+		// create pre-state:
+		if (isPurelyLocalFunction)
+			reqTranslations.addAll(createState4PureLocalFunction(
+					localBlock.getContractBlockSource()));
+		reqTranslations.addAll(assignsTranslations);
+		return new TransformedPair(reqTranslations, ensTranslations);
 	}
 
-	TransformPair transformMPICollectiveBlock4Target(
-			FunctionContractBlock mpiBlock, TransformConfiguration config)
+	/**
+	 * <p>
+	 * Transform a collective contract block to a {@link TransformedPair}. This
+	 * process will actually modify the AST hence it must happen after the
+	 * release of the AST.
+	 * </p>
+	 * 
+	 * @param requiresGuides
+	 *            a list of {@link ClauseTransformGuide} for
+	 *            <code>requires</code> clauses
+	 * @param ensuresGuides
+	 *            a list of {@link ClauseTransformGuide} for
+	 *            <code>ensures</code> clauses
+	 * @param mpiBlock
+	 *            The {@link FunctionContractBlock} which contains (but not only
+	 *            contains) the <code>requires</code> and <code>ensures</code>
+	 *            clauses, which are associated with the given guides.
+	 * @param isTarget
+	 *            true iff the function, to which the contract belongs, is the
+	 *            target function
+	 * @return a {@link TransformedPair} which is the result of the
+	 *         transformation of the given contract block
+	 * @throws SyntaxException
+	 */
+	TransformedPair transformMPICollectiveBlock(
+			List<ClauseTransformGuide> requiresGuides,
+			List<ClauseTransformGuide> ensuresGuides,
+			FunctionContractBlock mpiBlock, boolean isTarget)
 			throws SyntaxException {
 		LinkedList<BlockItemNode> reqTranslation = new LinkedList<>();
 		LinkedList<BlockItemNode> ensTranslation = new LinkedList<>();
+		LinkedList<BlockItemNode> assignsTranslation = new LinkedList<>();
 		ExpressionNode mpiComm = mpiBlock.getMPIComm();
 		Source source = mpiComm.getSource();
-		VariableDeclarationNode preStateDecl = createCollateStateInitializer(
+		// a $collate_state object for pre-state...
+		VariableDeclarationNode preCoStateDecl = createCollateStateInitializer(
 				MPIContractUtilities.COLLATE_PRE_STATE, mpiComm);
-		ExpressionNode preState = nodeFactory.newIdentifierExpressionNode(
-				source,
-				nodeFactory.newIdentifierNode(source, preStateDecl.getName()));
-		VariableDeclarationNode postStateDecl = createCollateStateInitializer(
+		// a $state object which hold the value of the $state field in a collate
+		// state. This is a manual side-effect removing in order to by-pass the
+		// checking of side-effects in quantified expressions ...
+		IdentifierNode preState = nodeFactory.newIdentifierNode(source,
+				MPIContractUtilities.PRE_STATE);
+		TypeNode pointer2stateType = nodeFactory.newPointerTypeNode(source,
+				nodeFactory.newStateTypeNode(source));
+		VariableDeclarationNode preStateDecl = nodeFactory
+				.newVariableDeclarationNode(source, preState, pointer2stateType,
+						createCollateGetStateCall(
+								identifierExpressionNode(source,
+										MPIContractUtilities.COLLATE_PRE_STATE),
+								source));
+		// a $collate_state object for post-state ...
+		VariableDeclarationNode postCoStateDecl = createCollateStateInitializer(
 				MPIContractUtilities.COLLATE_POST_STATE, mpiComm);
-		ExpressionNode postState = nodeFactory.newIdentifierExpressionNode(
-				source,
-				nodeFactory.newIdentifierNode(source, postStateDecl.getName()));
-		Pair<List<BlockItemNode>, ExpressionNode> sideEffects;
-		List<BlockItemNode> sideEffectTranslation = new LinkedList<>();
 
+		reqTranslation.addAll(mpiConstantsInitialization(mpiComm));
+		ensTranslation.add(postCoStateDecl);
+
+		ExpressionNode collatePreState = identifierExpressionNode(source,
+				MPIContractUtilities.COLLATE_PRE_STATE);
+		ExpressionNode collatePostState = identifierExpressionNode(source,
+				MPIContractUtilities.COLLATE_POST_STATE);
+
+		// transform requires:
+		for (ClauseTransformGuide reqGuide : requiresGuides)
+			reqTranslation.addAll(reqGuide.prefix);
+		// prefix should be visible for pre-state:
+		reqTranslation.add(preCoStateDecl);
 		reqTranslation.add(preStateDecl);
-		ensTranslation.add(postStateDecl);
-		for (ConditionalClauses condClause : mpiBlock.getConditionalClauses()) {
-			ExpressionNode requires = condClause.getRequires(nodeFactory);
-			ExpressionNode ensures = condClause.getEnsures(nodeFactory);
-
-			if (requires != null) {
-				config.setIgnoreOld(true);
-				config.setNoResult(true);
-				config.setAlloc4Valid(true);
-				sideEffects = ACSLSideEffectRemoving(requires, config);
-				// Translation of side effects should be inserted at the head of
-				// the whole translation; Translation of side effects should be
-				// inserted in order.
-				sideEffectTranslation.addAll(sideEffects.left);
-				requires = ACSLPrimitives2CIVLC(sideEffects.right, preState,
-						config);
+		for (ClauseTransformGuide reqGuide : requiresGuides) {
+			substitute(reqGuide);
+			if (isTarget)
 				reqTranslation.addAll(transformClause2Assumption(
-						condClause.condition, requires, preState,
-						condClause.getWaitsfors(), config));
-				sideEffectConditions.clear();
-			}
-			if (ensures != null) {
-				// TODO: How check assigns ?
-				config.setIgnoreOld(false);
-				config.setNoResult(false);
-				config.setAlloc4Valid(false);
-				sideEffects = ACSLSideEffectRemoving(ensures, config);
-				ensTranslation.addAll(0, sideEffects.left);
-				ensures = ACSLPrimitives2CIVLC(sideEffects.right, preState,
-						config);
-				ensTranslation.addAll(
-						transformClause2Checking(condClause.condition, ensures,
-								postState, condClause.getWaitsfors(), config));
-			}
+						conjunct(reqGuide.conditions),
+						conjunct(reqGuide.clause.getClauseExpressions()),
+						collatePreState, reqGuide.arrivends, isTarget));
+			else
+				reqTranslation.addAll(
+						transformClause2Checking(conjunct(reqGuide.conditions),
+								conjunct(
+										reqGuide.clause.getClauseExpressions()),
+								collatePreState, reqGuide.arrivends, isTarget));
 		}
-		reqTranslation.addAll(0, sideEffectTranslation);
-		reqTranslation.addAll(0, mpiConstantsInitialization(mpiComm));
-		ensTranslation.addLast(nodeFactory.newExpressionStatementNode(
-				createMPICommEmptyCall(mpiComm, mpiBlock.getKind())));
-		return new TransformPair(reqTranslation, ensTranslation);
+		for (ClauseTransformGuide reqTuple : requiresGuides)
+			reqTranslation.addAll(reqTuple.suffix);
+
+		// transform ensures:
+		for (ClauseTransformGuide ensGuide : ensuresGuides)
+			ensTranslation.addAll(ensGuide.prefix);
+		for (ClauseTransformGuide ensGuide : ensuresGuides) {
+			substitute(ensGuide);
+			if (isTarget)
+				ensTranslation.addAll(transformClause2Checking(
+						conjunct(ensGuide.conditions),
+						conjunct(ensGuide.clause.getClauseExpressions()),
+						collatePostState, ensGuide.arrivends, isTarget));
+			else
+				ensTranslation.addAll(transformClause2Assumption(
+						conjunct(ensGuide.conditions),
+						conjunct(ensGuide.clause.getClauseExpressions()),
+						collatePostState, ensGuide.arrivends, isTarget));
+		}
+		for (ClauseTransformGuide ensTuple : ensuresGuides)
+			ensTranslation.addAll(ensTuple.suffix);
+
+		if (!isTarget)
+			for (ConditionalClauses condClause : mpiBlock
+					.getConditionalClauses())
+				assignsTranslation
+						.addAll(transformAssignsClause(isTarget, condClause));
+		// TODO: check assigns for target
+
+		StatementNode unsnapshotPre = nodeFactory.newExpressionStatementNode(
+				createMPIUnsnapshotCall(mpiBlock.getMPIComm().copy(),
+						identifierExpressionNode(source,
+								MPIContractUtilities.COLLATE_PRE_STATE)));
+		StatementNode unsnapshotPost = nodeFactory.newExpressionStatementNode(
+				createMPIUnsnapshotCall(mpiBlock.getMPIComm().copy(),
+						identifierExpressionNode(source,
+								MPIContractUtilities.COLLATE_POST_STATE)));
+		ensTranslation.add(unsnapshotPre);
+		ensTranslation.add(unsnapshotPost);
+		reqTranslation.addAll(assignsTranslation);
+		if (isTarget)
+			ensTranslation.addLast(nodeFactory.newExpressionStatementNode(
+					createMPICommEmptyCall(mpiComm, mpiBlock.getKind())));
+		return new TransformedPair(reqTranslation, ensTranslation);
 	}
 
-	List<BlockItemNode> transformClause2Checking(ExpressionNode condition,
-			ExpressionNode predicate, ExpressionNode collateState,
-			List<ExpressionNode> arrivends, TransformConfiguration config)
-			throws SyntaxException {
+	private List<BlockItemNode> transformClause2Checking(
+			ExpressionNode condition, ExpressionNode predicate,
+			ExpressionNode collateState, List<ExpressionNode> arrivends,
+			boolean isTarget) throws SyntaxException {
+		if (predicate == null)
+			return Arrays.asList();
+
 		StatementNode assertion = createAssertion(predicate.copy());
 
 		assertion = withStatementWrapper(assertion, collateState, arrivends,
-				config);
+				isTarget);
 		// conditional transformation:
 		if (condition != null)
 			assertion = nodeFactory.newIfNode(condition.getSource(),
@@ -269,7 +400,7 @@ class ContractClauseTransformer {
 		List<BlockItemNode> results = new LinkedList<>();
 
 		// elaborate waited arguments:
-		if (arrivends != null && config.getRunWithArrived())
+		if (arrivends != null && !isTarget)
 			for (ExpressionNode arrivend : arrivends) {
 				if (arrivend.expressionKind() == ExpressionKind.REGULAR_RANGE) {
 					RegularRangeNode range = (RegularRangeNode) arrivend;
@@ -281,6 +412,31 @@ class ContractClauseTransformer {
 			}
 		results.add(assertion);
 		return results;
+	}
+
+	/**
+	 * Create assertions to check side conditions
+	 */
+	Collection<BlockItemNode> checkSideConditions(
+			List<ClauseTransformGuide> guides) {
+		List<ExpressionNode> sideConditions = new LinkedList<>();
+
+		for (ClauseTransformGuide guide : guides) {
+			ExpressionNode sideCondition = conjunct(guide.sideConditions);
+			ExpressionNode assumptions = conjunct(guide.conditions);
+
+			if (sideCondition == null)
+				continue;
+			if (assumptions != null)
+				sideCondition = nodeFactory.newOperatorNode(
+						sideCondition.getSource(), Operator.IMPLIES,
+						assumptions, sideCondition);
+			sideConditions.add(sideCondition);
+		}
+		if (!sideConditions.isEmpty())
+			return Arrays.asList(createAssertion(conjunct(sideConditions)));
+		else
+			return Arrays.asList();
 	}
 
 	/**
@@ -310,37 +466,24 @@ class ContractClauseTransformer {
 	 * @return
 	 * @throws SyntaxException
 	 */
-	List<BlockItemNode> transformClause2Assumption(ExpressionNode condition,
-			ExpressionNode predicate, ExpressionNode collateState,
-			List<ExpressionNode> arrivends, TransformConfiguration config)
-			throws SyntaxException {
+	private List<BlockItemNode> transformClause2Assumption(
+			ExpressionNode condition, ExpressionNode predicate,
+			ExpressionNode collateState, List<ExpressionNode> arrivends,
+			boolean isTarget) throws SyntaxException {
+		if (predicate == null)
+			return Arrays.asList();
+
 		StatementNode assumes = createAssumption(predicate.copy());
-
-		if (!sideEffectConditions.isEmpty()) {
-			ExpressionNode sfconds = sideEffectConditions.remove().copy();
-			StatementNode sfcondsDischarge;
-
-			for (ExpressionNode sfcond : sideEffectConditions)
-				sfconds = nodeFactory.newOperatorNode(sfcond.getSource(),
-						Operator.LAND, Arrays.asList(sfcond.copy(), sfconds));
-			sfcondsDischarge = createAssertion(nodeFactory.newOperatorNode(
-					sfconds.getSource(), Operator.IMPLIES,
-					Arrays.asList(predicate.copy(), sfconds)));
-			assumes = nodeFactory.newCompoundStatementNode(assumes.getSource(),
-					Arrays.asList(sfcondsDischarge, assumes));
-		}
+		List<BlockItemNode> results = new LinkedList<>();
 
 		assumes = withStatementWrapper(assumes, collateState, arrivends,
-				config);
+				isTarget);
 		// conditional transformation:
 		if (condition != null)
 			assumes = nodeFactory.newIfNode(condition.getSource(),
 					condition.copy(), assumes);
-
-		List<BlockItemNode> results = new LinkedList<>();
-
 		// elaborate waited process places:
-		if (arrivends != null && config.getRunWithArrived())
+		if (arrivends != null && !isTarget)
 			for (ExpressionNode arrivend : arrivends) {
 				if (arrivend.expressionKind() == ExpressionKind.REGULAR_RANGE) {
 					RegularRangeNode range = (RegularRangeNode) arrivend;
@@ -354,373 +497,59 @@ class ContractClauseTransformer {
 		return results;
 	}
 
-	// TODO: add check for sequential and mpi
-	List<BlockItemNode> transformAssignsClause(ConditionalClauses condClauses)
-			throws SyntaxException {
+	/**
+	 * <p>
+	 * Transforms "assigns" clauses under some behavior. The assigns clauses
+	 * will be checked hold if they belong to the main verifying function;
+	 * otherwise they will be transformed to a set of statements that havocs the
+	 * memory locations specified by the assigns clauses.
+	 * </p>
+	 * 
+	 * @param condClauses
+	 *            {@link ConditionalClauses} containing "assigns" clauses
+	 * @param isPurelyLocal
+	 *            true iff the transforming "assigns" clauses belongs to local
+	 *            contract block
+	 * @param isTarget
+	 *            true iff the function who owns the transforming "assigns"
+	 *            clauses is the main verifying function;
+	 * @return the transformed result
+	 * @throws SyntaxException
+	 */
+	private List<BlockItemNode> transformAssignsClause(boolean isTarget,
+			ConditionalClauses condClauses) throws SyntaxException {
 		if (condClauses.getAssignsArgs().isEmpty())
 			return Arrays.asList();
 
-		List<BlockItemNode> results = new LinkedList<>();
+		List<BlockItemNode> refreshments = new LinkedList<>();
 		Source source = null;
 
 		for (ExpressionNode memoryLocationSet : condClauses.getAssignsArgs()) {
-			results.add(refreshMemoryLocationSetExpression(memoryLocationSet));
+			refreshments.addAll(
+					refreshMemoryLocationSetExpression(memoryLocationSet));
+
 			if (source == null)
 				source = memoryLocationSet.getSource();
 		}
 
-		ExpressionNode condition = condClauses.condition;
+		ExpressionNode condition = conjunct(condClauses.getConditions());
 
 		if (condition != null) {
 			StatementNode compoundStmt = nodeFactory
-					.newCompoundStatementNode(source, results);
+					.newCompoundStatementNode(source, refreshments);
 
-			results.clear();
-			return Arrays.asList(nodeFactory.newIfNode(condition.getSource(),
+			refreshments.clear();
+			refreshments.add(nodeFactory.newIfNode(condition.getSource(),
 					condition.copy(), compoundStmt));
 		}
-		return results;
+		return refreshments;
 	}
 
 	/*
-	 * *************************************************************************
-	 * Pre-processing Methods :
+	 * ************************************************************************
+	 * Package artificial node creating helper methods:
 	 **************************************************************************/
-	private Pair<List<BlockItemNode>, ExpressionNode> allocation4Valids(
-			ExpressionNode expression, TransformConfiguration config)
-			throws SyntaxException {
-		ASTNode astNode = expression;
-		List<OperatorNode> validNodes = new LinkedList<>();
-		List<MPIContractExpressionNode> mpiValidNodes = new LinkedList<>();
-		List<BlockItemNode> results = new LinkedList<>();
 
-		do {
-			if (astNode instanceof OperatorNode) {
-				OperatorNode opNode = (OperatorNode) astNode;
-
-				if (opNode.getOperator() == Operator.VALID)
-					validNodes.add(opNode);
-			} else if (astNode instanceof MPIContractExpressionNode) {
-				MPIContractExpressionNode mpiPrimitive = (MPIContractExpressionNode) astNode;
-
-				if (mpiPrimitive
-						.MPIContractExpressionKind() == MPIContractExpressionKind.MPI_VALID)
-					mpiValidNodes.add(mpiPrimitive);
-			}
-		} while ((astNode = astNode.nextDFS()) != null);
-		if (!config.isInMPIBlock() && !mpiValidNodes.isEmpty())
-			throw new CIVLSyntaxException(
-					"\\mpi_valid shall not be used in sequential contracts",
-					mpiValidNodes.get(0).getSource());
-		if (config.alloc4Valid()) {
-			for (OperatorNode validNode : validNodes)
-				results.addAll(allocate4ACSLValid(validNode));
-			for (MPIContractExpressionNode mpiValidNode : mpiValidNodes)
-				results.addAll(allocate4MPIValid(mpiValidNode));
-
-			// TODO: do forgot checking "extent > 0"
-			/* Replace valid/mpi_valid expressions with simple true literal */
-			substituteAllValid2True(expression);
-		}
-		return new Pair<>(results, expression);
-	}
-
-	/**
-	 * Replace all appearances of {@link ResultNode} with an identifier
-	 * expression "$result" for the given expression;
-	 * 
-	 * @param expression
-	 * @return
-	 */
-	private ExpressionNode result2intermediate(ExpressionNode expression,
-			TransformConfiguration config) {
-		ASTNode visitor = expression;
-		LinkedList<ASTNode> resultNodes = new LinkedList<>();
-
-		assert expression.parent() == null;
-		while (visitor != null) {
-			if (visitor instanceof ResultNode)
-				resultNodes.add(visitor);
-			visitor = visitor.nextDFS();
-		}
-		if (config.noResult() && !resultNodes.isEmpty())
-			throw new CIVLSyntaxException(
-					"No \\result is allowed to be in 'requires' clauses",
-					expression.getSource());
-		while (!resultNodes.isEmpty()) {
-			ASTNode result = resultNodes.removeLast();
-			ASTNode parent = result.parent();
-			int childIdx = result.childIndex();
-			ExpressionNode artificialVar = nodeFactory
-					.newIdentifierExpressionNode(result.getSource(),
-							nodeFactory.newIdentifierNode(result.getSource(),
-									MPIContractUtilities.ACSL_RESULT_VAR));
-
-			if (parent == null) {
-				// The given predicate is an instance of result expression:
-				assert resultNodes.isEmpty();
-				return artificialVar;
-			}
-			result.remove();
-			parent.setChild(childIdx, artificialVar);
-		}
-		return expression;
-	}
-
-	private Pair<List<BlockItemNode>, ExpressionNode> mpiExtentSERemove(
-			ExpressionNode predicate) {
-		ASTNode visitor = predicate;
-		LinkedList<Pair<ExpressionNode, ExpressionNode>> mpiDatatypeAndExtents = new LinkedList<>();
-
-		assert predicate.parent() == null;
-		while (visitor != null) {
-			if (visitor instanceof MPIContractExpressionNode) {
-				MPIContractExpressionNode mpiExpr = (MPIContractExpressionNode) visitor;
-
-				if (mpiExpr
-						.MPIContractExpressionKind() == MPIContractExpressionKind.MPI_EXTENT)
-					mpiDatatypeAndExtents
-							.add(new Pair<>(mpiExpr.getArgument(0), mpiExpr));
-			}
-			visitor = visitor.nextDFS();
-		}
-		return mpidatatypeExtent2intermediateVariable(predicate,
-				mpiDatatypeAndExtents);
-	}
-
-	/**
-	 * <p>
-	 * To eliminate the difference in between the notations of MPI-Contract
-	 * expressions ( {@link MPIContractExpressionNode}) in ACSL-MPI and CIVL
-	 * model, this transformer will replace the third argument "datatype" to
-	 * intermediate variables expressing "extent-of-datatype". If an
-	 * intermediate variable hasn't been declared yet, a variable declaration
-	 * ({@link VariableDeclarationNode}) will be included in the returned
-	 * object.
-	 * </p>
-	 * 
-	 * <p>
-	 * ACSL-MPI:<code>\mpi_region(void * buf, int count, MPI_Datatype datatype)</code>;
-	 * <br>
-	 * <code>\mpi_offset(void * buf, int count, MPI_Datatype datatype)</code>
-	 * <br>
-	 * <code>\mpi_valid(void * buf, int count, MPI_Datatype datatype)</code>
-	 * <br>
-	 * CIVL
-	 * model:<code>$mpi_region(void * buf, int count, size_t datatype_extent)</code>;<br>
-	 * <code>$mpi_offset(void * buf, int count, size_t datatype_extent)</code><br>
-	 * <code>$mpi_valid(void * buf, int count, size_t datatype_extent)</code>
-	 * </p>
-	 * 
-	 * @param predicate
-	 * @return
-	 */
-	private Pair<List<BlockItemNode>, ExpressionNode> MPIDatatype2datatypeExtentSERemove(
-			ExpressionNode predicate) {
-		ASTNode visitor = predicate;
-		LinkedList<Pair<ExpressionNode, ExpressionNode>> datatypesInRegions = new LinkedList<>();
-
-		assert visitor.parent() == null;
-		while (visitor != null) {
-			if (visitor instanceof MPIContractExpressionNode) {
-				MPIContractExpressionNode mpiExpr = (MPIContractExpressionNode) visitor;
-				MPIContractExpressionKind mpiExprKind = mpiExpr
-						.MPIContractExpressionKind();
-
-				if (mpiExprKind == MPIContractExpressionKind.MPI_REGION
-						|| mpiExprKind == MPIContractExpressionKind.MPI_OFFSET
-						|| mpiExprKind == MPIContractExpressionKind.MPI_VALID)
-					datatypesInRegions.add(new Pair<>(mpiExpr.getArgument(2),
-							mpiExpr.getArgument(2)));
-			}
-			visitor = visitor.nextDFS();
-		}
-		return mpidatatypeExtent2intermediateVariable(predicate,
-				datatypesInRegions);
-	}
-
-	/**
-	 * Creates intermediate variables to represent extents of MPI_Datatypes.
-	 * Replaces all the extent expressions in a given expression with the
-	 * intermediate variables.
-	 * 
-	 * @param expression
-	 *            The expression which may contains sub-expressions representing
-	 *            extents of MPI_Datatypes.
-	 * @param datatypeAndExtents:
-	 *            A list of pairs: left is the MPI_Datatype expression, right is
-	 *            the extent of MPI_Datatype expression. An intermediate
-	 *            variable associates to an MPI_Datatype expression; An
-	 *            intermediate variable replaces a set of extent of MPI_Datatype
-	 *            expressions.
-	 * @return A pair: left is a list of intermediate variable declarations;
-	 *         right is the expression in which sub-expressions representing
-	 *         extents of MPI_Datatypes are replaced with intermediate
-	 *         variables.
-	 */
-	private Pair<List<BlockItemNode>, ExpressionNode> mpidatatypeExtent2intermediateVariable(
-			ExpressionNode expression,
-			LinkedList<Pair<ExpressionNode, ExpressionNode>> datatypeAndExtents) {
-		List<BlockItemNode> intermediateVarDecls = new LinkedList<>();
-
-		while (!datatypeAndExtents.isEmpty()) {
-			Pair<ExpressionNode, ExpressionNode> datatypeAndExtent = datatypeAndExtents
-					.remove();
-			ExpressionNode datatype = datatypeAndExtent.left;
-			ExpressionNode extent = datatypeAndExtent.right;
-			Source datatypeSource = datatype.getSource();
-			TypeNode sizeTNode = nodeFactory.newTypedefNameNode(
-					nodeFactory.newIdentifierNode(datatypeSource, "size_t"),
-					null);
-			ExpressionNode mpiextentofCall = createMPIExtentofCall(datatype);
-			String intermediateVarName = null;
-			String datatypeIdName = null;
-
-			// optimization: for some certain kinds of datatype nodes, their
-			// associated intermediate variables will be cached in order to
-			// reduce the number of intermediate variables:
-			if (datatype instanceof IdentifierExpressionNode)
-				datatypeIdName = ((IdentifierExpressionNode) datatype)
-						.getIdentifier().name();
-			else if (datatype instanceof EnumerationConstantNode)
-				datatypeIdName = ((EnumerationConstantNode) datatype).getName()
-						.name();
-			if (datatypeIdName != null)
-				intermediateVarName = datatype2counter.get(datatypeIdName);
-			if (intermediateVarName == null) {
-				VariableDeclarationNode intermediateVarDecl;
-
-				intermediateVarName = MPIContractUtilities
-						.nextExtentName(tmpExtentCounter++);
-				datatype2counter.put(datatypeIdName, intermediateVarName);
-				intermediateVarDecl = nodeFactory.newVariableDeclarationNode(
-						datatypeSource,
-						nodeFactory.newIdentifierNode(datatypeSource,
-								intermediateVarName),
-						sizeTNode, mpiextentofCall);
-				intermediateVarDecls.add(intermediateVarDecl);
-			}
-
-			ExpressionNode intermediateVarExpr = nodeFactory
-					.newIdentifierExpressionNode(datatypeSource,
-							nodeFactory.newIdentifierNode(datatypeSource,
-									intermediateVarName));
-			ASTNode parent = extent.parent();
-			int childIdx = extent.childIndex();
-
-			if (parent == null) {
-				assert expression == extent;
-				return new Pair<>(intermediateVarDecls, intermediateVarExpr);
-			}
-			extent.remove();
-			parent.setChild(childIdx, intermediateVarExpr);
-		}
-		return new Pair<>(intermediateVarDecls, expression);
-	}
-
-	/**
-	 * Replace all OLD expressions with VALUE_AT expressions.
-	 * 
-	 * @param predicate
-	 *            The predicate may contain OLD expressions.
-	 * @param preState
-	 *            The pre collate state
-	 * @param config
-	 * @return The predicate after substitution.
-	 */
-	private ExpressionNode old2ValueAt(ExpressionNode predicate,
-			ExpressionNode preState, TransformConfiguration config) {
-		ASTNode visitor = predicate;
-		LinkedList<ExpressionNode[]> oldExprs = new LinkedList<>();
-
-		assert predicate.parent() == null;
-		while (visitor != null) {
-			if (visitor instanceof OperatorNode) {
-				OperatorNode opNode = (OperatorNode) visitor;
-				ExpressionNode rankConstant = nodeFactory
-						.newIdentifierExpressionNode(opNode.getSource(),
-								nodeFactory.newIdentifierNode(
-										opNode.getSource(),
-										MPIContractUtilities.MPI_COMM_RANK_CONST));
-
-				if (opNode.getOperator() == Operator.OLD) {
-					ExpressionNode[] valueAtArgs = {null, rankConstant,
-							opNode.getArgument(0), opNode};
-					oldExprs.add(valueAtArgs);
-				}
-			}
-			visitor = visitor.nextDFS();
-		}
-		for (ExpressionNode[] valueAtArgs : oldExprs)
-			predicate = replaceWithValueAt(valueAtArgs[0], valueAtArgs[1],
-					valueAtArgs[2], valueAtArgs[3], predicate);
-		return predicate;
-	}
-
-	/**
-	 * Replace all OLD expressions with VALUE_AT expressions.
-	 * 
-	 * @param predicate
-	 *            The predicate may contain OLD expressions.
-	 * @param preState
-	 *            The pre collate state
-	 * @param config
-	 * @return The predicate after substitution.
-	 */
-	private ExpressionNode on2ValueAt(ExpressionNode predicate,
-			ExpressionNode preState, TransformConfiguration config) {
-		ASTNode visitor = predicate;
-		// a list of an array of 4 expression nodes, which represents state,
-		// process, expression and the original remote on expression
-		// respectively:
-		LinkedList<ExpressionNode[]> onExprs = new LinkedList<>();
-
-		assert predicate.parent() == null;
-		while (visitor != null) {
-			if (visitor instanceof RemoteOnExpressionNode) {
-				RemoteOnExpressionNode onNode = (RemoteOnExpressionNode) visitor;
-				ExpressionNode valueAtArgs[] = {preState,
-						onNode.getProcessExpression(),
-						onNode.getForeignExpressionNode(), onNode};
-
-				onExprs.add(valueAtArgs);
-			}
-			visitor = visitor.nextDFS();
-		}
-		for (ExpressionNode valueAtArgs[] : onExprs)
-			predicate = replaceWithValueAt(valueAtArgs[0], valueAtArgs[1],
-					valueAtArgs[2], valueAtArgs[3], predicate);
-		return predicate;
-	}
-
-	private ExpressionNode replaceWithValueAt(ExpressionNode state,
-			ExpressionNode proc, ExpressionNode expr, ExpressionNode original,
-			ExpressionNode root) {
-		ASTNode parent = original.parent();
-		int childIdx = original.childIndex();
-		ExpressionNode valueAt;
-
-		if (state == null)
-			state = MPIContractUtilities
-					.getStateNullExpression(original.getSource(), nodeFactory);
-		state.remove();
-		proc.remove();
-		expr.remove();
-		valueAt = nodeFactory.newValueAtNode(original.getSource(), state, proc,
-				expr);
-		if (parent != null) {
-			original.remove();
-			parent.setChild(childIdx, valueAt);
-			return root;
-		} else {
-			assert root == original;
-			return valueAt;
-		}
-	}
-	/*
-	 * *************************************************************************
-	 * Methods creating new statements:
-	 **************************************************************************/
 	/**
 	 * <p>
 	 * <b>Summary: </b> Creates an assertion function call with an argument
@@ -732,7 +561,7 @@ class ContractClauseTransformer {
 	 *            the only argument of an assertion call.
 	 * @return A created assert call statement node;
 	 */
-	StatementNode createAssertion(ExpressionNode predicate) {
+	private StatementNode createAssertion(ExpressionNode predicate) {
 		ExpressionNode assertIdentifier = nodeFactory
 				.newIdentifierExpressionNode(predicate.getSource(),
 						nodeFactory.newIdentifierNode(predicate.getSource(),
@@ -754,7 +583,7 @@ class ContractClauseTransformer {
 	 *            the only argument of an assumption call.
 	 * @return A created assumption call statement node;
 	 */
-	StatementNode createAssumption(ExpressionNode predicate) {
+	private StatementNode createAssumption(ExpressionNode predicate) {
 		ExpressionNode assumeIdentifier = identifierExpressionNode(
 				predicate.getSource(), BaseWorker.ASSUME);
 		FunctionCallNode assumeCall = nodeFactory.newFunctionCallNode(
@@ -764,117 +593,45 @@ class ContractClauseTransformer {
 	}
 
 	/**
-	 * <p>
-	 * Allocates for valid expressions.
-	 * </p>
+	 * Create a <code>$collate_state</code> which only contains one process:
 	 * 
-	 * <p>
-	 * Currently it only can deal with a fixed form:
-	 * <code>\valid( ptr + integr-set)</code>, where
-	 * <code>integr-set := regular_range (with default step)  
-	 *                     | integer;
-	 *                     
-	 *       ptr must have type T* and T shall not be void;
+	 * <code>
+	 *    $state _s_pre_obj = $get_state();
+	 *    $state * _s_pre = &_s_pre_obj;
 	 * </code>
-	 * </p>
 	 * 
-	 * @param valid
-	 *            A valid expression
-	 * @return A list of {@link BlockItemNode} express the allocation of the
-	 *         valid expression.
-	 * @throws SyntaxException
-	 *             If the valid expression is not written in the canonical form.
-	 */
-	private List<BlockItemNode> allocate4ACSLValid(OperatorNode valid)
-			throws SyntaxException {
-		Source source = valid.getSource();
-		ExpressionNode argument = valid.getArgument(0);
-		ExpressionNode pointer, range = null;
-
-		// Check if the argument of valid is in canonical form:
-		if (argument instanceof OperatorNode) {
-			OperatorNode opNode = (OperatorNode) argument;
-			if (opNode.getOperator() != Operator.PLUS)
-				throw new CIVLSyntaxException(
-						"CIVL requires the argument of \\valid "
-								+ "expression to be a canonical form:\n"
-								+ "ptr (+ range)*\n"
-								+ "range := integer-expression "
-								+ "| integer-expression .. integer-expression",
-						opNode.getSource());
-			pointer = opNode.getArgument(0);
-			range = opNode.getArgument(1);
-			range = makeItRange(range);
-		} else
-			pointer = argument;
-
-		assert pointer.getType().kind() == TypeKind.POINTER;
-		PointerType ptrType = (PointerType) pointer.getType();
-		ExpressionNode count;
-
-		if (ptrType.referencedType().kind() == TypeKind.VOID)
-			throw new CIVLSyntaxException(
-					"Valid pointers asserted by \\valid expressions"
-							+ " shall not have pointer-to-void type",
-					pointer.getSource());
-
-		if (range != null) {
-			RegularRangeNode rangeNode = (RegularRangeNode) range;
-			ExpressionNode high = rangeNode.getHigh();
-			ExpressionNode low = rangeNode.getLow();
-			Value constantVal = nodeFactory.getConstantValue(low);
-
-			count = constantVal.isZero() == Answer.YES
-					? high
-					: nodeFactory.newOperatorNode(range.getSource(),
-							Operator.MINUS, Arrays.asList(high, low));
-		} else
-			count = nodeFactory.newIntegerConstantNode(source, "1");
-
-		Source ptrSource = pointer.getSource();
-		TypeNode referedTypeNode;
-
-		pointer = decast(pointer);
-		referedTypeNode = BaseWorker.typeNode(ptrSource,
-				ptrType.referencedType(), nodeFactory);
-
-		// For \valid(ptr + x), there must equivalently be an array ptr[extent]
-		// where extent >= x + 1:
-		OperatorNode extent = nodeFactory.newOperatorNode(pointer.getSource(),
-				Operator.PLUS, count.copy(), count = nodeFactory
-						.newIntegerConstantNode(pointer.getSource(), "1"));
-
-		return createAllocation(pointer, referedTypeNode, extent, ptrSource);
-	}
-
-	/**
-	 * Allocates for \mpi_valid expressions.
-	 * 
-	 * @param condition
-	 *            branch condition
-	 * @param mpiValid
-	 *            the \mpi_valid expression
-	 * @param outputTriple
-	 *            the output triple will be added with free statements
 	 * @return
 	 * @throws SyntaxException
 	 */
-	private List<BlockItemNode> allocate4MPIValid(
-			MPIContractExpressionNode mpiValid) throws SyntaxException {
-		Source source = mpiValid.getSource();
-		ExpressionNode buf = mpiValid.getArgument(0);
-		ExpressionNode count = mpiValid.getArgument(1);
-		ExpressionNode datatype = mpiValid.getArgument(2);
-		TypeNode typeNode = nodeFactory.newBasicTypeNode(datatype.getSource(),
-				BasicTypeKind.CHAR);
+	private List<BlockItemNode> createState4PureLocalFunction(Source source)
+			throws SyntaxException {
+		TypeNode stateType = nodeFactory.newStateTypeNode(source);
+		TypeNode pointer2stateType = nodeFactory.newPointerTypeNode(source,
+				nodeFactory.newStateTypeNode(source));
+		String PRE_STATE_OBJ = "_s_pre_obj";
+		VariableDeclarationNode stateObjectVarDecl = nodeFactory
+				.newVariableDeclarationNode(source,
+						nodeFactory.newIdentifierNode(source, PRE_STATE_OBJ),
+						stateType, createGetStateCall(source));
+		ExpressionNode addressofStateObj = nodeFactory.newOperatorNode(source,
+				Operator.ADDRESSOF,
+				identifierExpressionNode(source, PRE_STATE_OBJ));
+		VariableDeclarationNode point2StateVarDecl = nodeFactory
+				.newVariableDeclarationNode(source,
+						nodeFactory.newIdentifierNode(source,
+								MPIContractUtilities.PRE_STATE),
+						pointer2stateType, addressofStateObj);
+		List<BlockItemNode> results = new LinkedList<>();
 
-		// The third argument has been transformed by the ACSLPrimitives2CIVLC
-		// method.
-		count = nodeFactory.newOperatorNode(source, Operator.TIMES,
-				Arrays.asList(count.copy(), datatype.copy()));
-		// char data[count * extentof(datatype)];
-		return createAllocation(buf, typeNode, count, source);
+		results.add(stateObjectVarDecl);
+		results.add(point2StateVarDecl);
+		return results;
 	}
+
+	/*
+	 * ************************************************************************
+	 * Private artificial node creating helper methods:
+	 **************************************************************************/
 
 	/**
 	 * @return a function call expression:
@@ -886,6 +643,30 @@ class ContractClauseTransformer {
 				identifierExpressionNode(source,
 						MPIContractUtilities.COLLATE_GET_STATE_CALL),
 				Arrays.asList(colStateRef.copy()), null);
+	}
+
+	/**
+	 * @return a function call expression: <code>$get_state()</code>
+	 */
+	private ExpressionNode createGetStateCall(Source source) {
+		return nodeFactory.newFunctionCallNode(source,
+				identifierExpressionNode(source,
+						MPIContractUtilities.REGULAR_GET_STATE_CALL),
+				Arrays.asList(), null);
+	}
+
+	private VariableDeclarationNode createCollateStateInitializer(
+			String collateStateName, ExpressionNode mpiComm) {
+		Source source = mpiComm.getSource();
+		InitializerNode initializer = createMPISnapshotCall(mpiComm.copy());
+		TypeNode collateStateTypeName = nodeFactory
+				.newTypedefNameNode(nodeFactory.newIdentifierNode(source,
+						MPIContractUtilities.COLLATE_STATE_TYPE), null);
+		IdentifierNode varIdent = nodeFactory.newIdentifierNode(source,
+				collateStateName);
+
+		return nodeFactory.newVariableDeclarationNode(source, varIdent,
+				collateStateTypeName, initializer);
 	}
 
 	/**
@@ -930,86 +711,13 @@ class ContractClauseTransformer {
 				nodeFactory.newNullStatementNode(source), null);
 	}
 
-	/**
-	 * Create statements simulating allocation, i.e. declare an new artificial
-	 * array variable then assign the reference to the given pointer.
-	 * 
-	 * @param pointer
-	 *            A pointer expression p
-	 * @param elementType
-	 *            element type t
-	 * @param numElements
-	 *            number of elements n
-	 * @param source
-	 * @return A list of artifical {@link BlockItemNode}s
-	 * @throws SyntaxException
-	 */
-	private List<BlockItemNode> createAllocation(ExpressionNode pointer,
-			TypeNode elementType, ExpressionNode numElements, Source source)
-			throws SyntaxException {
-		List<BlockItemNode> artificials = new LinkedList<>();
-		ExpressionNode extentGTzero = nodeFactory.newOperatorNode(source,
-				Operator.LT, nodeFactory.newIntegerConstantNode(source, "0"),
-				numElements.copy());
-		TypeNode arrayType = nodeFactory.newArrayTypeNode(source,
-				elementType.copy(), numElements.copy());
-		String allocationName = MPIContractUtilities
-				.nextAllocationName(tmpHeapCounter++);
-		IdentifierNode allocationIdentifierNode;
-
-		allocationIdentifierNode = nodeFactory
-				.newIdentifierNode(pointer.getSource(), allocationName);
-
-		VariableDeclarationNode artificialVariable = nodeFactory
-				.newVariableDeclarationNode(source, allocationIdentifierNode,
-						arrayType);
-		// assign allocated object to pointer;
-		ExpressionNode assign = nodeFactory.newOperatorNode(source,
-				Operator.ASSIGN,
-				Arrays.asList(pointer.copy(),
-						nodeFactory.newIdentifierExpressionNode(source,
-								allocationIdentifierNode.copy())));
-
-		sideEffectConditions.add(extentGTzero);
-		artificials.add(createAssumption(extentGTzero));
-		artificials.add(artificialVariable);
-		artificials.add(nodeFactory.newExpressionStatementNode(assign));
-		return artificials;
-	}
-
-	/**
-	 * 
-	 * <p>
-	 * <b>Summary: </b> Creates an $havoc_mem function call:
-	 * </p>
-	 * 
-	 * @param var
-	 * @return
-	 */
-	private ExpressionNode createHavocCall(ExpressionNode addr) {
-		Source source = addr.getSource();
-		ExpressionNode callIdentifier = identifierExpressionNode(source,
-				MPIContractUtilities.HAVOC);
-
-		addr = nodeFactory.newOperatorNode(source, Operator.ADDRESSOF,
-				Arrays.asList(addr));
-
-		FunctionCallNode call = nodeFactory.newFunctionCallNode(source,
-				callIdentifier, Arrays.asList(addr), null);
-
-		return call;
-	}
-
 	private StatementNode withStatementWrapper(StatementNode body,
 			ExpressionNode collateState, List<ExpressionNode> dependents,
-			TransformConfiguration config) {
+			boolean isTarget) {
 		StatementNode withStmt = nodeFactory.newWithNode(body.getSource(),
 				collateState.copy(), body.copy());
-		if (config.getWith())
-			return withStmt;
-		boolean run = config.getRunWithComplete() || config.getRunWithArrived();
-		boolean complete = config.getWithComplete()
-				|| config.getRunWithComplete() || dependents.isEmpty();
+		boolean run = !isTarget;
+		boolean complete = isTarget || dependents.isEmpty();
 
 		if (complete) {
 			ExpressionNode functionIdentifier = nodeFactory
@@ -1028,7 +736,7 @@ class ContractClauseTransformer {
 			else
 				return withCompleteStmt;
 		}
-		if (config.getRunWithArrived()) {
+		if (run && !complete) {
 			ExpressionNode functionIdentifier = nodeFactory
 					.newIdentifierExpressionNode(body.getSource(),
 							nodeFactory.newIdentifierNode(body.getSource(),
@@ -1056,10 +764,6 @@ class ContractClauseTransformer {
 		return body;
 	}
 
-	/*
-	 * *************************************************************************
-	 * Miscellaneous helper methods:
-	 **************************************************************************/
 	private List<BlockItemNode> mpiConstantsInitialization(
 			ExpressionNode mpiComm) {
 		List<BlockItemNode> results = new LinkedList<>();
@@ -1105,33 +809,6 @@ class ContractClauseTransformer {
 		return nodeFactory.newExpressionStatementNode(call);
 	}
 
-	private ExpressionNode createMPIExtentofCall(ExpressionNode datatype) {
-		ExpressionNode callIdentifier = nodeFactory.newIdentifierExpressionNode(
-				datatype.getSource(),
-				nodeFactory.newIdentifierNode(datatype.getSource(),
-						MPIContractUtilities.MPI_EXTENT_OF));
-
-		return nodeFactory.newFunctionCallNode(datatype.getSource(),
-				callIdentifier, Arrays.asList(datatype.copy()), null);
-	}
-
-	// TODO: doc
-	private ExpressionNode mpiRegion2assign(
-			MPIContractExpressionNode mpiRegion) {
-		assert mpiRegion
-				.MPIContractExpressionKind() == MPIContractExpressionKind.MPI_REGION;
-		Source source = mpiRegion.getSource();
-		ExpressionNode ptr = mpiRegion.getArgument(0);
-		ExpressionNode count = mpiRegion.getArgument(1);
-		ExpressionNode extent = mpiRegion.getArgument(2);
-		ExpressionNode call = nodeFactory.newFunctionCallNode(source,
-				identifierExpressionNode(source,
-						MPIContractUtilities.MPI_ASSIGNS),
-				Arrays.asList(ptr.copy(), count.copy(), extent.copy()), null);
-
-		return call;
-	}
-
 	@SuppressWarnings("unused")
 	private ExpressionNode createMPIBarrier(ExpressionNode mpiComm) {
 		ExpressionNode functionIdentifierExpression = nodeFactory
@@ -1162,20 +839,6 @@ class ContractClauseTransformer {
 				Arrays.asList(mpiComm.copy(), modeEnum), null);
 	}
 
-	private VariableDeclarationNode createCollateStateInitializer(
-			String collateStateName, ExpressionNode mpiComm) {
-		Source source = mpiComm.getSource();
-		InitializerNode initializer = createMPISnapshotCall(mpiComm.copy());
-		TypeNode collateStateTypeName = nodeFactory
-				.newTypedefNameNode(nodeFactory.newIdentifierNode(source,
-						MPIContractUtilities.COLLATE_STATE_TYPE), null);
-		IdentifierNode varIdent = nodeFactory.newIdentifierNode(source,
-				collateStateName);
-
-		return nodeFactory.newVariableDeclarationNode(source, varIdent,
-				collateStateTypeName, initializer);
-	}
-
 	private ExpressionNode createMPISnapshotCall(ExpressionNode mpiComm) {
 		Source source = mpiComm.getSource();
 		ExpressionNode callIdentifier = nodeFactory.newIdentifierExpressionNode(
@@ -1188,150 +851,116 @@ class ContractClauseTransformer {
 		return call;
 	}
 
+	/**
+	 * <p>
+	 * <b>Summary: </b> Creates an $mpi_unsnapshot function call:<code>
+	 * $mpi_unsnapshot(mpiComm);</code>
+	 * </p>
+	 * 
+	 * @param mpiComm
+	 *            An {@link ExpressionNode} representing an MPI communicator.
+	 * @return The created $mpi_unsnapshot call statement node.
+	 */
+	private ExpressionNode createMPIUnsnapshotCall(ExpressionNode mpiComm,
+			ExpressionNode collateStateRef) {
+		Source source = mpiComm.getSource();
+		ExpressionNode callIdentifier = identifierExpressionNode(source,
+				MPIContractUtilities.MPI_UNSNAPSHOT);
+		FunctionCallNode call = nodeFactory.newFunctionCallNode(source,
+				callIdentifier, Arrays.asList(mpiComm, collateStateRef), null);
+
+		return call;
+	}
+
+	private IdentifierExpressionNode identifierExpressionNode(Source source,
+			String name) {
+		return nodeFactory.newIdentifierExpressionNode(source,
+				nodeFactory.newIdentifierNode(source, name));
+	}
+
 	/*
 	 * *************************************************************************
 	 * Methods process ASSIGNS clauses
 	 **************************************************************************/
 	/**
-	 * Process ACSL <b>assigns memory-location-set-list</b> clauses:
-	 * 
-	 * For callee functions, memory locations specified by <b>assigns</b> must
-	 * be refreshed, i.e. assigned with fresh new symbolic constants.
-	 */
-	/**
-	 * Assign fresh new symbolic constants to a memory locaton set expression.
 	 * <p>
-	 * A memory-location-set is
-	 * <ol>
-	 * <li>a set of l-values (including singleton set). According to ACSL
-	 * reference v1.10 2.3.4, an expression representing a set of l-values can
-	 * be formed with following rules (which are supported by CIVL):
-	 * <ul>
-	 * <li>set-&gtid := {x-&gtid | x in set}</li>
-	 * <li>set.id := {x.id | x in set}</li>
-	 * <li>*set := {*x | x in set}</li>
-	 * <li>s1[s2] := { x1[x2] | x1 in s1, x2 in s2 }</li>
-	 * <li><b>Base case:</b> t1 ... t2 := a set of integers in between [t1, t2]
-	 * </li> Notice that there are two set expressions supported by CIVL but
-	 * will never be able to express memory location set: &set and set1 + set2
-	 * </ul>
-	 * </li>
-	 * <li>an MPI_REGION expression</li>
-	 * </ol>
+	 * IF the expression is an MPI_REGION expression, transform it to
+	 * <code>$mpi_assigns</code> function, which is defined in "civl-mpi.cvh".
 	 * </p>
 	 * 
 	 * <p>
-	 * <b>For the expression e that represents a set of l-values, </b> this
-	 * method returns a statement s for assigning fresh new symbolic constants
-	 * to e: <br>
-	 * <br>
-	 * <code>
-	 * s := $for(int i0 : r0)
-	 *       $for(int i1 : r1)
-	 *        ...
-	 *         $for(int in : rn)
-	 *           $havoc(addressof(e[i0/r0, i1/r1,...,in/rn]));     
-	 * </code> where {r0,...rn} is the set R of base cases which consistitute e.
-	 * </p>
-	 * 
-	 * <p>
-	 * <b>For an MPI_REGION expression,</b> this method creates a call to the
-	 * function<code>$mpi_assigns</code> which is defined in civl-mpi.cvl
+	 * Otherwise, transform it to $mem_havoc function, which is defined in
+	 * "mem.cvh"
 	 * </p>
 	 * 
 	 * @param expression
 	 *            An expression represents a memory location set
+	 * @param isPurelyLocal
+	 *            if the given expression belongs to a local contract block
 	 * @return A {@link BlockItemNode} which consists of statements that will
 	 *         assign fresh new symbolic constants to the given expression
 	 * @throws SyntaxException
 	 *             When the given expression is not a valid memory location set
 	 *             expression.
 	 */
-	private BlockItemNode refreshMemoryLocationSetExpression(
+	private List<BlockItemNode> refreshMemoryLocationSetExpression(
 			ExpressionNode expression) throws SyntaxException {
-		// if expression is an MPI_REGION expression:
 		if (expression
 				.expressionKind() == ExpressionKind.MPI_CONTRACT_EXPRESSION) {
-			MPIContractExpressionNode mpiExpr = (MPIContractExpressionNode) expression;
-
-			assert mpiExpr
+			assert ((MPIContractExpressionNode) expression)
 					.MPIContractExpressionKind() == MPIContractExpressionKind.MPI_REGION;
-			return nodeFactory
-					.newExpressionStatementNode(mpiRegion2assign(mpiExpr));
-		} else {
-			Map<String, RegularRangeNode> baseCases = new HashMap<>();
-			ExpressionNode havocee = processLvalueSetExpression(expression,
-					baseCases);
-			ExpressionNode havocCall = createHavocCall(havocee);
-			StatementNode body = nodeFactory
-					.newExpressionStatementNode(havocCall);
-			TypeNode intTypeNode = nodeFactory.newBasicTypeNode(
-					expression.getSource(), BasicTypeKind.INT);
+			return refreshMPIRegion((MPIContractExpressionNode) expression);
+		} else
+			return refreshACSLMemoryLocationSetExpression(expression);
+	}
 
-			for (Entry<String, RegularRangeNode> entry : baseCases.entrySet()) {
-				String loopIdentName = entry.getKey();
-				RegularRangeNode range = entry.getValue();
-				Source source = range.getSource();
-				VariableDeclarationNode looIdentDecl = nodeFactory
-						.newVariableDeclarationNode(source, nodeFactory
-								.newIdentifierNode(source, loopIdentName),
-								intTypeNode);
-				DeclarationListNode declList = nodeFactory
-						.newForLoopInitializerNode(source,
-								Arrays.asList(looIdentDecl));
+	/**
+	 * <code>
+	 * $mem_havoc(m); 
+	 * </code>
+	 */
+	private List<BlockItemNode> refreshACSLMemoryLocationSetExpression(
+			ExpressionNode expression) {
+		Source source = expression.getSource();
+		ExpressionNode memHavocFuncIdent = identifierExpressionNode(source,
+				MPIContractUtilities.MEM_HAVOC);
+		ExpressionNode addrof = nodeFactory.newOperatorNode(source,
+				Operator.ADDRESSOF, expression.copy());
+		ExpressionNode tmp = nodeFactory.newFunctionCallNode(source,
+				memHavocFuncIdent, Arrays.asList(addrof), null);
 
-				body = nodeFactory.newCivlForNode(source, false, declList,
-						range, body, null);
-			}
-			return body;
-		}
+		List<BlockItemNode> results = new LinkedList<>();
+
+		results.add(nodeFactory.newExpressionStatementNode(tmp));
+		return results;
 	}
 
 	/**
 	 * <p>
-	 * Given an expression e which represents an l-value set, this method will
-	 * return <code>e[i0/r0, i1/r1,...,in/rn]</code> where {r0, r1, ...,rn} is
-	 * the set of base cases (for base case, see
-	 * {@link #refreshMemoryLocationSetExpression(ExpressionNode)}) constitute
-	 * e, {i0, i1, ..., in} is a set of integer type identifiers.
-	 * 
+	 * $mpi_assigns(ptr, count, datatype);
 	 * </p>
 	 * 
-	 * @param lvalue
-	 *            The given lvalue set expression
-	 * @param baseCases
-	 *            A map collection which will be added with a set of key-value
-	 *            pairs (i, r) where i in {i0, i1, ..., in} and r is the
-	 *            corresponding element in {r0, r1, ..., rn}
+	 * @param expression
+	 *            a MPI_Region expression
 	 * @return
 	 */
-	private ExpressionNode processLvalueSetExpression(ExpressionNode lvalue,
-			Map<String, RegularRangeNode> baseCases) {
-		ExpressionNode copy = lvalue.copy();
-		ASTNode node = copy;
-		List<RegularRangeNode> ranges = new LinkedList<>();
+	private List<BlockItemNode> refreshMPIRegion(
+			MPIContractExpressionNode expression) {
+		Source source = expression.getSource();
+		ExpressionNode mpiAssignsFuncIdent = identifierExpressionNode(source,
+				MPIContractUtilities.MPI_ASSIGNS);
+		ExpressionNode ptr, count, datatype, tmp;
 
-		while (node != null) {
-			if (node.nodeKind() == NodeKind.EXPRESSION
-					&& ((ExpressionNode) node)
-							.expressionKind() == ExpressionKind.REGULAR_RANGE) {
-				ranges.add((RegularRangeNode) node);
-			}
-			node = node.nextDFS();
-		}
-		for (RegularRangeNode range : ranges) {
-			String identifierName = MPIContractUtilities
-					.nextAssignName(tmpAssignCounter++);
-			ExpressionNode identifierExpression = identifierExpressionNode(
-					range.getSource(), identifierName);
-			ASTNode parent = range.parent();
-			int childIdx = range.childIndex();
+		ptr = expression.getArgument(0);
+		count = expression.getArgument(1);
+		datatype = expression.getArgument(2);
+		tmp = nodeFactory.newFunctionCallNode(source, mpiAssignsFuncIdent,
+				Arrays.asList(ptr.copy(), count.copy(), datatype.copy()), null);
 
-			range.remove();
-			parent.setChild(childIdx, identifierExpression);
-			baseCases.put(identifierName, range);
-		}
-		return copy;
+		List<BlockItemNode> results = new LinkedList<>();
+
+		results.add(nodeFactory.newExpressionStatementNode(tmp));
+		return results;
 	}
 
 	/**
@@ -1351,65 +980,112 @@ class ContractClauseTransformer {
 	}
 
 	/**
-	 * If the given expression is a cast-expression: <code>(T) expr</code>,
-	 * return an expression representing <code>expr</code>, otherwise no-op.
+	 * Substitutes sub-expressions in clause expressions with transformed
+	 * expressions.
+	 * 
+	 * @param guide
+	 *            a instance of {@link ClauseTransformGuide} which encodes the
+	 *            substitution map and clause expressions that will be
+	 *            substituted.
+	 */
+	private void substitute(ClauseTransformGuide guide) {
+		Map<ASTNode, ASTNode> substituted = new HashMap<>();
+
+		for (ExpressionNode clause : guide.clause.getClauseExpressions())
+			if (clause != null)
+				visitAndSubstitute(clause, guide.substitutions, substituted);
+	}
+
+	/**
+	 * Bottom-up substitution for the given expression with the map
 	 * 
 	 * @param expression
-	 *            An instance of {@link ExpressionNode}
-	 * @return An expression who is the argument of a cast expression iff the
-	 *         input is a cast expression, otherwise returns input itself.(i.e.
-	 *         no-op).
+	 *            the expression that will be substituted
+	 * @param subMap
+	 *            a substitution map from the old node references in the
+	 *            substituting expression to the {@link ASTNodeSubstituteGuide}s
+	 * @param subHistory
+	 *            the history of substituted sub-expressions, which is needed to
+	 *            solve the problem that both a parent <code>A</code> and its
+	 *            child <code>B</code> in a subtree <code>A -> B</code> will be
+	 *            substituted. Since it's bottom-up, <code>B</code> is firstly
+	 *            substituted, which results in <code>A->B'</code>. Later,
+	 *            <code>A</code> is substituted to <code>A'</code> then the
+	 *            children of <code>A'</code> must be updated as well otherwise
+	 *            <code>B'</code> is lost.
 	 */
-	private ExpressionNode decast(ExpressionNode expression) {
-		if (expression.expressionKind() == ExpressionKind.CAST) {
-			CastNode castNode = (CastNode) expression;
+	private void visitAndSubstitute(ExpressionNode expression,
+			Map<ExpressionNode, SubstituteGuide> subMap,
+			Map<ASTNode, ASTNode> subHistory) {
+		int nchildren = expression.numChildren();
 
-			return castNode.getArgument();
+		for (int i = 0; i < nchildren; i++) {
+			ASTNode child = expression.child(i);
+
+			if (child == null || child.nodeKind() != NodeKind.EXPRESSION)
+				continue;
+			visitAndSubstitute((ExpressionNode) child, subMap, subHistory);
 		}
-		return expression;
+
+		SubstituteGuide subNode = subMap.get(expression);
+
+		if (subNode != null) {
+			ASTNode substed = subNode.subsitute(nodeFactory);
+
+			subHistory.put(expression, substed);
+			nchildren = substed.numChildren();
+			for (int i = 0; i < nchildren; i++) {
+				ASTNode child = substed.child(i);
+				ASTNode update = subHistory.get(child);
+
+				if (update != null) {
+					update.remove();
+					child.remove();
+					substed.setChild(i, update);
+				}
+			}
+		}
 	}
 
-	private ExpressionNode substituteAllValid2True(ExpressionNode predicate) {
-		ASTNode visitor = predicate;
-		List<ASTNode> valids = new LinkedList<>();
+	private ExpressionNode conjunct(List<ExpressionNode> exprs) {
+		Iterator<ExpressionNode> iter = exprs.iterator();
+		ExpressionNode result = null;
+		Source source = null;
+		TokenFactory tf = astFactory.getTokenFactory();
 
-		while (visitor != null) {
-			if (visitor instanceof OperatorNode) {
-				OperatorNode opNode = (OperatorNode) visitor;
+		while (iter.hasNext()) {
+			ExpressionNode expr = iter.next();
 
-				if (opNode.getOperator() == Operator.VALID)
-					valids.add(opNode);
-			}
-			if (visitor instanceof MPIContractExpressionNode) {
-				MPIContractExpressionNode mpiPrimitiveNode = (MPIContractExpressionNode) visitor;
-
-				if (mpiPrimitiveNode
-						.MPIContractExpressionKind() == MPIContractExpressionKind.MPI_VALID)
-					valids.add(mpiPrimitiveNode);
-			}
-			visitor = visitor.nextDFS();
+			source = source != null
+					? tf.join(source, expr.getSource())
+					: expr.getSource();
+			result = result != null
+					? nodeFactory.newOperatorNode(source, Operator.LAND,
+							expr.copy(), result)
+					: expr.copy();
 		}
-		for (ASTNode valid : valids) {
-			ASTNode parent;
-			int childIdx;
-			ExpressionNode trueLiteral = nodeFactory
-					.newBooleanConstantNode(valid.getSource(), true);
-
-			parent = valid.parent();
-			childIdx = valid.childIndex();
-			if (parent != null)
-				parent.setChild(childIdx, trueLiteral);
-			else {
-				assert predicate == valid;
-				return trueLiteral;
-			}
-		}
-		return predicate;
+		return result;
 	}
 
-	private IdentifierExpressionNode identifierExpressionNode(Source source,
-			String name) {
-		return nodeFactory.newIdentifierExpressionNode(source,
-				nodeFactory.newIdentifierNode(source, name));
+	private List<BlockItemNode> createConditionalAssumeOrAssert(
+			boolean isAssume, List<ExpressionNode> conditions,
+			List<ExpressionNode> expressions) {
+		ExpressionNode pred = conjunct(expressions);
+
+		if (pred == null)
+			return Arrays.asList();
+
+		ExpressionNode cond = conjunct(conditions);
+		StatementNode assumeOrAssert;
+
+		if (isAssume)
+			assumeOrAssert = createAssumption(pred);
+		else
+			assumeOrAssert = createAssertion(pred);
+		if (cond != null)
+			return Arrays.asList(nodeFactory.newIfNode(cond.getSource(), cond,
+					assumeOrAssert));
+		else
+			return Arrays.asList(assumeOrAssert);
 	}
 }

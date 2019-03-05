@@ -97,6 +97,7 @@ public class CollateExecutor {
 		executor.evaluator().setConfiguration(this.config);
 		executor.setConfiguration(this.config);
 		try {
+			// MUST NOT DO COLLECTION :
 			initState = executor.stateFactory().canonic(initState, false, false,
 					false, false, false, new HashSet<>(0));
 		} catch (CIVLHeapException e) {

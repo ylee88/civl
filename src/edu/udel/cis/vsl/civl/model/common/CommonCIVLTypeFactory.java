@@ -177,7 +177,7 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	/**
 	 * The dynamic type of {@link #stateType}
 	 */
-	SymbolicTupleType stateSymbolicType;
+	final SymbolicTupleType stateSymbolicType;
 
 	/**
 	 * The $state type in CIVL-C language
@@ -682,7 +682,7 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	}
 
 	@Override
-	public SymbolicTupleType stateSymbolicType() {
+	public SymbolicType stateSymbolicType() {
 		return this.stateSymbolicType;
 	}
 

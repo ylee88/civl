@@ -1,0 +1,58 @@
+#include<assert.h>
+#include<stdio.h>
+
+#pragma CIVL ACSL
+
+/*@ assigns \nothing;
+  @ ensures \result == x + y;
+*/
+int add(int x, int y){
+  return x + y;
+}
+
+/*@ requires n >= 0;
+  @ assigns \nothing;
+  @ ensures ((n + 1) * n) == \result * 2;
+ */
+int sum1(int n) {
+  int ret = 0;
+
+  /*@ loop invariant 0 <= i <= n+1;
+    @ loop invariant ret * 2 == (i - 1) * i;
+    @ loop assigns ret, i;
+    @*/
+  for(int i = 0; i <= n; i++) 
+    ret = add(ret, i);
+  return ret;
+}
+
+/*@ requires n >= 0;
+  @ assigns \nothing;
+  @ ensures ((n + 1) * n) == \result * 2;
+ */
+int sum2(int n) {
+  int ret = 0;
+  int arg;
+
+  if(n <= 0) return 0;
+  else{
+    arg = sum2(n - 1);
+    ret = add(n, arg);
+  }
+  return ret;
+}
+
+/*@ assigns \nothing;
+  @ ensures \true;
+  @*/
+int main() {
+  int x;
+  
+  $havoc(&x);
+  $assume(x >= 0);
+  
+  int ret1 = sum1(x);
+  int ret2 = sum2(x);
+  $assert(ret1 == ret2);
+  return 0;
+}

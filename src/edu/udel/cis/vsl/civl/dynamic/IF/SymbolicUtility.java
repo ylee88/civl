@@ -658,6 +658,7 @@ public interface SymbolicUtility {
 	/**
 	 * <p>
 	 * Given a pointer to an array element, returns the indices of the element.
+	 * Array element indices as heap structure are ignored.
 	 * </p>
 	 * 
 	 * @param pointerToArrayElement
@@ -841,6 +842,16 @@ public interface SymbolicUtility {
 	IntObject getMallocID(SymbolicExpression pointer);
 
 	/**
+	 * Convert an array type symbolic expression with ARRAY operator to a
+	 * concrete Java array.
+	 * 
+	 * @param array
+	 *            the symbolic expression with ARRAY operator
+	 * @return the converted Java array
+	 */
+	SymbolicExpression[] symbolicArrayToConcreteArray(SymbolicExpression array);
+
+	/**
 	 * <p>
 	 * Tests if the given symbolic expression is a concrete pointer value. A
 	 * symbolic expression is a concrete pointer value iff the expression has
@@ -877,16 +888,6 @@ public interface SymbolicUtility {
 	 */
 	SymbolicConstant freshBoundVariableFor(SymbolicType type,
 			SymbolicExpression... expressions);
-
-	/**
-	 * Convert an array type symbolic expression with ARRAY operator to a
-	 * concrete Java array.
-	 * 
-	 * @param array
-	 *            the symbolic expression with ARRAY operator
-	 * @return the converted Java array
-	 */
-	SymbolicExpression[] symbolicArrayToConcreteArray(SymbolicExpression array);
 
 	SymbolicExpression makeFunctionPointer(int dyscopeID, int fid);
 

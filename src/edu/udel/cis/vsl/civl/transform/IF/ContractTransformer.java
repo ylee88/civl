@@ -1,5 +1,7 @@
 package edu.udel.cis.vsl.civl.transform.IF;
 
+import java.io.File;
+
 import edu.udel.cis.vsl.abc.ast.IF.AST;
 import edu.udel.cis.vsl.abc.ast.IF.ASTFactory;
 import edu.udel.cis.vsl.abc.token.IF.SyntaxException;
@@ -8,6 +10,10 @@ import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.transform.common.contracts.ContractTransformerWorker;
 
 public class ContractTransformer extends BaseTransformer {
+
+	private final static String MEM_HEADER = "/include/abc/mem.cvh";
+
+	public final static File[] additionalLibraries = {new File(MEM_HEADER)};
 
 	/**
 	 * The code (short name) of this transformer.

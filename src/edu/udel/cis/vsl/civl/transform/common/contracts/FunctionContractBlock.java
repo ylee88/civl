@@ -17,8 +17,9 @@ import edu.udel.cis.vsl.abc.ast.node.IF.acsl.RequiresNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.acsl.WaitsforNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode.ExpressionKind;
-import edu.udel.cis.vsl.abc.ast.node.IF.expression.OperatorNode.Operator;
 import edu.udel.cis.vsl.abc.token.IF.Source;
+import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
+import edu.udel.cis.vsl.civl.transform.common.contracts.SpecialContractExpressionFinder.SpecialContractHub;
 
 /**
  * This class represents a contract block, i.e. either all of the contracts for
@@ -147,35 +148,28 @@ class FunctionContractBlock {
 	static private void parseClausesInBehavior(
 			FunctionContractBlock currentBlock,
 			SequenceNode<ContractNode> contracts, NodeFactory nodeFactory) {
-		ExpressionNode assumptions = null;
+		List<ExpressionNode> assumptions = new LinkedList<>();
+		ConditionalClauses condClauses = currentBlock.new ConditionalClauses(
+				assumptions);
 
 		// Collects assumptions:
 		for (ContractNode contract : contracts)
 			if (contract.contractKind() == ContractKind.ASSUMES) {
-				ExpressionNode assumes = ((AssumesNode) contract)
+				ExpressionNode condition = ((AssumesNode) contract)
 						.getPredicate();
 
-				assumptions = assumptions == null
-						? assumes
-						: nodeFactory.newOperatorNode(assumes.getSource(),
-								Operator.LAND, assumptions, assumes);
+				assumptions.add(condition);
 			}
-
-		ConditionalClauses condClauses = currentBlock.new ConditionalClauses(
-				assumptions);
-
 		// Collects clauses which specifies predicates:
 		for (ContractNode contract : contracts) {
 			ContractKind kind = contract.contractKind();
 
 			switch (kind) {
 				case REQUIRES :
-					condClauses.addRequires(
-							((RequiresNode) contract).getExpression());
+					condClauses.addRequires(((RequiresNode) contract));
 					break;
 				case ENSURES :
-					condClauses.addEnsures(
-							((EnsuresNode) contract).getExpression());
+					condClauses.addEnsures(((EnsuresNode) contract));
 					break;
 				case WAITSFOR :
 					condClauses.addWaitsfor(
@@ -223,139 +217,6 @@ class FunctionContractBlock {
 	}
 
 	/**
-	 * This class represents a contract behavior. Without loss of generality,
-	 * there is always a default behavior which has no assumption and no name.
-	 */
-	class ConditionalClauses {
-		/**
-		 * The condition which comes from the assumption of a behavior:
-		 */
-		final ExpressionNode condition;
-
-		private List<ExpressionNode> requiresSet;
-
-		private List<ExpressionNode> ensuresSet;
-
-		private List<ExpressionNode> waitsforSet;
-
-		private List<ExpressionNode> assignsSet;
-
-		private ConditionalClauses(ExpressionNode condition) {
-			this.condition = condition;
-			requiresSet = new LinkedList<>();
-			ensuresSet = new LinkedList<>();
-			waitsforSet = new LinkedList<>();
-			assignsSet = new LinkedList<>();
-		}
-
-		/**
-		 * Add an expression of a "requires" clause.
-		 * 
-		 * @param requires
-		 */
-		void addRequires(ExpressionNode requires) {
-			requiresSet.add(requires);
-		}
-
-		/**
-		 * Add an expression of a "ensures" clause.
-		 * 
-		 * @param requires
-		 */
-		void addEnsures(ExpressionNode ensures) {
-			ensuresSet.add(ensures);
-		}
-
-		/**
-		 * Add a set of arguments of a "waitsfor" clause.
-		 * 
-		 * @param requires
-		 */
-		void addWaitsfor(SequenceNode<ExpressionNode> waitsforArgs) {
-			for (ExpressionNode arg : waitsforArgs)
-				waitsforSet.add(arg);
-		}
-
-		/**
-		 * Add a set of arguments of a "assigns" clause.
-		 * 
-		 * @param assignsArgs
-		 */
-		void addAssigns(SequenceNode<ExpressionNode> assignsArgs) {
-			for (ExpressionNode arg : assignsArgs)
-				assignsSet.add(arg);
-		}
-
-		/**
-		 * Returns all requires expressions in this contract behavior
-		 * 
-		 * @param nodeFactory
-		 *            A reference to the {@link NodeFactory}
-		 * @return
-		 */
-		ExpressionNode getRequires(NodeFactory nodeFactory) {
-			if (requiresSet.isEmpty())
-				return null;
-
-			ExpressionNode result = requiresSet.remove(0);
-
-			result.remove();
-			for (ExpressionNode requires : requiresSet) {
-				requires.remove();
-				result = nodeFactory.newOperatorNode(requires.getSource(),
-						Operator.LAND, result, requires);
-			}
-			requiresSet.clear();
-			requiresSet.add(result);
-			return requiresSet.get(0);
-		}
-
-		/**
-		 * Returns all ensures expressions in this contract behavior
-		 * 
-		 * @param nodeFactory
-		 *            A reference to the {@link NodeFactory}
-		 * @return
-		 */
-		ExpressionNode getEnsures(NodeFactory nodeFactory) {
-			if (ensuresSet.isEmpty())
-				return null;
-
-			ExpressionNode result = ensuresSet.remove(0);
-
-			result.remove();
-			for (ExpressionNode ensures : ensuresSet) {
-				ensures.remove();
-				result = nodeFactory.newOperatorNode(ensures.getSource(),
-						Operator.LAND, result, ensures);
-			}
-			ensuresSet.clear();
-			ensuresSet.add(result);
-			return ensuresSet.get(0);
-
-		}
-
-		/**
-		 * Returns a list of arguments of "waitsfor" clauses
-		 * 
-		 * @param nodeFactory
-		 * @return
-		 */
-		List<ExpressionNode> getWaitsfors() {
-			return waitsforSet;
-		}
-
-		/**
-		 * Return a list of assigns arguments.
-		 * 
-		 * @return
-		 */
-		List<ExpressionNode> getAssignsArgs() {
-			return assignsSet;
-		}
-	}
-
-	/**
 	 * Clean up all {@link ConditionalClauses} in this contract block. If a
 	 * {@link ConditionalClauses} has empty clauses, remove it.
 	 * 
@@ -366,8 +227,9 @@ class FunctionContractBlock {
 		List<ConditionalClauses> newBehaviors = new LinkedList<>();
 
 		for (ConditionalClauses behav : behaviors) {
-			if (!(behav.requiresSet.isEmpty() && behav.ensuresSet.isEmpty()
-					&& behav.waitsforSet.isEmpty()))
+			if (!(behav.getRequires().isEmpty() && behav.getEnsures().isEmpty()
+					&& behav.waitsforSet.isEmpty()
+					&& behav.getAssignsArgs().isEmpty()))
 				newBehaviors.add(behav);
 		}
 		complete = true;
@@ -399,5 +261,168 @@ class FunctionContractBlock {
 	void addConditionalClauses(ConditionalClauses clauses) {
 		assert !complete : "Cannot add ConditionalClauses after the contract block is complete";
 		behaviors.add(clauses);
+	}
+
+	/**
+	 * This class represents a contract behavior. Without loss of generality,
+	 * there is always a default behavior which has no assumption and no name.
+	 */
+	class ConditionalClauses {
+		/**
+		 * The condition which comes from the assumption of a behavior:
+		 */
+		private List<ExpressionNode> conditions;
+
+		private ContractClause requires;
+
+		private ContractClause ensures;
+
+		private List<ExpressionNode> waitsforSet;
+
+		private List<ExpressionNode> assignsSet;
+
+		private ConditionalClauses(List<ExpressionNode> conditions) {
+			this.conditions = conditions;
+			requires = new ContractClause();
+			ensures = new ContractClause();
+			waitsforSet = new LinkedList<>();
+			assignsSet = new LinkedList<>();
+		}
+
+		/**
+		 * Add an expression of a "requires" clause.
+		 * 
+		 * @param requires
+		 */
+		void addRequires(RequiresNode requires) {
+			this.requires.addClause(requires);
+		}
+
+		/**
+		 * Add an expression of a "ensures" clause.
+		 * 
+		 * @param requires
+		 */
+		void addEnsures(EnsuresNode ensures) {
+			this.ensures.addClause(ensures);
+		}
+
+		/**
+		 * Add a set of arguments of a "waitsfor" clause.
+		 * 
+		 * @param requires
+		 */
+		void addWaitsfor(SequenceNode<ExpressionNode> waitsforArgs) {
+			for (ExpressionNode arg : waitsforArgs)
+				waitsforSet.add(arg);
+		}
+
+		/**
+		 * Add a set of arguments of a "assigns" clause.
+		 * 
+		 * @param assignsArgs
+		 */
+		void addAssigns(SequenceNode<ExpressionNode> assignsArgs) {
+			for (ExpressionNode arg : assignsArgs) {
+				assignsSet.add(arg);
+			}
+		}
+
+		/**
+		 * Returns all requires expressions in this contract behavior
+		 * 
+		 * @return
+		 */
+		ContractClause getRequires() {
+			return requires;
+		}
+
+		/**
+		 * Returns all ensures expressions in this contract behavior
+		 * 
+		 * @return
+		 */
+		ContractClause getEnsures() {
+			return ensures;
+		}
+
+		/**
+		 * Returns a list of arguments of "waitsfor" clauses
+		 * 
+		 * @param nodeFactory
+		 * @return
+		 */
+		List<ExpressionNode> getWaitsfors() {
+			return waitsforSet;
+		}
+
+		/**
+		 * Return a list of assigns arguments.
+		 * 
+		 * @return
+		 */
+		List<ExpressionNode> getAssignsArgs() {
+			return assignsSet;
+		}
+
+		/**
+		 * Return a list of "condition" expressions which are specified by ACSL
+		 * "assumes" keywords
+		 */
+		List<ExpressionNode> getConditions() {
+			return conditions;
+		}
+	}
+
+	class ContractClause {
+		SpecialContractHub specialReferences = null;
+
+		private List<ContractNode> clauses;
+
+		private ContractClause() {
+			clauses = new LinkedList<>();
+		}
+
+		void addClause(ContractNode clause) {
+			clauses.add(clause);
+			if (specialReferences == null)
+				specialReferences = SpecialContractExpressionFinder
+						.findSpecialExpressions(getExpression(clause));
+			else
+				specialReferences = SpecialContractExpressionFinder
+						.findSpecialExpressions(getExpression(clause),
+								specialReferences);
+		}
+
+		List<ExpressionNode> getClauseExpressions() {
+			List<ExpressionNode> results = new LinkedList<>();
+			/*
+			 * Note that this method must always get the expression from the
+			 * contract node. A cache is not allowed here since the
+			 * transformation relies on the substitutions. The substitution is
+			 * done by re-setting children of parents. Contract nodes are
+			 * parents of the expression nodes.
+			 */
+			for (ContractNode clause : clauses)
+				results.add(getExpression(clause));
+			return results;
+		}
+
+		boolean isEmpty() {
+			return clauses.isEmpty();
+		}
+
+		private ExpressionNode getExpression(ContractNode clause) {
+			switch (clause.contractKind()) {
+				case REQUIRES :
+					return ((RequiresNode) clause).getExpression();
+				case ENSURES :
+					return ((EnsuresNode) clause).getExpression();
+				default :
+					throw new CIVLInternalException(
+							"incorrect contract clause kind",
+							clause.getSource());
+			}
+		}
 	}
 }

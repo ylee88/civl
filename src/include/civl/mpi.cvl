@@ -125,8 +125,6 @@ int MPI_Sendrecv(void *sendbuf, int sendcount, MPI_Datatype sendtype,
 #ifdef _MPI_CONTRACT
   $elaborate(dest);
   $elaborate(source);
-  $elaborate(sendcount);
-  $elaborate(recvcount);
 #else
   $mpi_check_buffer(sendbuf, sendcount, sendtype);
 #endif

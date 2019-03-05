@@ -13,12 +13,17 @@
 #define UNCHECKED  3
 #define CHECKED    4
 // The $gcollate_state whose state field is significant:
-#define _STATE_USED(gstate, place)  ((gstate)->status[(place)] >= NONARRIVED && (gstate)->status[(place)] <= DEPARTED)
-#define _ARRIVED(gstate, place)     ((gstate)->status[(place)] == ARRIVED || (gstate)->status[(place)] == DEPARTED)
-#define _DEPARTED(gstate, place)    ((gstate)->status[(place)] == DEPARTED)
+#define _STATE_USED(gstate, place) \
+ ((gstate)->status[(place)] >= NONARRIVED && (gstate)->status[(place)] <= DEPARTED)
+#define _ARRIVED(gstate, place) \
+ ((gstate)->status[(place)] == ARRIVED || (gstate)->status[(place)] == DEPARTED)
+#define _DEPARTED(gstate, place) \
+ ((gstate)->status[(place)] == DEPARTED)
 // The $gcollate_state whose attribute field is significant:
-#define _ATTR_USED(gstate, place)   ((gstate)->status[(place)] >= UNCHECKED && (gstate)->status[(place)] <= CHECKED)
-#define _CHECKED(gstate, place)     ((gstate)->status[(place)] == CHECKED)
+#define _ATTR_USED(gstate, place) \
+ ((gstate)->status[(place)] >= UNCHECKED && (gstate)->status[(place)] <= CHECKED)
+#define _CHECKED(gstate, place) \
+ ((gstate)->status[(place)] == CHECKED)
 
 /******************* Definition of datatypes: *******************/
 struct _gcollator {

@@ -81,10 +81,16 @@ public class ReasoningTest {
 	}
 
 	@Test
+	public void stepedUniversal() {
+		assertTrue(ui.run(VERIFY, QUIET,
+				reasoningfilename("stepedUniversal.cvl")));
+	}
+
+	@Test
 	public void powerDecomposeSimplification() {
 		// this test is suppose to be reported as containing an error:
-		assertTrue(ui.run(VERIFY, QUIET,
-				reasoningfilename("powerSimplify.cvl")));
+		assertTrue(
+				ui.run(VERIFY, QUIET, reasoningfilename("powerSimplify.cvl")));
 	}
 
 	@Ignore

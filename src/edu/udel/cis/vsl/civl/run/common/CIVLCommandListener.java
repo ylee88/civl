@@ -188,10 +188,6 @@ public class CIVLCommandListener extends CommandBaseListener
 				cmdSection.setScalarValue(option, value);
 			} else if (option.type() == OptionType.BOOLEAN)
 				cmdSection.setScalarValue(option, true);
-			else if (optionName.equals(CIVLConstants.MPI_CONTRACT)) {
-				throw new IllegalArgumentException(
-						"Option " + option.name() + " requires a STRING value");
-			}
 		} catch (IllegalArgumentException illegalArg) {
 			throw new RuntimeCommandException(illegalArg.getMessage());
 		}

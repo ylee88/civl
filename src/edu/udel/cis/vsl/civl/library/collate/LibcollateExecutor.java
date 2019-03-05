@@ -53,11 +53,11 @@ public class LibcollateExecutor extends BaseLibraryExecutor
 				symbolicAnalyzer, civlConfig, libExecutorLoader,
 				libEvaluatorLoader);
 		collate_state_gstate = universe
-				.intObject(LibcollateConstants.COLLATE_STATE_GSTATE);
+				.intObject(LibcollateConstantsAndUtils.COLLATE_STATE_GSTATE);
 		gcollate_state_state = universe
-				.intObject(LibcollateConstants.GCOLLATE_STATE_STATE);
+				.intObject(LibcollateConstantsAndUtils.GCOLLATE_STATE_STATE);
 		gcollate_state_status = universe
-				.intObject(LibcollateConstants.GCOLLATE_STATE_STATUS);
+				.intObject(LibcollateConstantsAndUtils.GCOLLATE_STATE_STATUS);
 	}
 
 	@Override

@@ -83,6 +83,8 @@ public abstract class BaseWorker {
 			0);
 	final static String GEN_MAIN = GeneralTransformer.PREFIX + "main";
 	final static String MAIN = "main";
+	public final static String ASSUME_PUSH = "$assume_push";
+	public final static String ASSUME_POP = "$assume_pop";
 	public final static String ASSUME = "$assume";
 	public final static String ASSERT = "$assert";
 	public final static String CHOOSE_INT = "$choose_int";
