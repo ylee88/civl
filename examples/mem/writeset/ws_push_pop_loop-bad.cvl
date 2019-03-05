@@ -1,0 +1,25 @@
+#include <mem.cvh>
+$input int N, n;
+$assume(N > n && n > 5);
+
+int main() {
+  double a[10];
+  float c[N];
+  
+  $write_set_push();
+  for (int i = 0; i < 5; i++) {
+    a[i] = i;
+    c[i] = i;
+  }
+  
+  $mem m = $write_set_pop();
+  $mem m2 = $mem_empty();
+
+  m2 = $mem_union(m, &a[0 .. 4]);
+  m2 = $mem_union(m, &c[0 .. 4]);
+  $assert($mem_contains(m, m2));
+  $assert(!$mem_contains(m, &a[5]));
+  $assert(!$mem_contains(m, &c[5]));
+  $assert($mem_contains(m, &c[0 .. 5]));  
+  return 0;
+}

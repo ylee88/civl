@@ -1,0 +1,17 @@
+#include<mem.cvh>
+#include<stdlib.h>
+
+struct T {
+  int (*x)[100];
+} ** a;
+
+int main() {
+  a = (struct T **)malloc(sizeof(struct T*));
+  *a = (struct T*)malloc(sizeof(struct T));
+  (*a)->x = (int (*)[100])malloc(sizeof(int[100]) * 10);
+
+  $assert($mem_contains((*a)->x, &(*a)->x[1][0 .. 10]));   // violated: (*a)->x does NOT points to array (*a)->x[1]
+  free((*a)->x);
+  free(*a);
+  free(a);
+}

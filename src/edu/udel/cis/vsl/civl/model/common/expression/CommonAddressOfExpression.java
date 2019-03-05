@@ -11,6 +11,7 @@ import edu.udel.cis.vsl.civl.model.IF.expression.Expression;
 import edu.udel.cis.vsl.civl.model.IF.expression.LHSExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.VariableExpression;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPointerType;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLSetType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 
@@ -43,13 +44,16 @@ public class CommonAddressOfExpression extends CommonExpression
 	 * @param source
 	 *            The source code information of the expression.
 	 * @param type
-	 *            The type of the expression, which is always a pointer type.
+	 *            The type of the expression, which is always a (set-of) pointer
+	 *            type.
 	 * @param operand
 	 *            The operand of the address-of operator (<code>&</code>).
 	 */
-	public CommonAddressOfExpression(CIVLSource source, CIVLPointerType type,
+	public CommonAddressOfExpression(CIVLSource source, CIVLType type,
 			LHSExpression operand) {
 		super(source, operand.expressionScope(), operand.lowestScope(), type);
+		assert type.isPointerType() || (type.isSetType()
+				&& ((CIVLSetType) type).elementType().isPointerType());
 		this.operand = operand;
 	}
 

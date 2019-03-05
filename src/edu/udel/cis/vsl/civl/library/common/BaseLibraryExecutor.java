@@ -182,8 +182,10 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 					SymbolicExpression pointer2memoryBlk = symbolicUtil
 							.parentPointer(firstElementPointer);
 
-					state = stateFactory.addWriteRecords(state, pid,
-							pointer2memoryBlk);
+					eval = evaluator.memEvaluator().pointer2memValue(state, pid,
+							pointer2memoryBlk, source);
+					state = stateFactory.addWriteRecords(eval.state, pid,
+							eval.value);
 				}
 				state = stateFactory.deallocate(state, firstElementPointer,
 						symbolicUtil.getScopeValue(firstElementPointer),

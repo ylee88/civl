@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
+import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.CIVLTypeFactory;
 import edu.udel.cis.vsl.civl.model.IF.Identifier;
@@ -32,11 +33,15 @@ import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType.PrimitiveTypeKind;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLRegularRangeType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLScopeType;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLSetType;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLStateType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLStructOrUnionType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLType.TypeKind;
 import edu.udel.cis.vsl.civl.model.IF.type.StructOrUnionField;
 import edu.udel.cis.vsl.civl.model.common.type.CommonArrayType;
 import edu.udel.cis.vsl.civl.model.common.type.CommonBundleType;
+import edu.udel.cis.vsl.civl.model.common.type.CommonCIVLStateType;
 import edu.udel.cis.vsl.civl.model.common.type.CommonCompleteArrayType;
 import edu.udel.cis.vsl.civl.model.common.type.CommonCompleteDomainType;
 import edu.udel.cis.vsl.civl.model.common.type.CommonDomainType;
@@ -48,6 +53,7 @@ import edu.udel.cis.vsl.civl.model.common.type.CommonPointerType;
 import edu.udel.cis.vsl.civl.model.common.type.CommonPrimitiveType;
 import edu.udel.cis.vsl.civl.model.common.type.CommonRegularRangeType;
 import edu.udel.cis.vsl.civl.model.common.type.CommonScopeType;
+import edu.udel.cis.vsl.civl.model.common.type.CommonSetType;
 import edu.udel.cis.vsl.civl.model.common.type.CommonStructOrUnionField;
 import edu.udel.cis.vsl.civl.model.common.type.CommonStructOrUnionType;
 import edu.udel.cis.vsl.civl.util.IF.Singleton;
@@ -66,6 +72,11 @@ import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicUnionType;
 
 public class CommonCIVLTypeFactory implements CIVLTypeFactory {
+
+	/**
+	 * The name of an uninterpreted type that represents a unique ID of a state:
+	 */
+	private static String UNINTERPRETED_STATE_TYPE_NAME = "$state_key";
 
 	/* *********************** Package-private Fields ********************** */
 
@@ -96,11 +107,6 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	 * The CIVL domain type.
 	 */
 	CIVLDomainType domainType = null;
-
-	/**
-	 * The CIVL mem type.
-	 */
-	CIVLMemType memType = null;
 
 	/**
 	 * The unique dynamic symbolic type used in the system.
@@ -169,14 +175,14 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	CIVLPrimitiveType processType;
 
 	/**
-	 * The unique symbolic state type used in the system.
+	 * The dynamic type of {@link #stateType}
 	 */
 	SymbolicTupleType stateSymbolicType;
 
 	/**
-	 * The unique state type used in the system.
+	 * The $state type in CIVL-C language
 	 */
-	CIVLPrimitiveType stateType;
+	CIVLStateType stateType;
 
 	/**
 	 * The regular range type, which is (int, int, int), corresponding to (low,
@@ -220,6 +226,12 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	SymbolicType voidSymbolicType;
 
 	/**
+	 * The dynamic type of {@link CIVLMemType}, whose definition is given by
+	 * {@link #dynamicMemType()}
+	 */
+	SymbolicTupleType dynamicMemType;
+
+	/**
 	 * The uninterpreted function sizeof.
 	 */
 	private SymbolicExpression sizeofFunction;
@@ -257,9 +269,18 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 				.tupleType(universe.stringObject("process"), intTypeSingleton);
 		processType = primitiveType(PrimitiveTypeKind.PROCESS,
 				processSymbolicType);
-		stateSymbolicType = universe.tupleType(universe.stringObject("state"),
-				intTypeSingleton);
-		stateType = primitiveType(PrimitiveTypeKind.STATE, stateSymbolicType);
+		/*
+		 * A CIVL-C $state type is a tuple of a unique uninterpreted type which
+		 * refers to a state s and an integer array which maps scope values from
+		 * the state s to the current state.
+		 */
+		stateSymbolicType = universe.tupleType(universe.stringObject("$state"),
+				Arrays.asList(
+						universe.symbolicUninterpretedType(
+								UNINTERPRETED_STATE_TYPE_NAME),
+						universe.arrayType(scopeSymbolicType)));
+		stateType = (CIVLStateType) primitiveType(PrimitiveTypeKind.STATE,
+				stateSymbolicType);
 		dynamicSymbolicType = universe.tupleType(
 				universe.stringObject("dynamicType"), intTypeSingleton);
 		dynamicType = primitiveType(PrimitiveTypeKind.DYNAMIC,
@@ -620,6 +641,8 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 			fact = universe.lessThan(universe.zeroInt(), size);
 		if (kind == PrimitiveTypeKind.SCOPE)
 			result = new CommonScopeType(size, fact);
+		else if (kind == PrimitiveTypeKind.STATE)
+			result = new CommonCIVLStateType(dynamicType, size, fact);
 		else
 			result = new CommonPrimitiveType(kind, dynamicType, size, fact);
 		return result;
@@ -654,7 +677,7 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	}
 
 	@Override
-	public CIVLPrimitiveType stateType() {
+	public CIVLStateType stateType() {
 		return this.stateType;
 	}
 
@@ -749,10 +772,37 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	}
 
 	@Override
-	public CIVLMemType memType() {
-		if (memType == null) {
-			memType = new CommonMemType(pointerType(voidType));
+	public CIVLMemType civlMemType() {
+		return new CommonMemType(pointerType(voidType), dynamicMemType());
+	}
+
+	@Override
+	public CIVLSetType civlSetType(CIVLType elementType) {
+		if (elementType.typeKind() == TypeKind.SET)
+			throw new CIVLInternalException(
+					"Element type of a CIVLSetType shall not be CIVLSetType",
+					this.systemSource);
+		return new CommonSetType(elementType);
+	}
+
+	@Override
+	public SymbolicTupleType dynamicMemType() {
+		/**
+		 * The dynamic type of $mem type is: <code>
+		 * $mem<INT, $mem_member<INT, SCOPE, HeapID, MallocID, ValueSetTemplate>>
+		 * </code>
+		 */
+		if (dynamicMemType == null) {
+			// there is "$mem" type declared in CIVL-C library hence users will
+			// not be allowed to declare a type with the same name:
+			dynamicMemType = universe.tupleType(universe.stringObject("$mem"),
+					Arrays.asList(universe.arrayType(universe.tupleType(
+							universe.stringObject("$mem_member"),
+							Arrays.asList(universe.integerType(),
+									universe.integerType(),
+									universe.integerType(), scopeSymbolicType(),
+									universe.valueSetTemplateType())))));
 		}
-		return memType;
+		return dynamicMemType;
 	}
 }

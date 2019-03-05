@@ -1,0 +1,17 @@
+#include<mem.cvh>
+$input int N;
+$assume(N > 5);
+
+int a[2 * N][2 * N];
+
+int main() {
+  $mem m = &a[0 .. N-1][N .. 2*N-1];
+  
+  $mem_havoc(m);
+  
+  $assert(
+	  $forall (int i : N .. 2*N-1)
+	  $forall (int j : 0 .. N-1)	  
+	  a[j][i] == 0
+	  );
+}

@@ -14,6 +14,7 @@ import edu.udel.cis.vsl.civl.model.IF.expression.Expression;
 import edu.udel.cis.vsl.civl.model.IF.expression.LHSExpression;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLArrayType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
+import edu.udel.cis.vsl.civl.semantics.common.MemEvaluator;
 import edu.udel.cis.vsl.civl.state.IF.State;
 import edu.udel.cis.vsl.civl.state.IF.StateFactory;
 import edu.udel.cis.vsl.civl.state.IF.UnsatisfiablePathConditionException;
@@ -239,9 +240,9 @@ public interface Evaluator {
 	 * @return the result of evaluating the sum of the pointer and the integer
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	Evaluation evaluatePointerAdd(State state, int pid, String process,
+	Evaluation evaluatePointerAdd(State state, int pid,
 			BinaryExpression expression, SymbolicExpression pointer,
-			NumericExpression offset)
+			SymbolicExpression offset)
 			throws UnsatisfiablePathConditionException;
 
 	/**
@@ -383,9 +384,15 @@ public interface Evaluator {
 
 	MemoryUnitExpressionEvaluator memoryUnitEvaluator();
 
+	// TODO: why a worker method is part of the interface ?!
 	Evaluation evaluateCastWorker(State state, int pid, String process,
 			CIVLType castType, Expression arg)
 			throws UnsatisfiablePathConditionException;
+
+	/**
+	 * @return a reference to {@link MemEvaluator}
+	 */
+	MemEvaluator memEvaluator();
 
 	/**
 	 * returns an arbitrary symbolic constant with the given type.

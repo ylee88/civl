@@ -25,7 +25,7 @@ import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
 /**
  * A SymbolicUtility provides all the common operations of symbolic expressions.
  * 
- * @author Manchun Zheng
+ * @author Manchun Zheng, Ziqing Luo
  * 
  */
 public interface SymbolicUtility {
@@ -877,6 +877,16 @@ public interface SymbolicUtility {
 	 */
 	SymbolicConstant freshBoundVariableFor(SymbolicType type,
 			SymbolicExpression... expressions);
+
+	/**
+	 * Convert an array type symbolic expression with ARRAY operator to a
+	 * concrete Java array.
+	 * 
+	 * @param array
+	 *            the symbolic expression with ARRAY operator
+	 * @return the converted Java array
+	 */
+	SymbolicExpression[] symbolicArrayToConcreteArray(SymbolicExpression array);
 
 	SymbolicExpression makeFunctionPointer(int dyscopeID, int fid);
 

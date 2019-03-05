@@ -1,52 +1,46 @@
 package edu.udel.cis.vsl.civl.library.mem;
 
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.TreeSet;
-import java.util.function.Function;
 
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.dynamic.IF.DynamicWriteSet;
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.library.common.BaseLibraryExecutor;
-import edu.udel.cis.vsl.civl.library.mem.WriteSetOperations.AssignableRefreshment;
+import edu.udel.cis.vsl.civl.library.mem.MemoryLocationMap.MemLocMapEntry;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.ModelFactory;
 import edu.udel.cis.vsl.civl.model.IF.expression.Expression;
-import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLMemType;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLMemType.MemoryLocationReference;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLStateType;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLType.TypeKind;
+import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.civl.semantics.IF.Evaluation;
-import edu.udel.cis.vsl.civl.semantics.IF.Evaluator;
 import edu.udel.cis.vsl.civl.semantics.IF.Executor;
 import edu.udel.cis.vsl.civl.semantics.IF.LibraryEvaluatorLoader;
 import edu.udel.cis.vsl.civl.semantics.IF.LibraryExecutor;
 import edu.udel.cis.vsl.civl.semantics.IF.LibraryExecutorLoader;
-import edu.udel.cis.vsl.civl.semantics.IF.Semantics;
 import edu.udel.cis.vsl.civl.semantics.IF.SymbolicAnalyzer;
 import edu.udel.cis.vsl.civl.state.IF.State;
+import edu.udel.cis.vsl.civl.state.IF.StateValueHelper;
 import edu.udel.cis.vsl.civl.state.IF.UnsatisfiablePathConditionException;
-import edu.udel.cis.vsl.civl.util.IF.Pair;
+import edu.udel.cis.vsl.sarl.IF.UnaryOperator;
 import edu.udel.cis.vsl.sarl.IF.expr.BooleanExpression;
-import edu.udel.cis.vsl.sarl.IF.expr.NumericExpression;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
-import edu.udel.cis.vsl.sarl.IF.number.IntegerNumber;
-import edu.udel.cis.vsl.sarl.IF.number.Number;
-import edu.udel.cis.vsl.sarl.IF.type.SymbolicTupleType;
+import edu.udel.cis.vsl.sarl.IF.expr.valueSetReference.ValueSetReference;
+import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
 
 public class LibmemExecutor extends BaseLibraryExecutor
 		implements
 			LibraryExecutor {
 
-	private Evaluator errSideEffectFreeEvaluator;
-
-	private WriteSetRefresher wsRefresher = null;
-
-	private WriteSetWidenOperator wsWideningOperator = null;
-
-	private WriteSetUnionOperator wsUnionOperator = null;
-
-	private WriteSetGroupOperator wsGroupOperator = null;
+	/**
+	 * A unary operator that collects the references in the "memValue", which
+	 * are referring to non-alive objects:
+	 */
+	private UnaryOperator<SymbolicExpression> collector;
 
 	public LibmemExecutor(String name, Executor primaryExecutor,
 			ModelFactory modelFactory, SymbolicUtility symbolicUtil,
@@ -56,23 +50,8 @@ public class LibmemExecutor extends BaseLibraryExecutor
 		super(name, primaryExecutor, modelFactory, symbolicUtil,
 				symbolicAnalyzer, civlConfig, libExecutorLoader,
 				libEvaluatorLoader);
-
-		Function<SymbolicExpression, IntegerNumber> scopeValueToKey = typeFactory
-				.scopeType().scopeValueToIdentityOperator(universe);
-
-		this.wsRefresher = WriteSetOperations.dynamicWriteSetRefresher(universe,
-				symbolicUtil);
-		this.wsWideningOperator = WriteSetOperations.widenOperator(universe,
-				symbolicUtil);
-		this.wsUnionOperator = WriteSetOperations.unionOperator(universe,
-				symbolicUtil);
-		this.wsGroupOperator = WriteSetOperations.groupOperator(universe,
-				symbolicUtil, scopeValueToKey);
-		this.errSideEffectFreeEvaluator = Semantics
-				.newErrorSideEffectFreeEvaluator(modelFactory, stateFactory,
-						libEvaluatorLoader, libExecutorLoader, symbolicUtil,
-						symbolicAnalyzer, stateFactory.memUnitFactory(),
-						errorLogger, civlConfig);
+		collector = typeFactory.civlMemType().memValueCollector(universe,
+				stateFactory.nullScopeValue());
 	}
 
 	@Override
@@ -95,44 +74,36 @@ public class LibmemExecutor extends BaseLibraryExecutor
 				callEval = executeWriteSetPeek(state, pid, arguments,
 						argumentValues, source);
 				break;
+			case "$mem_contains" :
+				callEval = executeMemContains(state, pid, arguments,
+						argumentValues, source);
+				break;
 			case "$mem_union" :
 				callEval = executeMemUnion(state, pid, arguments,
 						argumentValues, source);
 				break;
-			case "$mem_widening" :
-				callEval = executeMemWidening(state, pid, arguments,
+			case "$mem_union_widening" :
+				callEval = executeMemUnionWidening(state, pid, arguments,
 						argumentValues, source);
 				break;
 			case "$mem_havoc" :
-				callEval = executeHavocMem(state, pid, arguments,
+				callEval = executeMemHavoc(state, pid, arguments,
 						argumentValues, source);
 				break;
-			case "$mem_new" :
-				callEval = executeNewMem(state, pid, arguments, argumentValues,
+			case "$mem_assign_from" :
+				callEval = executeMemAssignFrom(state, pid, arguments,
+						argumentValues, source);
+				break;
+			case "$mem_unary_widening" :
+				callEval = executeMemUnaryWidening(state, pid, arguments,
+						argumentValues, source);
+				break;
+			case "$mem_empty" :
+				callEval = executeMemNew(state, pid, arguments, argumentValues,
 						source);
 				break;
 			case "$mem_equals" :
 				callEval = executeMemEquals(state, pid, arguments,
-						argumentValues, source);
-				break;
-			case "$mem_num_groups" :
-				callEval = executeMemNumGroups(state, pid, arguments,
-						argumentValues, source);
-				break;
-			case "$mem_groups" :
-				callEval = executeMemGroups(state, pid, arguments,
-						argumentValues, source);
-				break;
-			case "$mem_get_group" :
-				callEval = executeMemGetGroup(state, pid, arguments,
-						argumentValues, source);
-				break;
-			case "$mem_to_pointers" :
-				callEval = executeMemToPointers(state, pid, arguments,
-						argumentValues, source);
-				break;
-			case "$mem_to_pointers_size" :
-				callEval = executeMemToPointersSize(state, pid, arguments,
 						argumentValues, source);
 				break;
 			default :
@@ -170,20 +141,7 @@ public class LibmemExecutor extends BaseLibraryExecutor
 	private Evaluation executeWriteSetPush(State state, int pid,
 			Expression[] arguments, SymbolicExpression[] argumentValues,
 			CIVLSource source) {
-		// SymbolicExpression writeSet = argumentValues[0];
-
 		state = stateFactory.pushEmptyWrite(state, pid);
-		// if (writeSet.operator() == SymbolicOperator.TUPLE) {
-		// SymbolicExpression pointerArray = universe.tupleRead(writeSet,
-		// oneObject);
-		// NumericExpression arrayLength = universe.length(pointerArray);
-		// int arrayLengthInt = ((IntegerNumber) universe
-		// .extractNumber(arrayLength)).intValue();
-		//
-		// for (int i = 0; i < arrayLengthInt; i++)
-		// state = stateFactory.addWriteRecords(state, pid,
-		// universe.arrayRead(pointerArray, universe.integer(i)));
-		// }
 		return new Evaluation(state, null);
 	}
 
@@ -217,343 +175,343 @@ public class LibmemExecutor extends BaseLibraryExecutor
 	private Evaluation executeWriteSetPop(State state, int pid,
 			Expression[] arguments, SymbolicExpression[] argumentValues,
 			CIVLSource source) throws UnsatisfiablePathConditionException {
-		// SymbolicExpression memPointer = argumentValues[0];
-		CIVLType memType = typeFactory.memType();
-		// Evaluation eval = evaluator.dereference(source, state, process,
-		// memPointer, false, true);
-
-		// state = eval.state;
-
 		SymbolicExpression memValue;
-		SymbolicExpression pointerArray;
-		SymbolicTupleType memValueType;
-		LinkedList<SymbolicExpression> memValueComponents = new LinkedList<>();
 		DynamicWriteSet writeSet = stateFactory.peekWriteSet(state, pid);
-		int size = 0;
 
 		state = stateFactory.popWriteSet(state, pid);
-		memValueType = (SymbolicTupleType) memType.getDynamicType(universe);
-		for (SymbolicExpression pointer : writeSet) {
-			int referredDyscope = stateFactory
-					.getDyscopeId(symbolicUtil.getScopeValue(pointer));
-
-			if (referredDyscope < 0)
-				continue;
-			memValueComponents.add(pointer);
-			size++;
-		}
-		pointerArray = universe.array(typeFactory.pointerSymbolicType(),
-				memValueComponents);
-		memValueComponents.clear();
-		memValueComponents.add(universe.integer(size));
-		memValueComponents.add(pointerArray);
-		memValue = universe.tuple(memValueType, memValueComponents);
-		// state = primaryExecutor.assign(source, state, pid, memPointer,
-		// memValue);
-		// eval.state = state;
-		// eval.value = memValue;
+		memValue = writeSet.getMemValue();
 		return new Evaluation(state, memValue);
 	}
 
 	private Evaluation executeWriteSetPeek(State state, int pid,
 			Expression[] arguments, SymbolicExpression[] argumentValues,
 			CIVLSource source) throws UnsatisfiablePathConditionException {
-		CIVLType memType = typeFactory.memType();
-		// Evaluation eval = evaluator.dereference(source, state, process,
-		// memPointer, false, true);
-
-		// state = eval.state;
-
 		SymbolicExpression memValue;
-		SymbolicExpression pointerArray;
-		SymbolicTupleType memValueType;
-		LinkedList<SymbolicExpression> memValueComponents = new LinkedList<>();
 		DynamicWriteSet writeSet = stateFactory.peekWriteSet(state, pid);
-		int size = 0;
 
-		memValueType = (SymbolicTupleType) memType.getDynamicType(universe);
-		for (SymbolicExpression pointer : writeSet) {
-			int referredDyscope = stateFactory
-					.getDyscopeId(symbolicUtil.getScopeValue(pointer));
-
-			if (referredDyscope < 0)
-				continue;
-			memValueComponents.add(pointer);
-			size++;
-		}
-		pointerArray = universe.array(typeFactory.pointerSymbolicType(),
-				memValueComponents);
-		memValueComponents.clear();
-		memValueComponents.add(universe.integer(size));
-		memValueComponents.add(pointerArray);
-		memValue = universe.tuple(memValueType, memValueComponents);
+		memValue = writeSet.getMemValue();
 		return new Evaluation(state, memValue);
+	}
+
+	private Evaluation executeMemContains(State state, int pid,
+			Expression[] arguments, SymbolicExpression[] argumentValues,
+			CIVLSource source) throws UnsatisfiablePathConditionException {
+		SymbolicExpression mem0 = collector.apply(argumentValues[0]);
+		SymbolicExpression mem1 = collector.apply(argumentValues[1]);
+		MemoryLocationMap set0 = memValue2MemoryLocationSet(mem0);
+		MemoryLocationMap set1 = memValue2MemoryLocationSet(mem1);
+		BooleanExpression result = universe.trueExpression();
+
+		// for each "sub" value set template, there must exist one in "super"
+		// mem value that contains it, otherwise false...
+		for (MemLocMapEntry entry : set1.entrySet()) {
+			SymbolicExpression suuper;
+
+			suuper = set0.get(entry.vid(), entry.heapID(), entry.mallocID(),
+					entry.scopeValue());
+			if (suuper == null) {
+				result = universe.falseExpression();
+				break;
+			} else
+				result = universe.and(result, universe.valueSetContains(suuper,
+						entry.valueSetTemplate()));
+		}
+		return new Evaluation(state, result);
 	}
 
 	private Evaluation executeMemUnion(State state, int pid,
 			Expression[] arguments, SymbolicExpression[] argumentValues,
 			CIVLSource source) throws UnsatisfiablePathConditionException {
-		SymbolicExpression mem0 = argumentValues[0];
-		SymbolicExpression mem1 = argumentValues[1];
-		SymbolicExpression mem0ptrs[] = memObject2PointerArray(mem0);
-		SymbolicExpression mem1ptrs[] = memObject2PointerArray(mem1);
-		TreeSet<SymbolicExpression> set = new TreeSet<>(universe.comparator());
+		SymbolicExpression mem0 = collector.apply(argumentValues[0]);
+		SymbolicExpression mem1 = collector.apply(argumentValues[1]);
+		MemoryLocationMap set0 = memValue2MemoryLocationSet(mem0);
+		MemoryLocationMap set1 = memValue2MemoryLocationSet(mem1);
+		CIVLMemType memType = typeFactory.civlMemType();
 
-		for (TreeSet<SymbolicExpression> ret : wsUnionOperator.apply(mem0ptrs,
-				mem1ptrs))
-			set.addAll(ret);
-		int newSize = set.size();
-		SymbolicExpression newPointerArray = universe
-				.array(typeFactory.pointerSymbolicType(), set);
-		List<SymbolicExpression> tupleComponents = new LinkedList<>();
+		// for each "sub" value set template, there must exist one in "super"
+		// mem value that contains it, otherwise false...
+		for (MemLocMapEntry entry : set1.entrySet()) {
+			SymbolicExpression vst;
 
-		tupleComponents.add(universe.integer(newSize));
-		tupleComponents.add(newPointerArray);
+			vst = set0.get(entry.vid(), entry.heapID(), entry.mallocID(),
+					entry.scopeValue());
+			vst = vst == null
+					? entry.valueSetTemplate()
+					: universe.valueSetUnion(vst, entry.valueSetTemplate());
+			set0.put(entry.vid(), entry.heapID(), entry.mallocID(),
+					entry.scopeValue(), vst);
+		}
+
+		List<SymbolicExpression[]> results = new LinkedList<>();
+
+		for (MemLocMapEntry entry : set0.entrySet())
+			results.add(new SymbolicExpression[]{universe.integer(entry.vid()),
+					universe.integer(entry.heapID()),
+					universe.integer(entry.mallocID()), entry.scopeValue(),
+					entry.valueSetTemplate()});
 		return new Evaluation(state,
-				universe.tuple((SymbolicTupleType) typeFactory.memType()
-						.getDynamicType(universe), tupleComponents));
-
+				memType.memValueCreator(universe).apply(results));
 	}
 
 	private Evaluation executeMemEquals(State state, int pid,
 			Expression[] arguments, SymbolicExpression[] argumentValues,
 			CIVLSource source) throws UnsatisfiablePathConditionException {
-		SymbolicExpression[] ptrs0 = memObject2PointerArray(argumentValues[0]);
-		SymbolicExpression[] ptrs1 = memObject2PointerArray(argumentValues[1]);
-		boolean result = true;
+		SymbolicExpression mem0 = collector.apply(argumentValues[0]);
+		SymbolicExpression mem1 = collector.apply(argumentValues[1]);
 
-		if (ptrs0.length == ptrs1.length) {
-			for (int i = 0; i < ptrs0.length; i++)
-				if (!ptrs0[i].equals(ptrs1[i])) {
-					result = false;
-					break;
-				}
-			return new Evaluation(state, universe.bool(result));
+		// TODO: implement equals for ValueSetReference
+		return new Evaluation(state, universe.equals(mem0, mem1));
+	}
+
+	private Evaluation executeMemUnionWidening(State state, int pid,
+			Expression[] arguments, SymbolicExpression[] argumentValues,
+			CIVLSource source) throws UnsatisfiablePathConditionException {
+		SymbolicExpression mem0 = collector.apply(argumentValues[0]);
+		SymbolicExpression mem1 = collector.apply(argumentValues[1]);
+		MemoryLocationMap set0 = memValue2MemoryLocationSet(mem0);
+		MemoryLocationMap set1 = memValue2MemoryLocationSet(mem1);
+		CIVLMemType memType = typeFactory.civlMemType();
+
+		// for each "sub" value set template, there must exist one in "super"
+		// mem value that contains it, otherwise false...
+		for (MemLocMapEntry entry : set1.entrySet()) {
+			SymbolicExpression vst;
+
+			vst = set0.get(entry.vid(), entry.heapID(), entry.mallocID(),
+					entry.scopeValue());
+			vst = vst == null
+					? entry.valueSetTemplate()
+					: universe.valueSetUnion(vst, entry.valueSetTemplate());
+			set0.put(entry.vid(), entry.heapID(), entry.mallocID(),
+					entry.scopeValue(), vst);
 		}
-		return new Evaluation(state, universe.falseExpression());
-	}
 
-	private Evaluation executeMemGroups(State state, int pid,
-			Expression[] arguments, SymbolicExpression[] argumentValues,
-			CIVLSource source) throws UnsatisfiablePathConditionException {
-		SymbolicExpression pointers[] = this
-				.memObject2PointerArray(argumentValues[0]);
-		SymbolicExpression outputPointer = argumentValues[1];
-		Iterable<TreeSet<SymbolicExpression>> groups = wsGroupOperator
-				.apply(pointers);
-		List<SymbolicExpression> memValueComponents = new LinkedList<>();
-		SymbolicTupleType memValueType = (SymbolicTupleType) typeFactory
-				.memType().getDynamicType(universe);
-		List<SymbolicExpression> groupsArray = new LinkedList<>();
+		List<SymbolicExpression[]> results = new LinkedList<>();
 
-		for (TreeSet<SymbolicExpression> group : groups) {
-			SymbolicExpression pointerArray = universe
-					.array(typeFactory.pointerSymbolicType(), group);
-
-			memValueComponents.clear();
-			memValueComponents.add(universe.integer(group.size()));
-			memValueComponents.add(pointerArray);
-			groupsArray.add(universe.tuple(memValueType, memValueComponents));
-		}
-		state = primaryExecutor.assign(source, state, pid,
-				symbolicUtil.parentPointer(outputPointer),
-				universe.array(memValueType, groupsArray));
-		return new Evaluation(state, universe.nullExpression());
-	}
-
-	private Evaluation executeMemGetGroup(State state, int pid,
-			Expression[] arguments, SymbolicExpression[] argumentValues,
-			CIVLSource source) throws UnsatisfiablePathConditionException {
-		SymbolicExpression pointerSet[] = memObject2PointerArray(
-				argumentValues[0]);
-		SymbolicExpression keySet[] = memObject2PointerArray(argumentValues[1]);
-
-		if (keySet.length <= 0)
-			throw new CIVLInternalException(
-					"$mem_get_group($mem m, $mem key) function was used incorrectly, "
-							+ "the 'key' argument must be a non-empty $mem type object",
-					source);
-
-		SymbolicExpression keyRoot = symbolicUtil.isPointerToHeap(keySet[0])
-				? symbolicUtil.getPointer2MemoryBlock(keySet[0])
-				: symbolicUtil.makePointer(keySet[0],
-						universe.identityReference());
-
-		pointerSet = wsGroupOperator.getGroup(pointerSet, keyRoot);
-		return new Evaluation(state, pointerArray2MemObj(pointerSet));
-	}
-
-	private Evaluation executeMemNumGroups(State state, int pid,
-			Expression[] arguments, SymbolicExpression[] argumentValues,
-			CIVLSource source) throws UnsatisfiablePathConditionException {
-		SymbolicExpression pointers[] = this
-				.memObject2PointerArray(argumentValues[0]);
-
+		for (MemLocMapEntry entry : set0.entrySet())
+			results.add(new SymbolicExpression[]{universe.integer(entry.vid()),
+					universe.integer(entry.heapID()),
+					universe.integer(entry.mallocID()), entry.scopeValue(),
+					universe.valueSetWidening(entry.valueSetTemplate())});
 		return new Evaluation(state,
-				universe.integer(wsGroupOperator.numGroups(pointers)));
+				memType.memValueCreator(universe).apply(results));
 	}
 
-	private Evaluation executeMemWidening(State state, int pid,
+	private Evaluation executeMemHavoc(State state, int pid,
 			Expression[] arguments, SymbolicExpression[] argumentValues,
 			CIVLSource source) throws UnsatisfiablePathConditionException {
-		SymbolicExpression mem = argumentValues[0];
-		SymbolicExpression pointers[] = memObject2PointerArray(mem);
-		TreeSet<SymbolicExpression> widenedPointers = new TreeSet<>(
-				universe.comparator());
+		SymbolicExpression memValue = collector.apply(argumentValues[0]);
+		Iterable<MemoryLocationReference> memRefs = typeFactory.civlMemType()
+				.memValueIterator().apply(memValue);
 
-		for (TreeSet<SymbolicExpression> ret : wsWideningOperator
-				.apply(pointers))
-			widenedPointers.addAll(ret);
-		SymbolicExpression pointerArray = universe
-				.array(typeFactory.pointerSymbolicType(), widenedPointers);
-		SymbolicExpression newSize = universe.length(pointerArray);
-
-		mem = universe.tuple(
-				(SymbolicTupleType) typeFactory.memType()
-						.getDynamicType(universe),
-				Arrays.asList(newSize, pointerArray));
-		return new Evaluation(state, mem);
-	}
-
-	private Evaluation executeMemToPointers(State state, int pid,
-			Expression[] arguments, SymbolicExpression[] argumentValues,
-			CIVLSource source) throws UnsatisfiablePathConditionException {
-		SymbolicExpression mem = argumentValues[0];
-		SymbolicExpression pointer2array = argumentValues[1];
-		SymbolicExpression pointers[] = memObject2PointerArray(mem);
-		SymbolicExpression pointerArray = universe.array(typeFactory
-				.pointerType(typeFactory.voidType()).getDynamicType(universe),
-				pointers);
-
-		state = primaryExecutor.assign(source, state, pid, pointer2array,
-				pointerArray);
+		for (MemoryLocationReference memRef : memRefs)
+			state = havoc(state, pid, memRef, source);
 		return new Evaluation(state, universe.nullExpression());
 	}
 
-	private Evaluation executeMemToPointersSize(State state, int pid,
+	/*
+	 * 
+	 * Description: assigns each memory location in "m" its value that is
+	 * evaluated in state "s"
+	 * 
+	 * $atomic_f $system void $mem_assign_from($state s, $mem m);
+	 */
+	private Evaluation executeMemAssignFrom(State state, int pid,
 			Expression[] arguments, SymbolicExpression[] argumentValues,
 			CIVLSource source) throws UnsatisfiablePathConditionException {
-		SymbolicExpression mem = argumentValues[0];
-		NumericExpression memSize = (NumericExpression) universe.tupleRead(mem,
-				zeroObject);
+		SymbolicExpression memValue = collector.apply(argumentValues[1]);
+		StateValueHelper stateValHelper = stateFactory.stateValueHelper();
+		UnaryOperator<SymbolicExpression> scopeValueSubstituter = stateValHelper
+				.scopeSubstituterForReferredState(state, argumentValues[0]);
+		CIVLStateType stateType = typeFactory.stateType();
+		State preState = stateFactory.getStateByReference(
+				stateType.selectStateKey(universe, argumentValues[0]));
+		Iterable<MemoryLocationReference> memRefs = typeFactory.civlMemType()
+				.memValueIterator().apply(memValue);
 
-		return new Evaluation(state, memSize);
+		for (MemoryLocationReference memRef : memRefs) {
+			SymbolicExpression oldRootValue = getRootValue(memRef, preState,
+					scopeValueSubstituter, pid);
+			SymbolicExpression rootPointer = getRootPointer(memRef);
+
+			state = primaryExecutor.assign2(source, state, pid, rootPointer,
+					oldRootValue, memRef.valueSetTemplate());
+		}
+		return new Evaluation(state, universe.nullExpression());
+	}
+
+	/*
+	 * Description: apply a "unary widening" operator to each memory location in
+	 * the "m". The result of the operation to a memory location 'a' will be the
+	 * memory location of a program variable or a memory heap object that
+	 * contains 'a'.
+	 * 
+	 * $atomic_f $system $mem $mem_unary_widening($mem m);
+	 */
+	private Evaluation executeMemUnaryWidening(State state, int pid,
+			Expression[] arguments, SymbolicExpression[] argumentValues,
+			CIVLSource source) throws UnsatisfiablePathConditionException {
+		SymbolicExpression memValue = collector.apply(argumentValues[0]);
+		Iterable<MemoryLocationReference> memRefs = typeFactory.civlMemType()
+				.memValueIterator().apply(memValue);
+		List<SymbolicExpression[]> components = new LinkedList<>();
+
+		for (MemoryLocationReference memRef : memRefs) {
+			SymbolicExpression vid, heapId, mallocId;
+			SymbolicType rootValueType = getRootValue(memRef, state, null, pid)
+					.type();
+			SymbolicExpression rootTemplate;
+
+			if (rootValueType == null) {
+				Variable var = state
+						.getDyscope(
+								stateFactory.getDyscopeId(memRef.scopeValue()))
+						.lexicalScope().variable(memRef.vid());
+
+				assert var.type().typeKind() == TypeKind.PRIMITIVE;
+				rootValueType = var.type().getDynamicType(universe);
+			}
+			rootTemplate = universe.valueSetTemplate(rootValueType,
+					new ValueSetReference[]{universe.vsIdentityReference()});
+			vid = universe.integer(memRef.vid());
+			heapId = universe.integer(memRef.heapID());
+			mallocId = universe.integer(memRef.mallocID());
+			components.add(new SymbolicExpression[]{vid, heapId, mallocId,
+					memRef.scopeValue(), rootTemplate});
+		}
+
+		SymbolicExpression result = typeFactory.civlMemType()
+				.memValueCreator(universe).apply(components);
+
+		return new Evaluation(state, result);
 	}
 
 	/**
 	 * <p>
-	 * Executing the system function:<code>$havoc_mem($mem m)</code>. <br>
-	 * <br>
-	 * Semantics: The function assigns a fresh new symbolic constant to every
-	 * memory location in the memory location set represented by m. <br>
-	 * 
-	 * Notice that currently we do an <strong>compromise</strong> for refreshing
-	 * array elements in m: For an array element e in array a in m, we do NOT
-	 * assign e a fresh new constant but instead assign the array a a fresh new
-	 * constant. The reason is: A non-concrete array write will prevent states
-	 * from being canonicalized into a seen state. For example:
-	 * 
-	 * <code>
-	 * $input int N, X;
-	 * $assume(N > 0 && X > 0 && N > X);
-	 * int a[N];
-	 * 
-	 * LOOP_0: while (true) {
-	 *   a[X] = 0;
-	 *   $havoc(&a[X]);
-	 * }
-	 * 
-	 * LOOP_1: while (true) {
-	 *   a[X] = 0;
-	 *   $havoc(&a);
-	 * }
-	 * </code> Loop 1 will never converge but the value of a keeps growing. Loop
-	 * 2 will converge.
+	 * Havoc memory locations that are referred by "memRef".
 	 * </p>
 	 * 
 	 * @param state
-	 *            The current state.
+	 *            the state where the havoc operation will happen
 	 * @param pid
-	 *            The ID of the process that the function call belongs to.
-	 * @param arguments
-	 *            The static representation of the arguments of the function
-	 *            call.
-	 * @param argumentValues
-	 *            The dynamic representation of the arguments of the function
-	 *            call.
+	 *            the PID of the running process
+	 * @param memRef
+	 *            a {@link MemoryLocationReference}
 	 * @param source
-	 *            The {@link CIVLSource} associates to the function call.
-	 * @return The new state after executing the function call.
+	 *            the CIVLSource that is related to this operation
+	 * @return the state after havoc
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	private Evaluation executeHavocMem(State state, int pid,
-			Expression[] arguments, SymbolicExpression[] argumentValues,
+	private State havoc(State state, int pid, MemoryLocationReference memRef,
 			CIVLSource source) throws UnsatisfiablePathConditionException {
-		SymbolicExpression memObj = argumentValues[0];
-		// SymbolicExpression stateValue = argumentValues[1];
-		// State originalState = modelFactory
-		// .statenullConstantValue() == stateValue
-		// ? state
-		// : stateFactory.getStateByReference(
-		// modelFactory.getStateRef(stateValue));
-		SymbolicExpression pointers[] = memObject2PointerArray(memObj);
-		BooleanExpression returnedValue = universe.trueExpression();
+		int sid = stateFactory.getDyscopeId(memRef.scopeValue());
+		SymbolicExpression oldValue = getRootValue(memRef, state, null, pid);
+		SymbolicExpression rootPointer = getRootPointer(memRef);
+		SymbolicType oldValueType = oldValue.type();
+		Evaluation eval;
 
-		Pair<State, List<AssignableRefreshment>> refreshes = wsRefresher
-				.refresh(errSideEffectFreeEvaluator, state, state, pid,
-						Arrays.asList(pointers), source);
+		// if the referred variable was uninitialized and has a
+		// primitive type, its value may be NULL hence type cannot be
+		// obtained from its value:
+		if (oldValueType == null) {
+			Variable var = state.getDyscope(sid).lexicalScope()
+					.variable(memRef.vid());
 
-		state = refreshes.left;
-		for (AssignableRefreshment refresh : refreshes.right) {
-			state = primaryExecutor.assign(source, state, pid, refresh.pointer,
-					refresh.refreshedObject);
-			if (!refresh.assumption.isTrue())
-				returnedValue = universe.and(returnedValue, refresh.assumption);
+			assert var.type().typeKind() == TypeKind.PRIMITIVE;
+			oldValueType = var.type().getDynamicType(universe);
 		}
-		return new Evaluation(state, returnedValue);
+		eval = evaluator.havoc(state, oldValueType);
+		state = primaryExecutor.assign2(source, eval.state, pid, rootPointer,
+				eval.value, memRef.valueSetTemplate());
+		return state;
 	}
 
-	private Evaluation executeNewMem(State state, int pid,
+	private Evaluation executeMemNew(State state, int pid,
 			Expression[] arguments, SymbolicExpression[] argumentValues,
 			CIVLSource source) throws UnsatisfiablePathConditionException {
-		CIVLType memType = typeFactory.memType();
-		SymbolicTupleType symbolicMemType = (SymbolicTupleType) memType
-				.getDynamicType(universe);
-		List<SymbolicExpression> memObjectComponents = new LinkedList<>();
+		CIVLMemType memType = typeFactory.civlMemType();
+		SymbolicExpression empty = memType.memValueCreator(universe)
+				.apply(new LinkedList<>());
 
-		memObjectComponents.add(universe.zeroInt());
-		memObjectComponents.add(universe
-				.array(typeFactory.pointerSymbolicType(), Arrays.asList()));
-		return new Evaluation(state,
-				universe.tuple(symbolicMemType, memObjectComponents));
+		return new Evaluation(state, empty);
 	}
 
-	private SymbolicExpression[] memObject2PointerArray(
-			SymbolicExpression memObj) {
-		NumericExpression memSize = (NumericExpression) universe
-				.tupleRead(memObj, zeroObject);
-		SymbolicExpression pointerArray = universe.tupleRead(memObj, oneObject);
-		Number memSizeConcrete = universe.extractNumber(memSize);
-		assert memSizeConcrete != null : "The size of $mem obj shall never be non-concrete";
+	/**
+	 * Create a {@link MemoryLocationMap} for memory location references in the
+	 * given "memValue"
+	 */
+	private MemoryLocationMap memValue2MemoryLocationSet(
+			SymbolicExpression memValue) {
+		MemoryLocationMap set = new MemoryLocationMap();
+		CIVLMemType memType = typeFactory.civlMemType();
 
-		int memSizeInt = ((IntegerNumber) memSizeConcrete).intValue();
-		SymbolicExpression pointers[] = new SymbolicExpression[memSizeInt];
-
-		for (int i = 0; i < memSizeInt; i++)
-			pointers[i] = universe.arrayRead(pointerArray, universe.integer(i));
-		return pointers;
+		for (CIVLMemType.MemoryLocationReference memLocRef : memType
+				.memValueIterator().apply(memValue))
+			set.put(memLocRef.vid(), memLocRef.heapID(), memLocRef.mallocID(),
+					memLocRef.scopeValue(), memLocRef.valueSetTemplate());
+		return set;
 	}
 
-	private SymbolicExpression pointerArray2MemObj(
-			SymbolicExpression[] pointers) {
-		SymbolicExpression pointerArray = universe
-				.array(typeFactory.pointerSymbolicType(), pointers);
-		List<SymbolicExpression> memValueComponents = new LinkedList<>();
-		SymbolicTupleType memValueType = (SymbolicTupleType) typeFactory
-				.memType().getDynamicType(universe);
+	/**
+	 * @param memRef
+	 *            a {@link MemoryLocationReference}
+	 * @param state
+	 *            a state where all memory locations referred by the "memRef"
+	 *            are alive
+	 * @param scopeValueSubstituter
+	 *            a scope value substituter which can change the scope value in
+	 *            "memRef" to the corresponding scope value in the given "state"
+	 * @param pid
+	 *            the PID of the running process
+	 * 
+	 * @return the value in the given state of the variable or the memory heap
+	 *         object that contains all the memory locations referred by the
+	 *         given "memRef"
+	 */
+	private SymbolicExpression getRootValue(MemoryLocationReference memRef,
+			State state,
+			UnaryOperator<SymbolicExpression> scopeValueSubstituter, int pid) {
+		SymbolicExpression scopeVal = memRef.scopeValue();
 
-		memValueComponents.add(universe.integer(pointers.length));
-		memValueComponents.add(pointerArray);
-		return universe.tuple(memValueType, memValueComponents);
+		if (scopeValueSubstituter != null)
+			scopeVal = scopeValueSubstituter.apply(scopeVal);
+
+		int sid = stateFactory.getDyscopeId(scopeVal);
+		int vid = memRef.vid();
+		SymbolicExpression rootValue = state.getVariableValue(sid, vid);
+
+		if (vid == 0) {
+			rootValue = universe.tupleRead(rootValue,
+					universe.intObject(memRef.heapID()));
+			rootValue = universe.arrayRead(rootValue,
+					universe.integer(memRef.mallocID()));
+		}
+		return rootValue;
+	}
+
+	/**
+	 * @param memRef
+	 *            a {@link MemoryLocationReference}
+	 * @return the pointer to the variable or the memory heap object that
+	 *         contains the memory locations referred by the given "memRef"
+	 */
+	private SymbolicExpression getRootPointer(MemoryLocationReference memRef) {
+		SymbolicExpression scopeVal = memRef.scopeValue();
+		int vid = memRef.vid(), sid = stateFactory.getDyscopeId(scopeVal);
+
+		if (vid == 0)
+			// TODO: here the code couples with the definition of the heap
+			// type, better there is better way to hide heap structure.
+			return symbolicUtil
+					.makePointer(sid, memRef.vid(),
+							universe.arrayElementReference(
+									universe.tupleComponentReference(
+											universe.identityReference(),
+											universe.intObject(
+													memRef.heapID())),
+									universe.integer(memRef.mallocID())));
+		else
+			return symbolicUtil.makePointer(sid, memRef.vid(),
+					universe.identityReference());
 	}
 }

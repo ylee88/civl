@@ -36,9 +36,10 @@ int main(int argc, char** argv) {
 
   // straightforward loop nest
   /*@ loop invariant 1 <= i <= ni-1;
+    @ loop invariant i == 1 ==> j == nj;
+    @ loop invariant i > 1 ==> j == nj - 1;
     @ loop invariant \forall int t; 1 <= t < i ==>
     @                  (\forall int k; 1 <= k < nj-1 ==> u1[t][k] == uin[t][k] * uin[t][k]);
-    @ loop invariant i > 1 ==> j == nj - 1;
     @ loop assigns   u1[1 .. ni-2][1 .. nj-2], u2[1 .. ni-2][1 .. nj-2], i, j;
     @*/
   for(i=1;i<ni-1;i++) {
@@ -61,21 +62,12 @@ int main(int argc, char** argv) {
     $assert(i == 1);
     $assert(j == nj);
   }
-  /*
-  if (ni > 2) {
-    i = ni - 1;	
-    if (nj > 2)
-      j = nj - 1;
-    else
-      j = 1;
-  } else {
-    i = 1;
-    j = nj;
-  }
-  */
+
+  int old_j = j;
 
   /*@ loop invariant 1 <= i <= ni-1;  
-    @ loop invariant 1 < i ==> (nj - 2 <= j <= nj - 1 && j % 2 != 0); // needed for the rest of the code
+    @ loop invariant 1 < i ==> (nj - 2 <= j <= nj - 1 && j % 2 != 0); // continuous condition I
+    @ loop invariant i == 1 ==> j == old_j;                           // continuous condition II
     @ loop invariant \forall int t, k; 1 <= t < i && 1 <= k < nj - 2 && k % 2 != 0
     @                     ==> u2[t][k] == uin[t][k]*uin[t][k] && u2[t][k+1] == uin[t][k+1]*uin[t][k+1];
     @ loop invariant i % 2 != 0;
@@ -96,6 +88,9 @@ int main(int argc, char** argv) {
       u2[i+1][j+1] = uin[i+1][j+1]*uin[i+1][j+1];
     }
   }  
+
+  //$assume(i == 1 => j == old_j);
+
   // remainder
   if(i==ni-2) {
     /*@ loop invariant 1 <= jr <= nj-1;

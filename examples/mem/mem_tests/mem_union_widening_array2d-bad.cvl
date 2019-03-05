@@ -1,0 +1,11 @@
+#include<mem.cvh>
+
+int a[10][10];
+
+int main() {
+  $mem m;
+
+  m = &a[0 .. 3][1 .. 8];
+  m = $mem_union_widening(&a[5 .. 6][1 .. 8], m);
+  $assert($mem_contains(m, &a));  
+}

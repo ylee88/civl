@@ -46,6 +46,12 @@ public class LoopInvariantsWithAssignsTest_part2 {
 				filename("loop_assigns_given/twoSectionArray.cvl")));
 	}
 
+	@Test
+	public void twoSec() {
+		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
+				filename("loop_assigns_given/twoSec.cvl")));
+	}
+
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
 		ui = null;

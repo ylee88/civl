@@ -1,0 +1,37 @@
+#include<mem.cvh>
+#include<stdlib.h>
+
+$input int N;
+$assume(N > 5);
+
+struct T {
+  int a[2 * N];
+  double b[2 * N][2 * N];
+  struct T * t;
+};
+
+int main() {
+  struct T t;
+
+  $havoc(&t);
+
+  struct T old_t = t;
+  
+  $mem m = &t.a[0 .. N-1];
+  
+  m = $mem_union(m, &t.b[0 .. N-1][N .. 2*N-1]);
+  $mem_havoc(m);
+  $assert($forall (int i : 0 .. N-1) 
+	  $forall (int j : N .. 2*N-1)
+	  t.a[j] == old_t.a[j] &&
+	  t.b[j][i] == old_t.b[j][i] 
+	  );
+
+  t.t = (struct T *)malloc(sizeof(struct T));
+
+  t.t->a[N] = 2;
+  m = $mem_union(m, &t.t->a[0 .. N-1]);
+  $mem_havoc(m);
+  $assert(t.t->a[N] == 2);
+  free(t.t);
+}

@@ -18,7 +18,12 @@ public interface CIVLType {
 		/**
 		 * the type represents a set of pointers, see {@link CIVLMemType}
 		 */
-		MEM
+		MEM,
+		/**
+		 * the type represents a set of a non-set kind CIVLTypes, see
+		 * {@link CIVLSetType}
+		 */
+		SET,
 	}
 
 	TypeKind typeKind();
@@ -162,6 +167,26 @@ public interface CIVLType {
 	 * @return true iff this type is char type
 	 */
 	boolean isCharType();
+
+	/**
+	 * @return true iff this type is a {@link CIVLRegularRangeType}
+	 */
+	boolean isRangeType();
+
+	/**
+	 * @param elementType
+	 *            the exptected element type of a CIVLSetType
+	 * @return true iff this type is a {@link CIVLSetType} with element of the
+	 *         given "elementType"
+	 */
+	boolean isSetTypeOf(CIVLType elementType);
+
+	/**
+	 * 
+	 * @return true iff this type is a {@link CIVLSetType} with some element
+	 *         type
+	 */
+	boolean isSetType();
 
 	// /**
 	// *

@@ -19,8 +19,11 @@ import edu.udel.cis.vsl.civl.model.IF.type.CIVLMemType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPointerType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLScopeType;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLSetType;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLStateType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLStructOrUnionType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLType.TypeKind;
 import edu.udel.cis.vsl.civl.model.IF.type.StructOrUnionField;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.expr.BooleanExpression;
@@ -36,7 +39,7 @@ import edu.udel.cis.vsl.sarl.IF.type.SymbolicUnionType;
  * , etc. It also constructs the heap type and bundle type, which are
  * model-sensitive, and could be different from model to model.
  * 
- * @author Manchun Zheng (zmanchun)
+ * @author Manchun Zheng (zmanchun), ziqing
  *
  */
 public interface CIVLTypeFactory {
@@ -231,11 +234,11 @@ public interface CIVLTypeFactory {
 	SymbolicTupleType stateSymbolicType();
 
 	/**
-	 * Get the state primitive tyoe
+	 * Get the $state primitive type in CIVL-C language
 	 * 
 	 * @return The state primitive type.
 	 */
-	CIVLPrimitiveType stateType();
+	CIVLStateType stateType();
 
 	/**
 	 * Returns a new struct field, used to complete a struct type.
@@ -293,7 +296,19 @@ public interface CIVLTypeFactory {
 	 * @return the mem type, which is the type of all expressions representing a
 	 *         set of pointers
 	 */
-	CIVLMemType memType();
+	CIVLMemType civlMemType();
+
+	/**
+	 * Returns the {@link CIVLSetType}. A set type is the type of expressions
+	 * that representing a set of objects of a non-set type.
+	 * 
+	 * @param elementType
+	 *            the element type of the creating set type, note that the
+	 *            {@link TypeKind} of the element type cannot be
+	 *            {@link TypeKind#SET}
+	 * @return the set type
+	 */
+	CIVLSetType civlSetType(CIVLType elementType);
 
 	/*
 	 * ************************************************************************
@@ -309,6 +324,13 @@ public interface CIVLTypeFactory {
 	 *         CIVLDynamicType
 	 */
 	SymbolicTupleType dynamicSymbolicType();
+
+	/**
+	 *
+	 * @return the symbolic type used to represent values of expressions of
+	 *         CIVLMemType
+	 */
+	SymbolicType dynamicMemType();
 
 	/**
 	 * Gets the symbolic function pointer type.

@@ -1,15 +1,17 @@
 package edu.udel.cis.vsl.civl.dynamic.IF;
 
 import edu.udel.cis.vsl.civl.dynamic.common.CommonSymbolicUtility;
-import edu.udel.cis.vsl.civl.dynamic.immutable.ImmutableDynamicWriteSet;
+import edu.udel.cis.vsl.civl.dynamic.immutable.ImmutableDynamicWriteSetFactory;
+import edu.udel.cis.vsl.civl.model.IF.CIVLTypeFactory;
 import edu.udel.cis.vsl.civl.model.IF.ModelFactory;
 import edu.udel.cis.vsl.civl.state.IF.StateFactory;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
+import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
 
 /**
  * Entry point of the module <strong>dynamic</strong>.
  * 
- * @author Manchun Zheng
+ * @author Manchun Zheng, Ziqing Luo
  * 
  */
 public class Dynamics {
@@ -29,14 +31,21 @@ public class Dynamics {
 	}
 
 	/**
-	 * Creates a new instance of {@link DynamicWriteSet}.
+	 * Creates a new instance of {@link DynamicWriteSetFactory}.
 	 * 
 	 * @param universe
-	 *            A reference to a {@link SymbolicUniverse}.
-	 * @return a new instance of {@link DynamicWriteSet}.
+	 *            A reference to a {@link SymbolicUniverse}
+	 * @param typeFactory
+	 *            a reference to a {@link CIVLTypeFactory}
+	 * @param collectedScopeValue
+	 *            the unique scope value that represents a scope has been
+	 *            collected.
+	 * @return a new instance of {@link DynamicWriteSetFactory}.
 	 */
-	public static DynamicWriteSet newDynamicWriteSet(
-			SymbolicUniverse universe) {
-		return new ImmutableDynamicWriteSet(universe);
+	public static DynamicWriteSetFactory newDynamicWriteSetFactory(
+			SymbolicUniverse universe, CIVLTypeFactory typeFactory,
+			SymbolicExpression collectedScopeValue) {
+		return new ImmutableDynamicWriteSetFactory(universe, typeFactory,
+				collectedScopeValue);
 	}
 }

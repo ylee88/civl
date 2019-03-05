@@ -1,0 +1,23 @@
+#include<mem.cvh>
+#include<stdlib.h>
+#include<pointer.cvh>
+
+struct T {
+  int (*x)[100];
+} ** a;
+
+int main() {
+  a = (struct T **)malloc(sizeof(struct T*));
+  *a = (struct T*)malloc(sizeof(struct T));
+  (*a)->x = (int (*)[100])malloc(sizeof(int[100]) * 10);
+
+  $mem m = (*a)->x;
+  
+  m = &(*a)->x[0][0 .. 10];
+  m = *a;
+  m = &(*a)->x;
+  $assert($equals(&m, &m));
+  free((*a)->x);
+  free(*a);
+  free(a);
+}

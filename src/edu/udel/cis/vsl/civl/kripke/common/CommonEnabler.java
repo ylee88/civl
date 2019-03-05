@@ -5,9 +5,11 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
@@ -15,6 +17,7 @@ import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.kripke.IF.Enabler;
 import edu.udel.cis.vsl.civl.kripke.IF.LibraryEnabler;
 import edu.udel.cis.vsl.civl.kripke.IF.LibraryEnablerLoader;
+import edu.udel.cis.vsl.civl.library.collate.LibcollateConstantsAndUtils;
 import edu.udel.cis.vsl.civl.log.IF.CIVLErrorLogger;
 import edu.udel.cis.vsl.civl.model.IF.CIVLFunction;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
@@ -23,12 +26,12 @@ import edu.udel.cis.vsl.civl.model.IF.SystemFunction;
 import edu.udel.cis.vsl.civl.model.IF.expression.Expression;
 import edu.udel.cis.vsl.civl.model.IF.expression.LHSExpression;
 import edu.udel.cis.vsl.civl.model.IF.location.Location;
-import edu.udel.cis.vsl.civl.model.IF.statement.AssignStatement;
 import edu.udel.cis.vsl.civl.model.IF.statement.CallOrSpawnStatement;
 import edu.udel.cis.vsl.civl.model.IF.statement.Statement;
 import edu.udel.cis.vsl.civl.model.IF.statement.Statement.StatementKind;
 import edu.udel.cis.vsl.civl.model.IF.statement.UpdateStatement;
 import edu.udel.cis.vsl.civl.model.IF.statement.WithStatement;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLStateType;
 import edu.udel.cis.vsl.civl.semantics.IF.Evaluation;
 import edu.udel.cis.vsl.civl.semantics.IF.Evaluator;
 import edu.udel.cis.vsl.civl.semantics.IF.Executor;
@@ -46,6 +49,7 @@ import edu.udel.cis.vsl.gmc.GMCConfiguration;
 import edu.udel.cis.vsl.gmc.seq.EnablerIF;
 import edu.udel.cis.vsl.sarl.IF.Reasoner;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
+import edu.udel.cis.vsl.sarl.IF.UnaryOperator;
 import edu.udel.cis.vsl.sarl.IF.ValidityResult.ResultType;
 import edu.udel.cis.vsl.sarl.IF.expr.BooleanExpression;
 import edu.udel.cis.vsl.sarl.IF.expr.NumericExpression;
@@ -730,62 +734,122 @@ public abstract class CommonEnabler implements Enabler {
 			throws UnsatisfiablePathConditionException {
 		Expression colStateExpr = with.collateState();
 		CIVLSource csSource = colStateExpr.getSource();
+		CIVLStateType stateType = modelFactory.typeFactory().stateType();
 		Evaluation eval;
-		SymbolicExpression colStateComp, gstateHandle;
-		int place, colStateID;
 		SymbolicUtility symbolicUtil = evaluator.symbolicUtility();
-		State colState;
-		Collection<State> newColStates;
-		LHSExpression colStateRef = modelFactory.dotExpression(csSource,
-				modelFactory.dereferenceExpression(csSource,
-						modelFactory.dotExpression(csSource, colStateExpr, 1)),
-				1);
 		BooleanExpression oldPC = state.getPathCondition(universe);
+		// values of objects of $collate_state, $gcollate_state and $state
+		// types:
+		SymbolicExpression colStateValue, gcolStateValue, mergedStateValue;
+		int place, mergedStateRefID;
 
-		eval = this.evaluator.evaluate(state, pid, colStateExpr);
+		eval = evaluator.evaluate(state, pid, colStateExpr);
 		state = eval.state;
-		colStateComp = eval.value;
-		place = symbolicUtil.extractInt(csSource, (NumericExpression) universe
-				.tupleRead(colStateComp, universe.intObject(0)));
-		gstateHandle = universe.tupleRead(colStateComp, universe.intObject(1));
-		eval = evaluator.dereference(csSource, state, "p" + pid, gstateHandle,
-				false, true);
+		colStateValue = eval.value;
+		/*
+		 * A $with statement must be executed with a $state object that is
+		 * referred by a collate_state handle. This "mergedStateValue" variable
+		 * will be the value of the $state object we get from the handle:
+		 */
+		// read fields in the $collate_state type object:
+		place = LibcollateConstantsAndUtils.getPlaceFromCollateState(universe,
+				colStateValue);
+		eval = LibcollateConstantsAndUtils.getGcollateStateFromCollateState(
+				evaluator, universe, state, pid, colStateValue, csSource);
 		state = eval.state;
-		colStateID = this.modelFactory.getStateRef(
-				universe.tupleRead(eval.value, universe.intObject(1)));
-		colState = stateFactory.getStateByReference(colStateID);
-		colState = stateFactory.addExternalProcess(colState, state, pid, place,
-				with.function(), new SymbolicExpression[0]);
-		newColStates = collateExecutor.run2Completion(state, pid, colState,
-				this.civlConfig);
-		return getCollateStateUpdateTransitions(oldPC, pid, colStateRef,
-				newColStates, atomicLockAction, with);
+		gcolStateValue = eval.value;
+		mergedStateValue = LibcollateConstantsAndUtils
+				.getStateFromGcollateState(universe, gcolStateValue);
+
+		Collection<State> finalMergedStates;
+		State mergedState;
+
+		/*
+		 * All processes in the $state object s, which represents a collate
+		 * state, are "in sleep" which means one cannot obtain a new state by
+		 * let one of them execute from the state s. In order to execute the
+		 * $with statement from state s, we have to add an external process to
+		 * it.
+		 */
+		mergedStateValue = stateFactory.addExternalProcess(mergedStateValue,
+				state, pid, place, with.function());
+		// extract the state key from the mergedStateValue
+		mergedStateRefID = stateType.selectStateKey(universe, mergedStateValue);
+		// obtain State by key from state factory
+		mergedState = stateFactory.getStateByReference(mergedStateRefID);
+		finalMergedStates = collateExecutor.run2Completion(state, pid,
+				mergedState, civlConfig);
+		/*
+		 * The execution of the $with statement results in a set of final
+		 * states. Those final states are consequences of the merged collate
+		 * state so that they are not consistent with the current state. In
+		 * order to let the current state be conjuncted with consistent
+		 * assumptions from those final states. The scope value subsitition must
+		 * happen.
+		 * 
+		 * During the execution $with statement, no canonicalization happens,
+		 * hence the mapping relation of scope values from the source collate
+		 * state to the current state is shared by all final states.
+		 */
+		SymbolicExpression sharedscopeValueToCurr[] = symbolicUtil
+				.symbolicArrayToConcreteArray(stateType
+						.selectScopeValuesMap(universe, mergedStateValue));
+
+		return getPostWithStatementTransitions(oldPC, pid,
+				sharedscopeValueToCurr, finalMergedStates, atomicLockAction,
+				with);
 	}
 
-	private List<Transition> getCollateStateUpdateTransitions(
-			BooleanExpression oldPC, int pid, LHSExpression colStateRef,
-			Collection<State> colStates, AtomicLockAction atomicLockAction,
-			Statement originalStmt) {
+	/**
+	 * Get the set of transitions that are enabled at the state where the $with
+	 * statement has been executed
+	 * 
+	 * @param oldPC
+	 *            the old Path Condition before being conjuncted with updates of
+	 *            the $with statement
+	 * @param pid
+	 *            the PID of the current process
+	 * @param scopeValueCo2Curr
+	 *            a map that maps scope values of the collate (merged) states to
+	 *            the current (real) state; since the no scope collection will
+	 *            occur during execution of the $with statement, this map can be
+	 *            shared by all returned collate (merged) states.
+	 * @param colStates
+	 *            all returned collate (merged) states from the execution of the
+	 *            $with statement
+	 * @param atomicLockAction
+	 *            the {@link AtomicLockAction} the current process holds
+	 * @param withStatement
+	 *            the $with statement that is just executed
+	 * @return
+	 */
+	private List<Transition> getPostWithStatementTransitions(
+			BooleanExpression oldPC, int pid,
+			SymbolicExpression scopeValueCo2Curr[], Collection<State> colStates,
+			AtomicLockAction atomicLockAction, WithStatement withStatement) {
 		List<Transition> result = new LinkedList<>();
-		AssignStatement assign;
-		CIVLSource csSource = colStateRef.getSource();
+		CIVLSource csSource = withStatement.getSource();
+		Map<SymbolicExpression, SymbolicExpression> scopeMapper = new HashMap<>();
+		UnaryOperator<SymbolicExpression> scopeSubstituter;
+		Statement noop;
 
+		for (int i = 0; i < scopeValueCo2Curr.length; i++)
+			scopeMapper.put(stateFactory.scopeValue(i), scopeValueCo2Curr[i]);
+		scopeSubstituter = universe.mapSubstituter(scopeMapper);
 		for (State newColState : colStates) {
-			Pair<Integer, State> newStateAndID = stateFactory
-					.saveState(newColState);
-
-			// System.out.println(
-			// this.symbolicAnalyzer.stateToString(newStateAndID.right));
-			assign = modelFactory.assignStatement(csSource, null, colStateRef,
-					modelFactory.stateExpression(csSource,
-							colStateRef.expressionScope(), newStateAndID.left),
-					false);
-			assign.setTargetTemp(originalStmt.target());
-			assign.setSourceTemp(originalStmt.source());
+			noop = modelFactory.noopStatement(csSource, null,
+					withStatement.collateState());
+			noop.setTargetTemp(withStatement.target());
+			noop.setSourceTemp(withStatement.source());
 			// TODO: is there any way to only conjunct with new clauses in
 			// colState's PC (instead of the whole PC)?
-			result.add(Semantics.newTransition(pid,
-					newColState.getPathCondition(universe), assign,
+
+			BooleanExpression PCfromCollate = newColState
+					.getPathCondition(universe);
+			BooleanExpression newPCfromCollate = (BooleanExpression) scopeSubstituter
+					.apply(PCfromCollate);
+
+			result.add(Semantics.newTransition(pid, newPCfromCollate, noop,
 					atomicLockAction));
 		}
 		return result;
@@ -929,9 +993,8 @@ public abstract class CommonEnabler implements Enabler {
 			isIdleState = universe.equals(mystatus, idle);
 			result = reasoner.valid(isIdleState).getResultType();
 			if (result == ResultType.YES) {
-				int colStateID = modelFactory.getStateRef(
-						universe.tupleRead(gstate, universe.intObject(1)));
-				State colState = stateFactory.getStateByReference(colStateID);
+				CIVLStateType stateType = modelFactory.typeFactory()
+						.stateType();
 				Collection<State> newColStates;
 				LHSExpression colStateRefExpr = modelFactory.dotExpression(
 						source,
@@ -943,10 +1006,14 @@ public abstract class CommonEnabler implements Enabler {
 												BigInteger.valueOf(i)))),
 						1);// (*queue[i]).state
 
-				colState = stateFactory.addExternalProcess(colState, state, pid,
-						placeID, function, argumentValues);
+				SymbolicExpression mergedStateVal = stateFactory
+						.addExternalProcess(gstate, state, pid, placeID,
+								function);
+				State mergedState = stateFactory.getStateByReference(
+						stateType.selectStateKey(universe, mergedStateVal));
+
 				newColStates = collateExecutor.run2Completion(state, pid,
-						colState, this.civlConfig);
+						mergedState, this.civlConfig);
 
 				Pair<LHSExpression, List<Expression>> myColStateUpdatePair = this
 						.getCollateStateUpdateExpressions(pid, colStateRefExpr,

@@ -201,6 +201,39 @@ public interface ModelFactory {
 			throws ModelFactoryException;
 
 	/**
+	 * Translates an expression to be of the type for arithmetic operations i.e.
+	 * either translate to a {@link #comparableExpression(Expression)} or make
+	 * sure the expression has one of the following types:
+	 * <ul>
+	 * <li>pointer</li>
+	 * <li>set of pointer</li>
+	 * <li>array</li>
+	 * </ul>
+	 * 
+	 * @param expression
+	 * @return the arithmeticable representation of the given expression
+	 * @throws ModelFactoryException
+	 *             if the given expression doesn't have boolean or
+	 *             arithmeticable type
+	 */
+	Expression arithmeticableExpression(Expression expression)
+			throws ModelFactoryException;
+
+	/**
+	 * Translates an expression to be of the type for comparable operations i.e.
+	 * either translate to a {@link #numericExpression(Expression)} or make sure
+	 * the expression has scope type.
+	 * 
+	 * @param expression
+	 * @return the comparable representation of the given expression
+	 * @throws ModelFactoryException
+	 *             if the given expression doesn't have boolean or comparable
+	 *             type
+	 */
+	Expression comparableExpression(Expression expression)
+			throws ModelFactoryException;
+
+	/**
 	 * A boolean literal expression.
 	 * 
 	 * @param source
@@ -1422,35 +1455,6 @@ public interface ModelFactory {
 	 * @return The symbolic universe
 	 */
 	SymbolicUniverse universe();
-
-	/*
-	 * ************************************************************************
-	 * Symbolic Expressions: Dyscope References
-	 * ************************************************************************
-	 */
-
-	/**
-	 * Translate an integer canonical state id into a symbolic expression
-	 * 
-	 * @param canonicalId
-	 *            The canonical id of a state is to be translated.
-	 * @return The symbolic expression representing the scope id
-	 */
-	SymbolicExpression stateValue(int canonicalId);
-
-	/**
-	 * Translate a symbolic state value into an integer. A symbolic state value
-	 * is a tuple with one element of integer type. A CIVL internal exception is
-	 * thrown if the value can't be computed.
-	 * 
-	 * @param source
-	 *            The CIVL source information of the symbolic state value
-	 * @param scopeValue
-	 *            The symbolic object of the state value
-	 * @return The integer canonical ID of state represented by the symbolic
-	 *         state value.
-	 */
-	int getStateRef(SymbolicExpression stateValue);
 
 	/*
 	 * ************************************************************************

@@ -1,0 +1,16 @@
+#include<mem.cvh>
+#include<pointer.cvh>
+
+struct T {
+  int x;
+};
+
+int main() {
+  $mem m;
+  int a;
+  struct T b;
+  
+  // invalid memory location reference:
+  m = &(&b + 1)->x;
+  $assert($equals(&m, &m));
+}

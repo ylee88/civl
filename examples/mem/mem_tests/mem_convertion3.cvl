@@ -1,0 +1,16 @@
+#include<mem.cvh>
+#include<pointer.cvh>
+
+int main() {
+  $mem m;
+  int * a;
+  int b;
+  int c[10];
+
+  a = &b;
+  // referecne to variable with undefined value
+  m = a;
+  a = &c[0];
+  m = a + (0 .. 9);
+  $assert($equals(&m, &m));
+}

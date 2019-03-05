@@ -1,0 +1,10 @@
+#include<mem.cvh>
+#include<stdlib.h>
+
+$input int N;
+$assume(N > 10);
+int a[N][N][N];
+
+int main() {
+  $assert($mem_contains(&a[0 .. N-1][0 .. N-2][0 .. N-1], &a));
+}

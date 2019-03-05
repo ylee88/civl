@@ -109,6 +109,8 @@ import edu.udel.cis.vsl.civl.model.IF.type.CIVLFunctionType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPointerType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType.PrimitiveTypeKind;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLSetType;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLStateType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLStructOrUnionType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
@@ -356,8 +358,11 @@ public class CommonModelFactory implements ModelFactory {
 				new Singleton<SymbolicExpression>(universe.integer(-1)));
 		this.nullProcessValue = universe.tuple(typeFactory.processSymbolicType,
 				new Singleton<SymbolicExpression>(universe.integer(-2)));
-		this.nullStateValue = universe.tuple(typeFactory.stateSymbolicType,
-				new Singleton<SymbolicExpression>(universe.integer(-1)));
+
+		CIVLStateType stateType = typeFactory.stateType();
+
+		this.nullStateValue = stateType.buildStateValue(universe, -1, universe
+				.array(universe.integerType(), new SymbolicExpression[0]));
 		this.anonFragment = new CommonFragment();
 	}
 
@@ -386,8 +391,17 @@ public class CommonModelFactory implements ModelFactory {
 	@Override
 	public AddressOfExpression addressOfExpression(CIVLSource source,
 			LHSExpression operand) {
+		CIVLType expressionType = operand.getExpressionType();
+
+		if (expressionType.isSetType()) {
+			expressionType = ((CIVLSetType) expressionType).elementType();
+			expressionType = typeFactory.pointerType(expressionType);
+			expressionType = typeFactory.civlSetType(expressionType);
+		} else
+			expressionType = typeFactory.pointerType(expressionType);
+
 		AddressOfExpression result = new CommonAddressOfExpression(source,
-				typeFactory.pointerType(operand.getExpressionType()), operand);
+				expressionType, operand);
 
 		if (operand.lhsExpressionKind() == LHSExpressionKind.DOT) {
 			DotExpression dotExpr = (DotExpression) operand;
@@ -462,10 +476,13 @@ public class CommonModelFactory implements ModelFactory {
 			case DIVIDE :
 			case MINUS :
 			case MODULO :
+			case POINTER_ADD :
+				// TODO: there misses many cases and put the common checking
+				// code under default is unsafe
 			default :
 				CIVLType leftType = left.getExpressionType();
 				CIVLType rightType = right.getExpressionType();
-				CIVLType resultType;
+				CIVLType resultType = null;
 
 				// If we are not doing pointer arithmetic or pointer
 				// subtraction, types should be the same:
@@ -484,7 +501,7 @@ public class CommonModelFactory implements ModelFactory {
 					// result).setExpressionType(leftType);
 					resultType = leftType;
 				} else if (leftType instanceof CIVLPointerType
-						&& rightType instanceof CIVLPointerType) {
+						&& rightType instanceof CIVLPointerType)
 					// compatibility checking
 					if (((CIVLPointerType) leftType).baseType()
 							.equals(((CIVLPointerType) rightType).baseType()))
@@ -495,15 +512,63 @@ public class CommonModelFactory implements ModelFactory {
 						throw new CIVLException(leftType + " and " + rightType
 								+ " are not pointers to compatiable types",
 								source);
-				} else if (leftType.equals(rightType)) {
-					// ((CommonBinaryExpression)
-					// result).setExpressionType(leftType);
+				else if (leftType.isSetType() || rightType.isSetType()) {
+					// the only BINARY_OPERATOR that is compatible with set
+					// type operands is: '+', i.e. PLUS or POINTER_ADD:
+					if (operator == BINARY_OPERATOR.PLUS
+							|| operator == BINARY_OPERATOR.POINTER_ADD)
+						if (leftType.isSetType())
+							resultType = deriveBinaryOperationSetType(
+									(CIVLSetType) leftType, rightType);
+						else
+							resultType = deriveBinaryOperationSetType(
+									(CIVLSetType) rightType, leftType);
+				} else if (leftType.equals(rightType))
 					resultType = leftType;
-				} else
+				if (resultType == null)
 					throw new CIVLException("Incompatible types to +", source);
 				return new CommonBinaryExpression(source, expressionScope,
 						lowestScope, resultType, operator, left, right);
 		}
+	}
+
+	/**
+	 * Deriving types of binary operation expressions where at least one
+	 * operands have {@link CIVLSetType}. Binary operations that involves set
+	 * type are:
+	 * <ul>
+	 * <li>pointer(set) PLUS integer(set)</li>
+	 * <li>numeric(set) PLUS numeric(set)</li>
+	 * </ul>
+	 * 
+	 * @param argType0
+	 *            the type of one operand of the binary operation which has been
+	 *            known having set type
+	 * @param argType1
+	 *            the type of the other operand of the binary operation
+	 * @return the type of the binary operation
+	 */
+	private CIVLType deriveBinaryOperationSetType(CIVLSetType argType0,
+			CIVLType argType1) {
+		CIVLType type0 = argType0.elementType();
+		CIVLType type1 = argType1;
+		boolean type1IsSet = type1.isSetType();
+
+		if (type1IsSet)
+			type1 = ((CIVLSetType) type1).elementType();
+		if (type0.isNumericType() && type1.isNumericType()) {
+			assert type0.equals(type1);
+			return typeFactory.civlSetType(type0);
+		}
+		if (type0.isNumericType()) {
+			assert type1.isPointerType() && type0.isIntegerType();
+			return typeFactory.civlSetType(type1);
+		}
+		if (type1.isNumericType()) {
+			assert type0.isPointerType() && type1.isIntegerType();
+			return typeFactory.civlSetType(type0);
+		}
+		return null;
 	}
 
 	@Override
@@ -548,8 +613,7 @@ public class CommonModelFactory implements ModelFactory {
 			throws ModelFactoryException {
 		CIVLType type = expression.getExpressionType();
 
-		if (type.isNumericType() || type.isPointerType() || type.isScopeType()
-				|| type.isArrayType())
+		if (type.isNumericType())
 			return expression;
 		if (type.isBoolType())
 			return this.castExpression(expression.getSource(),
@@ -561,6 +625,43 @@ public class CommonModelFactory implements ModelFactory {
 				"The expression " + expression
 						+ " isn't compatible with numeric type",
 				expression.getSource());
+	}
+
+	@Override
+	public Expression arithmeticableExpression(Expression expression)
+			throws ModelFactoryException {
+		CIVLType type = expression.getExpressionType();
+
+		if (type.isPointerType() || type.isArrayType())
+			return expression;
+		if (type.isSetType()
+				&& (((CIVLSetType) type).elementType().isNumericType()
+						|| ((CIVLSetType) type).elementType().isPointerType()))
+			return expression;
+		try {
+			return comparableExpression(expression);
+		} catch (ModelFactoryException e) {
+			throw new ModelFactoryException(
+					"The expression " + expression
+							+ " isn't compatible with arithmetic type",
+					expression.getSource());
+		}
+	}
+
+	@Override
+	public Expression comparableExpression(Expression expression)
+			throws ModelFactoryException {
+		CIVLType type = expression.getExpressionType();
+
+		if (type.isScopeType())
+			return expression;
+		try {
+			return numericExpression(expression);
+		} catch (ModelFactoryException e) {
+			throw new ModelFactoryException(
+					"The expression " + expression + " is not comparable",
+					expression.getSource());
+		}
 	}
 
 	/**
@@ -629,12 +730,20 @@ public class CommonModelFactory implements ModelFactory {
 	@Override
 	public DereferenceExpression dereferenceExpression(CIVLSource source,
 			Expression pointer) {
-		CIVLPointerType pointerType = (CIVLPointerType) pointer
-				.getExpressionType();
+		CIVLType pointerType = pointer.getExpressionType();
+		CIVLType derefExprType;
+		boolean isSetType = pointerType.isSetType();
 
+		if (isSetType)
+			pointerType = ((CIVLSetType) pointerType).elementType();
+		assert pointerType.isPointerType();
+
+		derefExprType = ((CIVLPointerType) pointerType).baseType();
+		if (isSetType)
+			derefExprType = typeFactory.civlSetType(derefExprType);
 		// systemScope: indicates unknown scope
 		return new CommonDereferenceExpression(source, this.systemScope,
-				pointerType.baseType(), pointer);
+				derefExprType, pointer);
 	}
 
 	@Override
@@ -649,8 +758,19 @@ public class CommonModelFactory implements ModelFactory {
 	@Override
 	public DotExpression dotExpression(CIVLSource source, Expression struct,
 			int fieldIndex) {
-		assert struct.getExpressionType() instanceof CIVLStructOrUnionType;
-		return new CommonDotExpression(source, struct, fieldIndex);
+		CIVLType structType = struct.getExpressionType();
+		CIVLType dotExprType;
+		boolean isSetType = structType.isSetType();
+
+		if (isSetType)
+			structType = ((CIVLSetType) structType).elementType();
+		assert structType.isStructType() || structType.isUnionType();
+
+		dotExprType = ((CIVLStructOrUnionType) structType).getField(fieldIndex)
+				.type();
+		if (isSetType)
+			dotExprType = typeFactory.civlSetType(dotExprType);
+		return new CommonDotExpression(source, struct, fieldIndex, dotExprType);
 	}
 
 	@Override
@@ -803,7 +923,11 @@ public class CommonModelFactory implements ModelFactory {
 			LHSExpression array, Expression index) {
 		CIVLType arrayType = array.getExpressionType();
 		CIVLType expressionType;
+		boolean isArraySet = arrayType.isSetType();
+		boolean isIndiceSet = index.getExpressionType().isSetType();
 
+		if (isArraySet)
+			arrayType = ((CIVLSetType) arrayType).elementType();
 		if (arrayType instanceof CIVLArrayType)
 			expressionType = ((CIVLArrayType) arrayType).elementType();
 		else if (arrayType instanceof CIVLPointerType)
@@ -812,6 +936,9 @@ public class CommonModelFactory implements ModelFactory {
 			throw new CIVLInternalException(
 					"Unable to set expression type for the subscript expression: ",
 					source);
+
+		if (isArraySet || isIndiceSet)
+			expressionType = typeFactory.civlSetType(expressionType);
 		return new CommonSubscriptExpression(source,
 				join(array.expressionScope(), index.expressionScope()),
 				getLower(array.lowestScope(), index.lowestScope()),
@@ -1987,20 +2114,6 @@ public class CommonModelFactory implements ModelFactory {
 	@Override
 	public Scope staticConstantScope() {
 		return this.staticScope;
-	}
-
-	@Override
-	public SymbolicExpression stateValue(int canonicalId) {
-		if (canonicalId < 0)
-			return nullStateValue;
-		return universe.tuple(typeFactory.stateSymbolicType,
-				new Singleton<SymbolicExpression>(
-						universe.integer(canonicalId)));
-	}
-
-	@Override
-	public int getStateRef(SymbolicExpression stateValue) {
-		return extractIntField(stateValue, zeroObj);
 	}
 
 	@Override

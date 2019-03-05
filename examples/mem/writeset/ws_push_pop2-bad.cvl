@@ -1,0 +1,35 @@
+#include <mem.cvh>
+$input int N, n;
+$assume(N > n && n > 5);
+
+int main() {
+  struct T {
+    int x;
+    struct {
+      double y;
+      double z;
+    } t;
+    union {
+      int a[10][10];
+      int b;
+    } u;
+  } a;
+  
+  $write_set_push();
+
+  a.x = 0;
+  a.t.y = 0.0;
+  a.u.a[3][3] = 0;
+  
+  $mem m = $write_set_pop();
+  $mem m2 = $mem_empty();
+
+  m2 = $mem_union(m, &a.x);
+  m2 = $mem_union(m, &a.t.y);
+  m2 = $mem_union(m, &a.u.a[3][3]);
+  $assert($mem_contains(m, m2));
+  $assert(!$mem_contains(m, &a.u.b));
+  $assert(!$mem_contains(m, &a.u.a[3][4]));
+  $assert($mem_contains(m, &a.u.t.z));
+  return 0;
+}

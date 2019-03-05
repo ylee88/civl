@@ -1,9 +1,9 @@
 package edu.udel.cis.vsl.civl.dynamic.IF;
 
-import edu.udel.cis.vsl.civl.dynamic.immutable.ImmutableDynamicWriteSet;
 import edu.udel.cis.vsl.civl.library.civlc.LibcivlcExecutor;
 import edu.udel.cis.vsl.civl.library.mpi.LibmpiExecutor;
 import edu.udel.cis.vsl.civl.library.time.LibtimeExecutor;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLMemType;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.civl.semantics.common.CommonExecutor;
 import edu.udel.cis.vsl.civl.state.common.immutable.ImmutableStateFactory;
@@ -15,7 +15,7 @@ import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
  * <p>
  * This class represents a write set value which is formed dynamically. A
  * dynamic write set stores a set of memory location references which refer to
- * the memory locations that are changed ( from a point that starts monitoring
+ * the memory locations that are changed (from a point that starts monitoring
  * "write" operations).
  * </p>
  * 
@@ -25,8 +25,8 @@ import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
  * </p>
  * 
  * <p>
- * <b>Here is just a record of Java methods, calling of which will change the
- * write set</b>
+ * <b>Note to developers: calling the following methods will change the write
+ * set</b>
  * <ul>
  * <li>The private methods in {@link CommonExecutor}, there are two of them:
  * assignCore and assignLHS</li>
@@ -46,20 +46,15 @@ import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
  * 
  * @author ziqing (Ziqing Luo)
  */
-public interface DynamicWriteSet extends Iterable<SymbolicExpression> {
+public interface DynamicWriteSet {
 
 	/**
-	 * <p>
-	 * Add a set of memory location references to the write set
-	 * </p>
-	 * 
-	 * @param pointer
-	 *            A set of {@link SymbolicExpression} which represents a set of
-	 *            concrete pointer.
-	 * @return An instance which has one more element tha this iff the pointer
-	 *         is not in this write set.
+	 * @return a symbolic expression of
+	 *         {@link CIVLMemType#getDynamicType(edu.udel.cis.vsl.sarl.IF.SymbolicUniverse)}
+	 *         which contains all the references to objects that are stored in
+	 *         this write set.
 	 */
-	public DynamicWriteSet addReference(SymbolicExpression pointer);
+	SymbolicExpression getMemValue();
 
 	/**
 	 * <p>
@@ -80,8 +75,8 @@ public interface DynamicWriteSet extends Iterable<SymbolicExpression> {
 	 * 
 	 * @param reasoner
 	 *            An instance of a {@link Reasoner}.
-	 * @return An {@link ImmutableDynamicWriteSet} instance whose symbolic
-	 *         contents are simplified.
+	 * @return An {@link DynamicWriteSet2} instance whose symbolic contents are
+	 *         simplified.
 	 */
 	public DynamicWriteSet simplify(Reasoner reasoner);
 }

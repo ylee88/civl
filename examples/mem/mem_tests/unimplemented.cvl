@@ -1,0 +1,13 @@
+#include<mem.cvh>
+#include<stdlib.h>
+
+$input int N;
+$assume(N > 10);
+int *a[10];
+
+int main() {	
+  for (int i = 0; i < 10; i++)
+    a[i] = (int *)malloc(sizeof(int) * N);
+  
+  $mem m = a[0 .. 9];
+}

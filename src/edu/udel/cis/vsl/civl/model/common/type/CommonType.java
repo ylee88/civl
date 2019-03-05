@@ -159,6 +159,21 @@ public abstract class CommonType implements CIVLType {
 	}
 
 	@Override
+	public boolean isRangeType() {
+		return false;
+	}
+
+	@Override
+	public boolean isSetTypeOf(CIVLType element) {
+		return false;
+	}
+
+	@Override
+	public boolean isSetType() {
+		return false;
+	}
+
+	@Override
 	public boolean isIncompleteArrayType() {
 		return false;
 	}

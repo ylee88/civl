@@ -235,16 +235,17 @@ public class LibcollateExecutor extends BaseLibraryExecutor
 		NumericExpression symPlace;
 		SymbolicExpression collateState = argumentValues[0];
 		SymbolicExpression scopeValue = argumentValues[2];
-		SymbolicExpression gcollateStateHandle, gcollateState, symStateRef;
+		SymbolicExpression gcollateStateHandle, gcollateState;
 		CIVLScopeType scopeType = typeFactory.scopeType();
 		int scopeId = scopeType.scopeValueToIdentityOperator(universe)
 				.apply(scopeValue).intValue();
-		int stateRef, nprocs, place, resultRef;
+		int nprocs, place;
 		Evaluation eval;
-		State mono, resultState, coState;
+		// State mono, resultState, coState;
+		SymbolicExpression monoVal, coStateVal, resultStateVal;
 
 		// Take a snapshot on the given state for the calling process:
-		mono = stateFactory.getStateSnapshot(state, pid, scopeId);
+		monoVal = stateFactory.getStateSnapshot(state, pid, scopeId);
 		symPlace = (NumericExpression) universe.tupleRead(collateState,
 				zeroObject);
 		gcollateStateHandle = universe.tupleRead(collateState,
@@ -255,27 +256,20 @@ public class LibcollateExecutor extends BaseLibraryExecutor
 		gcollateState = eval.value;
 		place = ((IntegerNumber) universe.extractNumber(symPlace)).intValue();
 		nprocs = ((IntegerNumber) universe.extractNumber(symNprocs)).intValue();
-		symStateRef = universe.tupleRead(gcollateState, gcollate_state_state);
-		// If gcollate->$state == $state_null, then create a empty state first:
-		if (modelFactory.statenullConstantValue().equals(symStateRef))
-			coState = stateFactory.emptyState(nprocs);
-		else {
-			stateRef = modelFactory.getStateRef(symStateRef);
-			coState = stateFactory.getStateByReference(stateRef);
-			assert coState != null;
-		}
-		resultState = stateFactory.addInternalProcess(coState, mono, place);
-		resultRef = stateFactory.saveState(resultState).left;
+		coStateVal = universe.tupleRead(gcollateState, gcollate_state_state);
+		resultStateVal = stateFactory.addInternalProcess(coStateVal, monoVal,
+				place, nprocs, source);
 		if (this.civlConfig.debugOrVerbose() || this.civlConfig.showStates()
 				|| civlConfig.showSavedStates()) {
+			State coState = stateFactory.getStateByReference(typeFactory
+					.stateType().selectStateKey(universe, resultStateVal));
+
 			civlConfig.out().println();
-			civlConfig.out()
-					.println("Collate " + symbolicAnalyzer.stateToString(
-							stateFactory.getStateByReference(resultRef)));
+			civlConfig.out().println(
+					"Collate " + symbolicAnalyzer.stateToString(coState));
 		}
-		symStateRef = modelFactory.stateValue(resultRef);
 		gcollateState = universe.tupleWrite(gcollateState, gcollate_state_state,
-				symStateRef);
+				resultStateVal);
 		state = this.primaryExecutor.assign(source, state, pid,
 				gcollateStateHandle, gcollateState);
 		return new Evaluation(state, null);

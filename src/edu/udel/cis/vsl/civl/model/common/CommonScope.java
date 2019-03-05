@@ -310,8 +310,10 @@ public class CommonScope extends CommonSourceable implements Scope {
 	 *            The variable being checked.
 	 */
 	private void checkStateRef(Variable variable) {
-		if (containsStateType(variable.type()))
+		if (containsStateType(variable.type())) {
 			stateRefs.add(variable);
+			scopeRefs.add(variable);
+		}
 	}
 
 	/**

@@ -1,0 +1,31 @@
+#include<mem.cvh>
+
+$input int N;
+$assume(N > 10);
+int a[N][N];
+
+int main() {
+  $mem m = &a[0 .. N-4][0 .. N-1];
+  
+  m = $mem_union(m, &a[0 .. N-1][0 .. N-1]);
+  $assert($mem_contains(m, &a));
+
+  m = &a[0 .. 3][0 .. 4];
+  m = $mem_union(m, &a[1 .. 4][1 .. 5]);
+  $assert(!$mem_contains(m, &a[0 .. 4][0 .. 5]));
+
+  m = &a[0 .. 3][0 .. 4];
+  m = $mem_union(m, &a[1 .. 4][0 .. 4]);
+  $assert($mem_contains(m, &a[0 .. 4][0 .. 4]));
+  $assert(!$mem_contains(m, &a[0 .. 4][0 .. 5]));
+
+  m = &a[3][4];
+  m = $mem_union(m, &a[4][5]);
+  $assert(!$mem_contains(m, &a[3 .. 4][4 .. 5]));
+
+  m = &a[3][4];
+  m = $mem_union(m, &a[5][4]);
+  $assert(!$mem_contains(m, &a[3 .. 5][4]));
+  m = $mem_union(m, &a[4][4]);
+  $assert($mem_contains(m, &a[3 .. 5][4]));
+}

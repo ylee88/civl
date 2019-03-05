@@ -1,0 +1,14 @@
+#include<mem.cvh>
+
+int main() {
+  int a[3][3] = {{0,1,2}, {3,4,5}, {6,7,8}};
+  $mem m = &a[1 .. 2][0 .. 1];
+  
+  $mem_havoc(m);
+  
+  $assert(a[0][0] == 0);
+  $assert(a[0][1] == 1);
+  $assert(a[0][2] == 2);
+  $assert(a[1][2] == 5);  
+  $assert(a[2][2] == 8);  
+}

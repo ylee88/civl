@@ -8,6 +8,7 @@ import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
 public class Heuristics {
 
 	private SymbolicUniverse universe;
+	static double overhead = 0;
 
 	public static class Query {
 		public final BooleanExpression context;
@@ -31,10 +32,9 @@ public class Heuristics {
 		context = (BooleanExpression) simplifier.apply(context);
 		predicate = (BooleanExpression) simplifier.apply(predicate);
 
-		simplifier = new ArrayReadOverWriteSimplification(universe, context);
+		simplifier = new ConditionalSimplification(universe);
 		context = (BooleanExpression) simplifier.apply(context);
 		predicate = (BooleanExpression) simplifier.apply(predicate);
-
 		return new Query(context, predicate);
 	}
 }

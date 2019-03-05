@@ -59,7 +59,6 @@ import edu.udel.cis.vsl.civl.model.IF.expression.ScopeofExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.SelfExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.SizeofExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.SizeofTypeExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.StateExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.StructOrUnionLiteralExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.SubscriptExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.SystemGuardExpression;
@@ -77,6 +76,7 @@ import edu.udel.cis.vsl.civl.model.IF.type.CIVLHeapType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPointerType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType.PrimitiveTypeKind;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLStateType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLStructOrUnionType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType.TypeKind;
@@ -106,6 +106,7 @@ import edu.udel.cis.vsl.civl.util.IF.Triple;
 import edu.udel.cis.vsl.sarl.IF.Reasoner;
 import edu.udel.cis.vsl.sarl.IF.SARLException;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
+import edu.udel.cis.vsl.sarl.IF.UnaryOperator;
 import edu.udel.cis.vsl.sarl.IF.ValidityResult.ResultType;
 import edu.udel.cis.vsl.sarl.IF.expr.ArrayElementReference;
 import edu.udel.cis.vsl.sarl.IF.expr.BooleanExpression;
@@ -141,6 +142,7 @@ import edu.udel.cis.vsl.sarl.prove.IF.ProverFunctionInterpretation;
  * 
  * @author Timothy K. Zirkel (zirkel)
  * @author Manchun Zheng (zmanchun)
+ * @author Ziqing Luo (ziqing)
  * 
  */
 public class CommonEvaluator implements Evaluator {
@@ -173,6 +175,12 @@ public class CommonEvaluator implements Evaluator {
 	CIVLDereferenceOperator derefOperator;
 
 	protected LibraryExecutorLoader libExeLoader;
+
+	/**
+	 * An evaluator for evaluating expressions that may contains terms of set
+	 * types:
+	 */
+	protected MemEvaluator memExpressionEvaluator = null;
 
 	protected MemoryUnitFactory memUnitFactory;
 
@@ -1062,8 +1070,28 @@ public class CommonEvaluator implements Evaluator {
 	protected Evaluation evaluateCast(State state, int pid, String process,
 			CastExpression expression)
 			throws UnsatisfiablePathConditionException {
+		CIVLType cast2type = expression.getCastType();
+
+		if (cast2type.isSetType()) {
+			assert cast2type.typeKind() == TypeKind.MEM;
+			return castPointerSet2Mem(state, pid, expression.getExpression());
+		}
 		return this.evaluateCastWorker(state, pid, process,
 				expression.getCastType(), expression.getExpression());
+	}
+
+	/**
+	 * Evaluates expression of the form: <code>($mem)expr</code>.
+	 */
+	private Evaluation castPointerSet2Mem(State state, int pid,
+			Expression pointerSet) throws UnsatisfiablePathConditionException {
+		if (this.memExpressionEvaluator == null)
+			this.memExpressionEvaluator = new MemEvaluator(modelFactory,
+					stateFactory, libLoader, libExeLoader, symbolicUtil,
+					symbolicAnalyzer, memUnitFactory, errorLogger, civlConfig);
+
+		return memExpressionEvaluator.evaluateMemCastingExpression(state, pid,
+				pointerSet);
 	}
 
 	@Override
@@ -1711,8 +1739,7 @@ public class CommonEvaluator implements Evaluator {
 		right = eval.value;
 		switch (expression.operator()) {
 			case PLUS :
-				eval.value = universe.add((NumericExpression) left,
-						(NumericExpression) right);
+				eval.value = evaluatePlus(left, right);
 				break;
 			case MINUS :
 				eval.value = universe.subtract((NumericExpression) left,
@@ -1773,13 +1800,12 @@ public class CommonEvaluator implements Evaluator {
 						(NumericExpression) left, (NumericExpression) right);
 				break;
 			case POINTER_ADD :
-				eval = evaluatePointerAdd(eval.state, pid, process, expression,
-						left, (NumericExpression) right);
+				eval = evaluatePointerAdd(eval.state, pid, expression, left,
+						right);
 				break;
 			case POINTER_SUBTRACT : {
 				if (right.isNumeric())
-					eval = this.evaluatePointerAdd(state, pid, process,
-							expression, left,
+					eval = this.evaluatePointerAdd(state, pid, expression, left,
 							universe.minus((NumericExpression) right));
 				else
 					eval = pointerSubtraction(eval.state, pid, process,
@@ -2415,7 +2441,7 @@ public class CommonEvaluator implements Evaluator {
 		return eval;
 	}
 
-	private State checkArrayIndexInBound(State state, int pid,
+	protected State checkArrayIndexInBound(State state, int pid,
 			SubscriptExpression expression, SymbolicArrayType arrayType,
 			SymbolicExpression array, NumericExpression index,
 			boolean addressOnly) throws UnsatisfiablePathConditionException {
@@ -3604,10 +3630,6 @@ public class CommonEvaluator implements Evaluator {
 				result = evaluateFunctionCallExpression(state, pid,
 						(FunctionCallExpression) expression);
 				break;
-			case STATE_REF :
-				result = new Evaluation(state, modelFactory
-						.stateValue(((StateExpression) expression).id()));
-				break;
 			case EXTENDED_QUANTIFIER :
 				result = evaluateExtendedQuantifiedExpression(state, pid,
 						(ExtendedQuantifiedExpression) expression);
@@ -3680,6 +3702,7 @@ public class CommonEvaluator implements Evaluator {
 		Evaluation eval;
 		SymbolicExpression stateRefVal, processVal;
 		State evaluationState;
+		CIVLStateType stateType = typeFactory.stateType();
 
 		eval = evaluate(currentState, pid, stateRef);
 		currentState = eval.state;
@@ -3688,11 +3711,17 @@ public class CommonEvaluator implements Evaluator {
 		currentState = eval.state;
 		processVal = eval.value;
 		assert processVal.type().isNumeric();
+
+		UnaryOperator<SymbolicExpression> substituter = null;
+
 		if (stateRefVal == modelFactory.statenullConstantValue())
 			evaluationState = currentState;
-		else
-			evaluationState = stateFactory
-					.getStateByReference(modelFactory.getStateRef(stateRefVal));
+		else {
+			evaluationState = stateFactory.getStateByReference(
+					stateType.selectStateKey(universe, stateRefVal));
+			substituter = stateFactory.stateValueHelper()
+					.scopeSubstituterForCurrentState(currentState, stateRefVal);
+		}
 
 		Number processNumber = universe
 				.reasoner(currentState.getPathCondition(universe))
@@ -3736,6 +3765,8 @@ public class CommonEvaluator implements Evaluator {
 					(NumericExpression) processVal);
 			eval.state = currentState;
 		}
+		if (substituter != null)
+			substituter.apply(eval.value);
 		return eval;
 	}
 
@@ -4196,9 +4227,9 @@ public class CommonEvaluator implements Evaluator {
 	}
 
 	@Override
-	public Evaluation evaluatePointerAdd(State state, int pid, String process,
+	public Evaluation evaluatePointerAdd(State state, int pid,
 			BinaryExpression expression, SymbolicExpression pointer,
-			NumericExpression offset)
+			SymbolicExpression offset)
 			throws UnsatisfiablePathConditionException {
 		Pair<BooleanExpression, ResultType> checkPointer = symbolicAnalyzer
 				.isDefinedPointer(state, pointer, expression.getSource());
@@ -4214,13 +4245,16 @@ public class CommonEvaluator implements Evaluator {
 
 			if (symRef.isArrayElementReference()) {
 				return arrayElementReferenceAddWorker(state, pid, pointer,
-						offset, false, expression.left().getSource()).left;
+						(NumericExpression) offset, false,
+						expression.left().getSource()).left;
 			} else if (symRef.isOffsetReference()) {
-				return offsetReferenceAddition(state, pid, pointer, offset,
-						false, expression.getSource());
+				return offsetReferenceAddition(state, pid, pointer,
+						(NumericExpression) offset, false,
+						expression.getSource());
 			} else if (symRef.isIdentityReference()) {
-				return identityReferenceAddition(state, pid, pointer, offset,
-						false, expression.getSource());
+				return identityReferenceAddition(state, pid, pointer,
+						(NumericExpression) offset, false,
+						expression.getSource());
 			} else
 				throw new CIVLUnimplementedFeatureException(
 						"Pointer addition for anything other than array elements or variables",
@@ -4804,6 +4838,15 @@ public class CommonEvaluator implements Evaluator {
 		}
 	}
 
+	/**
+	 * Evaluates the result of an PLUS operation with two numeric operands
+	 */
+	protected SymbolicExpression evaluatePlus(SymbolicExpression left,
+			SymbolicExpression right) {
+		return universe.add((NumericExpression) left,
+				(NumericExpression) right);
+	}
+
 	@Override
 	public SymbolicAnalyzer symbolicAnalyzer() {
 		return this.symbolicAnalyzer;
@@ -4832,5 +4875,14 @@ public class CommonEvaluator implements Evaluator {
 	@Override
 	public ArrayToolBox newArrayToolBox(SymbolicUniverse universe) {
 		return new SimpleArrayToolBox(universe);
+	}
+
+	@Override
+	public MemEvaluator memEvaluator() {
+		if (memExpressionEvaluator == null)
+			memExpressionEvaluator = new MemEvaluator(modelFactory,
+					stateFactory, libLoader, libExeLoader, symbolicUtil,
+					symbolicAnalyzer, memUnitFactory, errorLogger, civlConfig);
+		return memExpressionEvaluator;
 	}
 }

@@ -1409,6 +1409,7 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 				stateFactory.scopeValue(dyscopeID), universe.integer(fid)));
 	}
 
+	/* *************** methods for specific heap structures ************* */
 	@Override
 	public SymbolicExpression getPointer2MemoryBlock(
 			SymbolicExpression heapPointer) {
@@ -1431,6 +1432,7 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 
 		return blk0.compare(blk1);
 	}
+	/* ********** end-of methods for specific heap structures ******** */
 
 	@Override
 	public SymbolicConstant freshBoundVariableFor(SymbolicType type,
@@ -1450,6 +1452,25 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 					universe.stringObject("i" + nameSuffix++), type);
 		} while (freeVars.contains(bv));
 		return bv;
+	}
+
+	@Override
+	public SymbolicExpression[] symbolicArrayToConcreteArray(
+			SymbolicExpression array) {
+		NumericExpression numElements = universe.length(array);
+		IntegerNumber numElementsNumber = (IntegerNumber) universe
+				.extractNumber(numElements);
+
+		assert array.operator() == SymbolicOperator.ARRAY : "A symbolic "
+				+ "expression without ARRAY operator "
+				+ "cannot be converted to a concrete array.";
+
+		int numElementsInt = numElementsNumber.intValue();
+		SymbolicExpression results[] = new SymbolicExpression[numElementsInt];
+
+		for (int i = 0; i < numElementsInt; i++)
+			results[i] = (SymbolicExpression) array.argument(i);
+		return results;
 	}
 
 	@Override

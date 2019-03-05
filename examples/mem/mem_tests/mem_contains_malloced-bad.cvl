@@ -1,0 +1,15 @@
+#include<mem.cvh>
+#include<stdlib.h>
+
+$input int N;
+$assume(N > 10);
+
+int *a;
+
+
+int main() {
+  a = (int *)malloc(sizeof(int) * N);
+  
+  $assert($mem_contains(a + (0 .. N-2), a + (0 .. N-1)));
+  free(a);
+}

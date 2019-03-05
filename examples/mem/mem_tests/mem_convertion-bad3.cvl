@@ -1,0 +1,13 @@
+#include<mem.cvh>
+#include<pointer.cvh>
+
+
+
+int main() {
+  $mem m;
+  int * a;
+
+  $havoc(&a);  
+  m = a + (0 .. 9);
+  $assert($equals(&m, &m));
+}

@@ -15,6 +15,8 @@ public class CommonRegularRangeType extends CommonStructOrUnionType
 		implements
 			CIVLRegularRangeType {
 
+	private final CIVLType elementType;
+
 	public CommonRegularRangeType(Identifier name, SymbolicUniverse universe,
 			CIVLType integerType) {
 		super(name, true);
@@ -31,5 +33,26 @@ public class CommonRegularRangeType extends CommonStructOrUnionType
 		myfields.add(new CommonStructOrUnionField(new CommonIdentifier(
 				name.getSource(), universe.stringObject("step")), integerType));
 		this.complete(myfields);
+		elementType = integerType;
+	}
+
+	@Override
+	public boolean isRangeType() {
+		return true;
+	}
+
+	@Override
+	public boolean isSetType() {
+		return true;
+	}
+
+	@Override
+	public boolean isSetTypeOf(CIVLType elementType) {
+		return elementType.isIntegerType();
+	}
+
+	@Override
+	public CIVLType elementType() {
+		return elementType;
 	}
 }

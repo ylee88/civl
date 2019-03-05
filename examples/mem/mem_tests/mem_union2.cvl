@@ -1,0 +1,31 @@
+#include<mem.cvh>
+
+$input int N;
+$assume(N > 10);
+
+struct T {
+  int x[N];
+  double y[N];
+} a[N];
+
+union U {
+  int x[N];
+  double y[N];
+} b[N];
+
+int main() {
+  $mem m = &a[0 .. N-1].x[0 .. N-1];
+  
+  m = $mem_union(m, &a[0 .. N-1].y[0 .. N-1]);
+  $assert($mem_contains(m, &a[1 .. N-2].x[1 .. N-2]));
+  $assert($mem_contains(m, &a[1 .. N-2].y[1 .. N-2]));
+  m = $mem_union(m, &b[0 .. N-1].y[0 .. N-1]); 
+  m = $mem_union(m, &b[0 .. N-1].x[0 .. N-1]); 
+  $assert($mem_contains(m, &a));
+  $assert($mem_contains(m, &b));
+
+  m = &b[0 .. N-1].x[0 .. N-1];  
+  m = $mem_union(m, &b[0 .. N-1].y[0 .. N-1]);
+  $assert($mem_contains(m, &b[1 .. N-2].x[1 .. N-2]));
+  $assert($mem_contains(m, &b[1 .. N-2].y[1 .. N-2]));  
+}

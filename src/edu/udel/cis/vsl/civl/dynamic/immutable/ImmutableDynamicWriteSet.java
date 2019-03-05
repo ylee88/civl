@@ -1,16 +1,9 @@
 package edu.udel.cis.vsl.civl.dynamic.immutable;
 
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.TreeSet;
-
 import edu.udel.cis.vsl.civl.dynamic.IF.DynamicWriteSet;
 import edu.udel.cis.vsl.sarl.IF.Reasoner;
-import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.UnaryOperator;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
-import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
-import edu.udel.cis.vsl.sarl.IF.object.SymbolicObject;
 
 /**
  * An immutable pattern implementaion of {@Link DynamicWriteSet}
@@ -18,80 +11,46 @@ import edu.udel.cis.vsl.sarl.IF.object.SymbolicObject;
  * @author ziqing (Ziqing Luo)
  */
 public class ImmutableDynamicWriteSet implements DynamicWriteSet {
+
+	private final SymbolicExpression memValue;
+
 	/**
-	 * A collection of references (pointers) to memroy locations (objects). For
-	 * each reference, there is an initial value associates to it.
+	 * A unary operator that collects the references in the "memValue", which
+	 * are referring to non-alive objects:
 	 */
-	private TreeSet<SymbolicExpression> pointerSet = null;
+	private UnaryOperator<SymbolicExpression> collector;
 
-	public ImmutableDynamicWriteSet(SymbolicUniverse universe) {
-		pointerSet = new TreeSet<>(universe.comparator());
-	}
-
-	private ImmutableDynamicWriteSet(Comparator<SymbolicObject> comparator) {
-		this.pointerSet = new TreeSet<>(comparator);
-	}
-
-	private ImmutableDynamicWriteSet(TreeSet<SymbolicExpression> references) {
-		this.pointerSet = new TreeSet<>(references);
+	ImmutableDynamicWriteSet(SymbolicExpression memValue,
+			UnaryOperator<SymbolicExpression> collector) {
+		this.memValue = memValue;
+		this.collector = collector;
 	}
 
 	/* ***************** public methods from DynamicWriteSet *****************/
 	@Override
-	public ImmutableDynamicWriteSet addReference(SymbolicExpression pointer) {
-		assert pointer.operator() == SymbolicOperator.TUPLE;
-		if (pointerSet.contains(pointer)) {
-			return this;
-		} else {
-			ImmutableDynamicWriteSet newSet = new ImmutableDynamicWriteSet(
-					this.pointerSet);
-
-			newSet.pointerSet.add(pointer);
-			return newSet;
-		}
+	public SymbolicExpression getMemValue() {
+		return memValue;
 	}
 
 	@Override
 	public ImmutableDynamicWriteSet apply(
 			UnaryOperator<SymbolicExpression> operator) {
-		@SuppressWarnings("unchecked")
-		Comparator<SymbolicObject> comparator = (Comparator<SymbolicObject>) pointerSet
-				.comparator();
-		ImmutableDynamicWriteSet newSet = new ImmutableDynamicWriteSet(
-				comparator);
-		boolean change = false;
+		SymbolicExpression newMemValue = operator.apply(memValue);
 
-		for (SymbolicExpression pointer : pointerSet) {
-			SymbolicExpression newPointer = operator.apply(pointer);
-
-			newSet.pointerSet.add(newPointer);
-			if (!change && newPointer != pointer)
-				change = true;
-		}
-		if (change)
-			return newSet;
+		newMemValue = collector.apply(newMemValue);
+		if (newMemValue != memValue)
+			return new ImmutableDynamicWriteSet(newMemValue, collector);
 		else
 			return this;
 	}
 
 	@Override
 	public ImmutableDynamicWriteSet simplify(Reasoner reasoner) {
-		@SuppressWarnings("unchecked")
-		Comparator<SymbolicObject> comparator = (Comparator<SymbolicObject>) pointerSet
-				.comparator();
-		ImmutableDynamicWriteSet newSet = new ImmutableDynamicWriteSet(
-				comparator);
-		boolean change = false;
+		SymbolicExpression newMemValue = reasoner.simplify(memValue);
 
-		for (SymbolicExpression pointer : pointerSet) {
-			SymbolicExpression newPointer = reasoner.simplify(pointer);
-
-			newSet.pointerSet.add(newPointer);
-			if (!change && newPointer != pointer)
-				change = true;
-		}
-		if (change)
-			return newSet;
+		newMemValue = collector.apply(newMemValue);
+		if (newMemValue != memValue)
+			return new ImmutableDynamicWriteSet(newMemValue, collector);
 		else
 			return this;
 	}
@@ -100,20 +59,12 @@ public class ImmutableDynamicWriteSet implements DynamicWriteSet {
 
 	@Override
 	public String toString() {
-		String result = "";
-
-		for (SymbolicExpression entry : pointerSet)
-			result += entry + " \n";
-		return result;
+		return "WriteSet{" + memValue + "}";
 	}
 
 	@Override
 	public int hashCode() {
-		int hashCode = pointerSet.size();
-
-		for (SymbolicExpression entry : pointerSet)
-			hashCode ^= entry.hashCode();
-		return hashCode;
+		return memValue.hashCode();
 	}
 
 	@Override
@@ -121,14 +72,8 @@ public class ImmutableDynamicWriteSet implements DynamicWriteSet {
 		if (obj instanceof ImmutableDynamicWriteSet) {
 			ImmutableDynamicWriteSet other = (ImmutableDynamicWriteSet) obj;
 
-			return other.pointerSet.equals(pointerSet);
+			return other.getMemValue().equals(memValue);
 		}
 		return false;
-	}
-
-	/* ***************** Public methods from Iterable ******************* */
-	@Override
-	public Iterator<SymbolicExpression> iterator() {
-		return pointerSet.iterator();
 	}
 }

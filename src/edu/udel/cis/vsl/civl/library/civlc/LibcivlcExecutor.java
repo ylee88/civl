@@ -297,12 +297,23 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 			Expression[] arguments, SymbolicExpression[] argumentValues,
 			boolean isFull, CIVLSource source) {
 		int topDyscope = state.getProcessState(pid).peekStack().scope();
-		State snapshot = isFull
-				? state
-				: stateFactory.getStateSnapshot(state, pid, topDyscope);
-		int snapshotStateID = stateFactory.saveState(snapshot).left;
+		SymbolicExpression snapshotValue;
 
-		return new Evaluation(state, modelFactory.stateValue(snapshotStateID));
+		if (!isFull)
+			snapshotValue = stateFactory.getStateSnapshot(state, pid,
+					topDyscope);
+		else {
+			int snapshotStateID = stateFactory.saveState(state).left;
+			SymbolicExpression currentScopes[] = new SymbolicExpression[state
+					.numDyscopes()];
+
+			for (int i = 0; i < currentScopes.length; i++)
+				currentScopes[i] = stateFactory.scopeValue(i);
+			snapshotValue = typeFactory.stateType().buildStateValue(universe,
+					snapshotStateID, universe.array(
+							typeFactory.scopeSymbolicType(), currentScopes));
+		}
+		return new Evaluation(state, snapshotValue);
 	}
 
 	private Evaluation executeIsDerefable(State state, int pid, String process,
@@ -744,15 +755,6 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 			if (resultType == ResultType.MAYBE)
 				resultType = universe.why3Reasoner(context).valid(assertValue)
 						.getResultType();
-			if (resultType == ResultType.MAYBE) {
-				UniversalNormalization uniNorm = new UniversalNormalization(
-						universe);
-
-				context = (BooleanExpression) uniNorm.apply(context);
-				assertValue = (BooleanExpression) uniNorm.apply(assertValue);
-				resultType = universe.why3Reasoner(context).valid(assertValue)
-						.getResultType();
-			}
 		} else
 			resultType = universe.reasoner(context).valid(assertValue)
 					.getResultType();

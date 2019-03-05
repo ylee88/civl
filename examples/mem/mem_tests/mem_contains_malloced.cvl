@@ -1,0 +1,27 @@
+#include<mem.cvh>
+#include<stdlib.h>
+
+$input int N;
+$assume(N > 10);
+int *a;
+int **b;
+
+int main() {
+  a = (int *)malloc(sizeof(int) * N);
+  b = (int **)malloc(sizeof(int*) * 10);
+  for (int i = 0; i < 5; i++)
+    b[i] = (int *)malloc(sizeof(int) * 5);
+  
+  $assert($mem_contains(a + (0 .. N-1), a + (0 .. N-2)));
+  $assert($mem_contains(a + (0 .. N-1), a + 1));
+  $assert(!$mem_contains(a + (0 .. N-2), a + (0 .. N-1)));
+  free(a);
+
+  $assert($mem_contains(b[0] + (0 .. 4), b[0]));
+  $assert($mem_contains(b + (0 .. 4), b));
+  $assert(!$mem_contains(b, b[0]));  
+
+  for (int i = 0; i < 5; i++)
+    free(b[i]);
+  free(b);
+}

@@ -1400,8 +1400,12 @@ public class CommonExecutor implements Executor {
 				throw new UnsatisfiablePathConditionException();
 			}
 		}
-		if (state.isMonitoringWrites(pid))
-			state = stateFactory.addWriteRecords(state, pid, pointer);
+		if (state.isMonitoringWrites(pid)) {
+			Evaluation eval = evaluator.memEvaluator().pointer2memValue(state,
+					pid, pointer, source);
+
+			state = stateFactory.addWriteRecords(eval.state, pid, eval.value);
+		}
 		if (symRef.isIdentityReference()) {
 			result = stateFactory.setVariable(state, vid, sid, value);
 		} else {
@@ -1491,10 +1495,14 @@ public class CommonExecutor implements Executor {
 			Variable variable = ((VariableExpression) lhs).variable();
 			int dyscopeId = state.getDyscopeID(pid, variable);
 
-			if (state.isMonitoringWrites(pid))
-				state = stateFactory.addWriteRecords(state, pid,
-						symbolicUtil.makePointer(dyscopeId, variable.vid(),
-								universe.identityReference()));
+			if (state.isMonitoringWrites(pid)) {
+				eval = evaluator.memEvaluator().pointer2memValue(
+						state, pid, symbolicUtil.makePointer(dyscopeId,
+								variable.vid(), universe.identityReference()),
+						lhs.getSource());
+				state = stateFactory.addWriteRecords(eval.state, pid,
+						eval.value);
+			}
 			return stateFactory.setVariable(state, variable, pid, value);
 		} else {
 			boolean toCheckPointer = kind == LHSExpressionKind.DEREFERENCE;
@@ -1580,6 +1588,64 @@ public class CommonExecutor implements Executor {
 	}
 
 	@Override
+	public State assign2(CIVLSource source, State state, int pid,
+			SymbolicExpression pointerToVarOrHeapObj,
+			SymbolicExpression newValueOfVarOrHeapObj,
+			SymbolicExpression valueSetTemplate)
+			throws UnsatisfiablePathConditionException {
+		// check pointer that is valid and it is points to variable or
+		// heap object:
+		int vid = symbolicUtil.getVariableId(source, pointerToVarOrHeapObj);
+		boolean validPointer;
+
+		// "vid == 0" means that it is a pointer to heap:
+		if (vid == 0)
+			validPointer = symbolicUtil.isPointerToHeap(pointerToVarOrHeapObj);
+		else
+			validPointer = symbolicUtil.getSymRef(pointerToVarOrHeapObj)
+					.isIdentityReference();
+		if (!validPointer)
+			throw new CIVLInternalException(
+					"Calling method assign2 with unexpected pointer value:"
+							+ pointerToVarOrHeapObj,
+					source);
+
+		String process = state.getProcessState(pid).name();
+		SymbolicExpression oldValue;
+		Evaluation eval = evaluator.dereference(source, state, process,
+				pointerToVarOrHeapObj, true, false);
+		int sid = stateFactory.getDyscopeId(
+				symbolicUtil.getScopeValue(pointerToVarOrHeapObj));
+		Variable var = eval.state.getDyscope(sid).lexicalScope().variable(vid);
+
+		state = eval.state;
+		oldValue = eval.value;
+		// either oldValue or newValue is NULL, implies that the variable has
+		// primitive type:
+		assert !(newValueOfVarOrHeapObj.isNull() || oldValue.isNull())
+				|| var.type().typeKind() == TypeKind.PRIMITIVE;
+		if (var.type().typeKind() != TypeKind.PRIMITIVE)
+			newValueOfVarOrHeapObj = universe.valueSetAssigns(oldValue,
+					valueSetTemplate, newValueOfVarOrHeapObj);
+		// sets variable value in state to complete the assignment:
+		if (vid == 0) {
+			SymbolicExpression oldHeapVar = state.getVariableValue(sid, vid);
+
+			newValueOfVarOrHeapObj = universe.assign(oldHeapVar,
+					symbolicUtil.getSymRef(pointerToVarOrHeapObj),
+					newValueOfVarOrHeapObj);
+		}
+		state = stateFactory.setVariable(state, vid, sid,
+				newValueOfVarOrHeapObj);
+		if (state.isMonitoringWrites(pid)) {
+			eval = evaluator.memEvaluator().makeMemValue(state, pid,
+					pointerToVarOrHeapObj, valueSetTemplate, source);
+			state = stateFactory.addWriteRecords(eval.state, pid, eval.value);
+		}
+		return state;
+	}
+
+	@Override
 	public State assign(State state, int pid, String process, LHSExpression lhs,
 			SymbolicExpression value, boolean isInitializer)
 			throws UnsatisfiablePathConditionException {
@@ -1614,8 +1680,10 @@ public class CommonExecutor implements Executor {
 		if (state.isMonitoringWrites(pid)) {
 			SymbolicExpression pointer2memoryBlk = symbolicUtil
 					.parentPointer(result.right);
+			Evaluation eval = evaluator.memEvaluator().pointer2memValue(state,
+					pid, pointer2memoryBlk, source);
 
-			state = stateFactory.addWriteRecords(state, pid, pointer2memoryBlk);
+			state = stateFactory.addWriteRecords(eval.state, pid, eval.value);
 		}
 		return new Evaluation(result.left, result.right);
 	}
@@ -1676,31 +1744,6 @@ public class CommonExecutor implements Executor {
 	@Override
 	public CIVLErrorLogger errorLogger() {
 		return this.errorLogger;
-	}
-
-	@Override
-	public State reportContractViolation(State state, CIVLSource source,
-			int place, ResultType resultType, BooleanExpression assertValue,
-			Expression violatedCondition, ErrorKind errorKind,
-			String groupString) throws UnsatisfiablePathConditionException {
-		String format = "Contract violation: \n";
-		String mergedStateExplanation = "";
-		String process;
-
-		// ErrorKind can be CONTRACT (for regular contract) or MPI (mpi
-		// collective contract)
-		if (errorKind.equals(ErrorKind.MPI_ERROR)) {
-			process = "place: " + place + " in " + groupString;
-			mergedStateExplanation = "Note: The state where the violated condition be evaluated is merged from "
-					+ "a set of snapshots. PID in this state is indeed the place of the process in the group";
-		} else
-			process = "pid: " + place;
-		format += "[" + process + "]:" + violatedCondition + "\n"
-				+ violatedCondition + " is evaluated as " + assertValue + "\n"
-				+ mergedStateExplanation;
-		return errorLogger.logError(source, state, place,
-				symbolicAnalyzer.stateInformation(state), assertValue,
-				resultType, errorKind, format);
 	}
 
 	@Override

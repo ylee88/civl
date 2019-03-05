@@ -4,17 +4,17 @@ import java.io.PrintStream;
 import java.util.List;
 
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
+import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.log.IF.CIVLErrorLogger;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.expression.Expression;
 import edu.udel.cis.vsl.civl.model.IF.expression.LHSExpression;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
+import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.civl.state.IF.State;
 import edu.udel.cis.vsl.civl.state.IF.StateFactory;
 import edu.udel.cis.vsl.civl.state.IF.UnsatisfiablePathConditionException;
-import edu.udel.cis.vsl.sarl.IF.ValidityResult.ResultType;
-import edu.udel.cis.vsl.sarl.IF.expr.BooleanExpression;
+import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
 
 public interface Executor {
@@ -39,6 +39,45 @@ public interface Executor {
 	 */
 	State assign(CIVLSource source, State state, int pid,
 			SymbolicExpression pointer, SymbolicExpression value)
+			throws UnsatisfiablePathConditionException;
+
+	/**
+	 * <p>
+	 * Given a "pointer" to a variable ({@link Variable}) or a memory heap
+	 * object (see {@link SymbolicUtility#isPointerToHeap(SymbolicExpression)}),
+	 * a symbolic expression "newValue" that represents the new value of the
+	 * variable or the memory heap object and a symbolic expression
+	 * "valueSetTemplate" of {@link SymbolicUniverse#valueSetTemplateType()},
+	 * which refers to a set of regions in the variable or the heap object, this
+	 * method carves the part that is referred by the "valueSetTemplate" out of
+	 * the "newValue" and assigns it to the corresponding part in the variable
+	 * or the heap object.
+	 * </p>
+	 * 
+	 * @param source
+	 *            the {@link CIVLSource} that is related to this assignment
+	 * @param state
+	 *            the state where the assignment happens
+	 * @param pid
+	 *            the PID of the running process
+	 * @param pointerToVarOrHeapObject
+	 *            a pointer to a variable or a memory heap object
+	 * @param newValueOfVarOrHeapObject
+	 *            a symbolic expression that represents the new value of the
+	 *            referred variable or the memory heap object; the type of this
+	 *            symbolic expression will be equal to the dynamic type of the
+	 *            variable of the heap object
+	 * @param valueSetTemplate
+	 *            a symbolic expression of type
+	 *            {@link SymbolicUniverse#valueSetTemplateType()} that
+	 *            represents a specific (sub-)region that will be assigned.
+	 * @return the state after assignment
+	 * @throws UnsatisfiablePathConditionException
+	 */
+	State assign2(CIVLSource source, State state, int pid,
+			SymbolicExpression pointerToVarOrHeapObject,
+			SymbolicExpression newValueOfVarOrHeapObject,
+			SymbolicExpression valueSetTemplate)
 			throws UnsatisfiablePathConditionException;
 
 	/**
@@ -153,39 +192,6 @@ public interface Executor {
 	 */
 	void printf(PrintStream printStream, CIVLSource source, String process,
 			List<Format> formats, List<StringBuffer> arguments);
-
-	/**
-	 * A lowest level contract violation error reporting function: provides
-	 * basic contract violation error reporting format.
-	 * 
-	 * @param state
-	 *            The state where the evaluation is on
-	 * @param source
-	 *            The CIVLSource of the contract
-	 * @param place
-	 *            The place of the process in the group (Or PID for regular
-	 *            non-collective contract)
-	 * @param process
-	 *            The String identifier of the process
-	 * @param resultType
-	 *            The result type of the reasoning result
-	 * @param assertValue
-	 *            The value of the evaluated condition
-	 * @param violatedCondition
-	 *            The expression of the condition
-	 * @param errorKind
-	 *            The corresponding error kind: CONTRACT for regular contract
-	 *            violation or MPI_ERROR for collective contract violation
-	 * @param groupString
-	 *            The String of the group of processes, only significant when
-	 *            errorKind == MPI_ERROR
-	 * @return
-	 * @throws UnsatisfiablePathConditionException
-	 */
-	State reportContractViolation(State state, CIVLSource source, int place,
-			ResultType resultType, BooleanExpression assertValue,
-			Expression violatedCondition, ErrorKind errorKind,
-			String groupString) throws UnsatisfiablePathConditionException;
 
 	void setConfiguration(CIVLConfiguration config);
 }

@@ -4,6 +4,7 @@ import java.math.BigInteger;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import edu.udel.cis.vsl.abc.ast.node.IF.acsl.ExtendedQuantifiedExpressionNode.ExtendedQuantifier;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
@@ -53,8 +54,11 @@ import edu.udel.cis.vsl.civl.model.IF.statement.UpdateStatement;
 import edu.udel.cis.vsl.civl.model.IF.statement.WithStatement;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLArrayType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLHeapType;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLMemType;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLStateType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLStructOrUnionType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLType.TypeKind;
 import edu.udel.cis.vsl.civl.model.IF.type.StructOrUnionField;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.civl.semantics.IF.Evaluation;
@@ -72,6 +76,7 @@ import edu.udel.cis.vsl.civl.util.IF.Pair;
 import edu.udel.cis.vsl.civl.util.IF.Triple;
 import edu.udel.cis.vsl.sarl.IF.Reasoner;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
+import edu.udel.cis.vsl.sarl.IF.UnaryOperator;
 import edu.udel.cis.vsl.sarl.IF.ValidityResult.ResultType;
 import edu.udel.cis.vsl.sarl.IF.expr.ArrayElementReference;
 import edu.udel.cis.vsl.sarl.IF.expr.BooleanExpression;
@@ -2289,6 +2294,12 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 							state, exprType, eval.value, !isTopLevel, "", ""));
 			// }
 		} else {
+			if (expression.getExpressionType().typeKind() == TypeKind.MEM) {
+				Evaluation eval = evaluator.evaluate(state, pid, expression);
+
+				return new Pair<>(eval.state,
+						this.prettyMemValue(eval.state, eval.value));
+			}
 			switch (kind) {
 				case ABSTRACT_FUNCTION_CALL : {
 					AbstractFunctionCallExpression abstractFuncCall = (AbstractFunctionCallExpression) expression;
@@ -2346,7 +2357,7 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 					result.append("(");
 					result.append(cast.getCastType().toString());
 					result.append(")");
-					temp = this.expressionEvaluationWorker(state, pid,
+					temp = expressionEvaluationWorker(state, pid,
 							cast.getExpression(), resultOnly, false);
 					state = temp.left;
 					result.append(temp.right);
@@ -2492,12 +2503,21 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 
 					Evaluation eval = evaluator.evaluate(state, pid,
 							valueAt.state());
-					State newState = eval.value == modelFactory
-							.statenullConstantValue()
-									? state
-									: evaluator.stateFactory()
-											.getStateByReference(modelFactory
-													.getStateRef(eval.value));
+					CIVLStateType stateType = typeFactory.stateType();
+					UnaryOperator<SymbolicExpression> substituter = null;
+					State newState;
+
+					if (eval.value == modelFactory.statenullConstantValue()) {
+						newState = state;
+					} else {
+						newState = evaluator.stateFactory().getStateByReference(
+								stateType.selectStateKey(universe, eval.value));
+						substituter = evaluator.stateFactory()
+								.stateValueHelper()
+								.scopeSubstituterForCurrentState(state,
+										eval.value);
+					}
+
 					Number newPid;
 
 					eval = evaluator.evaluate(eval.state, pid, valueAt.pid());
@@ -2507,10 +2527,14 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 					if (newPid == null)
 						result.append(valueAt.expression());
 					else {
-						temp = this.expressionEvaluationWorker(newState,
+						eval = evaluator.evaluate(newState,
 								((IntegerNumber) newPid).intValue(),
-								valueAt.expression(), false, true);
-						result.append(temp.right);
+								valueAt.expression());
+						if (substituter != null)
+							substituter.apply(eval.value);
+						result.append(symbolicExpressionToString(
+								valueAt.getSource(), newState,
+								valueAt.getExpressionType(), eval.value));
 					}
 					result.append(")");
 					break;
@@ -2921,6 +2945,44 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 	public StringBuffer memoryUnitToString(State state, MemoryUnit mu) {
 		return this.variableReferenceToString(state, null, true, mu.dyscopeID(),
 				mu.varID(), mu.reference());
+	}
+
+	/**
+	 * Pretty print of value of $mem type. See
+	 * {@link CIVLMemType#getDynamicType(SymbolicUniverse)} for definition of
+	 * dynamic $mem type.
+	 */
+	private String prettyMemValue(State state, SymbolicExpression memValue) {
+		CIVLMemType memType = typeFactory.civlMemType();
+		Function<SymbolicExpression, IntegerNumber> scopeExtractor = typeFactory
+				.scopeType().scopeValueToIdentityOperator(universe);
+		StringBuffer result = new StringBuffer();
+
+		for (CIVLMemType.MemoryLocationReference mlr : memType
+				.memValueIterator().apply(memValue)) {
+			int vid = mlr.vid();
+			int sid = scopeExtractor.apply(mlr.scopeValue()).intValue();
+
+			if (sid < 0) // skip references to non-alive objects:
+				continue;
+
+			String str = state.getDyscope(sid).lexicalScope().variable(vid)
+					.name().name();
+
+			if (vid == 0) {
+				str = str + "." + mlr.heapID();
+				str = str + "[" + mlr.mallocID() + "]";
+			}
+			str += " : " + mlr.valueSetTemplate();
+			result.append(str + ",");
+		}
+
+		if (result.length() > 0)
+			result.replace(result.length() - 1, result.length(), "}");
+		else
+			result.append("}");
+		result.insert(0, "($mem){");
+		return result.toString();
 	}
 
 	@Override

@@ -172,6 +172,7 @@ import edu.udel.cis.vsl.civl.model.IF.type.CIVLFunctionType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPointerType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType.PrimitiveTypeKind;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLSetType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLStructOrUnionType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.type.StructOrUnionField;
@@ -4651,7 +4652,7 @@ public class FunctionTranslator {
 					break;
 				case MEM :
 					expression = modelFactory.castExpression(source,
-							typeFactory.memType(), expression);
+							typeFactory.civlMemType(), expression);
 					break;
 				case NULL_POINTER : {
 					// result is a null pointer to new type
@@ -5090,14 +5091,14 @@ public class FunctionTranslator {
 			case GT :
 				result = modelFactory.binaryExpression(source,
 						BINARY_OPERATOR.LESS_THAN,
-						modelFactory.numericExpression(arguments.get(1)),
-						modelFactory.numericExpression(arguments.get(0)));
+						modelFactory.comparableExpression(arguments.get(1)),
+						modelFactory.comparableExpression(arguments.get(0)));
 				break;
 			case GTE :
 				result = modelFactory.binaryExpression(source,
 						BINARY_OPERATOR.LESS_THAN_EQUAL,
-						modelFactory.numericExpression(arguments.get(1)),
-						modelFactory.numericExpression(arguments.get(0)));
+						modelFactory.comparableExpression(arguments.get(1)),
+						modelFactory.comparableExpression(arguments.get(0)));
 				break;
 			case IMPLIES :
 				try {
@@ -5186,19 +5187,20 @@ public class FunctionTranslator {
 			case LT :
 				result = modelFactory.binaryExpression(source,
 						BINARY_OPERATOR.LESS_THAN,
-						modelFactory.numericExpression(arguments.get(0)),
-						modelFactory.numericExpression(arguments.get(1)));
+						modelFactory.comparableExpression(arguments.get(0)),
+						modelFactory.comparableExpression(arguments.get(1)));
 				break;
 			case LTE :
 				result = modelFactory.binaryExpression(source,
 						BINARY_OPERATOR.LESS_THAN_EQUAL,
-						modelFactory.numericExpression(arguments.get(0)),
-						modelFactory.numericExpression(arguments.get(1)));
+						modelFactory.comparableExpression(arguments.get(0)),
+						modelFactory.comparableExpression(arguments.get(1)));
 				break;
 			case MINUS :
 				result = translateMinusOperation(source,
-						modelFactory.numericExpression(arguments.get(0)),
-						modelFactory.numericExpression(arguments.get(1)));
+						modelFactory.arithmeticableExpression(arguments.get(0)),
+						modelFactory
+								.arithmeticableExpression(arguments.get(1)));
 				break;
 			case MOD :
 				result = modelFactory.binaryExpression(source,
@@ -5247,8 +5249,9 @@ public class FunctionTranslator {
 				break;
 			case PLUS : {
 				result = translatePlusOperation(source,
-						modelFactory.numericExpression(arguments.get(0)),
-						modelFactory.numericExpression(arguments.get(1)));
+						modelFactory.arithmeticableExpression(arguments.get(0)),
+						modelFactory
+								.arithmeticableExpression(arguments.get(1)));
 				break;
 			}
 			case SUBSCRIPT :
@@ -5343,6 +5346,10 @@ public class FunctionTranslator {
 		boolean isNumeric0 = type0.isNumericType() || type0.isScopeType();
 		boolean isNumeric1 = type1.isNumericType() || type1.isScopeType();
 
+		isNumeric0 |= type0.isSetType()
+				&& ((CIVLSetType) type0).elementType().isNumericType();
+		isNumeric1 |= type1.isSetType()
+				&& ((CIVLSetType) type1).elementType().isNumericType();
 		if (isNumeric0 && isNumeric1) {
 			return modelFactory.binaryExpression(source, BINARY_OPERATOR.PLUS,
 					arg0, arg1);
@@ -5358,14 +5365,9 @@ public class FunctionTranslator {
 			} else
 				throw new CIVLInternalException(
 						"Expected at least one numeric argument", source);
-			if (!pointer.getExpressionType().isPointerType())
-				throw new CIVLInternalException(
-						"Expected expression of pointer type",
-						pointer.getSource());
-			if (!offset.getExpressionType().isIntegerType())
-				throw new CIVLInternalException(
-						"Expected expression of integer type",
-						offset.getSource());
+			assert !pointer.getExpressionType().isSetType()
+					|| ((CIVLSetType) pointer.getExpressionType()).elementType()
+							.isPointerType() : "arrays plus integers is not allowed";
 			return modelFactory.binaryExpression(source,
 					BINARY_OPERATOR.POINTER_ADD, pointer, offset);
 		}
@@ -5395,43 +5397,15 @@ public class FunctionTranslator {
 					arg0, arg1);
 		} else {
 			Expression pointer, rightOperand;// , offset;
-			// boolean isSub = false;
 
-			rightOperand = null;
-			// // offset = null;
-			// if (isNumeric1) {
-			// pointer = arrayToPointer(arg0);
-			// // offset = arg1;
-			// } else if (isNumeric0) {
-			// pointer = arrayToPointer(arg1);
-			// // offset = arg0;
-			// } else {
 			pointer = arrayToPointer(arg0);
 			rightOperand = arrayToPointer(arg1);
-			// isSub = true;
-			// }
 			if (!pointer.getExpressionType().isPointerType())
 				throw new CIVLInternalException(
 						"Expected expression of pointer type",
 						pointer.getSource());
-			// if (isSub) {
-			// if (!rightOperand.getExpressionType().isPointerType())
-			// throw new CIVLInternalException(
-			// "Expected expression of pointer type",
-			// rightOperand.getSource());
 			return modelFactory.binaryExpression(source,
 					BINARY_OPERATOR.POINTER_SUBTRACT, pointer, rightOperand);
-			// } else {
-			// if (!offset.getExpressionType().isIntegerType())
-			// throw new CIVLInternalException(
-			// "Expected expression of integer type",
-			// offset.getSource());
-			// return modelFactory.binaryExpression(source,
-			// BINARY_OPERATOR.POINTER_ADD, pointer, modelFactory
-			// .unaryExpression(offset.getSource(),
-			// UNARY_OPERATOR.NEGATIVE, offset));
-			// }
-
 		}
 	}
 
@@ -5542,6 +5516,8 @@ public class FunctionTranslator {
 		CIVLType lhsType = lhs.getExpressionType();
 		Expression result;
 
+		if (lhsType.isSetType())
+			lhsType = ((CIVLSetType) lhsType).elementType();
 		if (lhsType.isArrayType()) {
 			if (!(lhs instanceof LHSExpression)) {
 				Expression.ExpressionKind lhsKind = lhs.expressionKind();
@@ -5562,19 +5538,13 @@ public class FunctionTranslator {
 			Expression pointerExpr, indexExpr;
 
 			if (lhsType.isPointerType()) {
-				if (!rhsType.isIntegerType())
+				if (!rhsType.isIntegerType()
+						&& !rhsType.isSetTypeOf(typeFactory.integerType()))
 					throw new CIVLInternalException(
 							"Expected expression of integer type",
 							rhs.getSource());
 				pointerExpr = lhs;
 				indexExpr = rhs;
-			} else if (lhsType.isIntegerType()) {
-				if (!rhsType.isPointerType())
-					throw new CIVLInternalException(
-							"Expected expression of pointer type",
-							rhs.getSource());
-				pointerExpr = rhs;
-				indexExpr = lhs;
 			} else
 				throw new CIVLInternalException(
 						"Expected one argument of integer type and one of pointer type",
@@ -6056,7 +6026,7 @@ public class FunctionTranslator {
 				case RANGE :
 					return typeFactory.rangeType();
 				case MEM :
-					return typeFactory.memType();
+					return typeFactory.civlMemType();
 				case DOMAIN :
 					return translateABCDomainType(source, scope,
 							(DomainType) abcType);

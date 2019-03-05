@@ -13,15 +13,17 @@ import edu.udel.cis.vsl.civl.model.IF.expression.DotExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.Expression;
 import edu.udel.cis.vsl.civl.model.IF.expression.LHSExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.VariableExpression;
-import edu.udel.cis.vsl.civl.model.IF.type.CIVLStructOrUnionType;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLSetType;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 
 /**
  * @author zirkel
  * 
  */
-public class CommonDotExpression extends CommonExpression implements
-		DotExpression {
+public class CommonDotExpression extends CommonExpression
+		implements
+			DotExpression {
 
 	private Expression structOrUnion;// TODO shall this be of type
 										// LHSExpression?
@@ -36,11 +38,19 @@ public class CommonDotExpression extends CommonExpression implements
 	 *            The field referenced by this dot expression.
 	 */
 	public CommonDotExpression(CIVLSource source, Expression struct,
-			int fieldIndex) {
+			int fieldIndex, CIVLType expressionType) {
 		super(source, struct.expressionScope(), struct.lowestScope(),
-				((CIVLStructOrUnionType) struct.getExpressionType()).getField(
-						fieldIndex).type());
-		assert struct.getExpressionType() instanceof CIVLStructOrUnionType;
+				expressionType);
+		assert struct.getExpressionType().isStructType()
+				|| struct.getExpressionType().isUnionType()
+				|| struct.getExpressionType().isSetType();
+
+		assert struct.getExpressionType().isSetType()
+				? ((CIVLSetType) struct.getExpressionType()).elementType()
+						.isStructType()
+						|| ((CIVLSetType) struct.getExpressionType())
+								.elementType().isUnionType()
+				: true;
 		this.structOrUnion = struct;
 		this.fieldIndex = fieldIndex;
 	}
@@ -128,7 +138,7 @@ public class CommonDotExpression extends CommonExpression implements
 
 		if (newStruct != null) {
 			result = new CommonDotExpression(this.getSource(), newStruct,
-					this.fieldIndex);
+					this.fieldIndex, this.getExpressionType());
 		}
 		return result;
 	}
@@ -171,12 +181,20 @@ public class CommonDotExpression extends CommonExpression implements
 
 	@Override
 	public boolean isStruct() {
-		return this.structOrUnion.getExpressionType().isStructType();
+		CIVLType type = structOrUnion.getExpressionType();
+
+		if (type.isSetType())
+			type = ((CIVLSetType) type).elementType();
+		return type.isStructType();
 	}
 
 	@Override
 	public boolean isUnion() {
-		return this.structOrUnion.getExpressionType().isUnionType();
+		CIVLType type = structOrUnion.getExpressionType();
+
+		if (type.isSetType())
+			type = ((CIVLSetType) type).elementType();
+		return type.isUnionType();
 	}
 
 	@Override

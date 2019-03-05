@@ -14,6 +14,8 @@ import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.Model;
 import edu.udel.cis.vsl.civl.model.IF.ModelConfiguration;
 import edu.udel.cis.vsl.civl.model.IF.location.Location;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLMemType;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLStateType;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.civl.state.IF.CIVLHeapException.HeapErrorKind;
 import edu.udel.cis.vsl.civl.util.IF.Pair;
@@ -685,8 +687,10 @@ public interface StateFactory {
 	/* Note: Snapshots are objects with type ImmutableMonoState */
 	/**
 	 * <p>
-	 * Take a snapshot for the process pid on the given state, returns a new
-	 * state which only contains that one process state and associated dyscopes.
+	 * Take a snapshot for the process pid on the given state, returns a
+	 * symbolic expression representing the value of a $state type object. The
+	 * value contains the snapshot---a new state which only contains that one
+	 * process state and associated dyscopes.
 	 * </p>
 	 * 
 	 * @param state
@@ -698,12 +702,11 @@ public interface StateFactory {
 	 *            pid. It controls the top call stack frame of the process in
 	 *            the returned state: the top call stack frame is the toppest
 	 *            one that can reach topDyscope.
-	 * @return A new state which only contains exact one process state and the
-	 *         process state is obtained from the process state of pid in the
-	 *         input state by popping all stack frames that cannnot reach the
-	 *         topDyscope.
+	 * @return a symbolic expression representing the value of a $state type
+	 *         object. The value contains the snapshot---a new state which only
+	 *         contains that one process state and associated dyscopes
 	 */
-	State getStateSnapshot(State state, int pid, int topDyscope);
+	SymbolicExpression getStateSnapshot(State state, int pid, int topDyscope);
 
 	/**
 	 * <p>
@@ -740,42 +743,43 @@ public interface StateFactory {
 	 * </ul>
 	 * </p>
 	 * 
-	 * @param state
-	 *            A {@link State}, which is the combineing state that will be
-	 *            combined with the monoState
-	 * @param monoState
-	 *            A {@link State} only contains exact one process state.
+	 * @param stateValue
+	 *            the object of {@link CIVLStateType} representing the state
+	 *            that will be merged with a mono state
+	 * @param monoStateValue
+	 *            the object of {@link CIVLStateType} representing the mono
+	 *            state that will be merged into a state.
 	 * @param newPid
 	 *            The new pid of the only process in monoState in the returned
 	 *            state after combination.
 	 * @return The new state which is obtained by combine combining state and
 	 *         the monoState.
 	 */
-	State addInternalProcess(State state, State monoState, int newPid);
+	SymbolicExpression addInternalProcess(SymbolicExpression stateValue,
+			SymbolicExpression monoStateValue, int newPid, int nprocs,
+			CIVLSource source);
 
 	/**
 	 * <p>
 	 * Combines a process from the given real state to the given collate state
-	 * as an extenal process.
+	 * as an external process.
 	 * </p>
 	 * 
 	 * @param colState
-	 *            The collate state
-	 * @param realState
-	 *            The real state
+	 *            the symbolic value of a $state object representing a collate
+	 *            (merged) state
+	 * @param currentState
+	 *            The current (real) state
 	 * @param pid
 	 *            The PID of the calling process
 	 * @param place
 	 *            The place of the corresponding internal process
-	 * @param withOrUpdate
-	 *            The function translated from $with or $update
-	 * @param argumentValues
-	 *            An array of values for arguments of the withOrUpdate function
-	 * @return
+	 * @param with
+	 *            The function translated from $with
+	 * @return a symbolic value of a $state object representing the merged state
 	 */
-	State addExternalProcess(State colState, State realState, int pid,
-			int place, CIVLFunction withOrUpdate,
-			SymbolicExpression[] argumentValues);
+	SymbolicExpression addExternalProcess(SymbolicExpression colStateValue,
+			State currentState, int pid, int place, CIVLFunction with);
 
 	/**
 	 * Creates an empty state which contains no dyscopes but an array of process
@@ -822,11 +826,13 @@ public interface StateFactory {
 	 * @param pid
 	 *            The PID of the calling process who may change some memory
 	 *            locations.
-	 * @param pointer
-	 *            A set of pointers to changed memory locations.
+	 * @param memValue
+	 *            a symbolic expression of
+	 *            {@link CIVLMemType#getDynamicType(SymbolicUniverse)} which
+	 *            includes references to objects
 	 * @return A state in which the given memory locations are recorded.
 	 */
-	State addWriteRecords(State state, int pid, SymbolicExpression pointer);
+	State addWriteRecords(State state, int pid, SymbolicExpression memValue);
 
 	/**
 	 * @param state
@@ -911,12 +917,22 @@ public interface StateFactory {
 	SymbolicExpression undefinedScopeValue();
 
 	/**
+	 * @return constant value of scope type which represents an collected scope.
+	 */
+	SymbolicExpression nullScopeValue();
+
+	/**
 	 * 
 	 * @param sid
 	 *            a dynamic scope ID
 	 * @return true iff the given dynamic scope ID stands for an undefined scope
 	 */
 	boolean isScopeIdDefined(int sid);
+
+	/**
+	 * @return a reference to {@link StateValueHelper}
+	 */
+	StateValueHelper stateValueHelper();
 
 	void setConfiguration(CIVLConfiguration config);
 

@@ -212,8 +212,8 @@ public class SlowLoopInvariantsNoAssignsTest {
 
 	@Test
 	public void summationBadAssert() {
-		assertFalse(ui.run("verify", TestConstants.QUIET,
-				"-loop=true", filename("summation-bad_assert.cvl")));
+		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop=true",
+				filename("summation-bad_assert.cvl")));
 	}
 
 	@Test

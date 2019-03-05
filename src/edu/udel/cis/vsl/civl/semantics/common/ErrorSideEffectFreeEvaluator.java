@@ -155,9 +155,9 @@ public class ErrorSideEffectFreeEvaluator extends CommonEvaluator
 	}
 
 	@Override
-	public Evaluation evaluatePointerAdd(State state, int pid, String process,
+	public Evaluation evaluatePointerAdd(State state, int pid,
 			BinaryExpression expression, SymbolicExpression pointer,
-			NumericExpression offset)
+			SymbolicExpression offset)
 			throws UnsatisfiablePathConditionException {
 		Pair<BooleanExpression, ResultType> checkPointer = symbolicAnalyzer
 				.isDefinedPointer(state, pointer, expression.getSource());
@@ -169,13 +169,16 @@ public class ErrorSideEffectFreeEvaluator extends CommonEvaluator
 
 			if (symRef.isArrayElementReference()) {
 				return arrayElementReferenceAddWorker(state, pid, pointer,
-						offset, true, expression.left().getSource()).left;
+						(NumericExpression) offset, true,
+						expression.left().getSource()).left;
 			} else if (symRef.isOffsetReference()) {
-				return offsetReferenceAddition(state, pid, pointer, offset,
-						true, expression.getSource());
+				return offsetReferenceAddition(state, pid, pointer,
+						(NumericExpression) offset, true,
+						expression.getSource());
 			} else if (symRef.isIdentityReference()) {
-				return identityReferenceAddition(state, pid, pointer, offset,
-						true, expression.getSource());
+				return identityReferenceAddition(state, pid, pointer,
+						(NumericExpression) offset, true,
+						expression.getSource());
 			} else
 				throw new CIVLUnimplementedFeatureException(
 						"Pointer addition for anything other than array elements or variables",

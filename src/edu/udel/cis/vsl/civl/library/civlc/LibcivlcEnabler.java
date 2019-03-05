@@ -302,8 +302,8 @@ public class LibcivlcEnabler extends BaseLibraryEnabler
 
 				pointerAdd = modelFactory.binaryExpression(procsSource,
 						BINARY_OPERATOR.POINTER_ADD, arguments[0], offSet);
-				eval = evaluator.evaluatePointerAdd(state, pid, process,
-						pointerAdd, procsPointer, offSetV);
+				eval = evaluator.evaluatePointerAdd(state, pid, pointerAdd,
+						procsPointer, offSetV);
 				procPointer = eval.value;
 				state = eval.state;
 				eval = evaluator.dereference(procsSource, state, process,

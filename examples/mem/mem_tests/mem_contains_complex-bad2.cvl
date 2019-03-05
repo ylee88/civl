@@ -1,0 +1,19 @@
+#include<mem.cvh>
+#include<stdlib.h>
+
+struct T {
+  int (*x)[100];
+} ** a;
+
+int main() {
+  a = (struct T **)malloc(sizeof(struct T*));
+  *a = (struct T*)malloc(sizeof(struct T));
+  (*a)->x = (int (*)[100])malloc(sizeof(int[100]) * 10);
+
+  //violated: (*a) refers the whole struct, (*a)->x refers to array pointed by the field...
+  $assert($mem_contains(*a, (*a)->x)); 
+
+  free((*a)->x);
+  free(*a);
+  free(a);
+}
