@@ -3,21 +3,26 @@
 #include<assert.h>
 
 #pragma CIVL ACSL
-#define DATA_LIMIT 1024
 
 int left, right, nxl, nx, rank, nprocs;
 double * u, * u_new, k;
 
+#ifdef WEAKER
+#define DISTRI (0 <= left && left < \mpi_comm_rank || left == MPI_PROC_NULL) && \
+    (\mpi_comm_rank < right && right < \mpi_comm_size || right == MPI_PROC_NULL)
+#elif defined (WEAKEST)
+#define DISTRI left != \mpi_comm_rank && (0 <= left && left < \mpi_comm_size || left == MPI_PROC_NULL) && \
+    right != \mpi_comm_rank && (0 <= right && right < \mpi_comm_size ||  right == MPI_PROC_NULL)
+#else
+#define DISTRI ((0 <= left && left == \mpi_comm_rank-1) || left == MPI_PROC_NULL) && \
+  ((\mpi_comm_rank+1 == right && right < \mpi_comm_size) || right == MPI_PROC_NULL)
+#endif
+
 /*@ \mpi_collective(MPI_COMM_WORLD, P2P):
   @   requires rank == \mpi_comm_rank;
-  @   requires nxl > 0 && nxl < DATA_LIMIT;      
+  @   requires nxl > 0;      
   @   requires \mpi_valid(u, nxl + 2, MPI_DOUBLE);
-  @   requires left != \mpi_comm_rank && 
-  @              ( 0 <= left && left < \mpi_comm_size || 
-  @                left == MPI_PROC_NULL );
-  @   requires right != \mpi_comm_rank && 
-  @              ( 0 <= right && right < \mpi_comm_size || 
-  @                right == MPI_PROC_NULL );
+  @   requires DISTRI;
   @   behavior hasLeft:
   @     assumes left != MPI_PROC_NULL;
   @     requires rank == \on(left, right);            // I'm the 'right' of my left
@@ -42,16 +47,17 @@ void exchange_ghost_cells() {
 
 /*@ requires \valid(u + (0 .. (nxl + 1)));
   @ requires \valid(u_new + (0 .. (nxl + 1)));
-  @ requires k > 0 && nxl > 0 && nxl < DATA_LIMIT;
-  @ assigns  u[1 .. nxl];
+  @ requires k > 0 && nxl > 0;
+  @ assigns  u[1 .. nxl], u_new[1 .. nxl];
   @ ensures  \forall int i; (0< i && i <= nxl)
   @           ==> 
   @          (u[i] == \old(u[i] + k*(u[i+1] + u[i-1] - 2*u[i])));
   @*/
 void update() {
   /*@ loop invariant 1 <= i && i <= nxl + 1;
-    @ loop invariant \forall int j; 1 <= j && j < i ==> 
+    @ loop invariant \forall int j; 1 <= j < i ==> 
     @        u_new[j] == u[j] + k*(u[j+1] + u[j-1] - 2*u[j]);
+    @ //loop assigns u_new[0 .. nxl+1], i;
     @*/
   for (int i = 1; i <= nxl; i++)
     u_new[i] = u[i] + k*(u[i+1] + u[i-1] - 2*u[i]);
@@ -62,16 +68,9 @@ void update() {
   @ \mpi_collective(MPI_COMM_WORLD, P2P):
   @   requires rank == \mpi_comm_rank;
   @   requires nprocs == \mpi_comm_size;
-  @   requires 0 < nxl && nxl < DATA_LIMIT;
-  @   requires left != \mpi_comm_rank && 
-  @              ( 0 <= left && left < \mpi_comm_size || 
-  @                left == MPI_PROC_NULL );
-  @   requires right != \mpi_comm_rank && 
-  @              ( 0 <= right && right < \mpi_comm_size || 
-  @                right == MPI_PROC_NULL );
+  @   requires 0 < nxl;
+  @   requires DISTRI;
   @   requires k > 0.0 && \mpi_agree(k);
-  @   requires left == right && left == MPI_PROC_NULL ==> nxl == 0;
-  @   requires left != MPI_PROC_NULL || right != MPI_PROC_NULL ==> nxl > 0;
   @   requires \mpi_valid(u, nxl + 2, MPI_DOUBLE);
   @   requires \mpi_valid(u_new, nxl + 2, MPI_DOUBLE);
   @   assigns  u[1 .. nxl];

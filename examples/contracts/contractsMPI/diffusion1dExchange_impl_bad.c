@@ -35,7 +35,6 @@ double * u, * u_new, k;
   @   requires right != \mpi_comm_rank && 
   @              ( 0 <= right && right < \mpi_comm_size || 
   @                right == MPI_PROC_NULL );
-  @   requires right != left;
   @   behavior hasLeft:
   @     assumes left != MPI_PROC_NULL;
   @     requires rank == \on(left, right);            // I'm the 'right' of my left
