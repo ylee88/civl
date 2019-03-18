@@ -1,6 +1,5 @@
 package edu.udel.cis.vsl.civl.transform.analysisIF;
 
-import java.util.Map;
 import java.util.Set;
 
 import edu.udel.cis.vsl.abc.ast.entity.IF.Entity;
@@ -19,39 +18,15 @@ import edu.udel.cis.vsl.abc.ast.entity.IF.Entity;
 public interface PointsToGraph {
 
 	/**
-	 * Make the graph complete. A graph cannot be modified once it completes
-	 * (i.e. addNode, addRelation). A graph is unreadable before it completes
-	 * (i.e. getNodes, getRelations).
-	 */
-	void complete();
-
-	/* ************ "modify" operations **************/
-	/**
-	 * add a node to the graph
-	 * 
-	 * @param node
-	 */
-	void addNode(PointsToNode node);
-
-	/**
 	 * add a relation to the graph
 	 * 
 	 * @param node
 	 */
-	void addRelation(PointsToSubsetRelation node);
+	void addRelation(PointsToNode subset, PointsToNode superset);
 
 	/* ************ "read" operations **************/
-
 	/**
-	 * 
-	 * @return the set of nodes this graph contains in the form of a map from
-	 *         memory locations to their unique associated nodes.
+	 * ask what memory locations a pointer may point to :
 	 */
-	Map<Entity, PointsToNode> getNodes();
-
-	/**
-	 * @return the set of relations over the set of nodes that makes this graph
-	 *         minimal
-	 */
-	Set<PointsToSubsetRelation> getRelations();
+	Set<Entity> mayPointsTo(Entity entity);
 }

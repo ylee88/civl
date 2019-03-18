@@ -37,4 +37,6 @@ public interface PointsToNode {
 	 * @return the associated memory location which is an {@link Entity}
 	 */
 	Entity getEntity();
+
+	void addPointed(PointsToNode pointed);
 }

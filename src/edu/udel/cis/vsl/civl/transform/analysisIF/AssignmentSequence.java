@@ -3,7 +3,7 @@ package edu.udel.cis.vsl.civl.transform.analysisIF;
 import java.util.Set;
 
 import edu.udel.cis.vsl.abc.ast.entity.IF.Entity;
-import edu.udel.cis.vsl.abc.ast.node.IF.statement.StatementNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
 
 /**
  * <p>
@@ -20,25 +20,31 @@ import edu.udel.cis.vsl.abc.ast.node.IF.statement.StatementNode;
  * @author ziqing
  *
  */
-public interface StatementSequence {
+public interface AssignmentSequence {
+
+	public interface AssignmentIF {
+		public ExpressionNode lhs();
+
+		public ExpressionNode rhs();
+	}
 
 	/**
 	 * 
 	 * @return the statement sequence
 	 */
-	public Iterable<StatementNode> getAll();
+	public Iterable<AssignmentIF> getAll();
 
 	/**
 	 * 
 	 * @return the next statement if available, otherwise null
 	 */
-	public StatementNode next();
+	public AssignmentIF next();
 
 	/**
 	 * 
 	 * @return the previous statement if available, otherwise null
 	 */
-	public StatementNode prev();
+	public AssignmentIF prev();
 
 	/**
 	 * reset iterator

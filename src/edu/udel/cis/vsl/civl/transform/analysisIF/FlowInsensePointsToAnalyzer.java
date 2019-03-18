@@ -1,7 +1,7 @@
 package edu.udel.cis.vsl.civl.transform.analysisIF;
 
 /**
- * A flow-insensitive PointsToAnalyzer takes a {@link StatementSequence} and
+ * A flow-insensitive PointsToAnalyzer takes a {@link AssignmentSequence} and
  * returns a {@link PointsToGraph}
  * 
  * @author ziqing
@@ -14,7 +14,7 @@ public interface FlowInsensePointsToAnalyzer {
 	 * @param stmts
 	 *            a sequence of statements
 	 * @return the minimal points to graph that corresponds to the given
-	 *         {@link StatementSequence}
+	 *         {@link AssignmentSequence}
 	 */
-	PointsToGraph getGraph(StatementSequence stmts);
+	PointsToGraph getGraph(AssignmentSequence stmts);
 }

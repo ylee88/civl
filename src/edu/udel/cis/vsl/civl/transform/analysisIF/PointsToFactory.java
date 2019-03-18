@@ -1,5 +1,7 @@
 package edu.udel.cis.vsl.civl.transform.analysisIF;
 
+import edu.udel.cis.vsl.abc.ast.entity.IF.Entity;
+
 /**
  * A factory that provides the interface for generating {@link PointsToNode}s
  * and {@link PointsToSubsetRelation}s in fly-weight pattern.
@@ -14,39 +16,12 @@ public interface PointsToFactory {
 	 * 
 	 * @return
 	 */
-	PointsToNode newNode();
+	PointsToNode newNode(Entity entity);
 
 	/**
-	 * Creates a new {@link PointsToSubsetRelation}
 	 * 
-	 * @param subSet
-	 * @param superSet
-	 * @return
+	 * @param entity
+	 * @return null if the node is never seen before
 	 */
-	PointsToSubsetRelation isSubSetOf(PointsToNode subSet,
-			PointsToNode superSet);
-
-	/**
-	 * @param r0
-	 *            a subset-of relation <code>b X a</code>
-	 * @param r1
-	 *            a subset-of relation <code>c X a</code>
-	 * 
-	 * @return a subset-of relation <code>{b,c} X a</code>
-	 */
-	PointsToSubsetRelation union(PointsToSubsetRelation r0, PointsToNode r1);
-
-	/**
-	 * This intersection rule makes sense under the fact that
-	 * {@link PointsToNode}s are disjoint.
-	 * 
-	 * @param r0
-	 *            a subset-of relation <code>a X b</code>
-	 * @param r1
-	 *            a subset-of relation <code>a X c</code>
-	 * 
-	 * @return a subset-of relation <code>a X intersection(b, c)</code>
-	 */
-	PointsToSubsetRelation intersect(PointsToSubsetRelation r0,
-			PointsToNode r1);
+	PointsToNode getNode(Entity entity);
 }
