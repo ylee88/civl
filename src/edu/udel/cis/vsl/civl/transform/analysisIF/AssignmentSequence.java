@@ -3,6 +3,7 @@ package edu.udel.cis.vsl.civl.transform.analysisIF;
 import java.util.Set;
 
 import edu.udel.cis.vsl.abc.ast.entity.IF.Entity;
+import edu.udel.cis.vsl.abc.ast.node.IF.ASTNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
 
 /**
@@ -13,8 +14,8 @@ import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
  * <p>
  * The basic idea is to convert a branch <code>if (c) then a else b</code> to
  * <code>a;b</code>, other statements are naturally converted. Declarations are
- * no needed but declared memory locations are stored in
- * {@link #memoryLocation}s.
+ * no needed but declared memory locations are stored in {@link #memoryLocation}
+ * s.
  * </p>
  * 
  * @author ziqing
@@ -23,9 +24,11 @@ import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
 public interface AssignmentSequence {
 
 	public interface AssignmentIF {
-		public ExpressionNode lhs();
+		public ASTNode lhs();
 
 		public ExpressionNode rhs();
+
+		public boolean isDecl();
 	}
 
 	/**
