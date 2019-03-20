@@ -11,7 +11,10 @@ import edu.udel.cis.vsl.abc.ast.IF.AST;
 import edu.udel.cis.vsl.abc.ast.entity.IF.Entity;
 import edu.udel.cis.vsl.abc.ast.node.IF.ASTNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.ASTNode.NodeKind;
+import edu.udel.cis.vsl.abc.ast.node.IF.IdentifierNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.SequenceNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.declaration.InitializerNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.declaration.VariableDeclarationNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode.ExpressionKind;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.OperatorNode;
@@ -21,6 +24,7 @@ import edu.udel.cis.vsl.abc.ast.node.IF.statement.AtomicNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.ChooseStatementNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.CivlForNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.CompoundStatementNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.statement.DeclarationListNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.ExpressionStatementNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.IfNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.LabeledStatementNode;
@@ -36,23 +40,41 @@ import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentSequence;
 public class CommonAssignmentSequence implements AssignmentSequence {
 
 	public class CommonAssignment implements AssignmentIF {
-		private ExpressionNode lhs;
+		private ExpressionNode lhs = null;
+
+		private IdentifierNode declLhs = null;
 
 		private ExpressionNode rhs;
+
+		private boolean isDecl = false;
 
 		CommonAssignment(ExpressionNode lhs, ExpressionNode rhs) {
 			this.lhs = lhs;
 			this.rhs = rhs;
 		}
 
+		CommonAssignment(IdentifierNode lhs, ExpressionNode rhs) {
+			this.declLhs = lhs;
+			this.rhs = rhs;
+			this.isDecl = true;
+		}
+
 		@Override
-		public ExpressionNode lhs() {
-			return lhs;
+		public ASTNode lhs() {
+			if (!isDecl)
+				return lhs;
+			else
+				return declLhs;
 		}
 
 		@Override
 		public ExpressionNode rhs() {
 			return rhs;
+		}
+
+		@Override
+		public boolean isDecl() {
+			return isDecl;
 		}
 	}
 
@@ -65,7 +87,7 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 	/**
 	 * A fragment of a program in the form of an {@link AST}
 	 */
-	private List<ASTNode> programFragment;
+	private Iterable<ASTNode> programFragment;
 
 	/**
 	 * A sequence of statements which is an abstraction of the "programFragment"
@@ -81,7 +103,7 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 	 * @param programFragment
 	 *            a sequence of ASTNodes representing a fragment of a program
 	 */
-	CommonAssignmentSequence(List<ASTNode> programFragment) {
+	public CommonAssignmentSequence(Iterable<ASTNode> programFragment) {
 		this.programFragment = programFragment;
 		buildAbstraction();
 		assert sequence != null;
@@ -113,6 +135,20 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 		return memoryLocations;
 	}
 
+	@Override
+	public String toString() {
+		String ret = "";
+
+		for (AssignmentIF assign : sequence) {
+			ret += assign.lhs() == null
+					? "?"
+					: assign.lhs().prettyRepresentation();
+			ret += " = ";
+			ret += assign.rhs().prettyRepresentation() + ";\n";
+		}
+		return ret;
+	}
+
 	/* ******** converting program fragment to statement sequence *********/
 	private void buildAbstraction() {
 		assert sequence == null : "cannot be built twice";
@@ -141,8 +177,19 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 				return buildForSequence((SequenceNode<?>) node);
 			case STATEMENT :
 				return buildForStatement((StatementNode) node);
+			case DECLARATION_LIST :
+				DeclarationListNode declList = (DeclarationListNode) node;
+
+				for (VariableDeclarationNode varDecl : declList)
+					result.addAll(buildForVariableDeclaration(varDecl));
+				break;
+			case VARIABLE_DECLARATION :
+				result.addAll(buildForVariableDeclaration(
+						(VariableDeclarationNode) node));
+				break;
 			default :
 				break;
+
 		}
 		return result;
 	}
@@ -230,7 +277,7 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 		return ret;
 	}
 
-	List<AssignmentIF> buildForOperator(OperatorNode opNode) {
+	private List<AssignmentIF> buildForOperator(OperatorNode opNode) {
 		Operator op = opNode.getOperator();
 		ExpressionNode rhs = null;
 		ExpressionNode lhs = null;
@@ -249,5 +296,19 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 				break;
 		}
 		return ret;
+	}
+
+	private List<AssignmentIF> buildForVariableDeclaration(
+			VariableDeclarationNode varDecl) {
+		InitializerNode initializer = varDecl.getInitializer();
+		List<AssignmentIF> result = new LinkedList<>();
+
+		if (initializer == null)
+			return result;
+		else {
+			result.add(new CommonAssignment(varDecl.getIdentifier(),
+					(ExpressionNode) initializer));
+			return result;
+		}
 	}
 }
