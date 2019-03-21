@@ -14,7 +14,8 @@ public class ExperimentalTest {
 
 	/* *************************** Static Fields *************************** */
 
-	private static File rootDir = new File(new File("examples"), "experimental");
+	private static File rootDir = new File(new File("examples"),
+			"experimental");
 
 	private static UserInterface ui = new UserInterface();
 
@@ -31,15 +32,15 @@ public class ExperimentalTest {
 		assertFalse(ui.run(
 				"verify -enablePrintf=false -input_mpi_nprocs=3 -mpiContract",
 				filename("contracts/wildcard_coassert_bad.c")));
-		assertFalse(ui
-				.run("verify -enablePrintf=false -input_mpi_nprocs=4 -deadlock=potential -mpiContract",
-						filename("contracts/wildcard_coassert_bad.c")));
-		assertTrue(ui
-				.run("verify -enablePrintf=false -input_mpi_nprocs=4 -deadlock=potential -mpiContract",
-						filename("contracts/wildcard_coassert_barrier.c")));
-		assertTrue(ui
-				.run("verify -enablePrintf=false -input_mpi_nprocs=4 -deadlock=potential -mpiContract",
-						filename("contracts/reduce_coassert.c")));
+		assertFalse(ui.run(
+				"verify -enablePrintf=false -input_mpi_nprocs=4 -deadlock=potential -mpiContract",
+				filename("contracts/wildcard_coassert_bad.c")));
+		assertTrue(ui.run(
+				"verify -enablePrintf=false -input_mpi_nprocs=4 -deadlock=potential -mpiContract",
+				filename("contracts/wildcard_coassert_barrier.c")));
+		assertTrue(ui.run(
+				"verify -enablePrintf=false -input_mpi_nprocs=4 -deadlock=potential -mpiContract",
+				filename("contracts/reduce_coassert.c")));
 	}
 
 	@Test
@@ -82,19 +83,21 @@ public class ExperimentalTest {
 
 	@Test
 	public void moPie() {
-		assertTrue(ui
-				.run("show -showProgram -input_NPROCS=2 -ompNoSimplify -inputTHREAD_MAX=2 ",
-						filename("mpi-omp-pie-calculation.c")));
+		assertTrue(ui.run(
+				"show -showProgram -input_NPROCS=2 -ompNoSimplify -inputTHREAD_MAX=2 ",
+				filename("mpi-omp-pie-calculation.c")));
 	}
 
 	@Test
 	public void omp1() {
-		assertTrue(ui.run("verify -input_omp_thread_max=3", filename("omp1.c")));
+		assertTrue(
+				ui.run("verify -input_omp_thread_max=3", filename("omp1.c")));
 	}
 
 	@Test
 	public void omp2() {
-		assertTrue(ui.run("verify -input_omp_thread_max=3", filename("omp2.c")));
+		assertTrue(
+				ui.run("verify -input_omp_thread_max=3", filename("omp2.c")));
 	}
 
 	@Test
@@ -110,6 +113,11 @@ public class ExperimentalTest {
 	@Test
 	public void simpleCondBuggy() {
 		assertTrue(ui.run("verify", filename("simpleCondBuggy.c")));
+	}
+
+	@Test
+	public void test() {
+		assertTrue(ui.run("verify", filename("test.c")));
 	}
 
 	@AfterClass

@@ -54,6 +54,12 @@ import edu.udel.cis.vsl.abc.token.IF.SyntaxException;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.model.IF.CIVLUnimplementedFeatureException;
 import edu.udel.cis.vsl.civl.transform.IF.OpenMPSimplifier;
+import edu.udel.cis.vsl.civl.transform.analysisI.common.CommonAssignmentSequence;
+import edu.udel.cis.vsl.civl.transform.analysisI.common.CommonFlowInsensePointsToAnalyzer;
+import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentSequence;
+import edu.udel.cis.vsl.civl.transform.analysisIF.FlowInsensePointsToAnalyzer;
+import edu.udel.cis.vsl.civl.transform.analysisIF.PointsToGraph;
+import edu.udel.cis.vsl.sarl.SARL;
 
 /**
  * This transformer analyzes OpenMP constructs and converts them to simpler,
@@ -126,6 +132,20 @@ public class OpenMPSimplifierWorker extends BaseWorker {
 
 	@Override
 	public AST transform(AST unit) throws SyntaxException {
+		FunctionDefinitionNode mainDefin = (FunctionDefinitionNode) unit
+				.getInternalOrExternalEntity("main").getDefinition();
+		AssignmentSequence seq = new CommonAssignmentSequence(
+				mainDefin.getBody().children());
+
+		System.out.println(seq.toString());
+
+		FlowInsensePointsToAnalyzer analyzer = new CommonFlowInsensePointsToAnalyzer(
+				SARL.newStandardUniverse());
+		PointsToGraph graph = analyzer.getGraph(seq);
+
+		graph.complete();
+		System.out.println(graph.toString());
+
 		if (config.ompNoSimplify())
 			return unit;
 
