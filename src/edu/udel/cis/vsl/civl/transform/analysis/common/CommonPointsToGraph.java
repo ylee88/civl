@@ -1,4 +1,4 @@
-package edu.udel.cis.vsl.civl.transform.analysisI.common;
+package edu.udel.cis.vsl.civl.transform.analysis.common;
 
 import java.util.Arrays;
 import java.util.HashMap;
