@@ -71,10 +71,14 @@ public class CommonAssignmentFactory implements AssignmentFactory {
 				return "FULL";
 			else if (source != null)
 				return "V" + id + "(" + source.getName() + ")";
-			else if (nonEntitySource != null)
-				return "V" + id + "(Alloc)";
 			else
-				return "V" + id;
+				return "V" + id + "(" + nonEntitySource.prettyRepresentation()
+						+ ")";
+		}
+
+		@Override
+		public int id() {
+			return id;
 		}
 	}
 
@@ -139,7 +143,7 @@ public class CommonAssignmentFactory implements AssignmentFactory {
 	}
 
 	CommonAssignmentFactory() {
-		this.FULL = assignmentExpression();
+		this.FULL = new CommonAssignExpr();
 		this.seenAssignExprs = new HashMap<>();
 	}
 
@@ -163,11 +167,6 @@ public class CommonAssignmentFactory implements AssignmentFactory {
 	@Override
 	public AssignExprIF assignmentExpression(ExpressionNode source) {
 		return new CommonAssignExpr(source);
-	}
-
-	@Override
-	public AssignExprIF assignmentExpression() {
-		return new CommonAssignExpr();
 	}
 
 	@Override

@@ -20,14 +20,19 @@ public interface AssignmentIF {
 
 	/**
 	 * an abstract representation of an expression at left or right hand side of
-	 * an assignment. An abstraction can be auxiliary (i.e. no connection to the
-	 * original program), representing an entity (connects to an entity of the
-	 * original program) or an non-entity location (i.e. allocation or string)
+	 * an assignment. An abstraction can represent an entity (connects to an
+	 * entity of the original program), an non-trivial expression (e.g.
+	 * allocation , string...) or the worst-case EVERYTHING
 	 * 
 	 * @author ziqing
 	 *
 	 */
 	public interface AssignExprIF {
+		/**
+		 * @return the unique identifier of this abstraction
+		 */
+		int id();
+
 		/**
 		 * requires {@link #nonEntitySource()} == null
 		 * 
@@ -46,8 +51,8 @@ public interface AssignmentIF {
 		/**
 		 * requires {@link #source()} == null
 		 * 
-		 * @return the ASTNode associated with this abstraction if this
-		 *         abstraction represents an allocation or a string literal
+		 * @return the non-trivial expression associated with this abstraction
+		 *         if this abstraction does not represent an entity
 		 */
 		ExpressionNode nonEntitySource();
 	}

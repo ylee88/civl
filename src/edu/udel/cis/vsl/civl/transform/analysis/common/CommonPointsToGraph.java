@@ -1,267 +1,385 @@
 package edu.udel.cis.vsl.civl.transform.analysis.common;
 
-import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import edu.udel.cis.vsl.abc.ast.entity.IF.Entity;
+import edu.udel.cis.vsl.abc.ast.entity.IF.Entity.EntityKind;
 import edu.udel.cis.vsl.abc.ast.entity.IF.Variable;
-import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
+import edu.udel.cis.vsl.civl.transform.analysis.common.PointsToGraphComponents.PointsToConstraint;
+import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF;
+import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
+import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignmentKind;
+import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentSequence;
 import edu.udel.cis.vsl.civl.transform.analysisIF.PointsToGraph;
+import edu.udel.cis.vsl.sarl.SARL;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
-import edu.udel.cis.vsl.sarl.IF.UnaryOperator;
-import edu.udel.cis.vsl.sarl.IF.expr.SymbolicConstant;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
-import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
-import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
-import edu.udel.cis.vsl.sarl.object.common.SimpleSequence;
 
 public class CommonPointsToGraph implements PointsToGraph {
 
-	private int typeCounter = 0;
+	/**
+	 * A set of FULL entities to their associated nodes
+	 */
+	private Map<Entity, SymbolicExpression> entityToNode;
 
-	private static final String typeName = "tau";
-	private static final String Ref = "Ref";
+	/**
+	 * A set of FULL nodes in graph to the {@link AssignExprIF}s, from which
+	 * nodes are created.
+	 */
+	private Map<SymbolicExpression, AssignExprIF> nodeToAssignExpr;
 
-	// algebraic type: t | Ref(t)
-	private final SymbolicType genType;
+	/**
+	 * The inverse map of {@link #node2assignExpr}
+	 */
+	private Map<Integer, SymbolicExpression> assignExprToNode;
 
-	private final SymbolicConstant refType;
+	/**
+	 * The points-to function that maps a node "n" to the nodes that "n" points
+	 * to:
+	 */
+	private Map<SymbolicExpression, Set<SymbolicExpression>> pointsTo;
 
-	private final SymbolicConstant FULL;
+	private Set<SymbolicExpression> allEdges;
 
+	private Map<SymbolicExpression, List<SymbolicExpression>> subsetToEdge;
+
+	/**
+	 * a reference to the class providing nodes, edges and constraints:
+	 */
+	private PointsToGraphComponents componentsFactory;
+
+	/**
+	 * a reference to {@link SymbolicUniverse}
+	 */
 	private SymbolicUniverse universe;
 
-	private Map<Variable, SymbolicExpression> var2type;
-
-	private Map<SymbolicExpression, Variable> type2var;
-
-	private Map<ExpressionNode, SymbolicExpression> alloc2type;
-
-	private Map<SymbolicExpression, ExpressionNode> type2alloc;
-
-	private Map<SymbolicExpression, Set<SymbolicExpression>> superSetRelation;
-
-	// invariant: depth(key) < depth(value):
-	private Map<SymbolicExpression, SymbolicExpression> subMap;
-
-	CommonPointsToGraph(SymbolicUniverse universe) {
-		this.universe = universe;
-		this.var2type = new HashMap<>();
-		this.type2var = new HashMap<>();
-		this.alloc2type = new HashMap<>();
-		this.type2alloc = new HashMap<>();
-		this.superSetRelation = new HashMap<>();
-		this.subMap = new HashMap<>();
-
-		genType = universe.symbolicUninterpretedType(typeName);
-
-		SymbolicType refTypeFuncType = universe
-				.functionType(Arrays.asList(genType), genType);
-
-		refType = universe.symbolicConstant(universe.stringObject(Ref),
-				refTypeFuncType);
-		FULL = universe.symbolicConstant(universe.stringObject("FULL"),
-				genType);
+	CommonPointsToGraph(AssignmentSequence programAbstraction) {
+		universe = SARL.newStandardUniverse();
+		this.componentsFactory = new PointsToGraphComponents(universe);
+		this.entityToNode = new HashMap<>();
+		this.nodeToAssignExpr = new HashMap<>();
+		this.assignExprToNode = new HashMap<>();
+		this.pointsTo = new HashMap<>();
+		this.allEdges = new HashSet<>();
+		this.subsetToEdge = new HashMap<>();
+		build(programAbstraction);
 	}
 
 	@Override
-	public void complete() {
-		substitute();
-	}
+	public Iterable<AssignExprIF> mayPointsTo(Variable var) {
+		SymbolicExpression varNode = entityToNode.get(var);
+		Set<SymbolicExpression> ptNodes = pointsTo.get(varNode);
+		List<AssignExprIF> results = new LinkedList<>();
 
-	@Override
-	public Set<Variable> mayPointsTo(Variable variable) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void addSubsetRelation(SymbolicExpression subT,
-			SymbolicExpression superT) {
-		Set<SymbolicExpression> subsets = superSetRelation.get(superT);
-
-		if (subsets == null)
-			subsets = new TreeSet<>(universe.comparator());
-		subsets.add(subT);
-		superSetRelation.put(superT, subsets);
-	}
-
-	@Override
-	public SymbolicExpression addVariable(Variable var) {
-		SymbolicExpression tau = var2type.get(var);
-
-		if (tau == null) {
-			tau = this.newType();
-			var2type.put(var, tau);
-			type2var.put(tau, var);
-		}
-		return tau;
-	}
-
-	@Override
-	public SymbolicExpression getPointsTo(SymbolicExpression t) {
-		if (depth(t) > 1)
-			return getReferred(t);
-		else {
-			SymbolicExpression referredTau;
-			SymbolicExpression equiv = this.subMap.get(t);
-
-			if (equiv == null) {
-				referredTau = newType();
-				equiv = makeRefOf(referredTau);
-				addEquivRelation(t, equiv);
-			} else
-				referredTau = getReferred(equiv);
-
-			return referredTau;
-		}
-	}
-
-	@Override
-	public SymbolicExpression addAllocation(ExpressionNode source) {
-		SymbolicExpression tau = alloc2type.get(source);
-
-		if (tau == null) {
-			tau = newType();
-			alloc2type.put(source, tau);
-			type2alloc.put(tau, source);
-		}
-		return tau;
-	}
-
-	@Override
-	public SymbolicExpression makePointsTo(SymbolicExpression t) {
-		return this.makeRefOf(t);
-	}
-
-	@Override
-	public SymbolicExpression getPointsToFull() {
-		return FULL;
+		if (ptNodes != null)
+			for (SymbolicExpression ptNode : ptNodes)
+				results.add(nodeToAssignExpr.get(ptNode));
+		return results;
 	}
 
 	@Override
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
 
-		for (Variable var : var2type.keySet())
-			sb.append(printPointsToInfo(var) + "\n");
+		for (Entity var : entityToNode.keySet()) {
+			if (var.getEntityKind() != EntityKind.VARIABLE)
+				continue;
+
+			StringBuffer varSb = new StringBuffer();
+			boolean hasFull = false;
+
+			sb.append(var.getName() + " points-to:\n");
+			for (AssignExprIF pt : mayPointsTo((Variable) var)) {
+				varSb.append("|| " + pt.toString() + "\n");
+				if (pt.isFull()) {
+					hasFull = true;
+					break;
+				}
+			}
+			if (hasFull)
+				sb.append("|| FULL\n");
+			else
+				sb.append(varSb.toString());
+			sb.append("\n");
+		}
 		return sb.toString();
 	}
 
-	/* ************** private methods ************** */
-	private void addEquivRelation(SymbolicExpression t0,
-			SymbolicExpression t1) {
-		assert depth(t0) < depth(t1);
-		assert !subMap.containsKey(t0);
-		subMap.put(t0, t1);
-	}
+	/* ****************** Dynamic Transitive Closure *********************/
+	private void build(Iterable<AssignmentIF> assignments) {
+		Set<SymbolicExpression> workSet = new TreeSet<>(universe.comparator());
+		Map<SymbolicExpression, List<PointsToConstraint>> subIndexedConstraints = new HashMap<>(),
+				superIndexedConstraints = new HashMap<>();
 
-	private int depth(SymbolicExpression t) {
-		int depth = 1;
-
-		while (t.operator() != SymbolicOperator.SYMBOLIC_CONSTANT) {
-			assert t.operator() == SymbolicOperator.APPLY;
-			t = getReferred(t);
-			depth++;
-		}
-		return depth;
-	}
-
-	// given t, return Ref(t)
-	private SymbolicExpression makeRefOf(SymbolicExpression t) {
-		return universe.apply(this.refType, Arrays.asList(t));
-	}
-
-	// given Ref(t), return t
-	@SuppressWarnings("unchecked")
-	private SymbolicExpression getReferred(SymbolicExpression t) {
-		return ((SimpleSequence<? extends SymbolicExpression>) t.argument(1))
-				.get(0);
-	}
-
-	// fresh new t
-	private SymbolicExpression newType() {
-		return universe.symbolicConstant(
-				universe.stringObject(typeName + typeCounter++), genType);
-	}
-
-	private void substitute() {
-		UnaryOperator<SymbolicExpression> replacer = universe
-				.mapSubstituter(subMap);
-		boolean changed = false;
-
-		do {
-			changed = substituteWorker(replacer);
-		} while (changed);
-	}
-
-	private boolean substituteWorker(
-			UnaryOperator<SymbolicExpression> replacer) {
-		boolean changed = false;
-
-		for (Variable key : var2type.keySet()) {
-			SymbolicExpression oldVal = var2type.get(key);
-			SymbolicExpression newVal = replacer.apply(oldVal);
-
-			if (oldVal != newVal) {
-				changed = true;
-				var2type.put(key, newVal);
-				type2var.put(newVal, key);
-			}
+		// initialization with BASE and SIMPLE:
+		for (AssignmentIF assign : assignments) {
+			if (assign.kind() == AssignmentKind.BASE)
+				initializeBASE(assign, workSet);
+			else if (assign.kind() == AssignmentKind.SIMPLE)
+				initializeSIMPLE(assign, workSet);
+			else
+				initializeCOMPLEX(assign, workSet, subIndexedConstraints,
+						superIndexedConstraints);
 		}
 
-		for (ExpressionNode key : alloc2type.keySet()) {
-			SymbolicExpression oldVal = alloc2type.get(key);
-			SymbolicExpression newVal = replacer.apply(oldVal);
+		FirstRemovableSet<SymbolicExpression> workList = new FirstRemovableSet<>(
+				workSet);
 
-			if (oldVal != newVal) {
-				changed = true;
-				alloc2type.put(key, newVal);
-				type2alloc.put(newVal, key);
-			}
-		}
-
-		for (SymbolicExpression key : superSetRelation.keySet()) {
-			Set<SymbolicExpression> oldVal = superSetRelation.get(key);
-			Set<SymbolicExpression> newVal = new TreeSet<>(
-					universe.comparator());
-			boolean localChanged = false;
-			SymbolicExpression newKey = replacer.apply(key);
-
-			if (newKey != key)
-				changed = localChanged = true;
-
-			for (SymbolicExpression sub : oldVal) {
-				SymbolicExpression newSub = replacer.apply(sub);
-
-				if (newSub != sub)
-					localChanged = true;
-				newVal.add(newSub);
-			}
-			if (localChanged) {
-				changed = true;
-				superSetRelation.put(newKey, newVal);
-			}
-		}
-		return changed;
+		transClosureBuild(workList, subIndexedConstraints,
+				superIndexedConstraints);
 	}
 
-	private String printPointsToInfo(Variable var) {
-		String result = var.getName() + " : " + var2type.get(var) + "\n";
-		String prefix = "|  | ";
-		SymbolicExpression type = var2type.get(var);
-		if (depth(type) > 1) {
-			SymbolicExpression referredType = getReferred(type);
-			Set<SymbolicExpression> subsets = superSetRelation
-					.get(referredType);
+	private void initializeBASE(AssignmentIF base,
+			Set<SymbolicExpression> workSet) {
+		// a = &b -> {b} sub-of a -> a points-to b
+		SymbolicExpression lhsNode = getNodeByAssignExpr(base.lhs());
+		SymbolicExpression rhsNode = getNodeByAssignExpr(base.rhs());
+		Set<SymbolicExpression> ptSet = this.pointsTo.get(lhsNode);
 
-			if (subsets != null)
-				for (SymbolicExpression subset : subsets) {
-					result += prefix + subset + "\n";
+		if (ptSet == null)
+			ptSet = new TreeSet<>(universe.comparator());
+		ptSet.add(rhsNode);
+		this.pointsTo.put(lhsNode, ptSet);
+		workSet.add(lhsNode);
+		workSet.add(rhsNode);
+	}
+
+	private void initializeSIMPLE(AssignmentIF simple,
+			Set<SymbolicExpression> workSet) {
+		// a = b -> b subset-of a
+		SymbolicExpression lhsNode = getNodeByAssignExpr(simple.lhs());
+		SymbolicExpression rhsNode = getNodeByAssignExpr(simple.rhs());
+		SymbolicExpression edge = componentsFactory.edge(rhsNode, lhsNode);
+
+		saveEdge(edge);
+		workSet.add(lhsNode);
+		workSet.add(rhsNode);
+	}
+
+	private void initializeCOMPLEX(AssignmentIF complex,
+			Set<SymbolicExpression> workSet,
+			Map<SymbolicExpression, List<PointsToConstraint>> subIndexedConstraints,
+			Map<SymbolicExpression, List<PointsToConstraint>> superIndexedConstraints) {
+		SymbolicExpression lhsNode = getNodeByAssignExpr(complex.lhs());
+		SymbolicExpression rhsNode = getNodeByAssignExpr(complex.rhs());
+
+		workSet.add(lhsNode);
+		workSet.add(rhsNode);
+
+		PointsToConstraint constraint;
+
+		if (complex.kind() == AssignmentKind.COMPLEX_LD) {
+			// *a = b -> b subset-of *a
+			constraint = componentsFactory.newConstraint(true, rhsNode,
+					lhsNode);
+
+			// b is a subset of every pointsTo(a):
+			Set<SymbolicExpression> allSuperPointsTo = pointsTo.get(lhsNode);
+
+			if (allSuperPointsTo != null)
+				for (SymbolicExpression superPointsTo : allSuperPointsTo) {
+					SymbolicExpression edge = componentsFactory.edge(rhsNode,
+							superPointsTo);
+
+					saveEdge(edge);
+				}
+		} else {
+			// a = *b -> *b subset-of a:
+			constraint = componentsFactory.newConstraint(false, rhsNode,
+					lhsNode);
+
+			// every pointsTo(b) is a subset-of a:
+			Set<SymbolicExpression> allSubPointsTo = pointsTo.get(rhsNode);
+
+			if (allSubPointsTo != null)
+				for (SymbolicExpression subPointsTo : allSubPointsTo) {
+					SymbolicExpression edge = componentsFactory
+							.edge(subPointsTo, lhsNode);
+
+					saveEdge(edge);
 				}
 		}
-		return result;
+
+		List<PointsToConstraint> tmp = subIndexedConstraints
+				.get(constraint.subset());
+
+		if (tmp == null)
+			tmp = new LinkedList<>();
+		tmp.add(constraint);
+		subIndexedConstraints.put(constraint.subset(), tmp);
+		tmp = superIndexedConstraints.get(constraint.superset());
+		if (tmp == null)
+			tmp = new LinkedList<>();
+		tmp.add(constraint);
+		superIndexedConstraints.put(constraint.superset(), tmp);
+	}
+
+	/**
+	 * algorithm from "The Ant and the Grasshopper: Fast and Accurate Pointer
+	 * Analysis for Millions of Lines of Code", Figure 1
+	 * 
+	 * @param workSet
+	 */
+	private void transClosureBuild(
+			FirstRemovableSet<SymbolicExpression> workSet,
+			Map<SymbolicExpression, List<PointsToConstraint>> subIndexedConstraints,
+			Map<SymbolicExpression, List<PointsToConstraint>> superIndexedConstraints) {
+		while (!workSet.isEmpty()) {
+			SymbolicExpression node = workSet.removeFirst();
+			Set<SymbolicExpression> pts = pointsTo.get(node);
+
+			if (pts != null)
+				for (SymbolicExpression pt : pts) {
+					// process constraints for complex_rd:
+					Iterable<PointsToConstraint> constraints = subIndexedConstraints
+							.get(node);
+
+					if (constraints != null)
+						for (PointsToConstraint constraint : constraints) {
+							// for every *b subset-of a
+							if (constraint.isSuperDeref())
+								continue;
+
+							SymbolicExpression ptSubsetofSuper = componentsFactory
+									.edge(pt, constraint.superset());
+
+							if (!allEdges.contains(ptSubsetofSuper)) {
+								workSet.add(pt);
+								saveEdge(ptSubsetofSuper);
+							}
+						}
+					// process constraints for complex_ld:
+					constraints = superIndexedConstraints.get(node);
+					if (constraints != null)
+						for (PointsToConstraint constraint : constraints) {
+							// for every b subset-of *a
+							if (!constraint.isSuperDeref())
+								continue;
+
+							SymbolicExpression subsetofPt = componentsFactory
+									.edge(constraint.subset(), pt);
+
+							if (!allEdges.contains(subsetofPt)) {
+								workSet.add(constraint.subset());
+								this.saveEdge(subsetofPt);
+							}
+						}
+				}
+
+			// for every superset of "pt", add what "pt" points-to to the
+			// superset:
+			Iterable<SymbolicExpression> edges = subsetToEdge.get(node);
+
+			if (edges != null)
+				for (SymbolicExpression edge : edges) {
+					SymbolicExpression superNode = componentsFactory
+							.getSuperset(edge);
+					Set<SymbolicExpression> superPts = pointsTo.get(superNode);
+					Set<SymbolicExpression> nodePts = pointsTo.get(node);
+
+					if (superPts == null)
+						superPts = new TreeSet<>(universe.comparator());
+					if (nodePts != null)
+						if (superPts.addAll(nodePts))
+							workSet.add(superNode);
+					pointsTo.put(superNode, superPts);
+				}
+		}
+	}
+
+	/* ************ utils *********** */
+	/**
+	 * 
+	 * @param expr
+	 *            an {@link AssignExprIF}
+	 * @return the node associated with the given AssignExprIF
+	 */
+	private SymbolicExpression getNodeByAssignExpr(AssignExprIF expr) {
+		SymbolicExpression node;
+
+		if (expr.isFull())
+			node = componentsFactory.fullNode();
+		else
+			node = assignExprToNode.get(expr.id());
+		if (node != null)
+			return node;
+		if (expr.source() == null) {
+			node = componentsFactory.newNode();
+		} else
+			node = getNodeByEntity(expr.source());
+		this.assignExprToNode.put(expr.id(), node);
+		this.nodeToAssignExpr.put(node, expr);
+		return node;
+	}
+
+	/**
+	 * 
+	 * @param entity
+	 *            an {@link Entity}
+	 * @return the node associated with the entity
+	 */
+	private SymbolicExpression getNodeByEntity(Entity entity) {
+		SymbolicExpression node = this.entityToNode.get(entity);
+
+		if (node == null) {
+			node = this.componentsFactory.newNode();
+			this.entityToNode.put(entity, node);
+		}
+		return node;
+	}
+
+	/**
+	 * Add an edge to graph
+	 * 
+	 * @param edge
+	 */
+	private void saveEdge(SymbolicExpression edge) {
+		SymbolicExpression sub = componentsFactory.getSubset(edge);
+		List<SymbolicExpression> edgesSharingSub = subsetToEdge.get(sub);
+
+		allEdges.add(edge);
+		if (edgesSharingSub == null)
+			edgesSharingSub = new LinkedList<>();
+		edgesSharingSub.add(edge);
+		subsetToEdge.put(sub, edgesSharingSub);
+	}
+
+	private class FirstRemovableSet<T> {
+
+		private Set<T> set;
+
+		private LinkedList<T> list;
+		FirstRemovableSet(Set<T> ts) {
+			set = new HashSet<>(ts);
+			list = new LinkedList<>(ts);
+		}
+
+		boolean isEmpty() {
+			return list.isEmpty();
+		}
+
+		void add(T t) {
+			if (set.add(t))
+				list.addLast(t);
+		}
+
+		T removeFirst() {
+			T t = list.removeFirst();
+			boolean mustBeTrue = set.remove(t);
+
+			assert mustBeTrue;
+			return t;
+		}
+
+		@Override
+		public String toString() {
+			return list.toString();
+		}
 	}
 }

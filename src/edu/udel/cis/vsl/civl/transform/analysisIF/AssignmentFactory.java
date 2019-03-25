@@ -48,23 +48,13 @@ public interface AssignmentFactory {
 	/**
 	 * <p>
 	 * A abstraction of an expression at one side of an assignment, which is
-	 * associated with a pointer-type allocation or a string
+	 * associated with an non-trivial expression
 	 * </p>
 	 * 
 	 * @param source
 	 * @return
 	 */
 	AssignExprIF assignmentExpression(ExpressionNode source);
-
-	/**
-	 * <p>
-	 * A abstraction of an expression at one side of an assignment, which is
-	 * auxiliary and associated with nothing
-	 * </p>
-	 * 
-	 * @return
-	 */
-	AssignExprIF assignmentExpression();
 
 	/**
 	 * <p>

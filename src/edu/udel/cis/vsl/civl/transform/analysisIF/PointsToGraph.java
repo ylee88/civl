@@ -1,43 +1,28 @@
 package edu.udel.cis.vsl.civl.transform.analysisIF;
 
-import java.util.Set;
-
 import edu.udel.cis.vsl.abc.ast.entity.IF.Variable;
-import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
-import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
+import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
 
-;
-
+/**
+ * <p>
+ * A graph G = (V, E, Pt) where V are nodes, E are edges and Pt is a function
+ * from V to sets of V. In a PointsToGraph, V are memory locations; E are the
+ * binary relations over V such that if (v,v') in E, v is a subset of v'; Pt is
+ * the "points-to" function such that Pt(v) is the set of memory locations
+ * referred by v.
+ * </p>
+ * 
+ * @author ziqing
+ *
+ */
 public interface PointsToGraph {
 
 	/**
-	 * add a subset-relation to the graph
 	 * 
-	 * @param node
+	 * @param var
+	 *            a variable
+	 * @return the set of memory locations (in the form of their
+	 *         abstractions---AssignExprIF) that the variable may points to
 	 */
-	void addSubsetRelation(SymbolicExpression subT, SymbolicExpression superT);
-
-	// depth(r0) < depth(r1)
-	// void addEquivRelation(SymbolicExpression t0, SymbolicExpression t1);
-
-	// return t corresponds to var
-	SymbolicExpression addVariable(Variable var);
-
-	// return t corresponds to an allocaton call
-	SymbolicExpression addAllocation(ExpressionNode source);
-
-	// Suppose t = Ref(t'), return t', add to fact that t == Ref(t')
-	SymbolicExpression getPointsTo(SymbolicExpression t);
-
-	// given t, returns Ref(t)
-	SymbolicExpression makePointsTo(SymbolicExpression t);
-
-	SymbolicExpression getPointsToFull();
-
-	/**
-	 * ask what memory locations a pointer may point to :
-	 */
-	Set<Variable> mayPointsTo(Variable variable);
-
-	void complete();
+	Iterable<AssignExprIF> mayPointsTo(Variable var);
 }

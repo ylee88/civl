@@ -317,7 +317,7 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 
 		if (expr.getType().kind() == TypeKind.POINTER)
 			if (arg.getType().kind() != TypeKind.POINTER) {
-				AssignExprIF auxLhs = factory.assignmentExpression();
+				AssignExprIF auxLhs = factory.assignmentExpression(expr);
 				AssignmentIF auxAssign = processAuxAssignment(auxLhs, null,
 						null);
 
@@ -394,7 +394,7 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 			default :
 				// general operation:
 				int numArgs = opNode.getNumberOfArguments();
-				AssignExprIF auxLhs = factory.assignmentExpression();
+				AssignExprIF auxLhs = factory.assignmentExpression(opNode);
 
 				for (int i = 0; i < numArgs; i++) {
 					ExpressionNode arg = opNode.getArgument(i);
@@ -437,8 +437,8 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 		// if it's the case of "*e = *r", convert it to
 		// "v = *r"
 		// "*e = v"
-		if (lhsDeref == true && rhsDeref == true) {
-			AssignExprIF aux = factory.assignmentExpression();
+		if (lhsDeref == true && (rhsDeref == true || rhsAddrof == true)) {
+			AssignExprIF aux = factory.assignmentExpression(rhs);
 
 			assignment = factory.assignment(aux, false, rhsAbs.assignExpr,
 					rhsDeref, rhsAddrof);
