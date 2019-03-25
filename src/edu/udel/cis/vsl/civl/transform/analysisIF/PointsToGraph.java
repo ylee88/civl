@@ -1,6 +1,6 @@
 package edu.udel.cis.vsl.civl.transform.analysisIF;
 
-import edu.udel.cis.vsl.abc.ast.entity.IF.Variable;
+import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
 
 /**
@@ -19,10 +19,11 @@ public interface PointsToGraph {
 
 	/**
 	 * 
-	 * @param var
-	 *            a variable
+	 * @param expr
+	 *            an expression node
 	 * @return the set of memory locations (in the form of their
-	 *         abstractions---AssignExprIF) that the variable may points to
+	 *         abstractions---AssignExprIF) that the given expression may points
+	 *         to
 	 */
-	Iterable<AssignExprIF> mayPointsTo(Variable var);
+	Iterable<AssignExprIF> mayPointsTo(ExpressionNode expr);
 }

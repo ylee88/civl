@@ -50,6 +50,7 @@ import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentFactory;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentSequence;
+import edu.udel.cis.vsl.civl.util.IF.Pair;
 
 public class CommonAssignmentSequence implements AssignmentSequence {
 
@@ -74,6 +75,16 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 	@Override
 	public Iterator<AssignmentIF> iterator() {
 		return assigns.iterator();
+	}
+
+	@Override
+	public Pair<AssignExprIF, Boolean> getAbstraction(ExpressionNode expr) {
+		ExprAbstraction abs = processRHSExpressionNode(expr);
+
+		if (abs != null)
+			return new Pair<>(abs.assignExpr, abs.op == Operator.DEREFERENCE);
+		else
+			return new Pair<>(factory.assignmentExpression(expr), false);
 	}
 
 	/* ************ methods for build ************ */
@@ -328,6 +339,8 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 	}
 
 	/**
+	 * If the given constant is a String, return the abstraction "&String"
+	 * 
 	 * @param constant
 	 * @return an {@link ExprAbstraction} if this constant is a STRING (a
 	 *         pointer to String), or null since other constants have no impact
@@ -338,9 +351,15 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 			return null;
 		AssignExprIF abs = factory.assignmentExpression(constant);
 
-		return new ExprAbstraction(abs, null);
+		return new ExprAbstraction(abs, Operator.ADDRESSOF);
 	}
 
+	/**
+	 * If the given call is an allocation, return the abstraction "&allocation"
+	 * 
+	 * @param call
+	 * @return
+	 */
 	private ExprAbstraction processIfAlloc(FunctionCallNode call) {
 		ExpressionNode func = call.getFunction();
 
@@ -352,7 +371,7 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 
 		if (funcID.name().equals("$malloc"))
 			return new ExprAbstraction(factory.assignmentExpression(call),
-					null);
+					Operator.ADDRESSOF);
 		return null;
 	}
 
@@ -468,8 +487,11 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 			AssignExprIF rhs, Operator op) {
 		boolean deref = op == Operator.DEREFERENCE;
 		boolean addrf = op == Operator.ADDRESSOF;
-		if (rhs == null)
+		if (rhs == null) {
+			assert !addrf && !deref;
 			rhs = factory.full();
+			addrf = true;
+		}
 		return factory.assignment(auxLhs, false, rhs, deref, addrf);
 	}
 

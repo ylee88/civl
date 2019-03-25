@@ -9,14 +9,14 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import edu.udel.cis.vsl.abc.ast.entity.IF.Entity;
-import edu.udel.cis.vsl.abc.ast.entity.IF.Entity.EntityKind;
-import edu.udel.cis.vsl.abc.ast.entity.IF.Variable;
+import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
 import edu.udel.cis.vsl.civl.transform.analysis.common.PointsToGraphComponents.PointsToConstraint;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignmentKind;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentSequence;
 import edu.udel.cis.vsl.civl.transform.analysisIF.PointsToGraph;
+import edu.udel.cis.vsl.civl.util.IF.Pair;
 import edu.udel.cis.vsl.sarl.SARL;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
@@ -59,6 +59,11 @@ public class CommonPointsToGraph implements PointsToGraph {
 	 */
 	private SymbolicUniverse universe;
 
+	/**
+	 * the program fragment associated with this graph
+	 */
+	private AssignmentSequence programAbstraction;
+
 	CommonPointsToGraph(AssignmentSequence programAbstraction) {
 		universe = SARL.newStandardUniverse();
 		this.componentsFactory = new PointsToGraphComponents(universe);
@@ -68,34 +73,28 @@ public class CommonPointsToGraph implements PointsToGraph {
 		this.pointsTo = new HashMap<>();
 		this.allEdges = new HashSet<>();
 		this.subsetToEdge = new HashMap<>();
+		this.programAbstraction = programAbstraction;
 		build(programAbstraction);
 	}
 
 	@Override
-	public Iterable<AssignExprIF> mayPointsTo(Variable var) {
-		SymbolicExpression varNode = entityToNode.get(var);
-		Set<SymbolicExpression> ptNodes = pointsTo.get(varNode);
-		List<AssignExprIF> results = new LinkedList<>();
+	public Iterable<AssignExprIF> mayPointsTo(ExpressionNode expr) {
+		Pair<AssignExprIF, Boolean> abs = programAbstraction
+				.getAbstraction(expr);
 
-		if (ptNodes != null)
-			for (SymbolicExpression ptNode : ptNodes)
-				results.add(nodeToAssignExpr.get(ptNode));
-		return results;
+		return mayPointsTo(abs.left, abs.right);
 	}
 
 	@Override
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
 
-		for (Entity var : entityToNode.keySet()) {
-			if (var.getEntityKind() != EntityKind.VARIABLE)
-				continue;
-
+		for (AssignExprIF abs : nodeToAssignExpr.values()) {
 			StringBuffer varSb = new StringBuffer();
 			boolean hasFull = false;
 
-			sb.append(var.getName() + " points-to:\n");
-			for (AssignExprIF pt : mayPointsTo((Variable) var)) {
+			sb.append(abs + " points-to:\n");
+			for (AssignExprIF pt : mayPointsTo(abs, false)) {
 				varSb.append("|| " + pt.toString() + "\n");
 				if (pt.isFull()) {
 					hasFull = true;
@@ -109,6 +108,47 @@ public class CommonPointsToGraph implements PointsToGraph {
 			sb.append("\n");
 		}
 		return sb.toString();
+	}
+
+	/**
+	 * Returns the points to set of
+	 * <code>dereference ? deref(exprAbs) : exprAbs</code>
+	 * 
+	 * @param exprAbs
+	 * @param dereference
+	 * @return
+	 */
+	private Iterable<AssignExprIF> mayPointsTo(AssignExprIF exprAbs,
+			boolean dereference) {
+		SymbolicExpression node = assignExprToNode.get(exprAbs.id());
+
+		if (node == null)
+			return new LinkedList<>();
+
+		Set<SymbolicExpression> ptNodes = pointsTo.get(node);
+
+		if (ptNodes == null)
+			return new LinkedList<>();
+
+		if (dereference) {
+			Set<SymbolicExpression> ptNodesPts = new TreeSet<>(
+					universe.comparator());
+
+			for (SymbolicExpression ptNode : ptNodes) {
+				Set<SymbolicExpression> tmp = pointsTo.get(ptNode);
+
+				if (tmp != null)
+					ptNodesPts.addAll(tmp);
+			}
+			ptNodes = ptNodesPts;
+		}
+
+		List<AssignExprIF> results = new LinkedList<>();
+
+		if (ptNodes != null)
+			for (SymbolicExpression ptNode : ptNodes)
+				results.add(nodeToAssignExpr.get(ptNode));
+		return results;
 	}
 
 	/* ****************** Dynamic Transitive Closure *********************/
@@ -178,32 +218,12 @@ public class CommonPointsToGraph implements PointsToGraph {
 			// *a = b -> b subset-of *a
 			constraint = componentsFactory.newConstraint(true, rhsNode,
 					lhsNode);
-
-			// b is a subset of every pointsTo(a):
-			Set<SymbolicExpression> allSuperPointsTo = pointsTo.get(lhsNode);
-
-			if (allSuperPointsTo != null)
-				for (SymbolicExpression superPointsTo : allSuperPointsTo) {
-					SymbolicExpression edge = componentsFactory.edge(rhsNode,
-							superPointsTo);
-
-					saveEdge(edge);
-				}
+			updateEdgesWithConstraints(constraint);
 		} else {
 			// a = *b -> *b subset-of a:
 			constraint = componentsFactory.newConstraint(false, rhsNode,
 					lhsNode);
-
-			// every pointsTo(b) is a subset-of a:
-			Set<SymbolicExpression> allSubPointsTo = pointsTo.get(rhsNode);
-
-			if (allSubPointsTo != null)
-				for (SymbolicExpression subPointsTo : allSubPointsTo) {
-					SymbolicExpression edge = componentsFactory
-							.edge(subPointsTo, lhsNode);
-
-					saveEdge(edge);
-				}
+			updateEdgesWithConstraints(constraint);
 		}
 
 		List<PointsToConstraint> tmp = subIndexedConstraints
@@ -289,6 +309,61 @@ public class CommonPointsToGraph implements PointsToGraph {
 						if (superPts.addAll(nodePts))
 							workSet.add(superNode);
 					pointsTo.put(superNode, superPts);
+					// update edges with constraints that involve the
+					// "superNode" since its points-to function is updated:
+					List<PointsToConstraint> tmp = subIndexedConstraints
+							.get(superNode);
+
+					if (tmp != null)
+						for (PointsToConstraint cons : tmp)
+							if (!cons.isSuperDeref())
+								// only for *superNode subset-of a:
+								updateEdgesWithConstraints(cons);
+					tmp = superIndexedConstraints.get(superNode);
+					if (tmp != null)
+						for (PointsToConstraint cons : tmp)
+							if (cons.isSuperDeref())
+								// only for a subset-of *superNode:
+								updateEdgesWithConstraints(cons);
+				}
+		}
+	}
+
+	/**
+	 * <p>
+	 * As described in the paper that new edges will be added when points-to
+	 * sets, which are associated with constraints, are updated: "As we update
+	 * the points-to sets, we must also add new edges to represent the complex
+	 * constraints. "
+	 * 
+	 * </p>
+	 * 
+	 * @param constraint
+	 */
+	private void updateEdgesWithConstraints(PointsToConstraint constraint) {
+		if (constraint.isSuperDeref()) {
+			// if b subset-of *a, add edges b -> pts(a)
+			Set<SymbolicExpression> allSuperPointsTo = pointsTo
+					.get(constraint.superset());
+
+			if (allSuperPointsTo != null)
+				for (SymbolicExpression superPointsTo : allSuperPointsTo) {
+					SymbolicExpression edge = componentsFactory
+							.edge(constraint.subset(), superPointsTo);
+
+					saveEdge(edge);
+				}
+		} else {
+			// if *b subset-of a, add edges pts(b) -> a
+			Set<SymbolicExpression> allSubPointsTo = pointsTo
+					.get(constraint.subset());
+
+			if (allSubPointsTo != null)
+				for (SymbolicExpression subPointsTo : allSubPointsTo) {
+					SymbolicExpression edge = componentsFactory
+							.edge(subPointsTo, constraint.superset());
+
+					saveEdge(edge);
 				}
 		}
 	}
@@ -303,13 +378,12 @@ public class CommonPointsToGraph implements PointsToGraph {
 	private SymbolicExpression getNodeByAssignExpr(AssignExprIF expr) {
 		SymbolicExpression node;
 
-		if (expr.isFull())
-			node = componentsFactory.fullNode();
-		else
-			node = assignExprToNode.get(expr.id());
+		node = assignExprToNode.get(expr.id());
 		if (node != null)
 			return node;
-		if (expr.source() == null) {
+		if (expr.isFull())
+			node = componentsFactory.fullNode();
+		else if (expr.source() == null) {
 			node = componentsFactory.newNode();
 		} else
 			node = getNodeByEntity(expr.source());
