@@ -1,0 +1,29 @@
+package edu.udel.cis.vsl.civl.transform.analysis.common;
+
+import edu.udel.cis.vsl.abc.ast.entity.IF.Function;
+import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
+import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphFactory;
+import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphNode;
+import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphNode.IGNodeKind;
+
+public class CommonInvocationGraphFactory implements InvocationGraphFactory {
+
+	@Override
+	public InvocationGraphNode newNode(Function function,
+			InvocationGraphNode parent, AssignExprIF returnTo,
+			AssignExprIF... actualArgs) {
+		InvocationGraphNode ancestor = parent;
+		IGNodeKind kind = IGNodeKind.ORDINARY;
+
+		// decide kind:
+		while (ancestor != null) {
+			if (ancestor.function() == function) {
+				kind = IGNodeKind.APPROXIMATE;
+				ancestor.markRecursive();
+				break;
+			}
+		}
+		return new CommonInvocationGraphNode(parent, function, kind, returnTo,
+				actualArgs);
+	}
+}

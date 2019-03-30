@@ -10,6 +10,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 import edu.udel.cis.vsl.abc.ast.entity.IF.Entity;
+import edu.udel.cis.vsl.abc.ast.entity.IF.Entity.EntityKind;
+import edu.udel.cis.vsl.abc.ast.entity.IF.Function;
 import edu.udel.cis.vsl.abc.ast.node.IF.ASTNode.NodeKind;
 import edu.udel.cis.vsl.abc.ast.node.IF.IdentifierNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.SequenceNode;
@@ -37,8 +39,11 @@ import edu.udel.cis.vsl.abc.ast.node.IF.statement.CivlForNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.CompoundStatementNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.ExpressionStatementNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.IfNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.statement.JumpNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.statement.JumpNode.JumpKind;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.LabeledStatementNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.LoopNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.statement.ReturnNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.RunNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.StatementNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.StatementNode.StatementKind;
@@ -50,6 +55,8 @@ import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentFactory;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentSequence;
+import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphFactory;
+import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphNode;
 import edu.udel.cis.vsl.civl.util.IF.Pair;
 
 public class CommonAssignmentSequence implements AssignmentSequence {
@@ -62,14 +69,34 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 	/**
 	 * a reference to {@link AssignmentFactory}
 	 */
-	private AssignmentFactory factory;
+	private AssignmentFactory absFactory;
+
+	/**
+	 * a reference to {@link InvocationGraphFactory}
+	 */
+	private InvocationGraphFactory igFactory;
+
+	/**
+	 * The {@link InvocationGraphNode} associated with function whose body
+	 * contains the intra-procedural code fragment represented by this
+	 * {@link AssignmentSequence}
+	 */
+	private InvocationGraphNode igNode;
 
 	CommonAssignmentSequence(Iterable<BlockItemNode> progFrag,
-			AssignmentFactory factory) {
-		this.factory = factory;
+			AssignmentFactory factory, InvocationGraphFactory igFactory,
+			InvocationGraphNode igNode) {
+		this.absFactory = factory;
+		this.igFactory = igFactory;
 		assigns = new LinkedList<>();
 		for (BlockItemNode node : progFrag)
 			processBlockItemNode(node);
+		this.igNode = igNode;
+	}
+
+	@Override
+	public InvocationGraphNode getIGNode() {
+		return this.igNode;
 	}
 
 	@Override
@@ -79,12 +106,12 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 
 	@Override
 	public Pair<AssignExprIF, Boolean> getAbstraction(ExpressionNode expr) {
-		ExprAbstraction abs = processRHSExpressionNode(expr);
+		TempExprAbstraction abs = processRHSExpressionNode(expr);
 
 		if (abs != null)
 			return new Pair<>(abs.assignExpr, abs.op == Operator.DEREFERENCE);
 		else
-			return new Pair<>(factory.assignmentExpression(expr), false);
+			return new Pair<>(absFactory.assignmentExpression(expr), false);
 	}
 
 	/* ************ methods for build ************ */
@@ -153,7 +180,7 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 	 */
 	private void processVarDecNode(VariableDeclarationNode varDecl) {
 		InitializerNode iz = varDecl.getInitializer();
-		ExprAbstraction abs;
+		TempExprAbstraction abs;
 
 		if (iz == null)
 			return;
@@ -169,10 +196,10 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 		boolean deref = abs.op == Operator.DEREFERENCE,
 				addrof = abs.op == Operator.ADDRESSOF;
 
-		AssignExprIF lhs = factory.assignmentExpression(varDecl.getEntity());
+		AssignExprIF lhs = absFactory.assignmentExpression(varDecl.getEntity());
 		AssignExprIF rhs = abs.assignExpr;
 
-		assigns.add(factory.assignment(lhs, false, rhs, deref, addrof));
+		assigns.add(absFactory.assignment(lhs, false, rhs, deref, addrof));
 	}
 
 	/**
@@ -229,6 +256,9 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 			case WHEN :
 				processStatementNode(((WhenNode) stmt).getBody());
 				break;
+			case JUMP :
+				processJumpNode((JumpNode) stmt);
+				break;
 			case UPDATE :
 			case WITH :
 			case OMP :
@@ -253,25 +283,48 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 	}
 
 	/**
+	 * process return node. Associates the returned expression with the
+	 * {@link #igNode}
+	 * 
+	 * @param jumpNode
+	 */
+	private void processJumpNode(JumpNode jumpNode) {
+		if (jumpNode.getKind() != JumpKind.RETURN)
+			return;
+
+		ExpressionNode retExpr = ((ReturnNode) jumpNode).getExpression();
+		TempExprAbstraction tmpAbs = processRHSExpressionNode(retExpr);
+		AssignExprIF abs = tmpAbs.assignExpr;
+
+		if (tmpAbs.op != null) {
+			AssignExprIF tmp = absFactory.assignmentExpression(retExpr);
+
+			assigns.add(processAuxAssignment(tmp, abs, tmpAbs.op));
+			abs = tmp;
+		}
+		this.igNode.addReturnValue(abs);
+	}
+
+	/**
 	 * process an expression
 	 * 
 	 * @param expr
-	 * @return an {@link ExprAbstraction} of the given expression or null if the
-	 *         given expression has no impact on points-to analysis
+	 * @return an {@link TempExprAbstraction} of the given expression or null if
+	 *         the given expression has no impact on points-to analysis
 	 */
-	private ExprAbstraction processRHSExpressionNode(ExpressionNode expr) {
+	private TempExprAbstraction processRHSExpressionNode(ExpressionNode expr) {
 		ExpressionKind kind = expr.expressionKind();
 
 		switch (kind) {
 			case ARRAY_LAMBDA : {
-				ExprAbstraction result = processRHSExpressionNode(
+				TempExprAbstraction result = processRHSExpressionNode(
 						((ArrayLambdaNode) expr).expression());
 				result.op = null;
 				return result;
 			}
 			case ARROW : {
 				// e->id == *e
-				ExprAbstraction result = processRHSExpressionNode(
+				TempExprAbstraction result = processRHSExpressionNode(
 						((ArrowNode) expr).getStructurePointer());
 				result.op = Operator.DEREFERENCE;
 				return result;
@@ -288,8 +341,8 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 				Entity entity = ((IdentifierExpressionNode) expr)
 						.getIdentifier().getEntity();
 
-				return new ExprAbstraction(factory.assignmentExpression(entity),
-						null);
+				return new TempExprAbstraction(
+						absFactory.assignmentExpression(entity), null);
 			case OPERATOR :
 				return processRHSOperator((OperatorNode) expr);
 			case STATEMENT_EXPRESSION :
@@ -297,9 +350,11 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 						.getCompoundStatement());
 				return null;
 			case FUNCTION_CALL :
-				ExprAbstraction alloc = processIfAlloc((FunctionCallNode) expr);
+				TempExprAbstraction alloc = processIfAlloc(
+						(FunctionCallNode) expr);
 				if (alloc != null)
 					return alloc;
+				return processFunctionCall((FunctionCallNode) expr);
 			case REMOTE_REFERENCE :
 			case UPDATE :
 			case VALUE_AT :
@@ -319,21 +374,22 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 	/**
 	 * 
 	 * @param expr
-	 * @return an {@link ExprAbstraction} of this cast expression if this
+	 * @return an {@link TempExprAbstraction} of this cast expression if this
 	 *         expression is pointer to array; otherwise, the result of
 	 *         processing {@link CastNode#getArgument()};
 	 */
-	private ExprAbstraction processCast(CastNode expr) {
+	private TempExprAbstraction processCast(CastNode expr) {
 		ExpressionNode arg = ((CastNode) expr).getArgument();
 
 		if (expr.getType().kind() == TypeKind.POINTER)
 			if (arg.getType().kind() != TypeKind.POINTER) {
-				AssignExprIF auxLhs = factory.assignmentExpression(expr);
+				AssignExprIF auxLhs = absFactory.assignmentExpression(expr);
 				AssignmentIF auxAssign = processAuxAssignment(auxLhs, null,
 						null);
 
 				assigns.add(auxAssign);
-				return new ExprAbstraction(auxAssign.lhs(), (Operator) null);
+				return new TempExprAbstraction(auxAssign.lhs(),
+						(Operator) null);
 			}
 		return processRHSExpressionNode(arg);
 	}
@@ -342,16 +398,16 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 	 * If the given constant is a String, return the abstraction "&String"
 	 * 
 	 * @param constant
-	 * @return an {@link ExprAbstraction} if this constant is a STRING (a
+	 * @return an {@link TempExprAbstraction} if this constant is a STRING (a
 	 *         pointer to String), or null since other constants have no impact
 	 *         on points-to analysis
 	 */
-	private ExprAbstraction processConstant(ConstantNode constant) {
+	private TempExprAbstraction processConstant(ConstantNode constant) {
 		if (constant.constantKind() != ConstantKind.STRING)
 			return null;
-		AssignExprIF abs = factory.assignmentExpression(constant);
+		AssignExprIF abs = absFactory.assignmentExpression(constant);
 
-		return new ExprAbstraction(abs, Operator.ADDRESSOF);
+		return new TempExprAbstraction(abs, Operator.ADDRESSOF);
 	}
 
 	/**
@@ -360,7 +416,7 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 	 * @param call
 	 * @return
 	 */
-	private ExprAbstraction processIfAlloc(FunctionCallNode call) {
+	private TempExprAbstraction processIfAlloc(FunctionCallNode call) {
 		ExpressionNode func = call.getFunction();
 
 		if (func.expressionKind() != ExpressionKind.IDENTIFIER_EXPRESSION)
@@ -370,25 +426,81 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 				.getIdentifier();
 
 		if (funcID.name().equals("$malloc"))
-			return new ExprAbstraction(factory.assignmentExpression(call),
-					Operator.ADDRESSOF);
+			return new TempExprAbstraction(
+					absFactory.assignmentExpression(call), Operator.ADDRESSOF);
 		return null;
 	}
 
+	/* *** process function call *** */
+	private TempExprAbstraction processFunctionCall(FunctionCallNode funcCall) {
+		ExpressionNode funcNode = funcCall.getFunction();
+		boolean unimplementedCase = funcNode
+				.expressionKind() != ExpressionKind.IDENTIFIER_EXPRESSION;
+		Function functionEntity = null;
+
+		// currently cannot deal with function pointers:
+		if (!unimplementedCase) {
+			Entity entity = ((IdentifierExpressionNode) funcNode)
+					.getIdentifier().getEntity();
+
+			if (entity.getEntityKind() != EntityKind.FUNCTION)
+				unimplementedCase = true;
+			else
+				functionEntity = (Function) entity;
+		}
+		if (unimplementedCase)
+			throw new CIVLUnimplementedFeatureException(
+					"Unsupported function call expression "
+							+ funcCall.prettyRepresentation()
+							+ " for points-to analysis.");
+		assert functionEntity != null;
+
+		AssignExprIF callExprAbs = absFactory.assignmentExpression(funcCall);
+
+		// To attach a new IGNode as a child of the node associated with this
+		// AssignmentSequence:
+		// get actual parameters:
+		SequenceNode<ExpressionNode> actualArgSeq = funcCall.getArguments();
+		int numArgs = actualArgSeq.numChildren();
+		AssignExprIF[] actualArgAbs = new AssignExprIF[numArgs];
+
+		for (int i = 0; i < numArgs; i++) {
+			ExpressionNode actualArg = funcCall.getArgument(i);
+			TempExprAbstraction abs = processRHSExpressionNode(actualArg);
+			AssignExprIF result = abs.assignExpr;
+
+			if (abs.op != null) {
+				// make sure actual parameters are not dereference or address-of
+				// operations:
+				AssignExprIF auxLhs = absFactory
+						.assignmentExpression(actualArg);
+
+				result = auxLhs;
+				assigns.add(
+						processAuxAssignment(auxLhs, abs.assignExpr, abs.op));
+			}
+			actualArgAbs[i] = result;
+		}
+
+		igFactory.newNode(functionEntity, igNode, callExprAbs, actualArgAbs);
+		return new TempExprAbstraction(callExprAbs, null);
+	}
+
+	/* *** end-of process function call *** */
 	/**
 	 * 
 	 * @param opNode
 	 *            a node represents operation
 	 * 
-	 * @return an {@link ExprAbstraction} of this operation or null if this
+	 * @return an {@link TempExprAbstraction} of this operation or null if this
 	 *         operation has NO impact to points-to analysis
 	 */
-	private ExprAbstraction processRHSOperator(OperatorNode opNode) {
+	private TempExprAbstraction processRHSOperator(OperatorNode opNode) {
 		Operator op = opNode.getOperator();
 
 		switch (op) {
 			case ADDRESSOF : {
-				ExprAbstraction exprAbs = processRHSExpressionNode(
+				TempExprAbstraction exprAbs = processRHSExpressionNode(
 						opNode.getArgument(0));
 
 				assert exprAbs != null;
@@ -401,7 +513,7 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 			case COMMA :
 				return processRHSExpressionNode(opNode.getArgument(1));
 			case DEREFERENCE : {
-				ExprAbstraction exprAbs = processRHSExpressionNode(
+				TempExprAbstraction exprAbs = processRHSExpressionNode(
 						opNode.getArgument(0));
 
 				assert exprAbs != null;
@@ -413,7 +525,7 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 			default :
 				// general operation:
 				int numArgs = opNode.getNumberOfArguments();
-				AssignExprIF auxLhs = factory.assignmentExpression(opNode);
+				AssignExprIF auxLhs = absFactory.assignmentExpression(opNode);
 
 				for (int i = 0; i < numArgs; i++) {
 					ExpressionNode arg = opNode.getArgument(i);
@@ -421,7 +533,7 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 					if (!isPointerOrArrayType(arg))
 						continue;
 
-					ExprAbstraction exprAbs = processRHSExpressionNode(arg);
+					TempExprAbstraction exprAbs = processRHSExpressionNode(arg);
 					AssignmentIF assignIF;
 
 					if (exprAbs == null)
@@ -430,7 +542,7 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 							exprAbs.op);
 					assigns.add(assignIF);
 				}
-				return new ExprAbstraction(auxLhs, null);
+				return new TempExprAbstraction(auxLhs, null);
 		}
 	}
 
@@ -442,8 +554,8 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 	private void processAssignment(OperatorNode assignNode) {
 		ExpressionNode lhs = assignNode.getArgument(0);
 		ExpressionNode rhs = assignNode.getArgument(1);
-		ExprAbstraction rhsAbs = processRHSExpressionNode(rhs);
-		ExprAbstraction lhsAbs = processRHSExpressionNode(lhs);
+		TempExprAbstraction rhsAbs = processRHSExpressionNode(rhs);
+		TempExprAbstraction lhsAbs = processRHSExpressionNode(lhs);
 
 		if (rhsAbs == null || lhsAbs == null)
 			return; // not pointer
@@ -457,15 +569,15 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 		// "v = *r"
 		// "*e = v"
 		if (lhsDeref == true && (rhsDeref == true || rhsAddrof == true)) {
-			AssignExprIF aux = factory.assignmentExpression(rhs);
+			AssignExprIF aux = absFactory.assignmentExpression(rhs);
 
-			assignment = factory.assignment(aux, false, rhsAbs.assignExpr,
+			assignment = absFactory.assignment(aux, false, rhsAbs.assignExpr,
 					rhsDeref, rhsAddrof);
 			assigns.add(assignment);
-			assignment = factory.assignment(lhsAbs.assignExpr, lhsDeref, aux,
+			assignment = absFactory.assignment(lhsAbs.assignExpr, lhsDeref, aux,
 					false, false);
 		} else
-			assignment = factory.assignment(lhsAbs.assignExpr, lhsDeref,
+			assignment = absFactory.assignment(lhsAbs.assignExpr, lhsDeref,
 					rhsAbs.assignExpr, rhsDeref, rhsAddrof);
 		assigns.add(assignment);
 	}
@@ -489,10 +601,10 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 		boolean addrf = op == Operator.ADDRESSOF;
 		if (rhs == null) {
 			assert !addrf && !deref;
-			rhs = factory.full();
+			rhs = absFactory.full();
 			addrf = true;
 		}
-		return factory.assignment(auxLhs, false, rhs, deref, addrf);
+		return absFactory.assignment(auxLhs, false, rhs, deref, addrf);
 	}
 
 	/* *************** Util classes & methods ******************/
@@ -503,7 +615,7 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 	 * @author ziqing
 	 *
 	 */
-	private class ExprAbstraction {
+	private class TempExprAbstraction {
 		/**
 		 * the abstract representation:
 		 */
@@ -513,7 +625,7 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 		 */
 		Operator op;
 
-		ExprAbstraction(AssignExprIF expr, Operator op) {
+		TempExprAbstraction(AssignExprIF expr, Operator op) {
 			assert expr != null;
 			this.assignExpr = expr;
 			this.op = op;

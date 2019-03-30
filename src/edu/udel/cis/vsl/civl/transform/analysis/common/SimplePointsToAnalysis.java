@@ -3,6 +3,8 @@ package edu.udel.cis.vsl.civl.transform.analysis.common;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.BlockItemNode;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentFactory;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentSequence;
+import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphFactory;
+import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphNode;
 import edu.udel.cis.vsl.civl.transform.analysisIF.PointsToGraph;
 
 public class SimplePointsToAnalysis {
@@ -11,9 +13,15 @@ public class SimplePointsToAnalysis {
 		return new CommonAssignmentFactory();
 	}
 
+	static public InvocationGraphFactory newIGFactory() {
+		return new CommonInvocationGraphFactory();
+	}
+
 	static public AssignmentSequence newAssignmentSequence(
-			Iterable<BlockItemNode> program, AssignmentFactory factory) {
-		return new CommonAssignmentSequence(program, factory);
+			Iterable<BlockItemNode> program, AssignmentFactory factory,
+			InvocationGraphFactory igFactory, InvocationGraphNode igNode) {
+		return new CommonAssignmentSequence(program, factory, igFactory,
+				igNode);
 	}
 
 	static public PointsToGraph newPointsToGraph(

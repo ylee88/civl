@@ -6,8 +6,7 @@ import edu.udel.cis.vsl.civl.util.IF.Pair;
 
 /**
  * <p>
- * Abstract an program fragment to a sequence of {@link AssignmentIF} for
- * flow-insensitive analysis.
+ * The abstraction of a function body for points-to analysis.
  * </p>
  * 
  * 
@@ -25,4 +24,11 @@ public interface AssignmentSequence extends Iterable<AssignmentIF> {
 	 *         (false value).
 	 */
 	Pair<AssignExprIF, Boolean> getAbstraction(ExpressionNode expr);
+
+	/**
+	 * 
+	 * @return the InvocationGraphNode that is associated with a function of
+	 *         which this instance is an abstraction
+	 */
+	InvocationGraphNode getIGNode();
 }

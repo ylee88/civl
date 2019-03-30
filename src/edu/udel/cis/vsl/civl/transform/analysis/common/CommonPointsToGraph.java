@@ -21,6 +21,14 @@ import edu.udel.cis.vsl.sarl.SARL;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
 
+/**
+ * Simple points-to analysis graph based on the naive approach introduced as a
+ * background in "The Ant and the Grasshopper: Fast and Accurate Pointer
+ * Analysis for Millions of Lines of Code" paper.
+ * 
+ * @author ziqing
+ *
+ */
 public class CommonPointsToGraph implements PointsToGraph {
 
 	/**
