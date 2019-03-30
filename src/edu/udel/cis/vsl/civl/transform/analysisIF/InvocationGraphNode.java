@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.Set;
 
 import edu.udel.cis.vsl.abc.ast.entity.IF.Function;
+import edu.udel.cis.vsl.abc.ast.node.IF.declaration.FunctionDefinitionNode;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
 
 /**
@@ -80,6 +81,12 @@ public interface InvocationGraphNode {
 	 */
 	IGNodeKind kind();
 
+	/**
+	 * 
+	 * @return the RECURSIVE kind node that this APPROXIMATE node is associated
+	 *         with. null if this node is ORDINARY or already RECURSIVE.
+	 */
+	InvocationGraphNode getRecursive();
 	/* ********* write section ********** */
 
 	/**
@@ -122,4 +129,14 @@ public interface InvocationGraphNode {
 	 * @param child
 	 */
 	void addChild(InvocationGraphNode child);
+
+	/**
+	 * 
+	 * use the function definition of the function associated with this node to
+	 * 1) prepare inputs and un-mapping sets; 2) find out and complete children
+	 * of this node
+	 * 
+	 * @param bodyAbstraction
+	 */
+	void completeSelf(FunctionDefinitionNode function);
 }

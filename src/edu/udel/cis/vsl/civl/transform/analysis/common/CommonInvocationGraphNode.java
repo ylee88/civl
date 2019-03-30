@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 
 import edu.udel.cis.vsl.abc.ast.entity.IF.Function;
+import edu.udel.cis.vsl.abc.ast.node.IF.declaration.FunctionDefinitionNode;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
 import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphNode;
 
@@ -17,6 +18,8 @@ public class CommonInvocationGraphNode implements InvocationGraphNode {
 	private List<InvocationGraphNode> children;
 
 	private InvocationGraphNode parent;
+
+	private InvocationGraphNode recursive = null;
 
 	private Function function;
 
@@ -31,6 +34,19 @@ public class CommonInvocationGraphNode implements InvocationGraphNode {
 	private AssignExprIF returnTo;
 
 	CommonInvocationGraphNode(InvocationGraphNode parent, Function function,
+			IGNodeKind kind, AssignExprIF returnTo,
+			AssignExprIF... actualParams) {
+		init(parent, function, kind, returnTo, actualParams);
+	}
+
+	CommonInvocationGraphNode(InvocationGraphNode parent,
+			InvocationGraphNode recursive, Function function, IGNodeKind kind,
+			AssignExprIF returnTo, AssignExprIF... actualParams) {
+		init(parent, function, kind, returnTo, actualParams);
+		this.recursive = recursive;
+	}
+
+	private void init(InvocationGraphNode parent, Function function,
 			IGNodeKind kind, AssignExprIF returnTo,
 			AssignExprIF... actualParams) {
 		this.parent = parent;
@@ -100,5 +116,15 @@ public class CommonInvocationGraphNode implements InvocationGraphNode {
 	@Override
 	public void addReturnValue(AssignExprIF returnValue) {
 		this.unmapping.putIfAbsent(returnValue, returnTo);
+	}
+
+	@Override
+	public InvocationGraphNode getRecursive() {
+		return recursive;
+	}
+
+	@Override
+	public void completeSelf(FunctionDefinitionNode function) {
+		return; // TODO: impl me!
 	}
 }

@@ -23,7 +23,11 @@ public class CommonInvocationGraphFactory implements InvocationGraphFactory {
 				break;
 			}
 		}
-		return new CommonInvocationGraphNode(parent, function, kind, returnTo,
-				actualArgs);
+		if (kind != IGNodeKind.APPROXIMATE)
+			return new CommonInvocationGraphNode(parent, function, kind,
+					returnTo, actualArgs);
+		else
+			return new CommonInvocationGraphNode(parent, ancestor, function,
+					kind, returnTo, actualArgs);
 	}
 }
