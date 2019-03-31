@@ -12,6 +12,7 @@ import java.util.List;
 import edu.udel.cis.vsl.abc.ast.entity.IF.Entity;
 import edu.udel.cis.vsl.abc.ast.entity.IF.Entity.EntityKind;
 import edu.udel.cis.vsl.abc.ast.entity.IF.Function;
+import edu.udel.cis.vsl.abc.ast.entity.IF.Scope;
 import edu.udel.cis.vsl.abc.ast.node.IF.ASTNode.NodeKind;
 import edu.udel.cis.vsl.abc.ast.node.IF.IdentifierNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.SequenceNode;
@@ -83,15 +84,22 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 	 */
 	private InvocationGraphNode igNode;
 
-	CommonAssignmentSequence(Iterable<BlockItemNode> progFrag,
+	/**
+	 * The scope of the associated function
+	 */
+	private Scope functionScope;
+
+	CommonAssignmentSequence(Iterable<BlockItemNode> funcBody, Scope scope,
 			AssignmentFactory factory, InvocationGraphFactory igFactory,
 			InvocationGraphNode igNode) {
 		this.absFactory = factory;
 		this.igFactory = igFactory;
-		assigns = new LinkedList<>();
-		for (BlockItemNode node : progFrag)
-			processBlockItemNode(node);
 		this.igNode = igNode;
+		this.functionScope = scope;
+		assigns = new LinkedList<>();
+		for (BlockItemNode node : funcBody)
+			processBlockItemNode(node);
+
 	}
 
 	@Override
@@ -337,12 +345,24 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 				// e.id == e
 				return processRHSExpressionNode(
 						((DotNode) expr).getStructure());
-			case IDENTIFIER_EXPRESSION :
+			case IDENTIFIER_EXPRESSION : {
 				Entity entity = ((IdentifierExpressionNode) expr)
 						.getIdentifier().getEntity();
+				Scope parent = functionScope.getParentScope();
+				Entity sameNameEntity = parent.getLexicalOrdinaryEntity(false,
+						entity.getName());
+				AssignExprIF exprAbs = absFactory.assignmentExpression(entity);
 
-				return new TempExprAbstraction(
-						absFactory.assignmentExpression(entity), null);
+				if (entity == sameNameEntity) {
+					// If this entity is visible from lexical parent scope of
+					// the function, this entity is not declared locally:
+					this.igNode.addGlobalAccess(exprAbs);
+				}
+				// otherwise, this entity is not visible from lexical parent
+				// scope, this entity is locally declared. We dont need to
+				// specially save local entities in igNode.
+				return new TempExprAbstraction(exprAbs, null);
+			}
 			case OPERATOR :
 				return processRHSOperator((OperatorNode) expr);
 			case STATEMENT_EXPRESSION :

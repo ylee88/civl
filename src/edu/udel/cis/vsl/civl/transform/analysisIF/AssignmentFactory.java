@@ -1,10 +1,26 @@
 package edu.udel.cis.vsl.civl.transform.analysisIF;
 
 import edu.udel.cis.vsl.abc.ast.entity.IF.Entity;
+import edu.udel.cis.vsl.abc.ast.entity.IF.Function;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
 
 public interface AssignmentFactory {
+
+	/**
+	 * Creates a new {@link AssignmentSequence} for a defined function
+	 * 
+	 * @param function
+	 *            a {@link Function} entity whose
+	 *            {@link Function#getDefinition()} shall not return null
+	 * @param igNode
+	 *            the {@link InvocationGraphNode} associated with the given
+	 *            function
+	 * @return
+	 */
+	AssignmentSequence assignmentSequence(Function function,
+			InvocationGraphNode igNode);
+
 	/**
 	 * <p>
 	 * Creates a new instance of {@link AssignmentIF}. Given a left-hand side

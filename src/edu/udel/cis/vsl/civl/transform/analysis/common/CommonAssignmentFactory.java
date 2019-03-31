@@ -4,10 +4,17 @@ import java.util.HashMap;
 import java.util.Map;
 
 import edu.udel.cis.vsl.abc.ast.entity.IF.Entity;
+import edu.udel.cis.vsl.abc.ast.entity.IF.Function;
+import edu.udel.cis.vsl.abc.ast.node.IF.declaration.FunctionDefinitionNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.declaration.VariableDeclarationNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.type.FunctionTypeNode;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentFactory;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
+import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentSequence;
+import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphFactory;
+import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphNode;
 
 public class CommonAssignmentFactory implements AssignmentFactory {
 
@@ -22,6 +29,11 @@ public class CommonAssignmentFactory implements AssignmentFactory {
 	private final AssignExprIF FULL;
 
 	private int AssignExprCounter = 0;
+
+	/**
+	 * a reference to {@link InvocationGraphFactory}
+	 */
+	private InvocationGraphFactory igFactory;
 
 	class CommonAssignExpr implements AssignExprIF {
 
@@ -142,9 +154,10 @@ public class CommonAssignmentFactory implements AssignmentFactory {
 		}
 	}
 
-	CommonAssignmentFactory() {
+	CommonAssignmentFactory(InvocationGraphFactory igFactory) {
 		this.FULL = new CommonAssignExpr();
 		this.seenAssignExprs = new HashMap<>();
+		this.igFactory = igFactory;
 	}
 
 	@Override
@@ -172,5 +185,26 @@ public class CommonAssignmentFactory implements AssignmentFactory {
 	@Override
 	public AssignExprIF full() {
 		return FULL;
+	}
+
+	@Override
+	public AssignmentSequence assignmentSequence(Function function,
+			InvocationGraphNode igNode) {
+		FunctionDefinitionNode funcDef = function.getDefinition();
+		AssignmentSequence result = new CommonAssignmentSequence(
+				funcDef.getBody(), funcDef.getScope(), this, this.igFactory,
+				igNode);
+		// set formal parameters:
+		FunctionTypeNode funcType = function.getDefinition().getTypeNode();
+		AssignExprIF formals[] = new AssignExprIF[funcType.getParameters()
+				.numChildren()];
+		int i = 0;
+
+		for (VariableDeclarationNode varDecl : function.getDefinition()
+				.getTypeNode().getParameters()) {
+			formals[i++] = assignmentExpression(varDecl.getEntity());
+		}
+		igNode.setFormalParameters(formals);
+		return result;
 	}
 }

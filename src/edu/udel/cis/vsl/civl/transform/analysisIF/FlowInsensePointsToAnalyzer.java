@@ -1,8 +1,11 @@
 package edu.udel.cis.vsl.civl.transform.analysisIF;
 
+import edu.udel.cis.vsl.abc.ast.IF.AST;
+
 /**
- * A flow-insensitive PointsToAnalyzer takes a {@link AssignmentSequence} and
- * returns a {@link PointsToGraph}
+ * A flow-insensitive PointsToAnalyzer takes a program ({@link AST}), builds
+ * points-to graph for the program and provides service for querying the
+ * "may points-to" set of a lvalue
  * 
  * @author ziqing
  *

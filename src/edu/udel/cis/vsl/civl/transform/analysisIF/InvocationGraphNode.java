@@ -1,10 +1,6 @@
 package edu.udel.cis.vsl.civl.transform.analysisIF;
 
-import java.util.Map;
-import java.util.Set;
-
 import edu.udel.cis.vsl.abc.ast.entity.IF.Function;
-import edu.udel.cis.vsl.abc.ast.node.IF.declaration.FunctionDefinitionNode;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
 
 /**
@@ -35,12 +31,6 @@ public interface InvocationGraphNode {
 	}
 
 	/* ********* read section ********** */
-	/**
-	 * 
-	 * @return the abstraction of the code fragment that contains the call
-	 *         associated with this node
-	 */
-	// AssignmentSequence containingCodeFragment();
 
 	/**
 	 * 
@@ -64,16 +54,35 @@ public interface InvocationGraphNode {
 	Function function();
 
 	/**
-	 * @return a map from formal parameters to actual parameters as well as
-	 *         affected global variables to themselves.
+	 * 
+	 * @return the set of accessed global objects
 	 */
-	Map<AssignExprIF, AssignExprIF> unmapping();
+	Iterable<AssignExprIF> accessedGlobals();
+
+	/**
+	 * @return an orderd array of actual parameters
+	 */
+	AssignExprIF[] actualParams();
 
 	/**
 	 * 
-	 * @return the set of function inputs
+	 * @return an ordered array of formal parameters
 	 */
-	Set<AssignExprIF> functionInputs();
+	AssignExprIF[] formalParams();
+
+	/**
+	 * 
+	 * @return the receiver expression abstraction for the function call
+	 *         represented by this node
+	 */
+	AssignExprIF returnTo();
+
+	/**
+	 * 
+	 * @return the set of returning expression abstraction from the function
+	 *         body associated with this node
+	 */
+	Iterable<AssignExprIF> returnings();
 
 	/**
 	 * 
@@ -87,13 +96,17 @@ public interface InvocationGraphNode {
 	 *         with. null if this node is ORDINARY or already RECURSIVE.
 	 */
 	InvocationGraphNode getRecursive();
-	/* ********* write section ********** */
 
 	/**
-	 * set the abstraction of the code fragment that contains the call
-	 * associated with this node
+	 * make the given node, who is associated with the same function as this
+	 * one, has same formal parameters, global accesses and returning values as
+	 * this one.
+	 * 
+	 * @param node
 	 */
-	// void setContainingCodeFragment(AssignmentSequence containingCode);
+	void share(InvocationGraphNode node);
+
+	/* ********* write section ********** */
 
 	/**
 	 * Mark this node to be {@link IGNodeKind#RECURSIVE}
@@ -101,27 +114,27 @@ public interface InvocationGraphNode {
 	void markRecursive();
 
 	/**
-	 * add an un-mapping entry to this node
-	 * 
-	 * @param umFrom
-	 *            the expression abstraction will gone after return from the
-	 *            lexical call
-	 * @param umTo
-	 *            the expression abstraction inherits the information from
-	 *            "umFrom" after return from the lexical call
-	 */
-	void addUnmapping(AssignExprIF umFrom, AssignExprIF umTo);
-
-	/**
-	 * add abstract representation of the formal parameters
+	 * @param formals
+	 *            the abstractions of the formal parameters of this node
 	 */
 	void setFormalParameters(AssignExprIF[] formals);
 
 	/**
+	 * save a returning expression in the associated function body in this node
 	 * 
 	 * @param returnValue
+	 *            an return expression abstraction
 	 */
 	void addReturnValue(AssignExprIF returnValue);
+
+	/**
+	 * save an access to a global object by the associated function body in this
+	 * node
+	 * 
+	 * @param globalVar
+	 *            a global object abstraction
+	 */
+	void addGlobalAccess(AssignExprIF globalAccess);
 
 	/**
 	 * Add a child to this node
@@ -129,14 +142,4 @@ public interface InvocationGraphNode {
 	 * @param child
 	 */
 	void addChild(InvocationGraphNode child);
-
-	/**
-	 * 
-	 * use the function definition of the function associated with this node to
-	 * 1) prepare inputs and un-mapping sets; 2) find out and complete children
-	 * of this node
-	 * 
-	 * @param bodyAbstraction
-	 */
-	void completeSelf(FunctionDefinitionNode function);
 }

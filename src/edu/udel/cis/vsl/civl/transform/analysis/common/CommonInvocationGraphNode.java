@@ -1,37 +1,38 @@
 package edu.udel.cis.vsl.civl.transform.analysis.common;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import edu.udel.cis.vsl.abc.ast.entity.IF.Function;
-import edu.udel.cis.vsl.abc.ast.node.IF.declaration.FunctionDefinitionNode;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
 import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphNode;
 
 public class CommonInvocationGraphNode implements InvocationGraphNode {
-
-	private List<InvocationGraphNode> children;
+	/* ***** fields set by initialization and shall not be modified ***** */
 
 	private InvocationGraphNode parent;
 
-	private InvocationGraphNode recursive = null;
-
 	private Function function;
 
-	private Set<AssignExprIF> funcInputs;
+	private AssignExprIF[] actualParams;
 
-	private Map<AssignExprIF, AssignExprIF> unmapping;
+	private AssignExprIF returnTo;
+
+	private InvocationGraphNode recursive = null;
+
+	/* ********* fields set by initialization ********** */
+	/* ********* and can be modified before static completion *******/
 
 	private IGNodeKind kind;
 
-	private AssignExprIF[] acutalParams;
+	/* ********* fields shall not modified AFTER static completion *******/
+	private AssignExprIF[] formalParams;
 
-	private AssignExprIF returnTo;
+	private List<InvocationGraphNode> children;
+
+	private List<AssignExprIF> globals;
+
+	private List<AssignExprIF> returnings;
 
 	CommonInvocationGraphNode(InvocationGraphNode parent, Function function,
 			IGNodeKind kind, AssignExprIF returnTo,
@@ -51,12 +52,11 @@ public class CommonInvocationGraphNode implements InvocationGraphNode {
 			AssignExprIF... actualParams) {
 		this.parent = parent;
 		this.function = function;
-		this.funcInputs = new HashSet<>();
+		this.globals = new LinkedList<>();
+		this.returnings = new LinkedList<>();
 		this.kind = kind;
-		this.unmapping = new HashMap<>();
 		this.children = new LinkedList<>();
-		this.funcInputs.addAll(Arrays.asList(actualParams));
-		this.acutalParams = actualParams;
+		this.actualParams = actualParams;
 		this.returnTo = returnTo;
 	}
 
@@ -76,24 +76,33 @@ public class CommonInvocationGraphNode implements InvocationGraphNode {
 	}
 
 	@Override
-	public Map<AssignExprIF, AssignExprIF> unmapping() {
-		return unmapping;
+	public Iterable<AssignExprIF> accessedGlobals() {
+		return globals;
+	}
+
+	@Override
+	public AssignExprIF[] actualParams() {
+		return this.actualParams;
+	}
+
+	@Override
+	public AssignExprIF[] formalParams() {
+		return formalParams;
+	}
+
+	@Override
+	public AssignExprIF returnTo() {
+		return returnTo;
+	}
+
+	@Override
+	public Iterable<AssignExprIF> returnings() {
+		return returnings;
 	}
 
 	@Override
 	public void markRecursive() {
 		this.kind = IGNodeKind.RECURSIVE;
-	}
-
-	@Override
-	public void addUnmapping(AssignExprIF umFrom, AssignExprIF umTo) {
-		this.unmapping.putIfAbsent(umFrom, umTo);
-		this.funcInputs.add(umTo);
-	}
-
-	@Override
-	public Set<AssignExprIF> functionInputs() {
-		return funcInputs;
 	}
 
 	@Override
@@ -108,14 +117,12 @@ public class CommonInvocationGraphNode implements InvocationGraphNode {
 
 	@Override
 	public void setFormalParameters(AssignExprIF[] formals) {
-		for (int i = 0; i < formals.length; i++) {
-			this.unmapping.putIfAbsent(formals[i], acutalParams[i]);
-		}
+		this.formalParams = formals;
 	}
 
 	@Override
 	public void addReturnValue(AssignExprIF returnValue) {
-		this.unmapping.putIfAbsent(returnValue, returnTo);
+		this.returnings.add(returnValue);
 	}
 
 	@Override
@@ -124,7 +131,16 @@ public class CommonInvocationGraphNode implements InvocationGraphNode {
 	}
 
 	@Override
-	public void completeSelf(FunctionDefinitionNode function) {
-		return; // TODO: impl me!
+	public void addGlobalAccess(AssignExprIF globalAccess) {
+		this.globals.add(globalAccess);
+	}
+
+	@Override
+	public void share(InvocationGraphNode node) {
+		node.setFormalParameters(formalParams);
+		for (AssignExprIF globalAccess : accessedGlobals())
+			node.addGlobalAccess(globalAccess);
+		for (AssignExprIF returning : returnings())
+			node.addReturnValue(returning);
 	}
 }
