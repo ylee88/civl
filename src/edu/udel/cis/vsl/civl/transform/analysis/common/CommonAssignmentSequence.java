@@ -33,6 +33,8 @@ import edu.udel.cis.vsl.abc.ast.node.IF.expression.IdentifierExpressionNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.OperatorNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.OperatorNode.Operator;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.StatementExpressionNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.omp.OmpExecutableNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.omp.OmpNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.AtomicNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.BlockItemNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.BlockItemNode.BlockItemKind;
@@ -216,6 +218,9 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 	 * @param stmt
 	 */
 	private void processStatementNode(StatementNode stmt) {
+		if (stmt == null)
+			return;
+
 		StatementKind kind = stmt.statementKind();
 
 		switch (kind) {
@@ -267,9 +272,11 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 			case JUMP :
 				processJumpNode((JumpNode) stmt);
 				break;
+			case OMP :
+				processOmpNode((OmpNode) stmt);
+				break;
 			case UPDATE :
 			case WITH :
-			case OMP :
 			case PRAGMA :
 				throw new CIVLUnimplementedFeatureException("convert statement "
 						+ stmt.prettyRepresentation()
@@ -302,6 +309,10 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 
 		ExpressionNode retExpr = ((ReturnNode) jumpNode).getExpression();
 		TempExprAbstraction tmpAbs = processRHSExpressionNode(retExpr);
+
+		if (tmpAbs == null)
+			return;
+
 		AssignExprIF abs = tmpAbs.assignExpr;
 
 		if (tmpAbs.op != null) {
@@ -348,7 +359,8 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 			case IDENTIFIER_EXPRESSION : {
 				Entity entity = ((IdentifierExpressionNode) expr)
 						.getIdentifier().getEntity();
-				Scope parent = functionScope.getParentScope();
+				// func scope -> param scope -> parent (func) scope
+				Scope parent = functionScope.getParentScope().getParentScope();
 				Entity sameNameEntity = parent.getLexicalOrdinaryEntity(false,
 						entity.getName());
 				AssignExprIF exprAbs = absFactory.assignmentExpression(entity);
@@ -563,6 +575,21 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 					assigns.add(assignIF);
 				}
 				return new TempExprAbstraction(auxLhs, null);
+		}
+	}
+
+	private void processOmpNode(OmpNode stmt) {
+		switch (stmt.ompNodeKind()) {
+			case EXECUTABLE : {
+				OmpExecutableNode execNode = (OmpExecutableNode) stmt;
+
+				processStatementNode(execNode.statementNode());
+				break;
+			}
+			default :
+				throw new CIVLUnimplementedFeatureException("convert statement "
+						+ stmt.prettyRepresentation()
+						+ " to a set of assignments for points-to analysis");
 		}
 	}
 

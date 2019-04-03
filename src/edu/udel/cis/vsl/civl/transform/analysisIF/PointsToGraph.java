@@ -1,5 +1,6 @@
 package edu.udel.cis.vsl.civl.transform.analysisIF;
 
+import edu.udel.cis.vsl.abc.ast.entity.IF.Entity;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
 
@@ -26,4 +27,26 @@ public interface PointsToGraph {
 	 *         to
 	 */
 	Iterable<AssignExprIF> mayPointsTo(ExpressionNode expr);
+
+	Iterable<AssignExprIF> mayPointsTo(Entity entity);
+
+	Iterable<AssignExprIF> mayPointsTo(AssignExprIF expr);
+
+	/**
+	 * Adds point-to information to the graph. If there is any new information,
+	 * the graph will be re-computed.
+	 * 
+	 * @param object
+	 *            the object whose points-to set will be updated
+	 * @param pointsTo
+	 *            the points-to set that will be added
+	 * @return true iff the graph will be re-computed.
+	 */
+	boolean addPointsTo(AssignExprIF object, Iterable<AssignExprIF> pointsTo);
+
+	/**
+	 * 
+	 * @return a new instance that was deep copied from this instance
+	 */
+	PointsToGraph clone();
 }

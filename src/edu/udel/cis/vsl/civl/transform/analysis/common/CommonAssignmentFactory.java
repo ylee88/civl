@@ -192,8 +192,8 @@ public class CommonAssignmentFactory implements AssignmentFactory {
 			InvocationGraphNode igNode) {
 		FunctionDefinitionNode funcDef = function.getDefinition();
 		AssignmentSequence result = new CommonAssignmentSequence(
-				funcDef.getBody(), funcDef.getScope(), this, this.igFactory,
-				igNode);
+				funcDef.getBody(), funcDef.getBody().getScope(), this,
+				this.igFactory, igNode);
 		// set formal parameters:
 		FunctionTypeNode funcType = function.getDefinition().getTypeNode();
 		AssignExprIF formals[] = new AssignExprIF[funcType.getParameters()

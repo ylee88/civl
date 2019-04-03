@@ -143,4 +143,14 @@ public class CommonInvocationGraphNode implements InvocationGraphNode {
 		for (AssignExprIF returning : returnings())
 			node.addReturnValue(returning);
 	}
+
+	@Override
+	public boolean equals(Object obj) {
+		return this == obj;
+	}
+
+	@Override
+	public String toString() {
+		return this.function.getName() + " " + this.kind();
+	}
 }

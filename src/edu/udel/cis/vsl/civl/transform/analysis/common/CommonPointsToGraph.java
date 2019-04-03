@@ -17,7 +17,6 @@ import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignmentKind;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentSequence;
 import edu.udel.cis.vsl.civl.transform.analysisIF.PointsToGraph;
 import edu.udel.cis.vsl.civl.util.IF.Pair;
-import edu.udel.cis.vsl.sarl.SARL;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
 
@@ -53,8 +52,14 @@ public class CommonPointsToGraph implements PointsToGraph {
 	 */
 	private Map<SymbolicExpression, Set<SymbolicExpression>> pointsTo;
 
+	/**
+	 * all subset-of relations
+	 */
 	private Set<SymbolicExpression> allEdges;
 
+	/**
+	 * map for looking up subset-of relations by subsets:
+	 */
 	private Map<SymbolicExpression, List<SymbolicExpression>> subsetToEdge;
 
 	/**
@@ -72,8 +77,11 @@ public class CommonPointsToGraph implements PointsToGraph {
 	 */
 	private AssignmentSequence programAbstraction;
 
-	CommonPointsToGraph(AssignmentSequence programAbstraction) {
-		universe = SARL.newStandardUniverse();
+	private boolean dirty = false;
+
+	CommonPointsToGraph(AssignmentSequence programAbstraction,
+			SymbolicUniverse universe) {
+		this.universe = universe;
 		this.componentsFactory = new PointsToGraphComponents(universe);
 		this.entityToNode = new HashMap<>();
 		this.nodeToAssignExpr = new HashMap<>();
@@ -86,11 +94,57 @@ public class CommonPointsToGraph implements PointsToGraph {
 	}
 
 	@Override
+	public PointsToGraph clone() {
+		CommonPointsToGraph clone = new CommonPointsToGraph(
+				this.programAbstraction, universe);
+
+		clone.entityToNode = new HashMap<>(entityToNode);
+		clone.nodeToAssignExpr = new HashMap<>(nodeToAssignExpr);
+		clone.assignExprToNode = new HashMap<>(assignExprToNode);
+		clone.pointsTo = new HashMap<>(pointsTo);
+		clone.allEdges = new HashSet<>(allEdges);
+		clone.subsetToEdge = new HashMap<>(subsetToEdge);
+		clone.dirty = this.dirty;
+		return clone;
+	}
+
+	@Override
 	public Iterable<AssignExprIF> mayPointsTo(ExpressionNode expr) {
 		Pair<AssignExprIF, Boolean> abs = programAbstraction
 				.getAbstraction(expr);
-
+		this.build(programAbstraction);
 		return mayPointsTo(abs.left, abs.right);
+	}
+
+	@Override
+	public Iterable<AssignExprIF> mayPointsTo(Entity entity) {
+		SymbolicExpression node = getNodeByEntity(entity);
+
+		return mayPointsTo(nodeToAssignExpr.get(node), false);
+	}
+
+	@Override
+	public Iterable<AssignExprIF> mayPointsTo(AssignExprIF expr) {
+		return mayPointsTo(expr, false);
+	}
+
+	@Override
+	public boolean addPointsTo(AssignExprIF object,
+			Iterable<AssignExprIF> pointsTo) {
+		SymbolicExpression node = getNodeByAssignExpr(object);
+		Set<SymbolicExpression> pts = this.pointsTo.get(node);
+		boolean changed = false;
+
+		if (pts == null)
+			pts = new HashSet<>();
+		for (AssignExprIF ptsAbs : pointsTo) {
+			SymbolicExpression ptNode = getNodeByAssignExpr(ptsAbs);
+
+			changed |= pts.add(ptNode);
+		}
+		this.pointsTo.put(node, pts);
+		dirty |= changed;
+		return changed;
 	}
 
 	@Override
@@ -128,6 +182,11 @@ public class CommonPointsToGraph implements PointsToGraph {
 	 */
 	private Iterable<AssignExprIF> mayPointsTo(AssignExprIF exprAbs,
 			boolean dereference) {
+		if (dirty) {
+			build(programAbstraction);
+			dirty = false;
+		}
+
 		SymbolicExpression node = assignExprToNode.get(exprAbs.id());
 
 		if (node == null)

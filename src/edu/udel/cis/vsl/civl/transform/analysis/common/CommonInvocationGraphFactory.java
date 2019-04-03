@@ -22,12 +22,19 @@ public class CommonInvocationGraphFactory implements InvocationGraphFactory {
 				ancestor.markRecursive();
 				break;
 			}
+			ancestor = ancestor.parent();
 		}
+
+		InvocationGraphNode newNode;
+
 		if (kind != IGNodeKind.APPROXIMATE)
-			return new CommonInvocationGraphNode(parent, function, kind,
+			newNode = new CommonInvocationGraphNode(parent, function, kind,
 					returnTo, actualArgs);
 		else
-			return new CommonInvocationGraphNode(parent, ancestor, function,
+			newNode = new CommonInvocationGraphNode(parent, ancestor, function,
 					kind, returnTo, actualArgs);
+		if (parent != null)
+			parent.addChild(newNode);
+		return newNode;
 	}
 }
