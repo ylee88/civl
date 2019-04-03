@@ -12,7 +12,7 @@ import edu.udel.cis.vsl.abc.ast.node.IF.type.FunctionTypeNode;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentFactory;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
-import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentSequence;
+import edu.udel.cis.vsl.civl.transform.analysisIF.InsensitiveFlow;
 import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphFactory;
 import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphNode;
 
@@ -188,10 +188,10 @@ public class CommonAssignmentFactory implements AssignmentFactory {
 	}
 
 	@Override
-	public AssignmentSequence assignmentSequence(Function function,
+	public InsensitiveFlow assignmentSequence(Function function,
 			InvocationGraphNode igNode) {
 		FunctionDefinitionNode funcDef = function.getDefinition();
-		AssignmentSequence result = new CommonAssignmentSequence(
+		InsensitiveFlow result = new CommonInsensitiveFlow(
 				funcDef.getBody(), funcDef.getBody().getScope(), this,
 				this.igFactory, igNode);
 		// set formal parameters:

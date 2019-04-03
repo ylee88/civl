@@ -5,7 +5,6 @@ import java.util.List;
 import edu.udel.cis.vsl.abc.ast.IF.AST;
 import edu.udel.cis.vsl.abc.ast.entity.IF.Entity;
 import edu.udel.cis.vsl.abc.ast.entity.IF.Function;
-import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
 
 /**
@@ -17,17 +16,6 @@ import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
  *
  */
 public interface FlowInsensePointsToAnalyzer {
-	// /**
-	// * starts a points-to analysis on a sequence of statements
-	// *
-	// * @param stmts
-	// * a sequence of statements
-	// * @return the minimal points to graph that corresponds to the given
-	// * {@link AssignmentSequence}
-	// */
-	// PointsToGraph getGraph(AssignmentSequence stmts);
 
 	List<AssignExprIF> mayPointsTo(Function func, Entity ptr);
-
-	List<AssignExprIF> mayPointsTo(Function func, ExpressionNode ptr);
 }

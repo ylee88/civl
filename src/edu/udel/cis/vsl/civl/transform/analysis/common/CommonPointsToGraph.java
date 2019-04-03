@@ -9,14 +9,12 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import edu.udel.cis.vsl.abc.ast.entity.IF.Entity;
-import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
 import edu.udel.cis.vsl.civl.transform.analysis.common.PointsToGraphComponents.PointsToConstraint;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignmentKind;
-import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentSequence;
+import edu.udel.cis.vsl.civl.transform.analysisIF.InsensitiveFlow;
 import edu.udel.cis.vsl.civl.transform.analysisIF.PointsToGraph;
-import edu.udel.cis.vsl.civl.util.IF.Pair;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
 
@@ -75,11 +73,11 @@ public class CommonPointsToGraph implements PointsToGraph {
 	/**
 	 * the program fragment associated with this graph
 	 */
-	private AssignmentSequence programAbstraction;
+	private InsensitiveFlow programAbstraction;
 
 	private boolean dirty = false;
 
-	CommonPointsToGraph(AssignmentSequence programAbstraction,
+	CommonPointsToGraph(InsensitiveFlow programAbstraction,
 			SymbolicUniverse universe) {
 		this.universe = universe;
 		this.componentsFactory = new PointsToGraphComponents(universe);
@@ -106,14 +104,6 @@ public class CommonPointsToGraph implements PointsToGraph {
 		clone.subsetToEdge = new HashMap<>(subsetToEdge);
 		clone.dirty = this.dirty;
 		return clone;
-	}
-
-	@Override
-	public Iterable<AssignExprIF> mayPointsTo(ExpressionNode expr) {
-		Pair<AssignExprIF, Boolean> abs = programAbstraction
-				.getAbstraction(expr);
-		this.build(programAbstraction);
-		return mayPointsTo(abs.left, abs.right);
 	}
 
 	@Override

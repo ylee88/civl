@@ -1,5 +1,7 @@
 package edu.udel.cis.vsl.civl.transform.analysis.common;
 
+import static edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode.ExpressionKind.CONSTANT;
+import static edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode.ExpressionKind.IDENTIFIER_EXPRESSION;
 import static edu.udel.cis.vsl.abc.ast.node.IF.expression.OperatorNode.Operator.ADDRESSOF;
 import static edu.udel.cis.vsl.abc.ast.node.IF.expression.OperatorNode.Operator.DEREFERENCE;
 import static edu.udel.cis.vsl.abc.ast.type.IF.Type.TypeKind.ARRAY;
@@ -57,12 +59,11 @@ import edu.udel.cis.vsl.civl.model.IF.CIVLUnimplementedFeatureException;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentFactory;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
-import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentSequence;
+import edu.udel.cis.vsl.civl.transform.analysisIF.InsensitiveFlow;
 import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphFactory;
 import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphNode;
-import edu.udel.cis.vsl.civl.util.IF.Pair;
 
-public class CommonAssignmentSequence implements AssignmentSequence {
+public class CommonInsensitiveFlow implements InsensitiveFlow {
 
 	/**
 	 * The generated set of assignments:
@@ -80,48 +81,33 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 	private InvocationGraphFactory igFactory;
 
 	/**
-	 * The {@link InvocationGraphNode} associated with function whose body
-	 * contains the intra-procedural code fragment represented by this
-	 * {@link AssignmentSequence}
+	 * the {@link InvocationGraphNode} that is associated with function body
+	 * represented by this {@link InsensitiveFlow}
 	 */
 	private InvocationGraphNode igNode;
 
 	/**
-	 * The scope of the associated function
+	 * the scope of the function body represented by this
+	 * {@link InsensitiveFlow}
 	 */
 	private Scope functionScope;
 
-	CommonAssignmentSequence(Iterable<BlockItemNode> funcBody, Scope scope,
+	CommonInsensitiveFlow(Iterable<BlockItemNode> funcBody, Scope scope,
 			AssignmentFactory factory, InvocationGraphFactory igFactory,
 			InvocationGraphNode igNode) {
 		this.absFactory = factory;
 		this.igFactory = igFactory;
 		this.igNode = igNode;
 		this.functionScope = scope;
-		assigns = new LinkedList<>();
+		this.assigns = new LinkedList<>();
 		for (BlockItemNode node : funcBody)
 			processBlockItemNode(node);
 
 	}
 
 	@Override
-	public InvocationGraphNode getIGNode() {
-		return this.igNode;
-	}
-
-	@Override
 	public Iterator<AssignmentIF> iterator() {
 		return assigns.iterator();
-	}
-
-	@Override
-	public Pair<AssignExprIF, Boolean> getAbstraction(ExpressionNode expr) {
-		TempExprAbstraction abs = processRHSExpressionNode(expr);
-
-		if (abs != null)
-			return new Pair<>(abs.assignExpr, abs.op == Operator.DEREFERENCE);
-		else
-			return new Pair<>(absFactory.assignmentExpression(expr), false);
 	}
 
 	/* ************ methods for build ************ */
@@ -155,7 +141,7 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 	}
 
 	/**
-	 * process declarations
+	 * process ordinary declarations
 	 * 
 	 * @param node
 	 */
@@ -170,16 +156,15 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 			case FUNCTION_DECLARATION :
 			case FUNCTION_DEFINITION :
 			default :
-				throw new CIVLUnimplementedFeatureException("convert "
-						+ node.prettyRepresentation() + " of kind " + kind
-						+ " to a set of assignments for points-to analysis");
+				throw new CIVLUnimplementedFeatureException(
+						"represent " + node.prettyRepresentation() + " of kind "
+								+ kind + " in an insensitive flow");
 		}
 	}
 
 	/**
 	 * <p>
-	 * <code>T var = e;</code> becomes
-	 * <code>var(IdentifierNode) = processExpression(e)</code>
+	 * convert <code>T var = e;</codde> to {@link AssignmentIF}s
 	 * </p>
 	 * 
 	 * <p>
@@ -189,19 +174,20 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 	 * @param varDecl
 	 */
 	private void processVarDecNode(VariableDeclarationNode varDecl) {
-		InitializerNode iz = varDecl.getInitializer();
+		InitializerNode init = varDecl.getInitializer();
 		TempExprAbstraction abs;
 
-		if (iz == null)
+		if (init == null)
 			return;
-		if (iz.nodeKind() == NodeKind.EXPRESSION) {
-			abs = processRHSExpressionNode((ExpressionNode) iz);
-			if (abs == null) // not a pointer
+		if (init.nodeKind() == NodeKind.EXPRESSION) {
+			abs = processRHSExpressionNode((ExpressionNode) init);
+			if (abs == null) // irrelevant
 				return;
 		} else
 			throw new CIVLUnimplementedFeatureException(
-					"convert compound initializer " + iz.prettyRepresentation()
-							+ " to a set of assignments for points-to analysis");
+					"represent compound initializer "
+							+ init.prettyRepresentation()
+							+ " in an insensitive flow");
 
 		boolean deref = abs.op == Operator.DEREFERENCE,
 				addrof = abs.op == Operator.ADDRESSOF;
@@ -278,9 +264,10 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 			case UPDATE :
 			case WITH :
 			case PRAGMA :
-				throw new CIVLUnimplementedFeatureException("convert statement "
-						+ stmt.prettyRepresentation()
-						+ " to a set of assignments for points-to analysis");
+				throw new CIVLUnimplementedFeatureException(
+						"represent statement " + stmt.prettyRepresentation()
+								+ " of kind " + kind
+								+ " in an insensitive flow");
 			default :
 				break;
 		}
@@ -370,8 +357,7 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 					// the function, this entity is not declared locally:
 					this.igNode.addGlobalAccess(exprAbs);
 				}
-				// otherwise, this entity is not visible from lexical parent
-				// scope, this entity is locally declared. We dont need to
+				// otherwise, this entity is locally declared. We dont need to
 				// specially save local entities in igNode.
 				return new TempExprAbstraction(exprAbs, null);
 			}
@@ -396,8 +382,9 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 			case DERIVATIVE_EXPRESSION :
 			case COMPOUND_LITERAL :
 				throw new CIVLUnimplementedFeatureException(
-						"process expression of kind " + kind
-								+ " for creating assignments for points-to analysis");
+						"represent expression " + expr.prettyRepresentation()
+								+ " of kind " + kind
+								+ " in an insensitive flow");
 			default :
 				return null;
 		}
@@ -406,9 +393,9 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 	/**
 	 * 
 	 * @param expr
-	 * @return an {@link TempExprAbstraction} of this cast expression if this
-	 *         expression is pointer to array; otherwise, the result of
-	 *         processing {@link CastNode#getArgument()};
+	 * @return the processed {@link CastNode#getArgument()} expression; or the
+	 *         representation of FULL, if this is a cast from non-pointer type
+	 *         to pointer type
 	 */
 	private TempExprAbstraction processCast(CastNode expr) {
 		ExpressionNode arg = ((CastNode) expr).getArgument();
@@ -427,7 +414,8 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 	}
 
 	/**
-	 * If the given constant is a String, return the abstraction "&String"
+	 * If the given constant is a String, return the representation for a
+	 * pointer to the string
 	 * 
 	 * @param constant
 	 * @return an {@link TempExprAbstraction} if this constant is a STRING (a
@@ -443,10 +431,14 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 	}
 
 	/**
-	 * If the given call is an allocation, return the abstraction "&allocation"
+	 * If the given call is an allocation, return a representation for the
+	 * allocated object
 	 * 
 	 * @param call
-	 * @return
+	 *            a function call that is an allocation if it is a call to
+	 *            $malloc
+	 * @return an {@link TempExprAbstraction} if the given call is not called
+	 *         via function pointer and is an allocation; null otherwise
 	 */
 	private TempExprAbstraction processIfAlloc(FunctionCallNode call) {
 		ExpressionNode func = call.getFunction();
@@ -463,35 +455,45 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 		return null;
 	}
 
-	/* *** process function call *** */
+	/**
+	 * <p>
+	 * process a function call via a function identifier (instead of a function
+	 * pointer)
+	 * </p>
+	 * 
+	 * @param funcCall
+	 *            a function call that 1) is NOT an allocation; 2) is made
+	 *            through function identifier
+	 * @return a {@link TempExprAbstraction}, representing the call expression,
+	 *         if the return type of this function is not void.
+	 */
 	private TempExprAbstraction processFunctionCall(FunctionCallNode funcCall) {
 		ExpressionNode funcNode = funcCall.getFunction();
-		boolean unimplementedCase = funcNode
+		boolean isUnimplCase = funcNode
 				.expressionKind() != ExpressionKind.IDENTIFIER_EXPRESSION;
 		Function functionEntity = null;
 
 		// currently cannot deal with function pointers:
-		if (!unimplementedCase) {
+		if (!isUnimplCase) {
 			Entity entity = ((IdentifierExpressionNode) funcNode)
 					.getIdentifier().getEntity();
 
 			if (entity.getEntityKind() != EntityKind.FUNCTION)
-				unimplementedCase = true;
+				isUnimplCase = true;
 			else
 				functionEntity = (Function) entity;
 		}
-		if (unimplementedCase)
+		assert functionEntity != null;
+		if (isUnimplCase || functionEntity.getDefinition() == null)
 			throw new CIVLUnimplementedFeatureException(
 					"Unsupported function call expression "
 							+ funcCall.prettyRepresentation()
 							+ " for points-to analysis.");
-		assert functionEntity != null;
 
 		AssignExprIF callExprAbs = absFactory.assignmentExpression(funcCall);
 
-		// To attach a new IGNode as a child of the node associated with this
-		// AssignmentSequence:
-		// get actual parameters:
+		// to attach a new IGNode as a child of this.igNode
+		//// get actual parameters:
 		SequenceNode<ExpressionNode> actualArgSeq = funcCall.getArguments();
 		int numArgs = actualArgSeq.numChildren();
 		AssignExprIF[] actualArgAbs = new AssignExprIF[numArgs];
@@ -502,8 +504,8 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 			AssignExprIF result = abs.assignExpr;
 
 			if (abs.op != null) {
-				// make sure actual parameters are not dereference or address-of
-				// operations:
+				// use auxiliary variables if the actual parameter involves
+				// dereference or address-of operations:
 				AssignExprIF auxLhs = absFactory
 						.assignmentExpression(actualArg);
 
@@ -513,19 +515,17 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 			}
 			actualArgAbs[i] = result;
 		}
-
 		igFactory.newNode(functionEntity, igNode, callExprAbs, actualArgAbs);
 		return new TempExprAbstraction(callExprAbs, null);
 	}
 
-	/* *** end-of process function call *** */
 	/**
 	 * 
 	 * @param opNode
 	 *            a node represents operation
 	 * 
 	 * @return an {@link TempExprAbstraction} of this operation or null if this
-	 *         operation has NO impact to points-to analysis
+	 *         operation is irrelevant to points-to analysis
 	 */
 	private TempExprAbstraction processRHSOperator(OperatorNode opNode) {
 		Operator op = opNode.getOperator();
@@ -543,6 +543,7 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 				processAssignment(opNode);
 				return null;
 			case COMMA :
+				processRHSExpressionNode(opNode.getArgument(0));
 				return processRHSExpressionNode(opNode.getArgument(1));
 			case DEREFERENCE : {
 				TempExprAbstraction exprAbs = processRHSExpressionNode(
@@ -552,8 +553,27 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 				exprAbs.op = DEREFERENCE;
 				return exprAbs;
 			}
-			case SUBSCRIPT :
-				return processRHSExpressionNode(opNode.getArgument(0));
+			case SUBSCRIPT : {
+				ExpressionNode arrayNode = opNode.getArgument(0);
+				TempExprAbstraction tmpAbs = processRHSExpressionNode(
+						arrayNode);
+
+				// a[e] is represented by a, if a is an array variable
+				// a[e] is represented by *a, if a is a pointer
+				if (arrayNode.getInitialType().isScalar()) {
+					if (tmpAbs.op != null) {
+						AssignExprIF auxLhs = absFactory
+								.assignmentExpression(arrayNode);
+
+						assigns.add(processAuxAssignment(auxLhs,
+								tmpAbs.assignExpr, tmpAbs.op));
+						tmpAbs = new TempExprAbstraction(auxLhs,
+								Operator.DEREFERENCE);
+					} else
+						tmpAbs.op = Operator.DEREFERENCE;
+				}
+				return tmpAbs;
+			}
 			default :
 				// general operation:
 				int numArgs = opNode.getNumberOfArguments();
@@ -562,7 +582,7 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 				for (int i = 0; i < numArgs; i++) {
 					ExpressionNode arg = opNode.getArgument(i);
 
-					if (!isPointerOrArrayType(arg))
+					if (isIrrelaventOperand(arg))
 						continue;
 
 					TempExprAbstraction exprAbs = processRHSExpressionNode(arg);
@@ -578,6 +598,11 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 		}
 	}
 
+	/**
+	 * process OpenMP node: ignore OpenMP pragma and process statement as usual
+	 * 
+	 * @param stmt
+	 */
 	private void processOmpNode(OmpNode stmt) {
 		switch (stmt.ompNodeKind()) {
 			case EXECUTABLE : {
@@ -587,9 +612,9 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 				break;
 			}
 			default :
-				throw new CIVLUnimplementedFeatureException("convert statement "
-						+ stmt.prettyRepresentation()
-						+ " to a set of assignments for points-to analysis");
+				throw new CIVLUnimplementedFeatureException(
+						"represent OpenMP node " + stmt.prettyRepresentation()
+								+ " in an insensitive flow");
 		}
 	}
 
@@ -631,8 +656,9 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 
 	/**
 	 * <p>
-	 * given "lhs", "rhs" and operator of "rhs", return an {@link AssignmentIF}
-	 * representing <code>lhs = op rhs</code>
+	 * given "lhs", "rhs" and the operator (i.e. dereference or address-of) of
+	 * "rhs", return an {@link AssignmentIF} representing
+	 * <code>lhs = op rhs</code>
 	 * </p>
 	 * 
 	 * <p>
@@ -656,8 +682,8 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 
 	/* *************** Util classes & methods ******************/
 	/**
-	 * A temporary representation, for points-to analysis, of the abstraction of
-	 * one side of an assignment
+	 * A temporary abstract representation of an expression at either side of an
+	 * {@link AssignmentIF}
 	 * 
 	 * @author ziqing
 	 *
@@ -668,7 +694,7 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 		 */
 		final AssignExprIF assignExpr;
 		/**
-		 * dereference, or address-of, or null ?
+		 * dereference, or address-of, or null
 		 */
 		Operator op;
 
@@ -682,12 +708,17 @@ public class CommonAssignmentSequence implements AssignmentSequence {
 	/**
 	 * 
 	 * @param expr
-	 * @return true iff the given expression has pointer or array type
+	 * @return true iff the given expression is NOT a pointer or an array and is
+	 *         a trivial expression (i.e. id or constant)
 	 */
-	private boolean isPointerOrArrayType(ExpressionNode expr) {
+	private boolean isIrrelaventOperand(ExpressionNode expr) {
 		TypeKind kind = expr.getType().kind();
+		ExpressionKind exprKind = expr.expressionKind();
+		boolean nonStringConst = exprKind == CONSTANT
+				&& ((ConstantNode) expr).constantKind() != ConstantKind.STRING;
 
-		return kind == POINTER || kind == ARRAY;
+		return kind != POINTER && kind != ARRAY
+				&& (exprKind == IDENTIFIER_EXPRESSION || nonStringConst);
 	}
 
 	/* *************** Printing ******************/

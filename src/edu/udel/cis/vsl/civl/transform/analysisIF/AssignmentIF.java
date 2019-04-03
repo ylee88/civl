@@ -19,10 +19,15 @@ import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
 public interface AssignmentIF {
 
 	/**
+	 * <p>
 	 * an abstract representation of an expression at left or right hand side of
-	 * an assignment. An abstraction can represent an entity (connects to an
-	 * entity of the original program), an non-trivial expression (e.g.
-	 * allocation , string...) or the worst-case EVERYTHING
+	 * an {@link AssignmentIF}.
+	 * </p>
+	 * 
+	 * <p>
+	 * An abstraction is associated with an entity, an non-trivial expression
+	 * (e.g. allocation , string...) or the worst-case EVERYTHING
+	 * </p>
 	 * 
 	 * @author ziqing
 	 *

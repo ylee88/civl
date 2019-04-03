@@ -8,7 +8,7 @@ import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
 public interface AssignmentFactory {
 
 	/**
-	 * Creates a new {@link AssignmentSequence} for a defined function
+	 * Creates a new {@link InsensitiveFlow} for a defined function
 	 * 
 	 * @param function
 	 *            a {@link Function} entity whose
@@ -18,7 +18,7 @@ public interface AssignmentFactory {
 	 *            function
 	 * @return
 	 */
-	AssignmentSequence assignmentSequence(Function function,
+	InsensitiveFlow assignmentSequence(Function function,
 			InvocationGraphNode igNode);
 
 	/**

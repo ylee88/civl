@@ -18,8 +18,8 @@ import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode.ExpressionKind
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentFactory;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
-import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentSequence;
 import edu.udel.cis.vsl.civl.transform.analysisIF.FlowInsensePointsToAnalyzer;
+import edu.udel.cis.vsl.civl.transform.analysisIF.InsensitiveFlow;
 import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphFactory;
 import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphNode;
 import edu.udel.cis.vsl.civl.transform.analysisIF.PointsToGraph;
@@ -42,7 +42,7 @@ public class CommonFlowInsensePointsToAnalyzer
 
 	/**
 	 * a reference to {@link AssignmentFactory} for creating
-	 * {@link AssignmentSequence}s for analysis
+	 * {@link InsensitiveFlow}s for analysis
 	 */
 	private AssignmentFactory factory;
 
@@ -53,10 +53,10 @@ public class CommonFlowInsensePointsToAnalyzer
 	private InvocationGraphFactory igFactory;
 
 	/**
-	 * a table maps {@link Function}s to {@link AssignmentSequence}s that
-	 * represent the points-to abstraction of their function bodies.
+	 * a table maps {@link Function}s to {@link InsensitiveFlow}s that represent
+	 * the points-to abstraction of their function bodies.
 	 */
-	private Map<Function, AssignmentSequence> table;
+	private Map<Function, InsensitiveFlow> table;
 
 	/**
 	 * a table maps {@link InvocationGraphNode}s to their {@link PointsToGraph}s
@@ -97,15 +97,12 @@ public class CommonFlowInsensePointsToAnalyzer
 			calls.add(node);
 			funcCallsTable.put(node.function(), calls);
 		}
+		System.out.println(
+				rootNode + " points-to info:\n" + pointsToTable.get(rootNode));
 	}
 
 	@Override
 	public List<AssignExprIF> mayPointsTo(Function func, Entity ptr) {
-		return this.mayPointsToWorker(func, ptr);
-	}
-
-	@Override
-	public List<AssignExprIF> mayPointsTo(Function func, ExpressionNode ptr) {
 		return this.mayPointsToWorker(func, ptr);
 	}
 
@@ -119,10 +116,7 @@ public class CommonFlowInsensePointsToAnalyzer
 			PointsToGraph ptGraph = this.pointsToTable.get(node);
 			Iterable<AssignExprIF> pts;
 
-			if (ptr instanceof Entity)
-				pts = ptGraph.mayPointsTo((Entity) ptr);
-			else
-				pts = ptGraph.mayPointsTo((ExpressionNode) ptr);
+			pts = ptGraph.mayPointsTo((Entity) ptr);
 			for (AssignExprIF pt : pts)
 				result.add(pt);
 		}
@@ -145,7 +139,7 @@ public class CommonFlowInsensePointsToAnalyzer
 		// and an invocation graph:
 		Function mainFunc = (Function) ast.getInternalOrExternalEntity("main");
 		InvocationGraphNode mainNode = igFactory.newNode(mainFunc, null, null);
-		AssignmentSequence mainSeq = factory.assignmentSequence(mainFunc,
+		InsensitiveFlow mainSeq = factory.assignmentSequence(mainFunc,
 				mainNode);
 
 		System.out.println(mainNode.function().getName() + ":\n"
@@ -164,7 +158,7 @@ public class CommonFlowInsensePointsToAnalyzer
 		if (sameValNode != null)
 			sameValNode.share(node);
 		else {
-			AssignmentSequence seq = factory.assignmentSequence(node.function(),
+			InsensitiveFlow seq = factory.assignmentSequence(node.function(),
 					node);
 
 			table.put(node.function(), seq);
@@ -178,7 +172,7 @@ public class CommonFlowInsensePointsToAnalyzer
 
 	private void intraProceduralAnalysis(
 			Map<Function, PointsToGraph> basePtGraphs) {
-		for (Entry<Function, AssignmentSequence> entry : table.entrySet()) {
+		for (Entry<Function, InsensitiveFlow> entry : table.entrySet()) {
 			PointsToGraph ptGraph = SimplePointsToAnalysis
 					.newPointsToGraph(entry.getValue(), universe);
 
