@@ -65,7 +65,7 @@ import edu.udel.cis.vsl.sarl.IF.object.StringObject;
 import edu.udel.cis.vsl.sarl.IF.object.SymbolicObject;
 import edu.udel.cis.vsl.sarl.IF.object.SymbolicObject.SymbolicObjectKind;
 import edu.udel.cis.vsl.sarl.IF.object.SymbolicSequence;
-import edu.udel.cis.vsl.sarl.IF.type.SymbolicArrayType;
+import edu.udel.cis.vsl.sarl.IF.type.SymbolicCompleteArrayType;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
 
 /**
@@ -1565,33 +1565,16 @@ public class ImmutableStateFactory implements StateFactory {
 		IntObject mallocIndex = universe.intObject(mallocId);
 		SymbolicExpression heapField = universe.tupleRead(heapValue,
 				mallocIndex);
-		// int heapFieldLength = ((IntegerNumber)
-		// universe.extractNumber(universe
-		// .length(heapField))).intValue();
-		// Map<SymbolicExpression, SymbolicExpression> oldToNewHeapMemUnits =
-		// new HashMap<>(
-		// heapFieldLength - index);
-		// Map<SymbolicExpression, SymbolicExpression> oldToNewHeapPointers =
-		// new HashMap<>();
-		// int numDyscopes = state.numDyscopes();
-		// ImmutableDynamicScope[] newScopes = new
-		// ImmutableDynamicScope[numDyscopes];
 		ImmutableState theState = (ImmutableState) state;
+		SymbolicExpression oldVal = universe.arrayRead(heapField,
+				universe.integer(index));
+		SymbolicType oldValType = oldVal.type();
 
-		// oldToNewHeapMemUnits.put(symbolicUtil.heapMemUnit(heapObjectPointer),
-		// this.symbolicUtil.undefinedPointer());
+		assert oldValType instanceof SymbolicCompleteArrayType;
 		heapField = universe.arrayWrite(heapField, universe.integer(index),
-				symbolicUtil.invalidHeapObject(
-						((SymbolicArrayType) heapField.type()).elementType()));
+				symbolicUtil.invalidHeapObject(oldValType));
 		heapValue = universe.tupleWrite(heapValue, mallocIndex, heapField);
 		theState = this.setVariable(theState, 0, dyscopeId, heapValue);
-		// computes all affected pointers' oldToNew map
-		// this.computeOldToNewHeapPointers(theState, oldToNewHeapMemUnits,
-		// oldToNewHeapPointers);
-		// for (int i = 0; i < numDyscopes; i++)
-		// newScopes[i] = theState.getDyscope(i).updateHeapPointers(
-		// oldToNewHeapPointers, universe);
-		// theState = theState.setScopes(newScopes);
 		return theState;
 	}
 
@@ -2597,7 +2580,6 @@ public class ImmutableStateFactory implements StateFactory {
 					state.getProcessState(pid).getLocation());
 		}
 	}
-
 
 	@Override
 	public SymbolicExpression addInternalProcess(SymbolicExpression stateValue,

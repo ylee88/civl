@@ -520,7 +520,9 @@ public class CommonEvaluator implements Evaluator {
 			if (universe.reasoner(state.getPathCondition(universe))
 					.isValid(derefResult.validCondition)) {
 				deref = derefResult.value;
-				return new Evaluation(state, deref);
+				if (vid != 0 || !deref.containsSubobject(
+						ModelConfiguration.getInvalidName(universe)))
+					return new Evaluation(state, deref);
 			}
 		}
 

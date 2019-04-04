@@ -63,11 +63,6 @@ public final class ModelConfiguration {
 
 	/* Reserved names of symbolic constants */
 	/**
-	 * Constant for the name of undefined values
-	 */
-	public static final String UNDEFINED = "UNDEFINED";
-
-	/**
 	 * Constant for the name of invalid heap objects.
 	 */
 	public static final String INVALID = "INVALID";
@@ -76,7 +71,7 @@ public final class ModelConfiguration {
 	 * the set of reserved names for symbolic constants
 	 */
 	public static Set<String> RESERVE_NAMES = new HashSet<>(
-			Arrays.asList(UNDEFINED, INVALID));
+			Arrays.asList(INVALID));
 
 	/**
 	 * add new name to the reserved name set
@@ -441,17 +436,6 @@ public final class ModelConfiguration {
 	 */
 	public static StringObject getInvalidName(SymbolicUniverse universe) {
 		return universe.stringObject(INVALID);
-	}
-
-	/**
-	 * 
-	 * @param universe
-	 *            a reference to the {@link SymbolicUniverse}
-	 * @return the {@link StringObject} which is the name of the symbolic
-	 *         constants representing undefined values.
-	 */
-	public static StringObject getUndefinedName(SymbolicUniverse universe) {
-		return universe.stringObject(UNDEFINED);
 	}
 
 	/**
