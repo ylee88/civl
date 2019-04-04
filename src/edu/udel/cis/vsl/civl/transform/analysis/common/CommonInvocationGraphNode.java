@@ -9,30 +9,57 @@ import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphNode;
 
 public class CommonInvocationGraphNode implements InvocationGraphNode {
 	/* ***** fields set by initialization and shall not be modified ***** */
-
+	/**
+	 * the parent node , the caller
+	 */
 	private InvocationGraphNode parent;
 
+	/**
+	 * the {@link Function} associated with this node
+	 */
 	private Function function;
 
+	/**
+	 * actual parameters (associated with the caller) of the call associated
+	 * with this node:
+	 */
 	private AssignExprIF[] actualParams;
 
+	/**
+	 * the expression (in caller) that receives the returned value of this call
+	 */
 	private AssignExprIF returnTo;
 
+	/**
+	 * a non-null reference to its RECURSIVE node iff this node is an
+	 * APPROXIMATE node
+	 */
 	private InvocationGraphNode recursive = null;
 
 	/* ********* fields set by initialization ********** */
 	/* ********* and can be modified before static completion *******/
-
+	/**
+	 * node kind may change from ORDINARY to RECURSIVE after initialization
+	 */
 	private IGNodeKind kind;
 
-	/* ********* fields shall not modified AFTER static completion *******/
+	/**
+	 * abstract representation of the formal parameters of the function
+	 * associated with this node
+	 */
 	private AssignExprIF[] formalParams;
 
-	private List<InvocationGraphNode> children;
-
+	/**
+	 * abstract representation of global accesses in the function body
+	 */
 	private List<AssignExprIF> globals;
 
+	/**
+	 * abstract representation of returning expressions in the function body
+	 */
 	private List<AssignExprIF> returnings;
+
+	private List<InvocationGraphNode> children;
 
 	CommonInvocationGraphNode(InvocationGraphNode parent, Function function,
 			IGNodeKind kind, AssignExprIF returnTo,

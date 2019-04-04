@@ -10,7 +10,14 @@ import edu.udel.cis.vsl.sarl.IF.object.IntObject;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicUninterpretedType;
 import edu.udel.cis.vsl.sarl.object.common.SimpleSequence;
 
-public class PointsToGraphComponents {
+/**
+ * Producing points-to graph components, including {@link PointsToConstraint}s,
+ * edges and nodes.
+ * 
+ * @author ziqing
+ *
+ */
+public class PointsToGraphComponentFactory {
 	/* ************** constraints: ************* */
 	/**
 	 * A points to constraint is a subset-of relation, it has one of the
@@ -64,6 +71,7 @@ public class PointsToGraphComponents {
 	}
 
 	/* *********** nodes and edges ********** */
+
 	private int nodeCounter = 0;
 
 	private static String nodeTypeName = "v";
@@ -100,7 +108,7 @@ public class PointsToGraphComponents {
 	 */
 	private SymbolicUniverse universe;
 
-	PointsToGraphComponents(SymbolicUniverse universe) {
+	PointsToGraphComponentFactory(SymbolicUniverse universe) {
 		this.universe = universe;
 		this.nodeType = universe.symbolicUninterpretedType(nodeTypeName);
 		this.edgeType = universe.symbolicConstant(

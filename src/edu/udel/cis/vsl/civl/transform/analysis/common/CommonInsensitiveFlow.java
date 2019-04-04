@@ -56,12 +56,12 @@ import edu.udel.cis.vsl.abc.ast.node.IF.statement.SwitchNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.WhenNode;
 import edu.udel.cis.vsl.abc.ast.type.IF.Type.TypeKind;
 import edu.udel.cis.vsl.civl.model.IF.CIVLUnimplementedFeatureException;
-import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentFactory;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
 import edu.udel.cis.vsl.civl.transform.analysisIF.InsensitiveFlow;
-import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphFactory;
+import edu.udel.cis.vsl.civl.transform.analysisIF.InsensitiveFlowFactory;
 import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphNode;
+import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphNodeFactory;
 
 public class CommonInsensitiveFlow implements InsensitiveFlow {
 
@@ -71,14 +71,14 @@ public class CommonInsensitiveFlow implements InsensitiveFlow {
 	private List<AssignmentIF> assigns = new LinkedList<>();
 
 	/**
-	 * a reference to {@link AssignmentFactory}
+	 * a reference to {@link InsensitiveFlowFactory}
 	 */
-	private AssignmentFactory absFactory;
+	private InsensitiveFlowFactory absFactory;
 
 	/**
-	 * a reference to {@link InvocationGraphFactory}
+	 * a reference to {@link InvocationGraphNodeFactory}
 	 */
-	private InvocationGraphFactory igFactory;
+	private InvocationGraphNodeFactory igFactory;
 
 	/**
 	 * the {@link InvocationGraphNode} that is associated with function body
@@ -93,8 +93,8 @@ public class CommonInsensitiveFlow implements InsensitiveFlow {
 	private Scope functionScope;
 
 	CommonInsensitiveFlow(Iterable<BlockItemNode> funcBody, Scope scope,
-			AssignmentFactory factory, InvocationGraphFactory igFactory,
-			InvocationGraphNode igNode) {
+			InsensitiveFlowFactory factory,
+			InvocationGraphNodeFactory igFactory, InvocationGraphNode igNode) {
 		this.absFactory = factory;
 		this.igFactory = igFactory;
 		this.igNode = igNode;
@@ -192,7 +192,7 @@ public class CommonInsensitiveFlow implements InsensitiveFlow {
 		boolean deref = abs.op == Operator.DEREFERENCE,
 				addrof = abs.op == Operator.ADDRESSOF;
 
-		AssignExprIF lhs = absFactory.assignmentExpression(varDecl.getEntity());
+		AssignExprIF lhs = absFactory.assignExpr(varDecl.getEntity());
 		AssignExprIF rhs = abs.assignExpr;
 
 		assigns.add(absFactory.assignment(lhs, false, rhs, deref, addrof));
@@ -303,7 +303,7 @@ public class CommonInsensitiveFlow implements InsensitiveFlow {
 		AssignExprIF abs = tmpAbs.assignExpr;
 
 		if (tmpAbs.op != null) {
-			AssignExprIF tmp = absFactory.assignmentExpression(retExpr);
+			AssignExprIF tmp = absFactory.assignExpr(retExpr);
 
 			assigns.add(processAuxAssignment(tmp, abs, tmpAbs.op));
 			abs = tmp;
@@ -350,7 +350,7 @@ public class CommonInsensitiveFlow implements InsensitiveFlow {
 				Scope parent = functionScope.getParentScope().getParentScope();
 				Entity sameNameEntity = parent.getLexicalOrdinaryEntity(false,
 						entity.getName());
-				AssignExprIF exprAbs = absFactory.assignmentExpression(entity);
+				AssignExprIF exprAbs = absFactory.assignExpr(entity);
 
 				if (entity == sameNameEntity) {
 					// If this entity is visible from lexical parent scope of
@@ -402,7 +402,7 @@ public class CommonInsensitiveFlow implements InsensitiveFlow {
 
 		if (expr.getType().kind() == TypeKind.POINTER)
 			if (arg.getType().kind() != TypeKind.POINTER) {
-				AssignExprIF auxLhs = absFactory.assignmentExpression(expr);
+				AssignExprIF auxLhs = absFactory.assignExpr(expr);
 				AssignmentIF auxAssign = processAuxAssignment(auxLhs, null,
 						null);
 
@@ -425,7 +425,7 @@ public class CommonInsensitiveFlow implements InsensitiveFlow {
 	private TempExprAbstraction processConstant(ConstantNode constant) {
 		if (constant.constantKind() != ConstantKind.STRING)
 			return null;
-		AssignExprIF abs = absFactory.assignmentExpression(constant);
+		AssignExprIF abs = absFactory.assignExpr(constant);
 
 		return new TempExprAbstraction(abs, Operator.ADDRESSOF);
 	}
@@ -450,8 +450,8 @@ public class CommonInsensitiveFlow implements InsensitiveFlow {
 				.getIdentifier();
 
 		if (funcID.name().equals("$malloc"))
-			return new TempExprAbstraction(
-					absFactory.assignmentExpression(call), Operator.ADDRESSOF);
+			return new TempExprAbstraction(absFactory.assignExpr(call),
+					Operator.ADDRESSOF);
 		return null;
 	}
 
@@ -490,7 +490,7 @@ public class CommonInsensitiveFlow implements InsensitiveFlow {
 							+ funcCall.prettyRepresentation()
 							+ " for points-to analysis.");
 
-		AssignExprIF callExprAbs = absFactory.assignmentExpression(funcCall);
+		AssignExprIF callExprAbs = absFactory.assignExpr(funcCall);
 
 		// to attach a new IGNode as a child of this.igNode
 		//// get actual parameters:
@@ -506,8 +506,7 @@ public class CommonInsensitiveFlow implements InsensitiveFlow {
 			if (abs.op != null) {
 				// use auxiliary variables if the actual parameter involves
 				// dereference or address-of operations:
-				AssignExprIF auxLhs = absFactory
-						.assignmentExpression(actualArg);
+				AssignExprIF auxLhs = absFactory.assignExpr(actualArg);
 
 				result = auxLhs;
 				assigns.add(
@@ -562,8 +561,7 @@ public class CommonInsensitiveFlow implements InsensitiveFlow {
 				// a[e] is represented by *a, if a is a pointer
 				if (arrayNode.getInitialType().isScalar()) {
 					if (tmpAbs.op != null) {
-						AssignExprIF auxLhs = absFactory
-								.assignmentExpression(arrayNode);
+						AssignExprIF auxLhs = absFactory.assignExpr(arrayNode);
 
 						assigns.add(processAuxAssignment(auxLhs,
 								tmpAbs.assignExpr, tmpAbs.op));
@@ -577,7 +575,7 @@ public class CommonInsensitiveFlow implements InsensitiveFlow {
 			default :
 				// general operation:
 				int numArgs = opNode.getNumberOfArguments();
-				AssignExprIF auxLhs = absFactory.assignmentExpression(opNode);
+				AssignExprIF auxLhs = absFactory.assignExpr(opNode);
 
 				for (int i = 0; i < numArgs; i++) {
 					ExpressionNode arg = opNode.getArgument(i);
@@ -637,11 +635,20 @@ public class CommonInsensitiveFlow implements InsensitiveFlow {
 		boolean rhsAddrof = rhsAbs.op == Operator.ADDRESSOF;
 		AssignmentIF assignment;
 
+		// special case for array:
+		// T *p; T a[n];
+		// "p = a;" is suppose to mean "p = &a[0]", i.e., p points to a
+		if (rhs.getInitialType().kind() == TypeKind.ARRAY)
+			if (lhs.getType().kind() == TypeKind.POINTER) {
+				assert !rhsAddrof;
+				rhsAddrof = true;
+			}
+
 		// if it's the case of "*e = *r", convert it to
 		// "v = *r"
 		// "*e = v"
 		if (lhsDeref == true && (rhsDeref == true || rhsAddrof == true)) {
-			AssignExprIF aux = absFactory.assignmentExpression(rhs);
+			AssignExprIF aux = absFactory.assignExpr(rhs);
 
 			assignment = absFactory.assignment(aux, false, rhsAbs.assignExpr,
 					rhsDeref, rhsAddrof);

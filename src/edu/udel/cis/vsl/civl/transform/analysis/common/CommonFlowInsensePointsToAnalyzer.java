@@ -16,12 +16,13 @@ import edu.udel.cis.vsl.abc.ast.entity.IF.Scope;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode.ExpressionKind;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
-import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentFactory;
+import edu.udel.cis.vsl.civl.model.IF.CIVLUnimplementedFeatureException;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
 import edu.udel.cis.vsl.civl.transform.analysisIF.FlowInsensePointsToAnalyzer;
 import edu.udel.cis.vsl.civl.transform.analysisIF.InsensitiveFlow;
-import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphFactory;
+import edu.udel.cis.vsl.civl.transform.analysisIF.InsensitiveFlowFactory;
 import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphNode;
+import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphNodeFactory;
 import edu.udel.cis.vsl.civl.transform.analysisIF.PointsToGraph;
 import edu.udel.cis.vsl.sarl.SARL;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
@@ -33,7 +34,7 @@ public class CommonFlowInsensePointsToAnalyzer
 	/**
 	 * The program associated with this analyzer
 	 */
-	private AST program;
+	private final AST program;
 
 	/**
 	 * the root node of the invocation graph
@@ -41,28 +42,27 @@ public class CommonFlowInsensePointsToAnalyzer
 	private InvocationGraphNode rootNode;
 
 	/**
-	 * a reference to {@link AssignmentFactory} for creating
+	 * a reference to {@link InsensitiveFlowFactory} for creating
 	 * {@link InsensitiveFlow}s for analysis
 	 */
-	private AssignmentFactory factory;
+	private InsensitiveFlowFactory factory;
 
 	/**
-	 * a reference to {@link InvocationGraphFactory} for creating
+	 * a reference to {@link InvocationGraphNodeFactory} for creating
 	 * {@link InvocationGraphNode} for analysis
 	 */
-	private InvocationGraphFactory igFactory;
+	private InvocationGraphNodeFactory igFactory;
 
 	/**
 	 * a table maps {@link Function}s to {@link InsensitiveFlow}s that represent
 	 * the points-to abstraction of their function bodies.
 	 */
-	private Map<Function, InsensitiveFlow> table;
+	private Map<Function, InsensitiveFlow> flowTable;
 
 	/**
 	 * a table maps {@link InvocationGraphNode}s to their {@link PointsToGraph}s
 	 */
-	private Map<InvocationGraphNode, PointsToGraph> pointsToTable; // TODO:make
-																	// local
+	private Map<InvocationGraphNode, PointsToGraph> pointsToTable;
 
 	/**
 	 * a table maps functions to all the nodes representing lexical calls to
@@ -72,17 +72,22 @@ public class CommonFlowInsensePointsToAnalyzer
 
 	private SymbolicUniverse universe;
 
-	public CommonFlowInsensePointsToAnalyzer(AST ast, AssignmentFactory factory,
-			InvocationGraphFactory igFactory) {
+	CommonFlowInsensePointsToAnalyzer(AST ast, InsensitiveFlowFactory factory,
+			InvocationGraphNodeFactory igFactory) {
 		this.program = ast;
 		this.factory = factory;
 		this.igFactory = igFactory;
-		this.table = new HashMap<>();
+		this.flowTable = new HashMap<>();
 		this.pointsToTable = new HashMap<>();
 		this.funcCallsTable = new HashMap<>();
 		this.universe = SARL.newStandardUniverse();
-		this.rootNode = abstractProgram(ast);
+		this.rootNode = abstractProgram();
 
+		/*
+		 * map function "f" to a points-to graph which can be used to initialize
+		 * (by PointsToGraph#clone()) the points-to graphs of nodes that are
+		 * associated with the function "f"
+		 */
 		Map<Function, PointsToGraph> basePtGraphs = new HashMap<>();
 
 		intraProceduralAnalysis(basePtGraphs);
@@ -97,8 +102,7 @@ public class CommonFlowInsensePointsToAnalyzer
 			calls.add(node);
 			funcCallsTable.put(node.function(), calls);
 		}
-		System.out.println(
-				rootNode + " points-to info:\n" + pointsToTable.get(rootNode));
+		// System.out.println(pointsToTable.get(rootNode));
 	}
 
 	@Override
@@ -123,34 +127,44 @@ public class CommonFlowInsensePointsToAnalyzer
 		return result;
 	}
 
-	private InvocationGraphNode abstractProgram(AST ast) {
+	/**
+	 * build invocation graph, as well as insensitive flow of each function, for
+	 * the given program
+	 * 
+	 * @param ast
+	 * @return
+	 */
+	private InvocationGraphNode abstractProgram() {
 		/*
 		 * A function can corresponds to multiple invocation graph nodes since a
 		 * function can be called multiple times. This map saves only one node
-		 * for every processed function. Only one node needs to be saved because
-		 * before the points-to analysis, nodes that are associated with the
-		 * same function will have same value. Hence, if a different call to a
-		 * processed function is reached, the new node that is associated with
-		 * the reached call can be obtained by copy from the saved node.
+		 * for every processed function. We only save one node for a function
+		 * because nodes associated with the same function will have same value
+		 * before the points-to analysis.
 		 */
 		Map<Function, InvocationGraphNode> funcs2Nodes = new HashMap<>();
-		// start from "main" function, builds an abstraction of the program,
-		// which is a table that maps functions to their assignment sequences
-		// and an invocation graph:
-		Function mainFunc = (Function) ast.getInternalOrExternalEntity("main");
-		InvocationGraphNode mainNode = igFactory.newNode(mainFunc, null, null);
-		InsensitiveFlow mainSeq = factory.assignmentSequence(mainFunc,
-				mainNode);
+		// start from "main" function, builds an invocation graph of the
+		// program:
+		Function mainFunc = (Function) program
+				.getInternalOrExternalEntity("main");
 
-		System.out.println(mainNode.function().getName() + ":\n"
-				+ mainSeq.toString() + "\n\n");
+		if (mainFunc == null)
+			throw new CIVLUnimplementedFeatureException(
+					"points-to analysis without main function");
+
+		InvocationGraphNode mainNode = igFactory.newNode(mainFunc, null, null);
+		InsensitiveFlow mainFlow = factory.InsensitiveFlow(mainFunc, mainNode);
+		// System.out.println(mainFlow);
 		funcs2Nodes.put(mainFunc, mainNode);
-		table.put(mainFunc, mainSeq);
+		flowTable.put(mainFunc, mainFlow);
 		for (InvocationGraphNode child : mainNode.children())
 			abstractInvocation(child, funcs2Nodes);
 		return mainNode;
 	}
 
+	/**
+	 * recursively build invocation graph:
+	 */
 	private void abstractInvocation(InvocationGraphNode node,
 			Map<Function, InvocationGraphNode> funcs2Nodes) {
 		InvocationGraphNode sameValNode = funcs2Nodes.get(node.function());
@@ -158,28 +172,38 @@ public class CommonFlowInsensePointsToAnalyzer
 		if (sameValNode != null)
 			sameValNode.share(node);
 		else {
-			InsensitiveFlow seq = factory.assignmentSequence(node.function(),
+			InsensitiveFlow flow = factory.InsensitiveFlow(node.function(),
 					node);
 
-			table.put(node.function(), seq);
+			// System.out.println(flow);
+			flowTable.put(node.function(), flow);
 			funcs2Nodes.put(node.function(), node);
-			System.out.println(
-					node.function().getName() + ":\n" + seq.toString());
 		}
 		for (InvocationGraphNode child : node.children())
 			abstractInvocation(child, funcs2Nodes);
 	}
 
+	/**
+	 * builds points-to graph for every function definition
+	 * 
+	 * @param basePtGraphs
+	 */
 	private void intraProceduralAnalysis(
 			Map<Function, PointsToGraph> basePtGraphs) {
-		for (Entry<Function, InsensitiveFlow> entry : table.entrySet()) {
-			PointsToGraph ptGraph = SimplePointsToAnalysis
-					.newPointsToGraph(entry.getValue(), universe);
+		for (Entry<Function, InsensitiveFlow> entry : flowTable.entrySet()) {
+			PointsToGraph ptGraph = new CommonPointsToGraph(entry.getValue(),
+					universe);
 
 			basePtGraphs.put(entry.getKey(), ptGraph);
 		}
 	}
 
+	/**
+	 * builds points-to graph for every invocation graph node in the invocation
+	 * graph
+	 * 
+	 * @param basePtGraphs
+	 */
 	private void interProceduralAnalysis(
 			Map<Function, PointsToGraph> basePtGraphs) {
 		Map<InvocationGraphNode, FunctionCallInputs> nodeInputsTable = new HashMap<>();
@@ -188,6 +212,19 @@ public class CommonFlowInsensePointsToAnalyzer
 		analyzeInvocationGraphNode(rootNode, nodeInputsTable, basePtGraphs);
 	}
 
+	/**
+	 * recursively do inter-procedural analysis for each invocation graph node
+	 * 
+	 * @param node
+	 *            an invocation graph node
+	 * @param nodeInputsTable
+	 *            a table maps RECURSIVE nodes to the inputs (points-to set for
+	 *            every possible input) shared by the set of their associated
+	 *            APPROXIMATE nodes
+	 * @param funcDefTable
+	 *            a table maps {@link Function}s to its {@link PointsToGraph}
+	 *            obtained at the intra-procedural analysis phase
+	 */
 	private void analyzeInvocationGraphNode(InvocationGraphNode node,
 			Map<InvocationGraphNode, FunctionCallInputs> nodeInputsTable,
 			Map<Function, PointsToGraph> funcDefTable) {
@@ -195,9 +232,11 @@ public class CommonFlowInsensePointsToAnalyzer
 		boolean undone;
 
 		if (nodePtGraph == null) {
+			// base points-to graph of the node:
 			nodePtGraph = funcDefTable.get(node.function()).clone();
 			pointsToTable.put(node, nodePtGraph);
 		}
+		// repeatedly do computation until a fix-point is reached:
 		do {
 			undone = false;
 			// process children (calls in this function):
@@ -231,15 +270,34 @@ public class CommonFlowInsensePointsToAnalyzer
 				for (InvocationGraphNode child : node.children()) {
 					PointsToGraph childPtGraph = pointsToTable.get(child);
 
-					undone |= computesConstraintsForCall(child, childPtGraph,
+					undone |= computesImpactToCaller(child, childPtGraph,
 							nodePtGraph);
 				}
 		} while (undone);
 	}
 
 	/**
+	 * <p>
+	 * process an APPROXIMATE node: If the {@link FunctionCallInputs} shared by
+	 * all peer APPROXIMATE nodes have covered the inputs (points-to set of the
+	 * actual parameters and global accesses of this node), the effect of this
+	 * node to its caller can be computed. Otherwise, merging the inputs of this
+	 * node to the shared {@link FunctionCallInputs}, delay the processing.
+	 * </p>
 	 * 
-	 * Test inputs, return test result
+	 * @param node
+	 *            the processing APPROXIMATE invocation graph node
+	 * @param callerPtGraph
+	 *            the points-to graph of the parent node of the processing node
+	 * @param inputsTable
+	 *            a table maps RECURSIVE nodes to their
+	 *            {@link FunctionCallInputs} which is shared by the set of their
+	 *            associated APPROXIMATE nodes
+	 * @return true IFF analyzing this nodes 1) affects the points-to
+	 *         information of its caller or 2) affects its
+	 *         {@link FunctionCallInputs} which is shared by its APPROXIMATE
+	 *         peers. In general, returning true means a fix-point is definitely
+	 *         not reached.
 	 */
 	private boolean analyzeApproximateNode(InvocationGraphNode node,
 			PointsToGraph callerPtGraph,
@@ -251,27 +309,38 @@ public class CommonFlowInsensePointsToAnalyzer
 		if (inputs == null) {
 			inputs = new FunctionCallInputs(node);
 			inputsTable.put(recurNode, inputs);
+			// an empty FunctionCallInputs will cover nothing, so no need to
+			// test
 		} else
 			covered = coveredByInput(node, callerPtGraph, inputs);
 		if (covered) {
-			// recursive node must be processed before approximate node, so its
-			// pointsToGraph != null
 			PointsToGraph recurPtGraph = pointsToTable.get(recurNode);
 
+			// since the analysis goes DFS, recursive node must be processed
+			// before approximate node, so its pointsToGraph shall not be null
+			assert recurPtGraph != null;
 			// computes the constraints:
-			return computesConstraintsForCall(node, recurPtGraph,
-					callerPtGraph);
+			return computesImpactToCaller(node, recurPtGraph, callerPtGraph);
 		} else {
-			// add inputs computed from caller graph to saved inputs:
-			addToInputs(node, callerPtGraph, inputs);
+			// merge my inputs to the shared inputs:
+			mergeInputs(node, callerPtGraph, inputs);
 			inputsTable.put(recurNode, inputs);
 			return true;
 		}
 	}
 
 	/**
+	 * <p>
+	 * computes the impact of an call associated with ordinary invocation graph
+	 * node to its caller
+	 * </p>
 	 * 
-	 * computes constraints for the caller pt graph
+	 * @param node
+	 *            the processing ORDINARY invocation graph node
+	 * @param callerPtGraph
+	 *            the points-to graph of the parent node of the processing node
+	 * @return true IFF analyzing this nodes affects the points-to information
+	 *         of its caller, i.e. a fix point is definitely not reached
 	 */
 	private boolean analyzeOrdinaryNode(InvocationGraphNode node,
 			PointsToGraph callerPtGraph) {
@@ -283,9 +352,31 @@ public class CommonFlowInsensePointsToAnalyzer
 			nodePtGraph.addPointsTo(node.formalParams()[i++],
 					callerPtGraph.mayPointsTo(actualParam));
 
-		return computesConstraintsForCall(node, nodePtGraph, callerPtGraph);
+		return computesImpactToCaller(node, nodePtGraph, callerPtGraph);
 	}
 
+	/**
+	 * <p>
+	 * process a RECURSIVE kind invocation graph node: 1) if there is NO delayed
+	 * APPROXIMATE node associated with this node, merge the inputs and computes
+	 * the impact to its caller; 2) if there is at least one delayed APPROXIMATE
+	 * node, merge inputs and adding all inputs information from all its
+	 * APPROXIMATE nodes to the points-to graph
+	 * </p>
+	 * 
+	 * @param node
+	 *            the process RECURSIVE invocation graph node
+	 * @param callerPtGraph
+	 *            the points-to graph of the parent of the processing node
+	 * @param inputsTable
+	 *            a table maps RECURSIVE nodes to their
+	 *            {@link FunctionCallInputs} which is shared by the set of their
+	 *            associated APPROXIMATE nodes
+	 * @return true IFF 1) true IFF analyzing this nodes affects the points-to
+	 *         information of its caller or 2) there are delayed APPROXIMATE
+	 *         nodes. In general, returning true means a fix point is definitely
+	 *         not reached.
+	 */
 	private boolean analyzeRecursiveNode(InvocationGraphNode node,
 			PointsToGraph callerPtGraph,
 			Map<InvocationGraphNode, FunctionCallInputs> inputsTable) {
@@ -295,27 +386,21 @@ public class CommonFlowInsensePointsToAnalyzer
 		// approximate shall have been recursively processed hence inputs shall
 		// not be null
 		assert inputs != null;
-		boolean covered = coveredByInput(node, callerPtGraph, inputs);
-
-		if (covered) {
+		if (!inputs.pending) {
 			// computes the constraints:
-			return computesConstraintsForCall(node, nodePtGraph, callerPtGraph);
+			return computesImpactToCaller(node, nodePtGraph, callerPtGraph);
+		} else {
+			mergeInputs(node, callerPtGraph, inputs);
+			addInputsToPointsToGraph(node, nodePtGraph, inputs);
+			return true;
 		}
-		addToInputs(node, callerPtGraph, inputs);
-		//
-		// List<InvocationGraphNode> pendings = pendingLists.get(node);
-		//
-		// if (pendings != null)
-		// for (InvocationGraphNode pending : pendings)
-		// inputs.addInputs(inputsTable.get(pending));
-		return !covered || recomputePointsToGraph(node, nodePtGraph, inputs);
 	}
 
 	/**
-	 * Given a invocation graph node, a points-to graph of the function
-	 * associated with the node and the information of the inputs of the
-	 * function call represented by the node. Add the inputs information to the
-	 * points-to graph.
+	 * Given a RECURSIVE invocation graph node, a points-to graph of the node
+	 * and the inputs information of the node. Add the inputs information, which
+	 * includes the points-to set of formal parameters and global variables to
+	 * the points-to graph.
 	 * 
 	 * @param node
 	 *            a invocation node
@@ -323,31 +408,24 @@ public class CommonFlowInsensePointsToAnalyzer
 	 *            the points-to graph of the function associated with the given
 	 *            node
 	 * @param inputs
-	 *            inputs information of the call represented by the given node,
-	 *            i.e., the points-to set of every input including parameters
-	 *            and global accesses
+	 *            {@link FunctionCallInputs} information of the given node
 	 */
-	private boolean recomputePointsToGraph(InvocationGraphNode node,
+	private void addInputsToPointsToGraph(InvocationGraphNode node,
 			PointsToGraph nodeGraph, FunctionCallInputs inputs) {
 		int i = 0;
-		boolean changed = false;
 
 		// formals:
 		for (AssignExprIF formal : node.formalParams())
-			changed |= nodeGraph.addPointsTo(formal,
-					inputs.getParamInputs(i++));
+			nodeGraph.addPointsTo(formal, inputs.getParamInputs(i++));
 		// globals:
 		for (AssignExprIF global : node.accessedGlobals())
-			changed |= nodeGraph.addPointsTo(global,
-					inputs.getGlobalInputs(global));
-		return changed;
+			nodeGraph.addPointsTo(global, inputs.getGlobalInputs(global));
 	}
 
 	/**
-	 * Given a invocation graph node, a points-to graph of the function
-	 * associated with the node, computes the impact of the call represented by
-	 * the node and saves the impact in the points-to graph of the caller
-	 * function.
+	 * Given a invocation graph node, a points-to graph of the node, computes
+	 * the impact of callee to the caller and returns true if the caller graph
+	 * is changed.
 	 * 
 	 * @param node
 	 *            a invocation node
@@ -360,7 +438,7 @@ public class CommonFlowInsensePointsToAnalyzer
 	 * @return true iff at least one of the computed constraints is new to the
 	 *         caller's points-to graph
 	 */
-	private boolean computesConstraintsForCall(InvocationGraphNode node,
+	private boolean computesImpactToCaller(InvocationGraphNode node,
 			PointsToGraph nodeGraph, PointsToGraph callerGraph) {
 		int i = 0;
 		boolean changed = false;
@@ -388,7 +466,7 @@ public class CommonFlowInsensePointsToAnalyzer
 
 	/**
 	 * Test if the inputs (i.e., global objects and actual parameters) of a node
-	 * are contained by the saved inputs of the node.
+	 * are contained by the {@link FunctionCallInputs}.
 	 * 
 	 * @param node
 	 *            a invocation node
@@ -427,7 +505,7 @@ public class CommonFlowInsensePointsToAnalyzer
 	 * @param inputs
 	 *            the saved inputs of the given node
 	 */
-	private void addToInputs(InvocationGraphNode node,
+	private void mergeInputs(InvocationGraphNode node,
 			PointsToGraph callerGraph, FunctionCallInputs inputs) {
 		int i = 0;
 
@@ -471,6 +549,14 @@ public class CommonFlowInsensePointsToAnalyzer
 	}
 
 	/* ****************** sub-classes ******************* */
+	/**
+	 * Instances of this classes aggregates inputs, i.e. points-to of formal
+	 * parameters and global variables, of a RECURSIVE node and its APPROXIMATE
+	 * descendants
+	 * 
+	 * @author ziqing
+	 *
+	 */
 	private class FunctionCallInputs {
 		/**
 		 * points-to set of each formal parameter of a function:
@@ -478,6 +564,8 @@ public class CommonFlowInsensePointsToAnalyzer
 		Map<AssignExprIF, Set<AssignExprIF>> globalInputsMap;
 
 		ArrayList<Set<AssignExprIF>> formalInputsMap;
+
+		boolean pending = false;
 
 		FunctionCallInputs(InvocationGraphNode node) {
 			globalInputsMap = new HashMap<>();
@@ -524,24 +612,6 @@ public class CommonFlowInsensePointsToAnalyzer
 				Iterable<AssignExprIF> inputs) {
 			for (AssignExprIF input : inputs)
 				this.globalInputsMap.get(global).add(input);
-		}
-
-		void addInputs(FunctionCallInputs inputs) {
-			for (Entry<AssignExprIF, Set<AssignExprIF>> entry : inputs.globalInputsMap
-					.entrySet()) {
-				Set<AssignExprIF> myVal = globalInputsMap.get(entry.getKey());
-
-				if (myVal == null)
-					myVal = entry.getValue();
-				else
-					myVal.addAll(entry.getValue());
-				globalInputsMap.put(entry.getKey(), myVal);
-			}
-
-			int i = 0;
-
-			for (Set<AssignExprIF> paramPtSet : inputs.formalInputsMap)
-				formalInputsMap.get(i++).addAll(paramPtSet);
 		}
 	}
 }

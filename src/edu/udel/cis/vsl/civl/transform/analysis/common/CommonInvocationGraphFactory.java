@@ -2,11 +2,11 @@ package edu.udel.cis.vsl.civl.transform.analysis.common;
 
 import edu.udel.cis.vsl.abc.ast.entity.IF.Function;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
-import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphFactory;
+import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphNodeFactory;
 import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphNode;
 import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphNode.IGNodeKind;
 
-public class CommonInvocationGraphFactory implements InvocationGraphFactory {
+public class CommonInvocationGraphFactory implements InvocationGraphNodeFactory {
 
 	@Override
 	public InvocationGraphNode newNode(Function function,

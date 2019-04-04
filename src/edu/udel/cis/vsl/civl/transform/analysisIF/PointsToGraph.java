@@ -7,9 +7,19 @@ import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
  * <p>
  * A graph G = (V, E, Pt) where V are nodes, E are edges and Pt is a function
  * from V to sets of V. In a PointsToGraph, V are memory locations; E are the
- * binary relations over V such that if (v,v') in E, v is a subset of v'; Pt is
- * the "points-to" function such that Pt(v) is the set of memory locations
+ * binary relations over V such that (v,v'), which means v is a subset of v'; Pt
+ * is the "points-to" function such that Pt(v) is the set of memory locations
  * referred by v.
+ * </p>
+ * 
+ * *
+ * <p>
+ * The inputs of a points-to graph is an {@link InsensitiveFlow} and an initial
+ * points-to set (optional). A points-to graph encodes all may points-to
+ * informations of the associated {@link InsensitiveFlow}. Initial points-to set
+ * can be given via the method {@link #addPointsTo(AssignExprIF, Iterable)}.
+ * Adding initial points-to set information will cause a re-computation of the
+ * graph when next time {@link #mayPointsTo} gets called.
  * </p>
  * 
  * @author ziqing
@@ -17,8 +27,21 @@ import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
  */
 public interface PointsToGraph {
 
+	/**
+	 * 
+	 * @param entity
+	 * 
+	 * @return the may points-to set of the given entity
+	 */
 	Iterable<AssignExprIF> mayPointsTo(Entity entity);
 
+	/**
+	 * 
+	 * @param expr
+	 * @return the may points-to set of the given {@link AssignExprIF} which is
+	 *         the abstract representation of an expression in this graph and
+	 *         associated insensitive flow
+	 */
 	Iterable<AssignExprIF> mayPointsTo(AssignExprIF expr);
 
 	/**

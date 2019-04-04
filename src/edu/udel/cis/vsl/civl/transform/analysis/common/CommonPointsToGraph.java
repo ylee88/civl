@@ -9,7 +9,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import edu.udel.cis.vsl.abc.ast.entity.IF.Entity;
-import edu.udel.cis.vsl.civl.transform.analysis.common.PointsToGraphComponents.PointsToConstraint;
+import edu.udel.cis.vsl.civl.transform.analysis.common.PointsToGraphComponentFactory.PointsToConstraint;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignmentKind;
@@ -19,9 +19,13 @@ import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
 
 /**
+ * <p>
  * Simple points-to analysis graph based on the naive approach introduced as a
  * background in "The Ant and the Grasshopper: Fast and Accurate Pointer
  * Analysis for Millions of Lines of Code" paper.
+ * </p>
+ * 
+ * 
  * 
  * @author ziqing
  *
@@ -63,7 +67,7 @@ public class CommonPointsToGraph implements PointsToGraph {
 	/**
 	 * a reference to the class providing nodes, edges and constraints:
 	 */
-	private PointsToGraphComponents componentsFactory;
+	private PointsToGraphComponentFactory componentsFactory;
 
 	/**
 	 * a reference to {@link SymbolicUniverse}
@@ -75,12 +79,16 @@ public class CommonPointsToGraph implements PointsToGraph {
 	 */
 	private InsensitiveFlow programAbstraction;
 
+	/**
+	 * true iff a re-computation is need before answering {@link #mayPointsTo}
+	 * queries
+	 */
 	private boolean dirty = false;
 
 	CommonPointsToGraph(InsensitiveFlow programAbstraction,
 			SymbolicUniverse universe) {
 		this.universe = universe;
-		this.componentsFactory = new PointsToGraphComponents(universe);
+		this.componentsFactory = new PointsToGraphComponentFactory(universe);
 		this.entityToNode = new HashMap<>();
 		this.nodeToAssignExpr = new HashMap<>();
 		this.assignExprToNode = new HashMap<>();

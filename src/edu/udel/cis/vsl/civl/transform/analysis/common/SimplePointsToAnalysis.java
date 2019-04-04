@@ -1,24 +1,27 @@
 package edu.udel.cis.vsl.civl.transform.analysis.common;
 
-import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentFactory;
-import edu.udel.cis.vsl.civl.transform.analysisIF.InsensitiveFlow;
-import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphFactory;
-import edu.udel.cis.vsl.civl.transform.analysisIF.PointsToGraph;
-import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
+import edu.udel.cis.vsl.abc.ast.IF.AST;
+import edu.udel.cis.vsl.civl.transform.analysisIF.FlowInsensePointsToAnalyzer;
+import edu.udel.cis.vsl.civl.transform.analysisIF.InsensitiveFlowFactory;
+import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphNodeFactory;
 
+/**
+ * The interface of the simple points-to analysis module
+ * 
+ * @author ziqing
+ *
+ */
 public class SimplePointsToAnalysis {
 
-	static public AssignmentFactory newAssignmentFactory(
-			InvocationGraphFactory igFactory) {
-		return new CommonAssignmentFactory(igFactory);
+	static public FlowInsensePointsToAnalyzer flowInsensePointsToAnalyzer(
+			AST program) {
+		InvocationGraphNodeFactory igFactory = new CommonInvocationGraphFactory();
+		return new CommonFlowInsensePointsToAnalyzer(program,
+				newInsensitiveFlowFactory(igFactory), igFactory);
 	}
 
-	static public InvocationGraphFactory newInvocationGraphFactory() {
-		return new CommonInvocationGraphFactory();
-	}
-
-	static public PointsToGraph newPointsToGraph(
-			InsensitiveFlow programAbstraction, SymbolicUniverse universe) {
-		return new CommonPointsToGraph(programAbstraction, universe);
+	static private InsensitiveFlowFactory newInsensitiveFlowFactory(
+			InvocationGraphNodeFactory igFactory) {
+		return new CommonInsensitiveFlowFactory(igFactory);
 	}
 }

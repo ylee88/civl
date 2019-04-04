@@ -4,7 +4,13 @@ import edu.udel.cis.vsl.abc.ast.entity.IF.Function;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.FunctionCallNode;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
 
-public interface InvocationGraphFactory {
+/**
+ * creating invocation graph nodes
+ * 
+ * @author ziqing
+ *
+ */
+public interface InvocationGraphNodeFactory {
 
 	/**
 	 * creates a new invocation graph node

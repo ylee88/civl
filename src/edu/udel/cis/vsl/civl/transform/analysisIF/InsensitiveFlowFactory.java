@@ -5,7 +5,7 @@ import edu.udel.cis.vsl.abc.ast.entity.IF.Function;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
 
-public interface AssignmentFactory {
+public interface InsensitiveFlowFactory {
 
 	/**
 	 * Creates a new {@link InsensitiveFlow} for a defined function
@@ -18,7 +18,7 @@ public interface AssignmentFactory {
 	 *            function
 	 * @return
 	 */
-	InsensitiveFlow assignmentSequence(Function function,
+	InsensitiveFlow InsensitiveFlow(Function function,
 			InvocationGraphNode igNode);
 
 	/**
@@ -52,25 +52,25 @@ public interface AssignmentFactory {
 
 	/**
 	 * <p>
-	 * A abstraction of an expression at one side of an assignment, which is
-	 * associated with a pointer-type variable
+	 * A abstraction of an expression at one side of an {@link AssignmentIF},
+	 * which is associated with a pointer-type variable
 	 * </p>
 	 * 
 	 * @param source
 	 * @return
 	 */
-	AssignExprIF assignmentExpression(Entity source);
+	AssignExprIF assignExpr(Entity source);
 
 	/**
 	 * <p>
-	 * A abstraction of an expression at one side of an assignment, which is
-	 * associated with an non-trivial expression
+	 * A abstraction of an expression at one side of an {@link AssignmentIF},
+	 * which is associated with an non-trivial expression
 	 * </p>
 	 * 
 	 * @param source
 	 * @return
 	 */
-	AssignExprIF assignmentExpression(ExpressionNode source);
+	AssignExprIF assignExpr(ExpressionNode source);
 
 	/**
 	 * <p>

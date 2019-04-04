@@ -9,14 +9,14 @@ import edu.udel.cis.vsl.abc.ast.node.IF.declaration.FunctionDefinitionNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.declaration.VariableDeclarationNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.type.FunctionTypeNode;
-import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentFactory;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
 import edu.udel.cis.vsl.civl.transform.analysisIF.InsensitiveFlow;
-import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphFactory;
+import edu.udel.cis.vsl.civl.transform.analysisIF.InsensitiveFlowFactory;
 import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphNode;
+import edu.udel.cis.vsl.civl.transform.analysisIF.InvocationGraphNodeFactory;
 
-public class CommonAssignmentFactory implements AssignmentFactory {
+public class CommonInsensitiveFlowFactory implements InsensitiveFlowFactory {
 
 	/**
 	 * a table maps variables to their unique abstraction
@@ -31,16 +31,26 @@ public class CommonAssignmentFactory implements AssignmentFactory {
 	private int AssignExprCounter = 0;
 
 	/**
-	 * a reference to {@link InvocationGraphFactory}
+	 * a reference to {@link InvocationGraphNodeFactory}
 	 */
-	private InvocationGraphFactory igFactory;
+	private InvocationGraphNodeFactory ignFactory;
 
 	class CommonAssignExpr implements AssignExprIF {
-
+		/**
+		 * the unique instance id
+		 */
 		private int id;
 
+		/**
+		 * the unique entity associated with this instance, may be null if this
+		 * instance is not associated with an entity:
+		 */
 		private Entity source = null;
 
+		/**
+		 * the expression associated with this instance; it is null iff
+		 * <code>{@link #source} !=null</code>
+		 */
 		private ExpressionNode nonEntitySource = null;
 
 		CommonAssignExpr(Entity source) {
@@ -154,10 +164,10 @@ public class CommonAssignmentFactory implements AssignmentFactory {
 		}
 	}
 
-	CommonAssignmentFactory(InvocationGraphFactory igFactory) {
+	CommonInsensitiveFlowFactory(InvocationGraphNodeFactory igFactory) {
 		this.FULL = new CommonAssignExpr();
 		this.seenAssignExprs = new HashMap<>();
-		this.igFactory = igFactory;
+		this.ignFactory = igFactory;
 	}
 
 	@Override
@@ -167,7 +177,7 @@ public class CommonAssignmentFactory implements AssignmentFactory {
 	}
 
 	@Override
-	public AssignExprIF assignmentExpression(Entity source) {
+	public AssignExprIF assignExpr(Entity source) {
 		AssignExprIF result = seenAssignExprs.get(source);
 
 		if (result == null) {
@@ -178,7 +188,7 @@ public class CommonAssignmentFactory implements AssignmentFactory {
 	}
 
 	@Override
-	public AssignExprIF assignmentExpression(ExpressionNode source) {
+	public AssignExprIF assignExpr(ExpressionNode source) {
 		return new CommonAssignExpr(source);
 	}
 
@@ -188,12 +198,11 @@ public class CommonAssignmentFactory implements AssignmentFactory {
 	}
 
 	@Override
-	public InsensitiveFlow assignmentSequence(Function function,
+	public InsensitiveFlow InsensitiveFlow(Function function,
 			InvocationGraphNode igNode) {
 		FunctionDefinitionNode funcDef = function.getDefinition();
-		InsensitiveFlow result = new CommonInsensitiveFlow(
-				funcDef.getBody(), funcDef.getBody().getScope(), this,
-				this.igFactory, igNode);
+		InsensitiveFlow result = new CommonInsensitiveFlow(funcDef.getBody(),
+				funcDef.getBody().getScope(), this, this.ignFactory, igNode);
 		// set formal parameters:
 		FunctionTypeNode funcType = function.getDefinition().getTypeNode();
 		AssignExprIF formals[] = new AssignExprIF[funcType.getParameters()
@@ -202,7 +211,7 @@ public class CommonAssignmentFactory implements AssignmentFactory {
 
 		for (VariableDeclarationNode varDecl : function.getDefinition()
 				.getTypeNode().getParameters()) {
-			formals[i++] = assignmentExpression(varDecl.getEntity());
+			formals[i++] = assignExpr(varDecl.getEntity());
 		}
 		igNode.setFormalParameters(formals);
 		return result;
