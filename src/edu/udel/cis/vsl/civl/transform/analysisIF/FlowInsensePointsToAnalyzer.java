@@ -17,5 +17,32 @@ import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
  */
 public interface FlowInsensePointsToAnalyzer {
 
-	List<AssignExprIF> mayPointsTo(Function func, Entity ptr);
+	/**
+	 * Returns the points-to set of the given variable entity.
+	 * 
+	 * @param func
+	 *            the function where the entity appears
+	 * @param var
+	 *            the variable entity
+	 * @return the points-to set of the given variable entity
+	 */
+	List<AssignExprIF> mayPointsTo(Function func, Entity var);
+
+	/**
+	 * Returns the points-to set of the given {@link AssignExprIF}, which is an
+	 * abstraction of an object.
+	 * 
+	 * @param func
+	 *            the function where the pointer expression appears
+	 * @param ptr
+	 *            an expression abstraction
+	 * @return the points-to set of the given {@link AssignExprIF}
+	 */
+	List<AssignExprIF> mayPointsTo(Function func, AssignExprIF ptr);
+
+	/**
+	 * 
+	 * @return the analyzed program associated with this analyzer
+	 */
+	AST analyzedProgram();
 }

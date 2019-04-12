@@ -110,6 +110,16 @@ public class CommonFlowInsensePointsToAnalyzer
 		return this.mayPointsToWorker(func, ptr);
 	}
 
+	@Override
+	public List<AssignExprIF> mayPointsTo(Function func, AssignExprIF ptr) {
+		return this.mayPointsToWorker(func, ptr);
+	}
+
+	@Override
+	public AST analyzedProgram() {
+		return this.program;
+	}
+
 	private List<AssignExprIF> mayPointsToWorker(Function func, Object ptr) {
 
 		Iterable<InvocationGraphNode> calls = funcCallsTable.get(func);
@@ -120,7 +130,10 @@ public class CommonFlowInsensePointsToAnalyzer
 			PointsToGraph ptGraph = this.pointsToTable.get(node);
 			Iterable<AssignExprIF> pts;
 
-			pts = ptGraph.mayPointsTo((Entity) ptr);
+			if (ptr instanceof Entity)
+				pts = ptGraph.mayPointsTo((Entity) ptr);
+			else
+				pts = ptGraph.mayPointsTo((AssignExprIF) ptr);
 			for (AssignExprIF pt : pts)
 				result.add(pt);
 		}
