@@ -117,6 +117,9 @@ public class CommonInsensitiveFlow implements InsensitiveFlow {
 	 * @param node
 	 */
 	private void processBlockItemNode(BlockItemNode node) {
+		if (node == null)
+			return;
+
 		BlockItemKind kind = node.blockItemKind();
 
 		switch (kind) {
@@ -295,6 +298,10 @@ public class CommonInsensitiveFlow implements InsensitiveFlow {
 			return;
 
 		ExpressionNode retExpr = ((ReturnNode) jumpNode).getExpression();
+
+		if (retExpr == null)
+			return;
+
 		TempExprAbstraction tmpAbs = processRHSExpressionNode(retExpr);
 
 		if (tmpAbs == null)
@@ -325,7 +332,8 @@ public class CommonInsensitiveFlow implements InsensitiveFlow {
 			case ARRAY_LAMBDA : {
 				TempExprAbstraction result = processRHSExpressionNode(
 						((ArrayLambdaNode) expr).expression());
-				result.op = null;
+				if (result != null)
+					result.op = null;
 				return result;
 			}
 			case ARROW : {
@@ -501,9 +509,13 @@ public class CommonInsensitiveFlow implements InsensitiveFlow {
 		for (int i = 0; i < numArgs; i++) {
 			ExpressionNode actualArg = funcCall.getArgument(i);
 			TempExprAbstraction abs = processRHSExpressionNode(actualArg);
-			AssignExprIF result = abs.assignExpr;
+			AssignExprIF result;
 
-			if (abs.op != null) {
+			if (abs == null)
+				result = absFactory.assignExpr(actualArg);
+			else
+				result = abs.assignExpr;
+			if (abs != null && abs.op != null) {
 				// use auxiliary variables if the actual parameter involves
 				// dereference or address-of operations:
 				AssignExprIF auxLhs = absFactory.assignExpr(actualArg);

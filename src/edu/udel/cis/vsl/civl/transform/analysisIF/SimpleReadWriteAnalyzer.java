@@ -1,4 +1,4 @@
-package edu.udel.cis.vsl.civl.transform.common;
+package edu.udel.cis.vsl.civl.transform.analysisIF;
 
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -12,6 +12,11 @@ import edu.udel.cis.vsl.abc.ast.entity.IF.Scope;
 import edu.udel.cis.vsl.abc.ast.entity.IF.Variable;
 import edu.udel.cis.vsl.abc.ast.node.IF.ASTNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.ASTNode.NodeKind;
+import edu.udel.cis.vsl.abc.ast.node.IF.PairNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.compound.CompoundInitializerNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.compound.DesignationNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.declaration.InitializerNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.declaration.VariableDeclarationNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ArrowNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.DotNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
@@ -20,6 +25,7 @@ import edu.udel.cis.vsl.abc.ast.node.IF.expression.FunctionCallNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.IdentifierExpressionNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.OperatorNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.OperatorNode.Operator;
+import edu.udel.cis.vsl.abc.ast.node.IF.statement.DeclarationListNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.ExpressionStatementNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.StatementNode;
 import edu.udel.cis.vsl.abc.ast.type.IF.ArrayType;
@@ -29,7 +35,6 @@ import edu.udel.cis.vsl.abc.ast.type.IF.Type.TypeKind;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLUnimplementedFeatureException;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
-import edu.udel.cis.vsl.civl.transform.analysisIF.FlowInsensePointsToAnalyzer;
 
 /**
  * intra-procedural read-write set analyzer
@@ -47,6 +52,12 @@ public class SimpleReadWriteAnalyzer {
 	 * the {@link Function} where the current analyzing code is in
 	 */
 	private Function currentFunction;
+
+	/**
+	 * the set of entities declared in the given ASTNode of interface:
+	 * {@link #collectRWFromStmtDeclExpr(Function, ASTNode, Set)}
+	 */
+	private Set<Entity> declaredEntities;
 
 	/**
 	 * <p>
@@ -69,13 +80,13 @@ public class SimpleReadWriteAnalyzer {
 	 * 
 	 * @author ziqing
 	 */
-	class RWSetElement {
+	public class RWSetElement {
 		/**
 		 * significant if 1) this element is a kind of entity or 2) the
 		 * {@link #arraySubscript} is significant and its base array is an
 		 * {@link Entity}
 		 */
-		final Entity entity;
+		public final Entity entity;
 
 		/**
 		 * 
@@ -90,14 +101,14 @@ public class SimpleReadWriteAnalyzer {
 		 * too which refers to the abstraction of the allocation.</li>
 		 * </ul>
 		 */
-		final OperatorNode arraySubscript;
+		public final OperatorNode arraySubscript;
 
 		/**
 		 * significant if this element is 1) a kind of string literal or
 		 * allocation or 2) the base array of {@link #arraySubscript} is an
 		 * allocation
 		 */
-		final AssignExprIF strOrAlloc;
+		public final AssignExprIF strOrAlloc;
 
 		private RWSetElement(Entity entity) {
 			this.entity = entity;
@@ -122,6 +133,21 @@ public class SimpleReadWriteAnalyzer {
 			this.strOrAlloc = strOrAlloc;
 			this.entity = null;
 			this.arraySubscript = null;
+		}
+
+		/**
+		 * 
+		 * @param e
+		 * @return True iff the given element refers to the same "Object" as
+		 *         this element, i.e. both of them are referring to the same
+		 *         {@link Entity} or {@link #strOrAlloc}
+		 */
+		public boolean sameObject(RWSetElement e) {
+			if (e.entity != null)
+				return e.entity == entity;
+			else
+				return e.strOrAlloc.nonEntitySource() == strOrAlloc
+						.nonEntitySource();
 		}
 
 		@Override
@@ -174,11 +200,11 @@ public class SimpleReadWriteAnalyzer {
 	}
 
 	// output type---read/write set pair:
-	class RWSet {
+	public class RWSet {
 
-		Set<RWSetElement> reads;
+		public Set<RWSetElement> reads;
 
-		Set<RWSetElement> writes;
+		public Set<RWSetElement> writes;
 
 		RWSet() {
 			this.reads = new HashSet<>();
@@ -339,7 +365,7 @@ public class SimpleReadWriteAnalyzer {
 		private static final long serialVersionUID = 1L;
 	}
 
-	class SimpleFullSetException extends Exception {
+	public class SimpleFullSetException extends Exception {
 		// full set exception for informing clients of this Java file
 		private static final long serialVersionUID = 1L;
 		// is write set full or read set full ?
@@ -350,37 +376,76 @@ public class SimpleReadWriteAnalyzer {
 	}
 
 	/* ************** constructor **************/
-
-	SimpleReadWriteAnalyzer(FlowInsensePointsToAnalyzer pointsToAnalyzer) {
+	public SimpleReadWriteAnalyzer(
+			FlowInsensePointsToAnalyzer pointsToAnalyzer) {
 		this.pointsToAnalyzer = pointsToAnalyzer;
 	}
 
 	/**
-	 * collect read/write set from a statement or an expression. If the input is
-	 * not a statement or an expression, this method returns null;
+	 * <p>
+	 * collect read/write set from a statement, a declaration or an expression.
+	 * If the input is not a statement, a declaration or an expression, this
+	 * method returns null;
+	 * </p>
 	 * 
-	 * @param stmtOrExpr
-	 *            an instance of {@link StatementNode} or
+	 * <p>
+	 * note that write set is always a subset of the read set.
+	 * </p>
+	 * 
+	 * @param function
+	 * @param stmtDeclExpr
+	 *            an instance of {@link StatementNode}, Declaration or
 	 *            {@link ExpressionNode}, otherwise this method is a no-op
+	 * @param locallyDeclaredEntities
+	 *            OUTPUT argument: the set of entities declared in the given
+	 *            "stmtDeclExpr" node
 	 * @return the read/write set of the given node
 	 * @throws SimpleFullSetException
 	 */
-	RWSet collectRWFromStmtOrExpr(Function function, ASTNode stmtOrExpr)
+	public RWSet collectRWFromStmtDeclExpr(Function function,
+			ASTNode stmtDeclExpr, Set<Entity> locallyDeclaredEntities)
 			throws SimpleFullSetException {
 		this.currentFunction = function;
-		return collectReadsWritesWorker(stmtOrExpr);
+		this.declaredEntities = new HashSet<>();
+
+		RWSet result = collectReadsWritesWorker(stmtDeclExpr);
+
+		locallyDeclaredEntities.addAll(declaredEntities);
+		return result;
 	}
 
 	// worker method of "collectReadsWrites" that uses the global field
 	// "currentFunction" instead of keeping passing the function as a parameter:
-	private RWSet collectReadsWritesWorker(ASTNode stmtOrExpr)
+	private RWSet collectReadsWritesWorker(ASTNode stmtDeclExpr)
 			throws SimpleFullSetException {
-		if (stmtOrExpr.nodeKind() == NodeKind.STATEMENT)
-			return collectStmtReadsWrites((StatementNode) stmtOrExpr);
-		else if (stmtOrExpr.nodeKind() == NodeKind.EXPRESSION)
-			return collectExprReadsWrites((ExpressionNode) stmtOrExpr);
+		if (stmtDeclExpr.nodeKind() == NodeKind.STATEMENT)
+			return collectStmtReadsWrites((StatementNode) stmtDeclExpr);
+		else if (stmtDeclExpr.nodeKind() == NodeKind.EXPRESSION)
+			return collectExprReadsWrites((ExpressionNode) stmtDeclExpr);
+		else if (stmtDeclExpr.nodeKind() == NodeKind.DECLARATION_LIST) {
+			DeclarationListNode list = (DeclarationListNode) stmtDeclExpr;
+			RWSet rwset = new RWSet();
+
+			for (VariableDeclarationNode varDecl : list)
+				rwset.add(collectVarDeclReadsWrites(varDecl));
+			return rwset;
+		} else if (stmtDeclExpr.nodeKind() == NodeKind.VARIABLE_DECLARATION)
+			return collectVarDeclReadsWrites(
+					(VariableDeclarationNode) stmtDeclExpr);
 		else
 			return null;
+	}
+
+	private RWSet collectVarDeclReadsWrites(VariableDeclarationNode varDecl)
+			throws SimpleFullSetException {
+		InitializerNode init = varDecl.getInitializer();
+		RWSet result = new RWSet();
+
+		if (init == null)
+			return result;
+		result.add(collectInitializerReadsWrites(init));
+		declaredEntities.add(varDecl.getEntity());
+		return result;
 	}
 
 	// collect read/write set from a statement
@@ -420,6 +485,21 @@ public class SimpleReadWriteAnalyzer {
 						"Unexpected statement kind for read/write analysis "
 								+ stmt.statementKind(),
 						stmt.getSource());
+		}
+	}
+
+	// collect reads/writes in initializers:
+	private RWSet collectInitializerReadsWrites(InitializerNode initNode)
+			throws SimpleFullSetException {
+		if (initNode.nodeKind() == NodeKind.EXPRESSION)
+			return collectExprReadsWrites((ExpressionNode) initNode);
+		else {
+			CompoundInitializerNode compInitNode = (CompoundInitializerNode) initNode;
+			RWSet result = new RWSet();
+
+			for (PairNode<DesignationNode, InitializerNode> pair : compInitNode)
+				result.add(collectInitializerReadsWrites(pair.getRight()));
+			return result;
 		}
 	}
 
@@ -537,7 +617,7 @@ public class SimpleReadWriteAnalyzer {
 		ExpressionNode baseArray = opNode;
 
 		do {
-			baseArray = opNode.getArgument(0);
+			baseArray = ((OperatorNode) baseArray).getArgument(0);
 			if (baseArray instanceof OperatorNode)
 				if (((OperatorNode) baseArray)
 						.getOperator() == Operator.SUBSCRIPT)
