@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -107,9 +108,25 @@ public class CommonPointsToGraph implements PointsToGraph {
 		clone.entityToNode = new HashMap<>(entityToNode);
 		clone.nodeToAssignExpr = new HashMap<>(nodeToAssignExpr);
 		clone.assignExprToNode = new HashMap<>(assignExprToNode);
-		clone.pointsTo = new HashMap<>(pointsTo);
+		clone.pointsTo = new HashMap<>();
+		// deep copy:
+		for (Entry<SymbolicExpression, Set<SymbolicExpression>> entry : pointsTo
+				.entrySet()) {
+			Set<SymbolicExpression> clonedPts = new TreeSet<>(
+					universe.comparator());
+
+			clonedPts.addAll(entry.getValue());
+			clone.pointsTo.put(entry.getKey(), clonedPts);
+		}
+
 		clone.allEdges = new HashSet<>(allEdges);
-		clone.subsetToEdge = new HashMap<>(subsetToEdge);
+		clone.subsetToEdge = new HashMap<>();
+		// deep copy:
+		for (Entry<SymbolicExpression, List<SymbolicExpression>> entry : subsetToEdge
+				.entrySet())
+			clone.subsetToEdge.put(entry.getKey(),
+					new LinkedList<>(entry.getValue()));
+
 		clone.dirty = this.dirty;
 		return clone;
 	}
@@ -359,10 +376,16 @@ public class CommonPointsToGraph implements PointsToGraph {
 
 			// for every superset of "pt", add what "pt" points-to to the
 			// superset:
-			Iterable<SymbolicExpression> edges = subsetToEdge.get(node);
+			List<SymbolicExpression> edges = subsetToEdge.get(node);
 
-			if (edges != null)
-				for (SymbolicExpression edge : edges) {
+			if (edges != null) {
+				SymbolicExpression[] currEdges = new SymbolicExpression[edges
+						.size()];
+
+				// the following loop may modify "edges" hence use another array
+				// for iteration:
+				edges.toArray(currEdges);
+				for (SymbolicExpression edge : currEdges) {
 					SymbolicExpression superNode = componentsFactory
 							.getSuperset(edge);
 					Set<SymbolicExpression> superPts = pointsTo.get(superNode);
@@ -391,6 +414,7 @@ public class CommonPointsToGraph implements PointsToGraph {
 								// only for a subset-of *superNode:
 								updateEdgesWithConstraints(cons);
 				}
+			}
 		}
 	}
 

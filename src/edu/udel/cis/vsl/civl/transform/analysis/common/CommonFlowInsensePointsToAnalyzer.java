@@ -182,9 +182,10 @@ public class CommonFlowInsensePointsToAnalyzer
 			Map<Function, InvocationGraphNode> funcs2Nodes) {
 		InvocationGraphNode sameValNode = funcs2Nodes.get(node.function());
 
-		if (sameValNode != null)
+		if (sameValNode != null) {
+			assert sameValNode.formalParams() != null;
 			sameValNode.share(node);
-		else {
+		} else {
 			InsensitiveFlow flow = factory.InsensitiveFlow(node.function(),
 					node);
 
@@ -465,14 +466,12 @@ public class CommonFlowInsensePointsToAnalyzer
 		// globals:
 		for (AssignExprIF global : node.accessedGlobals()) {
 			pts = filterOutLocal(nodeGraph.mayPointsTo(global), node);
-			changed |= callerGraph.addPointsTo(global,
-					nodeGraph.mayPointsTo(global));
+			changed |= callerGraph.addPointsTo(global, pts);
 		}
 		// returnings
 		for (AssignExprIF returning : node.returnings()) {
 			pts = filterOutLocal(nodeGraph.mayPointsTo(returning), node);
-			changed |= callerGraph.addPointsTo(node.returnTo(),
-					nodeGraph.mayPointsTo(returning));
+			changed |= callerGraph.addPointsTo(node.returnTo(), pts);
 		}
 		return changed;
 	}
@@ -540,7 +539,9 @@ public class CommonFlowInsensePointsToAnalyzer
 		for (AssignExprIF pt : pts) {
 			Entity entity = pt.source();
 
-			if (entity != null) {
+			if (pt.isFull())
+				results.add(pt);
+			else if (entity != null) {
 				Scope outerScope = node.function().getScope().getParentScope();
 				Entity outerVisible = outerScope.getLexicalOrdinaryEntity(false,
 						entity.getName());
@@ -550,8 +551,6 @@ public class CommonFlowInsensePointsToAnalyzer
 			} else {
 				ExpressionNode expr = pt.nonEntitySource();
 
-				expr.expressionKind();
-				expr.expressionKind();
 				assert expr.expressionKind() == ExpressionKind.FUNCTION_CALL
 						|| expr.expressionKind() == ExpressionKind.CONSTANT : "either"
 								+ " allocation or string literal";

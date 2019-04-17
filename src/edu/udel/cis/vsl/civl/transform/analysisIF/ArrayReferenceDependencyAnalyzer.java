@@ -24,6 +24,10 @@ import edu.udel.cis.vsl.civl.transform.analysisIF.SimpleReadWriteAnalyzer.Simple
 
 public class ArrayReferenceDependencyAnalyzer {
 
+	private static enum CompareResult {
+		IDENTICAL, INDEPENDENT, UNKNOWN,
+	}
+
 	private boolean debug = true;
 
 	private SimpleReadWriteAnalyzer analyzer;
@@ -33,12 +37,6 @@ public class ArrayReferenceDependencyAnalyzer {
 	 * analyzing reads/writes happen:
 	 */
 	private Function currentFunction;
-
-	/**
-	 * global list that refers to the bounding conditions of the thread
-	 * variables in the current analyzing reads/writes:
-	 */
-	private List<ExpressionNode> boundingConditions;
 
 	public ArrayReferenceDependencyAnalyzer(SimpleReadWriteAnalyzer analyzer) {
 		this.analyzer = analyzer;
@@ -51,16 +49,12 @@ public class ArrayReferenceDependencyAnalyzer {
 	 * </p>
 	 * 
 	 * <p>
-	 * Since threads are sharing the lexical program, we check the in-dependency
-	 * by: checking if for every write to array element "a[i][...][j]" in a
-	 * generic thread and for every read to array element "a'[i'][...][j']" in
-	 * the generic thread such that
-	 * <ol>
-	 * <li>if a == a', then i == i' and ... and j == j'</li>
-	 * <li>and i,i', ... ,j,j' are all INJECTIVE functions over thread
-	 * variables, where thread variables are the variables that are guaranteed
-	 * to be different on different threads.</li>
-	 * </ol>
+	 * To check each pair of array element access "w" and "r", if their
+	 * accessing base arrays are independent, "w" and "r" are independent; else
+	 * their base arrays are identical, "w" and "r" have the forms:
+	 * "a[i][...][j]" and "a[i'][...][j']". The check of "a[i][...][j]" and
+	 * "a[i'][...][j']" is done by
+	 * {@link #checkSubscriptIndependent(RWSetElement, RWSetElement, int, Set, Set)}
 	 * </p>
 	 * 
 	 * @param function
@@ -82,7 +76,6 @@ public class ArrayReferenceDependencyAnalyzer {
 			Set<RWSetElement> fullWrites, Set<Variable> threadVariables) {
 		boolean independent = true;
 		this.currentFunction = function;
-		this.boundingConditions = boundingConditions;
 
 		for (RWSetElement w : arrWrites) {
 			assert w.arraySubscript != null;
@@ -106,7 +99,7 @@ public class ArrayReferenceDependencyAnalyzer {
 					System.out.println(print(w) + " and ");
 					System.out.println(print(r));
 				}
-				independent &= isIndependentWorker(w, r, threadVariables,
+				independent &= checkSubscriptIndependent(w, r, threadVariables,
 						fullWrites);
 				if (!independent)
 					return false;
@@ -116,24 +109,57 @@ public class ArrayReferenceDependencyAnalyzer {
 	}
 
 	/**
-	 * returns true iff the write to array element "a[i][...][j]" in a thread is
-	 * independent with the read to array element "a'[i'][...][j']" in another
-	 * thread.
+	 * <p>
+	 * Recursively checks if two subscript expression: "a[i][...][j]" and
+	 * "a[i'][...][j']" are independent if they are accessed by different
+	 * threads.
+	 * </p>
+	 * 
+	 * <p>
+	 * Let "compare(idx, idx')" be a method compares two indices "idx" and
+	 * "idx'". The result of comparison can be one of the three cases:
+	 * <ol>
+	 * <li>IDENTICAL: if both "idx" and "idx'" are read-only and they are
+	 * lexically identical. IDENTICAL infers that they always have same values
+	 * at runtime.</li>
+	 * 
+	 * <li>INDEPENDENT: if both "idx" and "idx'" are math-functions "f" and "f'"
+	 * over thread variables and it can be proved
+	 * <code>f(X) != f(X') iff X != X'</code>, where "X" ("X'") represents the
+	 * inputs. Note that we say "idx" is a math-function over thread variables
+	 * if "idx" only consists of read-only objects and thread variables.</li>
+	 * 
+	 * <li>UNKNOWN: nothing can be concluded</li>
+	 * </ol>
+	 * </p>
+	 * 
+	 * <p>
+	 * Let "check" denote this method, now given "a[i][...][j]" and
+	 * "a[i'][...][j']", pseudo code of this method is: <code>	
+	 *   checkResult = check(a[i][...], a[i'][...]);
+	 *   if (arrayResult == IDENTICAL) 
+	 *     return compare(j, j');
+	 *   if (arrayResult == INDEPENDENT)
+	 *     return INDEPENDENT;
+	 *   else 
+	 *     return UNKNOWN;
+	 * </code>
+	 * </p>
+	 * 
 	 */
-	private boolean isIndependentWorker(RWSetElement w, RWSetElement r,
+	private boolean checkSubscriptIndependent(RWSetElement w, RWSetElement r,
 			Set<Variable> threadVars, Set<RWSetElement> fullWrites) {
-		boolean independent;
+		int dims;
 
 		if (w.entity != null) {
 			ArrayType arrType = (ArrayType) ((Variable) w.entity).getType();
 
-			independent = checkSubscriptIndependent(w, r,
-					arrType.getDimension(), threadVars, fullWrites);
+			dims = arrType.getDimension();
 		} else {
 			PointerType ptrType = (PointerType) w.strOrAlloc.nonEntitySource()
 					.getType();
-			int dims = 0;
 
+			dims = 0;
 			do {
 				dims++;
 				if (ptrType.referencedType().kind() == TypeKind.POINTER)
@@ -141,57 +167,25 @@ public class ArrayReferenceDependencyAnalyzer {
 				else
 					break;
 			} while (true);
-			independent = checkSubscriptIndependent(w, r, dims, threadVars,
-					fullWrites);
 		}
-		if (debug && !independent) {
-			System.out.print("possible data race:");
-			System.out.print("a thread write to " + print(w));
-			System.out.println(" while another thread reads " + print(r));
-		}
-		return independent;
-	}
 
-	/**
-	 * <p>
-	 * check if a data race is possible when a thread writes to an array
-	 * subscript expression "w" while another thread reads an array subscript
-	 * expression "r".
-	 * </p>
-	 * 
-	 * <p>
-	 * Note that there is a limitation to due the abstraction made by
-	 * {@link FlowInsensePointsToAnalyzer}: given expression in program
-	 * "a[i][j]" where "a" is a pointer and "a" points array "T b[N][N][N]". Due
-	 * to abstraction, "a" actually may points-to "b" or "b[x]" but will be
-	 * over-approximated as "b", hence we have no way to decide if the "b[i][j]"
-	 * , which is the abstraction of "a[i][j]", is independent of another
-	 * expression "b[x][i][j]".
-	 * 
-	 * Therefore, if the dimension of the base array of the subscript expression
-	 * is NOT equal to the number of indices in a subscript expression, this
-	 * method has to give up.
-	 * </p>
-	 * 
-	 * @param w
-	 *            array subscript in write set
-	 * @param r
-	 *            array subscript in read set
-	 * @param dims
-	 *            base array dimension
-	 * @param threadVars
-	 *            the set of thread variables
-	 * @param fullWrites
-	 *            the full write set
-	 * @return true iff a thread write "w" is independent with another read "r"
-	 */
-	private boolean checkSubscriptIndependent(RWSetElement w, RWSetElement r,
-			int dims, Set<Variable> threadVars, Set<RWSetElement> fullWrites) {
 		ExpressionNode wIdx[] = getSubscriptIndices(w.arraySubscript);
 		ExpressionNode rIdx[] = getSubscriptIndices(r.arraySubscript);
-		boolean independent = true;
 		ExpressionNode unimplExpr = null;
 
+		/*
+		 * Note that there is a limitation to due the abstraction made by {@link
+		 * FlowInsensePointsToAnalyzer}: given expression in program "a[i][j]"
+		 * where "a" is a pointer and "a" points array "T b[N][N][N]". Due to
+		 * abstraction, "a" actually may points-to "b" or "b[x]" but will be
+		 * over-approximated as "b", hence we have no way to decide if the
+		 * "b[i][j]" , which is the abstraction of "a[i][j]", is independent of
+		 * another expression "b[x][i][j]".
+		 * 
+		 * Therefore, if the dimension of the base array of the subscript
+		 * expression is NOT equal to the number of indices in a subscript
+		 * expression, this method has to give up.
+		 */
 		if (wIdx.length != dims)
 			unimplExpr = w.arraySubscript;
 		else if (rIdx.length != dims)
@@ -202,33 +196,90 @@ public class ArrayReferenceDependencyAnalyzer {
 							+ unimplExpr.prettyRepresentation()
 							+ " with a pointer to a sub-array of "
 							+ w.entity.getName());
-		// check equality of indices:
-		for (int i = 0; i < dims; i++) {
-			independent &= ExpressionEvaluator.checkEqualityWithConditions(
-					wIdx[i], rIdx[i], boundingConditions);
-			if (!independent)
-				return false;
-		}
-		// check is a math-function over threadVars:
-		Set<Variable> threadVarSubset = new HashSet<>();
 
-		for (int i = 0; i < dims; i++) {
-			Set<Variable> tmp = isFunctionOverThreadVar(wIdx[i], fullWrites,
-					threadVars);
+		boolean independent = checkSubscriptIndependentWorker(dims, wIdx, rIdx,
+				threadVars, fullWrites) == CompareResult.INDEPENDENT;
 
-			independent &= (tmp != null);
-			if (!independent)
-				return false;
-			threadVarSubset.addAll(tmp);
-		}
-		// check injective:
-		for (int i = 0; i < dims; i++) {
-			independent &= ExpressionEvaluator.checkInjective(wIdx[i],
-					threadVarSubset);
-			if (!independent)
-				return false;
+		if (debug) {
+			if (!independent) {
+				System.out.print("possible data race:");
+				System.out.print("a thread write to " + print(w));
+				System.out.println(
+						" while another thread reads " + print(r) + "\n");
+			} else
+				System.out.println("independent\n");
 		}
 		return independent;
+	}
+
+	/**
+	 * See
+	 * {@linkplain ArrayReferenceDependencyAnalyzer#checkSubscriptIndependent(RWSetElement, RWSetElement, Set, Set)}
+	 * 
+	 * @param currentDim
+	 *            the current checking dimension
+	 * @param wIdx
+	 *            indices (0th element is the index of the first dimension) of
+	 *            the original subscript expression. Current checking subscript
+	 *            expression is indexed by<code>
+	 *            wIdx[0], wIdx[1], ..., wIdx[currentDim]
+	 *            </code>
+	 * @param rIdx
+	 *            similar to wIdx for the other subscript expression
+	 * @param threadVars
+	 *            thread variable set
+	 * @param fullWrites
+	 *            full write set
+	 * @return
+	 */
+	private CompareResult checkSubscriptIndependentWorker(int currentDim,
+			ExpressionNode wIdx[], ExpressionNode rIdx[],
+			Set<Variable> threadVars, Set<RWSetElement> fullWrites) {
+		assert currentDim >= 1;
+		if (currentDim == 1)
+			return this.compare(wIdx[0], rIdx[0], threadVars, fullWrites);
+
+		CompareResult arrayResult = checkSubscriptIndependentWorker(
+				currentDim - 1, wIdx, rIdx, threadVars, fullWrites);
+
+		if (arrayResult == CompareResult.IDENTICAL)
+			return compare(wIdx[currentDim - 1], rIdx[currentDim - 1],
+					threadVars, fullWrites);
+		else
+			return arrayResult;
+	}
+
+	/**
+	 * 
+	 * see
+	 * {@link #checkSubscriptIndependentWorker(int, ExpressionNode[], ExpressionNode[], Set, Set)}
+	 */
+	private CompareResult compare(ExpressionNode idx0, ExpressionNode idx1,
+			Set<Variable> threadVars, Set<RWSetElement> fullWrites) {
+		Set<Variable> mathFuncInputs = new HashSet<>();
+		Set<Variable> tmp = getMathFuncInputs(idx0, fullWrites, threadVars);
+
+		if (tmp == null)
+			return CompareResult.UNKNOWN;
+		mathFuncInputs.addAll(tmp);
+		tmp = getMathFuncInputs(idx1, fullWrites, threadVars);
+		if (tmp == null)
+			return CompareResult.UNKNOWN;
+		mathFuncInputs.addAll(tmp);
+		if (mathFuncInputs.isEmpty()) {
+			// IF both index expressions are pure read-only, check if they are
+			// lexically identical:
+			if (ExpressionEvaluator.checkEqualityWithConditions(idx0, idx1,
+					new LinkedList<>()))
+				return CompareResult.IDENTICAL;
+		} else {
+			// IF botn index expressions are math functions over thread vars,
+			// check if they are independent:
+			if (ExpressionEvaluator.checkFunctionDisagrement(idx0, idx1,
+					mathFuncInputs))
+				return CompareResult.INDEPENDENT;
+		}
+		return CompareResult.UNKNOWN;
 	}
 
 	/**
@@ -262,17 +313,13 @@ public class ArrayReferenceDependencyAnalyzer {
 	 * return true iff the given expression "expr" is a math function over the
 	 * given set of thread-variables.
 	 * </p>
-	 * 
-	 * <p>
-	 * this method will check that:
-	 * <code>readSet(expr) intersect full-writeSet = empty-set</code>
-	 * </p>
+	 *
 	 * 
 	 * @return the subset of the thread variables that the given expression
 	 *         depends on if the expression is a math-function over the set of
 	 *         thread variables. Otherwise, null;
 	 */
-	private Set<Variable> isFunctionOverThreadVar(ExpressionNode expr,
+	private Set<Variable> getMathFuncInputs(ExpressionNode expr,
 			Set<RWSetElement> fullWrites, Set<Variable> threadVars) {
 		RWSet exprRWSet;
 		try {
@@ -282,14 +329,21 @@ public class ArrayReferenceDependencyAnalyzer {
 			return fullWrites.isEmpty() ? new HashSet<>() : null;
 		}
 		assert exprRWSet.writes.isEmpty();
-		// the intersection of "exprRWSet.reads" and "fullWrites" must be a
-		// subset of "threadVar". If so, update "threadVar" to the subset:
+
+		// fullWrites contains no thread variables, so
+		// expr is considered a function over thread variables if
+		// the intersection of "exprRWSet.reads" and "fullWrites" is empty
 		List<RWSetElement> intersect = exprRWSet.reads.parallelStream()
 				.filter(referToSameObject(fullWrites))
 				.collect(Collectors.toList());
+
+		if (!intersect.isEmpty())
+			return null;
+
+		// get the input subset:
 		Set<Variable> subset = new HashSet<>();
 
-		for (RWSetElement e : intersect)
+		for (RWSetElement e : exprRWSet.reads)
 			if (e.arraySubscript == null && threadVars.contains(e.entity))
 				subset.add((Variable) e.entity);
 			else

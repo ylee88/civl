@@ -326,6 +326,9 @@ public class CommonInsensitiveFlow implements InsensitiveFlow {
 	 *         the given expression has no impact on points-to analysis
 	 */
 	private TempExprAbstraction processRHSExpressionNode(ExpressionNode expr) {
+		if (expr == null)
+			return null;
+
 		ExpressionKind kind = expr.expressionKind();
 
 		switch (kind) {
@@ -492,11 +495,13 @@ public class CommonInsensitiveFlow implements InsensitiveFlow {
 				functionEntity = (Function) entity;
 		}
 		assert functionEntity != null;
-		if (isUnimplCase || functionEntity.getDefinition() == null)
+		if (isUnimplCase)
 			throw new CIVLUnimplementedFeatureException(
 					"Unsupported function call expression "
 							+ funcCall.prettyRepresentation()
 							+ " for points-to analysis.");
+		if (functionEntity.getDefinition() == null)
+			return processSystemFunctionCall(funcCall);
 
 		AssignExprIF callExprAbs = absFactory.assignExpr(funcCall);
 
@@ -528,6 +533,13 @@ public class CommonInsensitiveFlow implements InsensitiveFlow {
 		}
 		igFactory.newNode(functionEntity, igNode, callExprAbs, actualArgAbs);
 		return new TempExprAbstraction(callExprAbs, null);
+	}
+
+	// TODO: use POR contract for system functions
+	// currently, just ignore it:
+	private TempExprAbstraction processSystemFunctionCall(
+			FunctionCallNode funcCall) {
+		return new TempExprAbstraction(absFactory.assignExpr(funcCall), null);
 	}
 
 	/**

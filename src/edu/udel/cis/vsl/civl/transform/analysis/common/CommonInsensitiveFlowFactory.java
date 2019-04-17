@@ -9,6 +9,7 @@ import edu.udel.cis.vsl.abc.ast.node.IF.declaration.FunctionDefinitionNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.declaration.VariableDeclarationNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.type.FunctionTypeNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.type.TypeNode.TypeNodeKind;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF;
 import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
 import edu.udel.cis.vsl.civl.transform.analysisIF.InsensitiveFlow;
@@ -211,6 +212,12 @@ public class CommonInsensitiveFlowFactory implements InsensitiveFlowFactory {
 
 		for (VariableDeclarationNode varDecl : function.getDefinition()
 				.getTypeNode().getParameters()) {
+			if (varDecl.getEntity() == null) {
+				assert varDecl.getTypeNode().kind() == TypeNodeKind.VOID;
+				assert formals.length == 1;
+				formals = new AssignExprIF[0];
+				break;
+			}
 			formals[i++] = assignExpr(varDecl.getEntity());
 		}
 		igNode.setFormalParameters(formals);

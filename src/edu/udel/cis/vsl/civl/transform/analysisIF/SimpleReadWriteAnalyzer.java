@@ -418,6 +418,8 @@ public class SimpleReadWriteAnalyzer {
 	// "currentFunction" instead of keeping passing the function as a parameter:
 	private RWSet collectReadsWritesWorker(ASTNode stmtDeclExpr)
 			throws SimpleFullSetException {
+		if (stmtDeclExpr == null)
+			return null;
 		if (stmtDeclExpr.nodeKind() == NodeKind.STATEMENT)
 			return collectStmtReadsWrites((StatementNode) stmtDeclExpr);
 		else if (stmtDeclExpr.nodeKind() == NodeKind.EXPRESSION)
@@ -742,7 +744,8 @@ public class SimpleReadWriteAnalyzer {
 		Function func = (Function) ((IdentifierExpressionNode) funcExpr)
 				.getIdentifier().getEntity();
 
-		result.add(visibleVariables(func.getDefinition().getScope()));
+		if (func.getDefinition() != null)
+			result.add(visibleVariables(func.getDefinition().getScope()));
 		return result;
 	}
 

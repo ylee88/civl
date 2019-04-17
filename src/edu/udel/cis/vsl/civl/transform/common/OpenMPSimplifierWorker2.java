@@ -535,7 +535,6 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 			readVars = new HashSet<>();
 			writeArrayRefs = new HashSet<>();
 			readArrayRefs = new HashSet<>();
-
 			loopPrivateIDs = new ArrayList<Entity>();
 
 			collectAssignRefExprs(node);
@@ -549,10 +548,25 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 				System.out.println("   sharedArrayWrites = " + writeArrayRefs);
 			}
 
-			sharedReads.addAll(readVars);
-			sharedWrites.addAll(writeVars);
-			sharedArrayReads.addAll(readArrayRefs);
-			sharedArrayWrites.addAll(writeArrayRefs);
+			for (RWSetElement read : readVars)
+				if (!privateIDs.contains(read.entity)
+						&& !loopPrivateIDs.contains(read.entity))
+					sharedReads.add(read);
+
+			for (RWSetElement write : writeVars)
+				if (!privateIDs.contains(write.entity)
+						&& !loopPrivateIDs.contains(write.entity))
+					sharedWrites.add(write);
+
+			for (RWSetElement readArr : readArrayRefs)
+				if (!privateIDs.contains(readArr.entity)
+						&& !loopPrivateIDs.contains(readArr.entity))
+					sharedArrayReads.add(readArr);
+
+			for (RWSetElement writeArr : writeArrayRefs)
+				if (!privateIDs.contains(writeArr.entity)
+						&& !loopPrivateIDs.contains(writeArr.entity))
+					sharedArrayWrites.add(writeArr);
 
 			/*
 			 * TBD: we are not collecting the reads from all of the appropriate
@@ -779,15 +793,15 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 		// For each entity in writeVars, if it is not in the local-declaration
 		// collection, add it to sharedWrites (modified by Ziqing):
 		for (RWSetElement writeVar : writeVars) {
-			boolean contains = false;
+			boolean localContains = false;
 
-			if (writeVar.entity != null)
-				for (Set<Entity> stackEntry : locallyDeclaredEntities)
-					if (stackEntry.contains(writeVar.entity)) {
-						contains = true;
-						break;
-					}
-			if (!contains) {
+			for (Set<Entity> stackEntry : locallyDeclaredEntities)
+				if (stackEntry.contains(writeVar.entity)) {
+					localContains = true;
+					break;
+				}
+			if (!localContains && !loopPrivateIDs.contains(writeVar.entity)
+					&& !privateIDs.contains(writeVar.entity)) {
 				sharedWrites.add(writeVar);
 			}
 		}
@@ -796,29 +810,30 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 		// writeVars.retainAll(readVars);
 		independent &= sharedWrites.isEmpty();
 
-		/*
-		 * Check for array-based dependences.
-		 */
-		Set<RWSetElement> readWriteArrayRefs = new HashSet<>(readArrayRefs);
-		Set<RWSetElement> fullWrites = new HashSet<>(writeArrayRefs);
+		if (independent) {
+			/*
+			 * Check for array-based dependences.
+			 */
+			Set<RWSetElement> readWriteArrayRefs = new HashSet<>(readArrayRefs);
+			Set<RWSetElement> fullWrites = new HashSet<>(writeArrayRefs);
 
-		fullWrites.addAll(writeVars);
-		readWriteArrayRefs.addAll(writeArrayRefs);
-		independent &= new ArrayReferenceDependencyAnalyzer(readWriteAnalyzer)
-				.threadsArrayAccessIndependent(currentFunciton,
-						boundingConditions, writeArrayRefs, readWriteArrayRefs,
-						fullWrites, parForLoopVars);
-		if (debug) {
-			// TODO: re-write these debug info
-			System.out.println(
-					"Found " + (independent ? "independent" : "dependent")
-							+ " OpenMP for " + ompFor);
-			System.out.println("  writeVars : " + writeVars);
-			System.out.println("  readVars : " + readVars);
-			System.out.println("  writeArrays : " + writeArrayRefs);
-			System.out.println("  readArrays : " + readArrayRefs);
+			fullWrites.addAll(writeVars);
+			readWriteArrayRefs.addAll(writeArrayRefs);
+			independent &= new ArrayReferenceDependencyAnalyzer(
+					readWriteAnalyzer).threadsArrayAccessIndependent(
+							currentFunciton, boundingConditions, writeArrayRefs,
+							readWriteArrayRefs, fullWrites, parForLoopVars);
+			if (debug) {
+				// TODO: re-write these debug info
+				System.out.println(
+						"Found " + (independent ? "independent" : "dependent")
+								+ " OpenMP for " + ompFor);
+				System.out.println("  writeVars : " + writeVars);
+				System.out.println("  readVars : " + readVars);
+				System.out.println("  writeArrays : " + writeArrayRefs);
+				System.out.println("  readArrays : " + readArrayRefs);
+			}
 		}
-
 		if (independent) {
 			/*
 			 * At this point we can create a branch in the program based on the
