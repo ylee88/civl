@@ -45,7 +45,9 @@ import edu.udel.cis.vsl.abc.ast.node.IF.statement.StatementNode;
 import edu.udel.cis.vsl.abc.token.IF.Source;
 import edu.udel.cis.vsl.abc.token.IF.SyntaxException;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
+import edu.udel.cis.vsl.civl.model.IF.CIVLException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLUnimplementedFeatureException;
+import edu.udel.cis.vsl.civl.model.common.ABC_CIVLSource;
 import edu.udel.cis.vsl.civl.transform.IF.OpenMPSimplifier;
 import edu.udel.cis.vsl.civl.transform.analysis.common.SimplePointsToAnalysis;
 import edu.udel.cis.vsl.civl.transform.analysisIF.ArrayReferenceDependencyAnalyzer;
@@ -317,6 +319,10 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 
 			fullWrites.addAll(sharedWrites);
 			allIndependent &= sharedWrites.isEmpty();
+			if (debug && !sharedWrites.isEmpty()) {
+				System.err.println(sharedWrites
+						+ " are shared but will be written by multiple threads");
+			}
 			allIndependent &= new ArrayReferenceDependencyAnalyzer(
 					readWriteAnalyzer).threadsArrayAccessIndependent(
 							currentFunciton, new LinkedList<>(),
@@ -349,7 +355,10 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 				int parentIndex = getChildIndex(parent, opn);
 				assert parentIndex != -1;
 				parent.setChild(parentIndex, stmt);
-			}
+			} else
+				throw new CIVLException(
+						"openMP program possibly contains data race",
+						new ABC_CIVLSource(node.getSource()));
 		} else if (node instanceof OmpExecutableNode) {
 			privateIDs = new ArrayList<Entity>();
 
@@ -542,10 +551,10 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 			if (debug) {
 				System.out.println(
 						"Analyzed non-workshare assignment " + node + " with:");
-				System.out.println("   sharedReads = " + readVars);
-				System.out.println("   sharedWrites = " + writeVars);
-				System.out.println("   sharedArrayReads = " + readArrayRefs);
-				System.out.println("   sharedArrayWrites = " + writeArrayRefs);
+				System.out.println("   Reads = " + readVars);
+				System.out.println("   Writes = " + writeVars);
+				System.out.println("   ArrayReads = " + readArrayRefs);
+				System.out.println("   ArrayWrites = " + writeArrayRefs);
 			}
 
 			for (RWSetElement read : readVars)

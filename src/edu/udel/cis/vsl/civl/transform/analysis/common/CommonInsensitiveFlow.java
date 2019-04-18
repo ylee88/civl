@@ -156,6 +156,7 @@ public class CommonInsensitiveFlow implements InsensitiveFlow {
 				processVarDecNode((VariableDeclarationNode) node);
 				break;
 			case ABSTRACT_FUNCTION_DEFINITION :
+				break;
 			case FUNCTION_DECLARATION :
 			case FUNCTION_DEFINITION :
 			default :

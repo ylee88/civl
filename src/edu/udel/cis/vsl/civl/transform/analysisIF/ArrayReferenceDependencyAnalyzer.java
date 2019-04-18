@@ -127,7 +127,8 @@ public class ArrayReferenceDependencyAnalyzer {
 	 * over thread variables and it can be proved
 	 * <code>f(X) != f(X') iff X != X'</code>, where "X" ("X'") represents the
 	 * inputs. Note that we say "idx" is a math-function over thread variables
-	 * if "idx" only consists of read-only objects and thread variables.</li>
+	 * if "idx" only consists of read-only objects and thread variables. Note
+	 * that "read-only" is a special case of "math-function".</li>
 	 * 
 	 * <li>UNKNOWN: nothing can be concluded</li>
 	 * </ol>
@@ -272,13 +273,12 @@ public class ArrayReferenceDependencyAnalyzer {
 			if (ExpressionEvaluator.checkEqualityWithConditions(idx0, idx1,
 					new LinkedList<>()))
 				return CompareResult.IDENTICAL;
-		} else {
-			// IF botn index expressions are math functions over thread vars,
-			// check if they are independent:
-			if (ExpressionEvaluator.checkFunctionDisagrement(idx0, idx1,
-					mathFuncInputs))
-				return CompareResult.INDEPENDENT;
 		}
+		// IF both index expressions are math functions (including read-only)
+		// over thread vars, check if they are independent:
+		if (ExpressionEvaluator.checkFunctionDisagrement(idx0, idx1,
+				mathFuncInputs))
+			return CompareResult.INDEPENDENT;
 		return CompareResult.UNKNOWN;
 	}
 
@@ -337,6 +337,8 @@ public class ArrayReferenceDependencyAnalyzer {
 				.filter(referToSameObject(fullWrites))
 				.collect(Collectors.toList());
 
+		// If there exist objects that are in the write set, this is not a
+		// math-function:
 		if (!intersect.isEmpty())
 			return null;
 
@@ -346,8 +348,6 @@ public class ArrayReferenceDependencyAnalyzer {
 		for (RWSetElement e : exprRWSet.reads)
 			if (e.arraySubscript == null && threadVars.contains(e.entity))
 				subset.add((Variable) e.entity);
-			else
-				return null;
 		return subset;
 	}
 
