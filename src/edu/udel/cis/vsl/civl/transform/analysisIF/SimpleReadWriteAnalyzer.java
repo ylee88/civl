@@ -512,10 +512,11 @@ public class SimpleReadWriteAnalyzer {
 
 		switch (kind) {
 			case ARROW : {
-				RWSet ptrRws = collectExprReadsWrites(
+				RWSet ptrRws = pointsTo(
 						((ArrowNode) expr).getStructurePointer());
 
-				return dereferenceRWSet(ptrRws);
+				ptrRws.add(collectExprReadsWrites(
+						((ArrowNode) expr).getStructurePointer()));
 			}
 			case DOT :
 				return collectExprReadsWrites(((DotNode) expr).getStructure());
@@ -548,9 +549,10 @@ public class SimpleReadWriteAnalyzer {
 			case SUBSCRIPT :
 				return collectSubscriptNode(opNode);
 			case DEREFERENCE : {
-				RWSet ptrRws = collectExprReadsWrites(opNode.getArgument(0));
+				RWSet ptrRws = pointsTo(opNode.getArgument(0));
 
-				return dereferenceRWSet(ptrRws);
+				ptrRws.add(collectExprReadsWrites(opNode.getArgument(0)));
+				return ptrRws;
 			}
 			// all kinds of assignments:
 			case ASSIGN :
@@ -631,9 +633,10 @@ public class SimpleReadWriteAnalyzer {
 
 		if (baseArray.getInitialType().kind() == TypeKind.ARRAY)
 			arrRWSet = subscriptRWSet(arrRWSet, opNode);
-		else
+		else {
 			// dereference pointers:
-			arrRWSet = subscriptRWSet(dereferenceRWSet(arrRWSet), opNode);
+			arrRWSet.add(subscriptRWSet(pointsTo(baseArray), opNode));
+		}
 		arrRWSet.add(collectExprReadsWrites(opNode.getArgument(1)));
 		return arrRWSet;
 	}
@@ -648,13 +651,13 @@ public class SimpleReadWriteAnalyzer {
 
 		switch (kind) {
 			case ARROW : {
-				result = collectExprReadsWrites(
-						((ArrowNode) lhs).getStructurePointer());
-				result = dereferenceRWSet(result);
+				result = pointsTo(((ArrowNode) lhs).getStructurePointer());
 				// select safe over-approx subset to the write set:
 				for (RWSetElement e : result.reads)
 					if (isStructUnionOrArrayOfStructUnion(e))
 						result.writes.add(e);
+				result.add(collectExprReadsWrites(
+						((ArrowNode) lhs).getStructurePointer()));
 				return result;
 			}
 			case DOT : {
@@ -731,8 +734,13 @@ public class SimpleReadWriteAnalyzer {
 			throws SimpleFullSetException {
 		RWSet result = new RWSet();
 
-		for (ExpressionNode arg : call.getArguments())
-			result.add(allPointsTo(arg));
+		for (ExpressionNode arg : call.getArguments()) {
+			RWSet ptrArgRWSet = allPointsTo(arg);
+
+			ptrArgRWSet.writes.addAll(ptrArgRWSet.reads);
+			result.add(ptrArgRWSet);
+			result.add(collectExprReadsWrites(arg));
+		}
 
 		ExpressionNode funcExpr = call.getFunction();
 
@@ -749,20 +757,40 @@ public class SimpleReadWriteAnalyzer {
 		return result;
 	}
 
-	// the reads/writes set of "nested" points-to sets:
+	// the reading set of "nested" points-to sets starting from the given "ptr":
 	private RWSet allPointsTo(ExpressionNode ptr)
 			throws SimpleFullSetException {
-		RWSet result = collectExprReadsWrites(ptr);
-		Type type = ptr.getType();
+		if (ptr.getType().kind() != TypeKind.POINTER)
+			return new RWSet();
+
+		RWSet result = pointsTo(ptr);
+		Type type = ((PointerType) ptr.getType()).referencedType();
 
 		while (type.kind() == TypeKind.POINTER) {
 			type = ((PointerType) type).referencedType();
 
 			RWSet tmp = dereferenceRWSet(result);
 
-			tmp.writes.addAll(tmp.reads);
 			result.add(tmp);
 		}
+		return result;
+	}
+
+	// return the over-approx reading set that "ptr" may points-to:
+	private RWSet pointsTo(ExpressionNode ptr) throws SimpleFullSetException {
+		RWSet result = new RWSet();
+
+		// special handling for ADDRESS_OF operator:
+		if (ptr.expressionKind() == ExpressionKind.OPERATOR) {
+			OperatorNode opNode = (OperatorNode) ptr;
+
+			if (opNode.getOperator() == Operator.ADDRESSOF)
+				result.add(collectExprReadsWrites(opNode.getArgument(0)));
+		}
+
+		RWSet tmp = collectExprReadsWrites(ptr);
+
+		result.add(dereferenceRWSet(tmp));
 		return result;
 	}
 
