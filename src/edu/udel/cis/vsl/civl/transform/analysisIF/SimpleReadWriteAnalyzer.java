@@ -443,10 +443,11 @@ public class SimpleReadWriteAnalyzer {
 		InitializerNode init = varDecl.getInitializer();
 		RWSet result = new RWSet();
 
+		declaredEntities.add(varDecl.getEntity());
 		if (init == null)
 			return result;
 		result.add(collectInitializerReadsWrites(init));
-		declaredEntities.add(varDecl.getEntity());
+		result.writes.add(new RWSetElement(varDecl.getEntity()));
 		return result;
 	}
 
