@@ -135,6 +135,7 @@ OPTION_NAME
     | '-min'
     | '-mpiContract'
     | '-ompNoSimplify'
+    | '-ompOnlySimplifier'
     | '-ompLoopDecomp'
     | '-preproc'
     | '-procBound'
