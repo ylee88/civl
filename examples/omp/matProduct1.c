@@ -36,7 +36,7 @@ double	a[NRA][NCA],           /* matrix A to be multiplied */
 chunk = 10;                    /* set loop iteration chunk size */
 
 /*** Spawn a parallel region explicitly scoping all variables ***/
-#pragma omp parallel shared(a,b,c,nthreads,chunk) private(tid,i,j,k)
+#pragma omp parallel shared(a,b,c,chunk) private(tid,i,j,k,nthreads)
   {
   tid = omp_get_thread_num();
   if (tid == 0)
