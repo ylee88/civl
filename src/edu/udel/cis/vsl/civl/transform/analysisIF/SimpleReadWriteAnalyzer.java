@@ -37,8 +37,6 @@ import edu.udel.cis.vsl.abc.ast.node.IF.statement.DeclarationListNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.ExpressionStatementNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.StatementNode;
 import edu.udel.cis.vsl.abc.ast.type.IF.Field;
-import edu.udel.cis.vsl.abc.ast.type.IF.PointerType;
-import edu.udel.cis.vsl.abc.ast.type.IF.Type;
 import edu.udel.cis.vsl.abc.ast.type.IF.Type.TypeKind;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLUnimplementedFeatureException;
@@ -57,6 +55,12 @@ import edu.udel.cis.vsl.civl.transform.analysisIF.ReadWriteDataStructures.ReadWr
  * @author ziqing
  *
  */
+// TODO: for "a[x]", currently this analyzer collects "a, a[x] and x", actually
+// "a" is not needed.
+// TODO: better inter-procedural handling for return expressions. Currently, for
+// a function call "f()", body of "f" will be analyzed but the call expression
+// "f()" itself is abstracted to be anything. We need to relate "f()" with all
+// the return expressions in the body of "f".
 public class SimpleReadWriteAnalyzer {
 
 	/**
@@ -693,54 +697,22 @@ public class SimpleReadWriteAnalyzer {
 		Function func = (Function) ((IdentifierExpressionNode) funcExpr)
 				.getIdentifier().getEntity();
 
-		for (ExpressionNode arg : call.getArguments()) {
-			List<TempRWResult> argResults = collectExprReadsWrites(arg);
+		if (func.getDefinition() == null)
+			involved.add(visibleVariables(call.getScope()));
+		else {
+			Set<Entity> locallyDefinedInFunc = new HashSet<>();
+			RWSet bodyResult = collectRWFromStmtDeclExpr(func,
+					func.getDefinition().getBody(), locallyDefinedInFunc);
 
-			for (TempRWResult argResult : argResults) {
-				for (AssignExprIF pt : allPointsTo(
-						toAbstractObj(argResult.primary), arg.getType(),
-						true)) {
-					RWSetElement ptElement = rwFactory.baseElement(source(pt),
-							pt);
-
-					involved.addReads(ptElement);
-					involved.addWrites(ptElement);
-				}
-				involved.add(argResult.involved);
-			}
+			for (RWSetElement e : bodyResult.reads())
+				if (!locallyDefinedInFunc.contains(containedBy(e)))
+					involved.addReads(e);
+			for (RWSetElement e : bodyResult.writes())
+				if (!locallyDefinedInFunc.contains(containedBy(e)))
+					involved.addWrites(e);
 		}
-
-		if (func.getDefinition() != null)
-			involved.add(visibleVariables(func.getDefinition().getScope()));
 		results.add(new TempRWResult(primary, involved));
 		return results;
-	}
-
-	/**
-	 * the reading set of "nested" points-to sets starting from the given "ptr":
-	 * 
-	 * @param ptr
-	 * @return
-	 * @throws SimpleFullSetException
-	 */
-	private Iterable<AssignExprIF> allPointsTo(AssignExprIF ptr, Type ptrType,
-			boolean isLhs) throws SimpleFullSetException {
-		Set<AssignExprIF> result = new HashSet<>();
-		Type type = ptrType;
-
-		if (type.kind() != TypeKind.POINTER)
-			return result;
-		result.addAll(pointsTo(ptr, isLhs));
-		type = ((PointerType) type).referencedType();
-		while (type.kind() == TypeKind.POINTER) {
-			Set<AssignExprIF> tmp2 = new HashSet<>();
-
-			for (AssignExprIF pt : result)
-				tmp2.addAll(pointsToAnalyzer.mayPointsTo(currentFunction, pt));
-			result = tmp2;
-			type = ((PointerType) type).referencedType();
-		}
-		return result;
 	}
 
 	/**
@@ -860,5 +832,16 @@ public class SimpleReadWriteAnalyzer {
 			return isFactory.assignOffset(i);
 		}
 		return oft0.hasConstantValue() ? oft1 : oft0;
+	}
+
+	private Variable containedBy(RWSetElement e) {
+		AssignExprIF ao = e.root();
+
+		if (ao == null || ao.kind() != AssignExprKind.STORE)
+			return null;
+
+		AssignStoreExprIF store = (AssignStoreExprIF) ao;
+
+		return store.variable();
 	}
 }

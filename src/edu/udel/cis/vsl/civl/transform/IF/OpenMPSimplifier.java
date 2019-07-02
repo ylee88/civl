@@ -5,7 +5,7 @@ import edu.udel.cis.vsl.abc.ast.IF.ASTFactory;
 import edu.udel.cis.vsl.abc.token.IF.SyntaxException;
 import edu.udel.cis.vsl.abc.transform.IF.BaseTransformer;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
-import edu.udel.cis.vsl.civl.transform.common.OpenMPSimplifierWorker;
+import edu.udel.cis.vsl.civl.transform.common.OpenMPSimplifierWorker2;
 
 /**
  * This transformer analyzes OpenMP constructs and converts them to simpler,
@@ -50,7 +50,7 @@ public class OpenMPSimplifier extends BaseTransformer {
 
 	@Override
 	public AST transform(AST ast) throws SyntaxException {
-		return new OpenMPSimplifierWorker(astFactory, config).transform(ast);
+		return new OpenMPSimplifierWorker2(astFactory, config).transform(ast);
 	}
 
 }

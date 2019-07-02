@@ -126,6 +126,11 @@ public class CIVLConfiguration {
 	private boolean ompNoSimplify = false;
 
 	/**
+	 * Only relies on the OpenMP simplifier?
+	 */
+	private boolean ompOnlySimplifier = false;
+
+	/**
 	 * The output stream
 	 */
 	private PrintStream out;
@@ -373,6 +378,8 @@ public class CIVLConfiguration {
 		if (this.showPathConditon == null)
 			showPathConditon = "NONE";
 		this.ompNoSimplify = config.isTrue(CIVLConstants.ompNoSimplifyO);
+		this.ompOnlySimplifier = config
+				.isTrue(CIVLConstants.ompOnlySimplifierO);
 		this.collectProcesses = config.isTrue(CIVLConstants.collectProcessesO);
 		this.collectScopes = config.isTrue(CIVLConstants.collectScopesO);
 		this.setCollectHeaps(config.isTrue(CIVLConstants.collectHeapsO));
@@ -462,6 +469,7 @@ public class CIVLConfiguration {
 		this.mpiContractFunction = config.mpiContractFunction;
 		this.ompLoopDecomp = config.ompLoopDecomp;
 		this.ompNoSimplify = config.ompNoSimplify;
+		this.ompOnlySimplifier = config.ompOnlySimplifier;
 		this.out = config.out;
 		this.procBound = config.procBound;
 		this.prob = config.prob;
@@ -699,8 +707,16 @@ public class CIVLConfiguration {
 		return ompNoSimplify;
 	}
 
-	public void setOmpNoSimplify(boolean ompNoSimplify) {
+	public boolean ompOnlySimplifier() {
+		return ompOnlySimplifier;
+	}
+
+	public void setOmpNoSimplifier(boolean ompNoSimplify) {
 		this.ompNoSimplify = ompNoSimplify;
+	}
+
+	public void setOmpOnlySimplify(boolean ompOnlySimplify) {
+		this.ompOnlySimplifier = ompOnlySimplify;
 	}
 
 	public boolean collectProcesses() {

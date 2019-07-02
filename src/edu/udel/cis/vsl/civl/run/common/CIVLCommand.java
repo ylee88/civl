@@ -62,6 +62,7 @@ import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.unpreprocO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.userIncludePathO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.verboseO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.witnessO;
+import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.ompOnlySimplifierO;
 
 import java.io.PrintStream;
 import java.util.Collection;
@@ -86,9 +87,9 @@ public class CIVLCommand {
 	static {
 		CIVLCommand.addShowOption(showModelO, verboseO, debugO,
 				userIncludePathO, sysIncludePathO, svcomp16O, svcomp17O,
-				showInputVarsO, showProgramO, ompNoSimplifyO, ompLoopDecompO,
-				macroO, preprocO, astO, showTimeO, CIVLMacroO, quietO,
-				unpreprocO, direct0, intBit, intOperationTransformer,
+				showInputVarsO, showProgramO, ompNoSimplifyO, ompOnlySimplifierO,
+				ompLoopDecompO, macroO, preprocO, astO, showTimeO, CIVLMacroO,
+				quietO, unpreprocO, direct0, intBit, intOperationTransformer,
 				maxProcsO);
 		CIVLCommand.addVerifyOrCompareOption(errorBoundO, verboseO, debugO,
 				userIncludePathO, sysIncludePathO, showTransitionsO,
@@ -97,9 +98,9 @@ public class CIVLCommand {
 				saveStatesO, simplifyO, solveO, enablePrintfO, showAmpleSetO,
 				showAmpleSetWtStatesO, statelessPrintfO, deadlockO, svcomp16O,
 				svcomp17O, showProgramO, showPathConditionO, ompNoSimplifyO,
-				ompLoopDecompO, collectProcessesO, collectScopesO,
-				collectSymbolicConstantsO, collectHeapsO, macroO, preprocO,
-				astO, showTimeO, showMemoryUnitsO, CIVLMacroO,
+				ompOnlySimplifierO, ompLoopDecompO, collectProcessesO,
+				collectScopesO, collectSymbolicConstantsO, collectHeapsO,
+				macroO, preprocO, astO, showTimeO, showMemoryUnitsO, CIVLMacroO,
 				showUnreachedCodeO, analyzeAbsO, collectOutputO,
 				checkDivisionByZeroO, checkMemoryLeakO, timeoutO, quietO,
 				unpreprocO, direct0, intBit, intOperationTransformer,
@@ -110,12 +111,13 @@ public class CIVLCommand {
 				inputO, minO, maxdepthO, procBoundO, saveStatesO, simplifyO,
 				solveO, enablePrintfO, showAmpleSetO, showAmpleSetWtStatesO,
 				statelessPrintfO, deadlockO, svcomp16O, svcomp17O, showProgramO,
-				showPathConditionO, ompNoSimplifyO, ompLoopDecompO,
-				collectProcessesO, collectScopesO, collectHeapsO, macroO,
-				preprocO, astO, showTimeO, showMemoryUnitsO, CIVLMacroO,
-				showUnreachedCodeO, analyzeAbsO, strictCompareO,
-				checkDivisionByZeroO, checkMemoryLeakO, timeoutO, quietO,
-				unpreprocO, intBit, intOperationTransformer, maxProcsO);
+				showPathConditionO, ompNoSimplifyO, ompOnlySimplifierO,
+				ompLoopDecompO, collectProcessesO, collectScopesO,
+				collectHeapsO, macroO, preprocO, astO, showTimeO,
+				showMemoryUnitsO, CIVLMacroO, showUnreachedCodeO, analyzeAbsO,
+				strictCompareO, checkDivisionByZeroO, checkMemoryLeakO,
+				timeoutO, quietO, unpreprocO, intBit, intOperationTransformer,
+				maxProcsO);
 		CIVLCommand.addReplayOption(showModelO, verboseO, debugO,
 				showTransitionsO, showStatesO, showSavedStatesO, showQueriesO,
 				showProverQueriesO, idO, traceO, enablePrintfO, showAmpleSetO,
@@ -130,11 +132,12 @@ public class CIVLCommand {
 				inputO, maxdepthO, procBoundO, simplifyO, enablePrintfO,
 				showAmpleSetO, showAmpleSetWtStatesO, statelessPrintfO,
 				deadlockO, svcomp16O, svcomp17O, showProgramO,
-				showPathConditionO, ompNoSimplifyO, ompLoopDecompO,
-				collectProcessesO, collectScopesO, collectHeapsO, macroO,
-				preprocO, astO, showMemoryUnitsO, CIVLMacroO, collectOutputO,
-				checkDivisionByZeroO, checkMemoryLeakO, timeoutO, quietO,
-				unpreprocO, intBit, intOperationTransformer, maxProcsO);
+				showPathConditionO, ompNoSimplifyO, ompOnlySimplifierO,
+				ompLoopDecompO, collectProcessesO, collectScopesO,
+				collectHeapsO, macroO, preprocO, astO, showMemoryUnitsO,
+				CIVLMacroO, collectOutputO, checkDivisionByZeroO,
+				checkMemoryLeakO, timeoutO, quietO, unpreprocO, intBit,
+				intOperationTransformer, maxProcsO);
 	}
 
 	private static void addShowOption(Option... options) {
@@ -151,9 +154,8 @@ public class CIVLCommand {
 	private static void addVerifyOrCompareOption(Option... options) {
 		for (Option option : options) {
 			if (verifyOptions.containsKey(option.name()))
-				throw new CIVLInternalException(
-						"Option " + option.name()
-								+ " has already been added to verify option map.",
+				throw new CIVLInternalException("Option " + option.name()
+						+ " has already been added to verify option map.",
 						(CIVLSource) null);
 			verifyOptions.put(option.name(), option);
 		}
@@ -162,9 +164,8 @@ public class CIVLCommand {
 	private static void addCompareOption(Option... options) {
 		for (Option option : options) {
 			if (compareOptions.containsKey(option.name()))
-				throw new CIVLInternalException(
-						"Option " + option.name()
-								+ " has already been added to compare option map.",
+				throw new CIVLInternalException("Option " + option.name()
+						+ " has already been added to compare option map.",
 						(CIVLSource) null);
 			compareOptions.put(option.name(), option);
 		}
@@ -173,9 +174,8 @@ public class CIVLCommand {
 	private static void addReplayOption(Option... options) {
 		for (Option option : options) {
 			if (replayOptions.containsKey(option.name()))
-				throw new CIVLInternalException(
-						"Option " + option.name()
-								+ " has already been added to replay option map.",
+				throw new CIVLInternalException("Option " + option.name()
+						+ " has already been added to replay option map.",
 						(CIVLSource) null);
 			replayOptions.put(option.name(), option);
 		}

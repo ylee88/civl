@@ -133,7 +133,9 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 	private boolean debug = false;
 	private CIVLConfiguration config;
 
-	private SimpleReadWriteAnalyzer readWriteAnalyzer;
+	private SimpleReadWriteAnalyzer readWriteAnalyzer = null;
+
+	private AST ast;
 
 	private Function currentFunciton;
 
@@ -148,15 +150,12 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 	public AST transform(AST unit) throws SyntaxException {
 		if (config.ompNoSimplify())
 			return unit;
-		this.readWriteAnalyzer = new SimpleReadWriteAnalyzer(
-				SimplePointsToAnalysis.flowInsensePointsToAnalyzer(unit,
-						astFactory.getTypeFactory()));
 
 		SequenceNode<BlockItemNode> rootNode = unit.getRootNode();
 
 		assert this.astFactory == unit.getASTFactory();
 		assert this.nodeFactory == astFactory.getNodeFactory();
-		unit.release();
+		ast = unit;
 
 		// OpenMPParallelRegions ompRegions = new
 		// OpenMPParallelRegions(rootNode);
@@ -181,6 +180,7 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 		ompMethodDefinitions = new HashSet<FunctionDefinitionNode>();
 		collectOmpMethods(rootNode);
 
+		unit.release();
 		for (FunctionDefinitionNode fdn : ompMethodDefinitions) {
 			this.currentFunciton = fdn.getEntity();
 			transformOmp(fdn);
@@ -213,6 +213,10 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 		if (node instanceof FunctionDefinitionNode) {
 			FunctionDefinitionNode fdn = (FunctionDefinitionNode) node;
 			if (hasOmpConstruct(fdn.getBody())) {
+				if (readWriteAnalyzer == null)
+					readWriteAnalyzer = new SimpleReadWriteAnalyzer(
+							SimplePointsToAnalysis.flowInsensePointsToAnalyzer(
+									ast, astFactory.getTypeFactory()));
 				ompMethods.add(fdn.getEntity());
 				ompMethodDefinitions.add(fdn);
 			}
@@ -362,7 +366,7 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 				int parentIndex = getChildIndex(parent, opn);
 				assert parentIndex != -1;
 				parent.setChild(parentIndex, stmt);
-			} else
+			} else if (config.ompOnlySimplifier())
 				throw new CIVLException(
 						"openMP program possibly contains data race",
 						new ABC_CIVLSource(node.getSource()));

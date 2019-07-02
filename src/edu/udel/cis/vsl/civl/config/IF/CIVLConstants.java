@@ -171,6 +171,7 @@ public class CIVLConstants {
 	public static String SHOW_PROGRAM = "showProgram";
 	public static String SHOW_PATH_CONDITION = "showPathCondition";
 	public static String OMP_NO_SIMPLIFY = "ompNoSimplify";
+	public static String OMP_ONLY_SIMPLIFIER = "ompOnlySimplifier";
 	public static String COLLECT_OUTPUT = "collectOutput";
 	public static String COLLECT_PROCESSES = "collectProcesses";
 	public static String COLLECT_SCOPES = "collectScopes";
@@ -557,6 +558,16 @@ public class CIVLConstants {
 			OMP_NO_SIMPLIFY, BOOLEAN, "don't simplify omp pragmas", false);
 
 	/**
+	 * Only relies on the OpenMP simplifier ? i.e., either simplify an omp
+	 * program or report possible data-race
+	 */
+	public final static Option ompOnlySimplifierO = Option.newScalarOption(
+			OMP_ONLY_SIMPLIFIER, BOOLEAN,
+			"only relies on the OpenMP simplifier, i.e.,"
+					+ "either simplify an omp program or report possible data-race",
+			false);
+
+	/**
 	 * Collect output? false by default.
 	 */
 	public final static Option collectOutputO = Option
@@ -682,10 +693,10 @@ public class CIVLConstants {
 				collectScopesO, collectSymbolicConstantsO, deadlockO, debugO,
 				enablePrintfO, errorBoundO, errorStateEquivO, guiO, guidedO,
 				idO, inputO, linkO, loopO, macroO, maxdepthO, minO,
-				mpiContractO, ompLoopDecompO, ompNoSimplifyO, probO, preprocO,
-				procBoundO, randomO, saveStatesO, seedO, showAmpleSetO,
-				showAmpleSetWtStatesO, showInputVarsO, showMemoryUnitsO,
-				showModelO, showPathConditionO, showProgramO,
+				mpiContractO, ompLoopDecompO, ompNoSimplifyO, ompOnlySimplifierO,
+				probO, preprocO, procBoundO, randomO, saveStatesO, seedO,
+				showAmpleSetO, showAmpleSetWtStatesO, showInputVarsO,
+				showMemoryUnitsO, showModelO, showPathConditionO, showProgramO,
 				showProverQueriesO, showQueriesO, showSavedStatesO, showStatesO,
 				showTimeO, showTransitionsO, showUnreachedCodeO, simplifyO,
 				solveO, statelessPrintfO, svcomp16O, svcomp17O, quietO,
