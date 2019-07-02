@@ -10,6 +10,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
+import edu.udel.cis.vsl.abc.analysis.pointsTo.IF.AssignExprIF;
+import edu.udel.cis.vsl.abc.analysis.pointsTo.IF.AssignExprIF.AssignExprKind;
+import edu.udel.cis.vsl.abc.analysis.pointsTo.IF.AssignStoreExprIF;
+import edu.udel.cis.vsl.abc.analysis.pointsTo.common.SimplePointsToAnalysis;
 import edu.udel.cis.vsl.abc.ast.IF.AST;
 import edu.udel.cis.vsl.abc.ast.IF.ASTFactory;
 import edu.udel.cis.vsl.abc.ast.entity.IF.Entity;
@@ -49,11 +53,12 @@ import edu.udel.cis.vsl.civl.model.IF.CIVLException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLUnimplementedFeatureException;
 import edu.udel.cis.vsl.civl.model.common.ABC_CIVLSource;
 import edu.udel.cis.vsl.civl.transform.IF.OpenMPSimplifier;
-import edu.udel.cis.vsl.civl.transform.analysis.common.SimplePointsToAnalysis;
 import edu.udel.cis.vsl.civl.transform.analysisIF.ArrayReferenceDependencyAnalyzer;
+import edu.udel.cis.vsl.civl.transform.analysisIF.ReadWriteDataStructures.RWSet;
+import edu.udel.cis.vsl.civl.transform.analysisIF.ReadWriteDataStructures.RWSetBaseElement;
+import edu.udel.cis.vsl.civl.transform.analysisIF.ReadWriteDataStructures.RWSetElement;
+import edu.udel.cis.vsl.civl.transform.analysisIF.ReadWriteDataStructures.RWSetElement.RWSetElementKind;
 import edu.udel.cis.vsl.civl.transform.analysisIF.SimpleReadWriteAnalyzer;
-import edu.udel.cis.vsl.civl.transform.analysisIF.SimpleReadWriteAnalyzer.RWSet;
-import edu.udel.cis.vsl.civl.transform.analysisIF.SimpleReadWriteAnalyzer.RWSetElement;
 import edu.udel.cis.vsl.civl.transform.analysisIF.SimpleReadWriteAnalyzer.SimpleFullSetException;
 
 /**
@@ -101,13 +106,13 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 	// private Set<OperatorNode> sharedArrayWrites;
 	// private Set<OperatorNode> sharedArrayReads;
 
-	private Set<RWSetElement> writeVars;
-	private Set<RWSetElement> readVars;
+	private Set<Variable> writeVars;
+	private Set<Variable> readVars;
 	private Set<RWSetElement> writeArrayRefs;
 	private Set<RWSetElement> readArrayRefs;
 
-	private Set<RWSetElement> sharedWrites;
-	private Set<RWSetElement> sharedReads;
+	private Set<Variable> sharedWrites;
+	private Set<Variable> sharedReads;
 	private Set<RWSetElement> sharedArrayWrites;
 	private Set<RWSetElement> sharedArrayReads;
 
@@ -144,7 +149,8 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 		if (config.ompNoSimplify())
 			return unit;
 		this.readWriteAnalyzer = new SimpleReadWriteAnalyzer(
-				SimplePointsToAnalysis.flowInsensePointsToAnalyzer(unit));
+				SimplePointsToAnalysis.flowInsensePointsToAnalyzer(unit,
+						astFactory.getTypeFactory()));
 
 		SequenceNode<BlockItemNode> rootNode = unit.getRootNode();
 
@@ -317,7 +323,8 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 
 			Set<RWSetElement> fullWrites = new HashSet<>(sharedArrayWrites);
 
-			fullWrites.addAll(sharedWrites);
+			for (Variable var : sharedWrites)
+				fullWrites.add(readWriteAnalyzer.packVariable(var));
 			allIndependent &= sharedWrites.isEmpty();
 			if (debug && !sharedWrites.isEmpty()) {
 				System.err.println(sharedWrites
@@ -557,24 +564,24 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 				System.out.println("   ArrayWrites = " + writeArrayRefs);
 			}
 
-			for (RWSetElement read : readVars)
-				if (!privateIDs.contains(read.entity)
-						&& !loopPrivateIDs.contains(read.entity))
+			for (Variable read : readVars)
+				if (!privateIDs.contains(read)
+						&& !loopPrivateIDs.contains(read))
 					sharedReads.add(read);
 
-			for (RWSetElement write : writeVars)
-				if (!privateIDs.contains(write.entity)
-						&& !loopPrivateIDs.contains(write.entity))
+			for (Variable write : writeVars)
+				if (!privateIDs.contains(write)
+						&& !loopPrivateIDs.contains(write))
 					sharedWrites.add(write);
 
 			for (RWSetElement readArr : readArrayRefs)
-				if (!privateIDs.contains(readArr.entity)
-						&& !loopPrivateIDs.contains(readArr.entity))
+				if (!privateIDs.contains(containedBy(readArr))
+						&& !loopPrivateIDs.contains(containedBy(readArr)))
 					sharedArrayReads.add(readArr);
 
 			for (RWSetElement writeArr : writeArrayRefs)
-				if (!privateIDs.contains(writeArr.entity)
-						&& !loopPrivateIDs.contains(writeArr.entity))
+				if (!privateIDs.contains(containedBy(writeArr))
+						&& !loopPrivateIDs.contains(containedBy(writeArr)))
 					sharedArrayWrites.add(writeArr);
 
 			/*
@@ -801,16 +808,16 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 		boolean independent = true;
 		// For each entity in writeVars, if it is not in the local-declaration
 		// collection, add it to sharedWrites (modified by Ziqing):
-		for (RWSetElement writeVar : writeVars) {
+		for (Variable writeVar : writeVars) {
 			boolean localContains = false;
 
 			for (Set<Entity> stackEntry : locallyDeclaredEntities)
-				if (stackEntry.contains(writeVar.entity)) {
+				if (stackEntry.contains(writeVar)) {
 					localContains = true;
 					break;
 				}
-			if (!localContains && !loopPrivateIDs.contains(writeVar.entity)
-					&& !privateIDs.contains(writeVar.entity)) {
+			if (!localContains && !loopPrivateIDs.contains(writeVar)
+					&& !privateIDs.contains(writeVar)) {
 				sharedWrites.add(writeVar);
 			}
 		}
@@ -826,7 +833,8 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 			Set<RWSetElement> readWriteArrayRefs = new HashSet<>(readArrayRefs);
 			Set<RWSetElement> fullWrites = new HashSet<>(writeArrayRefs);
 
-			fullWrites.addAll(writeVars);
+			for (Variable writeVar : writeVars)
+				fullWrites.add(readWriteAnalyzer.packVariable(writeVar));
 			readWriteArrayRefs.addAll(writeArrayRefs);
 			independent &= new ArrayReferenceDependencyAnalyzer(
 					readWriteAnalyzer).threadsArrayAccessIndependent(
@@ -1103,6 +1111,7 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 
 	private void collectAssignRefExprs(ASTNode node) {
 		RWSet rwSet;
+
 		try {
 			rwSet = readWriteAnalyzer.collectRWFromStmtDeclExpr(currentFunciton,
 					node, locallyDeclaredEntities.peek());
@@ -1111,18 +1120,47 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 			throw new RuntimeException();
 		}
 		// fill in writeVars, readVars, writeArrayRefs and readArrayRefs:
-		for (RWSetElement e : rwSet.writes) {
-			if (e.arraySubscript == null)
-				writeVars.add(e);
+		for (RWSetElement e : rwSet.writes()) {
+			Variable var = refersToVariable(e);
+
+			if (var != null)
+				writeVars.add(var);
 			else
 				this.writeArrayRefs.add(e);
 		}
-		for (RWSetElement e : rwSet.reads) {
-			if (e.arraySubscript == null)
-				readVars.add(e);
+		for (RWSetElement e : rwSet.reads()) {
+			Variable var = refersToVariable(e);
+
+			if (var != null)
+				readVars.add(var);
 			else
 				this.readArrayRefs.add(e);
 		}
+	}
+
+	private Variable refersToVariable(RWSetElement e) {
+		if (e.kind() == RWSetElementKind.BASE) {
+			AssignExprIF ao = ((RWSetBaseElement) e).base();
+
+			if (ao.kind() != AssignExprKind.STORE)
+				return null;
+
+			AssignStoreExprIF store = (AssignStoreExprIF) ao;
+
+			return store.variable();
+		}
+		return null;
+	}
+
+	private Variable containedBy(RWSetElement e) {
+		AssignExprIF ao = e.root();
+
+		if (ao == null || ao.kind() != AssignExprKind.STORE)
+			return null;
+
+		AssignStoreExprIF store = (AssignStoreExprIF) ao;
+
+		return store.variable();
 	}
 
 	/*

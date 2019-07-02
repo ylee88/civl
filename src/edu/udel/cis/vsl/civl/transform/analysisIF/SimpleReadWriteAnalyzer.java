@@ -5,6 +5,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import edu.udel.cis.vsl.abc.analysis.pointsTo.IF.AssignExprIF;
+import edu.udel.cis.vsl.abc.analysis.pointsTo.IF.AssignExprIF.AssignExprKind;
+import edu.udel.cis.vsl.abc.analysis.pointsTo.IF.AssignOffsetIF;
+import edu.udel.cis.vsl.abc.analysis.pointsTo.IF.AssignStoreExprIF;
+import edu.udel.cis.vsl.abc.analysis.pointsTo.IF.AssignSubscriptExprIF;
+import edu.udel.cis.vsl.abc.analysis.pointsTo.IF.FlowInsensePointsToAnalyzer;
+import edu.udel.cis.vsl.abc.analysis.pointsTo.IF.InsensitiveFlowFactory;
 import edu.udel.cis.vsl.abc.ast.entity.IF.Entity;
 import edu.udel.cis.vsl.abc.ast.entity.IF.Entity.EntityKind;
 import edu.udel.cis.vsl.abc.ast.entity.IF.Function;
@@ -16,6 +23,7 @@ import edu.udel.cis.vsl.abc.ast.node.IF.PairNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.compound.CompoundInitializerNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.compound.DesignationNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.declaration.InitializerNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.declaration.OrdinaryDeclarationNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.declaration.VariableDeclarationNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ArrowNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.DotNode;
@@ -28,25 +36,44 @@ import edu.udel.cis.vsl.abc.ast.node.IF.expression.OperatorNode.Operator;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.DeclarationListNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.ExpressionStatementNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.StatementNode;
-import edu.udel.cis.vsl.abc.ast.type.IF.ArrayType;
+import edu.udel.cis.vsl.abc.ast.type.IF.Field;
 import edu.udel.cis.vsl.abc.ast.type.IF.PointerType;
 import edu.udel.cis.vsl.abc.ast.type.IF.Type;
 import edu.udel.cis.vsl.abc.ast.type.IF.Type.TypeKind;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLUnimplementedFeatureException;
-import edu.udel.cis.vsl.civl.transform.analysisIF.AssignmentIF.AssignExprIF;
+import edu.udel.cis.vsl.civl.transform.analysis.common.ReadWriteDataStructureImpl.CommonReadWriteDataStructureFactory;
+import edu.udel.cis.vsl.civl.transform.analysisIF.ReadWriteDataStructures.RWSet;
+import edu.udel.cis.vsl.civl.transform.analysisIF.ReadWriteDataStructures.RWSetBaseElement;
+import edu.udel.cis.vsl.civl.transform.analysisIF.ReadWriteDataStructures.RWSetElement;
+import edu.udel.cis.vsl.civl.transform.analysisIF.ReadWriteDataStructures.RWSetFieldElement;
+import edu.udel.cis.vsl.civl.transform.analysisIF.ReadWriteDataStructures.RWSetOffsetElement;
+import edu.udel.cis.vsl.civl.transform.analysisIF.ReadWriteDataStructures.RWSetSubscriptElement;
+import edu.udel.cis.vsl.civl.transform.analysisIF.ReadWriteDataStructures.ReadWriteDataStructureFactory;
 
 /**
- * intra-procedural read-write set analyzer
+ * intra-procedural flow-insensitive read-write set analyzer
  * 
  * @author ziqing
  *
  */
 public class SimpleReadWriteAnalyzer {
+
+	/**
+	 * a reference to the factory that produces basic data structures for
+	 * read/write analysis
+	 */
+	private ReadWriteDataStructureFactory rwFactory;
 	/**
 	 * a reference to a flow-insensitive points-to analyzer
 	 */
 	private FlowInsensePointsToAnalyzer pointsToAnalyzer;
+
+	/**
+	 * a reference to the insensitive flow factory which is used by
+	 * {@link #pointsToAnalyzer}
+	 */
+	private InsensitiveFlowFactory isFactory;
 
 	/**
 	 * the {@link Function} where the current analyzing code is in
@@ -59,312 +86,13 @@ public class SimpleReadWriteAnalyzer {
 	 */
 	private Set<Entity> declaredEntities;
 
+	/* ************** full set exception ********/
+
 	/**
-	 * <p>
-	 * This class is a union of different kinds of objects that can be in a
-	 * read/write set. A read/write set shall have type of
-	 * "collection-of-RWSetElement".
-	 * </p>
-	 * 
-	 * <p>
-	 * An RWSetElement can be one of the following kind:
-	 * <ul>
-	 * <li>Array subscript expression: either {@link #entity} and
-	 * {@link #arraySubscript} are significant; or {@link #strOrAlloc} and
-	 * {@link #arraySubscript} are significant</li>
-	 * <li>Entity: Only {@link #entity} is significant</li>
-	 * <li>String literal or allocation: Only {@link #strOrAlloc} is
-	 * significant</li>
-	 * </ul>
-	 * </p>
+	 * full set exception for informing <b>CLIENTS</b> of this Java class
 	 * 
 	 * @author ziqing
 	 */
-	public class RWSetElement {
-		/**
-		 * significant if 1) this element is a kind of entity or 2) the
-		 * {@link #arraySubscript} is significant and its base array is an
-		 * {@link Entity}
-		 */
-		public final Entity entity;
-
-		/**
-		 * 
-		 * significant iff this element is a kind of array-subscript expression.
-		 * Note that for an array-subscript expression,
-		 * <ul>
-		 * <li>the base array is an {@link Entity}, if the base array expression
-		 * has array INITIAL type. In this case, the {@link #entity} field is
-		 * significant too which refers to the array variable.</li>
-		 * <li>the base array is an allocation, if the base array expression has
-		 * pointer type. In this case, the {@link #strOrAlloc} is significant
-		 * too which refers to the abstraction of the allocation.</li>
-		 * </ul>
-		 */
-		public final OperatorNode arraySubscript;
-
-		/**
-		 * significant if this element is 1) a kind of string literal or
-		 * allocation or 2) the base array of {@link #arraySubscript} is an
-		 * allocation
-		 */
-		public final AssignExprIF strOrAlloc;
-
-		private RWSetElement(Entity entity) {
-			this.entity = entity;
-			this.arraySubscript = null;
-			this.strOrAlloc = null;
-		}
-
-		private RWSetElement(Entity baseArray, OperatorNode arrSubscript) {
-			this.arraySubscript = arrSubscript;
-			this.entity = baseArray;
-			this.strOrAlloc = null;
-		}
-
-		private RWSetElement(AssignExprIF baseArray,
-				OperatorNode arrSubscript) {
-			this.arraySubscript = arrSubscript;
-			this.entity = null;
-			this.strOrAlloc = baseArray;
-		}
-
-		private RWSetElement(AssignExprIF strOrAlloc) {
-			this.strOrAlloc = strOrAlloc;
-			this.entity = null;
-			this.arraySubscript = null;
-		}
-
-		/**
-		 * 
-		 * @param e
-		 * @return True iff the given element refers to the same "Object" as
-		 *         this element, i.e. both of them are referring to the same
-		 *         {@link Entity} or {@link #strOrAlloc}
-		 */
-		public boolean sameObject(RWSetElement e) {
-			if (e.entity != null)
-				return e.entity == entity;
-			else
-				return e.strOrAlloc.nonEntitySource() == strOrAlloc
-						.nonEntitySource();
-		}
-
-		@Override
-		public String toString() {
-			StringBuffer sb = new StringBuffer();
-
-			if (entity != null)
-				sb.append(entity.getName());
-			else if (this.strOrAlloc != null)
-				sb.append(strOrAlloc.nonEntitySource().prettyRepresentation()
-						.toString());
-			if (arraySubscript != null)
-				sb.append(": "
-						+ arraySubscript.prettyRepresentation().toString());
-			return sb.toString();
-		}
-
-		@Override
-		public int hashCode() {
-			if (arraySubscript != null)
-				if (entity != null)
-					return arraySubscript.hashCode() ^ entity.hashCode();
-				else
-					return arraySubscript.hashCode() ^ strOrAlloc.hashCode();
-			else if (entity != null)
-				return entity.hashCode();
-			else
-				return strOrAlloc.hashCode();
-		}
-
-		@Override
-		public boolean equals(Object obj) {
-			if (!(obj instanceof RWSetElement))
-				return false;
-
-			RWSetElement other = (RWSetElement) obj;
-
-			if (arraySubscript != null)
-				if (entity != null)
-					return arraySubscript == other.arraySubscript
-							&& entity.equals(other.entity);
-				else
-					return arraySubscript == other.arraySubscript
-							&& strOrAlloc == other.strOrAlloc;
-			else if (entity != null)
-				return entity.equals(other.entity);
-			else
-				return strOrAlloc == other.strOrAlloc;
-		}
-	}
-
-	// output type---read/write set pair:
-	public class RWSet {
-
-		public Set<RWSetElement> reads;
-
-		public Set<RWSetElement> writes;
-
-		RWSet() {
-			this.reads = new HashSet<>();
-			this.writes = new HashSet<>();
-		}
-
-		private void add(RWSet other) {
-			this.reads.addAll(other.reads);
-			this.writes.addAll(other.writes);
-		}
-
-		@Override
-		public String toString() {
-			StringBuffer sb = new StringBuffer();
-
-			sb.append("reads:\n");
-			for (RWSetElement e : reads)
-				sb.append(e + ", ");
-			sb.append("\nwrites\n");
-			for (RWSetElement e : writes)
-				sb.append(e + ", ");
-			return sb.toString();
-		}
-	}
-
-	// the points-to sets of a RWSet whose elements are all pointers:
-	private RWSet dereferenceRWSet(RWSet ptrRw) throws SimpleFullSetException {
-		RWSet result = new RWSet();
-
-		try {
-			for (RWSetElement ele : ptrRw.reads)
-				result.reads.addAll(dereferenceRWElement(ele));
-		} catch (SimpleReadWriteFullSetException e) {
-			throw new SimpleFullSetException(false);
-		}
-		try {
-			for (RWSetElement ele : ptrRw.writes)
-				result.writes.addAll(dereferenceRWElement(ele));
-		} catch (SimpleReadWriteFullSetException e) {
-			throw new SimpleFullSetException(true);
-		}
-		return result;
-	}
-
-	// return the points-to sets of a RWSet element which is a pointer:
-	private List<RWSetElement> dereferenceRWElement(RWSetElement element)
-			throws SimpleReadWriteFullSetException {
-		List<AssignExprIF> pts;
-
-		if (element.arraySubscript != null) {
-			List<RWSetElement> tmp = new LinkedList<>();
-
-			if (isBaseArrayEntity(element.arraySubscript)) {
-				pts = pointsToAnalyzer.mayPointsTo(currentFunction,
-						element.entity);
-				// add subscript info back:
-				for (RWSetElement pt : processPointsToSet(pts))
-					tmp.add(new RWSetElement(pt.entity, pt.arraySubscript));
-			} else {
-				pts = pointsToAnalyzer.mayPointsTo(currentFunction,
-						element.strOrAlloc);
-				// add subscript info back:
-				for (RWSetElement pt : processPointsToSet(pts))
-					tmp.add(new RWSetElement(pt.strOrAlloc, pt.arraySubscript));
-				return tmp;
-			}
-
-		} else if (element.entity != null)
-			pts = pointsToAnalyzer.mayPointsTo(currentFunction, element.entity);
-		else
-			pts = pointsToAnalyzer.mayPointsTo(currentFunction,
-					element.strOrAlloc);
-		return processPointsToSet(pts);
-	}
-
-	// combine the reads/writes set of the base array of a subscript expression
-	// with the indices information:
-	private RWSet subscriptRWSet(RWSet baseArrayRWSet,
-			OperatorNode subscriptNode) {
-		RWSet result = new RWSet();
-
-		for (RWSetElement element : baseArrayRWSet.reads)
-			result.reads.add(subscriptRWSetWorker(element, subscriptNode));
-		for (RWSetElement element : baseArrayRWSet.writes)
-			result.writes.add(subscriptRWSetWorker(element, subscriptNode));
-		return result;
-	}
-
-	// combine subscript indices with the read/write set of a base-array.
-	/*
-	 * Note the abstraction here: the read/write set of a base-array is an
-	 * over-approximate set of the base array object because it may contain
-	 * other expressions that are part of the baseArray expression. For such an
-	 * over-approximate set, a safe subset of it will include all array type
-	 * variables and allocations.
-	 */
-	private RWSetElement subscriptRWSetWorker(
-			RWSetElement baseArrayRWSetElement, OperatorNode subscriptNode) {
-		if (baseArrayRWSetElement.arraySubscript != null)
-			return null;
-		if (baseArrayRWSetElement.entity != null) {
-			assert baseArrayRWSetElement.entity
-					.getEntityKind() == EntityKind.VARIABLE;
-			Variable var = (Variable) baseArrayRWSetElement.entity;
-
-			if (var.getType().isScalar())
-				return null;
-			return new RWSetElement(var, subscriptNode);
-		} else
-			return new RWSetElement(baseArrayRWSetElement.strOrAlloc,
-					subscriptNode);
-	}
-
-	/**
-	 * 
-	 * @param arraySubscript
-	 *            an array subscript expression
-	 * @return true if and only if the base array of the given array subscript
-	 *         expression refers to an {@link Entity}
-	 */
-	private boolean isBaseArrayEntity(OperatorNode arraySubscript) {
-		ExpressionNode array = arraySubscript.getArgument(0);
-
-		if (array.expressionKind() == ExpressionKind.OPERATOR) {
-			arraySubscript = (OperatorNode) array;
-			if (arraySubscript.getOperator() == Operator.SUBSCRIPT)
-				return isBaseArrayEntity(arraySubscript);
-		}
-		if (array.getInitialType().kind() == TypeKind.ARRAY)
-			return true;
-		else
-			return false;
-	}
-
-	/*
-	 * convert the points-to set to a set of RWSetElement. Note that an element
-	 * in a points-to set is either an entity or string literal or allocation.
-	 */
-	private List<RWSetElement> processPointsToSet(List<AssignExprIF> pts)
-			throws SimpleReadWriteFullSetException {
-		List<RWSetElement> result = new LinkedList<>();
-
-		for (AssignExprIF pt : pts) {
-			if (pt.isFull())
-				throw new SimpleReadWriteFullSetException();
-			else if (pt.source() != null)
-				result.add(new RWSetElement(pt.source()));
-			else
-				result.add(new RWSetElement(pt));
-		}
-		return result;
-	}
-
-	/* ************** full set exception ********/
-	// once a full set detected, stop analysis immediately
-	private class SimpleReadWriteFullSetException extends Exception {
-		// full set exception for use inside this Java file
-		private static final long serialVersionUID = 1L;
-	}
-
 	public class SimpleFullSetException extends Exception {
 		// full set exception for informing clients of this Java file
 		private static final long serialVersionUID = 1L;
@@ -375,24 +103,59 @@ public class SimpleReadWriteAnalyzer {
 		}
 	}
 
+	/**
+	 * <p>
+	 * For an expression denoting an object, the "primary" field refers to the
+	 * object while the "involved" contains (at least) everything involved in
+	 * the evaluation of the expression.
+	 * </p>
+	 * 
+	 * 
+	 * <p>
+	 * immutable during analysis
+	 * </p>
+	 * 
+	 * @author ziqing
+	 */
+	private class TempRWResult {
+		private RWSetElement primary;
+
+		private RWSet involved;
+
+		TempRWResult(RWSetElement primary, RWSet involved) {
+			this.primary = primary;
+			this.involved = involved;
+		}
+	}
+
 	/* ************** constructor **************/
 	public SimpleReadWriteAnalyzer(
 			FlowInsensePointsToAnalyzer pointsToAnalyzer) {
 		this.pointsToAnalyzer = pointsToAnalyzer;
+		this.isFactory = this.pointsToAnalyzer.insensitiveFlowFactory();
+		// TODO: not import common package!
+		this.rwFactory = new CommonReadWriteDataStructureFactory();
+	}
+
+	public RWSetElement packVariable(Variable var) {
+		return this.rwFactory.baseElement(var.getFirstDeclaration(),
+				isFactory.assignStoreExpr(var));
 	}
 
 	/**
 	 * <p>
-	 * collect read/write set from a statement, a declaration or an expression.
-	 * If the input is not a statement, a declaration or an expression, this
-	 * method returns null;
+	 * collect read/write set from a {@link StatementNode}, an
+	 * {@link OrdinaryDeclarationNode} or an {@link ExpressionNode}. If the
+	 * input is not a statement, a declaration or an expression, this method
+	 * returns null;
 	 * </p>
 	 * 
 	 * <p>
-	 * note that write set is always a subset of the read set.
+	 * Note that write set is always a subset of the read set.
 	 * </p>
 	 * 
 	 * @param function
+	 *            the function where this given ASTNode belongs to
 	 * @param stmtDeclExpr
 	 *            an instance of {@link StatementNode}, Declaration or
 	 *            {@link ExpressionNode}, otherwise this method is a no-op
@@ -422,11 +185,17 @@ public class SimpleReadWriteAnalyzer {
 			return null;
 		if (stmtDeclExpr.nodeKind() == NodeKind.STATEMENT)
 			return collectStmtReadsWrites((StatementNode) stmtDeclExpr);
-		else if (stmtDeclExpr.nodeKind() == NodeKind.EXPRESSION)
-			return collectExprReadsWrites((ExpressionNode) stmtDeclExpr);
-		else if (stmtDeclExpr.nodeKind() == NodeKind.DECLARATION_LIST) {
+		else if (stmtDeclExpr.nodeKind() == NodeKind.EXPRESSION) {
+			List<TempRWResult> tmps = collectExprReadsWrites(
+					(ExpressionNode) stmtDeclExpr);
+			RWSet rwSet = rwFactory.newRWSet();
+
+			for (TempRWResult tmp : tmps)
+				rwSet.add(tmp.involved);
+			return rwSet;
+		} else if (stmtDeclExpr.nodeKind() == NodeKind.DECLARATION_LIST) {
 			DeclarationListNode list = (DeclarationListNode) stmtDeclExpr;
-			RWSet rwset = new RWSet();
+			RWSet rwset = rwFactory.newRWSet();
 
 			for (VariableDeclarationNode varDecl : list)
 				rwset.add(collectVarDeclReadsWrites(varDecl));
@@ -438,16 +207,23 @@ public class SimpleReadWriteAnalyzer {
 			return null;
 	}
 
+	// process variable declaration
 	private RWSet collectVarDeclReadsWrites(VariableDeclarationNode varDecl)
 			throws SimpleFullSetException {
 		InitializerNode init = varDecl.getInitializer();
-		RWSet result = new RWSet();
+		RWSet result = rwFactory.newRWSet();
 
 		declaredEntities.add(varDecl.getEntity());
 		if (init == null)
 			return result;
 		result.add(collectInitializerReadsWrites(init));
-		result.writes.add(new RWSetElement(varDecl.getEntity()));
+
+		AssignExprIF varAbstractObj = isFactory
+				.assignStoreExpr(varDecl.getEntity());
+		RWSetElement writeElement = rwFactory.baseElement(varDecl,
+				varAbstractObj);
+
+		result.addWrites(writeElement);
 		return result;
 	}
 
@@ -455,9 +231,15 @@ public class SimpleReadWriteAnalyzer {
 	private RWSet collectStmtReadsWrites(StatementNode stmt)
 			throws SimpleFullSetException {
 		switch (stmt.statementKind()) {
-			case EXPRESSION :
-				return collectExprReadsWrites(
+			case EXPRESSION : {
+				List<TempRWResult> tmps = collectExprReadsWrites(
 						((ExpressionStatementNode) stmt).getExpression());
+				RWSet rwSet = rwFactory.newRWSet();
+
+				for (TempRWResult tmp : tmps)
+					rwSet.add(tmp.involved);
+				return rwSet;
+			}
 			case ATOMIC :
 			case CHOOSE :
 			case CIVL_FOR :
@@ -473,7 +255,7 @@ public class SimpleReadWriteAnalyzer {
 			case UPDATE :
 			case WHEN :
 			case WITH :
-				RWSet result = new RWSet();
+				RWSet result = rwFactory.newRWSet();
 
 				for (ASTNode child : stmt.children()) {
 					RWSet tmp = collectReadsWritesWorker(child);
@@ -494,11 +276,17 @@ public class SimpleReadWriteAnalyzer {
 	// collect reads/writes in initializers:
 	private RWSet collectInitializerReadsWrites(InitializerNode initNode)
 			throws SimpleFullSetException {
-		if (initNode.nodeKind() == NodeKind.EXPRESSION)
-			return collectExprReadsWrites((ExpressionNode) initNode);
-		else {
+		if (initNode.nodeKind() == NodeKind.EXPRESSION) {
+			List<TempRWResult> tmps = collectExprReadsWrites(
+					(ExpressionNode) initNode);
+			RWSet rwSet = rwFactory.newRWSet();
+
+			for (TempRWResult tmp : tmps)
+				rwSet.add(tmp.involved);
+			return rwSet;
+		} else {
 			CompoundInitializerNode compInitNode = (CompoundInitializerNode) initNode;
-			RWSet result = new RWSet();
+			RWSet result = rwFactory.newRWSet();
 
 			for (PairNode<DesignationNode, InitializerNode> pair : compInitNode)
 				result.add(collectInitializerReadsWrites(pair.getRight()));
@@ -506,21 +294,16 @@ public class SimpleReadWriteAnalyzer {
 		}
 	}
 
-	// collect read/write set from an expression
-	private RWSet collectExprReadsWrites(ExpressionNode expr)
+	// collect read/write set from an ExpressionNode
+	private List<TempRWResult> collectExprReadsWrites(ExpressionNode expr)
 			throws SimpleFullSetException {
 		ExpressionKind kind = expr.expressionKind();
 
 		switch (kind) {
-			case ARROW : {
-				RWSet ptrRws = pointsTo(
-						((ArrowNode) expr).getStructurePointer());
-
-				ptrRws.add(collectExprReadsWrites(
-						((ArrowNode) expr).getStructurePointer()));
-			}
+			case ARROW :
+				return collectArrowReadsWrites((ArrowNode) expr, false);
 			case DOT :
-				return collectExprReadsWrites(((DotNode) expr).getStructure());
+				return collectDotReadsWrites((DotNode) expr, false);
 			case FUNCTION_CALL :
 				return collectCallReadsWrites((FunctionCallNode) expr);
 			case IDENTIFIER_EXPRESSION :
@@ -529,32 +312,33 @@ public class SimpleReadWriteAnalyzer {
 			case OPERATOR :
 				return collectOperatorReadsWrites((OperatorNode) expr);
 			default :
-				RWSet result = new RWSet();
+				List<TempRWResult> results = new LinkedList<>();
+				RWSet involved = rwFactory.newRWSet();
 
 				for (ASTNode child : expr.children()) {
 					RWSet tmp = collectReadsWritesWorker(child);
 
 					if (tmp != null)
-						result.add(tmp);
+						involved.add(tmp);
 				}
-				return result;
+				results.add(new TempRWResult(
+						rwFactory.arbitraryElement(expr, expr.getType()),
+						involved));
+				return results;
 		}
 	}
 
-	private RWSet collectOperatorReadsWrites(OperatorNode opNode)
+	// collect read/write set from an OperatorNode:
+	private List<TempRWResult> collectOperatorReadsWrites(OperatorNode opNode)
 			throws SimpleFullSetException {
 		ExpressionNode lhs;
 		List<ExpressionNode> rhs = new LinkedList<>();
 
 		switch (opNode.getOperator()) {
 			case SUBSCRIPT :
-				return collectSubscriptNode(opNode);
-			case DEREFERENCE : {
-				RWSet ptrRws = pointsTo(opNode.getArgument(0));
-
-				ptrRws.add(collectExprReadsWrites(opNode.getArgument(0)));
-				return ptrRws;
-			}
+				return collectSubscriptNode(opNode, false);
+			case DEREFERENCE :
+				return collectDereferenceReadsWrites(opNode, false);
 			// all kinds of assignments:
 			case ASSIGN :
 				lhs = opNode.getArgument(0);
@@ -578,98 +362,207 @@ public class SimpleReadWriteAnalyzer {
 				lhs = opNode.getArgument(0);
 				rhs.add(lhs);
 				break;
+			case PLUS :
+				boolean oftPositive = true;
+			case MINUS :
+				oftPositive = false;
+				if (opNode.getType().kind() == TypeKind.POINTER)
+					return collectPointerAddition(opNode, oftPositive);
 			default :
-				RWSet result = new RWSet();
+				List<TempRWResult> result = new LinkedList<>();
+				RWSet involved = rwFactory.newRWSet();
 				int numArgs = opNode.getNumberOfArguments();
 
-				for (int i = 0; i < numArgs; i++) {
-					RWSet tmp = collectExprReadsWrites(opNode.getArgument(i));
-
-					if (tmp != null)
-						result.add(tmp);
-				}
+				for (int i = 0; i < numArgs; i++)
+					for (TempRWResult tmp : collectExprReadsWrites(
+							opNode.getArgument(i)))
+						involved.add(tmp.involved);
+				result.add(new TempRWResult(
+						rwFactory.arbitraryElement(opNode, opNode.getType()),
+						involved));
 				return result;
 		}
-		// collect for assignments:
-		RWSet set = collectLHSExprReadsWrites(lhs);
 
-		for (ExpressionNode rhsExpr : rhs)
-			set.add(collectExprReadsWrites(rhsExpr));
-		return set;
+		// collect for assignments:
+		List<TempRWResult> lhsResults = collectLHSExprReadsWrites(lhs);
+
+		for (TempRWResult lhsResult : lhsResults)
+			for (ExpressionNode rhsExpr : rhs)
+				for (TempRWResult rhsResult : collectExprReadsWrites(rhsExpr))
+					lhsResult.involved.add(rhsResult.involved);
+		return lhsResults;
 	}
 
 	// add to read/write set if this identifier refers to a variable:
-	private RWSet collectIdentifierExpression(IdentifierExpressionNode id,
-			boolean isWrite) {
+	private List<TempRWResult> collectIdentifierExpression(
+			IdentifierExpressionNode id, boolean isWrite) {
 		Entity entity = id.getIdentifier().getEntity();
-		RWSet result = new RWSet();
+		RWSet result = rwFactory.newRWSet();
+		List<TempRWResult> ret = new LinkedList<>();
 
-		if (entity.getEntityKind() == EntityKind.VARIABLE)
+		if (entity.getEntityKind() == EntityKind.VARIABLE) {
+			AssignExprIF varAbstractObj = this.isFactory
+					.assignStoreExpr((Variable) entity);
+			RWSetElement varElement = rwFactory.baseElement(id, varAbstractObj);
+
 			if (isWrite)
-				result.writes.add(new RWSetElement(entity));
-			else
-				result.reads.add(new RWSetElement(entity));
-		return result;
+				result.addWrites(varElement);
+			result.addReads(varElement);
+			ret.add(new TempRWResult(varElement, result));
+		}
+		return ret;
 	}
 
 	// collect read/write set for subscript expression
-	private RWSet collectSubscriptNode(OperatorNode opNode)
-			throws SimpleFullSetException {
-		// the invariant of the RWSet.arraySubscript field must be satisfied:
-		// if the base array "x" of the subscript expression "x[i][...][j]" is a
-		// pointer, the read/write set will includes all "y[i][...][j]" where
-		// "y" is an element in the points-to set of "x".
-		ExpressionNode baseArray = opNode;
+	private List<TempRWResult> collectSubscriptNode(OperatorNode opNode,
+			boolean isLhs) throws SimpleFullSetException {
+		/*
+		 * the invariant of the RWSet.arraySubscript field must be satisfied: if
+		 * the base array "x" of the subscript expression "x[i][...][j]" is a
+		 * pointer, the read/write set will includes all "y[i][...][j]" where
+		 * "y" is an element in the points-to set of "x".
+		 */
+		List<ExpressionNode> indices = new LinkedList<>();
+		ExpressionNode baseArray = indices(opNode, indices);
+		List<TempRWResult> arrayResults = collectExprReadsWrites(baseArray);
+		ExpressionNode[] indicesArray = new ExpressionNode[indices.size()];
 
-		do {
-			baseArray = ((OperatorNode) baseArray).getArgument(0);
-			if (baseArray instanceof OperatorNode)
-				if (((OperatorNode) baseArray)
-						.getOperator() == Operator.SUBSCRIPT)
-					continue;
-			break;
-		} while (true);
+		indices.toArray(indicesArray);
 
-		RWSet arrRWSet = collectExprReadsWrites(baseArray);
+		List<TempRWResult> result;
+		RWSet idxInvolved = rwFactory.newRWSet();
 
-		if (baseArray.getInitialType().kind() == TypeKind.ARRAY)
-			arrRWSet = subscriptRWSet(arrRWSet, opNode);
-		else {
+		if (baseArray.getInitialType().kind() == TypeKind.ARRAY) {
+			collectSubscriptNodeArrayWorker(opNode, arrayResults, indicesArray,
+					isLhs);
+			result = arrayResults;
+		} else {
 			// dereference pointers:
-			arrRWSet.add(subscriptRWSet(pointsTo(baseArray), opNode));
+			result = collectSubscriptNodePointerWorker(opNode, arrayResults,
+					indicesArray, isLhs);
 		}
-		arrRWSet.add(collectExprReadsWrites(opNode.getArgument(1)));
-		return arrRWSet;
+		for (ExpressionNode idx : indicesArray)
+			for (TempRWResult r : collectExprReadsWrites(idx))
+				idxInvolved.add(r.involved);
+		for (TempRWResult tmp : result)
+			tmp.involved.add(idxInvolved);
+		return result;
+	}
+
+	private List<TempRWResult> collectPointerAddition(OperatorNode opNode,
+			boolean isPositive) throws SimpleFullSetException {
+		ExpressionNode ptr = opNode.getArgument(0);
+		ExpressionNode oft = opNode.getArgument(1);
+
+		if (ptr.getType().kind() != TypeKind.POINTER) {
+			// exchange:
+			ExpressionNode tmp = ptr;
+			ptr = oft;
+			oft = tmp;
+		}
+
+		RWSet oftInvolved = rwFactory.newRWSet();
+
+		for (TempRWResult oftRet : collectExprReadsWrites(oft))
+			oftInvolved.add(oftRet.involved);
+
+		List<TempRWResult> results = collectExprReadsWrites(ptr);
+
+		for (TempRWResult ptrRet : results) {
+			ptrRet.involved.add(oftInvolved);
+			ptrRet.primary = rwFactory.offsetElement(opNode, ptrRet.primary,
+					oft, isPositive);
+		}
+		return results;
+	}
+
+	/**
+	 * worker method for {@link #collectSubscriptNode(OperatorNode, boolean)}
+	 * when the "array" part in an subscript expression is actually a array (not
+	 * a pointer).
+	 * 
+	 * @param arrayResultsINOUT
+	 * @param indices
+	 * @param isLhs
+	 */
+	private void collectSubscriptNodeArrayWorker(ExpressionNode subscriptNode,
+			List<TempRWResult> arrayResultsINOUT, ExpressionNode[] indices,
+			boolean isLhs) {
+		RWSet involved = rwFactory.newRWSet();
+
+		for (TempRWResult arrayResult : arrayResultsINOUT) {
+			RWSetElement subscript = rwFactory.subscriptElement(subscriptNode,
+					arrayResult.primary, isFactory.assignOffsetZero(), indices);
+
+			arrayResult.primary = subscript;
+			involved.add(arrayResult.involved);
+			involved.addReads(subscript);
+			if (isLhs)
+				involved.addWrites(subscript);
+		}
+		for (TempRWResult arrayResult : arrayResultsINOUT)
+			arrayResult.involved = involved;
+	}
+
+	/**
+	 * worker method for {@link #collectSubscriptNode(OperatorNode, boolean)}
+	 * when the "array" part in an subscript expression is actually a pointer.
+	 * 
+	 * @param ptrResults
+	 * @param indices
+	 * @param isLhs
+	 * @return
+	 * @throws SimpleFullSetException
+	 */
+	private List<TempRWResult> collectSubscriptNodePointerWorker(
+			ASTNode subscriptNode, List<TempRWResult> ptrResults,
+			ExpressionNode[] indices, boolean isLhs)
+			throws SimpleFullSetException {
+		RWSet involved = rwFactory.newRWSet();
+		List<TempRWResult> results = new LinkedList<>();
+		List<RWSetElement> primaries = new LinkedList<>();
+
+		for (TempRWResult ptrResult : ptrResults) {
+			for (AssignExprIF pt : pointsTo(toAbstractObj(ptrResult.primary),
+					isLhs)) {
+				/*
+				 * Explain the assertion:
+				 * 
+				 * For p[x] s.t. p is a pointer, an object that is pointed-to by
+				 * p must be an element of an array, this is guaranteed by the
+				 * points-to analyzer:
+				 */
+				assert pt.kind() == AssignExprKind.SUBSCRIPT;
+				AssignSubscriptExprIF subscriptPt = (AssignSubscriptExprIF) pt;
+				RWSetElement ptElement = rwFactory
+						.baseElement(source(subscriptPt), subscriptPt.array());
+
+				ptElement = rwFactory.subscriptElement(subscriptNode, ptElement,
+						subscriptPt.index(), indices);
+				primaries.add(ptElement);
+			}
+			involved.add(ptrResult.involved);
+		}
+		involved.addReads(primaries);
+		if (isLhs)
+			involved.addWrites(primaries);
+		for (RWSetElement primary : primaries)
+			results.add(new TempRWResult(primary, involved));
+		return results;
 	}
 
 	/*
 	 * collect reads/writes in LHS expression.
 	 */
-	private RWSet collectLHSExprReadsWrites(ExpressionNode lhs)
+	private List<TempRWResult> collectLHSExprReadsWrites(ExpressionNode lhs)
 			throws SimpleFullSetException {
 		ExpressionKind kind = lhs.expressionKind();
-		RWSet result;
 
 		switch (kind) {
-			case ARROW : {
-				result = pointsTo(((ArrowNode) lhs).getStructurePointer());
-				// select safe over-approx subset to the write set:
-				for (RWSetElement e : result.reads)
-					if (isStructUnionOrArrayOfStructUnion(e))
-						result.writes.add(e);
-				result.add(collectExprReadsWrites(
-						((ArrowNode) lhs).getStructurePointer()));
-				return result;
-			}
-			case DOT : {
-				result = collectExprReadsWrites(
-						((ArrowNode) lhs).getStructurePointer());
-				// select safe over-approx subset to the write set:
-				for (RWSetElement e : result.reads)
-					if (isStructUnionOrArrayOfStructUnion(e))
-						result.writes.add(e);
-				return result;
-			}
+			case ARROW :
+				return collectArrowReadsWrites((ArrowNode) lhs, true);
+			case DOT :
+				return collectDotReadsWrites((DotNode) lhs, true);
 			case IDENTIFIER_EXPRESSION :
 				return collectIdentifierExpression(
 						(IdentifierExpressionNode) lhs, true);
@@ -677,24 +570,10 @@ public class SimpleReadWriteAnalyzer {
 				OperatorNode opNode = (OperatorNode) lhs;
 
 				switch (opNode.getOperator()) {
-					case DEREFERENCE : {
-						result = collectExprReadsWrites(
-								((OperatorNode) lhs).getArgument(0));
-
-						RWSet tmp = dereferenceRWSet(result);
-
-						tmp.reads.addAll(tmp.writes);
-						result.writes.addAll(tmp.reads);
-						return result;
-					}
-					case SUBSCRIPT : {
-						result = collectSubscriptNode(opNode);
-						// select safe over-approx subset to the write set:
-						for (RWSetElement e : result.reads)
-							if (e.arraySubscript != null)
-								result.writes.add(e);
-						return result;
-					}
+					case DEREFERENCE :
+						return collectDereferenceReadsWrites(opNode, true);
+					case SUBSCRIPT :
+						return collectSubscriptNode(opNode, true);
 					default :
 				}
 			default :
@@ -705,44 +584,105 @@ public class SimpleReadWriteAnalyzer {
 		}
 	}
 
+	private List<TempRWResult> collectDereferenceReadsWrites(OperatorNode node,
+			boolean isLhs) throws SimpleFullSetException {
+		ExpressionNode ptr = node.getArgument(0);
+		List<TempRWResult> result = collectExprReadsWrites(ptr);
+		RWSet involved = rwFactory.newRWSet();
+		List<RWSetElement> pts = new LinkedList<>();
+
+		for (TempRWResult t : result) {
+			for (AssignExprIF pt : pointsTo(toAbstractObj(t.primary), isLhs))
+				pts.add(rwFactory.baseElement(source(pt), pt));
+			involved.add(t.involved);
+		}
+		result.clear();
+		for (RWSetElement pt : pts)
+			result.add(new TempRWResult(pt, involved));
+		return result;
+	}
+
+	/**
+	 * Given an ArrowNode <code>a->id</code>, return the reads/writes set <code>
+	 * read set:                       collect(a) U pts(collect(a)).id 
+	 * write set (if isLhs == true):   pts(collect(a)).id 
+	 * </code>
+	 * 
+	 * @param arrowNode
+	 * @param isLhs
+	 *            true iff this expression appears at Left-hand side
+	 * @return
+	 * @throws SimpleFullSetException
+	 */
+	private List<TempRWResult> collectArrowReadsWrites(ArrowNode arrowNode,
+			boolean isLhs) throws SimpleFullSetException {
+		// collect(a):
+		List<TempRWResult> ptrs = collectExprReadsWrites(
+				arrowNode.getStructurePointer());
+		Field field = (Field) arrowNode.getFieldName().getEntity();
+		// pts(collect(a)).id :
+		List<RWSetElement> pointsToFiledAccesses = new LinkedList<>();
+		// every r/w involved:
+		RWSet involved = rwFactory.newRWSet();
+
+		for (TempRWResult ptr : ptrs) {
+			for (AssignExprIF pt : pointsTo(toAbstractObj(ptr.primary),
+					isLhs)) {
+				RWSetElement ptElement = rwFactory.baseElement(source(pt), pt);
+
+				pointsToFiledAccesses.add(
+						rwFactory.fieldElement(arrowNode, ptElement, field));
+			}
+			involved.add(ptr.involved);
+		}
+		involved.addReads(pointsToFiledAccesses);
+		if (isLhs)
+			involved.addWrites(pointsToFiledAccesses);
+
+		List<TempRWResult> results = new LinkedList<>();
+
+		for (RWSetElement primary : pointsToFiledAccesses)
+			results.add(new TempRWResult(primary, involved));
+		return results;
+	}
+
 	/**
 	 * 
-	 * @param element
-	 * @return true iff the given RWSetElement is an abstraction of struct/union
-	 *         or array-of struct/union type
+	 * collect DotNode
+	 * 
+	 * @throws SimpleFullSetException
 	 */
-	private boolean isStructUnionOrArrayOfStructUnion(RWSetElement element) {
-		Type type;
+	private List<TempRWResult> collectDotReadsWrites(DotNode dotNode,
+			boolean isLhs) throws SimpleFullSetException {
+		Field field = (Field) dotNode.getFieldName().getEntity();
+		List<TempRWResult> structs = collectExprReadsWrites(
+				dotNode.getStructure());
+		List<RWSetElement> fieldAccesses = new LinkedList<>();
+		RWSet involved = rwFactory.newRWSet();
 
-		if (element.arraySubscript != null)
-			type = element.arraySubscript.getConvertedType();
-		else if (element.entity != null)
-			type = ((Variable) element.entity).getType();
-		else {
-			type = element.strOrAlloc.nonEntitySource().getType();
-			assert type.kind() == TypeKind.POINTER;
-			type = ((PointerType) type).referencedType();
+		for (TempRWResult struct : structs) {
+			RWSetElement fieldAccess = rwFactory.fieldElement(dotNode,
+					struct.primary, field);
+
+			struct.primary = fieldAccess;
+			involved.add(struct.involved);
 		}
-		while (type.kind() == TypeKind.ARRAY)
-			type = ((ArrayType) type).getElementType();
-		return type.kind() == TypeKind.STRUCTURE_OR_UNION;
+		involved.addReads(fieldAccesses);
+		if (isLhs)
+			involved.addWrites(fieldAccesses);
+		for (TempRWResult struct : structs)
+			struct.involved = involved;
+		return structs;
 	}
 
 	// call can read all actual parameters
 	// call can read/write all visible global variables
 	// call can all points-to objects
-	private RWSet collectCallReadsWrites(FunctionCallNode call)
+	private List<TempRWResult> collectCallReadsWrites(FunctionCallNode call)
 			throws SimpleFullSetException {
-		RWSet result = new RWSet();
-
-		for (ExpressionNode arg : call.getArguments()) {
-			RWSet ptrArgRWSet = allPointsTo(arg);
-
-			ptrArgRWSet.writes.addAll(ptrArgRWSet.reads);
-			result.add(ptrArgRWSet);
-			result.add(collectExprReadsWrites(arg));
-		}
-
+		List<TempRWResult> results = new LinkedList<>();
+		RWSetElement primary = rwFactory.arbitraryElement(call, call.getType());
+		RWSet involved = rwFactory.newRWSet();
 		ExpressionNode funcExpr = call.getFunction();
 
 		if (funcExpr.expressionKind() != ExpressionKind.IDENTIFIER_EXPRESSION)
@@ -753,59 +693,172 @@ public class SimpleReadWriteAnalyzer {
 		Function func = (Function) ((IdentifierExpressionNode) funcExpr)
 				.getIdentifier().getEntity();
 
+		for (ExpressionNode arg : call.getArguments()) {
+			List<TempRWResult> argResults = collectExprReadsWrites(arg);
+
+			for (TempRWResult argResult : argResults) {
+				for (AssignExprIF pt : allPointsTo(
+						toAbstractObj(argResult.primary), arg.getType(),
+						true)) {
+					RWSetElement ptElement = rwFactory.baseElement(source(pt),
+							pt);
+
+					involved.addReads(ptElement);
+					involved.addWrites(ptElement);
+				}
+				involved.add(argResult.involved);
+			}
+		}
+
 		if (func.getDefinition() != null)
-			result.add(visibleVariables(func.getDefinition().getScope()));
-		return result;
+			involved.add(visibleVariables(func.getDefinition().getScope()));
+		results.add(new TempRWResult(primary, involved));
+		return results;
 	}
 
-	// the reading set of "nested" points-to sets starting from the given "ptr":
-	private RWSet allPointsTo(ExpressionNode ptr)
-			throws SimpleFullSetException {
-		if (ptr.getType().kind() != TypeKind.POINTER)
-			return new RWSet();
+	/**
+	 * the reading set of "nested" points-to sets starting from the given "ptr":
+	 * 
+	 * @param ptr
+	 * @return
+	 * @throws SimpleFullSetException
+	 */
+	private Iterable<AssignExprIF> allPointsTo(AssignExprIF ptr, Type ptrType,
+			boolean isLhs) throws SimpleFullSetException {
+		Set<AssignExprIF> result = new HashSet<>();
+		Type type = ptrType;
 
-		RWSet result = pointsTo(ptr);
-		Type type = ((PointerType) ptr.getType()).referencedType();
-
+		if (type.kind() != TypeKind.POINTER)
+			return result;
+		result.addAll(pointsTo(ptr, isLhs));
+		type = ((PointerType) type).referencedType();
 		while (type.kind() == TypeKind.POINTER) {
+			Set<AssignExprIF> tmp2 = new HashSet<>();
+
+			for (AssignExprIF pt : result)
+				tmp2.addAll(pointsToAnalyzer.mayPointsTo(currentFunction, pt));
+			result = tmp2;
 			type = ((PointerType) type).referencedType();
-
-			RWSet tmp = dereferenceRWSet(result);
-
-			result.add(tmp);
 		}
 		return result;
 	}
 
-	// return the over-approx reading set that "ptr" may points-to:
-	private RWSet pointsTo(ExpressionNode ptr) throws SimpleFullSetException {
-		RWSet result = new RWSet();
+	/**
+	 * the points-to set of the pointer expression.
+	 * 
+	 * @param ptr
+	 * @return points-to set of ptr
+	 * @throws SimpleFullSetException
+	 *             if there is a FULL in its points-to set
+	 */
+	private List<AssignExprIF> pointsTo(AssignExprIF ptr, boolean isLhs)
+			throws SimpleFullSetException {
+		List<AssignExprIF> result = pointsToAnalyzer
+				.mayPointsTo(currentFunction, ptr);
 
-		// special handling for ADDRESS_OF operator:
-		if (ptr.expressionKind() == ExpressionKind.OPERATOR) {
-			OperatorNode opNode = (OperatorNode) ptr;
-
-			if (opNode.getOperator() == Operator.ADDRESSOF)
-				result.add(collectExprReadsWrites(opNode.getArgument(0)));
-		}
-
-		RWSet tmp = collectExprReadsWrites(ptr);
-
-		result.add(dereferenceRWSet(tmp));
+		if (result.contains(isFactory.full()))
+			throw new SimpleFullSetException(isLhs);
 		return result;
+	}
+
+	private ASTNode source(AssignExprIF e) {
+		AssignStoreExprIF root = (AssignStoreExprIF) e.root();
+
+		if (root.isAllocation())
+			return root.store();
+		else
+			return root.variable().getFirstDeclaration();
 	}
 
 	private RWSet visibleVariables(Scope scope) {
-		RWSet result = new RWSet();
+		RWSet result = rwFactory.newRWSet();
 
 		for (Variable var : scope.getVariables()) {
-			RWSetElement e = new RWSetElement(var);
+			RWSetElement e = rwFactory.baseElement(var.getFirstDeclaration(),
+					isFactory.assignStoreExpr(var));
 
-			result.reads.add(e);
-			result.writes.add(e);
+			result.addReads(e);
+			result.addWrites(e);
 		}
 		if (scope.getParentScope() != null)
 			result.add(visibleVariables(scope.getParentScope()));
 		return result;
+	}
+
+	/**
+	 * 
+	 * @param subscriptNode
+	 *            a expression node of the form: <code>e[x][y][...]</code>
+	 * @param indicesOutput
+	 *            OUTPUT arguments: the indices of the subscript expression
+	 * @return the base array of the subscript expression
+	 */
+	private ExpressionNode indices(OperatorNode subscriptNode,
+			List<ExpressionNode> indicesOutput) {
+		ExpressionNode ret = subscriptNode;
+
+		if (subscriptNode.getOperator() == Operator.SUBSCRIPT) {
+			ExpressionNode idx = subscriptNode.getArgument(1);
+			ExpressionNode arr = subscriptNode.getArgument(0);
+
+			if (arr.expressionKind() == ExpressionKind.OPERATOR)
+				ret = indices((OperatorNode) arr, indicesOutput);
+			else
+				ret = arr;
+			indicesOutput.add(idx);
+		}
+		return ret;
+	}
+
+	private AssignExprIF toAbstractObj(RWSetElement e) {
+		switch (e.kind()) {
+			case BASE :
+				return ((RWSetBaseElement) e).base();
+			case FIELD : {
+				RWSetFieldElement fieldEle = (RWSetFieldElement) e;
+				AssignExprIF struct = toAbstractObj(fieldEle.struct());
+
+				return isFactory.assignFieldExpr(struct, fieldEle.field());
+			}
+			case OFFSET : {
+				RWSetOffsetElement offsetEle = (RWSetOffsetElement) e;
+				AssignExprIF base = toAbstractObj(offsetEle.base());
+
+				return isFactory.assignOffsetExpr(base, isFactory.assignOffset(
+						offsetEle.offset(), offsetEle.isPositive()));
+			}
+			case SUBSCRIPT : {
+				RWSetSubscriptElement subscriptEle = (RWSetSubscriptElement) e;
+				AssignExprIF array = this.toAbstractObj(subscriptEle.array());
+				AssignExprIF ret = array;
+				ExpressionNode indices[] = subscriptEle.indices();
+
+				AssignOffsetIF oft = subscriptEle.offset();
+				AssignOffsetIF firstDimIdx = isFactory.assignOffset(indices[0],
+						true);
+
+				ret = isFactory.assignSubscriptExpr(ret,
+						addOffsets(oft, firstDimIdx));
+				for (int i = 1; i < indices.length; i++)
+					ret = isFactory.assignSubscriptExpr(ret,
+							isFactory.assignOffset(indices[i], true));
+				return ret;
+			}
+			default :
+				throw new CIVLInternalException(
+						"Read/write analyzer cannot process " + e.toString(),
+						e.source().getSource());
+		}
+	}
+
+	private AssignOffsetIF addOffsets(AssignOffsetIF oft0,
+			AssignOffsetIF oft1) {
+		if (oft0.hasConstantValue() && oft1.hasConstantValue()) {
+			int i = oft0.constantValue().intValue()
+					+ oft1.constantValue().intValue();
+
+			return isFactory.assignOffset(i);
+		}
+		return oft0.hasConstantValue() ? oft1 : oft0;
 	}
 }

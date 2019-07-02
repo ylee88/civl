@@ -7,19 +7,22 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import edu.udel.cis.vsl.abc.analysis.pointsTo.IF.AssignExprIF;
+import edu.udel.cis.vsl.abc.analysis.pointsTo.IF.AssignExprIF.AssignExprKind;
+import edu.udel.cis.vsl.abc.analysis.pointsTo.IF.AssignOffsetIF;
+import edu.udel.cis.vsl.abc.analysis.pointsTo.IF.AssignStoreExprIF;
 import edu.udel.cis.vsl.abc.ast.entity.IF.Function;
 import edu.udel.cis.vsl.abc.ast.entity.IF.Variable;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
-import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode.ExpressionKind;
-import edu.udel.cis.vsl.abc.ast.node.IF.expression.OperatorNode;
-import edu.udel.cis.vsl.abc.ast.node.IF.expression.OperatorNode.Operator;
-import edu.udel.cis.vsl.abc.ast.type.IF.ArrayType;
-import edu.udel.cis.vsl.abc.ast.type.IF.PointerType;
-import edu.udel.cis.vsl.abc.ast.type.IF.Type.TypeKind;
 import edu.udel.cis.vsl.abc.ast.util.ExpressionEvaluator;
-import edu.udel.cis.vsl.civl.model.IF.CIVLUnimplementedFeatureException;
-import edu.udel.cis.vsl.civl.transform.analysisIF.SimpleReadWriteAnalyzer.RWSet;
-import edu.udel.cis.vsl.civl.transform.analysisIF.SimpleReadWriteAnalyzer.RWSetElement;
+import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
+import edu.udel.cis.vsl.civl.transform.analysisIF.ReadWriteDataStructures.RWSet;
+import edu.udel.cis.vsl.civl.transform.analysisIF.ReadWriteDataStructures.RWSetBaseElement;
+import edu.udel.cis.vsl.civl.transform.analysisIF.ReadWriteDataStructures.RWSetElement;
+import edu.udel.cis.vsl.civl.transform.analysisIF.ReadWriteDataStructures.RWSetElement.RWSetElementKind;
+import edu.udel.cis.vsl.civl.transform.analysisIF.ReadWriteDataStructures.RWSetFieldElement;
+import edu.udel.cis.vsl.civl.transform.analysisIF.ReadWriteDataStructures.RWSetOffsetElement;
+import edu.udel.cis.vsl.civl.transform.analysisIF.ReadWriteDataStructures.RWSetSubscriptElement;
 import edu.udel.cis.vsl.civl.transform.analysisIF.SimpleReadWriteAnalyzer.SimpleFullSetException;
 
 public class ArrayReferenceDependencyAnalyzer {
@@ -65,6 +68,9 @@ public class ArrayReferenceDependencyAnalyzer {
 	 *            a set of write to array elements
 	 * @param arrReads
 	 *            a set of read to array elements
+	 * @param fulWrites
+	 *            the set containing all the write accesses that may be done in
+	 *            a specific statement
 	 * @param threadVariables
 	 *            a set of thread variables, thread variables are the variables
 	 *            that are guaranteed to be different on different threads
@@ -78,34 +84,154 @@ public class ArrayReferenceDependencyAnalyzer {
 		this.currentFunction = function;
 
 		for (RWSetElement w : arrWrites) {
-			assert w.arraySubscript != null;
-
 			for (RWSetElement r : arrReads) {
-				// If two entities are different or one of them is null, the w
-				// and r are not referring to the same object;
-				// If two entities are same, w and r are referring to the same
-				// object:
-				if (w.entity != r.entity)
+				if (!w.root().mayEquals(r.root()))
 					continue;
-				// If two entities are both null, w and r are referring to
-				// allocations, if their allocations are coming from the same
-				// lexical allocation statement, they might referring to the
-				// same object:
-				if (w.entity == null)
-					if (w.strOrAlloc != r.strOrAlloc)
-						continue;
+
 				if (debug) {
 					System.out.println("Checking Array Refs for ");
-					System.out.println(print(w) + " and ");
-					System.out.println(print(r));
+					System.out.println(w + " and ");
+					System.out.println(r);
 				}
-				independent &= checkSubscriptIndependent(w, r, threadVariables,
+				independent &= checkIndependent(w, r, threadVariables,
 						fullWrites);
-				if (!independent)
+				// independent &= checkSubscriptIndependent(w, r, wIdxs, rIdxs,
+				// threadVariables, fullWrites);
+				if (!independent) {
+					System.out.println("may dependent!");
 					return false;
+				}
 			}
 		}
 		return independent;
+	}
+
+	private boolean checkIndependent(RWSetElement w, RWSetElement r,
+			Set<Variable> threadVars, Set<RWSetElement> fullWrites) {
+		/*
+		 * pre-process w and r :
+		 * 
+		 * w will never has (or recursively has) OFFSET kind since 1) the design
+		 * of the structure disallow recursive OFFSET kind; 2) an OFFSET kind
+		 * expression can never be written.
+		 * 
+		 * If r has OFFSET kind, denoted as "a := ptr + oft", it may dependent
+		 * on w iff "w := ptr2" and "ptr" and "ptr2" are dependent.
+		 * 
+		 * Hence let r' = r if r has NO OFFSET kind, otherwise, r' = base(r).
+		 * 
+		 * w and r are pre-determined to be independent if w and r' has
+		 * different depth.
+		 */
+		if (r.kind() == RWSetElementKind.OFFSET)
+			r = ((RWSetOffsetElement) r).base();
+		if (w.depth() != r.depth())
+			return true;
+		return checkIndependentWorker(w, r, threadVars,
+				fullWrites) == CompareResult.INDEPENDENT;
+	}
+
+	/**
+	 * pre-condition: w and r shall have exact same (recursive) structure
+	 * 
+	 * 
+	 * @return
+	 */
+	private CompareResult checkIndependentWorker(RWSetElement w, RWSetElement r,
+			Set<Variable> threadVars, Set<RWSetElement> fullWrites) {
+		if (w.kind() != r.kind())
+			return CompareResult.INDEPENDENT;
+
+		if (w.kind() == RWSetElementKind.BASE) {
+			RWSetBaseElement wb = (RWSetBaseElement) w,
+					rb = (RWSetBaseElement) r;
+
+			if (wb.base().mayEquals(rb.base()))
+				return CompareResult.IDENTICAL;
+			else
+				return CompareResult.UNKNOWN;
+		}
+
+		CompareResult result;
+
+		switch (w.kind()) {
+			case FIELD : {
+				RWSetFieldElement wf = (RWSetFieldElement) w,
+						rf = (RWSetFieldElement) r;
+
+				if (wf.field() != rf.field())
+					return CompareResult.INDEPENDENT;
+				return checkIndependentWorker(wf.struct(), rf.struct(),
+						threadVars, fullWrites);
+			}
+			case SUBSCRIPT : {
+				RWSetSubscriptElement ws = (RWSetSubscriptElement) w,
+						rs = (RWSetSubscriptElement) r;
+
+				result = checkIndependentWorker(ws.array(), rs.array(),
+						threadVars, fullWrites);
+				if (result != CompareResult.IDENTICAL)
+					return result;
+				return compareIndices(ws.offset(), ws.indices(), rs.offset(),
+						rs.indices(), threadVars, fullWrites);
+			}
+			default :
+				throw new CIVLInternalException(
+						"unexpected error: independent analysis for "
+								+ w.source().prettyRepresentation() + " and "
+								+ r.source().prettyRepresentation(),
+						w.source().getSource());
+		}
+	}
+
+	private CompareResult compareIndices(AssignOffsetIF aOft,
+			ExpressionNode[] aIndices, AssignOffsetIF bOft,
+			ExpressionNode[] bIndices, Set<Variable> threadVars,
+			Set<RWSetElement> fullWrites) {
+		if (!aOft.hasConstantValue() || !bOft.hasConstantValue())
+			return CompareResult.UNKNOWN;
+		assert aIndices.length == bIndices.length;
+
+		Integer aOftInt = aOft.constantValue();
+		Integer bOftInt = bOft.constantValue();
+
+		CompareResult result = compare2(aOftInt, aIndices[0], bOftInt,
+				bIndices[0], threadVars, fullWrites);
+		int i = 1;
+
+		while (result == CompareResult.IDENTICAL && i++ < aIndices.length) {
+			result = compare2(0, aIndices[i], 0, bIndices[i], threadVars,
+					fullWrites);
+		}
+		return result;
+	}
+
+	private CompareResult compare2(Integer oft0, ExpressionNode idx0,
+			Integer oft1, ExpressionNode idx1, Set<Variable> threadVars,
+			Set<RWSetElement> fullWrites) {
+		Set<Variable> mathFuncInputs = new HashSet<>();
+		Set<Variable> tmp = getMathFuncInputs(idx0, fullWrites, threadVars);
+
+		if (tmp == null)
+			return CompareResult.UNKNOWN;
+		mathFuncInputs.addAll(tmp);
+		tmp = getMathFuncInputs(idx1, fullWrites, threadVars);
+		if (tmp == null)
+			return CompareResult.UNKNOWN;
+		mathFuncInputs.addAll(tmp);
+		if (mathFuncInputs.isEmpty()) {
+			// IF both index expressions are pure read-only, check if they are
+			// lexically identical:
+			if (ExpressionEvaluator.checkEqualityWithConditions2(oft0, idx0,
+					oft1, idx1, new LinkedList<>()))
+				return CompareResult.IDENTICAL;
+		}
+		// IF both index expressions are math functions (including read-only)
+		// over thread vars, check if they are independent:
+		if (ExpressionEvaluator.checkFunctionDisagrement(oft0, idx0, oft1, idx1,
+				mathFuncInputs))
+			return CompareResult.INDEPENDENT;
+		return CompareResult.UNKNOWN;
 	}
 
 	/**
@@ -148,70 +274,31 @@ public class ArrayReferenceDependencyAnalyzer {
 	 * </p>
 	 * 
 	 */
-	private boolean checkSubscriptIndependent(RWSetElement w, RWSetElement r,
-			Set<Variable> threadVars, Set<RWSetElement> fullWrites) {
-		int dims;
-
-		if (w.entity != null) {
-			ArrayType arrType = (ArrayType) ((Variable) w.entity).getType();
-
-			dims = arrType.getDimension();
-		} else {
-			PointerType ptrType = (PointerType) w.strOrAlloc.nonEntitySource()
-					.getType();
-
-			dims = 0;
-			do {
-				dims++;
-				if (ptrType.referencedType().kind() == TypeKind.POINTER)
-					ptrType = (PointerType) ptrType.referencedType();
-				else
-					break;
-			} while (true);
-		}
-
-		ExpressionNode wIdx[] = getSubscriptIndices(w.arraySubscript);
-		ExpressionNode rIdx[] = getSubscriptIndices(r.arraySubscript);
-		ExpressionNode unimplExpr = null;
-
-		/*
-		 * Note that there is a limitation to due the abstraction made by {@link
-		 * FlowInsensePointsToAnalyzer}: given expression in program "a[i][j]"
-		 * where "a" is a pointer and "a" points array "T b[N][N][N]". Due to
-		 * abstraction, "a" actually may points-to "b" or "b[x]" but will be
-		 * over-approximated as "b", hence we have no way to decide if the
-		 * "b[i][j]" , which is the abstraction of "a[i][j]", is independent of
-		 * another expression "b[x][i][j]".
-		 * 
-		 * Therefore, if the dimension of the base array of the subscript
-		 * expression is NOT equal to the number of indices in a subscript
-		 * expression, this method has to give up.
-		 */
-		if (wIdx.length != dims)
-			unimplExpr = w.arraySubscript;
-		else if (rIdx.length != dims)
-			unimplExpr = r.arraySubscript;
-		if (unimplExpr != null)
-			throw new CIVLUnimplementedFeatureException(
-					"OpenMP simplifier analyze a subscript operation "
-							+ unimplExpr.prettyRepresentation()
-							+ " with a pointer to a sub-array of "
-							+ w.entity.getName());
-
-		boolean independent = checkSubscriptIndependentWorker(dims, wIdx, rIdx,
-				threadVars, fullWrites) == CompareResult.INDEPENDENT;
-
-		if (debug) {
-			if (!independent) {
-				System.out.print("possible data race:");
-				System.out.print("a thread write to " + print(w));
-				System.out.println(
-						" while another thread reads " + print(r) + "\n");
-			} else
-				System.out.println("independent\n");
-		}
-		return independent;
-	}
+	// private boolean checkSubscriptIndependent(RWSetElement w, RWSetElement r,
+	// List<ExpressionNode> wIndices, List<ExpressionNode> rIndices,
+	// Set<Variable> threadVars, Set<RWSetElement> fullWrites) {
+	// ExpressionNode wIdx[] = new ExpressionNode[wIndices.size()];
+	// ExpressionNode rIdx[] = new ExpressionNode[rIndices.size()];
+	// int dims;
+	//
+	// wIndices.toArray(wIdx);
+	// rIndices.toArray(rIdx);
+	// dims = wIdx.length;
+	// assert dims == rIdx.length;
+	//
+	// boolean independent = checkSubscriptIndependentWorker(dims, wIdx, rIdx,
+	// threadVars, fullWrites) == CompareResult.INDEPENDENT;
+	//
+	// if (debug) {
+	// if (!independent) {
+	// System.out.print("possible data race:");
+	// System.out.print("a thread write to " + w);
+	// System.out.println(" while another thread reads " + r + "\n");
+	// } else
+	// System.out.println("independent\n");
+	// }
+	// return independent;
+	// }
 
 	/**
 	 * See
@@ -233,80 +320,54 @@ public class ArrayReferenceDependencyAnalyzer {
 	 *            full write set
 	 * @return
 	 */
-	private CompareResult checkSubscriptIndependentWorker(int currentDim,
-			ExpressionNode wIdx[], ExpressionNode rIdx[],
-			Set<Variable> threadVars, Set<RWSetElement> fullWrites) {
-		assert currentDim >= 1;
-		if (currentDim == 1)
-			return this.compare(wIdx[0], rIdx[0], threadVars, fullWrites);
-
-		CompareResult arrayResult = checkSubscriptIndependentWorker(
-				currentDim - 1, wIdx, rIdx, threadVars, fullWrites);
-
-		if (arrayResult == CompareResult.IDENTICAL)
-			return compare(wIdx[currentDim - 1], rIdx[currentDim - 1],
-					threadVars, fullWrites);
-		else
-			return arrayResult;
-	}
+	// private CompareResult checkSubscriptIndependentWorker(int currentDim,
+	// ExpressionNode wIdx[], ExpressionNode rIdx[],
+	// Set<Variable> threadVars, Set<RWSetElement> fullWrites) {
+	// assert currentDim >= 1;
+	// if (currentDim == 1)
+	// return this.compare(wIdx[0], rIdx[0], threadVars, fullWrites);
+	//
+	// CompareResult arrayResult = checkSubscriptIndependentWorker(
+	// currentDim - 1, wIdx, rIdx, threadVars, fullWrites);
+	//
+	// if (arrayResult == CompareResult.IDENTICAL)
+	// return compare(wIdx[currentDim - 1], rIdx[currentDim - 1],
+	// threadVars, fullWrites);
+	// else
+	// return arrayResult;
+	// }
 
 	/**
 	 * 
 	 * see
 	 * {@link #checkSubscriptIndependentWorker(int, ExpressionNode[], ExpressionNode[], Set, Set)}
 	 */
-	private CompareResult compare(ExpressionNode idx0, ExpressionNode idx1,
-			Set<Variable> threadVars, Set<RWSetElement> fullWrites) {
-		Set<Variable> mathFuncInputs = new HashSet<>();
-		Set<Variable> tmp = getMathFuncInputs(idx0, fullWrites, threadVars);
-
-		if (tmp == null)
-			return CompareResult.UNKNOWN;
-		mathFuncInputs.addAll(tmp);
-		tmp = getMathFuncInputs(idx1, fullWrites, threadVars);
-		if (tmp == null)
-			return CompareResult.UNKNOWN;
-		mathFuncInputs.addAll(tmp);
-		if (mathFuncInputs.isEmpty()) {
-			// IF both index expressions are pure read-only, check if they are
-			// lexically identical:
-			if (ExpressionEvaluator.checkEqualityWithConditions(idx0, idx1,
-					new LinkedList<>()))
-				return CompareResult.IDENTICAL;
-		}
-		// IF both index expressions are math functions (including read-only)
-		// over thread vars, check if they are independent:
-		if (ExpressionEvaluator.checkFunctionDisagrement(idx0, idx1,
-				mathFuncInputs))
-			return CompareResult.INDEPENDENT;
-		return CompareResult.UNKNOWN;
-	}
-
-	/**
-	 * 
-	 * @param arraySubscripts
-	 * @return an array of index expressions. Indices in the returned array are
-	 *         ordered as in lexical array subscript from LEFT to RIGHT
-	 */
-	private ExpressionNode[] getSubscriptIndices(OperatorNode arraySubscripts) {
-		OperatorNode opNode = arraySubscripts;
-		// indices from left to right:
-		LinkedList<ExpressionNode> indices = new LinkedList<>();
-
-		while (opNode.getOperator() == Operator.SUBSCRIPT) {
-			indices.addFirst(opNode.getArgument(1));
-			if (opNode.getArgument(0)
-					.expressionKind() == ExpressionKind.OPERATOR)
-				opNode = (OperatorNode) opNode.getArgument(0);
-			else
-				break;
-		}
-
-		ExpressionNode[] ret = new ExpressionNode[indices.size()];
-
-		indices.toArray(ret);
-		return ret;
-	}
+	// private CompareResult compare(ExpressionNode idx0, ExpressionNode idx1,
+	// Set<Variable> threadVars, Set<RWSetElement> fullWrites) {
+	// Set<Variable> mathFuncInputs = new HashSet<>();
+	// Set<Variable> tmp = getMathFuncInputs(idx0, fullWrites, threadVars);
+	//
+	// if (tmp == null)
+	// return CompareResult.UNKNOWN;
+	// mathFuncInputs.addAll(tmp);
+	// tmp = getMathFuncInputs(idx1, fullWrites, threadVars);
+	// if (tmp == null)
+	// return CompareResult.UNKNOWN;
+	// mathFuncInputs.addAll(tmp);
+	// if (mathFuncInputs.isEmpty()) {
+	// // IF both index expressions are pure read-only, check if they are
+	// // lexically identical:
+	// if (ExpressionEvaluator.checkEqualityWithConditions(idx0, idx1,
+	// new LinkedList<>()))
+	// return CompareResult.IDENTICAL;
+	// }
+	// // IF both index expressions are math functions (including read-only)
+	// // over thread vars, check if they are independent:
+	// if (ExpressionEvaluator.checkFunctionDisagrement(idx0, idx1,
+	// mathFuncInputs))
+	// return CompareResult.INDEPENDENT;
+	// return CompareResult.UNKNOWN;
+	// }
 
 	/**
 	 * <p>
@@ -328,12 +389,12 @@ public class ArrayReferenceDependencyAnalyzer {
 		} catch (SimpleFullSetException e) {
 			return fullWrites.isEmpty() ? new HashSet<>() : null;
 		}
-		assert exprRWSet.writes.isEmpty();
+		assert exprRWSet.writes().isEmpty();
 
 		// fullWrites contains no thread variables, so
 		// expr is considered a function over thread variables if
 		// the intersection of "exprRWSet.reads" and "fullWrites" is empty
-		List<RWSetElement> intersect = exprRWSet.reads.parallelStream()
+		List<RWSetElement> intersect = exprRWSet.reads().parallelStream()
 				.filter(referToSameObject(fullWrites))
 				.collect(Collectors.toList());
 
@@ -345,28 +406,18 @@ public class ArrayReferenceDependencyAnalyzer {
 		// get the input subset:
 		Set<Variable> subset = new HashSet<>();
 
-		for (RWSetElement e : exprRWSet.reads)
-			if (e.arraySubscript == null && threadVars.contains(e.entity))
-				subset.add((Variable) e.entity);
+		for (RWSetElement e : exprRWSet.reads()) {
+			AssignExprIF varAbs = e.root();
+
+			assert varAbs != null && varAbs.kind() == AssignExprKind.STORE;
+			AssignStoreExprIF store = (AssignStoreExprIF) varAbs;
+
+			if (store.isAllocation())
+				continue;
+			if (threadVars.contains(store.variable()))
+				subset.add(store.variable());
+		}
 		return subset;
-	}
-
-	/* *********** printing ********** */
-
-	private String print(RWSetElement e) {
-		String arr;
-		if (e.entity != null)
-			arr = e.entity.getName();
-		else
-			arr = "alloc:" + e.strOrAlloc.nonEntitySource().getSource()
-					.getLocation(true);
-
-		ExpressionNode idx[] = getSubscriptIndices(e.arraySubscript);
-		String result = arr;
-
-		for (int i = 0; i < idx.length; i++)
-			result += "[" + idx[i].prettyRepresentation() + "]";
-		return result;
 	}
 
 	/* ************* java predicates ************/
@@ -383,7 +434,7 @@ public class ArrayReferenceDependencyAnalyzer {
 			@Override
 			public boolean test(RWSetElement t) {
 				for (RWSetElement e : compareTo)
-					if (e.sameObject(t))
+					if (e.root().mayEquals(t.root()))
 						return true;
 				return false;
 			}
