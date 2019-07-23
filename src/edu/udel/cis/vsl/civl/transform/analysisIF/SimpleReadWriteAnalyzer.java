@@ -50,17 +50,11 @@ import edu.udel.cis.vsl.civl.transform.analysisIF.ReadWriteDataStructures.RWSetS
 import edu.udel.cis.vsl.civl.transform.analysisIF.ReadWriteDataStructures.ReadWriteDataStructureFactory;
 
 /**
- * intra-procedural flow-insensitive read-write set analyzer
+ * inter-procedural flow-insensitive read-write set analyzer
  * 
  * @author ziqing
  *
  */
-// TODO: for "a[x]", currently this analyzer collects "a, a[x] and x", actually
-// "a" is not needed.
-// TODO: better inter-procedural handling for return expressions. Currently, for
-// a function call "f()", body of "f" will be analyzed but the call expression
-// "f()" itself is abstracted to be anything. We need to relate "f()" with all
-// the return expressions in the body of "f".
 public class SimpleReadWriteAnalyzer {
 
 	/**
@@ -109,9 +103,9 @@ public class SimpleReadWriteAnalyzer {
 
 	/**
 	 * <p>
-	 * For an expression denoting an object, the "primary" field refers to the
-	 * object while the "involved" contains (at least) everything involved in
-	 * the evaluation of the expression.
+	 * A temporary representation for the result of analyzing the read/write set
+	 * of an expression. see also {@link TempRWResult#primary} and
+	 * {@link TempRWResult#involved}.
 	 * </p>
 	 * 
 	 * 
@@ -122,8 +116,19 @@ public class SimpleReadWriteAnalyzer {
 	 * @author ziqing
 	 */
 	private class TempRWResult {
+		/**
+		 * For an expression denoting an object or a pointer value, the
+		 * "primary" field refers to an instance of {@link RWSetElement}
+		 * representing the object or the pointer. When an expression DOES NOT
+		 * denote an object or a pointer value, such as <code>i + 1</code> where
+		 * "i" is an integer, the "primary" field is null.
+		 */
 		private RWSetElement primary;
 
+		/**
+		 * the "involved" field contains (at least) everything involved in the
+		 * evaluation of the expression.
+		 */
 		private RWSet involved;
 
 		TempRWResult(RWSetElement primary, RWSet involved) {
@@ -181,8 +186,7 @@ public class SimpleReadWriteAnalyzer {
 		return result;
 	}
 
-	// worker method of "collectReadsWrites" that uses the global field
-	// "currentFunction" instead of keeping passing the function as a parameter:
+	// worker method of "collectReadsWrites" :
 	private RWSet collectReadsWritesWorker(ASTNode stmtDeclExpr)
 			throws SimpleFullSetException {
 		if (stmtDeclExpr == null)
@@ -315,6 +319,8 @@ public class SimpleReadWriteAnalyzer {
 						(IdentifierExpressionNode) expr, false);
 			case OPERATOR :
 				return collectOperatorReadsWrites((OperatorNode) expr);
+			case CONSTANT :
+				return new LinkedList<>();
 			default :
 				List<TempRWResult> results = new LinkedList<>();
 				RWSet involved = rwFactory.newRWSet();
@@ -500,9 +506,12 @@ public class SimpleReadWriteAnalyzer {
 
 			arrayResult.primary = subscript;
 			involved.add(arrayResult.involved);
-			involved.addReads(subscript);
-			if (isLhs)
-				involved.addWrites(subscript);
+
+			if (subscript.type().isScalar()) {
+				involved.addReads(subscript);
+				if (isLhs)
+					involved.addWrites(subscript);
+			}
 		}
 		for (TempRWResult arrayResult : arrayResultsINOUT)
 			arrayResult.involved = involved;
@@ -519,7 +528,7 @@ public class SimpleReadWriteAnalyzer {
 	 * @throws SimpleFullSetException
 	 */
 	private List<TempRWResult> collectSubscriptNodePointerWorker(
-			ASTNode subscriptNode, List<TempRWResult> ptrResults,
+			ExpressionNode subscriptNode, List<TempRWResult> ptrResults,
 			ExpressionNode[] indices, boolean isLhs)
 			throws SimpleFullSetException {
 		RWSet involved = rwFactory.newRWSet();
@@ -547,11 +556,14 @@ public class SimpleReadWriteAnalyzer {
 			}
 			involved.add(ptrResult.involved);
 		}
-		involved.addReads(primaries);
-		if (isLhs)
-			involved.addWrites(primaries);
-		for (RWSetElement primary : primaries)
+		for (RWSetElement primary : primaries) {
+			if (primary.type().isScalar()) {
+				involved.addReads(primary);
+				if (isLhs)
+					involved.addWrites(primary);
+			}
 			results.add(new TempRWResult(primary, involved));
+		}
 		return results;
 	}
 
@@ -639,14 +651,17 @@ public class SimpleReadWriteAnalyzer {
 			}
 			involved.add(ptr.involved);
 		}
-		involved.addReads(pointsToFiledAccesses);
-		if (isLhs)
-			involved.addWrites(pointsToFiledAccesses);
 
 		List<TempRWResult> results = new LinkedList<>();
 
-		for (RWSetElement primary : pointsToFiledAccesses)
+		for (RWSetElement primary : pointsToFiledAccesses) {
+			if (primary.type().isScalar()) {
+				involved.addReads(primary);
+				if (isLhs)
+					involved.addWrites(primary);
+			}
 			results.add(new TempRWResult(primary, involved));
+		}
 		return results;
 	}
 
@@ -661,7 +676,6 @@ public class SimpleReadWriteAnalyzer {
 		Field field = (Field) dotNode.getFieldName().getEntity();
 		List<TempRWResult> structs = collectExprReadsWrites(
 				dotNode.getStructure());
-		List<RWSetElement> fieldAccesses = new LinkedList<>();
 		RWSet involved = rwFactory.newRWSet();
 
 		for (TempRWResult struct : structs) {
@@ -670,22 +684,21 @@ public class SimpleReadWriteAnalyzer {
 
 			struct.primary = fieldAccess;
 			involved.add(struct.involved);
+			if (fieldAccess.type().isScalar()) {
+				involved.addReads(fieldAccess);
+				if (isLhs)
+					involved.addWrites(fieldAccess);
+			}
 		}
-		involved.addReads(fieldAccesses);
-		if (isLhs)
-			involved.addWrites(fieldAccesses);
 		for (TempRWResult struct : structs)
 			struct.involved = involved;
 		return structs;
 	}
 
-	// call can read all actual parameters
-	// call can read/write all visible global variables
-	// call can all points-to objects
+	// collect function body but ignore local access
 	private List<TempRWResult> collectCallReadsWrites(FunctionCallNode call)
 			throws SimpleFullSetException {
 		List<TempRWResult> results = new LinkedList<>();
-		RWSetElement primary = rwFactory.arbitraryElement(call, call.getType());
 		RWSet involved = rwFactory.newRWSet();
 		ExpressionNode funcExpr = call.getFunction();
 
@@ -711,7 +724,9 @@ public class SimpleReadWriteAnalyzer {
 				if (!locallyDefinedInFunc.contains(containedBy(e)))
 					involved.addWrites(e);
 		}
-		results.add(new TempRWResult(primary, involved));
+		// TODO: actual parameters
+		results.add(new TempRWResult(
+				rwFactory.arbitraryElement(call, call.getType()), involved));
 		return results;
 	}
 
@@ -782,6 +797,10 @@ public class SimpleReadWriteAnalyzer {
 		return ret;
 	}
 
+	/**
+	 * converts a {@link RWSetElement} to an abstract object
+	 * {@link AssignExprIF}
+	 */
 	private AssignExprIF toAbstractObj(RWSetElement e) {
 		switch (e.kind()) {
 			case BASE :
@@ -823,6 +842,9 @@ public class SimpleReadWriteAnalyzer {
 		}
 	}
 
+	/**
+	 * sums up two {@link AssignOffsetIF}s
+	 */
 	private AssignOffsetIF addOffsets(AssignOffsetIF oft0,
 			AssignOffsetIF oft1) {
 		if (oft0.hasConstantValue() && oft1.hasConstantValue()) {
@@ -834,6 +856,11 @@ public class SimpleReadWriteAnalyzer {
 		return oft0.hasConstantValue() ? oft1 : oft0;
 	}
 
+	/**
+	 * Attempt to return the {@link Variable} that contains the object
+	 * represented by the given {@link RWSetElement}. If the object is not a
+	 * part of any variable, returns null.
+	 */
 	private Variable containedBy(RWSetElement e) {
 		AssignExprIF ao = e.root();
 

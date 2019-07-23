@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
@@ -159,5 +160,43 @@ public class OpenMPSimplifierTest {
 	public void pointerAddNoAlias() {
 		assertTrue(ui.run(VERIFY, QUIET, OMP_ONLY_SIMP,
 				filename("pointerAddNoAlias.c")));
+	}
+
+	@Test
+	public void simdNoSafelen() {
+		assertFalse(ui.run(VERIFY, QUIET, OMP_ONLY_SIMP,
+				filename("simd_no_safelen.c")));
+	}
+
+	@Test
+	public void simdNoSafelenFix() {
+		assertTrue(ui.run(VERIFY, QUIET, OMP_ONLY_SIMP,
+				filename("simd_no_safelen_fix.c")));
+	}
+
+	@Test
+	public void simdWithSafelen() {
+		assertTrue(ui.run(VERIFY, QUIET, OMP_ONLY_SIMP,
+				filename("simd_safelen.c")));
+	}
+
+	@Test
+	public void arrayReshape() {
+		assertTrue(ui.run(VERIFY, QUIET, OMP_ONLY_SIMP,
+				filename("arrayReshape.c")));
+	}
+
+	@Test
+	public void arrayReshape2Race() {
+		assertFalse(ui.run(VERIFY, QUIET, OMP_ONLY_SIMP,
+				filename("arrayReshape2-yes.c")));
+		System.err.println(
+				"warning: this is a sound and expected result but not precise enough. "
+						+ "Improvement is expected in near future.");
+	}
+
+	@Ignore // TODO:
+	public void calls() {
+		assertTrue(ui.run(VERIFY, QUIET, OMP_ONLY_SIMP, filename("calls.c")));
 	}
 }

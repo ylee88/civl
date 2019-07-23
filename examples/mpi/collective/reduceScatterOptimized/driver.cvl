@@ -1,0 +1,73 @@
+#include "mpi.h"
+#include "stdlib.h"
+#include "string.h"
+#include  "assert.h"
+#include "reduceScatter_optimized.h"
+
+$input int NP;                                    // nprocs
+$input int N;                                     // size of input data per proc
+$input int NB;                                    // upper bound of the size of input data per proc
+$assume(0 < N && N < NB);                          
+$input double DATA[N * NP];                       // arbitrary input data, N per proc
+$input int VEC[NP];                               // arbitrary recv counts
+$assume($forall (int i : 0 .. NP-1) VEC[i] > 0);  
+
+#ifdef _CHECK_MAX
+#define MPIOP  MPI_MAX
+#else
+#define MPIOP  MPI_SUM
+#endif
+
+int main() {
+  double * sendbuf, * recvbuf;
+  int rank, size;
+  
+  MPI_Init(NULL, NULL);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+  // NP is nprocs:
+  $assume(NP == size);
+    
+  int recvcnts[size];
+  int total_counts = 0;                           
+  int my_oft = 0;
+
+  // initializes recv counts
+  // computes the total count for completing the assumption over the recv counts
+  // computes my offset
+  for (int i = 0; i < size; i++) {
+    recvcnts[i] = VEC[i];
+    total_counts += VEC[i];
+    if (i < rank) my_oft += recvcnts[i];
+  }
+  // assumption over the recv count:
+  $assume(total_counts == N);  
+
+  sendbuf = (double*)malloc(sizeof(double) * N);
+  recvbuf = (double*)malloc(sizeof(double) * recvcnts[rank]);
+  
+  memcpy(sendbuf, DATA + rank * N, sizeof(double) * N);
+  reduce_scatter_double(sendbuf, recvbuf, recvcnts, MPIOP, MPI_COMM_WORLD);
+
+  // assertions:
+#ifdef _CHECK_MAX  
+
+  for (int i = 0; i < recvcnts[rank]; i++)
+    assert(recvbuf[i] >= sendbuf[my_oft + i]);
+
+#else
+
+  for (int i = 0; i < recvcnts[rank]; i++) {
+    double expect = 0;
+    
+    for (int j = 0; j < size; j++) 
+      expect += DATA[j * N + my_oft + i];
+    assert(recvbuf[i] == expect);
+  }
+#endif
+
+  free(sendbuf);
+  free(recvbuf);
+  MPI_Finalize();
+}

@@ -843,43 +843,40 @@ pthread_t $pthread_self($pthread_pool_t pool){
 
 
 int $pthread_mutex_lock(pthread_mutex_t *mutex, $pthread_pool_t $pthread_pool){
-  //int len = $seq_length(&pool);
-  _Bool tmp=$pthread_pool_is_terminated($pthread_pool, mutex->ownerid);
-
-  /*$atomic{
-    tmp = mutex->ownerid==$proc_null ? $false : $pthread_pool_is_terminated($pthread_pool, mutex->ownerid);
-  }*/
-  $choose{
-    $when(mutex->lock==0){
-      $atomic{
-        /*for(int i = 0; i < len; i++){
-          if(!(pool[i]->terminated)){
-            if(pool[i]->thr == $self){
-              mutex->ownerid = i;
-              break;
-            }
-          }
-        }*/
-        mutex->ownerid = $self;
-        mutex->lock = 1;
-        mutex->count = 1;
-      } 
+  _Bool owner_term = $pthread_pool_is_terminated($pthread_pool, mutex->ownerid);
+  
+  $atomic{
+    if (owner_term)
+      if (mutex->attr.robust != PTHREAD_MUTEX_ROBUST)
+	$assert($false, "Deadlock: owner terminated without robust mutex");
+      else
+	return EOWNERDEAD;    
+    if(mutex->lock==0) {
+      mutex->ownerid = $self;
+      mutex->lock = 1;
+      mutex->count = 1;
       return 0;
-    }
-    $when((mutex->attr.type == PTHREAD_MUTEX_NORMAL || mutex->attr.type == PTHREAD_MUTEX_ERRORCHECK)  && mutex->lock == 1  && mutex->ownerid == $self){
-      $assert($false, "Deadlock: attempted to relock lock");
-      return 0;
-    }
-    //_Bool tmp = $pthread_pool_is_terminated($pthread_pool, mutex->ownerid);
-    $when(mutex->lock == 1 && mutex->ownerid != $self && tmp == $true && mutex->attr.robust != PTHREAD_MUTEX_ROBUST){
-      $assert($false, "Deadlock: owner terminated without robust mutex");
-      return 0;
-    }
-    $when(!(mutex->attr.type == PTHREAD_MUTEX_NORMAL || mutex->attr.type == PTHREAD_MUTEX_ERRORCHECK) && mutex->lock == 1 && mutex->ownerid == $self){
-      mutex->count++;
-      return 0;
+    } 
+    // lock != 0:    
+    if (mutex->attr.type == PTHREAD_MUTEX_NORMAL) {
+      if (mutex->ownerid == $self)
+	$assert($false, "Deadlock: attempted to relock a lock with PTHREAD_MUTEX_NORMAL"
+		" attribute");
+    } else if (mutex->attr.type == PTHREAD_MUTEX_ERRORCHECK) {
+      if (mutex->ownerid == $self)
+	return EDEADLK;
+    } else if (mutex->ownerid == $self) {
+      if (mutex->attr.type == PTHREAD_MUTEX_RECURSIVE) {
+	mutex->count++;
+	return 0;
+      } else
+	$assert($false, "Undefined behavior: attempted to relock a lock with"
+		" PTHREAD_MUTEX_DEFAULT attribute");
     }
   }
+  // wait for the lock:
+  $when(mutex->lock == 0) 
+    return $pthread_mutex_lock(mutex, $pthread_pool);
   return 0;
 }
 

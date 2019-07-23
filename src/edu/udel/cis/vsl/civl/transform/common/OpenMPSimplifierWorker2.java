@@ -28,14 +28,17 @@ import edu.udel.cis.vsl.abc.ast.node.IF.declaration.VariableDeclarationNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.FunctionCallNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.IdentifierExpressionNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.expression.IntegerConstantNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.OperatorNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.OperatorNode.Operator;
 import edu.udel.cis.vsl.abc.ast.node.IF.omp.OmpExecutableNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.omp.OmpExecutableNode.OmpExecutableKind;
 import edu.udel.cis.vsl.abc.ast.node.IF.omp.OmpForNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.omp.OmpNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.omp.OmpParallelNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.omp.OmpReductionNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.omp.OmpReductionNode.OmpReductionOperator;
+import edu.udel.cis.vsl.abc.ast.node.IF.omp.OmpSimdNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.omp.OmpSymbolReductionNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.omp.OmpSyncNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.omp.OmpSyncNode.OmpSyncNodeKind;
@@ -252,9 +255,9 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 	 */
 	private void transformOmp(ASTNode node) {
 		if (node instanceof OmpParallelNode) {
-			OmpParallelNode opn = (OmpParallelNode) node;
+			OmpExecutableNode ompExec = (OmpExecutableNode) node;
 			/*
-			 * TBD: this code does not yet handle: - nested parallel blocks -
+			 * TODO: this code does not yet handle: - nested parallel blocks -
 			 * sections workshares - collapse clauses - chunk clauses - omp_*
 			 * calls which should be interpreted as being dependent
 			 */
@@ -264,12 +267,13 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 			 * dependences.
 			 */
 			privateIDs = new ArrayList<Entity>();
-			addEntities(privateIDs, opn.privateList());
-			addEntities(privateIDs, opn.copyinList());
-			addEntities(privateIDs, opn.copyprivateList());
-			addEntities(privateIDs, opn.firstprivateList());
-			addEntities(privateIDs, opn.lastprivateList());
-			SequenceNode<OmpReductionNode> reductionList = opn.reductionList();
+			addEntities(privateIDs, ompExec.privateList());
+			addEntities(privateIDs, ompExec.copyinList());
+			addEntities(privateIDs, ompExec.copyprivateList());
+			addEntities(privateIDs, ompExec.firstprivateList());
+			addEntities(privateIDs, ompExec.lastprivateList());
+			SequenceNode<OmpReductionNode> reductionList = ompExec
+					.reductionList();
 			if (reductionList != null) {
 				for (OmpReductionNode r : reductionList) {
 					addEntities(privateIDs, r.variables());
@@ -303,7 +307,7 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 			// declared entities:
 			locallyDeclaredEntities.push(new HashSet<>());
 			// Visit the rest of this node
-			transformOmpWorkshare(opn.statementNode());
+			transformOmpWorkshare(ompExec.statementNode());
 			locallyDeclaredEntities.pop();
 			/*
 			 * Check for dependences between statements that are not within
@@ -338,17 +342,17 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 					readWriteAnalyzer).threadsArrayAccessIndependent(
 							currentFunciton, new LinkedList<>(),
 							sharedArrayWrites, sharedArrayReads, fullWrites,
-							new HashSet<>());
+							new HashSet<>(), null);
 
 			boolean isOrphaned = callsMethodWithOmpConstruct(
-					opn.statementNode());
+					ompExec.statementNode());
 
 			if (allIndependent && !isOrphaned) {
 				/*
 				 * Remove the nested omp constructs, e.g., workshares, calls to
 				 * omp_*, ordered sync nodes, etc.
 				 */
-				removeOmpConstruct(opn.statementNode());
+				removeOmpConstruct(ompExec.statementNode());
 
 				/*
 				 * NB: the call above can change its argument (by restructuring
@@ -356,14 +360,14 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 				 */
 
 				// Remove "statement" node from "omp parallel" node
-				StatementNode stmt = opn.statementNode();
-				int stmtIndex = getChildIndex(opn, stmt);
+				StatementNode stmt = ompExec.statementNode();
+				int stmtIndex = getChildIndex(ompExec, stmt);
 				assert stmtIndex != -1;
-				opn.removeChild(stmtIndex);
+				ompExec.removeChild(stmtIndex);
 
 				// Link "statement" into the "omp parallel" parent
-				ASTNode parent = opn.parent();
-				int parentIndex = getChildIndex(parent, opn);
+				ASTNode parent = ompExec.parent();
+				int parentIndex = getChildIndex(parent, ompExec);
 				assert parentIndex != -1;
 				parent.setChild(parentIndex, stmt);
 			} else if (config.ompOnlySimplifier())
@@ -373,8 +377,27 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 		} else if (node instanceof OmpExecutableNode) {
 			privateIDs = new ArrayList<Entity>();
 
-			transformOmpWorkshare(node);
+			if (node instanceof OmpSimdNode) {
+				OmpExecutableNode simdNode = (OmpExecutableNode) node;
+				StatementNode forLoop = simdNode.statementNode();
+				ASTNode parent = simdNode.parent();
+				int childIdx = simdNode.childIndex();
 
+				sharedWrites = new HashSet<>();
+				sharedReads = new HashSet<>();
+				sharedArrayWrites = new HashSet<>();
+				sharedArrayReads = new HashSet<>();
+				locallyDeclaredEntities = new Stack<>();
+				locallyDeclaredEntities.push(new HashSet<>());
+				allIndependent = true;
+				transformOmpWorkshare(node);
+				locallyDeclaredEntities.pop();
+				if (allIndependent) {
+					forLoop.remove();
+					parent.setChild(childIdx, forLoop);
+				}
+			} else
+				transformOmpWorkshare(node);
 		} else if (node != null) {
 			// BUG: can get here with null values in parallelfor.c example
 
@@ -484,7 +507,7 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 				}
 			}
 
-			processFor(ompFor);
+			processForOrSimd(ompFor);
 
 			// reset variable to avoid interference with processing of non-loop
 			// parallel regions
@@ -594,6 +617,8 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 			 * if/while/for/...
 			 */
 
+		} else if (node instanceof OmpSimdNode) {
+			processForOrSimd((OmpSimdNode) node);
 		} else if (node != null) {
 
 			// BUG: can get here with null values in parallelfor.c example
@@ -611,7 +636,7 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 
 	/*
 	 */
-	private void processFor(OmpForNode ompFor) {
+	private void processForOrSimd(OmpExecutableNode ompFor) {
 		ForLoopNode fln = (ForLoopNode) ompFor.statementNode();
 
 		/*
@@ -831,6 +856,17 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 		independent &= sharedWrites.isEmpty();
 
 		if (independent) {
+			Integer safelen = null;
+
+			if (ompFor.ompExecutableKind() == OmpExecutableKind.SIMD) {
+				OmpSimdNode simdNode = (OmpSimdNode) ompFor;
+
+				if (simdNode.safeLen() != null)
+					safelen = ((IntegerConstantNode) simdNode.safeLen())
+							.getConstantValue().getIntegerValue()
+							.intValueExact();
+			}
+
 			/*
 			 * Check for array-based dependences.
 			 */
@@ -843,7 +879,8 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 			independent &= new ArrayReferenceDependencyAnalyzer(
 					readWriteAnalyzer).threadsArrayAccessIndependent(
 							currentFunciton, boundingConditions, writeArrayRefs,
-							readWriteArrayRefs, fullWrites, parForLoopVars);
+							readWriteArrayRefs, fullWrites, parForLoopVars,
+							safelen);
 			if (debug) {
 				// TODO: re-write these debug info
 				System.out.println(
