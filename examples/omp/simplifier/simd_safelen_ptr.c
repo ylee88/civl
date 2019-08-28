@@ -1,14 +1,17 @@
 #include<assert.h>
 int main() {
-  int a[32], b[16];
+  struct T {
+    int a[32];
+    int b[16];
+  } t;
   int * p, * q, * r;
   
-  p = a;
+  p = t.a;
   q = p + 16;
-  r = b;
-#pragma omp simd safelen(9)
+  r = t.b;
+#pragma omp simd safelen(8)
   for (int i = 0; i < 8; i++) {
-    p[i] = 0;          // p[i] p[i'], p[i] p[i'+8]   |i-i'|<9
+    p[i] = 0;          
     p[i + 8] = 0;
     q[i] = 0;
     q[i + 8] = 0;
@@ -17,7 +20,7 @@ int main() {
   }
 
   for (int i = 0; i < 32; i++)
-    assert(a[i] == 0);
+    assert(t.a[i] == 0);
   for (int i = 0; i < 16; i++)
-    assert(b[i] == 0);
+    assert(t.b[i] == 0);
 }

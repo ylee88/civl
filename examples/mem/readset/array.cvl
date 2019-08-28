@@ -1,0 +1,23 @@
+#include<mem.cvh>
+
+int main() {
+  int x,y,z;
+  int a[10] = {0}, b[10][10] = {0}, c[10][10][10] = {0};
+
+  x = 0, y = 0, z = 0;
+  $read_set_push();
+  x = a[0];
+  y = b[0][0];
+  z = c[x][y][a[1]];
+  $mem m = $read_set_pop();
+  $mem oracle = ($mem)&x;
+
+  oracle = $mem_union(oracle, ($mem)&y);
+  oracle = $mem_union(oracle, ($mem)&z);
+  oracle = $mem_union(oracle, ($mem)&a[0]);
+  oracle = $mem_union(oracle, ($mem)&a[1]);
+  oracle = $mem_union(oracle, ($mem)&b[0][0]);
+  oracle = $mem_union(oracle, ($mem)&c[x][y][a[1]]);
+  $assert($mem_equals(m, oracle));
+}
+

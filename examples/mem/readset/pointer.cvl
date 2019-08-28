@@ -1,0 +1,19 @@
+#include<mem.cvh>
+int main() {
+  int x,y,z;
+  int * p, * q;
+
+  x = 0, y = 0, z = 0;
+  p = &x; q = &y;
+  $read_set_push();
+  int a = *p + *q;
+  
+  $mem m = $read_set_pop();
+  $mem oracle = ($mem)&x;
+
+  oracle = $mem_union(oracle, ($mem)&y);
+  oracle = $mem_union(oracle, ($mem)&p);
+  oracle = $mem_union(oracle, ($mem)&q);
+  oracle = $mem_union(oracle, ($mem)&a);
+  $assert($mem_equals(m, oracle));
+}

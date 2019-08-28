@@ -1,0 +1,18 @@
+#include<mem.cvh>
+struct S {	
+  int a[10][10];
+};
+
+int main() {
+  struct T {
+   struct S s[10][10];
+  } t[10][10];
+
+  $read_set_push();
+  t[0][1].s[2][3].a[4][5] = t[1][2].s[3][4].a[5][6];
+  $mem m = $read_set_pop();
+  $mem oracle = ($mem)&t[0][1].s[2][3].a[4][5];
+
+  oracle = $mem_union(oracle, ($mem)&t[1][2].s[3][4].a[5][6]);
+  $assert($mem_equals(m, oracle));
+}
