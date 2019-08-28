@@ -48,6 +48,7 @@ import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
  * @author Timothy K. Zirkel (zirkel)
  * @author Tim McClory (tmcclory)
  * @author Yihao Yan (yanyihao)
+ * @author Ziqing Luo (ziqing)
  * 
  */
 public interface State {
@@ -293,4 +294,13 @@ public interface State {
 	 *         process of this state will be recorded.
 	 */
 	public boolean isMonitoringWrites(int pid);
+
+	/**
+	 * @param pid
+	 *            The PID of the process who will be tested if it is monitoring
+	 *            read operations.
+	 * @return True iff any read of objects by this process of this state will
+	 *         be recorded.
+	 */
+	public boolean isMonitoringReads(int pid);
 }

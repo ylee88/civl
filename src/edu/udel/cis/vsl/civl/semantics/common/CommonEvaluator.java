@@ -345,6 +345,12 @@ public class CommonEvaluator implements Evaluator {
 
 	private SymbolicExpression offsetFunction;
 
+	/* *************** Creating sub-class instances *************** */
+	@Override
+	public ReadSetCollectEvaluator newReadSetCollectEvaluator() {
+		return new ReadSetCollectEvaluator(this);
+	}
+
 	/* ***************************** Constructors ************************** */
 
 	/**

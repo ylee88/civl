@@ -4,29 +4,31 @@ import edu.udel.cis.vsl.civl.library.civlc.LibcivlcExecutor;
 import edu.udel.cis.vsl.civl.library.mpi.LibmpiExecutor;
 import edu.udel.cis.vsl.civl.library.time.LibtimeExecutor;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLMemType;
-import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.civl.semantics.common.CommonExecutor;
 import edu.udel.cis.vsl.civl.state.common.immutable.ImmutableStateFactory;
-import edu.udel.cis.vsl.sarl.IF.Reasoner;
 import edu.udel.cis.vsl.sarl.IF.UnaryOperator;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
 
 /**
  * <p>
- * This class represents a write set value which is formed dynamically. A
- * dynamic write set stores a set of memory location references which refer to
- * the memory locations that are changed (from a point that starts monitoring
- * "write" operations).
+ * This class is a immutable data structure that stores a set of memory
+ * locations. See also {@link DynamicMemoryLocationSetFactory}
  * </p>
  * 
  * <p>
- * An instance of this class is a referenced value for a {@link Variable} with
- * $mem type.
+ * <b>Relation to the symbolic value of {@link CIVLMemType}:</b> 1. an instance
+ * of this class can be converted to a symbolic value of mem type by calling
+ * {@link #getMemValue()}. 2. a symbolic value of mem type can be union-ed with
+ * an instance of this class with the method
+ * {@link DynamicMemoryLocationSetFactory#addReference(DynamicMemoryLocationSet, SymbolicExpression)}.
  * </p>
  * 
  * <p>
- * <b>Note to developers: calling the following methods will change the write
- * set</b>
+ * <b>Instances of this class are used to dynamically keep track of read/write
+ * sets.</b> Here we just take a note for where in the CIVL code base,
+ * write/read operation will be recorded:
+ * 
+ * Where write sets are collected:
  * <ul>
  * <li>The private methods in {@link CommonExecutor}, there are two of them:
  * assignCore and assignLHS</li>
@@ -42,11 +44,14 @@ import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
  * special non-concretet handling)</li>
  * <li>{@link LibcivlcExecutor#executeNextTimeCount}</li>
  * </ul>
+ * 
+ * Where read sets are collected: at {@link CommonExecutor#executeStatement}
+ * method; Note also, read sets always contains write sets.
  * </p>
  * 
  * @author ziqing (Ziqing Luo)
  */
-public interface DynamicWriteSet {
+public interface DynamicMemoryLocationSet {
 
 	/**
 	 * @return a symbolic expression of
@@ -66,17 +71,6 @@ public interface DynamicWriteSet {
 	 * @return An instance whose references are obtained by applying the
 	 *         operator on ones of this
 	 */
-	public DynamicWriteSet apply(UnaryOperator<SymbolicExpression> operator);
-
-	/**
-	 * <p>
-	 * Simplify the reference set using the given {@link Reasoner}.
-	 * </p>
-	 * 
-	 * @param reasoner
-	 *            An instance of a {@link Reasoner}.
-	 * @return An {@link DynamicWriteSet2} instance whose symbolic contents are
-	 *         simplified.
-	 */
-	public DynamicWriteSet simplify(Reasoner reasoner);
+	public DynamicMemoryLocationSet apply(
+			UnaryOperator<SymbolicExpression> operator);
 }

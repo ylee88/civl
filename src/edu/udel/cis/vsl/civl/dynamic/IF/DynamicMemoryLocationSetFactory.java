@@ -3,12 +3,12 @@ package edu.udel.cis.vsl.civl.dynamic.IF;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLMemType;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
 
-public interface DynamicWriteSetFactory {
+public interface DynamicMemoryLocationSetFactory {
 
 	/**
-	 * @return an empty {@link DynamicWriteSet}
+	 * @return an empty {@link DynamicMemoryLocationSet}
 	 */
-	DynamicWriteSet empty();
+	DynamicMemoryLocationSet empty();
 
 	/**
 	 * Add references in a "memValue" into the given "writeSet", returns a new
@@ -22,6 +22,6 @@ public interface DynamicWriteSetFactory {
 	 *            type
 	 * @return
 	 */
-	DynamicWriteSet addReference(DynamicWriteSet writeSet,
+	DynamicMemoryLocationSet addReference(DynamicMemoryLocationSet writeSet,
 			SymbolicExpression memValue);
 }

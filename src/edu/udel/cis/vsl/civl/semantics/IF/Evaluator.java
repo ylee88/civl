@@ -14,7 +14,9 @@ import edu.udel.cis.vsl.civl.model.IF.expression.Expression;
 import edu.udel.cis.vsl.civl.model.IF.expression.LHSExpression;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLArrayType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
+import edu.udel.cis.vsl.civl.semantics.common.CommonEvaluator;
 import edu.udel.cis.vsl.civl.semantics.common.MemEvaluator;
+import edu.udel.cis.vsl.civl.semantics.common.ReadSetCollectEvaluator;
 import edu.udel.cis.vsl.civl.state.IF.State;
 import edu.udel.cis.vsl.civl.state.IF.StateFactory;
 import edu.udel.cis.vsl.civl.state.IF.UnsatisfiablePathConditionException;
@@ -451,4 +453,12 @@ public interface Evaluator {
 	ArrayToolBox newArrayToolBox(SymbolicUniverse universe);
 
 	void setConfiguration(CIVLConfiguration config);
+
+	/* *************** Creating sub-class instances *************** */
+	/**
+	 * 
+	 * @return a new instance of a {@link ReadSetCollectEvaluator}, which is a
+	 *         sub-class of {@link CommonEvaluator}.
+	 */
+	ReadSetCollectEvaluator newReadSetCollectEvaluator();
 }

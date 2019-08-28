@@ -9,7 +9,7 @@ import java.util.BitSet;
 import java.util.Iterator;
 import java.util.Map;
 
-import edu.udel.cis.vsl.civl.dynamic.IF.DynamicWriteSet;
+import edu.udel.cis.vsl.civl.dynamic.IF.DynamicMemoryLocationSet;
 import edu.udel.cis.vsl.civl.model.IF.ModelConfiguration;
 import edu.udel.cis.vsl.civl.model.IF.Scope;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
@@ -650,7 +650,7 @@ public class ImmutableState implements State {
 	 * @return A new state in which the corresponding process state has changed.
 	 */
 	ImmutableState setWriteSetStack(int pid,
-			DynamicWriteSet newWriteSetStack[]) {
+			DynamicMemoryLocationSet newWriteSetStack[]) {
 		ImmutableProcessState process = processStates[pid];
 		ImmutableProcessState newProcessStates[] = Arrays.copyOf(processStates,
 				processStates.length);
@@ -660,14 +660,22 @@ public class ImmutableState implements State {
 	}
 
 	/**
+	 * Set the read set stack of the given process to the new one.
+	 * 
 	 * @param pid
 	 *            The PID of the process who owns the stack.
-	 * @return The write set stack of the given process.
+	 * @param newReadSetStack
+	 *            The new stack.
+	 * @return A new state in which the corresponding process state has changed.
 	 */
-	DynamicWriteSet[] copyOfWriteSetStack(int pid) {
-		DynamicWriteSet wsStack[] = processStates[pid].getWriteSets();
+	ImmutableState setReadSetStack(int pid,
+			DynamicMemoryLocationSet newReadSetStack[]) {
+		ImmutableProcessState process = processStates[pid];
+		ImmutableProcessState newProcessStates[] = Arrays.copyOf(processStates,
+				processStates.length);
 
-		return Arrays.copyOf(wsStack, wsStack.length);
+		newProcessStates[pid] = process.setReadSets(newReadSetStack);
+		return newState(this, newProcessStates, dyscopes, pathCondition);
 	}
 
 	/* ************************ Methods from State ************************* */
@@ -935,6 +943,11 @@ public class ImmutableState implements State {
 
 	@Override
 	public boolean isMonitoringWrites(int pid) {
-		return processStates[pid].getWriteSets().length > 0;
+		return processStates[pid].getWriteSets(false).length > 0;
+	}
+
+	@Override
+	public boolean isMonitoringReads(int pid) {
+		return processStates[pid].getReadSets(false).length > 0;
 	}
 }

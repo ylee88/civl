@@ -1,7 +1,7 @@
 package edu.udel.cis.vsl.civl.dynamic.IF;
 
 import edu.udel.cis.vsl.civl.dynamic.common.CommonSymbolicUtility;
-import edu.udel.cis.vsl.civl.dynamic.immutable.ImmutableDynamicWriteSetFactory;
+import edu.udel.cis.vsl.civl.dynamic.immutable.ImmutableDynamicMemoryLocationSetFactory;
 import edu.udel.cis.vsl.civl.model.IF.CIVLTypeFactory;
 import edu.udel.cis.vsl.civl.model.IF.ModelFactory;
 import edu.udel.cis.vsl.civl.state.IF.StateFactory;
@@ -31,7 +31,7 @@ public class Dynamics {
 	}
 
 	/**
-	 * Creates a new instance of {@link DynamicWriteSetFactory}.
+	 * Creates a new instance of {@link DynamicMemoryLocationSetFactory}.
 	 * 
 	 * @param universe
 	 *            A reference to a {@link SymbolicUniverse}
@@ -40,12 +40,12 @@ public class Dynamics {
 	 * @param collectedScopeValue
 	 *            the unique scope value that represents a scope has been
 	 *            collected.
-	 * @return a new instance of {@link DynamicWriteSetFactory}.
+	 * @return a new instance of {@link DynamicMemoryLocationSetFactory}.
 	 */
-	public static DynamicWriteSetFactory newDynamicWriteSetFactory(
+	public static DynamicMemoryLocationSetFactory newDynamicMemoryLocationSetFactory(
 			SymbolicUniverse universe, CIVLTypeFactory typeFactory,
 			SymbolicExpression collectedScopeValue) {
-		return new ImmutableDynamicWriteSetFactory(universe, typeFactory,
+		return new ImmutableDynamicMemoryLocationSetFactory(universe, typeFactory,
 				collectedScopeValue);
 	}
 }

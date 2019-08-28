@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
-import edu.udel.cis.vsl.civl.dynamic.IF.DynamicWriteSet;
+import edu.udel.cis.vsl.civl.dynamic.IF.DynamicMemoryLocationSet;
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.model.IF.CIVLFunction;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
@@ -830,9 +830,13 @@ public interface StateFactory {
 	 *            a symbolic expression of
 	 *            {@link CIVLMemType#getDynamicType(SymbolicUniverse)} which
 	 *            includes references to objects
+	 * @param isRead
+	 *            true iff the given memory locations are added to read set;
+	 *            false iff the given memory locations are added to write set.
 	 * @return A state in which the given memory locations are recorded.
 	 */
-	State addWriteRecords(State state, int pid, SymbolicExpression memValue);
+	State addReadWriteRecords(State state, int pid, SymbolicExpression memValue,
+			boolean isRead);
 
 	/**
 	 * @param state
@@ -840,10 +844,13 @@ public interface StateFactory {
 	 * @param pid
 	 *            The PID of the calling process whose write set stack will be
 	 *            peeked.
+	 * @param isRead
+	 *            true iff peek a read set; false iff peek a write set.
 	 * @return the top frame in the write set stack associates to the given
 	 *         process or Java null if the stack is empty.
 	 */
-	DynamicWriteSet peekWriteSet(State state, int pid);
+	DynamicMemoryLocationSet peekReadWriteSet(State state, int pid,
+			boolean isRead);
 
 	/**
 	 * @param state
@@ -851,11 +858,14 @@ public interface StateFactory {
 	 * @param The
 	 *            PID of the calling process whose write set stack will be
 	 *            pushed.
+	 * @param isRead
+	 *            true iff push an empty read set; false iff push an empty write
+	 *            set.
 	 * @return A new state in which the process state of the given pid will be
 	 *         updated. The write set stack of the process state has one more
 	 *         empty stack.
 	 */
-	State pushEmptyWrite(State state, int pid);
+	State pushEmptyReadWrite(State state, int pid, boolean isRead);
 
 	/**
 	 * @param state
@@ -863,10 +873,12 @@ public interface StateFactory {
 	 * @param The
 	 *            PID of the calling process whose write set stack will be
 	 *            popped.
+	 * @param isRead
+	 *            true iff pop a read set; false iff pop a write set.
 	 * @return A new state in which the process state of the given pid will be
 	 *         updated. The write set stack of the process state has been popped
 	 */
-	State popWriteSet(State state, int pid);
+	State popReadWriteSet(State state, int pid, boolean isRead);
 
 	/**
 	 * @param state

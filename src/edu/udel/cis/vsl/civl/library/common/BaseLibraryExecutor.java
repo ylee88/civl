@@ -143,19 +143,16 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 		} else if (!this.symbolicUtil.isPointerToHeap(firstElementPointer)
 				|| !this.symbolicUtil.isMallocPointer(source,
 						firstElementPointer)) {
-			this.errorLogger
-					.logSimpleError(source, state, process,
-							symbolicAnalyzer.stateInformation(state),
-							ErrorKind.MEMORY_MANAGE,
-							"the argument of free "
-									+ symbolicAnalyzer
-											.symbolicExpressionToString(source,
-													state,
-													arguments[0]
-															.getExpressionType(),
-													firstElementPointer)
-									+ " is not a pointer returned by a memory "
-									+ "management method");
+			this.errorLogger.logSimpleError(source, state, process,
+					symbolicAnalyzer.stateInformation(state),
+					ErrorKind.MEMORY_MANAGE,
+					"the argument of free "
+							+ symbolicAnalyzer.symbolicExpressionToString(
+									source, state,
+									arguments[0].getExpressionType(),
+									firstElementPointer)
+							+ " is not a pointer returned by a memory "
+							+ "management method");
 		} else {
 			Evaluation eval;
 			SymbolicExpression heapObject = null;
@@ -176,16 +173,22 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 						"attempt to deallocate an object that has been deallocated previously");
 			} else {
 				Pair<Integer, Integer> indexes;
+				boolean saveWrite = state.isMonitoringWrites(pid);
+				boolean saveRead = state.isMonitoringReads(pid);
 
 				indexes = getMallocIndex(firstElementPointer);
-				if (state.isMonitoringWrites(pid)) {
+				if (saveWrite || saveRead) {
 					SymbolicExpression pointer2memoryBlk = symbolicUtil
 							.parentPointer(firstElementPointer);
 
 					eval = evaluator.memEvaluator().pointer2memValue(state, pid,
 							pointer2memoryBlk, source);
-					state = stateFactory.addWriteRecords(eval.state, pid,
-							eval.value);
+					if (saveWrite)
+						state = stateFactory.addReadWriteRecords(eval.state,
+								pid, eval.value, false);
+					if (saveRead)
+						state = stateFactory.addReadWriteRecords(eval.state,
+								pid, eval.value, true);
 				}
 				state = stateFactory.deallocate(state, firstElementPointer,
 						symbolicUtil.getScopeValue(firstElementPointer),

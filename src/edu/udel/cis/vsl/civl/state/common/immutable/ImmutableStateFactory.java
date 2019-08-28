@@ -18,8 +18,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
-import edu.udel.cis.vsl.civl.dynamic.IF.DynamicWriteSet;
-import edu.udel.cis.vsl.civl.dynamic.IF.DynamicWriteSetFactory;
+import edu.udel.cis.vsl.civl.dynamic.IF.DynamicMemoryLocationSet;
+import edu.udel.cis.vsl.civl.dynamic.IF.DynamicMemoryLocationSetFactory;
 import edu.udel.cis.vsl.civl.dynamic.IF.Dynamics;
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.model.IF.CIVLException;
@@ -261,10 +261,10 @@ public class ImmutableStateFactory implements StateFactory {
 	private Function<Integer, SymbolicExpression> dyscopeIDToScopeValue = null;
 
 	/**
-	 * A reference to {@link DynamicWriteSetFactory} which produces new
-	 * instances of {@link DynamicWriteSet}
+	 * A reference to {@link DynamicMemoryLocationSetFactory} which produces new
+	 * instances of {@link DynamicMemoryLocationSet}
 	 */
-	private DynamicWriteSetFactory writeSetFactory;
+	private DynamicMemoryLocationSetFactory memoryLocationSetFactory;
 
 	/* **************************** Constructors *************************** */
 
@@ -308,8 +308,8 @@ public class ImmutableStateFactory implements StateFactory {
 		for (int i = 0; i < CACHE_INCREMENT; i++)
 			nullList.add(null);
 		this.trueContextReasoner = universe.reasoner(universe.trueExpression());
-		writeSetFactory = Dynamics.newDynamicWriteSetFactory(universe,
-				typeFactory, this.nullScopeValue);
+		memoryLocationSetFactory = Dynamics.newDynamicMemoryLocationSetFactory(
+				universe, typeFactory, this.nullScopeValue);
 	}
 
 	/* ********************** Methods from StateFactory ******************** */
@@ -521,7 +521,6 @@ public class ImmutableStateFactory implements StateFactory {
 		}
 	}
 
-	// TODO: polish
 	/**
 	 * Apply an {@link UnaryOperator} to symbolic expressions in partial path
 	 * conditions and write sets in {@link ProcessState}s of the given state.
@@ -549,49 +548,12 @@ public class ImmutableStateFactory implements StateFactory {
 			} else
 				newProcesses[i] = state.getProcessState(i);
 
-			BooleanExpression[] ppcs = state.copyOfPartialPathConditionStack(i);
-			DynamicWriteSet[] writeSets = state.copyOfWriteSetStack(i);
-			// the most-left two bits marks if write set and ppc stacks are
-			// changed:
-			byte changes = 0;
+			ImmutableProcessState newProcState = newProcesses[i]
+					.apply(substituter);
 
-			for (int j = 0; j < ppcs.length; j++) {
-				BooleanExpression newPpc = (BooleanExpression) substituter
-						.apply(ppcs[j]);
-
-				if (newPpc == ppcs[j])
-					continue;
-				ppcs[j] = newPpc;
-				changes |= 1;// set left most bit
-			}
-			// If ppc stack is not changed, not refer to an new array instance:
-			ppcs = changes == 1
-					? ppcs
-					: newProcesses[i].getPartialPathConditions();
-			for (int j = 0; j < writeSets.length; j++) {
-				DynamicWriteSet newSet = writeSets[j].apply(substituter);
-
-				if (newSet == writeSets[j])
-					continue;
-				writeSets[j] = newSet;
-				changes |= 2; // set the second left most bit
-			}
-			// If write set stack is not changed, not refer to an new array
-			// instance:
-			writeSets = (changes & 2) == 2
-					? writeSets
-					: newProcesses[i].getWriteSets();
-			// if any of the most left twos bits has been set:
-			if ((changes & 3) != 0) {
-				StackEntry callStack[] = new StackEntry[newProcesses[i]
-						.stackSize()];
-
-				for (int j = 0; j < callStack.length; j++)
-					callStack[j] = newProcesses[i].getStackEntry(j);
-				newProcesses[i] = new ImmutableProcessState(i, callStack, ppcs,
-						writeSets, newProcesses[i].atomicCount(),
-						newProcesses[i].isSelfDestructable());
+			if (newProcState != newProcesses[i]) {
 				procChanged = true;
+				newProcesses[i] = newProcState;
 			}
 		}
 		if (procChanged)
@@ -1177,12 +1139,13 @@ public class ImmutableStateFactory implements StateFactory {
 
 		boolean processChanged = false;
 		ImmutableProcessState[] procStates = theState.copyProcessStates();
+		SimplifyOperator simplifier = new SimplifyOperator(reasoner);
 
 		for (int i = 0; i < procStates.length; i++) {
 			if (procStates[i] == null)
 				continue;
 
-			ImmutableProcessState tmp = procStates[i].simplify(reasoner);
+			ImmutableProcessState tmp = procStates[i].apply(simplifier);
 
 			if (tmp != procStates[i])
 				processChanged = true;
@@ -2917,7 +2880,7 @@ public class ImmutableStateFactory implements StateFactory {
 
 		newStack[0] = external.peekStack();
 		processes[newPid] = new ImmutableProcessState(newPid, newStack, null,
-				null, external.atomicCount(), true);
+				null, null, external.atomicCount(), true);
 
 		IntArray key = new IntArray(extScopesCurr2Merged);
 		UnaryOperator<SymbolicExpression> substituter = dyscopeSubMap.get(key);
@@ -3016,51 +2979,92 @@ public class ImmutableStateFactory implements StateFactory {
 	}
 
 	@Override
-	public ImmutableState addWriteRecords(State state, int pid,
-			SymbolicExpression memValue) {
+	public ImmutableState addReadWriteRecords(State state, int pid,
+			SymbolicExpression memValue, boolean isRead) {
 		ImmutableState imuState = ((ImmutableState) state);
-		DynamicWriteSet newWsStack[] = imuState.copyOfWriteSetStack(pid);
-		int head = newWsStack.length - 1;
 
-		newWsStack[head] = writeSetFactory.addReference(newWsStack[head],
-				memValue);
-		return imuState.setWriteSetStack(pid, newWsStack);
+		if (isRead) {
+			DynamicMemoryLocationSet newRsStack[] = imuState
+					.getProcessState(pid).getReadSets(true);
+			int head = newRsStack.length - 1;
+
+			newRsStack[head] = memoryLocationSetFactory
+					.addReference(newRsStack[head], memValue);
+			return imuState.setReadSetStack(pid, newRsStack);
+		} else {
+			DynamicMemoryLocationSet newWsStack[] = imuState
+					.getProcessState(pid).getWriteSets(true);
+			int head = newWsStack.length - 1;
+
+			newWsStack[head] = memoryLocationSetFactory
+					.addReference(newWsStack[head], memValue);
+			return imuState.setWriteSetStack(pid, newWsStack);
+		}
 	}
 
 	@Override
-	public DynamicWriteSet peekWriteSet(State state, int pid) {
+	public DynamicMemoryLocationSet peekReadWriteSet(State state, int pid,
+			boolean isRead) {
 		ImmutableState imuState = ((ImmutableState) state);
-		DynamicWriteSet[] wsStack = imuState.getProcessState(pid)
-				.getWriteSets();
-		if (wsStack.length > 0) {
-			int head = wsStack.length - 1;
+		DynamicMemoryLocationSet[] stack;
 
-			return wsStack[head];
+		if (isRead)
+			stack = imuState.getProcessState(pid).getReadSets(false);
+		else
+			stack = imuState.getProcessState(pid).getWriteSets(false);
+		if (stack.length > 0) {
+			int head = stack.length - 1;
+
+			return stack[head];
 		} else
 			return null;
 	}
 
 	@Override
-	public State pushEmptyWrite(State state, int pid) {
-		DynamicWriteSet newWriteSet = writeSetFactory.empty();
+	public State pushEmptyReadWrite(State state, int pid, boolean isRead) {
+		DynamicMemoryLocationSet newEmptySet = memoryLocationSetFactory.empty();
 		ImmutableState imuState = ((ImmutableState) state);
-		DynamicWriteSet[] wsStack = imuState.copyOfWriteSetStack(pid);
-		DynamicWriteSet[] newWsStack = Arrays.copyOf(wsStack,
-				wsStack.length + 1);
-		int head = wsStack.length;
 
-		newWsStack[head] = newWriteSet;
-		return imuState.setWriteSetStack(pid, newWsStack);
+		if (isRead) {
+			DynamicMemoryLocationSet[] rsStack = imuState.getProcessState(pid)
+					.getReadSets(true);
+			DynamicMemoryLocationSet[] newRsStack = Arrays.copyOf(rsStack,
+					rsStack.length + 1);
+			int head = rsStack.length;
+
+			newRsStack[head] = newEmptySet;
+			return imuState.setReadSetStack(pid, newRsStack);
+		} else {
+			DynamicMemoryLocationSet[] wsStack = imuState.getProcessState(pid)
+					.getWriteSets(true);
+			DynamicMemoryLocationSet[] newWsStack = Arrays.copyOf(wsStack,
+					wsStack.length + 1);
+			int head = wsStack.length;
+
+			newWsStack[head] = newEmptySet;
+			return imuState.setWriteSetStack(pid, newWsStack);
+		}
 	}
 
 	@Override
-	public State popWriteSet(State state, int pid) {
+	public State popReadWriteSet(State state, int pid, boolean isRead) {
 		ImmutableState imuState = ((ImmutableState) state);
-		DynamicWriteSet[] wsStack = imuState.copyOfWriteSetStack(pid);
-		DynamicWriteSet[] newWsStack = Arrays.copyOf(wsStack,
-				wsStack.length - 1);
 
-		return imuState.setWriteSetStack(pid, newWsStack);
+		if (isRead) {
+			DynamicMemoryLocationSet[] rsStack = imuState.getProcessState(pid)
+					.getReadSets(true);
+			DynamicMemoryLocationSet[] newRsStack = Arrays.copyOf(rsStack,
+					rsStack.length - 1);
+
+			return imuState.setReadSetStack(pid, newRsStack);
+		} else {
+			DynamicMemoryLocationSet[] wsStack = imuState.getProcessState(pid)
+					.getWriteSets(true);
+			DynamicMemoryLocationSet[] newWsStack = Arrays.copyOf(wsStack,
+					wsStack.length - 1);
+
+			return imuState.setWriteSetStack(pid, newWsStack);
+		}
 	}
 
 	@Override

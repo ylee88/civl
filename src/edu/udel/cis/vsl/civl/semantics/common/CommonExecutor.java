@@ -103,6 +103,9 @@ public class CommonExecutor implements Executor {
 	/** The Evaluator used to evaluate expressions. */
 	private Evaluator evaluator;
 
+	/** The Evaluator used to evaluate expressions and collecting read sets. */
+	private Evaluator readSetCollectEvaluator = null;
+
 	/**
 	 * The loader used to find Executors for system functions declared in
 	 * libraries.
@@ -476,11 +479,21 @@ public class CommonExecutor implements Executor {
 		}
 		mallocResult = stateFactory.malloc(state, pid, dyScopeID,
 				statement.getMallocId(), dynamicElementType, elementCount);
-		if (state.isMonitoringWrites(pid)) {
+
+		boolean saveWrite = state.isMonitoringWrites(pid);
+		boolean saveRead = state.isMonitoringReads(pid);
+
+		if (saveWrite || saveRead) {
 			SymbolicExpression pointer2memoryBlk = symbolicUtil
 					.parentPointer(mallocResult.right);
+			// write is also a read
 
-			state = stateFactory.addWriteRecords(state, pid, pointer2memoryBlk);
+			if (saveWrite)
+				state = stateFactory.addReadWriteRecords(state, pid,
+						pointer2memoryBlk, false);
+			if (saveRead)
+				state = stateFactory.addReadWriteRecords(state, pid,
+						pointer2memoryBlk, true);
 		}
 		state = mallocResult.left;
 		if (lhs != null)
@@ -677,16 +690,23 @@ public class CommonExecutor implements Executor {
 			throws UnsatisfiablePathConditionException {
 		try {
 			statement.reached();
-			return executeWork(state, pid, statement);
-			// return this.stateFactory.simplify(state);
+
+			boolean monitorReads = state.isMonitoringReads(pid);
+			Evaluator regularEvaluator = evaluator;
+
+			if (monitorReads) {
+				if (this.readSetCollectEvaluator == null)
+					this.readSetCollectEvaluator = evaluator
+							.newReadSetCollectEvaluator();
+				this.evaluator = this.readSetCollectEvaluator;
+			}
+			state = executeWork(state, pid, statement);
+			if (monitorReads)
+				this.evaluator = regularEvaluator;
+			return state;
 		} catch (SARLException e) {
-			// e.printStackTrace(System.err);
-			// System.err.flush();
 			throw new CIVLInternalException("SARL exception: " + e, statement);
-		} // catch (CIVLExecutionException e) {
-			// errorLogger.reportError(e);
-			// throw new UnsatisfiablePathConditionException();
-			// }
+		}
 	}
 
 	/**
@@ -1400,11 +1420,20 @@ public class CommonExecutor implements Executor {
 				throw new UnsatisfiablePathConditionException();
 			}
 		}
-		if (state.isMonitoringWrites(pid)) {
+
+		boolean saveWrite = state.isMonitoringWrites(pid);
+		boolean saveRead = state.isMonitoringReads(pid);
+
+		if (saveWrite || saveRead) {
 			Evaluation eval = evaluator.memEvaluator().pointer2memValue(state,
 					pid, pointer, source);
 
-			state = stateFactory.addWriteRecords(eval.state, pid, eval.value);
+			if (saveWrite)
+				state = stateFactory.addReadWriteRecords(eval.state, pid,
+						eval.value, false);
+			if (saveRead)
+				state = stateFactory.addReadWriteRecords(eval.state, pid,
+						eval.value, true);
 		}
 		if (symRef.isIdentityReference()) {
 			result = stateFactory.setVariable(state, vid, sid, value);
@@ -1419,32 +1448,6 @@ public class CommonExecutor implements Executor {
 				result = stateFactory.setVariable(state, vid, sid,
 						newVariableValue);
 			} catch (SARLException e) {
-				// String message = e.getMessage();
-				//
-				// if (civlConfig.svcomp()) {
-				// if (message
-				// .startsWith("Argument value "
-				// + "to method arrayWrite has incompatible type")
-				// && message.contains("type: int")
-				// && message.contains("Expected: pointer")) {
-				// value = this.int2PointerCaster.forceCast(value);
-				// try {
-				// SymbolicExpression newVariableValue = universe
-				// .assign(oldVariableValue, symRef, value);
-				//
-				// result = stateFactory.setVariable(state, vid, sid,
-				// newVariableValue);
-				//
-				// } catch (SARLException e1) {
-				// errorLogger.logSimpleError(source, state, process,
-				// symbolicAnalyzer.stateInformation(state),
-				// ErrorKind.DEREFERENCE,
-				// "Invalid assignment: " + e.getMessage());
-				// throw new UnsatisfiablePathConditionException();
-				// }
-				// return result;
-				// }
-				// }
 				String process = state.getProcessState(pid).name();
 
 				errorLogger.logSimpleError(source, state, process,
@@ -1494,14 +1497,20 @@ public class CommonExecutor implements Executor {
 		if (kind == LHSExpressionKind.VARIABLE) {
 			Variable variable = ((VariableExpression) lhs).variable();
 			int dyscopeId = state.getDyscopeID(pid, variable);
+			boolean saveWrite = state.isMonitoringWrites(pid);
+			boolean saveRead = state.isMonitoringReads(pid);
 
-			if (state.isMonitoringWrites(pid)) {
+			if (saveWrite || saveRead) {
 				eval = evaluator.memEvaluator().pointer2memValue(
 						state, pid, symbolicUtil.makePointer(dyscopeId,
 								variable.vid(), universe.identityReference()),
 						lhs.getSource());
-				state = stateFactory.addWriteRecords(eval.state, pid,
-						eval.value);
+				if (saveWrite)
+					state = stateFactory.addReadWriteRecords(eval.state, pid,
+							eval.value, false);
+				if (saveRead)
+					state = stateFactory.addReadWriteRecords(eval.state, pid,
+							eval.value, true);
 			}
 			return stateFactory.setVariable(state, variable, pid, value);
 		} else {
@@ -1637,10 +1646,21 @@ public class CommonExecutor implements Executor {
 		}
 		state = stateFactory.setVariable(state, vid, sid,
 				newValueOfVarOrHeapObj);
-		if (state.isMonitoringWrites(pid)) {
+
+		boolean saveWrite = state.isMonitoringWrites(pid);
+		boolean saveRead = state.isMonitoringReads(pid);
+
+		if (saveWrite || saveRead) {
 			eval = evaluator.memEvaluator().makeMemValue(state, pid,
 					pointerToVarOrHeapObj, valueSetTemplate, source);
-			state = stateFactory.addWriteRecords(eval.state, pid, eval.value);
+
+			// write is also read
+			if (saveWrite)
+				state = stateFactory.addReadWriteRecords(eval.state, pid,
+						eval.value, false);
+			if (saveRead)
+				state = stateFactory.addReadWriteRecords(eval.state, pid,
+						eval.value, true);
 		}
 		return state;
 	}
@@ -1677,13 +1697,22 @@ public class CommonExecutor implements Executor {
 		heapObject = universe.array(objectType.getDynamicType(universe),
 				Arrays.asList(objectValue));
 		result = stateFactory.malloc(state, dyscopeID, mallocId, heapObject);
-		if (state.isMonitoringWrites(pid)) {
+
+		boolean saveWrite = state.isMonitoringWrites(pid);
+		boolean saveRead = state.isMonitoringReads(pid);
+
+		if (saveWrite || saveRead) {
 			SymbolicExpression pointer2memoryBlk = symbolicUtil
 					.parentPointer(result.right);
 			Evaluation eval = evaluator.memEvaluator().pointer2memValue(state,
 					pid, pointer2memoryBlk, source);
 
-			state = stateFactory.addWriteRecords(eval.state, pid, eval.value);
+			if (saveWrite)
+				state = stateFactory.addReadWriteRecords(eval.state, pid,
+						eval.value, false);
+			if (saveRead)
+				state = stateFactory.addReadWriteRecords(eval.state, pid,
+						eval.value, true);
 		}
 		return new Evaluation(result.left, result.right);
 	}

@@ -1,7 +1,6 @@
 package edu.udel.cis.vsl.civl.dynamic.immutable;
 
-import edu.udel.cis.vsl.civl.dynamic.IF.DynamicWriteSet;
-import edu.udel.cis.vsl.sarl.IF.Reasoner;
+import edu.udel.cis.vsl.civl.dynamic.IF.DynamicMemoryLocationSet;
 import edu.udel.cis.vsl.sarl.IF.UnaryOperator;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
 
@@ -10,7 +9,9 @@ import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
  * 
  * @author ziqing (Ziqing Luo)
  */
-public class ImmutableDynamicWriteSet implements DynamicWriteSet {
+public class ImmutableDynamicMemoryLocationSet
+		implements
+			DynamicMemoryLocationSet {
 
 	private final SymbolicExpression memValue;
 
@@ -20,7 +21,7 @@ public class ImmutableDynamicWriteSet implements DynamicWriteSet {
 	 */
 	private UnaryOperator<SymbolicExpression> collector;
 
-	ImmutableDynamicWriteSet(SymbolicExpression memValue,
+	ImmutableDynamicMemoryLocationSet(SymbolicExpression memValue,
 			UnaryOperator<SymbolicExpression> collector) {
 		this.memValue = memValue;
 		this.collector = collector;
@@ -33,24 +34,14 @@ public class ImmutableDynamicWriteSet implements DynamicWriteSet {
 	}
 
 	@Override
-	public ImmutableDynamicWriteSet apply(
+	public ImmutableDynamicMemoryLocationSet apply(
 			UnaryOperator<SymbolicExpression> operator) {
 		SymbolicExpression newMemValue = operator.apply(memValue);
 
 		newMemValue = collector.apply(newMemValue);
 		if (newMemValue != memValue)
-			return new ImmutableDynamicWriteSet(newMemValue, collector);
-		else
-			return this;
-	}
-
-	@Override
-	public ImmutableDynamicWriteSet simplify(Reasoner reasoner) {
-		SymbolicExpression newMemValue = reasoner.simplify(memValue);
-
-		newMemValue = collector.apply(newMemValue);
-		if (newMemValue != memValue)
-			return new ImmutableDynamicWriteSet(newMemValue, collector);
+			return new ImmutableDynamicMemoryLocationSet(newMemValue,
+					collector);
 		else
 			return this;
 	}
@@ -59,7 +50,7 @@ public class ImmutableDynamicWriteSet implements DynamicWriteSet {
 
 	@Override
 	public String toString() {
-		return "WriteSet{" + memValue + "}";
+		return "MemLocSet{" + memValue + "}";
 	}
 
 	@Override
@@ -69,8 +60,8 @@ public class ImmutableDynamicWriteSet implements DynamicWriteSet {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (obj instanceof ImmutableDynamicWriteSet) {
-			ImmutableDynamicWriteSet other = (ImmutableDynamicWriteSet) obj;
+		if (obj instanceof ImmutableDynamicMemoryLocationSet) {
+			ImmutableDynamicMemoryLocationSet other = (ImmutableDynamicMemoryLocationSet) obj;
 
 			return other.getMemValue().equals(memValue);
 		}

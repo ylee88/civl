@@ -4,7 +4,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
-import edu.udel.cis.vsl.civl.dynamic.IF.DynamicWriteSet;
+import edu.udel.cis.vsl.civl.dynamic.IF.DynamicMemoryLocationSet;
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.library.common.BaseLibraryExecutor;
 import edu.udel.cis.vsl.civl.library.mem.MemoryLocationMap.MemLocMapEntry;
@@ -60,19 +60,32 @@ public class LibmemExecutor extends BaseLibraryExecutor
 			SymbolicExpression[] argumentValues)
 			throws UnsatisfiablePathConditionException {
 		Evaluation callEval = null;
+		boolean write = false, read = true;
 
 		switch (functionName) {
 			case "$write_set_push" :
-				callEval = executeWriteSetPush(state, pid, arguments,
-						argumentValues, source);
+				callEval = executeReadWriteSetPush(state, pid, arguments,
+						argumentValues, write, source);
 				break;
 			case "$write_set_pop" :
-				callEval = executeWriteSetPop(state, pid, arguments,
-						argumentValues, source);
+				callEval = executeReadWriteSetPop(state, pid, arguments,
+						argumentValues, write, source);
 				break;
 			case "$write_set_peek" :
-				callEval = executeWriteSetPeek(state, pid, arguments,
-						argumentValues, source);
+				callEval = executeReadWriteSetPeek(state, pid, arguments,
+						argumentValues, write, source);
+				break;
+			case "$read_set_push" :
+				callEval = executeReadWriteSetPush(state, pid, arguments,
+						argumentValues, read, source);
+				break;
+			case "$read_set_pop" :
+				callEval = executeReadWriteSetPop(state, pid, arguments,
+						argumentValues, read, source);
+				break;
+			case "$read_set_peek" :
+				callEval = executeReadWriteSetPeek(state, pid, arguments,
+						argumentValues, read, source);
 				break;
 			case "$mem_contains" :
 				callEval = executeMemContains(state, pid, arguments,
@@ -133,15 +146,18 @@ public class LibmemExecutor extends BaseLibraryExecutor
 	 * @param argumentValues
 	 *            The dynamic representation of the arguments of the function
 	 *            call.
+	 * @param isRead
+	 *            true iff execute read set push; false iff execute write set
+	 *            push.
 	 * @param source
 	 *            The {@link CIVLSource} associates to the function call.
 	 * @return The new state after executing the function call.
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	private Evaluation executeWriteSetPush(State state, int pid,
+	private Evaluation executeReadWriteSetPush(State state, int pid,
 			Expression[] arguments, SymbolicExpression[] argumentValues,
-			CIVLSource source) {
-		state = stateFactory.pushEmptyWrite(state, pid);
+			boolean isRead, CIVLSource source) {
+		state = stateFactory.pushEmptyReadWrite(state, pid, isRead);
 		return new Evaluation(state, null);
 	}
 
@@ -167,29 +183,35 @@ public class LibmemExecutor extends BaseLibraryExecutor
 	 * @param argumentValues
 	 *            The dynamic representation of the arguments of the function
 	 *            call.
+	 * @param isRead
+	 *            true iff pop read set; false iff pop write set.
 	 * @param source
 	 *            The {@link CIVLSource} associates to the function call.
 	 * @return The new state after executing the function call.
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	private Evaluation executeWriteSetPop(State state, int pid,
+	private Evaluation executeReadWriteSetPop(State state, int pid,
 			Expression[] arguments, SymbolicExpression[] argumentValues,
-			CIVLSource source) throws UnsatisfiablePathConditionException {
+			boolean isRead, CIVLSource source)
+			throws UnsatisfiablePathConditionException {
 		SymbolicExpression memValue;
-		DynamicWriteSet writeSet = stateFactory.peekWriteSet(state, pid);
+		DynamicMemoryLocationSet rwSet = stateFactory.peekReadWriteSet(state,
+				pid, isRead);
 
-		state = stateFactory.popWriteSet(state, pid);
-		memValue = writeSet.getMemValue();
+		state = stateFactory.popReadWriteSet(state, pid, isRead);
+		memValue = rwSet.getMemValue();
 		return new Evaluation(state, memValue);
 	}
 
-	private Evaluation executeWriteSetPeek(State state, int pid,
+	private Evaluation executeReadWriteSetPeek(State state, int pid,
 			Expression[] arguments, SymbolicExpression[] argumentValues,
-			CIVLSource source) throws UnsatisfiablePathConditionException {
+			boolean isRead, CIVLSource source)
+			throws UnsatisfiablePathConditionException {
 		SymbolicExpression memValue;
-		DynamicWriteSet writeSet = stateFactory.peekWriteSet(state, pid);
+		DynamicMemoryLocationSet rwSet = stateFactory.peekReadWriteSet(state,
+				pid, isRead);
 
-		memValue = writeSet.getMemValue();
+		memValue = rwSet.getMemValue();
 		return new Evaluation(state, memValue);
 	}
 
@@ -256,6 +278,7 @@ public class LibmemExecutor extends BaseLibraryExecutor
 	private Evaluation executeMemEquals(State state, int pid,
 			Expression[] arguments, SymbolicExpression[] argumentValues,
 			CIVLSource source) throws UnsatisfiablePathConditionException {
+
 		SymbolicExpression mem0 = collector.apply(argumentValues[0]);
 		SymbolicExpression mem1 = collector.apply(argumentValues[1]);
 

@@ -5,8 +5,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
-import edu.udel.cis.vsl.civl.dynamic.IF.DynamicWriteSet;
-import edu.udel.cis.vsl.civl.dynamic.IF.DynamicWriteSetFactory;
+import edu.udel.cis.vsl.civl.dynamic.IF.DynamicMemoryLocationSet;
+import edu.udel.cis.vsl.civl.dynamic.IF.DynamicMemoryLocationSetFactory;
 import edu.udel.cis.vsl.civl.library.mem.MemoryLocationMap;
 import edu.udel.cis.vsl.civl.library.mem.MemoryLocationMap.MemLocMapEntry;
 import edu.udel.cis.vsl.civl.model.IF.CIVLTypeFactory;
@@ -15,7 +15,9 @@ import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.UnaryOperator;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
 
-public class ImmutableDynamicWriteSetFactory implements DynamicWriteSetFactory {
+public class ImmutableDynamicMemoryLocationSetFactory
+		implements
+			DynamicMemoryLocationSetFactory {
 
 	private SymbolicUniverse universe;
 
@@ -25,7 +27,7 @@ public class ImmutableDynamicWriteSetFactory implements DynamicWriteSetFactory {
 
 	private UnaryOperator<SymbolicExpression> memCollector;
 
-	public ImmutableDynamicWriteSetFactory(SymbolicUniverse universe,
+	public ImmutableDynamicMemoryLocationSetFactory(SymbolicUniverse universe,
 			CIVLTypeFactory typeFactory,
 			SymbolicExpression collectedScopeValue) {
 		this.universe = universe;
@@ -36,14 +38,14 @@ public class ImmutableDynamicWriteSetFactory implements DynamicWriteSetFactory {
 	}
 
 	@Override
-	public DynamicWriteSet empty() {
-		return new ImmutableDynamicWriteSet(memCreator.apply(Arrays.asList()),
+	public DynamicMemoryLocationSet empty() {
+		return new ImmutableDynamicMemoryLocationSet(memCreator.apply(Arrays.asList()),
 				memCollector);
 	}
 
 	@Override
-	public DynamicWriteSet addReference(DynamicWriteSet writeSet,
-			SymbolicExpression memValue) {
+	public DynamicMemoryLocationSet addReference(
+			DynamicMemoryLocationSet writeSet, SymbolicExpression memValue) {
 		SymbolicExpression oldMemValue = writeSet.getMemValue();
 		List<CIVLMemType.MemoryLocationReference> memContents = new LinkedList<>();
 		List<SymbolicExpression[]> memInputs;
@@ -62,7 +64,7 @@ public class ImmutableDynamicWriteSetFactory implements DynamicWriteSetFactory {
 		if (newMemValue == oldMemValue)
 			return writeSet;
 		else
-			return new ImmutableDynamicWriteSet(newMemValue, memCollector);
+			return new ImmutableDynamicMemoryLocationSet(newMemValue, memCollector);
 	}
 
 	private List<SymbolicExpression[]> addWorker(

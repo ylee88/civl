@@ -2,6 +2,14 @@ package edu.udel.cis.vsl.civl.model.IF.expression;
 
 import edu.udel.cis.vsl.abc.ast.node.IF.acsl.ExtendedQuantifiedExpressionNode.ExtendedQuantifier;
 
+/**
+ * The representation for the "fold expression" in ACSL, e.g.
+ * <code>\sum(low, high, f)</code> where <code>f</code> is a function from
+ * integer to integer/real
+ * 
+ * @author ziqing
+ *
+ */
 public interface ExtendedQuantifiedExpression extends Expression {
 	/**
 	 * returns the quantifier of this expression
