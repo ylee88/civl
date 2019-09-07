@@ -59,7 +59,7 @@ import edu.udel.cis.vsl.sarl.IF.number.Number;
  * CommonEnabler implements {@link EnablerIF} for CIVL models. It is an abstract
  * class and can have different implementations for different reduction
  * techniques.
- * 
+ *
  * @author Manchun Zheng (zmanchun)
  * @author Timothy K. Zirkel (zirkel)
  * @author Yihao Yan (yihaoyan)
@@ -159,22 +159,10 @@ public abstract class CommonEnabler implements Enabler {
 
 	/* ***************************** Constructor *************************** */
 
+
 	/**
 	 * Creates a new instance of Enabler, called by the constructors of the
 	 * classes that implements Enabler.
-	 * 
-	 * @param transitionFactory
-	 *            The transition factory to be used for composing new
-	 *            transitions.
-	 * @param evaluator
-	 *            The evaluator to be used for evaluating expressions.
-	 * @param executor
-	 *            The executor to be used for computing the guard of system
-	 *            functions.
-	 * @param symbolicAnalyzer
-	 *            The symbolic analyzer used in the system.
-	 * @param showAmpleSet
-	 *            The option to enable or disable the printing of ample sets.
 	 */
 	protected CommonEnabler(StateFactory stateFactory, Evaluator evaluator,
 			Executor executor, SymbolicAnalyzer symbolicAnalyzer,
@@ -207,27 +195,55 @@ public abstract class CommonEnabler implements Enabler {
 
 	@Override
 	public Collection<Transition> ampleSet(State state) {
-		Pair<BooleanExpression, Collection<Transition>> transitionsAssumption;
+		return ampleOrFullSet(state, true);
+	}
+
+	/**
+	 * the common worker for {@link #ampleSet(State)} and {@link #fullSet(State)}
+	 *
+	 * @param state      the current state
+	 * @param isAmpleSet true returns the ample set; false returns the full set
+	 * @return the enabled transitions
+	 */
+	private Collection<Transition> ampleOrFullSet(State state,
+			boolean isAmpleSet) {
 		List<Transition> transitions = new ArrayList<>();
 
 		if (state.getPathCondition(universe).isFalse())
-			// return empty set of transitions.
 			return transitions;
-		transitionsAssumption = enabledAtomicTransitions(state);
-		if (transitionsAssumption != null
-				&& transitionsAssumption.left != null) {
-			int atomicPid = stateFactory.processInAtomic(state);
 
-			state = stateFactory.addToPathcondition(state, atomicPid,
-					transitionsAssumption.left);
+		Pair<BooleanExpression, Collection<Transition>> transitionsAssumption =
+				enabledAtomicTransitions(state);
+
+		if (transitionsAssumption != null) {
+			// there is process holding atomic lock...
+			if (transitionsAssumption.left != null) {
+				// update the state for the case that the atomic process is
+				// blocked...
+				int atomicPid = stateFactory.processInAtomic(state);
+
+				state = stateFactory.addToPathcondition(state, atomicPid,
+						transitionsAssumption.left);
+			}
+			if (transitionsAssumption.right != null)
+				// enabled transitions of the atomic process...
+				transitions.addAll(transitionsAssumption.right);
 		}
-		if (transitionsAssumption != null
-				&& transitionsAssumption.right != null)
-			transitions.addAll(transitionsAssumption.right);
-		if (transitionsAssumption == null || transitionsAssumption.right == null
-				|| transitionsAssumption.left != null) {
-			// return ample transitions.
-			transitions.addAll(enabledTransitionsPOR(state));
+
+		// enabled transitions for the case that no atomic transition can be
+		// enabled or atomic process is blocked:
+		boolean noAtomicTran = transitionsAssumption == null ||
+							   transitionsAssumption.right == null;
+		boolean atomicProcMayBlocked = !noAtomicTran &&
+									   transitionsAssumption.left != null;
+
+		if (noAtomicTran || atomicProcMayBlocked) {
+			if (isAmpleSet)
+				transitions.addAll(enabledTransitionsPOR(state));
+			else
+				for (ProcessState process : state.getProcessStates())
+					transitions.addAll(this.enabledTransitionsOfProcess(state,
+							process.getPid()));
 		}
 		return transitions;
 	}
@@ -272,7 +288,7 @@ public abstract class CommonEnabler implements Enabler {
 	/**
 	 * Obtain enabled transitions with partial order reduction. May have
 	 * different implementation of POR algorithms.
-	 * 
+	 *
 	 * @param state
 	 *            The current state.
 	 * @return The enabled transitions computed by a certain POR approach.
@@ -285,41 +301,14 @@ public abstract class CommonEnabler implements Enabler {
 
 	@Override
 	public Collection<Transition> fullSet(State state) {
-		Pair<BooleanExpression, Collection<Transition>> transitionsAssumption;
-		List<Transition> transitions = new ArrayList<>();
-
-		if (state.getPathCondition(universe).isFalse())
-			// return empty set of transitions.
-			return transitions;
-		transitionsAssumption = enabledAtomicTransitions(state);
-		if (transitionsAssumption != null
-				&& transitionsAssumption.left != null) {
-			int atomicPid = stateFactory.processInAtomic(state);
-
-			state = stateFactory.addToPathcondition(state, atomicPid,
-					transitionsAssumption.left);
-		}
-		if (transitionsAssumption != null
-				&& transitionsAssumption.right != null)
-			transitions.addAll(transitionsAssumption.right);
-		if (transitionsAssumption == null || transitionsAssumption.right == null
-				|| transitionsAssumption.left != null) {
-			Iterable<? extends ProcessState> processes = state
-					.getProcessStates();
-
-			for (ProcessState process : processes) {
-				transitions.addAll(this.enabledTransitionsOfProcess(state,
-						process.getPid()));
-			}
-		}
-		return transitions;
+		return ampleOrFullSet(state, false);
 	}
 
 	/**
 	 * Gets the enabled transitions of a certain process at a given state. It's
 	 * possible that the atomic lock is free or another process is holding the
 	 * atomic lock. TODO clarify situations for atomic
-	 * 
+	 *
 	 * @param state
 	 *            The state to work with.
 	 * @param pid
@@ -361,7 +350,7 @@ public abstract class CommonEnabler implements Enabler {
 	/**
 	 * generates enabled transitions for a given process at a certain location
 	 * at the specified state
-	 * 
+	 *
 	 * @param state
 	 *            the current state
 	 * @param pLocation
@@ -461,7 +450,7 @@ public abstract class CommonEnabler implements Enabler {
 	 * {(X, [2, 3]), (Y, [6,7]), (Z, [8,9])} then the result will be { X=2 &&
 	 * Y=6 && Z==8, X=2 && Y=6 && Z=9, X=2 && Y=7 && Z=8, X=2 && Y=7 && Z=9, X=3
 	 * && Y=6 && Z=8, X=3 && Y=6 && Z=9, X=3 && Y=7 && Z=8, X=3 && Y=7 && Z=9}.
-	 * 
+	 *
 	 * @param reasoner
 	 * @param constantBounds
 	 * @param start
@@ -516,7 +505,7 @@ public abstract class CommonEnabler implements Enabler {
 	 * location at the specified state. <br>
 	 * Precondition: the process is at a binary branching location at the
 	 * current state
-	 * 
+	 *
 	 * @param state
 	 *            the current state
 	 * @param pLocation
@@ -585,7 +574,7 @@ public abstract class CommonEnabler implements Enabler {
 	 * statement is enabled with a non-trivial guard), then other processes
 	 * needs to be considered with the assumption that the process in atomic
 	 * session is blocked.
-	 * 
+	 *
 	 * @param state
 	 *            The current state.
 	 * @return The enabled transitions that resume an atomic block by a certain
@@ -651,7 +640,7 @@ public abstract class CommonEnabler implements Enabler {
 	 * assignment to the atomic lock variable might be forced to the returned
 	 * transitions, when the process is going to re-obtain the atomic lock
 	 * variable.
-	 * 
+	 *
 	 * @param state
 	 *            The state to work with.
 	 * @param statement
@@ -664,10 +653,9 @@ public abstract class CommonEnabler implements Enabler {
 	 * @param simplifyState
 	 *            A flag, set true if and only if the target states of those
 	 *            enabled transitions must be simplified.
-	 * @param assignAtomicLock
-	 *            The assignment statement for the atomic lock variable, should
-	 *            be null except that the process is going to re-obtain the
-	 *            atomic lock variable.
+	 * @param atomicLockAction
+	 *            the {@link AtomicLockAction} associated with the process and
+	 *            the statement
 	 * @return The set of enabled transitions.
 	 */
 	private List<Transition> enabledTransitionsOfStatement(State state,
@@ -711,7 +699,7 @@ public abstract class CommonEnabler implements Enabler {
 	 * prepares the appropriate collate state, and invokes the
 	 * colExecutor.run2Completion() to run a sub-program, which returns a number
 	 * of collate states.
-	 * 
+	 *
 	 * @param state
 	 *            the current state
 	 * @param pid
@@ -779,7 +767,7 @@ public abstract class CommonEnabler implements Enabler {
 		 * order to let the current state be conjuncted with consistent
 		 * assumptions from those final states. The scope value subsitition must
 		 * happen.
-		 * 
+		 *
 		 * During the execution $with statement, no canonicalization happens,
 		 * hence the mapping relation of scope values from the source collate
 		 * state to the current state is shared by all final states.
@@ -796,7 +784,7 @@ public abstract class CommonEnabler implements Enabler {
 	/**
 	 * Get the set of transitions that are enabled at the state where the $with
 	 * statement has been executed
-	 * 
+	 *
 	 * @param oldPC
 	 *            the old Path Condition before being conjuncted with updates of
 	 *            the $with statement
@@ -836,7 +824,7 @@ public abstract class CommonEnabler implements Enabler {
 			noop.setSourceTemp(withStatement.source());
 			// TODO: is there any way to only conjunct with new clauses in
 			// colState's PC (instead of the whole PC)?
-			
+
 			BooleanExpression PCfromCollate = newColState
 					.getPathCondition(universe);
 			BooleanExpression newPCfromCollate = (BooleanExpression) scopeSubstituter
@@ -851,7 +839,7 @@ public abstract class CommonEnabler implements Enabler {
 	/* ************************ Package-private Methods ******************** */
 	/**
 	 * Computes the set of enabled transitions of a system function call.
-	 * 
+	 *
 	 * @param source
 	 *            the source of the call statement
 	 * @param state
@@ -895,14 +883,14 @@ public abstract class CommonEnabler implements Enabler {
 	 * Given a state, a process, and a statement, check if the statement's guard
 	 * is satisfiable under the path condition. If it is, return the guard.
 	 * Otherwise, return false.
-	 * 
+	 *
 	 * @param state
 	 *            The current state.
 	 * @param pid
 	 *            The id of the currently executing process.
 	 * @param statement
 	 *            The statement.
-	 * @param the
+	 * @param statementId
 	 *            ID of the statement in its source location
 	 * @param guardCache
 	 *            a map from process ID to map of statement and the value of its
@@ -935,7 +923,7 @@ public abstract class CommonEnabler implements Enabler {
 
 /**
  * This represents the bound specification of a symbolic constant.
- * 
+ *
  * @author Manchun Zheng
  *
  */
@@ -954,7 +942,7 @@ class ConstantBound {
 	int upper;
 
 	/**
-	 * 
+	 *
 	 * @param constant
 	 *            the symbolic constant
 	 * @param lower
