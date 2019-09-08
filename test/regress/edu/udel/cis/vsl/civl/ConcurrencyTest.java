@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 
 import org.junit.AfterClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
@@ -224,6 +225,13 @@ public class ConcurrencyTest {
 		assertFalse(
 				ui.run(VERIFY, NO_PRINTF, QUIET, filename("wildcardBad.c")));
 		ui.run(REPLAY, QUIET, NO_PRINTF, filename("wildcardBad.c"));
+	}
+
+	@Test
+	public void localBlock() {
+		assertTrue(
+				ui.run(VERIFY, NO_PRINTF, QUIET,
+						filename("localBlock.cvl")));
 	}
 
 	@AfterClass

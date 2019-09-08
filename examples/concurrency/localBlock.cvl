@@ -1,0 +1,20 @@
+int x;
+
+void proc0() {
+  x = 1;
+}
+
+void proc1() {
+  $local_start();
+  x = 2;
+  $local_end();
+}
+
+
+int main() {
+  $proc p = $spawn proc0();
+  $proc q = $spawn proc1();
+  
+  $wait(p);$wait(q);
+  $assert(x == 1);
+}
