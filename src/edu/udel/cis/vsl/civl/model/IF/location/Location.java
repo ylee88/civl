@@ -353,13 +353,6 @@ public interface Location extends Sourceable {
 	 * </ol>
 	 * </p>
 	 * 
-	 * <p>
-	 * TODO: I (ziqing) added this doc based on where
-	 * {@link #setSafeLoop(boolean)} is called. But it is not necessarily true
-	 * that this is the definition of safe loops since the original developer
-	 * didn't write doc.
-	 * </p>
-	 * 
 	 * @return
 	 */
 	boolean isSafeLoop();
@@ -457,4 +450,17 @@ public interface Location extends Sourceable {
 	 * @return
 	 */
 	boolean isSleep();
+
+	/**
+	 * @return true iff this location is the entry of a local block, i.e., this
+	 * location is associated with a system function call <code>$local_start</code>
+	 */
+	boolean isEntryOfLocalBlock();
+
+	/**
+	 * @param isEntryOfLocalBlock
+	 *         true to mark that this location
+	 *         {@link #isEntryOfLocalBlock()}
+	 */
+	void setIsEntryOfLocalBlock(boolean isEntryOfLocalBlock);
 }

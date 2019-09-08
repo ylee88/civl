@@ -159,6 +159,17 @@ public class CommonLocation extends CommonSourceable implements Location {
 	private boolean isSleep = false;
 
 	/**
+	 * <p>
+	 * a flag indicating if this location is the entry of a local block
+	 * </p>
+	 * <p>
+	 * The location is the entry of a local block if it is associated with a
+	 * system function call to <code>$local_start()</code>
+	 * </p>
+	 */
+	private boolean isEntryOfLocalBlock = false;
+
+	/**
 	 * True iff this location is an atomic block entry and the termination of
 	 * the atomic block is NOT determined.
 	 */
@@ -953,5 +964,15 @@ public class CommonLocation extends CommonSourceable implements Location {
 	@Override
 	public void setEntryOfUnsafeAtomic(boolean unsafe) {
 		this.isUnsafeAtomicEntry = unsafe;
+	}
+
+	@Override
+	public boolean isEntryOfLocalBlock() {
+		return isEntryOfLocalBlock;
+	}
+
+	@Override
+	public void setIsEntryOfLocalBlock(boolean isEntryOfLocalBlock) {
+		this.isEntryOfLocalBlock = isEntryOfLocalBlock;
 	}
 }

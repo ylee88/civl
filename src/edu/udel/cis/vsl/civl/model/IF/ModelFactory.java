@@ -852,6 +852,24 @@ public interface ModelFactory {
 			Location start, Location end);
 
 	/**
+	 * Generate an atomic enter statement
+	 *
+	 * @param loc
+	 *         the location that is associated with the generated statement
+	 * @return the generated atomic enter statement
+	 */
+	Statement atomicEnter(Location loc);
+
+	/**
+	 * Generate an atomic exit statement
+	 *
+	 * @param loc
+	 *         the location that is associated with the generated statement
+	 * @return the generated atomic exit statement
+	 */
+	Statement atomicExit(Location loc);
+
+	/**
 	 * Creates a call or spawn statement. In the case of call, it could be a
 	 * normal function call, or a system function call.
 	 * 

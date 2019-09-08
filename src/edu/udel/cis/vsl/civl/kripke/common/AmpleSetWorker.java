@@ -385,7 +385,18 @@ public class AmpleSetWorker {
 	private BitSet ampleProcessesWork() {
 		BitSet result = new BitSet();
 		int minimalAmpleSetSize = activeProcesses.cardinality() + 1;
+		int procEnterLocal = existSoleEnabledEnterLocal();
 
+		if (procEnterLocal >= 0) {
+			/*
+			  For an active process, if the location it is currently at has only
+			  one outgoing statement and the statement is a "local block enter",
+			  this process forms an ample set:
+			 */
+			result.clear();
+			result.set(procEnterLocal);
+			return result;
+		}
 		preprocessing();
 		for (int pid = 0; pid < this.activeProcesses.length(); pid++) {
 			// a set of procs the transitions of which form an ample set:
@@ -433,6 +444,25 @@ public class AmpleSetWorker {
 		}
 		return result;
 	}
+
+	/**
+	 *
+	 * @return a PID of the process which is at a location such that 1) the
+	 * location only has one outgoing statement; and 2) the location is marked
+	 * as {@link Location#isEntryOfLocalBlock()}
+	 */
+	private int existSoleEnabledEnterLocal() {
+		for (int pid = 0; pid < this.activeProcesses.length(); pid++) {
+			pid = activeProcesses.nextSetBit(pid);
+
+			Location loc = state.getProcessState(pid).getLocation();
+
+			if (loc.getNumOutgoing() == 1 && loc.isEntryOfLocalBlock())
+				return pid;
+		}
+		return -1;
+	}
+
 
 	/**
 	 * Checks if there exist a process in the given ample process set that is

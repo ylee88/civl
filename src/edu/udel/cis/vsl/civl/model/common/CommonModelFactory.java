@@ -93,16 +93,7 @@ import edu.udel.cis.vsl.civl.model.IF.expression.reference.MemoryUnitReference;
 import edu.udel.cis.vsl.civl.model.IF.expression.reference.SelfReference;
 import edu.udel.cis.vsl.civl.model.IF.expression.reference.StructOrUnionFieldReference;
 import edu.udel.cis.vsl.civl.model.IF.location.Location;
-import edu.udel.cis.vsl.civl.model.IF.statement.AssignStatement;
-import edu.udel.cis.vsl.civl.model.IF.statement.CallOrSpawnStatement;
-import edu.udel.cis.vsl.civl.model.IF.statement.CivlParForSpawnStatement;
-import edu.udel.cis.vsl.civl.model.IF.statement.DomainIteratorStatement;
-import edu.udel.cis.vsl.civl.model.IF.statement.MallocStatement;
-import edu.udel.cis.vsl.civl.model.IF.statement.NoopStatement;
-import edu.udel.cis.vsl.civl.model.IF.statement.ParallelAssignStatement;
-import edu.udel.cis.vsl.civl.model.IF.statement.Statement;
-import edu.udel.cis.vsl.civl.model.IF.statement.UpdateStatement;
-import edu.udel.cis.vsl.civl.model.IF.statement.WithStatement;
+import edu.udel.cis.vsl.civl.model.IF.statement.*;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLArrayType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLFunctionType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPointerType;
@@ -1085,6 +1076,24 @@ public class CommonModelFactory implements ModelFactory {
 		result = startFragment.combineWith(fragment);
 		result = result.combineWith(endFragment);
 		return result;
+	}
+
+	@Override
+	public Statement atomicEnter(Location loc) {
+		CIVLSource source = loc.getSource();
+
+		return new CommonAtomicLockAssignStatement(source,
+				systemScope, systemScope, loc, trueExpression(source), true,
+				atomicLockVariableExpression, selfExpression(systemSource));
+	}
+
+	@Override
+	public Statement atomicExit(Location loc) {
+		CIVLSource source = loc.getSource();
+
+		return new CommonAtomicLockAssignStatement(source,
+				systemScope, systemScope, loc, trueExpression(source), false,
+				atomicLockVariableExpression, selfExpression(systemSource));
 	}
 
 	@Override
