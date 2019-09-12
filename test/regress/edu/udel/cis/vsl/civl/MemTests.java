@@ -280,4 +280,16 @@ public class MemTests {
 				filename("mem_havoc_complex_nc-bad2.cvl")));
 	}
 
+	@Test
+	public void memNoIntersect() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET,
+				filename("mem_no_intersect_array2d.cvl")));
+	}
+
+	@Test
+	public void memNoIntersectBad() throws ABCException {
+		assertFalse(ui.run(VERIFY, QUIET,
+				filename("mem_no_intersect_array2d-bad.cvl")));
+	}
+
 }
