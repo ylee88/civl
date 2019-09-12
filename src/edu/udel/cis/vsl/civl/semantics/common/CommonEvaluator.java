@@ -2985,6 +2985,12 @@ public class CommonEvaluator implements Evaluator {
 						primitiveTypeInitialValue(primitiveType));
 				break;
 			}
+			case MEM : {
+				SymbolicExpression empty = typeFactory.civlMemType().
+						memValueCreator(universe).apply(new LinkedList<>());
+
+				return new Evaluation(state, empty);
+			}
 			default :// STRUCT_OR_UNION{ // TODO: don't make this the default!
 			{
 				CIVLStructOrUnionType strOrUnion = (CIVLStructOrUnionType) type;

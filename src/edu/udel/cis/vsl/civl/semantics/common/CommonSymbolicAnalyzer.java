@@ -2323,8 +2323,8 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 				case BINARY : {
 					BinaryExpression binary = (BinaryExpression) expression;
 
-					result.append(binary.operatorToString());
-					result.append(" (");
+					if (!isTopLevel)
+						result.append(" (");
 					temp = this.expressionEvaluationWorker(state, pid,
 							binary.left(), true, false);
 					state = temp.left;
@@ -2332,9 +2332,10 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 						temp = this.expressionEvaluationWorker(state, pid,
 								binary.left(), false, false);
 					result.append(temp.right);
-					result.append(", ");
+					result.append(binary.operatorToString());
 					result.append(binary.right());
-					result.append(")");
+					if (!isTopLevel)
+						result.append(")");
 					break;
 				}
 				case CAST : {

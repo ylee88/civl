@@ -406,6 +406,10 @@ public class MemEvaluator extends CommonEvaluator {
 				.memValueIterator().apply(memValue)) {
 			int dyscopeId = scopeValToInt.apply(
 					mlr.scopeValue()).intValue();
+
+			if (dyscopeId < 0) // if memory location destroyed:
+				continue;
+
 			DynamicScope dyscope = state.getDyscope(dyscopeId);
 			String obj;
 
@@ -413,10 +417,9 @@ public class MemEvaluator extends CommonEvaluator {
 				obj = dyscope.lexicalScope().variable(mlr.vid()).name().name();
 			else
 				obj = "Dyscope" + dyscopeId + "_malloc_" + mlr.mallocID();
-			obj += prettyPrintValueSetTemplate(universe, mlr.valueSetTemplate(),
-					source)
-				   + ", ";
-			result += obj;
+			for (String ref : prettyPrintValueSetTemplate(universe, mlr.valueSetTemplate(),
+					source))
+				result += obj + ref + ", ";
 		}
 		if (result.length() > 1)
 			result = result.substring(0, result.length() - 2); // remove extra ", "
@@ -1136,15 +1139,18 @@ public class MemEvaluator extends CommonEvaluator {
 		return ((IntegerNumber) universe.extractNumber(mallocId)).intValue();
 	}
 
-	private static String prettyPrintValueSetTemplate(
+	private static String[] prettyPrintValueSetTemplate(
 			SymbolicUniverse universe, SymbolicExpression valueSetTemplate,
 			CIVLSource source) {
-		String result = "";
+		String result[];
+		List<String> tmp = new LinkedList<>();
 
 		for (ValueSetReference vsr : universe.
 				valueSetReferences(valueSetTemplate)) {
-			result += prettyPrintValueSetReference(vsr, source);
+			tmp.add(prettyPrintValueSetReference(vsr, source));
 		}
+		result = new String[tmp.size()];
+		tmp.toArray(result);
 		return result;
 	}
 

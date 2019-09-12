@@ -445,16 +445,17 @@ public class CommonMemoryUnitEvaluator
 					value = parameterScope.right[variable.vid()];
 				} else
 					value = state.valueOf(pid, variable);
-				if (isPointer(value)) {
-					int dyscopeID = stateFactory
-							.getDyscopeId(symbolicUtil.getScopeValue(value)),
-							vid = this.symbolicUtil.getVariableId(null, value);
-					Variable object = state.getDyscope(dyscopeID).lexicalScope()
-							.variable(vid);
+				if (!value.isNull())
+					if (isPointer(value)) {
+						int dyscopeID = stateFactory
+								.getDyscopeId(symbolicUtil.getScopeValue(value)),
+								vid = this.symbolicUtil.getVariableId(null, value);
+						Variable object = state.getDyscope(dyscopeID).lexicalScope()
+								.variable(vid);
 
-					if (!(object.isInput() || object.isConst()))
-						result.add(this.pointer2MemoryUnit(value));
-				}
+						if (!(object.isInput() || object.isConst()))
+							result.add(this.pointer2MemoryUnit(value));
+					}
 				break;
 			}
 			default :

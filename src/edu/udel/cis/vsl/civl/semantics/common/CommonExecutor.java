@@ -1428,11 +1428,12 @@ public class CommonExecutor implements Executor {
 			Evaluation eval = evaluator.memEvaluator().pointer2memValue(state,
 					pid, pointer, source);
 
+			state = eval.state;
 			if (saveWrite)
-				state = stateFactory.addReadWriteRecords(eval.state, pid,
+				state = stateFactory.addReadWriteRecords(state, pid,
 						eval.value, false);
 			if (saveRead)
-				state = stateFactory.addReadWriteRecords(eval.state, pid,
+				state = stateFactory.addReadWriteRecords(state, pid,
 						eval.value, true);
 		}
 		if (symRef.isIdentityReference()) {
@@ -1505,11 +1506,12 @@ public class CommonExecutor implements Executor {
 						state, pid, symbolicUtil.makePointer(dyscopeId,
 								variable.vid(), universe.identityReference()),
 						lhs.getSource());
+				state = eval.state;
 				if (saveWrite)
-					state = stateFactory.addReadWriteRecords(eval.state, pid,
+					state = stateFactory.addReadWriteRecords(state, pid,
 							eval.value, false);
 				if (saveRead)
-					state = stateFactory.addReadWriteRecords(eval.state, pid,
+					state = stateFactory.addReadWriteRecords(state, pid,
 							eval.value, true);
 			}
 			return stateFactory.setVariable(state, variable, pid, value);
@@ -1654,12 +1656,13 @@ public class CommonExecutor implements Executor {
 			eval = evaluator.memEvaluator().makeMemValue(state, pid,
 					pointerToVarOrHeapObj, valueSetTemplate, source);
 
+			state = eval.state;
 			// write is also read
 			if (saveWrite)
-				state = stateFactory.addReadWriteRecords(eval.state, pid,
+				state = stateFactory.addReadWriteRecords(state, pid,
 						eval.value, false);
 			if (saveRead)
-				state = stateFactory.addReadWriteRecords(eval.state, pid,
+				state = stateFactory.addReadWriteRecords(state, pid,
 						eval.value, true);
 		}
 		return state;
@@ -1707,11 +1710,12 @@ public class CommonExecutor implements Executor {
 			Evaluation eval = evaluator.memEvaluator().pointer2memValue(state,
 					pid, pointer2memoryBlk, source);
 
+			state = eval.state;
 			if (saveWrite)
-				state = stateFactory.addReadWriteRecords(eval.state, pid,
+				state = stateFactory.addReadWriteRecords(state, pid,
 						eval.value, false);
 			if (saveRead)
-				state = stateFactory.addReadWriteRecords(eval.state, pid,
+				state = stateFactory.addReadWriteRecords(state, pid,
 						eval.value, true);
 		}
 		return new Evaluation(result.left, result.right);
