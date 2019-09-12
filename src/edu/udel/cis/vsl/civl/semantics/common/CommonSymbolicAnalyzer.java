@@ -1056,7 +1056,9 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 				else
 					result.append("d" + scopeId);
 			}
-		} else {
+		} else if (symbolicExpression.type() == typeFactory.dynamicMemType())
+			result.append(prettyMemValue(state, symbolicExpression, source));
+		else {
 			SymbolicOperator operator = symbolicExpression.operator();
 
 			// The structure of a symbolic expression has changed.
@@ -2297,8 +2299,8 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 			if (expression.getExpressionType().typeKind() == TypeKind.MEM) {
 				Evaluation eval = evaluator.evaluate(state, pid, expression);
 
-				return new Pair<>(eval.state,
-						this.prettyMemValue(eval.state, eval.value));
+				return new Pair<>(eval.state, prettyMemValue(eval.state, eval.value,
+						expression.getSource()));
 			}
 			switch (kind) {
 				case ABSTRACT_FUNCTION_CALL : {
@@ -2883,8 +2885,8 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 		for (int i = 0; i < length; i++) {
 			result.append("\n");
 			result.append(prefix);
-			result.append(this.symbolicExpressionToString(source, state, null,
-					clauses[i]));
+			result.append(this.symbolicExpressionToString(source, state,
+					typeFactory.booleanType(), clauses[i]));
 		}
 		return result;
 	}
@@ -2935,37 +2937,10 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 	 * {@link CIVLMemType#getDynamicType(SymbolicUniverse)} for definition of
 	 * dynamic $mem type.
 	 */
-	private String prettyMemValue(State state, SymbolicExpression memValue) {
-		CIVLMemType memType = typeFactory.civlMemType();
-		Function<SymbolicExpression, IntegerNumber> scopeExtractor = typeFactory
-				.scopeType().scopeValueToIdentityOperator(universe);
-		StringBuffer result = new StringBuffer();
-
-		for (CIVLMemType.MemoryLocationReference mlr : memType
-				.memValueIterator().apply(memValue)) {
-			int vid = mlr.vid();
-			int sid = scopeExtractor.apply(mlr.scopeValue()).intValue();
-
-			if (sid < 0) // skip references to non-alive objects:
-				continue;
-
-			String str = state.getDyscope(sid).lexicalScope().variable(vid)
-					.name().name();
-
-			if (vid == 0) {
-				str = str + "." + mlr.heapID();
-				str = str + "[" + mlr.mallocID() + "]";
-			}
-			str += " : " + mlr.valueSetTemplate();
-			result.append(str + ",");
-		}
-
-		if (result.length() > 0)
-			result.replace(result.length() - 1, result.length(), "}");
-		else
-			result.append("}");
-		result.insert(0, "($mem){");
-		return result.toString();
+	private String prettyMemValue(State state, SymbolicExpression memValue,
+			CIVLSource source) {
+		return MemEvaluator.prettyPrintMemValue(this.typeFactory, this.universe,
+				state, memValue, source);
 	}
 
 	@Override

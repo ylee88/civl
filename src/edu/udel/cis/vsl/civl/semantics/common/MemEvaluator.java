@@ -5,9 +5,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
+import edu.udel.cis.vsl.abc.ast.type.IF.TypeFactory;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.log.IF.CIVLErrorLogger;
+import edu.udel.cis.vsl.civl.log.IF.CIVLExecutionException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
@@ -33,13 +35,11 @@ import edu.udel.cis.vsl.civl.semantics.IF.Evaluator;
 import edu.udel.cis.vsl.civl.semantics.IF.LibraryEvaluatorLoader;
 import edu.udel.cis.vsl.civl.semantics.IF.LibraryExecutorLoader;
 import edu.udel.cis.vsl.civl.semantics.IF.SymbolicAnalyzer;
-import edu.udel.cis.vsl.civl.state.IF.MemoryUnitFactory;
-import edu.udel.cis.vsl.civl.state.IF.State;
-import edu.udel.cis.vsl.civl.state.IF.StateFactory;
-import edu.udel.cis.vsl.civl.state.IF.UnsatisfiablePathConditionException;
+import edu.udel.cis.vsl.civl.state.IF.*;
 import edu.udel.cis.vsl.civl.util.IF.Triple;
 import edu.udel.cis.vsl.sarl.IF.Reasoner;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
+import edu.udel.cis.vsl.sarl.IF.UnaryOperator;
 import edu.udel.cis.vsl.sarl.IF.ValidityResult.ResultType;
 import edu.udel.cis.vsl.sarl.IF.expr.ArrayElementReference;
 import edu.udel.cis.vsl.sarl.IF.expr.BooleanExpression;
@@ -68,6 +68,8 @@ import edu.udel.cis.vsl.sarl.IF.type.SymbolicTupleType;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicType.SymbolicTypeKind;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicUnionType;
+
+import static edu.udel.cis.vsl.sarl.IF.expr.valueSetReference.ValueSetReference.VSReferenceKind.IDENTITY;
 
 /**
  * 
@@ -387,6 +389,39 @@ public class MemEvaluator extends CommonEvaluator {
 			return memReference(state, pid, expr.operand());
 		else
 			return reference(state, pid, expr.operand());
+	}
+
+	/**
+	 * pretty printing value of $mem type
+	 */
+	static String prettyPrintMemValue(CIVLTypeFactory typeFactory,
+			SymbolicUniverse universe, State state, SymbolicExpression memValue,
+			CIVLSource source) {
+		CIVLMemType memType = typeFactory.civlMemType();
+		Function<SymbolicExpression, IntegerNumber> scopeValToInt =
+				typeFactory.scopeType().scopeValueToIdentityOperator(universe);
+		String result = "{";
+
+		for (CIVLMemType.MemoryLocationReference mlr : memType
+				.memValueIterator().apply(memValue)) {
+			int dyscopeId = scopeValToInt.apply(
+					mlr.scopeValue()).intValue();
+			DynamicScope dyscope = state.getDyscope(dyscopeId);
+			String obj;
+
+			if (mlr.vid() > 0)
+				obj = dyscope.lexicalScope().variable(mlr.vid()).name().name();
+			else
+				obj = "Dyscope" + dyscopeId + "_malloc_" + mlr.mallocID();
+			obj += prettyPrintValueSetTemplate(universe, mlr.valueSetTemplate(),
+					source)
+				   + ", ";
+			result += obj;
+		}
+		if (result.length() > 1)
+			result = result.substring(0, result.length() - 2); // remove extra ", "
+		result += "}";
+		return result;
 	}
 
 	/* ******** private methods deal with set type expressions ********* */
@@ -1099,5 +1134,63 @@ public class MemEvaluator extends CommonEvaluator {
 
 		assert mallocId.operator() == SymbolicOperator.CONCRETE;
 		return ((IntegerNumber) universe.extractNumber(mallocId)).intValue();
+	}
+
+	private static String prettyPrintValueSetTemplate(
+			SymbolicUniverse universe, SymbolicExpression valueSetTemplate,
+			CIVLSource source) {
+		String result = "";
+
+		for (ValueSetReference vsr : universe.
+				valueSetReferences(valueSetTemplate)) {
+			result += prettyPrintValueSetReference(vsr, source);
+		}
+		return result;
+	}
+
+	private static String prettyPrintValueSetReference(ValueSetReference vsr, CIVLSource
+			source) {
+		if (vsr.valueSetReferenceKind() == IDENTITY)
+			return "";
+
+		NTValueSetReference ntRef = (NTValueSetReference) vsr;
+		String result = prettyPrintValueSetReference(ntRef.getParent(), source);
+
+		switch (vsr.valueSetReferenceKind()) {
+			case ARRAY_ELEMENT: {
+				VSArrayElementReference vsElementRef = (VSArrayElementReference)
+						vsr;
+
+				return result + "[" + vsElementRef.getIndex() + "]";
+			}
+			case ARRAY_SECTION: {
+				VSArraySectionReference vsSectionRef = (VSArraySectionReference)
+						vsr;
+
+				return result + "[" + vsSectionRef.lowerBound() + " .. " +
+					   vsSectionRef.upperBound() + "]";
+			}
+			case TUPLE_COMPONENT: {
+				VSTupleComponentReference vsTupleRef = (VSTupleComponentReference)
+						vsr;
+
+				//TODO: improve numeric field index with field name:
+				return result + "." + vsTupleRef.getIndex();
+			}
+			case UNION_MEMBER: {
+				VSUnionMemberReference vsUnionRef = (VSUnionMemberReference) vsr;
+
+				return result + "." + vsUnionRef.getIndex();
+			}
+			case OFFSET: {
+				VSOffsetReference vsOffsetReference = (VSOffsetReference) vsr;
+
+				return result + "+" + vsOffsetReference.getOffset();
+			}
+			default:
+				throw new CIVLUnimplementedFeatureException(
+						"unknown value-set-ref kind " +
+						vsr.valueSetReferenceKind(), source);
+		}
 	}
 }

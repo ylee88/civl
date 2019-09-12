@@ -780,7 +780,7 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 			}
 			result = this.symbolicAnalyzer
 					.symbolicExpressionToString(arguments[0].getSource(), state,
-							null, assertValue)
+							typeFactory.booleanType(), assertValue)
 					.toString();
 			if (!secondEvaluation.equals(result)) {
 				message.append("\n -> ");

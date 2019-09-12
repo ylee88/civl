@@ -26,6 +26,7 @@ import edu.udel.cis.vsl.civl.semantics.IF.SymbolicAnalyzer;
 import edu.udel.cis.vsl.civl.state.IF.State;
 import edu.udel.cis.vsl.civl.state.IF.StateValueHelper;
 import edu.udel.cis.vsl.civl.state.IF.UnsatisfiablePathConditionException;
+import edu.udel.cis.vsl.sarl.IF.Reasoner;
 import edu.udel.cis.vsl.sarl.IF.UnaryOperator;
 import edu.udel.cis.vsl.sarl.IF.expr.BooleanExpression;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
@@ -95,6 +96,10 @@ public class LibmemExecutor extends BaseLibraryExecutor
 				callEval = executeMemUnion(state, pid, arguments,
 						argumentValues, source);
 				break;
+			case "$mem_no_intersect" :
+				callEval = executeMemNoIntersect(state, pid, arguments,
+						argumentValues, source);
+				break;
 			case "$mem_union_widening" :
 				callEval = executeMemUnionWidening(state, pid, arguments,
 						argumentValues, source);
@@ -130,12 +135,12 @@ public class LibmemExecutor extends BaseLibraryExecutor
 	 * <p>
 	 * Executing the system function:<code>$write_set_push()</code>. <br>
 	 * <br>
-	 * 
+	 *
 	 * Push an empty write set onto write set stack associated with the calling
 	 * process.
-	 * 
+	 *
 	 * </p>
-	 * 
+	 *
 	 * @param state
 	 *            The current state.
 	 * @param pid
@@ -165,14 +170,14 @@ public class LibmemExecutor extends BaseLibraryExecutor
 	 * <p>
 	 * Executing the system function:<code>$write_set_pop($mem * m)</code>. <br>
 	 * <br>
-	 * 
+	 *
 	 * Pop a write set w out of the write set stack associated with the calling
 	 * process. Assign write set w' to the object refered by the given reference
 	 * m, where w' is a subset of w. <code>w - w'</code> is a set of unreachable
 	 * memory locaiton references.
-	 * 
+	 *
 	 * </p>
-	 * 
+	 *
 	 * @param state
 	 *            The current state.
 	 * @param pid
@@ -250,8 +255,6 @@ public class LibmemExecutor extends BaseLibraryExecutor
 		MemoryLocationMap set1 = memValue2MemoryLocationSet(mem1);
 		CIVLMemType memType = typeFactory.civlMemType();
 
-		// for each "sub" value set template, there must exist one in "super"
-		// mem value that contains it, otherwise false...
 		for (MemLocMapEntry entry : set1.entrySet()) {
 			SymbolicExpression vst;
 
@@ -273,6 +276,142 @@ public class LibmemExecutor extends BaseLibraryExecutor
 					entry.valueSetTemplate()});
 		return new Evaluation(state,
 				memType.memValueCreator(universe).apply(results));
+	}
+
+	/**
+	 * <p>
+	 * Definition of the
+	 * <code>
+	 * _Bool $mem_no_intersect($mem m0, $mem m1, $mem *output0, $mem *output1)
+	 * </code> system function.
+	 * </p>
+	 *
+	 * <p>
+	 * The system function tests if <code>m0</code> and <code>m1</code> have no
+	 * intersection.  If the returned boolean value is not true, the
+	 * <code>output0</code> and <code>output1</code> will be assigned a pair of
+	 * memory locations that intersect.
+	 * </p>
+	 */
+	private Evaluation executeMemNoIntersect(State state, int pid,
+			Expression[] arguments, SymbolicExpression[] argumentValues,
+			CIVLSource source) throws UnsatisfiablePathConditionException {
+		SymbolicExpression mem0 = collector.apply(argumentValues[0]);
+		SymbolicExpression mem1 = collector.apply(argumentValues[1]);
+		SymbolicExpression out0 = argumentValues[2];
+		SymbolicExpression out1 = argumentValues[3];
+		MemoryLocationMap set0 = memValue2MemoryLocationSet(mem0);
+		MemoryLocationMap set1 = memValue2MemoryLocationSet(mem1);
+		Reasoner reasoner = null;
+
+
+		for (MemLocMapEntry entry : set1.entrySet()) {
+			SymbolicExpression vst;
+
+			vst = set0.get(entry.vid(), entry.heapID(), entry.mallocID(),
+					entry.scopeValue());
+			if (vst == null)
+				continue;
+
+			// test for no intersection:
+			BooleanExpression isNoIntersect = universe.valueSetNoIntersect(vst,
+					entry.valueSetTemplate());
+
+			if (isNoIntersect.isTrue())
+				// no intersection:
+				continue;
+			else if (isNoIntersect.isFalse()) {
+				return outputIntersectedMems(state, pid,
+						entry.vid(), entry.heapID(), entry.mallocID(), entry.scopeValue(),
+						vst, out0, entry.valueSetTemplate(), out1,
+						isNoIntersect, source);
+			} else {
+				reasoner = reasoner == null ?
+						universe.reasoner(state.getPathCondition(universe)) :
+						reasoner;
+
+				if (reasoner.isValid(isNoIntersect))
+					// no intersection:
+					continue;
+				else
+					return outputIntersectedMems(state, pid,
+							entry.vid(), entry.heapID(), entry.mallocID(), entry.scopeValue(),
+							vst, out0, entry.valueSetTemplate(), out1,
+							isNoIntersect, source);
+			}
+		}
+		// no intersection at all, return:
+		return new Evaluation(state, universe.trueExpression());
+	}
+
+	/**
+	 * <p>
+	 * For two memory locations that (may) intersect, packing the two memory locations
+	 * as two singleton $mem sets and assigning the two $mem to the two output pointers.
+	 * </p>
+	 *
+	 * @param state
+	 *         the current state
+	 * @param pid
+	 *         the PID of the process that calls the system function
+	 * @param variableID
+	 *         the variable ID of the variable where the two memory
+	 *         locations belong to
+	 * @param heapID
+	 *         the heap ID of the heap object where the two memory
+	 *         locations belong to (significant if variableID = 0)
+	 * @param mallocID
+	 *         the malloc ID of the heap object where the two memory
+	 *         locations belong to (significant if variableID = 0)
+	 * @param scopeVal
+	 *         the value of the dyscope where the two memory locations belongs to
+	 * @param valueSetTemplate0
+	 *         the value set template of one of the memory
+	 *         location
+	 * @param outPtr0
+	 *         the output pointer for one of the $mem value
+	 * @param valueSetTemplate1
+	 *         the value set template of the other memory
+	 *         location
+	 * @param outPtr1
+	 *         the output pointer for the other $mem value
+	 * @param hasNoIntersection
+	 *         the boolean condition that is true iff
+	 *         there is no intersection between the two memory
+	 *         location
+	 * @param source
+	 *         the {@link CIVLSource} of the call to this system function
+	 * @return the evaluation including the post-state of the call and the returned
+	 * value from the call
+	 * @throws UnsatisfiablePathConditionException
+	 *         when error happens in the
+	 *         assignments to output pointers.
+	 */
+	private Evaluation outputIntersectedMems(State state, int pid,
+			int variableID, int heapID, int mallocID, SymbolicExpression scopeVal,
+			SymbolicExpression valueSetTemplate0, SymbolicExpression outPtr0,
+			SymbolicExpression valueSetTemplate1, SymbolicExpression outPtr1,
+			BooleanExpression hasNoIntersection, CIVLSource source)
+			throws UnsatisfiablePathConditionException {
+		CIVLMemType memType = typeFactory.civlMemType();
+		List<SymbolicExpression[]> components = new LinkedList<>();
+		SymbolicExpression mem0, mem1;
+
+		components.add(new SymbolicExpression[]{
+				universe.integer(variableID), universe.integer(heapID),
+				universe.integer(mallocID), scopeVal, valueSetTemplate0
+		});
+		mem0 = memType.memValueCreator(universe).apply(components);
+		components.clear();
+		components.add(new SymbolicExpression[]{
+				universe.integer(variableID), universe.integer(heapID),
+				universe.integer(mallocID), scopeVal, valueSetTemplate1
+		});
+		mem1 = memType.memValueCreator(universe).apply(components);
+
+		state = primaryExecutor.assign(source, state, pid, outPtr0, mem0);
+		state = primaryExecutor.assign(source, state, pid, outPtr1, mem1);
+		return new Evaluation(state, hasNoIntersection);
 	}
 
 	private Evaluation executeMemEquals(State state, int pid,
@@ -333,10 +472,10 @@ public class LibmemExecutor extends BaseLibraryExecutor
 	}
 
 	/*
-	 * 
+	 *
 	 * Description: assigns each memory location in "m" its value that is
 	 * evaluated in state "s"
-	 * 
+	 *
 	 * $atomic_f $system void $mem_assign_from($state s, $mem m);
 	 */
 	private Evaluation executeMemAssignFrom(State state, int pid,
@@ -368,7 +507,7 @@ public class LibmemExecutor extends BaseLibraryExecutor
 	 * the "m". The result of the operation to a memory location 'a' will be the
 	 * memory location of a program variable or a memory heap object that
 	 * contains 'a'.
-	 * 
+	 *
 	 * $atomic_f $system $mem $mem_unary_widening($mem m);
 	 */
 	private Evaluation executeMemUnaryWidening(State state, int pid,
@@ -413,7 +552,7 @@ public class LibmemExecutor extends BaseLibraryExecutor
 	 * <p>
 	 * Havoc memory locations that are referred by "memRef".
 	 * </p>
-	 * 
+	 *
 	 * @param state
 	 *            the state where the havoc operation will happen
 	 * @param pid
@@ -486,7 +625,7 @@ public class LibmemExecutor extends BaseLibraryExecutor
 	 *            "memRef" to the corresponding scope value in the given "state"
 	 * @param pid
 	 *            the PID of the running process
-	 * 
+	 *
 	 * @return the value in the given state of the variable or the memory heap
 	 *         object that contains all the memory locations referred by the
 	 *         given "memRef"
