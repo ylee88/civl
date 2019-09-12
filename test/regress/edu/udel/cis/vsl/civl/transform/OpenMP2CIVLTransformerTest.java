@@ -22,6 +22,7 @@ public class OpenMP2CIVLTransformerTest {
 
 	private static File rootDir = new File(new File("examples"), "omp");
 	private static File simpleDir = new File(rootDir, "simple");
+	private static File transformDir = new File(rootDir, "transform");
 
 	private static UserInterface ui = new UserInterface();
 
@@ -155,6 +156,12 @@ public class OpenMP2CIVLTransformerTest {
 	public void omp_reduce_bad_syntax_err() {
 		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
 				filename(simpleDir, "omp_reduce_bad2.c")));
+	}
+
+	@Test
+	public void new_transform_manual_DRB028() {
+		assertFalse(ui.run(VERIFY, "-DNTHREADS=10", QUIET,
+				filename(transformDir, "DRB028_manual_transform.cvl")));
 	}
 
 	@AfterClass
