@@ -1,0 +1,126 @@
+/* Manually transformed CIVL-C code for the openMP data race benchmakr
+   028 example.
+*/
+/* 
+tmp should be annotated as private to avoid race condition.
+Data race pairs: tmp@65:5 vs. tmp@66:12
+                 tmp@65:5 vs. tmp@65:5
+*/
+
+/*  
+###############################
+######  Origianl program ######
+
+#include <stdlib.h>
+#include <stdio.h>
+int main(int argc, char* argv[])
+{
+  int i;
+  int tmp;
+  int len=100;
+  int a[100];
+  for (i=0;i<len;i++)
+    a[i]=i;
+
+#pragma omp parallel for
+  for (i=0;i<len;i++)
+  {
+    tmp =a[i]+i;
+    a[i] = tmp;
+  }
+
+  printf("a[50]=%d\n", a[50]);
+  return 0;
+}
+###############################
+*/
+#include<stdio.h>
+#include<mem.cvh>
+#include<civl-omp.cvh>
+
+#ifndef NTHREADS 
+#define NTHREADS 10
+#endif
+
+ /*  Eventually these two sets shall be stored in $omp_team locally.
+  */
+$mem reads[NTHREADS], writes[NTHREADS];
+
+ /*@ executes_when \true;
+   @ depends_on \nothing;
+  */
+void capture_start(int tid);
+
+ /*@ executes_when \true;
+   @ depends_on \nothing;
+  */
+void capture_end(int tid);
+
+ /*@ executes_when \true;
+   @ depends_on \nothing;
+  */
+void check_data_race();
+
+int main() {
+  int i;
+  int tmp;
+  int len=100;
+  int a[100];
+  for (i=0;i<len;i++)
+    a[i]=i;
+  
+  $omp_gteam gteam = $omp_gteam_create($here, NTHREADS);
+  
+  // translation of "parallel"
+  $parfor (int _tid : 0 .. NTHREADS-1) {
+    $local_start();
+    $omp_team team = $omp_team_create($here, gteam, _tid);
+    // translation of "for":
+    $domain loop_domain = ($domain(1)){0 .. len-1};
+    $domain(1) my_iters = ($domain(1))$omp_arrive_loop(team, 0, loop_domain, ROUND_ROBIN);
+
+    // original loop-body:
+    capture_start(_tid); // start monitoring
+    $for (int i : my_iters) {
+      tmp = a[i]+i;
+      a[i] = tmp;
+    }
+    capture_end(_tid);                  // end monitoring
+    $omp_barrier(team);                  // implicit at end of parallel region
+    $local_end(); 
+    if (_tid == 0)
+      check_data_race();
+    $omp_team_destroy(team);
+  }
+  
+  printf("a[50]=%d\n", a[50]);
+  $omp_gteam_destroy(gteam);
+}
+
+
+void capture_start(int tid) {
+  $read_set_push();$write_set_push();
+}
+
+void capture_end(int tid) {
+  $mem mr = $read_set_pop();
+  $mem mw = $write_set_pop();
+
+  reads[tid] = mr; 
+  writes[tid] = mw;
+}
+
+void check_data_race() {
+  for (int i = 0; i < NTHREADS; i++)
+    for (int j = i+1; j < NTHREADS; j++) {
+      $mem mr_i = reads[i];
+      $mem mw_j = writes[j];
+      $mem out_i, out_j;
+      _Bool no_race = $mem_no_intersect(mr_i, mw_j, &out_i, &out_j);
+
+      if (no_race)
+	continue;
+      $assert(no_race, "%p read by thread %d intersects %p written by thread %d\n",
+	      out_i, i, out_j, j);
+    } 
+}
