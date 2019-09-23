@@ -2902,11 +2902,7 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 		if (!SymbolicAnalyzer.isConcretePointer(pointer))
 			throw new CIVLUnimplementedFeatureException(
 					"\nAbility to deterine whether a non-concrete pointer is defined."
-							+ "\npointer value: "
-							+ symbolicExpressionToString(civlSource, state,
-									typeFactory.pointerType(
-											typeFactory.voidType()),
-									pointer),
+							+ "\npointer value: " + pointer.toString(),
 					civlSource);
 
 		int dyscope = evaluator.stateFactory()

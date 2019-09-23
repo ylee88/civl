@@ -9,14 +9,14 @@
  * This feature is illegal and invalid for the C standard, 
  * but it can be handled by CIVL.
  */
-void MXM44_0(double a[][], int* n1, double b[][], int* n2, double c[][], int* n3);
+void MXM44_0(float a[][], int* n1, float b[][], int* n2, float c[][], int* n3);
 
 $input int mSize;
 $assume(0 < mSize && mSize < 11);
 
 void main(){
     int n = mSize;
-    double a[n][n], b[n][n], c[n][n];
+    float a[n][n], b[n][n], c[n][n];
     
     for (int i = 0; i < n; i++)
         for (int j = 0; j < n; j++){
