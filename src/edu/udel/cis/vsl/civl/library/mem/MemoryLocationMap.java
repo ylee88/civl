@@ -177,4 +177,8 @@ public class MemoryLocationMap {
 		}
 		return results;
 	}
+
+	public int size() {
+		return this.heapTable.size() + this.variableTable.size();
+	}
 }

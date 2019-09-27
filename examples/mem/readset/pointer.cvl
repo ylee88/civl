@@ -14,6 +14,5 @@ int main() {
   oracle = $mem_union(oracle, ($mem)&y);
   oracle = $mem_union(oracle, ($mem)&p);
   oracle = $mem_union(oracle, ($mem)&q);
-  oracle = $mem_union(oracle, ($mem)&a);
   $assert($mem_equals(m, oracle));
 }

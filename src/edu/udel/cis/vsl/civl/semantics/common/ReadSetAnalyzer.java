@@ -105,21 +105,29 @@ public class ReadSetAnalyzer {
 	 * set of mem values, each of which represents a memory location subset of
 	 * the precise memory location set that is read during an expression
 	 * evaluation.
-	 * 
 	 * @param expr
-	 *            an {@link Expression}
+	 *         an {@link Expression}
 	 * @param state
-	 *            a {@link State}
+	 *         a {@link State}
 	 * @param pid
-	 *            the PID of a process
+	 *         the PID of a process
+	 * @param isPartOfLHS
+	 *         true if the given expression is a part of LHS.  If the given
+	 *         expression is part of LHS, then for any LHSExpression that is
+	 *         reached recursively by this method, the memory location
+	 *         referred by the LHSExpression will not be saved. But other
+	 *         memory locations that are read during evaluation will still be
+	 *         saved.
 	 * @return the set of subsets of the precise memory location set that is
-	 *         read during evaluation
+	 * read during evaluation
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	Set<SymbolicExpression> analyze(Expression expr, State state, int pid)
+	Set<SymbolicExpression> analyze(Expression expr, State state, int pid, boolean isPartOfLHS)
 			throws UnsatisfiablePathConditionException {
 		try {
-			if (expr instanceof LHSExpression)
+			if (isPartOfLHS)
+				return analyzeMemWorker(expr, state, pid, true);
+			else if (expr instanceof LHSExpression)
 				return analyzeMemForLHS((LHSExpression) expr, state, pid);
 			else
 				return analyzeMemWorker(expr, state, pid, false);
@@ -385,7 +393,7 @@ public class ReadSetAnalyzer {
 				if (arrType.isComplete())
 					result.addAll(
 							analyze(((CIVLCompleteArrayType) arrType).extent(),
-									state, pid));
+									state, pid, false));
 				result.addAll(analyzeType(arrType.elementType(), state, pid));
 				break;
 			}

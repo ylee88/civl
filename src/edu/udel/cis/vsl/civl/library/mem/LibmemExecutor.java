@@ -417,12 +417,29 @@ public class LibmemExecutor extends BaseLibraryExecutor
 	private Evaluation executeMemEquals(State state, int pid,
 			Expression[] arguments, SymbolicExpression[] argumentValues,
 			CIVLSource source) throws UnsatisfiablePathConditionException {
-
 		SymbolicExpression mem0 = collector.apply(argumentValues[0]);
 		SymbolicExpression mem1 = collector.apply(argumentValues[1]);
+		MemoryLocationMap set0 = memValue2MemoryLocationSet(mem0);
+		MemoryLocationMap set1 = memValue2MemoryLocationSet(mem1);
+		BooleanExpression result = universe.equals(
+				universe.integer(set0.size()), universe.integer(set1.size()));
 
-		// TODO: implement equals for ValueSetReference
-		return new Evaluation(state, universe.equals(mem0, mem1));
+		for (MemLocMapEntry entry : set0.entrySet()) {
+			SymbolicExpression vst0 =
+					set0.get(entry.vid(), entry.heapID(), entry.mallocID(),
+							entry.scopeValue());
+			SymbolicExpression vst1 =
+					set1.get(entry.vid(), entry.heapID(), entry.mallocID(),
+							entry.scopeValue());
+
+			if (vst1!=null)
+				result = universe.and(result, universe.equals(vst0, vst1));
+			else {
+				result = universe.falseExpression();
+				break;
+			}
+		}
+		return new Evaluation(state, result);
 	}
 
 	private Evaluation executeMemUnionWidening(State state, int pid,

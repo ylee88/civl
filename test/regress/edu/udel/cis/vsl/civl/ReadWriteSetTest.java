@@ -118,8 +118,14 @@ public class ReadWriteSetTest {
 
 	@Test
 	public void structComplex() throws ABCException {
-		assertTrue(ui.run(VERIFY, // QUIET,
+		assertTrue(ui.run(VERIFY, QUIET,
 				filenameForReadsetTest("structComplex.cvl")));
+	}
+
+	@Test
+	public void structComplex2() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET,
+				filenameForReadsetTest("structComplex2.cvl")));
 	}
 
 }

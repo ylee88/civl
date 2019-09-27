@@ -174,10 +174,9 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 			} else {
 				Pair<Integer, Integer> indexes;
 				boolean saveWrite = state.isMonitoringWrites(pid);
-				boolean saveRead = state.isMonitoringReads(pid);
 
 				indexes = getMallocIndex(firstElementPointer);
-				if (saveWrite || saveRead) {
+				if (saveWrite) {
 					SymbolicExpression pointer2memoryBlk = symbolicUtil
 							.parentPointer(firstElementPointer);
 
@@ -187,9 +186,6 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 					if (saveWrite)
 						state = stateFactory.addReadWriteRecords(state,
 								pid, eval.value, false);
-					if (saveRead)
-						state = stateFactory.addReadWriteRecords(state,
-								pid, eval.value, true);
 				}
 				state = stateFactory.deallocate(state, firstElementPointer,
 						symbolicUtil.getScopeValue(firstElementPointer),

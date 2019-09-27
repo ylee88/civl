@@ -13,7 +13,6 @@ int main() {
   $mem oracle = ($mem)&x;
 
   oracle = $mem_union(oracle, ($mem)&y);
-  oracle = $mem_union(oracle, ($mem)&z);
   oracle = $mem_union(oracle, ($mem)&a[0]);
   oracle = $mem_union(oracle, ($mem)&a[1]);
   oracle = $mem_union(oracle, ($mem)&b[0][0]);

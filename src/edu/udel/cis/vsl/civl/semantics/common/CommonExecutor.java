@@ -104,7 +104,13 @@ public class CommonExecutor implements Executor {
 	private Evaluator evaluator;
 
 	/** The Evaluator used to evaluate expressions and collecting read sets. */
-	private Evaluator readSetCollectEvaluator = null;
+	private ReadSetCollectEvaluator readSetCollectEvaluator = null;
+
+	/**
+	 * This instance refers to the regular evaluator when
+	 * {@link #readSetCollectEvaluator} is active.
+	 */
+	private Evaluator evaluatorOnTheBench = null;
 
 	/**
 	 * The loader used to find Executors for system functions declared in
@@ -481,9 +487,8 @@ public class CommonExecutor implements Executor {
 				statement.getMallocId(), dynamicElementType, elementCount);
 
 		boolean saveWrite = state.isMonitoringWrites(pid);
-		boolean saveRead = state.isMonitoringReads(pid);
 
-		if (saveWrite || saveRead) {
+		if (saveWrite) {
 			SymbolicExpression pointer2memoryBlk = symbolicUtil
 					.parentPointer(mallocResult.right);
 			// write is also a read
@@ -491,9 +496,6 @@ public class CommonExecutor implements Executor {
 			if (saveWrite)
 				state = stateFactory.addReadWriteRecords(state, pid,
 						pointer2memoryBlk, false);
-			if (saveRead)
-				state = stateFactory.addReadWriteRecords(state, pid,
-						pointer2memoryBlk, true);
 		}
 		state = mallocResult.left;
 		if (lhs != null)
@@ -692,17 +694,17 @@ public class CommonExecutor implements Executor {
 			statement.reached();
 
 			boolean monitorReads = state.isMonitoringReads(pid);
-			Evaluator regularEvaluator = evaluator;
 
 			if (monitorReads) {
 				if (this.readSetCollectEvaluator == null)
 					this.readSetCollectEvaluator = evaluator
 							.newReadSetCollectEvaluator();
+				this.evaluatorOnTheBench = this.evaluator;
 				this.evaluator = this.readSetCollectEvaluator;
 			}
 			state = executeWork(state, pid, statement);
 			if (monitorReads)
-				this.evaluator = regularEvaluator;
+				this.evaluator = evaluatorOnTheBench;
 			return state;
 		} catch (SARLException e) {
 			throw new CIVLInternalException("SARL exception: " + e, statement);
@@ -1422,19 +1424,15 @@ public class CommonExecutor implements Executor {
 		}
 
 		boolean saveWrite = state.isMonitoringWrites(pid);
-		boolean saveRead = state.isMonitoringReads(pid);
 
-		if (saveWrite || saveRead) {
-			Evaluation eval = evaluator.memEvaluator().pointer2memValue(state,
-					pid, pointer, source);
+		if (saveWrite) {
+			Evaluation eval = evaluator.memEvaluator()
+					.pointer2memValue(state, pid, pointer, source);
 
 			state = eval.state;
 			if (saveWrite)
-				state = stateFactory.addReadWriteRecords(state, pid,
-						eval.value, false);
-			if (saveRead)
-				state = stateFactory.addReadWriteRecords(state, pid,
-						eval.value, true);
+				state = stateFactory
+						.addReadWriteRecords(state, pid, eval.value, false);
 		}
 		if (symRef.isIdentityReference()) {
 			result = stateFactory.setVariable(state, vid, sid, value);
@@ -1489,9 +1487,17 @@ public class CommonExecutor implements Executor {
 	private State assignLHS(State state, int pid, String process,
 			LHSExpression lhs, SymbolicExpression value, boolean isInitializer)
 			throws UnsatisfiablePathConditionException {
+		/* Note that here the memory location represented by the LHS
+		 * expression itself shall not be recorded in read set.
+		 */
+		boolean captureRead = state.isMonitoringReads(pid);
+
+		if (captureRead)
+			this.evaluator = this.evaluatorOnTheBench;
+
 		LHSExpressionKind kind = lhs.lhsExpressionKind();
-		Evaluation eval = processRHSValue(state, pid, lhs, value,
-				isInitializer);
+		Evaluation eval =
+				processRHSValue(state, pid, lhs, value, isInitializer);
 
 		value = eval.value;
 		state = eval.state;
@@ -1499,30 +1505,32 @@ public class CommonExecutor implements Executor {
 			Variable variable = ((VariableExpression) lhs).variable();
 			int dyscopeId = state.getDyscopeID(pid, variable);
 			boolean saveWrite = state.isMonitoringWrites(pid);
-			boolean saveRead = state.isMonitoringReads(pid);
 
-			if (saveWrite || saveRead) {
-				eval = evaluator.memEvaluator().pointer2memValue(
-						state, pid, symbolicUtil.makePointer(dyscopeId,
-								variable.vid(), universe.identityReference()),
+			if (saveWrite) {
+				eval = evaluator.memEvaluator().pointer2memValue(state, pid,
+						symbolicUtil.makePointer(dyscopeId, variable.vid(),
+								universe.identityReference()),
 						lhs.getSource());
 				state = eval.state;
 				if (saveWrite)
-					state = stateFactory.addReadWriteRecords(state, pid,
-							eval.value, false);
-				if (saveRead)
-					state = stateFactory.addReadWriteRecords(state, pid,
-							eval.value, true);
+					state = stateFactory
+							.addReadWriteRecords(state, pid, eval.value,
+									false);
 			}
-			return stateFactory.setVariable(state, variable, pid, value);
+			state = stateFactory.setVariable(state, variable, pid, value);
 		} else {
 			boolean toCheckPointer = kind == LHSExpressionKind.DEREFERENCE;
 
 			eval = evaluator.reference(state, pid, lhs);
-			// TODO check if lhs is constant or input value
-			return assignToPointer(lhs.getSource(), eval.state, pid, eval.value,
-					value, isInitializer, toCheckPointer);
+
+			state = assignToPointer(lhs.getSource(), eval.state, pid,
+					eval.value, value, isInitializer, toCheckPointer);
 		}
+		if (captureRead) {
+			this.evaluator = readSetCollectEvaluator;
+			state = readSetCollectEvaluator.collectForLHS(state, pid, lhs);
+		}
+		return state;
 	}
 
 	/**
@@ -1650,9 +1658,8 @@ public class CommonExecutor implements Executor {
 				newValueOfVarOrHeapObj);
 
 		boolean saveWrite = state.isMonitoringWrites(pid);
-		boolean saveRead = state.isMonitoringReads(pid);
 
-		if (saveWrite || saveRead) {
+		if (saveWrite) {
 			eval = evaluator.memEvaluator().makeMemValue(state, pid,
 					pointerToVarOrHeapObj, valueSetTemplate, source);
 
@@ -1661,9 +1668,6 @@ public class CommonExecutor implements Executor {
 			if (saveWrite)
 				state = stateFactory.addReadWriteRecords(state, pid,
 						eval.value, false);
-			if (saveRead)
-				state = stateFactory.addReadWriteRecords(state, pid,
-						eval.value, true);
 		}
 		return state;
 	}
@@ -1702,9 +1706,8 @@ public class CommonExecutor implements Executor {
 		result = stateFactory.malloc(state, dyscopeID, mallocId, heapObject);
 
 		boolean saveWrite = state.isMonitoringWrites(pid);
-		boolean saveRead = state.isMonitoringReads(pid);
 
-		if (saveWrite || saveRead) {
+		if (saveWrite) {
 			SymbolicExpression pointer2memoryBlk = symbolicUtil
 					.parentPointer(result.right);
 			Evaluation eval = evaluator.memEvaluator().pointer2memValue(state,
@@ -1714,9 +1717,6 @@ public class CommonExecutor implements Executor {
 			if (saveWrite)
 				state = stateFactory.addReadWriteRecords(state, pid,
 						eval.value, false);
-			if (saveRead)
-				state = stateFactory.addReadWriteRecords(state, pid,
-						eval.value, true);
 		}
 		return new Evaluation(result.left, result.right);
 	}
