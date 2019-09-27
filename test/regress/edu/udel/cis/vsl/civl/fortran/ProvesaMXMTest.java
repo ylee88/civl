@@ -23,6 +23,6 @@ public class ProvesaMXMTest {
 	@Test
 	public void verify_ex1a() {
 		assertTrue(ui.run(VERIFY, QUIET, filename("mxmdriver.c"),
-				filename("ex1a.f")));
+				filename("ex1a.F")));
 	}
 }
