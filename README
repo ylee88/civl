@@ -1,5 +1,5 @@
       CIVL: The Concurrency Intermediate Verification Language
-                               v1.19
+                               v1.20
 
 ------------------------------ Overview -------------------------------
 
@@ -46,21 +46,17 @@ General Public License.  However, the libraries used by CIVL
 (and incorporated into the complete distribution) use various
 licenses.  See directory licenses for the license of each component.
 
--------------------------- Updates from v1.18 -------------------------
--- improved simplification for array-read & array-write symbolic expressions
--- improved error message for detected data race in OpenMP programs
--- improved error message for array out-of-bound errors
--- added a new option in CIVL for users to decide whether to report cycles, which means possible non-termination
--- fixed a bug which may caused CIVL crash when casting non-concrete char type expression to int
--- fixed a bug in OpenMP Simplifier which didn't carefully check for the case of write-write data race
--- fixed a bug which caused CIVL crash if a $choose_int has no left-hand side expression
--- fixed a bug in casting conditional expressions which may caused branches in a condition expression
-   have different types
--- fixed bugs in semantics analysis of compound initializers
--- fixed a bug which may incorrectly changed the type of an array variable after its initialization
--- fixed bugs which may caused crash when transforming OpenMP atomic and flush constructs
--- fixed a bug related to using pragmas to control the parsing of ACSL annotations
--- fixed bugs that were caught and marked as warning by the static analyzer of a newer version of Eclipse
+-------------------------- Updates from v1.19 -------------------------
+-- 1. added new language primitives:
+     1.1 $local_start() and $local_end()
+       An execution of the statements in between of this pair, including this pair themselves,
+       is NOT ONLY uninterruptable BUT ALSO purely local to the view of the verifier.
+     1.2 $read_set_push() and $read_set_pop() (the correspondence for write set has already been supported)
+       This pair of primitives can be used to turn on/off the capturing of read set during execution.
+-- 2. added Fortran support for translating basic Fortran features into CIVL-AST
+  (see: https://vsl.cis.udel.edu/trac/civl/wiki/FortranTransformations)
+-- 3. added simple Fortran verification examples (edited)
+
    
 ------------------------- Binary Installation -------------------------
 
