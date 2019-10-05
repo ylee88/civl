@@ -760,7 +760,7 @@ public class CommonExecutor implements Executor {
 				if (noop.noopKind() == NoopKind.LOOP) {
 					LoopBranchStatement loopBranch = (LoopBranchStatement) noop;
 
-					if (!loopBranch.isEnter() && !this.civlConfig.simplify()) {
+					if (!loopBranch.isEnter() && civlConfig.simplify()) {
 						BooleanExpression pc = state.getPathCondition(universe);
 						Reasoner reasoner = universe.reasoner(pc);
 
