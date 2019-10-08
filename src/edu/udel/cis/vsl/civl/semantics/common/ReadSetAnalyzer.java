@@ -1,10 +1,10 @@
 package edu.udel.cis.vsl.civl.semantics.common;
 
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLUnimplementedFeatureException;
+import edu.udel.cis.vsl.civl.model.IF.Identifier;
 import edu.udel.cis.vsl.civl.model.IF.expression.AbstractFunctionCallExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.AddressOfExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.ArrayLambdaExpression;
@@ -382,7 +382,8 @@ public class ReadSetAnalyzer {
 	 * 
 	 */
 	private Set<SymbolicExpression> analyzeType(CIVLType type, State state,
-			int pid) throws UnsatisfiablePathConditionException {
+			int pid, Set<Identifier> seenStructOrUnions)
+			throws UnsatisfiablePathConditionException {
 		Set<SymbolicExpression> result = new TreeSet<>(universe.comparator());
 
 		switch (type.typeKind()) {
@@ -394,20 +395,23 @@ public class ReadSetAnalyzer {
 					result.addAll(
 							analyze(((CIVLCompleteArrayType) arrType).extent(),
 									state, pid, false));
-				result.addAll(analyzeType(arrType.elementType(), state, pid));
+				result.addAll(analyzeType(arrType.elementType(), state, pid,
+						seenStructOrUnions));
 				break;
 			}
 			case POINTER : {
 				CIVLPointerType ptrType = (CIVLPointerType) type;
 
-				result.addAll(analyzeType(ptrType.baseType(), state, pid));
+				result.addAll(analyzeType(ptrType.baseType(), state, pid,
+						seenStructOrUnions));
 				break;
 			}
 			case STRUCT_OR_UNION : {
 				CIVLStructOrUnionType structOrUnionType = (CIVLStructOrUnionType) type;
-
 				for (StructOrUnionField field : structOrUnionType.fields())
-					result.addAll(analyzeType(field.type(), state, pid));
+					result.addAll(analyzeType(field.type(), state, pid,
+							seenStructOrUnions));
+				seenStructOrUnions.add(structOrUnionType.name());
 				break;
 			}
 			case BUNDLE :
@@ -471,7 +475,8 @@ public class ReadSetAnalyzer {
 
 	private Set<SymbolicExpression> analyzeSizeofType(SizeofTypeExpression expr,
 			State state, int pid) throws UnsatisfiablePathConditionException {
-		return analyzeType(expr.getTypeArgument(), state, pid);
+		return analyzeType(expr.getTypeArgument(), state, pid,
+				new HashSet<>());
 	}
 
 	private Set<SymbolicExpression> analyzeSizeof(SizeofExpression expr,
@@ -508,7 +513,8 @@ public class ReadSetAnalyzer {
 
 	private Set<SymbolicExpression> analyzeInitVal(InitialValueExpression expr,
 			State state, int pid) throws UnsatisfiablePathConditionException {
-		return analyzeType(expr.getExpressionType(), state, pid);
+		return analyzeType(expr.getExpressionType(), state, pid,
+				new HashSet<>());
 	}
 
 	private Set<SymbolicExpression> analyzeLambda(LambdaExpression expr,
@@ -550,7 +556,7 @@ public class ReadSetAnalyzer {
 	private Set<SymbolicExpression> analyzeDyTypeOf(
 			DynamicTypeOfExpression expr, State state, int pid)
 			throws UnsatisfiablePathConditionException {
-		return analyzeType(expr.getType(), state, pid);
+		return analyzeType(expr.getType(), state, pid, new HashSet<>());
 	}
 
 	private Set<SymbolicExpression> analyzeDot(DotExpression expr, State state,
@@ -606,7 +612,8 @@ public class ReadSetAnalyzer {
 			State state, int pid, boolean partOfLHS)
 			throws UnsatisfiablePathConditionException {
 		CIVLType type = expr.getCastType();
-		Set<SymbolicExpression> result = analyzeType(type, state, pid);
+		Set<SymbolicExpression> result =
+				analyzeType(type, state, pid, new HashSet<>());
 
 		result.addAll(
 				analyzeMemWorker(expr.getExpression(), state, pid, partOfLHS));
@@ -627,7 +634,8 @@ public class ReadSetAnalyzer {
 			ArrayLambdaExpression expr, State state, int pid, boolean partOfLHS)
 			throws UnsatisfiablePathConditionException {
 		CIVLCompleteArrayType arrType = expr.getExpressionType();
-		Set<SymbolicExpression> result = analyzeType(arrType, state, pid);
+		Set<SymbolicExpression> result =
+				analyzeType(arrType, state, pid, new HashSet<>());
 
 		result.addAll(
 				analyzeMemWorker(expr.expression(), state, pid, partOfLHS));
