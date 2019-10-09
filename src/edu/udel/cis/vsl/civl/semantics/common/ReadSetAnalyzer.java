@@ -122,8 +122,8 @@ public class ReadSetAnalyzer {
 	 * read during evaluation
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	Set<SymbolicExpression> analyze(Expression expr, State state, int pid, boolean isPartOfLHS)
-			throws UnsatisfiablePathConditionException {
+	Set<SymbolicExpression> analyze(Expression expr, State state, int pid,
+			boolean isPartOfLHS) {
 		try {
 			if (isPartOfLHS)
 				return analyzeMemWorker(expr, state, pid, true);
@@ -145,11 +145,11 @@ public class ReadSetAnalyzer {
 	 * {@link LHSExpression}s. The result will include two parts:
 	 * <ol>
 	 * <li>The memory location referred by the LHSExpression</li>
-	 * 
+	 *
 	 * <li>The rest of the read set analyzed from the LHSExpression</li>
 	 * </ol>
 	 * </p>
-	 * 
+	 *
 	 * <p>
 	 * Note that the two parts shall not overlap. For example, for an expression
 	 * <code>a[i]</code> where <code>a, i</code> are variables. The returned
@@ -203,7 +203,7 @@ public class ReadSetAnalyzer {
 	 * The general analysis method for collecting the precise memory location
 	 * set that is read during the expression evaluation.
 	 * </p>
-	 * 
+	 *
 	 * <p>
 	 * The flag "partOfLHS" controls the algorithm:
 	 * <ul>
@@ -211,14 +211,14 @@ public class ReadSetAnalyzer {
 	 * this method, the memory location referred by the LHSExpression will not
 	 * be saved. But other memory locations that are read during evaluation will
 	 * still be saved.</li>
-	 * 
+	 *
 	 * <li>If it is false, for a LHSExpression that is reached recursively by
 	 * this method, both the memory location referred by the LHSExpression as
 	 * well as the other memory locations that are read during evaluation will
 	 * still be saved.</li>
 	 * </ul>
 	 * </p>
-	 * 
+	 *
 	 * @param expr
 	 *            the expression that is analyzed
 	 * @param state
@@ -379,7 +379,7 @@ public class ReadSetAnalyzer {
 
 	/**
 	 * Analyze expressions in types
-	 * 
+	 *
 	 */
 	private Set<SymbolicExpression> analyzeType(CIVLType type, State state,
 			int pid, Set<Identifier> seenStructOrUnions)
@@ -407,11 +407,15 @@ public class ReadSetAnalyzer {
 				break;
 			}
 			case STRUCT_OR_UNION : {
-				CIVLStructOrUnionType structOrUnionType = (CIVLStructOrUnionType) type;
+				CIVLStructOrUnionType structOrUnionType =
+						(CIVLStructOrUnionType) type;
+
+				if (seenStructOrUnions.contains(structOrUnionType.name()))
+					return result;
+				seenStructOrUnions.add(structOrUnionType.name());
 				for (StructOrUnionField field : structOrUnionType.fields())
 					result.addAll(analyzeType(field.type(), state, pid,
 							seenStructOrUnions));
-				seenStructOrUnions.add(structOrUnionType.name());
 				break;
 			}
 			case BUNDLE :
