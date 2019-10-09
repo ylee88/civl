@@ -68,7 +68,7 @@ public class CIVLConstants {
 			ROOT_INCLUDE_PATH, "abc");
 
 	/** The version of this release of CIVL. */
-	public final static String version = "1.20";
+	public final static String version = "1.20+";
 
 	/**
 	 * The date of this release of CIVL. Format: YYYY-MM-DD in accordance with
