@@ -172,12 +172,12 @@ public class SimpleArrayToolBox implements ArrayToolBox {
 
 	@Override
 	public SymbolicExpression extractArraySlice(ArraySlice slice) {
-		if (slice.sliceType
+		if (slice.array.type()
 				.equals(universe.arrayType(slice.baseType, slice.count))) {
 			// the slice is the whole array, iff it satisfies the following
 			// conditions:
 			// 1. All starting indices are zero
-			// 2. 'slice type' == array of 'base type' with length 'count'
+			// 2. 'array type' == array of 'base type' with length 'count'
 			boolean allIndicesZero = true;
 
 			for (int i = 0; i < slice.startIndices.length; i++)
