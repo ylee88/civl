@@ -3322,7 +3322,7 @@ public class CommonEvaluator implements Evaluator {
 					.variable(vid);
 
 			objStr = "Variable " + variable.name();
-			objType = state.getVariableValue(pid, vid).type();
+			objType = state.getVariableValue(sid, vid).type();
 		}
 
 		StringBuffer message = new StringBuffer();
