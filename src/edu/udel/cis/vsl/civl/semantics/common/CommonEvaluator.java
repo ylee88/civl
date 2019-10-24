@@ -3235,25 +3235,10 @@ public class CommonEvaluator implements Evaluator {
 			if (!symbolicUtil.isPointer2MemoryBlock(arrayPtr) && symbolicUtil
 					.getSymRef(arrayPtr).isArrayElementReference()) {
 				resultType = reasoner.valid(inBound).getResultType();
-				if (resultType == ResultType.NO)
+				if (resultType != ResultType.YES)
 					return recomputeArrayIndices(state, pid, vid, scopeId,
 							pointer, offset, reasoner, muteErrorSideEffects,
 							source);
-				else if (resultType != ResultType.YES) {
-					SymbolicExpression newPtr0, newPtr1;
-					Pair<Evaluation, NumericExpression[]> result = recomputeArrayIndices(
-							state, pid, vid, scopeId, pointer, offset, reasoner,
-							muteErrorSideEffects, source);
-
-					newPtr0 = result.left.value;
-					newRef = universe.arrayElementReference(
-							symbolicUtil.getSymRef(arrayPtr),
-							universe.add(index, offset));
-					newPtr1 = symbolicUtil.makePointer(scopeId, vid, newRef);
-					result.left.value = universe.cond(inBound, newPtr0,
-							newPtr1);
-					return result;
-				}
 			} else if (!muteErrorSideEffects) {
 				// Valid pointer addition condition: inBound || point-to the end
 				// of the array:
