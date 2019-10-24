@@ -797,8 +797,8 @@ public class MemEvaluator extends CommonEvaluator {
 	 *            the current state
 	 * @param pid
 	 *            the PID of the running process
-	 * @param value
-	 *            the value where the given "ref" refers to
+	 * @param valueType
+	 *            the value type of what the given "ref" refers to
 	 * @param ref
 	 *            a value set reference that will be checked
 	 * @param source
@@ -858,7 +858,9 @@ public class MemEvaluator extends CommonEvaluator {
 	 * incomplete, the caller of this method is responsible to make sure the
 	 * type, which is a sub-type of "valueType", of the referred single heap
 	 * object must be complete.
+	 * (TODO: alas, CIVL-C sequence can break the pre-condition. So far, just skip checking for sequences)
 	 * </p>
+	 *
 	 * 
 	 * @param valueType
 	 *            the dynamic type of the referred value
@@ -885,8 +887,14 @@ public class MemEvaluator extends CommonEvaluator {
 				case ARRAY_SECTION : {
 					SymbolicArrayType arrType = (SymbolicArrayType) valueType;
 
-					assert arrType.isComplete();
 					valueType = arrType.elementType();
+					if (!arrType.isComplete()) {
+						// it must be the case that this "array" is a sequence.
+						// The idea that "sequence is an incomplete array" is
+						// kinda annoying.
+						// Just not check for sequence.
+						break;
+					}
 					if (ref.valueSetReferenceKind() == VSReferenceKind.ARRAY_ELEMENT) {
 						NumericExpression index = ((VSArrayElementReference) ref)
 								.getIndex();
