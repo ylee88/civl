@@ -44,4 +44,11 @@ public interface LibraryExecutor {
 	 */
 	Evaluation execute(State state, int pid, CallOrSpawnStatement statement,
 			String functionName) throws UnsatisfiablePathConditionException;
+
+	/**
+	 * @param evaluator
+	 *         the  {@link Evaluator} that will be used by this library
+	 *         executor after setting
+	 */
+	void setEvaluator(Evaluator evaluator);
 }

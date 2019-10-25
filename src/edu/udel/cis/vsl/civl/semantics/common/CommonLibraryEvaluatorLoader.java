@@ -65,6 +65,7 @@ public class CommonLibraryEvaluatorLoader implements LibraryEvaluatorLoader {
 			}
 			libraryEvaluatorCache.put(name, result);
 		}
+		result.setPrimaryEvaluator(primaryEvaluator);
 		return result;
 	}
 

@@ -13,12 +13,7 @@ import edu.udel.cis.vsl.civl.model.IF.expression.Expression;
 import edu.udel.cis.vsl.civl.model.IF.expression.LHSExpression;
 import edu.udel.cis.vsl.civl.model.IF.location.Location;
 import edu.udel.cis.vsl.civl.model.IF.statement.CallOrSpawnStatement;
-import edu.udel.cis.vsl.civl.semantics.IF.Evaluation;
-import edu.udel.cis.vsl.civl.semantics.IF.Executor;
-import edu.udel.cis.vsl.civl.semantics.IF.LibraryEvaluatorLoader;
-import edu.udel.cis.vsl.civl.semantics.IF.LibraryExecutor;
-import edu.udel.cis.vsl.civl.semantics.IF.LibraryExecutorLoader;
-import edu.udel.cis.vsl.civl.semantics.IF.SymbolicAnalyzer;
+import edu.udel.cis.vsl.civl.semantics.IF.*;
 import edu.udel.cis.vsl.civl.state.IF.State;
 import edu.udel.cis.vsl.civl.state.IF.StateFactory;
 import edu.udel.cis.vsl.civl.state.IF.UnsatisfiablePathConditionException;
@@ -294,6 +289,11 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 			state = this.stateFactory.setLocation(state, pid, target);
 		eval.state = state;
 		return eval;
+	}
+
+	@Override
+	public void setEvaluator(Evaluator primaryEvaluator) {
+		super.evaluator = primaryEvaluator;
 	}
 
 	abstract protected Evaluation executeValue(State state, int pid,

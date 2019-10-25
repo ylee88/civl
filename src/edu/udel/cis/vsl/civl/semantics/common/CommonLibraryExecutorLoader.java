@@ -74,6 +74,7 @@ public class CommonLibraryExecutorLoader implements LibraryExecutorLoader {
 			}
 			libraryExecutorCache.put(name, result);
 		}
+		result.setEvaluator(primaryExecutor.evaluator());
 		return result;
 	}
 

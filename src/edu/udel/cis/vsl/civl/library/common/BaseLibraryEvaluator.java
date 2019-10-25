@@ -66,6 +66,12 @@ public abstract class BaseLibraryEvaluator extends LibraryComponent implements
 		return new Evaluation(state, universe.trueExpression());
 	}
 
+	@Override
+	public void setPrimaryEvaluator(Evaluator primaryEvaluator) {
+		super.evaluator = primaryEvaluator;
+	}
+
+
 	/* ******************** Public Array Utility functions ****************** */
 
 	/* ************* Private helper functions ************ */

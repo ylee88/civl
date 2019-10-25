@@ -41,4 +41,11 @@ public interface LibraryEvaluator {
 			String function, Expression[] arguments)
 			throws UnsatisfiablePathConditionException;
 
+	/**
+	 * @param primaryEvaluator
+	 *         the primary {@link Evaluator} that will be used by this library
+	 *         evaluator after setting
+	 */
+	void setPrimaryEvaluator(Evaluator primaryEvaluator);
+
 }
