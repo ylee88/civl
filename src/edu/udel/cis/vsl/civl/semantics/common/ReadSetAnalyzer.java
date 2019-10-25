@@ -1,44 +1,12 @@
 package edu.udel.cis.vsl.civl.semantics.common;
 
-import java.util.*;
-
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLUnimplementedFeatureException;
 import edu.udel.cis.vsl.civl.model.IF.Identifier;
-import edu.udel.cis.vsl.civl.model.IF.expression.AbstractFunctionCallExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.AddressOfExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.ArrayLambdaExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.ArrayLiteralExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.BinaryExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.CastExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.ConditionalExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.DereferenceExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.DotExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.DynamicTypeOfExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.Expression;
+import edu.udel.cis.vsl.civl.model.IF.ModelConfiguration;
+import edu.udel.cis.vsl.civl.model.IF.expression.*;
 import edu.udel.cis.vsl.civl.model.IF.expression.Expression.ExpressionKind;
-import edu.udel.cis.vsl.civl.model.IF.expression.ExtendedQuantifiedExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.FunctionCallExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.FunctionGuardExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.InitialValueExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.LHSExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.LambdaExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.RecDomainLiteralExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.RegularRangeExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.ScopeofExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.SizeofExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.SizeofTypeExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.SubscriptExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.UnaryExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.ValueAtExpression;
-import edu.udel.cis.vsl.civl.model.IF.expression.VariableExpression;
-import edu.udel.cis.vsl.civl.model.IF.type.CIVLArrayType;
-import edu.udel.cis.vsl.civl.model.IF.type.CIVLCompleteArrayType;
-import edu.udel.cis.vsl.civl.model.IF.type.CIVLMemType;
-import edu.udel.cis.vsl.civl.model.IF.type.CIVLPointerType;
-import edu.udel.cis.vsl.civl.model.IF.type.CIVLStructOrUnionType;
-import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
-import edu.udel.cis.vsl.civl.model.IF.type.StructOrUnionField;
+import edu.udel.cis.vsl.civl.model.IF.type.*;
 import edu.udel.cis.vsl.civl.semantics.IF.Evaluation;
 import edu.udel.cis.vsl.civl.semantics.IF.Evaluator;
 import edu.udel.cis.vsl.civl.state.IF.State;
@@ -46,6 +14,10 @@ import edu.udel.cis.vsl.civl.state.IF.UnsatisfiablePathConditionException;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.expr.BooleanExpression;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * <p>
@@ -92,10 +64,18 @@ public class ReadSetAnalyzer {
 	 */
 	private SymbolicUniverse universe;
 
+	/**
+	 * the dynamic constant scope value
+	 */
+	private final SymbolicExpression constantDyScopeVal;
+
 	/* constructor */
 	ReadSetAnalyzer(Evaluator evaluator) {
 		this.evaluator = evaluator;
 		this.universe = evaluator.universe();
+		constantDyScopeVal = evaluator.modelFactory().typeFactory().scopeType()
+				.scopeIdentityToValueOperator(universe)
+				.apply(ModelConfiguration.DYNAMIC_CONSTANT_SCOPE);
 	}
 
 	/* the sole package interface */
@@ -163,9 +143,12 @@ public class ReadSetAnalyzer {
 		Evaluation eval = evaluator.reference(state, pid, expr);
 		Set<SymbolicExpression> result = new TreeSet<>(universe.comparator());
 
-		// the referred memory location:
-		result.add(evaluator.memEvaluator().pointer2memValue(state, pid,
-				eval.value, expr.getSource()).value);
+		if (!isPointToConstantScope(eval.value)) {
+			// the referred memory location:
+			eval = evaluator.memEvaluator()
+					.pointer2memValue(state, pid, eval.value, expr.getSource());
+			result.add(eval.value);
+		}
 		// the rest of the read set:
 		switch (expr.lhsExpressionKind()) {
 			case DEREFERENCE : {
@@ -443,9 +426,11 @@ public class ReadSetAnalyzer {
 		Evaluation eval = evaluator.reference(state, pid, expr);
 		Set<SymbolicExpression> result = new TreeSet<>(universe.comparator());
 
-		eval = evaluator.memEvaluator().pointer2memValue(state, pid, eval.value,
-				expr.getSource());
-		result.add(eval.value);
+		if (!isPointToConstantScope(eval.value)) {
+			eval = evaluator.memEvaluator()
+					.pointer2memValue(state, pid, eval.value, expr.getSource());
+			result.add(eval.value);
+		}
 		return result;
 	}
 
@@ -469,9 +454,12 @@ public class ReadSetAnalyzer {
 		if (!partOfLHS) {
 			Evaluation eval = evaluator.reference(state, pid, expr);
 
-			eval = evaluator.memEvaluator().pointer2memValue(state, pid,
-					eval.value, expr.getSource());
-			result.add(eval.value);
+			if (!isPointToConstantScope(eval.value)) {
+				eval = evaluator.memEvaluator()
+						.pointer2memValue(state, pid, eval.value,
+								expr.getSource());
+				result.add(eval.value);
+			}
 		}
 		result.addAll(analyzeMemWorker(expr.array(), state, pid, true));
 		return result;
@@ -572,9 +560,11 @@ public class ReadSetAnalyzer {
 		if (!partOfLHS) {
 			Evaluation eval = evaluator.reference(state, pid, expr);
 
-			eval = evaluator.memEvaluator().pointer2memValue(state, pid,
-					eval.value, expr.getSource());
-			result.add(eval.value);
+			if (!isPointToConstantScope(eval.value)) {
+				eval = evaluator.memEvaluator()
+						.pointer2memValue(state, pid, eval.value, expr.getSource());
+				result.add(eval.value);
+			}
 		}
 		return result;
 	}
@@ -588,9 +578,11 @@ public class ReadSetAnalyzer {
 		if (!isPartOfLHS) {
 			Evaluation eval = evaluator.reference(state, pid, expr);
 
-			eval = evaluator.memEvaluator().pointer2memValue(state, pid,
-					eval.value, expr.getSource());
-			result.add(eval.value);
+			if (!isPointToConstantScope(eval.value)) {
+				eval = evaluator.memEvaluator()
+						.pointer2memValue(state, pid, eval.value, expr.getSource());
+				result.add(eval.value);
+			}
 		}
 		return result;
 	}
@@ -674,5 +666,17 @@ public class ReadSetAnalyzer {
 			State state, int pid, boolean partOfLHS)
 			throws UnsatisfiablePathConditionException {
 		return this.analyzeMemWorker(expr.operand(), state, pid, partOfLHS);
+	}
+
+	/**
+	 * It's kind confusing that why DYNAMIC_CONSTANT_SCOPE is -1.  To make sure
+	 * the mem value contains no negative scope value, here has to ignore such
+	 * reference.
+	 */
+	private boolean isPointToConstantScope(SymbolicExpression pointer) {
+		SymbolicExpression scopeVal =
+				evaluator.symbolicUtility().getScopeValue(pointer);
+
+		return scopeVal.equals(constantDyScopeVal);
 	}
 }

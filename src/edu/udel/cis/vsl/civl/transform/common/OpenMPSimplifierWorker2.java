@@ -395,7 +395,10 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 				if (allIndependent) {
 					forLoop.remove();
 					parent.setChild(childIdx, forLoop);
-				}
+				} else if (config.ompOnlySimplifier())
+					throw new CIVLException(
+							"openMP program possibly contains data race",
+							new ABC_CIVLSource(node.getSource()));
 			} else
 				transformOmpWorkshare(node);
 		} else if (node != null) {
