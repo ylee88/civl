@@ -6,6 +6,7 @@ import edu.udel.cis.vsl.abc.token.IF.SyntaxException;
 import edu.udel.cis.vsl.abc.transform.IF.BaseTransformer;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.transform.common.OpenMP2CIVLWorker;
+import edu.udel.cis.vsl.civl.transform.common.OpenMP2CIVLWorker2;
 
 /**
  * OpenMP2CIVLTransformer transforms an AST of an OpenMP program into an AST of
@@ -47,7 +48,7 @@ public class OpenMP2CIVLTransformer extends BaseTransformer {
 
 	@Override
 	public AST transform(AST ast) throws SyntaxException {
-		return new OpenMP2CIVLWorker(astFactory, this.config).transform(ast);
+		return new OpenMP2CIVLWorker2(astFactory, this.config).transform(ast);
 	}
 
 }

@@ -85,21 +85,22 @@ public class ReadSetAnalyzer {
 	 * set of mem values, each of which represents a memory location subset of
 	 * the precise memory location set that is read during an expression
 	 * evaluation.
+	 * 
 	 * @param expr
-	 *         an {@link Expression}
+	 *            an {@link Expression}
 	 * @param state
-	 *         a {@link State}
+	 *            a {@link State}
 	 * @param pid
-	 *         the PID of a process
+	 *            the PID of a process
 	 * @param isPartOfLHS
-	 *         true if the given expression is a part of LHS.  If the given
-	 *         expression is part of LHS, then for any LHSExpression that is
-	 *         reached recursively by this method, the memory location
-	 *         referred by the LHSExpression will not be saved. But other
-	 *         memory locations that are read during evaluation will still be
-	 *         saved.
+	 *            true if the given expression is a part of LHS. If the given
+	 *            expression is part of LHS, then for any LHSExpression that is
+	 *            reached recursively by this method, the memory location
+	 *            referred by the LHSExpression will not be saved. But other
+	 *            memory locations that are read during evaluation will still be
+	 *            saved.
 	 * @return the set of subsets of the precise memory location set that is
-	 * read during evaluation
+	 *         read during evaluation
 	 * @throws UnsatisfiablePathConditionException
 	 */
 	Set<SymbolicExpression> analyze(Expression expr, State state, int pid,
@@ -396,6 +397,10 @@ public class ReadSetAnalyzer {
 				if (seenStructOrUnions.contains(structOrUnionType.name()))
 					return result;
 				seenStructOrUnions.add(structOrUnionType.name());
+
+				if (seenStructOrUnions.contains(structOrUnionType.name()))
+					return result;
+				seenStructOrUnions.add(structOrUnionType.name());
 				for (StructOrUnionField field : structOrUnionType.fields())
 					result.addAll(analyzeType(field.type(), state, pid,
 							seenStructOrUnions));
@@ -467,8 +472,7 @@ public class ReadSetAnalyzer {
 
 	private Set<SymbolicExpression> analyzeSizeofType(SizeofTypeExpression expr,
 			State state, int pid) throws UnsatisfiablePathConditionException {
-		return analyzeType(expr.getTypeArgument(), state, pid,
-				new HashSet<>());
+		return analyzeType(expr.getTypeArgument(), state, pid, new HashSet<>());
 	}
 
 	private Set<SymbolicExpression> analyzeSizeof(SizeofExpression expr,
@@ -608,8 +612,8 @@ public class ReadSetAnalyzer {
 			State state, int pid, boolean partOfLHS)
 			throws UnsatisfiablePathConditionException {
 		CIVLType type = expr.getCastType();
-		Set<SymbolicExpression> result =
-				analyzeType(type, state, pid, new HashSet<>());
+		Set<SymbolicExpression> result = analyzeType(type, state, pid,
+				new HashSet<>());
 
 		result.addAll(
 				analyzeMemWorker(expr.getExpression(), state, pid, partOfLHS));
@@ -630,8 +634,8 @@ public class ReadSetAnalyzer {
 			ArrayLambdaExpression expr, State state, int pid, boolean partOfLHS)
 			throws UnsatisfiablePathConditionException {
 		CIVLCompleteArrayType arrType = expr.getExpressionType();
-		Set<SymbolicExpression> result =
-				analyzeType(arrType, state, pid, new HashSet<>());
+		Set<SymbolicExpression> result = analyzeType(arrType, state, pid,
+				new HashSet<>());
 
 		result.addAll(
 				analyzeMemWorker(expr.expression(), state, pid, partOfLHS));

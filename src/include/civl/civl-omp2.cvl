@@ -111,6 +111,8 @@ $depends {$nothing}
   result->tid = tid;
   $seq_init(&result->shared, 0, NULL);
   result->barrier = $barrier_create(scope, gteam->gbarrier, tid);
+  $read_set_push();
+  $write_set_push();
   return result;
 }
 
@@ -119,6 +121,8 @@ $fatomic void $omp_team_destroy($omp_team team)
 $depends {$access(*team)}
 $assigns {*team}
 {
+  $read_set_pop();
+  $write_set_pop();
   /*int numShared = $seq_length(&team->shared);
 
   for(int i = 0; i < numShared; i++){
@@ -339,10 +343,14 @@ void $omp_barrier($omp_team team){
 }
 
 void $omp_barrier_and_flush($omp_team team) {
+  $read_set_pop();
+  $write_set_pop();
   // this is a collective operation: all members of team call
   $barrier_call(team->barrier);
   $omp_flush_all(team);
   $barrier_call(team->barrier);
+  $read_set_push();
+  $write_set_push();
 }
 
 /**

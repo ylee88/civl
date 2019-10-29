@@ -717,6 +717,7 @@ public class CIVLConstants {
 	public final static String CONCURRENCY = "concurrency.cvh";
 	public final static String CIVL_OMP = "civl-omp.cvh";
 	public final static String CIVL_OMP_IMP = "civl-omp.cvl";
+	public final static String MEM = "mem.cvh";
 	// public final static String CIVL_DOMAIN = "domain.cvh";
 	public final static String MPI = "mpi.h";
 	public final static String MATH = "math.h";

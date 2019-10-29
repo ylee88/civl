@@ -36,6 +36,7 @@ public class ReadSetCollectEvaluator extends CommonEvaluator implements Evaluato
                 superEvaluator.memUnitFactory, superEvaluator.errorLogger,
                 superEvaluator.civlConfig);
         this.superEvaluator = superEvaluator;
+        ((CommonSymbolicAnalyzer)this.symbolicAnalyzer).setEvaluator(superEvaluator);
         readSetAnalyzer = new ReadSetAnalyzer(superEvaluator);
     }
 

@@ -183,6 +183,8 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 	private final static String TID = "_omp_tid";
 
 	/* **************************** Instance Fields ************************* */
+
+	// NEEDED?
 	/**
 	 * Variable that is increment for naming of temp variables that are created
 	 */
@@ -205,6 +207,7 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 	 */
 	private int ompArriveSingle = 0;
 
+	// DELETE;
 	/**
 	 * If the same variable is replaced in the same expression then use the temp
 	 * name of the first one
@@ -217,12 +220,17 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 	 * For each critical section encountered, create a new critical variable
 	 */
 	private ArrayList<String> criticalNames = new ArrayList<String>();
+
+	// delete these:
 	private HashMap<ASTNode, ArrayList<Pair<VariableDeclarationNode, ExpressionStatementNode>>> sharedRead = new HashMap<ASTNode, ArrayList<Pair<VariableDeclarationNode, ExpressionStatementNode>>>();
 	private HashMap<ASTNode, ArrayList<Pair<VariableDeclarationNode, ExpressionStatementNode>>> sharedWrite = new HashMap<ASTNode, ArrayList<Pair<VariableDeclarationNode, ExpressionStatementNode>>>();
 	private ArrayList<TypedefDeclarationNode> structsDefsToAdd = new ArrayList<TypedefDeclarationNode>();
 	private ArrayList<StructureOrUnionTypeNode> structsToAdd = new ArrayList<StructureOrUnionTypeNode>();
+
+	// do we need tmp vars? Probably.
 	private ArrayList<Triple<BlockItemNode, IdentifierNode, String>> tempVars = new ArrayList<Triple<BlockItemNode, IdentifierNode, String>>();
 
+	// counting loops? Each needs a unique ID.
 	private int lastLoopVar = -1;
 
 	/**
@@ -244,6 +252,10 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 	}
 
 	/* *************************** Private Methods ************************* */
+
+	// this is changing the name of the function omp_set_lock to $omp_set_lock,
+	// ditto for omp_unset_lock. WHY NOT just make these function defns instead
+	// of this transformation?
 
 	private void processOmpLockCalls(ASTNode node) {
 		for (ASTNode child : node.children()) {
@@ -282,6 +294,7 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 		}
 	}
 
+	// TODO: there is no such parameter.
 	/**
 	 * Creates the declaration node for the input variable
 	 * <code>_omp_thread_max</code>.
@@ -385,6 +398,8 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 	}
 
 	/**
+	 * TODO: delete
+	 * 
 	 * Creates the declaration node for the variable <code>gshared</code>, which
 	 * is of <code>$omp_gshared</code> type and has an initializer to call
 	 * <code>$omp_gshared_create()</code>. That is: <code>$omp_gshared 
@@ -442,6 +457,8 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 	}
 
 	/**
+	 * TODO: delete
+	 * 
 	 * Creates the declaration node for the variable <code>shared</code>, which
 	 * is of <code>$omp_shared</code> type and has an initializer to call
 	 * <code>$omp_shared_create()</code>. That is: <code>$omp_shared 
@@ -554,6 +571,9 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 	}
 
 	/**
+	 * 
+	 * TODO: DELETEME
+	 * 
 	 * Creates the function call node for <code>write</code>, which is of void
 	 * type. That is: <code> $omp_write($omp_shared shared, 
 	 * void *ref, void *value)</code> . This is used to write to shared
@@ -597,6 +617,9 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 	}
 
 	/**
+	 * 
+	 * TODO: delete me
+	 * 
 	 * Creates the function call node for <code>read</code>, which is of void
 	 * type. That is: <code> $omp_read($omp_shared shared, 
 	 * void *result, void *ref)</code> . This is used to read shared variables.
@@ -834,6 +857,7 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 		return newAst;
 	}
 
+	// TODO: DELETE ME
 	private void addStatements(
 			HashMap<ASTNode, ArrayList<Pair<VariableDeclarationNode, ExpressionStatementNode>>> sharedMap,
 			String readWrite) {
@@ -882,6 +906,10 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 	 * @param threadPrivateIDs
 	 * @throws SyntaxException
 	 */
+
+	// TODO: THIS METHOD IS a couple thousand lines long!!!
+	// Break it up.
+
 	@SuppressWarnings("unchecked")
 	private void replaceOMPPragmas(ASTNode node,
 			SequenceNode<IdentifierExpressionNode> privateIDs,
@@ -893,6 +921,8 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 
 		// Check if a pragma is nested inside a parallel. If not then remove
 		// the pragma
+		// TODO: WHY? Is that what the OpenMP Spec says?
+
 		if (node instanceof OmpExecutableNode) {
 			if (!(node instanceof OmpParallelNode)) {
 				// check if node is nested in omp parallel node
@@ -2990,6 +3020,7 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 	 * @param sharedIDs
 	 * @return If there is a shared variable in the node, return true.
 	 */
+	// TODO: Delete me
 	private boolean containsSharedVar(ASTNode node,
 			SequenceNode<IdentifierExpressionNode> sharedIDs) {
 		if (node instanceof IdentifierNode) {
@@ -3019,6 +3050,8 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 	 * @param count
 	 * @return
 	 */
+	// TODO: if only used for omp read/write, delete me.
+
 	private Pair<VariableDeclarationNode, Integer> getTempVar(
 			IdentifierNode node, String readWrite, int count) {
 		VariableDeclarationNode temp;
@@ -3114,7 +3147,7 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 	}
 
 	/**
-	 * Method to transform a shared write in C to CIVL-C
+	 * Method to transform a shared write in C to CIVL-C TODO: DELETE ME
 	 * 
 	 * @param node
 	 * @param privateIDs
@@ -3209,6 +3242,8 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 	/**
 	 * Record shared read and write statements so that the omp_read and
 	 * omp_write statements can be inserted.
+	 * 
+	 * TODO: DELETE ME
 	 * 
 	 * @param readWrite
 	 * @param decl
@@ -3307,6 +3342,9 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 	 * Take a node that is a FunctionCallNode of some OpenMP function and
 	 * replace it with an equivalent function that is a CIVL-C function
 	 * 
+	 * TODO: I guess they can't be implemented as library functions because they
+	 * need to access omp_team?
+	 * 
 	 * @param node
 	 * @return
 	 * @throws SyntaxException
@@ -3372,8 +3410,10 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 	}
 
 	/**
-	 * Check the operator and return an int for which operator it is TODO add
-	 * more operators as needed
+	 * Check the operator and return an int for which operator it is
+	 * 
+	 * TODO add more operators as needed. WHY NOT ALL OF THEM??? HOW IS THIS
+	 * USED?
 	 * 
 	 * @param operator
 	 * @return
@@ -3455,6 +3495,8 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 						genInitValForReduction(op)));
 	}
 
+	// TODO: WHY AN int?
+
 	private int genInitValForReduction(OmpReductionOperator op) {
 		switch (op) {
 			case LAND :
@@ -3517,7 +3559,7 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 	}
 
 	/**
-	 * Transform shared read from C to CIVL-C
+	 * TODO: DELETE ME Transform shared read from C to CIVL-C
 	 * 
 	 * @param node
 	 * @param parentStatement
@@ -3727,6 +3769,9 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 	private void getInitializerName(OperatorNode node,
 			ArrayList<String> alreadyDeclVars,
 			SequenceNode<IdentifierExpressionNode> privateIDs) {
+
+		// TODO: WHY COMPARING STRINGS????
+
 		if (node.getOperator().toString().equals("ASSIGN")) {
 			IdentifierExpressionNode name = (IdentifierExpressionNode) node
 					.getArgument(0);
@@ -3750,6 +3795,7 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 		}
 	}
 
+	// TODO: HUH???
 	private void getInitializerName(DeclarationListNode node,
 			ArrayList<String> loopVariables) {
 
@@ -3848,6 +3894,7 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 		return removed;
 	}
 
+	// TODO: HUH???
 	private void checkArrayIndices(OperatorNode op,
 			SequenceNode<IdentifierExpressionNode> privateIDs,
 			SequenceNode<IdentifierExpressionNode> sharedIDs,
@@ -4128,6 +4175,9 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 	}
 
 	/**
+	 * 
+	 * TODO: I think this can be deleted
+	 * 
 	 * Translates a flush with a list of identifiers to a list of calls to
 	 * <code>$omp_flush</code> or a flush without a list of identifiers to a
 	 * call to <code>$omp_flush_all</code>

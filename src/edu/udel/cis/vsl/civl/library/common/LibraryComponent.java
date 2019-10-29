@@ -673,8 +673,7 @@ public abstract class LibraryComponent {
 		for (int i = 0; i < numArgs; i++) {
 			Evaluation eval = null;
 
-			eval = symbolicAnalyzer.evaluator().evaluate(state, pid,
-					arguments[i]);
+			eval = evaluator.evaluate(state, pid, arguments[i]);
 			argumentValues[i] = eval.value;
 			state = eval.state;
 		}

@@ -1,6 +1,7 @@
 // civlc-omp.cvl: implementations of functions and types in civlc-omp.cvh
 #include<civl-omp.cvh>
 #include<civlc.cvh>
+#include<mem.cvh>
 #include<pointer.cvh>
 #include<seq.cvh>
 #include<concurrency.cvh>
@@ -54,6 +55,9 @@ struct OMP_gteam {
   /* the shared object data. */
   $omp_gshared shared[];
   $gbarrier gbarrier;
+  /* r/w sets for each thread */
+  $mem read_sets[];
+  $mem write_sets[];
 };
 
 struct OMP_team {
@@ -70,6 +74,7 @@ struct OMP_team {
 $atomic_f $omp_gteam $omp_gteam_create($scope scope, int nthreads) {
   $omp_gteam result = ($omp_gteam)$malloc(scope, sizeof(struct OMP_gteam));
   _Bool f = $false;
+  $mem empty = $mem_empty();
 
   //$seq_init(&empty, 0, NULL);
   result->scope = scope;
@@ -77,6 +82,8 @@ $atomic_f $omp_gteam $omp_gteam_create($scope scope, int nthreads) {
   $seq_init(&result->init, nthreads, &f);
   $seq_init(&result->work, 0, NULL);
   $seq_init(&result->shared, 0, NULL);
+  $seq_init(&result->read_sets, nthreads, &empty);
+  $seq_init(&result->write_sets, nthreads, &empty);
   result->gbarrier = $gbarrier_create(scope, nthreads);
   return result;
 }
@@ -105,7 +112,7 @@ $atomic_f $omp_team $omp_team_create($scope scope, $omp_gteam gteam, int tid) {
 }
 
 /* destroys the local team object */
-$atomic_f void $omp_team_destroy($omp_team team) {
+$atomic_f void $omp_team_destroy($omp_team team) {  
   /*int numShared = $seq_length(&team->shared);
 
   for(int i = 0; i < numShared; i++){
@@ -268,6 +275,17 @@ $atomic_f void $omp_apply_assoc($omp_shared shared,
   $apply(shared_ref, op, local, shared_ref);
 }
 
+
+$atomic_f void $omp_reduction_combine(
+  $operation op, void *reduction_final, void *reduction_local
+) {
+  $read_set_pop();
+  $write_set_pop();
+  $apply(reduction_final, op, reduction_local, reduction_final);
+  $read_set_push();
+  $write_set_push();
+}
+
 void $omp_flush($omp_shared shared, void *ref) {
   // need to drill down into all leaf nodes of the object
   // being flushed...
@@ -317,11 +335,43 @@ void $omp_barrier($omp_team team){
   $barrier_call(team->barrier);
 }
 
+void $check_data_race($omp_team team) {
+  int cur_tid = team->tid;
+  $mem out_s0 = $mem_empty();
+  $mem out_s1 = $mem_empty();
+  $mem cur_mr = team->gteam->read_sets[cur_tid];
+  $mem cur_mw = team->gteam->write_sets[cur_tid];
+  
+  for (int tmp_tid = 0; tmp_tid < team->gteam->nthreads; tmp_tid++) {
+    if (cur_tid == tmp_tid) continue;
+    
+    $mem tmp_mr = team->gteam->read_sets[tmp_tid];
+    $mem tmp_mw = team->gteam->write_sets[tmp_tid];
+    
+    $assert($mem_no_intersect(cur_mr, tmp_mw, &out_s0, &out_s1), 
+              "%p read by thread %d intersects %p written by thread %d\n",
+	          out_s0, cur_tid, out_s1, tmp_tid);
+    $assert($mem_no_intersect(cur_mw, tmp_mr, &out_s0, &out_s1), 
+              "%p read by thread %d intersects %p written by thread %d\n",
+	          out_s0, cur_tid, out_s1, tmp_tid);
+    $assert($mem_no_intersect(cur_mw, tmp_mw, &out_s0, &out_s1), 
+              "%p written by thread %d intersects %p written by thread %d\n",
+	          out_s0, cur_tid, out_s1, tmp_tid);
+  }
+}
+
 void $omp_barrier_and_flush($omp_team team) {
+  $mem mw = $write_set_pop();
+  $mem mr = $read_set_pop();
+  team->gteam->write_sets[team->tid] = mw;
+  team->gteam->read_sets[team->tid] = mr;
+  $check_data_race(team);
   // this is a collective operation: all members of team call
   $barrier_call(team->barrier);
   $omp_flush_all(team);
   $barrier_call(team->barrier);
+  $read_set_push();
+  $write_set_push();
 }
 
 /**
