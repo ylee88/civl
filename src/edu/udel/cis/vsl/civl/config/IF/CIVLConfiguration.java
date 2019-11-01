@@ -286,6 +286,12 @@ public class CIVLConfiguration {
 	 * whether report cycles in state space as violations
 	 */
 	private boolean cyclesViolate;
+
+	/**
+	 * whether updater thread is in used for printing update info periodically
+	 */
+	private boolean runtimeUpdate;
+
 	/**
 	 * Constructs a new CIVL configuration object from the command line
 	 * configuration.
@@ -449,6 +455,7 @@ public class CIVLConfiguration {
 			// 32-bit unsigned int bound
 		}
 		this.directSymEx = (String) config.getValue(CIVLConstants.direct0);
+		this.runtimeUpdate = config.isTrue(CIVLConstants.runtimeUpdateO);
 	}
 
 	public CIVLConfiguration(CIVLConfiguration config) {
@@ -497,6 +504,7 @@ public class CIVLConfiguration {
 		this.intBit = config.intBit;
 		this.maxProcs = config.maxProcs;
 		this.intOperationTransiformer = config.intOperationTransiformer;
+		this.runtimeUpdate = config.runtimeUpdate;
 	}
 
 	public CIVLConfiguration() {
@@ -813,6 +821,14 @@ public class CIVLConfiguration {
 
 	public void setReplay(boolean isReplay) {
 		this.isReplay = isReplay;
+	}
+
+	public void setRuntimeUpdate(boolean enableUpdateThread) {
+		this.runtimeUpdate = enableUpdateThread;
+	}
+
+	public boolean runtimeUpdate() {
+		return this.runtimeUpdate;
 	}
 
 	public boolean isQuiet() {

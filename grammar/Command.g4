@@ -144,6 +144,7 @@ OPTION_NAME
     | '-quiet'
     | '-intOperationTransformer'
     | '-random'
+    | '-runtimeUpdate'
     | '-saveStates'
     | '-seed'
     | '-showMemoryUnits'

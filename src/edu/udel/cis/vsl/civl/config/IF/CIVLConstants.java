@@ -74,7 +74,7 @@ public class CIVLConstants {
 	 * The date of this release of CIVL. Format: YYYY-MM-DD in accordance with
 	 * ISO 8601.
 	 */
-	public final static String date = "2019-09-27"; 
+	public final static String date = "2019-09-27";
 
 	/**
 	 * The prefix of the full name of the class of a library enabler/executor.
@@ -190,6 +190,7 @@ public class CIVLConstants {
 	public static String INTBIT = "int_bit";
 	public static String TEST_GEN = "testGen";
 	public static String CYCLES_VIOLATE = "cyclesViolate";
+	public static String RUNTIME_UPDATE = "runtimeUpdate";
 
 	// Option objects
 	/**
@@ -331,6 +332,16 @@ public class CIVLConstants {
 			"select enabled transitions randomly; default for run,\n"
 					+ "    ignored for all other commands",
 			null);
+
+	/**
+	 * set <code>false</code> to disable CIVL {@link UpdaterRunnable} thread.
+	 * The default value is <code>true</code>
+	 */
+	public final static Option runtimeUpdateO = Option.newScalarOption(
+			RUNTIME_UPDATE, BOOLEAN,
+			"set as `false` to disable CIVL updater thread, \n"
+					+ "which printing update-info periodically",
+			true);
 
 	/**
 	 * Save states during depth-first search? true by default.
@@ -693,10 +704,11 @@ public class CIVLConstants {
 				collectScopesO, collectSymbolicConstantsO, deadlockO, debugO,
 				enablePrintfO, errorBoundO, errorStateEquivO, guiO, guidedO,
 				idO, inputO, linkO, loopO, macroO, maxdepthO, minO,
-				mpiContractO, ompLoopDecompO, ompNoSimplifyO, ompOnlySimplifierO,
-				probO, preprocO, procBoundO, randomO, saveStatesO, seedO,
-				showAmpleSetO, showAmpleSetWtStatesO, showInputVarsO,
-				showMemoryUnitsO, showModelO, showPathConditionO, showProgramO,
+				mpiContractO, ompLoopDecompO, ompNoSimplifyO,
+				ompOnlySimplifierO, probO, preprocO, procBoundO, randomO,
+				runtimeUpdateO, saveStatesO, seedO, showAmpleSetO,
+				showAmpleSetWtStatesO, showInputVarsO, showMemoryUnitsO,
+				showModelO, showPathConditionO, showProgramO,
 				showProverQueriesO, showQueriesO, showSavedStatesO, showStatesO,
 				showTimeO, showTransitionsO, showUnreachedCodeO, simplifyO,
 				solveO, statelessPrintfO, svcomp16O, svcomp17O, quietO,

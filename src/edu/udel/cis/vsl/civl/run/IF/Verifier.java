@@ -369,7 +369,8 @@ public class Verifier extends Player {
 			boolean violationFound = false;
 
 			updateThread = new Thread(new UpdaterRunnable(updatePeriod * 1000));
-			updateThread.start();
+			if (civlConfig.runtimeUpdate())
+				updateThread.start();
 			if (civlConfig.debugOrVerbose() || civlConfig.showStates()
 					|| civlConfig.showSavedStates()) {
 				civlConfig.out().println();
