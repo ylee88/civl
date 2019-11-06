@@ -232,6 +232,27 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 				callEval = executeArrayBaseAddressof(state, pid, process,
 						arguments, argumentValues);
 				break;
+			case "$yield":
+				/* $yield was implemented in a extremely easy way. In this
+				 * executor, it is just a no-op.  At the same time, this
+				 * function has a POR contract which states that 1) this system
+				 * function has a "non-trivial guard" (by simply leaving the
+				 * guard unspecified in the POR contract); and 2) this function
+				 * writes nothing.
+				 *
+				 * For such a system function, since the guard is non-trivial,
+				 * the verifier will always assume that it can block an atomic
+				 * process.  So it will force an atomic process to release the
+				 * lock.  Then at enabler, the actual guard of this function
+				 * will be evaluated (which is trivially true), hence a call to
+				 * this function can be enabled and the enabled transition will
+				 * grab the atomic lock back.  Note that due to the fact that
+				 * the lock was released when enabler is enabling a transition
+				 * for a call to this function, other processes can
+				 * interrupt as long as the POR algorithm allows it.
+				 * */
+				callEval = new Evaluation(state, universe.nullExpression());
+				break;
 			default :
 				throw new CIVLInternalException(
 						"Unknown civlc function: " + functionName, source);

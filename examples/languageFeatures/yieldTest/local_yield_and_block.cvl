@@ -1,0 +1,25 @@
+/*  Threads t0 and t1 are all wrapped in $local_begin and $local_end.
+    With $yield, both interleaves: t0 first then t1 and the other way
+    around will be explored by CIVL.  However, since t1 will be
+    blocked until t0 terminates. The final value of x is still
+    deterministic.
+ */
+
+int x = -1;
+int y = 0;
+void thread(int tid) {
+  $local_start();
+  if (tid == 1)
+    $when(y == 1);
+  x = tid;
+  $yield();
+  if (tid == 0)
+    y = 1;
+  $local_end();
+}
+
+int main() {
+  $parfor (int i : 0 .. 1)
+    thread(i);
+  $assert(x == 1);
+}

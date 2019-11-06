@@ -1,0 +1,20 @@
+/*  Threads t0 and t1 are all wrapped in $local_begin and $local_end.
+    With $yield, both interleaves: t0 first then t1 and the other way
+    around will be explored by CIVL.  Hence the assertion violation
+    will be found.
+ */
+
+int x = -1;
+
+void thread(int tid) {
+  $local_start();
+  $yield();
+  x = tid;
+  $local_end();
+}
+
+int main() {
+  $parfor (int i : 0 .. 1)
+    thread(i);
+  $assert(x == 1);
+}

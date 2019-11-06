@@ -35,6 +35,11 @@ public class LanguageFeaturesTest {
 		return new File(rootDir, name).getPath();
 	}
 
+	private static String yieldTestfilename(String name) {
+		return new File(new File(rootDir, "yieldTest"), name)
+				.getPath();
+	}
+
 	/* **************************** Test Methods *************************** */
 
 	@Test
@@ -862,6 +867,32 @@ public class LanguageFeaturesTest {
 	public void sizeofBadTest() {
 		assertFalse(ui.run(VERIFY, QUIET, filename("sizeofTestBad.cvl")));
 	}
+
+	@Test
+	public void localNoYield() {
+		assertTrue(
+				ui.run(VERIFY, QUIET,
+						yieldTestfilename("local_no_yield.cvl")));
+	}
+
+	@Test
+	public void localAndYield() {
+		assertFalse(ui.run(VERIFY, QUIET,
+				yieldTestfilename("local_and_yield.cvl")));
+	}
+
+	@Test
+	public void localYieldAndBlock() {
+		assertTrue(ui.run(VERIFY, QUIET,
+				yieldTestfilename("local_yield_and_block.cvl")));
+	}
+
+	@Test
+	public void yieldPurelyLocal() {
+		assertTrue(ui.run(VERIFY, QUIET,
+				yieldTestfilename("yield_purely_local.cvl")));
+	}
+
 
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
