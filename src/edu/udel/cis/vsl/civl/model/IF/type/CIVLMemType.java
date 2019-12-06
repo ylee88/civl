@@ -6,16 +6,14 @@ import java.util.function.Function;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.UnaryOperator;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
+import edu.udel.cis.vsl.sarl.IF.expr.valueSetReference.ValueSetReference;
+import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
 
 /**
  * <p>
- * A {@link CIVLType} representing a set of pointers. Note that there is no
- * implicit conversion between a {@link CIVLPointerType} and a
- * {@link CIVLMemType}.
+ * A {@link CIVLType} representing a set of memory locations.
  * </p>
- * 
  * @author ziqingluo
- *
  */
 public interface CIVLMemType extends CIVLSetType {
 
@@ -62,9 +60,11 @@ public interface CIVLMemType extends CIVLSetType {
 		 * declared
 		 */
 		SymbolicExpression scopeValue();
+
 		/**
-		 * A {@link ValueSetTemplate} that provides references to sub-values of
-		 * the variable
+		 * A {@link SymbolicUniverse#valueSetTemplate(SymbolicType,
+		 * ValueSetReference[])} that provides references to sub-values of the
+		 * variable
 		 */
 		SymbolicExpression valueSetTemplate();
 	}
