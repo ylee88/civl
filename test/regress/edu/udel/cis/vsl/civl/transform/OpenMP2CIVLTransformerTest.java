@@ -45,33 +45,33 @@ public class OpenMP2CIVLTransformerTest {
 
 	/* **************************** Test Methods *************************** */
 
-	@Ignore // @Test
+	@Test
 	public void atomicReadWrite() {
 		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, QUIET,
 				atomicFilename("atomic_read_write.c")));
 	}
 
-	@Ignore // @Test
+	@Test
 	public void atomicDefault() {
 		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, QUIET,
 				atomicFilename("atomic_default.c")));
 	}
 
-	@Ignore // @Test
+	@Test
 	public void atomicUpdate() {
 		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, QUIET,
 				atomicFilename("atomic_update.c")));
 	}
 
-	@Ignore
+	@Test
 	public void atomicReadWriteDot() {
-		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, "-showProgram", // QUIET,
+		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, QUIET,
 				atomicFilename("atomic_read_write_dot.c")));
 	}
 
-	@Ignore
+	@Test
 	public void atomicReadWriteArray() {
-		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, "-showProgram", // QUIET,
+		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, QUIET,
 				atomicFilename("atomic_read_write_array.c")));
 	}
 
@@ -154,7 +154,7 @@ public class OpenMP2CIVLTransformerTest {
 
 	@Test
 	public void omp_reduce_bad_undecl_id() {
-		assertFalse(ui.run(VERIFY, QUIET, OMP_NO_SIMP, OMP_THREAD_TWO,
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
 				filename(simpleDir, "omp_reduce_bad.c")));
 	}
 
@@ -166,80 +166,110 @@ public class OpenMP2CIVLTransformerTest {
 
 	@Test
 	public void new_transform_manual_DRB028() {
-		assertFalse(ui.run(VERIFY, QUIET, "-DNTHREADS=10", QUIET,
+		assertFalse(ui.run(VERIFY, "-DNTHREADS=10", QUIET,
 				filename(transformDir, "DRB028_manual_transform.cvl")));
 	}
 
 	@Test
 	public void omp_parallel() {
-		assertTrue(ui.run(VERIFY, QUIET, OMP_NO_SIMP, OMP_THREAD_TEN,
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TEN, QUIET,
 				filename(transformDir, "omp_parallel.c")));
 	}
 
 	@Test
 	public void omp_parallel_arr() {
-		assertTrue(ui.run(VERIFY, QUIET, OMP_NO_SIMP, OMP_THREAD_TEN,
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TEN, QUIET,
 				filename(transformDir, "omp_parallel_arr.c")));
 	}
 
 	@Test
 	public void omp_parallel_arr_bad() {
-		assertFalse(ui.run(VERIFY, QUIET, OMP_NO_SIMP, OMP_THREAD_TEN, BAD,
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TEN, BAD, QUIET,
 				filename(transformDir, "omp_parallel_arr.c")));
 	}
 
 	@Test
 	public void omp_parallel_func() {
-		assertTrue(ui.run(VERIFY, QUIET, OMP_NO_SIMP, OMP_THREAD_TEN,
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TEN, QUIET,
 				filename(transformDir, "omp_parallel_func.c")));
 	}
 
 	@Test
 	public void omp_parallel_func_bad() {
-		assertFalse(ui.run(VERIFY, QUIET, OMP_NO_SIMP, OMP_THREAD_TEN, BAD,
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TEN, BAD, QUIET,
 				filename(transformDir, "omp_parallel_func.c")));
 	}
 
 	@Test
 	public void omp_parallel_ptr() {
-		assertTrue(ui.run(VERIFY, QUIET, OMP_NO_SIMP, OMP_THREAD_TEN,
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TEN, QUIET,
 				filename(transformDir, "omp_parallel_ptr.c")));
 	}
 
 	@Test
 	public void omp_parallel_ptr_bad() {
-		assertFalse(ui.run(VERIFY, QUIET, OMP_NO_SIMP, OMP_THREAD_TEN, BAD,
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TEN, BAD, QUIET,
 				filename(transformDir, "omp_parallel_ptr.c")));
 	}
 
 	@Test
 	public void omp_parallel_ptr_bad2() {
-		assertFalse(ui.run(VERIFY, QUIET, OMP_NO_SIMP, OMP_THREAD_TEN,
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TEN, QUIET,
 				filename(transformDir, "omp_parallel_ptr_bad.c")));
 	}
 
 	@Test
 	public void omp_reduction_parallel() {
-		assertTrue(ui.run(VERIFY, QUIET, OMP_NO_SIMP, OMP_THREAD_TEN,
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TEN, QUIET,
 				filename(transformDir, "omp_reduction_parallel.c")));
 	}
 
 	@Test
 	public void omp_reduction_parallel_for() {
-		assertTrue(ui.run(VERIFY, QUIET, OMP_NO_SIMP, OMP_THREAD_TEN,
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TEN, QUIET,
 				filename(transformDir, "omp_reduction_parallel_for.c")));
 	}
 
 	@Test
 	public void omp_sections() {
-		assertTrue(ui.run(VERIFY, QUIET, OMP_NO_SIMP, OMP_THREAD_TEN,
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TEN, QUIET,
 				filename(transformDir, "omp_sections.c")));
 	}
 
 	@Test
 	public void omp_sections_bad() {
-		assertFalse(ui.run(VERIFY, QUIET, OMP_NO_SIMP, OMP_THREAD_TEN, BAD,
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TEN, BAD, QUIET,
 				filename(transformDir, "omp_sections.c")));
+	}
+
+	@Test
+	public void omp_loop_ordered_collapse() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				filename(transformDir, "omp_loop_ordered_collapse.c")));
+	}
+
+	@Test
+	public void omp_simple_lock() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				filename(transformDir, "omp_simple_lock.c")));
+	}
+
+	@Test
+	public void omp_simple_lock_bad() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, BAD, QUIET,
+				filename(transformDir, "omp_simple_lock.c")));
+	}
+
+	@Test
+	public void omp_simple_atomic() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				filename(transformDir, "omp_atomic.c")));
+	}
+
+	@Test
+	public void omp_simple_atomic_bad() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, BAD, QUIET,
+				filename(transformDir, "omp_atomic.c")));
 	}
 
 	@AfterClass

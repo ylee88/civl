@@ -68,6 +68,9 @@ struct OMP_team {
   $barrier barrier;
 };
 
+struct OMP_HELPER_SIGNAL {
+  int value;
+};
 
 /* *********************** Functions *********************** */
 
@@ -331,45 +334,69 @@ void $omp_flush_all($omp_team team) {
    }
 }
 
-void $omp_barrier($omp_team team){
-  $barrier_call(team->barrier);
-}
-
 void $check_data_race($omp_team team) {
   int cur_tid = team->tid;
   $mem out_s0 = $mem_empty();
   $mem out_s1 = $mem_empty();
-  $mem cur_mr = team->gteam->read_sets[cur_tid];
-  $mem cur_mw = team->gteam->write_sets[cur_tid];
+  $mem cur_mw = $write_set_pop();
+  $mem cur_mr = $read_set_pop();
   
-  for (int tmp_tid = 0; tmp_tid < team->gteam->nthreads; tmp_tid++) {
-    if (cur_tid == tmp_tid) continue;
-    
+  // Update current R/W sets
+  team->gteam->write_sets[cur_tid] = cur_mw;
+  team->gteam->read_sets[cur_tid] = cur_mr;
+  // Check data race.
+  for (int tmp_tid = cur_tid+1; tmp_tid < team->gteam->nthreads; tmp_tid++) {    
     $mem tmp_mr = team->gteam->read_sets[tmp_tid];
     $mem tmp_mw = team->gteam->write_sets[tmp_tid];
     
     $assert($mem_no_intersect(cur_mr, tmp_mw, &out_s0, &out_s1), 
-              "%p read by thread %d intersects %p written by thread %d\n",
+              "Data-race detected: %p read by thread %d intersects %p written by thread %d\n",
 	          out_s0, cur_tid, out_s1, tmp_tid);
     $assert($mem_no_intersect(cur_mw, tmp_mr, &out_s0, &out_s1), 
-              "%p read by thread %d intersects %p written by thread %d\n",
+              "Data-race detected: %p read by thread %d intersects %p written by thread %d\n",
 	          out_s0, cur_tid, out_s1, tmp_tid);
     $assert($mem_no_intersect(cur_mw, tmp_mw, &out_s0, &out_s1), 
-              "%p written by thread %d intersects %p written by thread %d\n",
+              "Data-race detected: %p written by thread %d intersects %p written by thread %d\n",
 	          out_s0, cur_tid, out_s1, tmp_tid);
   }
+  // Update current R/W sets
+  team->gteam->write_sets[cur_tid] = $mem_empty();
+  team->gteam->read_sets[cur_tid] = $mem_empty();
+  $read_set_push();
+  $write_set_push();
 }
 
-void $omp_barrier_and_flush($omp_team team) {
-  $mem mw = $write_set_pop();
-  $mem mr = $read_set_pop();
-  team->gteam->write_sets[team->tid] = mw;
-  team->gteam->read_sets[team->tid] = mr;
-  $check_data_race(team);
-  // this is a collective operation: all members of team call
+void $read_and_write_set_update($omp_team team) {
+  team->gteam->write_sets[team->tid] = $write_set_peek();
+  team->gteam->read_sets[team->tid] = $read_set_peek();
+}
+
+void $omp_barrier($omp_team team) {
+  $mem cur_mw = $write_set_pop();
+  $mem cur_mr = $read_set_pop();
+  $mem out_s0 = $mem_empty();
+  $mem out_s1 = $mem_empty();
+  int cur_tid = team->tid;  
+
+  team->gteam->write_sets[cur_tid] = cur_mw;
+  team->gteam->read_sets[cur_tid] = cur_mr;
   $barrier_call(team->barrier);
-  $omp_flush_all(team);
+  for (int tmp_tid = cur_tid+1; tmp_tid < team->gteam->nthreads; tmp_tid++) {    
+    $mem tmp_mr = team->gteam->read_sets[tmp_tid];
+    $mem tmp_mw = team->gteam->write_sets[tmp_tid];
+    
+    $assert($mem_no_intersect(cur_mr, tmp_mw, &out_s0, &out_s1), 
+              "Data-race detected: %p read by thread %d intersects %p written by thread %d\n",
+	          out_s0, cur_tid, out_s1, tmp_tid);
+    $assert($mem_no_intersect(cur_mw, tmp_mr, &out_s0, &out_s1), 
+              "Data-race detected: %p read by thread %d intersects %p written by thread %d\n",
+	          out_s0, cur_tid, out_s1, tmp_tid);
+    $assert($mem_no_intersect(cur_mw, tmp_mw, &out_s0, &out_s1), 
+              "Data-race detected: %p written by thread %d intersects %p written by thread %d\n",
+	          out_s0, cur_tid, out_s1, tmp_tid);
+  }
   $barrier_call(team->barrier);
+  
   $read_set_push();
   $write_set_push();
 }
@@ -554,5 +581,30 @@ $domain(1) $omp_arrive_sections($omp_team team, int location, int numSections){
     }
     return 0;
   }
+}
+
+$atomic_f $omp_helper_signal $omp_helper_signal_create(
+  int initValue
+){
+  $omp_helper_signal result;
+  result.value = initValue;
+  
+  return result;
+}
+
+$atomic_f void $omp_helper_signal_wait(
+  $omp_helper_signal *signal, int waitValue
+){
+  $when(signal->value == waitValue) /* do nothing */;
+}
+
+$atomic_f void $omp_helper_signal_send(
+  $omp_helper_signal *signal, int sendValue
+){
+  $read_set_push();
+  $write_set_push();
+  signal->value = sendValue;
+  $read_set_pop();
+  $write_set_pop();
 }
 

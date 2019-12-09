@@ -86,7 +86,7 @@ int main() {
       a[i] = tmp;
     }
     capture_end(_tid);                  // end monitoring
-    $omp_barrier(team);                  // implicit at end of parallel region
+    $barrier_call(team->barrier);       // implicit at end of parallel region
     $local_end(); 
     if (_tid == 0)
       check_data_race();

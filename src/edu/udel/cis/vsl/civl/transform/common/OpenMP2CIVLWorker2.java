@@ -11,6 +11,7 @@ import java.util.Stack;
 
 import edu.udel.cis.vsl.abc.ast.IF.AST;
 import edu.udel.cis.vsl.abc.ast.IF.ASTFactory;
+import edu.udel.cis.vsl.abc.ast.entity.IF.Entity;
 import edu.udel.cis.vsl.abc.ast.entity.IF.Variable;
 import edu.udel.cis.vsl.abc.ast.node.IF.ASTNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.ASTNode.NodeKind;
@@ -22,7 +23,6 @@ import edu.udel.cis.vsl.abc.ast.node.IF.compound.CompoundInitializerNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.compound.DesignationNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.declaration.InitializerNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.declaration.VariableDeclarationNode;
-import edu.udel.cis.vsl.abc.ast.node.IF.expression.CastNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.ExpressionNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.FunctionCallNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.IdentifierExpressionNode;
@@ -85,11 +85,18 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 	static private final int INDEX_TMP_DECLS = 1;
 	static private final int INDEX_RDC_INITS = 0;
 	static private final int INDEX_RDC_COMBS = 1;
+	static private final int ID_MASTER_THREAD = 0;
 	/* OpenMP variable identifiers used */
+	// function/type identifier prefix
+	static private final String SIGN_DOLLAR = "$";
 	// variable identifier prefix
 	static private final String _OMP_ = "_omp_";
+	static private final String ATOMIC_ = _OMP_ + "atomic_";
 	static private final String FIRSTPRIVATE_ = _OMP_ + "fstpvt_";
 	static private final String REDUCTION_ = _OMP_ + "reduction_";
+	static private final String CRITICAL_ = _OMP_ + "critical_";
+	// variable identifier suffix
+	static private final String _NEXT = "_next";
 	// commonly used variable identifiers
 	static private final String DOM = _OMP_ + "dom";
 	static private final String GTEAM = _OMP_ + "gteam";
@@ -104,37 +111,52 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 	// Construct loops
 	static private final String DOM_LOOP = _OMP_ + "loop_domain";
 	static private final String LOOP_DIST = _OMP_ + "loop_dist";
+	static private final String ORDERED = _OMP_ + "ordered";
 	// Construct sections
 	static private final String SECTIONS_DIST = _OMP_ + "sections_dist";
 	/** The variable name representing the OpenMP section block id */
 	static private final String SID = _OMP_ + "sid";
 	// Construct single
 	static private final String SINGLE_DIST = _OMP_ + "single_dist";
+	// Construct critical
+	static private final String NAME_CRITICAL_UNSPEC = "";
 	// clauses
 
+	/* OpenMP helper types */
+	static private final String OMP_HELPER_SIGNAL = "$omp_helper_signal";
 	/* OpenMP function identifier */
 	static private final String OMP_GET_MAX_THREADS = "omp_get_max_threads";
 	static private final String OMP_GET_NUM_PROCS = "omp_get_num_procs";
 	static private final String OMP_GET_NUM_THREADS = "omp_get_num_threads";
 	static private final String OMP_GET_THREAD_NUM = "omp_get_thread_num";
 	static private final String OMP_SET_NUM_THREADS = "omp_set_num_threads";
+	static private final String OMP_SET_LOCK = "omp_set_lock";
+	static private final String OMP_SET_NEST_LOCK = "omp_set_nest_lock";
+	static private final String OMP_TEST_LOCK = "omp_test_lock";
+	static private final String OMP_TEST_NEST_LOCK = "omp_test_nest_lock";
+	static private final String OMP_UNSET_LOCK = "omp_unset_lock";
+	static private final String OMP_UNSET_NEST_LOCK = "omp_unset_nest_lock";
 	/* CIVL OpenMP verification helper function identifiers */
+	static private final String CHECK_DATA_RACE = "$check_data_race";
 	static private final String LOCAL_START = "$local_start";
 	static private final String LOCAL_END = "$local_end";
 	static private final String OMP_ARRIVE_SECTIONS = "$omp_arrive_sections";
 	static private final String OMP_ARRIVE_SINGLE = "$omp_arrive_single";
-	static private final String OMP_BARRIER_AND_FLUSH = "$omp_barrier_and_flush";
+	static private final String OMP_BARRIER = "$omp_barrier";
 	static private final String OMP_GTEAM_CREATE = "$omp_gteam_create";
 	static private final String OMP_GTEAM_DESTROY = "$omp_gteam_destroy";
+	static private final String OMP_HELPER_SIGNAL_CREATE = "$omp_helper_signal_create";
+	static private final String OMP_HELPER_SIGNAL_WAIT = "$omp_helper_signal_wait";
+	static private final String OMP_HELPER_SIGNAL_SEND = "$omp_helper_signal_send";
 	static private final String OMP_REDUCTION_COMBINE = "$omp_reduction_combine";
 	static private final String OMP_TEAM_CREATE = "$omp_team_create";
 	static private final String OMP_TEAM_DESTROY = "$omp_team_destroy";
+	static private final String READ_AND_WRITE_SET_UPDATE = "$read_and_write_set_update";
 	static private final String READ_SET_POP = "$read_set_pop";
 	static private final String READ_SET_PUSH = "$read_set_push";
 	static private final String WRITE_SET_POP = "$write_set_pop";
 	static private final String WRITE_SET_PUSH = "$write_set_push";
-
-	Map<String, VariableDeclarationNode> reductionId2TempDecls;
+	static private final String YIELD = "$yield";
 
 	static private final NodePredicate PREDICATE_BARRIER_AND_FLUSH = new NodePredicate() {
 		@Override
@@ -149,7 +171,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 
 					if (func instanceof IdentifierExpressionNode)
 						return ((IdentifierExpressionNode) func).getIdentifier()
-								.name().equals(OMP_BARRIER_AND_FLUSH);
+								.name().equals(OMP_BARRIER);
 				}
 			}
 			return false;
@@ -185,13 +207,22 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 	private int ctrOmpArriveSingle = 0;
 	/** A counter for OpenMP reduction items */
 	private int ctrOmpReductionItem = 0;
+	/** A counter for OpenMP ordered construct */
+	private int ctrOmpOrdered = 0;
 
 	private int levelParallel = 0;
+
+	/** is the binding region specified with <code>ordered(concurrent)</code> */
+	private boolean orderConcurrent = false;
+
+	private boolean hasAtomicConstruct = false;
 
 	/**
 	 * The stack storing current omp region information.
 	 */
 	private Stack<OmpRegion> ompRgn = new Stack<>();
+
+	private Stack<ArrayList<OmpLoopInfo>> bindingLoopInfosRecords = new Stack<>();
 
 	/**
 	 * The root node of the input AST.
@@ -201,7 +232,13 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 	/**
 	 * A list of critical variable name for critical sections encountered
 	 */
-	private List<String> criticalVarNames = new ArrayList<>();
+	private Set<String> criticalNames = new HashSet<>();
+
+	private List<BlockItemNode> globalVarDecls = new LinkedList<>();
+
+	private List<BlockItemNode> signalCreates = new LinkedList<>();
+
+	Map<String, VariableDeclarationNode> reductionId2TempDecls;
 
 	// Constructors
 	/**
@@ -221,67 +258,221 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 	}
 
 	// Helper Functions or methods
+
 	/**
-	 * Return a list of {@link BlockItemNode} representing:<br>
-	 * <code>$read_set_pop;</code><br>
-	 * <code>$write_set_pop;</code>
+	 * Returns a list of {@link ExpressionNode}
+	 * <p>
+	 * 1. if (a) the given <code>expr</code> is an {@link OperatorNode}, <br>
+	 * (b) its {@link Operator} is any of following ones:
+	 * {@link Operator#POSTDECREMENT}, {@link Operator#POSTINCREMENT},
+	 * {@link Operator#PREDECREMENT}, {@link Operator#PREINCREMENT} <br>
+	 * and (c) the operand expression has a scalar type, <br>
+	 * then returns a size-<strong>1</strong> list containing the exact operand
+	 * expression.
+	 * </p>
+	 * <p>
+	 * 2. if (a) the given <code>expr</code> is an {@link OperatorNode}, <br>
+	 * (b) its {@link Operator} is {@link Operator#ASSIGN}, <br>
+	 * (c) the left hand side expression is not in the right hand side,<br>
+	 * and (d) both sides have scalar types, <br>
+	 * then, returns a size-<strong>2</strong> list containing both left and
+	 * right hand side expressions.
+	 * </p>
+	 * <p>
+	 * 2. if (a) the given <code>expr</code> is an {@link OperatorNode}, <br>
+	 * (b) its {@link Operator} is any of following binary-assign-operators:
+	 * {@link Operator#BITANDEQ}, {@link Operator#BITOREQ},
+	 * {@link Operator#BITXOREQ}, {@link Operator#DIVEQ},
+	 * {@link Operator#MINUSEQ}, {@link Operator#PLUSEQ},
+	 * {@link Operator#SHIFTLEFTEQ}, {@link Operator#SHIFTRIGHTEQ},
+	 * {@link Operator#TIMESEQ} <br>
+	 * and (c) both sides have scalar types, <br>
+	 * then, returns a size-<strong>3</strong> list as {x, x.copy, expr}
+	 * </p>
+	 * <p>
+	 * 4. if (a) the given <code>expr</code> is an {@link OperatorNode}, <br>
+	 * (b) its {@link Operator} is {@link Operator#ASSIGN}, <br>
+	 * (c) the left hand side expression immediately appears in the right hand
+	 * side expression as: <code>x = x bin-op expr</code> or
+	 * <code>x = expr bin-op x</code><br>
+	 * and (d) both <code>x</code> and <code>expr</code> have scalar types, <br>
+	 * then returns a size-<strong>3</strong> list as {x, x, expr}
+	 * </p>
+	 * <p>
+	 * 4. if the given <code>expr</code> does <strong>NOT</strong> satisfy any
+	 * conditions listed above, <br>
+	 * then returns an empty list, whose size is <strong>0</strong>
+	 * </p>
+	 * 
+	 * @param expr
+	 *            the expression required to be analyzed.
+	 * @return see above
+	 */
+	private List<ExpressionNode> analyzeExprAssignScalar(ExpressionNode expr) {
+		List<ExpressionNode> args = new LinkedList<>();
+
+		if (expr instanceof OperatorNode) {
+			OperatorNode opExpr = (OperatorNode) expr;
+			ExpressionNode lhs = null;
+			ExpressionNode rhs = null;
+
+			switch (opExpr.getOperator()) {
+				case POSTDECREMENT :
+				case POSTINCREMENT :
+				case PREDECREMENT :
+				case PREINCREMENT :
+					lhs = opExpr.getArgument(0);
+					if (lhs.getType().isScalar())
+						// Cond.1, 'args' is: {x}
+						args.add(lhs);
+					return args;
+				case ASSIGN :
+					lhs = opExpr.getArgument(0);
+					rhs = opExpr.getArgument(1);
+
+					if (lhs.getType().isScalar() && rhs.getType().isScalar()) {
+						if (rhs instanceof OperatorNode) {
+							// x = x bin-op expr
+							// x = expr bin-op x
+							opExpr = (OperatorNode) rhs;
+
+							switch (opExpr.getOperator()) {
+								case BITAND :
+								case BITOR :
+								case BITXOR :
+								case DIV :
+								case MINUS :
+								case PLUS :
+								case SHIFTLEFT :
+								case SHIFTRIGHT :
+								case TIMES :
+									ExpressionNode xExpr = lhs;
+
+									lhs = opExpr.getArgument(0);
+									rhs = opExpr.getArgument(1);
+									if (verifyExprSameEntity(xExpr, lhs)) {
+										// x = x bin-op expr
+										args.add(xExpr); // x
+										args.add(lhs); // x
+										args.add(rhs); // expr
+										return args;
+									}
+									if (verifyExprSameEntity(xExpr, rhs)) {
+										// x = expr bin-op x
+										args.add(xExpr); // x
+										args.add(rhs); // x
+										args.add(lhs); // expr
+										return args;
+									}
+									// x = expr (and x is not in expr)
+									args.add(xExpr);
+									args.add(opExpr);
+									return args;
+								default :
+							}
+						}
+						// v = x OR x = expr
+						args.add(lhs); // v or x
+						args.add(rhs); // x or expr
+					}
+					return args;
+				case BITANDEQ :
+				case BITOREQ :
+				case BITXOREQ :
+				case DIVEQ :
+				case MINUSEQ :
+				case PLUSEQ :
+				case SHIFTLEFTEQ :
+				case SHIFTRIGHTEQ :
+				case TIMESEQ :
+					lhs = opExpr.getArgument(0);
+					rhs = opExpr.getArgument(1);
+
+					if (lhs.getType().isScalar() && rhs.getType().isScalar()) {
+						// x bin-op = expr
+						args.add(lhs); // x
+						args.add(lhs.copy()); // x.copy
+						args.add(rhs); // expr
+					}
+					return args;
+				default :
+			}
+		}
+		return args;
+	}
+
+	/** returns: <code>$check_data_race(_omp_team);</code> */
+	private BlockItemNode callCheckDataRace(String srcMethod) {
+		return nodeStmtCall(srcMethod, CHECK_DATA_RACE,
+				nodeExprId(srcMethod, TEAM));
+	}
+
+	/** returns: <code>$omp_barrier(_omp_team);</code> */
+	private BlockItemNode callOmpBarrier(String srcMethod) {
+		return nodeStmtCall(srcMethod, OMP_BARRIER,
+				nodeExprId(srcMethod, TEAM));
+	}
+
+	/** returns: <code>$omp_helper_signal_wait(&signalName, value);</code> */
+	private StatementNode callSignalWait(String srcMethod, String signalName,
+			int value) {
+		return nodeStmtCall(srcMethod, OMP_HELPER_SIGNAL_WAIT,
+				nodeExprAddrOf(srcMethod, nodeExprId(srcMethod, signalName)),
+				nodeExprInt(srcMethod, value));
+	}
+
+	/** returns: <code>$omp_helper_signal_wait(&signalName, value);</code> */
+	private StatementNode callSignalSend(String srcMethod, String signalName,
+			int value) {
+		return nodeStmtCall(srcMethod, OMP_HELPER_SIGNAL_SEND,
+				nodeExprAddrOf(srcMethod, nodeExprId(srcMethod, signalName)),
+				nodeExprInt(srcMethod, value));
+	}
+
+	/**
+	 * Return {@link BlockItemNode}s representing:<br>
+	 * <code>$read_set_pop();</code><br>
+	 * <code>$write_set_pop();</code>
 	 * 
 	 * @param srcMethod
 	 *            Dummy {@link Source} information based on caller name
-	 * @return see abvoe
+	 * @return see above
 	 */
 	private List<BlockItemNode> callRWSetPop(String srcMethod) {
-		return Arrays.asList(
-				nodeFactory.newExpressionStatementNode(nodeExprCall(srcMethod,
-						READ_SET_POP, new LinkedList<>())),
-				nodeFactory.newExpressionStatementNode(nodeExprCall(srcMethod,
-						WRITE_SET_POP, new LinkedList<>())));
+		return Arrays.asList(//
+				nodeStmtCall(srcMethod, READ_SET_POP),
+				nodeStmtCall(srcMethod, WRITE_SET_POP));
 	}
 
 	/**
 	 * Return a list of {@link BlockItemNode} representing:<br>
-	 * <code>$read_set_push;</code><br>
-	 * <code>$write_set_push;</code>
+	 * <code>$read_set_push();</code><br>
+	 * <code>$write_set_push();</code>
 	 * 
 	 * @param srcMethod
 	 *            Dummy {@link Source} information based on caller name
-	 * @return see abvoe
+	 * @return see above
 	 */
 	private List<BlockItemNode> callRWSetPush(String srcMethod) {
-		return Arrays.asList(
-				nodeFactory.newExpressionStatementNode(nodeExprCall(srcMethod,
-						READ_SET_PUSH, new LinkedList<>())),
-				nodeFactory.newExpressionStatementNode(nodeExprCall(srcMethod,
-						WRITE_SET_PUSH, new LinkedList<>())));
+		return Arrays.asList(//
+				nodeStmtCall(srcMethod, READ_SET_PUSH),
+				nodeStmtCall(srcMethod, WRITE_SET_PUSH));
 	}
 
 	/**
-	 * Return {@link VariableDeclarationNode} representing:<br>
-	 * <code>_Bool /criticalVariableName/ = false;</code>
+	 * Return a list of {@link BlockItemNode} representing:<br>
+	 * <code>$read_and_write_set_update(team);</code><br>
+	 * <code>$yield();</code>
 	 * 
 	 * @param srcMethod
 	 *            Dummy {@link Source} information based on caller name
-	 * @param criticalVariableName
-	 *            The name of a critical variable for a critical section
-	 *            encountered.
-	 * @return See above
+	 * @return see above
 	 */
-	private VariableDeclarationNode declOmpCriticalVar(String srcMethod,
-			String criticalVariableName) {
-		// type: $omp_gteam
-		TypeNode typeBool = nodeFactory.newBasicTypeNode(
-				newSource(srcMethod, CivlcTokenConstant.BOOL),
-				BasicTypeKind.BOOL);
-		// id: criticalVariableName
-		IdentifierNode cvId = nodeIdent(srcMethod, criticalVariableName);
-		// init: false
-		InitializerNode init = nodeFactory.newBooleanConstantNode(
-				newSource(srcMethod, CivlcTokenConstant.INTEGER_CONSTANT),
-				false);
-
-		return nodeFactory.newVariableDeclarationNode(
-				newSource(srcMethod, CivlcTokenConstant.DECLARATION), //
-				cvId, typeBool, init);
+	private List<BlockItemNode> callYield(String srcMethod) {
+		return Arrays.asList(//
+				nodeStmtCall(srcMethod, READ_AND_WRITE_SET_UPDATE,
+						nodeExprId(srcMethod, TEAM)),
+				nodeStmtCall(srcMethod, YIELD));
 	}
 
 	/**
@@ -305,12 +496,12 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		// init: ($domain(collapse))$omp_arrive_loop(
 		// team, FOR_LOC++, _omp_loop_domain, STRATEGY);
 		ExpressionNode init = nodeExprCast(srcMethod, typeDom.copy(),
-				nodeExprCall(srcMethod, "$omp_arrive_loop", Arrays.asList(
+				nodeExprCall(srcMethod, "$omp_arrive_loop",
 						nodeExprId(srcMethod, TEAM),
 						nodeExprInt(srcMethod, ctrOmpArriveLoop++),
 						nodeExprCast(srcMethod, nodeTypeDom(srcMethod, 0),
 								nodeExprId(srcMethod, DOM_LOOP)),
-						nodeExprInt(srcMethod, config.ompLoopDecomp()))));
+						nodeExprInt(srcMethod, config.ompLoopDecomp())));
 
 		return nodeFactory.newVariableDeclarationNode(
 				newSource(srcMethod, CivlcTokenConstant.DECLARATION),
@@ -338,10 +529,10 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		// init: ($domain(collapse))$omp_arrive_loop(
 		// team, FOR_LOC++, _omp_loop_domain, STRATEGY);
 		ExpressionNode init = nodeExprCast(srcMethod, typeDom.copy(),
-				nodeExprCall(srcMethod, OMP_ARRIVE_SECTIONS, Arrays.asList(//
+				nodeExprCall(srcMethod, OMP_ARRIVE_SECTIONS,
 						nodeExprId(srcMethod, TEAM),
 						nodeExprInt(srcMethod, ctrOmpArriveSections++),
-						nodeExprInt(srcMethod, numSection))));
+						nodeExprInt(srcMethod, numSection)));
 
 		return nodeFactory.newVariableDeclarationNode(
 				newSource(srcMethod, CivlcTokenConstant.DECLARATION),
@@ -363,9 +554,8 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		IdentifierNode _omp_single_dist = nodeIdent(srcMethod, SINGLE_DIST);
 		// init: $omp_arrive_single(team, single_id++);
 		ExpressionNode init = nodeExprCall(srcMethod, OMP_ARRIVE_SINGLE,
-				Arrays.asList(//
-						nodeExprId(srcMethod, TEAM),
-						nodeExprInt(srcMethod, ctrOmpArriveSingle++)));
+				nodeExprId(srcMethod, TEAM),
+				nodeExprInt(srcMethod, ctrOmpArriveSingle++));
 
 		return nodeFactory.newVariableDeclarationNode(
 				newSource(srcMethod, CivlcTokenConstant.DECLARATION),
@@ -448,10 +638,9 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		IdentifierNode _omp_gteam = nodeIdent(srcMethod, GTEAM);
 		// init: $omp_gteam_create($here, nthreads)
 		InitializerNode init = nodeExprCall(srcMethod, OMP_GTEAM_CREATE,
-				Arrays.asList(
-						nodeFactory.newHereNode(
-								newSource(srcMethod, CivlcTokenConstant.HERE)),
-						nodeExprId(srcMethod, NTHREADS)));
+				nodeFactory.newHereNode(
+						newSource(srcMethod, CivlcTokenConstant.HERE)),
+				nodeExprId(srcMethod, NTHREADS));
 
 		return nodeFactory.newVariableDeclarationNode(
 				newSource(srcMethod, CivlcTokenConstant.DECLARATION), //
@@ -460,26 +649,88 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 
 	/**
 	 * Return {@link VariableDeclarationNode} representing:<br>
-	 * <code>int _omp_nthreads = 1+$choose_int(_omp_num_threads);</code>
+	 * <code>$omp_helper_signal /signalName/ = $omp_helper_signal_create(/initExpr/);</code>
+	 * 
+	 * @param srcMethod
+	 *            Dummy {@link Source} information based on caller name
+	 * @param signalName
+	 *            The name of a <code>critical</code> signal struct variable for
+	 *            a critical section encountered.
+	 * @param initExpr
+	 *            the initialization expression used as the argument for the
+	 *            function <code>$omp_helper_signal_create</code>.
+	 * @return See above
+	 */
+	private VariableDeclarationNode declOmpHelperSignal(String srcMethod,
+			String signalName, ExpressionNode initExpr) {
+		// type: $omp_helper_signal
+		TypeNode type = nodeTypeNamed(srcMethod, OMP_HELPER_SIGNAL);
+		// id: /signalName/
+		IdentifierNode id = nodeIdent(srcMethod, signalName);
+		// init: $omp_helper_signal_create(/initExpr/);
+		InitializerNode init = nodeExprCall(srcMethod, OMP_HELPER_SIGNAL_CREATE,
+				initExpr);
+
+		return nodeFactory.newVariableDeclarationNode(
+				newSource(srcMethod, CivlcTokenConstant.DECLARATION), //
+				id, type, init);
+	}
+
+	private List<BlockItemNode> declOmpLoopVarNext(String srcMethod,
+			List<OmpLoopInfo> loopInfos) {
+		List<BlockItemNode> loopVarNextDecls = new LinkedList<>();
+
+		for (OmpLoopInfo info : loopInfos) {
+			TypeNode type = nodeTypeInt(srcMethod);
+			IdentifierNode loop_var_next = nodeIdent(srcMethod,
+					info.loopVarName + _NEXT);
+			InitializerNode init = nodeFactory.newOperatorNode(
+					/* src */ newSource(srcMethod, CivlcTokenConstant.EXPR),
+					/* op */ Operator.PLUS,
+					/* arg0 */ nodeExprId(srcMethod, info.loopVarName),
+					/* arg1 */ info.range.third.copy());
+
+			loopVarNextDecls.add(nodeFactory.newVariableDeclarationNode(
+					newSource(srcMethod, CivlcTokenConstant.DECLARATION),
+					loop_var_next, type, init));
+		}
+		return loopVarNextDecls;
+	}
+
+	/**
+	 * Return {@link VariableDeclarationNode} representing:<br>
+	 * <code>int _omp_nthreads = 1+$choose_int(_omp_num_threads);</code> (if
+	 * there is no explicit num_threads clause declared)<br>
+	 * <code>int _omp_nthreads = _omp_num_threads;</code> (if an explicit
+	 * num_threads clause is declared.)
 	 * 
 	 * @param srcMethod
 	 *            Dummy {@link Source} information based on caller name
 	 * @param numThds
 	 *            The {@link ExpressionNode} for <code>_omp_num_threads</code>
+	 * @param isDeclared
+	 *            <code>true</code> iff an explicit num_threads clause is
+	 *            declared with an exact constant value defining the number of
+	 *            threads.
 	 * @return see above
 	 */
 	private VariableDeclarationNode declOmpNthreads(String srcMethod,
-			ExpressionNode numThds) {
+			ExpressionNode numThds, Boolean isDeclared) {
 		// type: int
 		TypeNode typeInt = nodeTypeInt(srcMethod);
 		// id: _omp_nthreads
 		IdentifierNode _omp_nthreads = nodeIdent(srcMethod, NTHREADS);
+		// init: _omp_num_threads
+		// OR
 		// init: 1+$choose_int(_omp_num_threads)
-		InitializerNode init = nodeFactory.newOperatorNode(
-				/* src */ newSource(srcMethod, CivlcTokenConstant.PLUS),
-				/* op */ Operator.PLUS, /* arg0 */ nodeExprInt(srcMethod, 1),
-				/* arg1 */ nodeExprCall(srcMethod, "$choose_int",
-						Arrays.asList(numThds)));
+		InitializerNode init = isDeclared
+				? numThds
+				: nodeFactory.newOperatorNode(
+						/* src */ newSource(srcMethod, CivlcTokenConstant.EXPR),
+						/* op */ Operator.PLUS,
+						/* arg0 */ nodeExprInt(srcMethod, 1),
+						/* arg1 */ nodeExprCall(srcMethod, "$choose_int",
+								numThds));
 
 		return nodeFactory.newVariableDeclarationNode(
 				newSource(srcMethod, CivlcTokenConstant.DECLARATION), //
@@ -505,6 +756,26 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		return nodeFactory.newVariableDeclarationNode(
 				newSource(srcMethod, CivlcTokenConstant.DECLARATION), //
 				_omp_num_threads, typeInt, init);
+	}
+
+	/**
+	 * Add signal struct variable declarations in global scope for each loop
+	 * variables associated with an ordered clause
+	 * 
+	 * @param srcMethod
+	 *            Dummy {@link Source} information based on caller name
+	 * @param loopInfos
+	 *            a list of {@link OmpLoopInfo}s, each of them contains both
+	 *            lower and upper bounds and the incremental stride for a single
+	 *            associated loop clause
+	 */
+	private void declOmpOrderedSignals(String srcMethod,
+			List<OmpLoopInfo> loopInfos) {
+		for (int i = 0; i < loopInfos.size(); i++) {
+			signalCreates.add(
+					declOmpHelperSignal(srcMethod, ORDERED + (ctrOmpOrdered++),
+							loopInfos.get(i).range.first.copy()));
+		}
 	}
 
 	/**
@@ -548,11 +819,8 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		IdentifierNode _omp_team = nodeIdent(srcMethod, TEAM);
 		// init: $omp_team_create($here, gteam, _tid);
 		InitializerNode init = nodeExprCall(srcMethod, OMP_TEAM_CREATE,
-				Arrays.asList(
-						nodeFactory.newHereNode(
-								newSource(srcMethod, CivlcTokenConstant.HERE)),
-						nodeExprId(srcMethod, GTEAM),
-						nodeExprId(srcMethod, TID)));
+				nodeExprHere(srcMethod), nodeExprId(srcMethod, GTEAM),
+				nodeExprId(srcMethod, TID));
 
 		return nodeFactory.newVariableDeclarationNode(
 				newSource(srcMethod, CivlcTokenConstant.DECLARATION), //
@@ -901,17 +1169,14 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		ForLoopInitializerNode loopInit = nodeFactory.newForLoopInitializerNode(
 				newSource(srcMethod, CivlcTokenConstant.INITIALIZER_LIST),
 				loopVarDecls);
-		// create CIVL loop body: { .. }
-		StatementNode loopBody = nodeFactory.newCompoundStatementNode(
-				newSource(srcMethod, CivlcTokenConstant.COMPOUND_STATEMENT),
-				loopBodyItems);
 
 		// if (isParallel): $parfor(int _omp_tid : _omp_domain) { .. }
 		// else: $for(int loopVar1, .. loopVarX : _omp_loop_dist) { .. }
 		return nodeFactory.newCivlForNode(
 				newSource(srcMethod, CivlcTokenConstant.CIVLFOR), isParallel,
 				(DeclarationListNode) loopInit,
-				nodeExprId(srcMethod, domainVarName), loopBody, null);
+				nodeExprId(srcMethod, domainVarName),
+				nodeBlock(srcMethod, loopBodyItems), null);
 	}
 
 	/**
@@ -953,7 +1218,13 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 						.getEntity().equals(varId.getEntity());
 	}
 
-	/** construct {@link CompoundStatementNode} */
+	/** @return {@link CompoundStatementNode} */
+	private CompoundStatementNode nodeBlock(String srcMethod,
+			BlockItemNode... blockItems) {
+		return nodeBlock(srcMethod, Arrays.asList(blockItems));
+	}
+
+	/** @return {@link CompoundStatementNode} */
 	private CompoundStatementNode nodeBlock(String srcMethod,
 			List<BlockItemNode> blockItems) {
 		return nodeFactory.newCompoundStatementNode(
@@ -961,7 +1232,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 				blockItems);
 	}
 
-	/** construct {@link VariableDeclarationNode} with int type and no init */
+	/** @return {@link VariableDeclarationNode} with int type and no init */
 	private VariableDeclarationNode nodeDeclVarInt(String srcMethod,
 			String varName) {
 		return nodeFactory.newVariableDeclarationNode(
@@ -969,7 +1240,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 				nodeIdent(srcMethod, varName), nodeTypeInt(srcMethod));
 	}
 
-	/** construct {@link ExpressionNode} for <code>&expr</code> */
+	/** @return {@link ExpressionNode} for <code>&expr</code> */
 	private ExpressionNode nodeExprAddrOf(String srcMethod,
 			ExpressionNode expr) {
 		return nodeFactory.newOperatorNode(
@@ -977,22 +1248,28 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 				Operator.ADDRESSOF, Arrays.asList(expr));
 	}
 
-	/** construct {@link FunctionCallNode} */
+	/** @return {@link FunctionCallNode} */
 	private ExpressionNode nodeExprCall(String srcMethod, String funcName,
-			List<ExpressionNode> funcArgs) {
+			ExpressionNode... argExprs) {
 		return nodeFactory.newFunctionCallNode(
 				newSource(srcMethod, CivlcTokenConstant.CALL),
-				nodeExprId(srcMethod, funcName), funcArgs, null);
+				nodeExprId(srcMethod, funcName), Arrays.asList(argExprs), null);
 	}
 
-	/** construct {@link CastNode} */
+	/** @return {@link ExpressionNode}: <code>(type) expr</code> */
 	private ExpressionNode nodeExprCast(String srcMethod, TypeNode type,
 			ExpressionNode expr) {
 		return nodeFactory.newCastNode(
 				newSource(srcMethod, CivlcTokenConstant.CAST), type, expr);
 	}
 
-	/** construct {@link IdentifierExpressionNode} */
+	/** @return {@link ExpressionNode}: <code>$here</code> */
+	private ExpressionNode nodeExprHere(String srcMethod) {
+		return nodeFactory
+				.newHereNode(newSource(srcMethod, CivlcTokenConstant.HERE));
+	}
+
+	/** @return {@link IdentifierExpressionNode} */
 	private ExpressionNode nodeExprId(String srcMethod, String idName) {
 		IdentifierNode ident = nodeIdent(srcMethod, idName);
 
@@ -1000,13 +1277,13 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 				ident);
 	}
 
-	/** construct {@link IntegerConstantNode} */
+	/** @return {@link IntegerConstantNode} */
 	private ExpressionNode nodeExprInt(String srcMethod, int val) {
 		return nodeFactory.newIntConstantNode(
 				newSource(srcMethod, CivlcTokenConstant.INTEGER_CONSTANT), val);
 	}
 
-	/** construct {@link RegularRangeNode} */
+	/** @return {@link RegularRangeNode} */
 	private ExpressionNode nodeExprRange(String srcMethod, ExpressionNode lo,
 			ExpressionNode hi, ExpressionNode step) {
 		if (step == null)
@@ -1018,7 +1295,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 					step);
 	}
 
-	/** construct {@link ExpressionNode} for omp reduction init val */
+	/** @return {@link ExpressionNode} for omp reduction init val */
 	private ExpressionNode nodeExprReductionInit(String srcMethod,
 			OmpReductionOperator reductionOp, TypeNode type) {
 		// TODO: an initial value shall comply with its bonding types
@@ -1057,13 +1334,72 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		}
 	}
 
-	/** construct {@link IdentifierNode} */
+	/** @return {@link IdentifierNode} */
 	private IdentifierNode nodeIdent(String srcMethod, String idName) {
 		return nodeFactory.newIdentifierNode(
 				newSource(srcMethod, CivlcTokenConstant.IDENTIFIER), idName);
 	}
 
-	/** construct CIVL <code>$domain(dim)</code> type node: */
+	/** @return {@link StatementNode} for a function call */
+	private StatementNode nodeStmtCall(String srcMethod, String funcName,
+			ExpressionNode... argExprs) {
+		return nodeFactory.newExpressionStatementNode(
+				nodeExprCall(srcMethod, funcName, argExprs));
+	}
+
+	/**
+	 * Returns a list of {@link BlockItemNode}s representing that the given
+	 * <code>stmt</code> wrapped by lock/unlock with the lock named as
+	 * <code>lockName</code> as follow:<br>
+	 * <code>$read_and_write_set_update(team);</code><br>
+	 * <code>$yield();</code><br>
+	 * <code>$omp_helper_signal_wait(&signalName, 0);</code><br>
+	 * <code>$check_data_race(team);</code><br>
+	 * <code>$omp_helper_signal_send(&signalName, 1);</code><br>
+	 * <code>{stmt;} // e.g., x += 1;</code><br>
+	 * <code>$read_and_write_set_update(team);</code><br>
+	 * <code>$yield();</code><br>
+	 * <code>$omp_helper_signal_send(&signalName, 0);</code><br>
+	 * <code>$check_data_race(team);</code><br>
+	 * 
+	 * @param srcMethod
+	 * @param stmt
+	 *            the {@link StatementNode} shall be wrapped.
+	 * @param signalName
+	 *            the CIVL's Omp helper signal name associated with given
+	 *            <code>stmt</code>
+	 * @return see above.
+	 * @throws SyntaxException
+	 */
+	private List<BlockItemNode> nodeStmtsSignalProtected(String srcMethod,
+			StatementNode stmt, String signalName) throws SyntaxException {
+		LinkedList<BlockItemNode> block = new LinkedList<>();
+
+		// ADD: $read_and_write_set_update(team);
+		// ADD: $yield();
+		block.addAll(callYield(srcMethod));
+		// ADD: $omp_helper_signal_wait(&signalName, 0);
+		block.add(callSignalWait(srcMethod, signalName, 0));
+		// ADD: $check_data_race(team);
+		block.add(callCheckDataRace(srcMethod));
+		// ADD: $omp_helper_signal_send(&signalName, 1);
+		block.add(callSignalSend(srcMethod, signalName, 1));
+		// TRANS: stmt
+		searchOmpInstructions(stmt);
+		stmt.remove();
+		// ADD: stmt
+		block.add(stmt);
+		// ADD: $read_and_write_set_update(team);
+		// ADD: $yield();
+		block.addAll(callYield(srcMethod));
+		// ADD: $omp_helper_signal_send(&signalName, 0);
+		block.add(callSignalSend(srcMethod, signalName, 0));
+		// ADD: $check_data_race(team);
+		block.add(callCheckDataRace(srcMethod));
+		return block;
+	}
+
+	/** @return CIVL <code>$domain(dim)</code> type node: */
 	private TypeNode nodeTypeDom(String srcMethod, int dim) {
 		if (dim > 0) // $domain(dim)
 			return nodeFactory.newDomainTypeNode(
@@ -1074,22 +1410,70 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 					newSource(srcMethod, CivlcTokenConstant.DOMAIN));
 	}
 
-	/** construct <code>int</code> {@link TypeNode} */
+	/** @return <code>int</code> {@link TypeNode} */
 	private TypeNode nodeTypeInt(String srcMethod) {
 		return nodeFactory.newBasicTypeNode(
 				newSource(srcMethod, CivlcTokenConstant.INT),
 				BasicTypeKind.INT);
 	}
 
-	/** construct named_type_def {@link TypeNode} w/ given <code>name</code> */
+	/** @return named_type_def {@link TypeNode} w/ given <code>name</code> */
 	private TypeNode nodeTypeNamed(String srcMethod, String name) {
 		return nodeFactory.newTypedefNameNode(nodeIdent(srcMethod, name), null);
 	}
 
-	/** construct CIVL <code>$range</code> {@link TypeNode} */
+	/** @return CIVL <code>$range</code> {@link TypeNode} */
 	private TypeNode nodeTypeRange(String srcMethod) {
 		return nodeFactory.newRangeTypeNode(
 				newSource(srcMethod, CivlcTokenConstant.RANGE));
+	}
+
+	private void procOmpBarrierNode(OmpSyncNode ompBarrierNode) {
+		String srcMethod = SRC_INFO + ".procOmpBarrierNode";
+		List<BlockItemNode> ompBlockItems = new LinkedList<>();
+
+		// TRANS: $omp_barrier(team);
+		ompBlockItems.add(callOmpBarrier(srcMethod));
+		replaceOmpNode(srcMethod, ompBarrierNode, ompBlockItems);
+	}
+
+	/**
+	 * yield => check => wait(0) => send(1) => block => send(0)
+	 * 
+	 * @param ompCriticalNode
+	 * @throws SyntaxException
+	 */
+	private void procOmpCriticalNode(OmpSyncNode ompCriticalNode)
+			throws SyntaxException {
+		String srcMethod = SRC_INFO + ".procOmpCriticalNode";
+		List<BlockItemNode> ompBlockItems = new LinkedList<>();
+		IdentifierNode criticalNameId = ompCriticalNode.criticalName();
+		StatementNode criticalBlock = ompCriticalNode.statementNode();
+		String criticalName = null;
+
+		if (criticalNameId == null) // Unspecified critical name
+			criticalName = CRITICAL_ + NAME_CRITICAL_UNSPEC;
+		else
+			criticalName = CRITICAL_ + criticalNameId.name();
+		// Store encountered critical names for declaring them
+		if (!criticalNames.contains(criticalName))
+			criticalNames.add(criticalName);
+
+		// ADD: $read_and_write_set_update(team);
+		// ADD: $yield();
+		// ADD: $_omp_helper_signal_wait(&critical_X, 0);
+		// ADD: $check_data_race(team);
+		// ADD: $_omp_helper_signal_send(&critical_X, 1);
+		// TRANS: criticalBlock
+		// ADD: $read_and_write_set_update(team);
+		// ADD: $yield();
+		// ADD: $_omp_helper_signal_send(&critical_X, 0);
+		// ADD: $check_data_race(team);
+		ompBlockItems.addAll(nodeStmtsSignalProtected(srcMethod, criticalBlock,
+				criticalName));
+
+		// TRANS: 'ompCriticalNode'
+		replaceOmpNode(srcMethod, ompCriticalNode, ompBlockItems);
 	}
 
 	/**
@@ -1101,7 +1485,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 	 * @throws SyntaxException
 	 */
 	private void procOmpForNode(OmpForNode ompForNode) throws SyntaxException {
-		// TODO: reduction,lastprivate clause
+		// TODO: lastprivate clause
 		String srcMethod = SRC_INFO + ".procOmpForNode";
 		List<BlockItemNode> ompBlockItems = new LinkedList<>();
 		// PROC: collapse
@@ -1119,6 +1503,8 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 			curLoopInfo = extractLoopInfo(curLoop);
 			loopInfos.add(curLoopInfo);
 		}
+		bindingLoopInfosRecords.push(loopInfos);
+
 		// ADD: $read_set_pop();
 		// ADD: $write_set_pop();
 		ompBlockItems.addAll(callRWSetPop(srcMethod));
@@ -1149,6 +1535,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		ompBlockItems.addAll(fstpvtDeclsList.get(INDEX_TMP_DECLS));
 		// ADD: dummy decl. for pvt.1st var.
 		ompBlockItems.addAll(fstpvtDeclsList.get(INDEX_PVT_DECLS));
+
 		// ADD: $read_set_push();
 		// ADD: $write_set_push();
 		ompBlockItems.addAll(callRWSetPush(srcMethod));
@@ -1159,6 +1546,22 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		List<BlockItemNode> cvlForBodyItems = new LinkedList<>();
 		StatementNode loopBody = null;
 
+		int numOrderedLoops = ompForNode.ordered();
+		// IF ordered, declare order counter variables in global scope
+
+		if (numOrderedLoops > 1) // ordered(X), unsupported
+			throw new CIVLUnimplementedFeatureException(
+					"'ordered' clause with parameters for "
+							+ "'doacross loop nest' feature (in OpenMP 4.5)");
+		else if (numOrderedLoops == 1) {
+			// ADD: int /loop_var/_next = /loop_var/ + /incr_expr/;
+			cvlForBodyItems.addAll(declOmpLoopVarNext(srcMethod, loopInfos));
+			// global decl:
+			// $omp_helper_signal ordered_0 =
+			// $omp_helper_signal_create(init_expr);
+			declOmpOrderedSignals(srcMethod, loopInfos);
+		}
+		// else // NO ordered clause
 		// process and transfer all other children
 		searchOmpInstructions(curLoop);
 		// get processed body
@@ -1180,15 +1583,162 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		// dummy decl. and init. for reduction items
 		ompBlockItems.addAll(rdcItemsList.get(INDEX_RDC_COMBS));
 		if (!ompForNode.nowait())
-			// ADD: $omp_barrier_and_flush(
-			// team, $read_set_pop(), $write_set_pop());
-			ompBlockItems.add(nodeFactory.newExpressionStatementNode( //
-					nodeExprCall(srcMethod, OMP_BARRIER_AND_FLUSH,
-							Arrays.asList(nodeExprId(srcMethod, TEAM)))));
+			// ADD: $omp_barrier(team);
+			ompBlockItems.add(callOmpBarrier(srcMethod));
 
 		// TRANS: replace parallel region with transformed block
 		replaceOmpNode(srcMethod, ompForNode, ompBlockItems);
+		bindingLoopInfosRecords.pop();
 		ompRgn.pop();
+	}
+
+	/**
+	 * 
+	 * @param ompMasterNode
+	 * @throws SyntaxException
+	 */
+	private void procOmpMasterNode(OmpSyncNode ompMasterNode)
+			throws SyntaxException {
+		String srcMethod = SRC_INFO + ".procOmpMasterNode";
+		List<BlockItemNode> ompBlockItems = new LinkedList<>();
+
+		// PRE: Record the current OpenMP region info
+		ompRgn.push(new OmpRegion(OmpRgnKind.MASTER));
+		// TRANS: recursively transforms child nodes.
+		searchOmpInstructions(ompMasterNode);
+
+		// TRANS: adds the condition ' _omp_tid == 0 ' to
+		// the associated block so that exactly one thread executes it.
+		StatementNode masterBody = ompMasterNode.statementNode();
+		// cond_expr: _omp_tid == 0
+		ExpressionNode condExpr = nodeFactory.newOperatorNode(
+				newSource(srcMethod, CivlcTokenConstant.EXPR), Operator.EQUALS,
+				nodeExprId(srcMethod, TID),
+				nodeExprInt(srcMethod, ID_MASTER_THREAD));
+
+		masterBody.remove();
+		ompBlockItems.add(nodeFactory.newIfNode(
+				newSource(srcMethod, CivlcTokenConstant.STATEMENT), condExpr,
+				masterBody));
+		// TRANS: replace master construct with transformed block
+		replaceOmpNode(srcMethod, ompMasterNode, ompBlockItems);
+		ompRgn.pop();
+	}
+
+	private void procOmpOrderedNode(OmpSyncNode ompOrderedNode)
+			throws SyntaxException {
+		String srcMethod = SRC_INFO + ".procOmpOrderedNode";
+		List<BlockItemNode> ompBlockItems = new LinkedList<>();
+
+		// PRE: Record the current OpenMP region info
+		ompRgn.push(new OmpRegion(OmpRgnKind.MASTER));
+		// TRANS: recursively transforms child nodes.
+		searchOmpInstructions(ompOrderedNode);
+
+		StatementNode orderedBody = ompOrderedNode.statementNode();
+
+		orderedBody.remove();
+		if (orderConcurrent)
+			// Omp Std. 2.9.2 Worksharing loop: Pg. 104 Ln. 10-12
+			// If an order(concurrent) clause is present, ..
+			// the iterations may be executed in any order,
+			// including concurrently
+			// Thus, pragma 'omp ordered' is omitted.
+			// ADD: the block associated with ordered clause
+			ompBlockItems.add(orderedBody);
+		else {
+			ompBlockItems.addAll(transOmpOrdered(srcMethod,
+					bindingLoopInfosRecords.peek(), orderedBody));
+		}
+		// TRANS: replace master construct with transformed block
+		replaceOmpNode(srcMethod, ompOrderedNode, ompBlockItems);
+		ompRgn.pop();
+	}
+
+	/**
+	 * 
+	 * @param srcMethod
+	 * @param loopInfos
+	 * @param orderedBody
+	 * @return
+	 */
+	private List<BlockItemNode> transOmpOrdered(String srcMethod,
+			List<OmpLoopInfo> loopInfos, StatementNode orderedBody) {
+		Source exprSrc = newSource(srcMethod, CivlcTokenConstant.EXPR);
+		Source stmtSrc = newSource(srcMethod, CivlcTokenConstant.STATEMENT);
+		List<BlockItemNode> orderedBodyItems = new LinkedList<>();
+		int numOrderedCtr = loopInfos.size();
+		int orderId = ctrOmpOrdered - numOrderedCtr;
+		int infoIdx = 0;
+		OmpLoopInfo info = loopInfos.get(infoIdx);
+		ExpressionNode loopVarExpr = nodeExprId(srcMethod, info.loopVarName);
+		ExpressionNode loopVarNextExpr = nodeExprId(srcMethod,
+				info.loopVarName + _NEXT);
+		ExpressionNode orderedCtrExpr = nodeExprId(srcMethod,
+				ORDERED + orderId);
+		StatementNode wait = nodeStmtCall(srcMethod, OMP_HELPER_SIGNAL_WAIT,
+				nodeExprAddrOf(srcMethod, orderedCtrExpr.copy()), loopVarExpr);
+		StatementNode sendNext = nodeStmtCall(srcMethod, OMP_HELPER_SIGNAL_SEND,
+				nodeExprAddrOf(srcMethod, orderedCtrExpr), loopVarNextExpr);
+		StatementNode sendInit = null;
+		ExpressionNode condExpr = null;
+
+		// ADD: $read_and_write_set_update(team);
+		// ADD: $yield();
+		orderedBodyItems.addAll(callYield(srcMethod));
+		// ADD: $omp_helper_signal_wait(_omp_order_counter0, /loop_var/);
+		orderedBodyItems.add(wait);
+		for (infoIdx = 1; infoIdx < numOrderedCtr; infoIdx++) {
+			orderId++;
+			info = loopInfos.get(infoIdx);
+			loopVarNextExpr = nodeExprId(srcMethod, info.loopVarName + _NEXT);
+			loopVarExpr = nodeExprId(srcMethod, info.loopVarName);
+			orderedCtrExpr = nodeExprId(srcMethod, ORDERED + orderId);
+			wait = nodeStmtCall(srcMethod, OMP_HELPER_SIGNAL_WAIT,
+					nodeExprAddrOf(srcMethod, orderedCtrExpr.copy()),
+					loopVarExpr);
+			// ADD: $omp_helper_signal_wait(_omp_order_counterX, /loop_var/);
+			orderedBodyItems.add(wait);
+			// GEN: $omp_helper_signal_send calls
+			// $omp_helper_signal_send(_omp_order_counterX, init);
+			sendInit = nodeStmtCall(srcMethod, OMP_HELPER_SIGNAL_SEND,
+					nodeExprAddrOf(srcMethod, orderedCtrExpr.copy()),
+					info.range.first.copy());
+			// { $send(_omp_order_counter/X/, /inner_loop_var_init/);
+			// $send(_omp_order_counter/X-1/, /outer_loop_var_next/);
+			// }
+			sendInit = nodeBlock(srcMethod, sendInit, sendNext);
+			// $send(_omp_order_counter/X/, /inner_loop_var_next/);
+			sendNext = nodeStmtCall(srcMethod, OMP_HELPER_SIGNAL_SEND,
+					nodeExprAddrOf(srcMethod, orderedCtrExpr), loopVarNextExpr);
+			// /inner_loop_var_next/ < /inner_loop_var_bound/
+			condExpr = nodeFactory.newOperatorNode(exprSrc, Operator.LT,
+					loopVarNextExpr.copy(), info.range.second.copy());
+			// if (/inner_loop_var_next/ < /inner_loop_var_bound/)
+			// $send(_omp_order_counter/X/, /inner_loop_var_next/);
+			// else {
+			// $send(_omp_order_counter/X/, /inner_loop_var_init/);
+			// $send(_omp_order_counter/X-1/, /outer_loop_var_next/);
+			// }
+			// NOTE:
+			// if the next iteration logical number 'j_next' of an inner
+			// loop variable 'j' is less than its bound,
+			// THEN: signal_send(signal_/X/, j_next) to issue the
+			// execution of current iteration's sequentially next one.
+			// ELSE: reset the current inner loop variable by
+			// signal_send(signal_/X/, j_init) and increase the outer
+			// loop variable 'i' by signal_send(signal_/X-1/, i_next).
+			sendNext = nodeFactory.newIfNode(stmtSrc, condExpr, sendNext,
+					sendInit);
+		}
+		orderedBodyItems.add(callCheckDataRace(srcMethod));
+		orderedBodyItems.add(orderedBody);
+		// ADD: $read_and_write_set_update(team);
+		// ADD: $yield();
+		orderedBodyItems.addAll(callYield(srcMethod));
+		orderedBodyItems.add(sendNext);
+		orderedBodyItems.add(callCheckDataRace(srcMethod));
+		return orderedBodyItems;
 	}
 
 	/**
@@ -1201,7 +1751,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 	 */
 	private void procOmpParallelNode(OmpParallelNode ompParallelNode)
 			throws SyntaxException {
-		// TODO: reduction clause, num_threads clause
+		// TODO: num_threads clause
 		String srcMethod = SRC_INFO + ".procOmpParallelNode";
 		Source declSrc = newSource(srcMethod, CivlcTokenConstant.DECLARATION);
 		List<BlockItemNode> ompBlockItems = new LinkedList<>();
@@ -1221,14 +1771,16 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 				PrivateKind.FIRST);
 		List<List<BlockItemNode>> rdcItemsList = transOmpReduction(
 				ompParallelNode.reductionList());
+		Boolean hasExplicitNumThreadsClause = _omp_num_threads != null;
 
-		if (_omp_num_threads == null) // If absent
-			_omp_num_threads = nodeExprId(srcMethod, _OMP_ + "num_threads");
-		else
+		if (hasExplicitNumThreadsClause) 
 			_omp_num_threads.remove();
+		else // If absent
+			_omp_num_threads = nodeExprId(srcMethod, _OMP_ + "num_threads");
 		ompBlockItems.add(elaborateExpression(_omp_num_threads).copy());
 		// ADD: int _omp_nthreads = 1+$choose_int(_omp_num_threads);
-		ompBlockItems.add(declOmpNthreads(srcMethod, _omp_num_threads));
+		ompBlockItems.add(declOmpNthreads(srcMethod, _omp_num_threads,
+				hasExplicitNumThreadsClause));
 		// ADD: temporary variable declarations for firstprivate variables
 		ompBlockItems.addAll(fstpvtDeclsList.get(INDEX_TMP_DECLS));
 		// ADD: $range _omp_thread_range = {0 .. _omp_nthreads-1};
@@ -1244,17 +1796,17 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 
 		// ADD to $parfor:
 		// $local_start();
-		parForBodyItems.add(nodeFactory.newExpressionStatementNode(
-				nodeExprCall(srcMethod, LOCAL_START, Arrays.asList())));
+		parForBodyItems.add(nodeStmtCall(srcMethod, LOCAL_START));
 		// $omp_team _omp_team = $omp_team_create($here, _omp_gteam, _omp_tid);
 		parForBodyItems.add(declOmpTeam(srcMethod));
 		// $read_set_push();
 		// $write_set_push();
 		parForBodyItems.addAll(callRWSetPush(srcMethod));
-		// dummy decl. and init. for reduction items
+		// reduction items: dummy decl. and init.
 		parForBodyItems.addAll(rdcItemsList.get(INDEX_RDC_INITS));
-		// dummy decl. for pvt. var. shall be inserted in parfor body
+		// private items: dummy decl. for pvt. var.
 		parForBodyItems.addAll(pvtDeclsList.get(INDEX_PVT_DECLS));
+		// first private items: dummy decl. and init. for pvt. var.
 		parForBodyItems.addAll(fstpvtDeclsList.get(INDEX_PVT_DECLS));
 		// DEPRECATED: transformation for shared variables, due to R/W set
 		// process and transfer all other children
@@ -1265,21 +1817,19 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		// TODO: reduction impl. in civl-omp.cvl should push-red-pop
 		// dummy decl. and init. for reduction items
 		parForBodyItems.addAll(rdcItemsList.get(INDEX_RDC_COMBS));
-		// $omp_barrier_and_flush(team);
-		parForBodyItems.add(nodeFactory.newExpressionStatementNode( //
-				nodeExprCall(srcMethod, OMP_BARRIER_AND_FLUSH,
-						Arrays.asList(nodeExprId(srcMethod, TEAM)))));
+		// $omp_barrier(team);
+		parForBodyItems.add(callOmpBarrier(srcMethod));
 		// $read_set_pop();
 		// $write_set_pop();
 		parForBodyItems.addAll(callRWSetPop(srcMethod));
 		// $omp_team_destroy(team);
-		parForBodyItems.add(nodeFactory.newExpressionStatementNode(
-				nodeExprCall(srcMethod, OMP_TEAM_DESTROY,
-						Arrays.asList(nodeExprId(srcMethod, TEAM)))));
+		parForBodyItems.add(nodeStmtCall(srcMethod, OMP_TEAM_DESTROY,
+				nodeExprId(srcMethod, TEAM)));
 		// $local_end();
-		parForBodyItems.add(nodeFactory.newExpressionStatementNode(
-				nodeExprCall(srcMethod, LOCAL_END, Arrays.asList())));
+		parForBodyItems.add(nodeStmtCall(srcMethod, LOCAL_END));
 
+		// ADD: creates of OpenMP helper signals used by this transformer
+		ompBlockItems.addAll(signalCreates);
 		// ADD: $parfor (int _omp_tid : _omp_dom) { .. }
 		ompBlockItems.add(genCivlFor(srcMethod, true, /* domName */ DOM,
 				/* loopVarDecls */ Arrays.asList(//
@@ -1288,9 +1838,8 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 								nodeTypeInt(srcMethod))),
 				parForBodyItems));
 		// ADD: $omp_gteam_destroy(gteam);
-		ompBlockItems.add(nodeFactory.newExpressionStatementNode(
-				nodeExprCall(srcMethod, OMP_GTEAM_DESTROY,
-						Arrays.asList(nodeExprId(srcMethod, GTEAM)))));
+		ompBlockItems.add(nodeStmtCall(srcMethod, OMP_GTEAM_DESTROY,
+				nodeExprId(srcMethod, GTEAM)));
 		// TRANS: replace parallel region with transformed block
 		replaceOmpNode(srcMethod, ompParallelNode, ompBlockItems);
 		ompRgn.pop();
@@ -1321,12 +1870,12 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 
 		// Check the first item
 		item = sectionsItems.child(idx++);
-		if (item instanceof StatementNode)
-			// implicit section block
-			sectionBlocks.add((StatementNode) item);
-		else
+		if (item instanceof OmpWorksharingNode)
 			// explicit section block
 			sectionBlocks.add(((OmpWorksharingNode) item).statementNode());
+		else
+			// implicit section block
+			sectionBlocks.add((StatementNode) item);
 		while (idx < numItems) {
 			item = sectionsItems.child(idx++);
 			if (item instanceof OmpWorksharingNode)
@@ -1364,10 +1913,8 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 						nodeDeclVarInt(srcMethod, SID)),
 				/* loopBodyItems */ transOmpSection(sectionBlocks)));
 		if (!ompSectionsNode.nowait())
-			// ADD: $omp_barrier_and_flush(team);
-			ompBlockItems.add(nodeFactory.newExpressionStatementNode(//
-					nodeExprCall(srcMethod, OMP_BARRIER_AND_FLUSH,
-							Arrays.asList(nodeExprId(srcMethod, TEAM)))));
+			// ADD: $omp_barrier(team);
+			ompBlockItems.add(callOmpBarrier(srcMethod));
 		// TRANS: replace sections region with transformed block
 		replaceOmpNode(srcMethod, ompSectionsNode, ompBlockItems);
 		ompRgn.pop();
@@ -1386,8 +1933,9 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		List<List<VariableDeclarationNode>> fstpvtDeclsList = declVarsPrivate(
 				srcMethod, ompSingleNode.firstprivateList(), PrivateKind.FIRST);
 
-		assert ompSingleNode.copyprivateList() == null; // TODO: copypvt clause
-		assert ompSingleNode.copyinList() == null; // TODO: copyin clause
+		// TODO: copypvt clause, copypvt
+		assert ompSingleNode.copyprivateList() == null;
+		assert ompSingleNode.copyinList() == null;
 
 		// ADD: $read_set_pop();
 		// ADD: $write_set_pop();
@@ -1419,24 +1967,25 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 				newSource(srcMethod, CivlcTokenConstant.STATEMENT), condExpr,
 				singleBody));
 		if (!ompSingleNode.nowait())
-			// ADD: $omp_barrier_and_flush(team);
-			ompBlockItems.add(nodeFactory.newExpressionStatementNode(//
-					nodeExprCall(srcMethod, OMP_BARRIER_AND_FLUSH,
-							Arrays.asList(nodeExprId(srcMethod, TEAM)))));
+			// ADD: $omp_barrier(team);
+			ompBlockItems.add(callOmpBarrier(srcMethod));
 		// TRANS: replace single construct with transformed block
 		replaceOmpNode(srcMethod, ompSingleNode, ompBlockItems);
 		ompRgn.pop();
 	}
 
-	private void recognizeOmpFunctionCalls(
-			FunctionCallNode ompFunctionCallNode) {
+	private void recognizeOmpFunctionCalls(FunctionCallNode ompFunctionCallNode)
+			throws SyntaxException {
 		String srcMethod = SRC_INFO + ".recognizeOmpFunctionCalls: ";
 		ExpressionNode functionExpr = ompFunctionCallNode.getFunction();
 		ExpressionNode transformedFunctionCall = null;
 
 		if (functionExpr instanceof IdentifierExpressionNode) {
-			switch (((IdentifierExpressionNode) functionExpr).getIdentifier()
-					.name()) {
+			boolean isSyncFunc = false;
+			String funcName = ((IdentifierExpressionNode) functionExpr)
+					.getIdentifier().name();
+
+			switch (funcName) {
 				case OMP_GET_MAX_THREADS :
 					transformedFunctionCall = nodeExprId(
 							srcMethod + OMP_GET_MAX_THREADS, THREAD_MAX);
@@ -1459,6 +2008,26 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 							Operator.ASSIGN, nodeExprId(srcMethod, NUM_THREADS),
 							ompFunctionCallNode.getArgument(0).copy());
 					break;
+				// The following four are directly implemented in omp.cvl
+				// case OMP_INIT_LOCK :
+				// case OMP_DESTROY_LOCK :
+				// case OMP_DESTROY_NEST_LOCK :
+				// case OMP_DESTROY_NEST_LOCK :
+				// The following six OpenMP lock function is translated as:
+				// 1. add '$' as a prefix
+				// 2. add a second argument, which is '_omp_tid'
+				case OMP_SET_LOCK :
+				case OMP_SET_NEST_LOCK :
+				case OMP_UNSET_LOCK :
+				case OMP_UNSET_NEST_LOCK :
+					isSyncFunc = true;
+				case OMP_TEST_LOCK :
+				case OMP_TEST_NEST_LOCK :
+					transformedFunctionCall = nodeExprCall(srcMethod,
+							SIGN_DOLLAR + funcName,
+							ompFunctionCallNode.getArgument(0).copy(),
+							nodeExprId(srcMethod, TID));
+					break;
 				default :
 					// do nothing
 			}
@@ -1466,21 +2035,16 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 				ompFunctionCallNode.parent().setChild(
 						ompFunctionCallNode.childIndex(),
 						transformedFunctionCall);
+			if (isSyncFunc)
+				transOmpSyncLockRoutine(transformedFunctionCall);
+			// Check args of function call statement
+			searchOmpInstructions(ompFunctionCallNode);
 		}
 	}
 
 	private void recognizeOmpInstructions(OmpNode ompNode)
 			throws SyntaxException {
 		switch (ompNode.ompNodeKind()) {
-			case DECLARATIVE :
-				OmpDeclarativeNode ompDeclNode = (OmpDeclarativeNode) ompNode;
-
-				switch (ompDeclNode.ompDeclarativeNodeKind()) {
-					case REDUCTION :
-					case SIMD :
-					case TARGET :
-					case THREADPRIVATE :
-				}
 			case EXECUTABLE :
 				OmpExecutableNode ompExecNode = (OmpExecutableNode) ompNode;
 
@@ -1489,27 +2053,29 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 						procOmpParallelNode((OmpParallelNode) ompExecNode);
 						return;
 					case SIMD :
+						assert false;
 					case SYNCHRONIZATION :
 						OmpSyncNode ompSyncNode = (OmpSyncNode) ompExecNode;
 
 						switch (ompSyncNode.ompSyncNodeKind()) {
 							case MASTER :
+								procOmpMasterNode(ompSyncNode);
+								return;
 							case CRITICAL :
+								procOmpCriticalNode(ompSyncNode);
+								return;
 							case BARRIER :
-							case FLUSH :
-								// Omitted
+								procOmpBarrierNode(ompSyncNode);
+								return;
+							case FLUSH : // Omitted
 								ompSyncNode.remove();
 								return;
 							case ORDERED :
+								procOmpOrderedNode(ompSyncNode);
+								return;
 							case OMPATOMIC :
-								OmpAtomicNode ompAtomicNode = (OmpAtomicNode) ompSyncNode;
-
-								switch (ompAtomicNode.atomicClause()) {
-									case READ :
-									case WRITE :
-									case UPDATE :
-									case CAPTURE :
-								}
+								procOmpAtomicNode((OmpAtomicNode) ompSyncNode);
+								return;
 						}
 					case WORKSHARING :
 						OmpWorksharingNode ompWorkSNode = (OmpWorksharingNode) ompExecNode;
@@ -1518,20 +2084,92 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 							case SECTIONS :
 								procOmpSectionsNode(ompWorkSNode);
 								return;
-							case SECTION :
-								throw new CIVLSyntaxException(
-										"OpenMP section construct shall appear in sections constuct directly.");
+							// case SECTION : processed in 'procOmpSectionsNode'
 							case SINGLE :
 								procOmpSingleNode(ompWorkSNode);
 								return;
 							case FOR :
 								procOmpForNode((OmpForNode) ompWorkSNode);
 								return;
+							default :
+								assert false;
 						}
+				}
+			case DECLARATIVE :
+				OmpDeclarativeNode ompDeclNode = (OmpDeclarativeNode) ompNode;
+
+				assert false;
+				switch (ompDeclNode.ompDeclarativeNodeKind()) {
+					case REDUCTION :
+					case SIMD :
+					case TARGET :
+					case THREADPRIVATE :
 				}
 		}
 		// DFS: recursively search for OmpNode among successors of this OmpNode
 		searchOmpInstructions(ompNode);
+	}
+
+	private void procOmpAtomicNode(OmpAtomicNode ompAtomicNode)
+			throws SyntaxException {
+		String srcMethod = SRC_INFO + ".procOmpAtomicNode";
+		StatementNode atomicStmt = ompAtomicNode.statementNode();
+		ExpressionNode atomicExpr[] = new ExpressionNode[2];
+
+		assert atomicExpr[1] == null;
+		if (atomicStmt instanceof ExpressionStatementNode)
+			atomicExpr[0] = ((ExpressionStatementNode) atomicStmt)
+					.getExpression();
+		else if (atomicStmt instanceof CompoundStatementNode
+				&& atomicStmt.numChildren() <= 2) {
+			CompoundStatementNode block = ((CompoundStatementNode) atomicStmt);
+
+			for (int i = 0; i < block.numChildren(); i++) {
+				ASTNode stmt = block.child(i);
+
+				if (stmt instanceof ExpressionStatementNode)
+					atomicExpr[i] = ((ExpressionStatementNode) stmt)
+							.getExpression();
+			}
+		}
+		switch (ompAtomicNode.atomicClause()) {
+			case READ :
+				if (!verifyOmpAtomicRead(atomicExpr[0]))
+					throw new CIVLSyntaxException(
+							"Illegal pattern for the body statement associated "
+									+ "with OpenMP atomic READ construct: "
+									+ atomicStmt.prettyRepresentation());
+				break;
+			case WRITE :
+				if (!verifyOmpAtomicWrite(atomicExpr[0]))
+					throw new CIVLSyntaxException(
+							"Illegal pattern for the body statement associated "
+									+ "with OpenMP atomic WRITE construct: "
+									+ atomicStmt.prettyRepresentation());
+				break;
+			case CAPTURE :
+				if (!verifyOmpAtomicCapture(atomicExpr))
+					throw new CIVLSyntaxException(
+							"Illegal pattern for the body statement associated "
+									+ "with OpenMP atomic CAPTURE construct: "
+									+ atomicStmt.prettyRepresentation());
+				break;
+			case UPDATE :
+				if (!verifyOmpAtomicUpdate(atomicExpr[0]))
+					throw new CIVLSyntaxException(
+							"Illegal pattern for the body statement associated "
+									+ "with OpenMP atomic UPDATE construct: "
+									+ atomicStmt.prettyRepresentation());
+				break;
+		}
+		hasAtomicConstruct = true;
+		// All atomic section are protected by a single signal struct
+		// It gives a stronger condition that enforces exclusive access
+		// between atomic regions, which may access different storage locations.
+		// (see: OpenMP std. 4.5: 2.17.7 atomic Construct: Description [Pg.240])
+		replaceOmpNode(srcMethod, ompAtomicNode,
+				nodeStmtsSignalProtected(srcMethod, atomicStmt, ATOMIC_));
+
 	}
 
 	/**
@@ -1625,14 +2263,11 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 				ExpressionStatementNode varInitStmt = nodeFactory
 						.newExpressionStatementNode(varInitExpr);
 				// $omp_rdc(OPERATOR, VAR_PTR, VAR_TMP);
-				ExpressionNode combFuncCall = nodeExprCall(srcMethod,
+				StatementNode combineItem = nodeStmtCall(srcMethod,
 						OMP_REDUCTION_COMBINE,
-						Arrays.asList(nodeExprInt(srcMethod, rcOp.civlOp()),
-								nodeExprId(srcMethod, vpName),
-								nodeExprAddrOf(srcMethod,
-										nodeExprId(srcMethod, vName))));
-				ExpressionStatementNode combineItem = nodeFactory
-						.newExpressionStatementNode(combFuncCall);
+						nodeExprInt(srcMethod, rcOp.civlOp()),
+						nodeExprId(srcMethod, vpName), nodeExprAddrOf(srcMethod,
+								nodeExprId(srcMethod, vName)));
 
 				varPtrDecls.add(vpDecl);
 				if (!rcVarDeclName.contains(vName)) {
@@ -1693,6 +2328,317 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 			sections.add(nodeFactory.newIfNode(ifSrc, condExpr, block));
 		}
 		return sections;
+	}
+
+	/**
+	 * Transform a OpenMP lock set/unset routine (which requires
+	 * synchronization) by wrapping it with CIVL's helper function calls. (e.g.,
+	 * <br>
+	 * <code>$omp_set_lock(.., ..);</code><br>
+	 * is trans formed to <br>
+	 * <code>{</code><br>
+	 * <code>  $read_and_write_set_update(team);</code><br>
+	 * <code>  $yield();</code><br>
+	 * <code>  $omp_set_lock(.., ..);</code><br>
+	 * <code>  $check_data_race(_omp_team);</code><br>
+	 * <code>}</code><br>
+	 * 
+	 * @param ompLockFuncCallExpr
+	 *            an {@link ExpressionNode} for an OpenMP lock routine, which
+	 *            requires synchronization. (either a set or an unset routine)
+	 */
+	private void transOmpSyncLockRoutine(ExpressionNode ompLockFuncCallExpr) {
+		String srcMethod = SRC_INFO + ".transOmpSyncLockRoutine: ";
+		List<BlockItemNode> transformedCall = new LinkedList<>();
+		StatementNode funcCall = (StatementNode) ompLockFuncCallExpr.parent();
+
+		transformedCall.addAll(callYield(srcMethod));
+		transformedCall.add(funcCall.copy());
+		transformedCall.add(callCheckDataRace(srcMethod));
+		funcCall.parent().setChild(funcCall.childIndex(),
+				nodeBlock(srcMethod, transformedCall));
+	}
+
+	/**
+	 * Returns <code>true</code> iff the storage location designated by both
+	 * <code>expr0</code> and <code>expr1</code> is a same location. (i.e.,
+	 * <code>expr1</code> accesses the exact storage location (entity)
+	 * designated by <code>expr0</code>); else returns <code>false</code>
+	 * 
+	 * @param expr0
+	 *            an expression designating a storage location
+	 * @param expr1
+	 *            an expression designating a storage location
+	 * @return
+	 */
+	private boolean verifyExprSameEntity(ExpressionNode expr0,
+			ExpressionNode expr1) {
+		boolean areBothLValues = expr0.isLvalue() && expr1.isLvalue();
+		// TODO: Implement the verification as described:
+		// TBD: verifies that for both expr0 and expr1
+		// 1. they designate a exactly same storage location (i.e. Entity).
+		Entity entity0 = null;
+		Entity entity1 = null;
+
+		// Both exor0 and expr1 are l-values.
+		if (!areBothLValues)
+			return false;
+		if (expr0 instanceof IdentifierExpressionNode)
+			entity0 = ((IdentifierExpressionNode) expr0).getIdentifier()
+					.getEntity();
+		if (expr1 instanceof IdentifierExpressionNode)
+			entity1 = ((IdentifierExpressionNode) expr1).getIdentifier()
+					.getEntity();
+		if (entity0 != null && entity1 != null)
+			return entity0.equals(entity1);
+		return true;
+	}
+
+	/**
+	 * Returns <code>true</code> iff the storage location designated by
+	 * <code>expr0</code> is isolated from <code>expr1</code> (i.e.,
+	 * <code>expr1</code> does not access the storage location (entity)
+	 * designated by <code>expr0</code>); else returns <code>false</code>
+	 * <p>
+	 * <strong>NOTE</strong>: this function is <strong>NOT implemented
+	 * yet</strong>, and will always return <code>true</code>
+	 * </p>
+	 * 
+	 * @param expr0
+	 *            an l-value expression designating a storage location
+	 * @param expr1
+	 *            any valid expression
+	 * @return see above.
+	 */
+	private boolean verifyExprSeparatedEntity(ExpressionNode expr0,
+			ExpressionNode expr1) {
+		// TODO: Implement the verification as described:
+		// TBD: verifies that for all OpenMP atomic constructs:
+		// 1. Neither of 'v' and 'expr' (as applicable) may access the storage
+		// location designated by 'x'. (OpenMP Std. 4.5.0: Sec. 2.17.7)
+		// 2. Neither of 'x' and 'expr' (as applicable) may access the storage
+		// location designated by 'v'. (OpenMP Std. 4.5.0: Sec. 2.17.7)
+		// *. any two atomic constructs associated with a same storage location
+		// shall have a same type on their 'x'. (OpenMP Eg. 4.5.0: Sec. 6.5)
+		return expr0.isLvalue();
+	}
+
+	/**
+	 * <p>
+	 * Verify the pattern of <code>atomicCaptureExprs</code>, which is/are
+	 * associated with an OpenMP <code>atomic</code> construct with
+	 * <code>update</code> clause.
+	 * </p>
+	 * <p>
+	 * The pattern shall be one of following:<br>
+	 * <code>v = update_expr;</code><br>
+	 * <code>v = x; update_expr;</code><br>
+	 * <code>update_expr; v = x;</code><br>
+	 * 1. <code>update_expr</code> can be verified as a 'legal' update
+	 * expression. (i.e. <code>true</code> is returned as result by
+	 * {@link #verifyOmpAtomicUpdate(update_expr)})<br>
+	 * 2. Both <code>v</code> and <code>x</code> (including ones involved in
+	 * <code>update_expr</code>) are l-values<br>
+	 * 3. They designate separated storage locations (i.e., <code>v</code> and
+	 * <code>x</code> shall not access a same storage location.) <br>
+	 * 4. The storage location designated by either of <code>x</code> and
+	 * <code>v</code> shall not be accessed by <code>expr</code> involved in
+	 * <code>update_expr</code> (if it exists).
+	 * </p>
+	 * 
+	 * @param atomicCaptureExprs
+	 *            expression(s) associated with an OpenMP atomic capture
+	 *            construct
+	 * @return <code>true</code> iff the pattern of
+	 *         <code>atomicCaptureExprs</code> is legal.
+	 */
+	private boolean verifyOmpAtomicCapture(
+			ExpressionNode... atomicCaptureExprs) {
+		// v = update_expr;
+		// {v = x; update_expr;}
+		// {update_expr; v = x;}
+		ExpressionNode expr0 = atomicCaptureExprs[0];
+		ExpressionNode expr1 = atomicCaptureExprs[1];
+		boolean isSingleExpr = expr1 == null;
+
+		// 1. a single expr
+		if (isSingleExpr) {
+			List<ExpressionNode> args = analyzeExprAssignScalar(expr0);
+			boolean isScalarAssignmentExpr = args.size() == 2;
+
+			if (isScalarAssignmentExpr) {
+				ExpressionNode v = args.get(0);
+				ExpressionNode update = args.get(1);
+
+				return verifyOmpAtomicUpdate(update) && v.isLvalue()
+						&& verifyExprSeparatedEntity(v, update);
+			} else
+				return false;
+		}
+
+		// 2. a block with two expr
+		List<ExpressionNode> args0 = analyzeExprAssignScalar(expr0);
+		List<ExpressionNode> args1 = analyzeExprAssignScalar(expr1);
+		boolean isScalarAssignmentExpr0 = args0.size() == 2;
+		boolean isScalarAssignmentExpr1 = args1.size() == 2;
+		boolean isBinaryUpdate = false;
+		ExpressionNode v = null;
+		ExpressionNode x = null; // x in v = x
+		ExpressionNode xLHS = null; // LHS x in update_expr
+		ExpressionNode xRHS = null; // RHS x in update_Expr (may be null)
+		ExpressionNode expr = null; // expr in update_expr (may be null)
+
+		// Get 'v', 'x', and 'expr' (if it exists).
+		if (isScalarAssignmentExpr0) {
+			v = args0.get(0);
+			x = args0.get(1);
+			isBinaryUpdate = args1.size() == 3;
+			if (isBinaryUpdate) {
+				xLHS = args1.get(0);
+				xRHS = args1.get(1);
+				expr = args1.get(2);
+			} else
+				xLHS = args1.get(0);
+		} else if (isScalarAssignmentExpr1) {
+			v = args1.get(0);
+			x = args1.get(1);
+			isBinaryUpdate = args0.size() == 3;
+			if (isBinaryUpdate) {
+				xLHS = args0.get(0);
+				xRHS = args0.get(1);
+				expr = args0.get(2);
+			} else
+				xLHS = args1.get(0);
+		} else // illegal: at least one scalar assignment
+			return false;
+		// Verify
+		if (isBinaryUpdate)
+			return v.isLvalue() && x.isLvalue() //
+					&& verifyExprSameEntity(x, xLHS)
+					&& verifyExprSameEntity(xLHS, xRHS)
+					&& verifyExprSeparatedEntity(v, x)
+					&& verifyExprSeparatedEntity(v, expr)
+					&& verifyExprSeparatedEntity(x, expr);
+		else
+			return v.isLvalue() && x.isLvalue() //
+					&& verifyExprSameEntity(x, xLHS)
+					&& verifyExprSeparatedEntity(v, x);
+	}
+
+	/**
+	 * <p>
+	 * Verify the pattern of <code>atomicReadExpr</code>, which is associated
+	 * with an OpenMP <code>atomic</code> construct with <code>read</code>
+	 * clause.
+	 * </p>
+	 * <p>
+	 * The pattern shall be exactly: <code>v = x;</code><br>
+	 * 1. Both <code>v</code> and <code>x</code> are l-values. <br>
+	 * 2. They designate separated storage locations (i.e., <code>v</code> and
+	 * <code>x</code> shall not access a same storage location.)
+	 * </p>
+	 * 
+	 * @param atomicReadExpr
+	 *            the expression associated with an OpenMP atomic read construct
+	 * @return <code>true</code> iff the pattern of <code>atomicReadExpr</code>
+	 *         is legal.
+	 */
+	private boolean verifyOmpAtomicRead(ExpressionNode atomicReadExpr) {
+		// v = x;
+		List<ExpressionNode> args = analyzeExprAssignScalar(atomicReadExpr);
+		boolean isScalarAssignmentExpr = args.size() == 2;
+
+		if (isScalarAssignmentExpr) {// args = {v, x}
+			ExpressionNode v = args.get(0);
+			ExpressionNode x = args.get(1);
+
+			return v.isLvalue() && x.isLvalue()
+					&& verifyExprSeparatedEntity(x, v);
+		}
+		return false;
+	}
+
+	/**
+	 * <p>
+	 * Verify the pattern of <code>atomicUpdateExpr</code>, which is associated
+	 * with an OpenMP <code>atomic</code> construct with <code>update</code>
+	 * clause.
+	 * </p>
+	 * <p>
+	 * The pattern shall be one of following:<br>
+	 * <code>x++;</code><br>
+	 * <code>x--;</code><br>
+	 * <code>++x;</code><br>
+	 * <code>--x;</code><br>
+	 * <code>x bin-op = expr;</code><br>
+	 * <code>x = x bin-op expr;</code><br>
+	 * <code>x = expr bin-op x;</code><br>
+	 * 1. <code>x</code> is a l-value<br>
+	 * 2. The storage location designated by <code>x</code> shall not be
+	 * accessed by <code>expr</code> (if it exists).
+	 * </p>
+	 * 
+	 * @param atomicUpdateExpr
+	 *            the expression associated with an OpenMP atomic update
+	 *            construct
+	 * @return <code>true</code> iff the pattern of
+	 *         <code>atomicUpdateExpr</code> is legal.
+	 */
+	private boolean verifyOmpAtomicUpdate(ExpressionNode atomicUpdateExpr) {
+		// x++
+		// x--
+		// ++x
+		// --x
+		// x bin-op = expr
+		// x = x binop expr
+		// x = expr binop x
+		List<ExpressionNode> args = analyzeExprAssignScalar(atomicUpdateExpr);
+		boolean isUnaryScalarUpdate = args.size() == 1;
+		boolean isBinaryScalarUpdate = args.size() == 3;
+
+		if (isUnaryScalarUpdate) // args = {x}
+			return args.get(0).isLvalue();
+		else if (isBinaryScalarUpdate) {
+			// args = {x, x, expr} or {x, x.copy, expr}
+			ExpressionNode xLHS = args.get(0);
+			ExpressionNode xRHS = args.get(1);
+
+			return xLHS.isLvalue() && xRHS.isLvalue()
+					&& verifyExprSameEntity(xLHS, xRHS)
+					&& verifyExprSeparatedEntity(xLHS, args.get(2));
+		}
+		return false;
+	}
+
+	/**
+	 * <p>
+	 * Verify the pattern of <code>atomicWriteExpr</code>, which is associated
+	 * with an OpenMP <code>atomic</code> construct with <code>write</code>
+	 * clause.
+	 * </p>
+	 * <p>
+	 * The pattern shall be exactly: <code>x = expr;</code><br>
+	 * <code>x</code> is a l-value and the storage location designated by
+	 * <code>x</code> shall not be accessed by <code>expr</code>.
+	 * </p>
+	 * 
+	 * @param atomicWriteExpr
+	 *            the expression associated with an OpenMP atomic write
+	 *            construct
+	 * @return <code>true</code> iff the pattern of <code>atomicWriteExpr</code>
+	 *         is legal.
+	 */
+	private boolean verifyOmpAtomicWrite(ExpressionNode atomicWriteExpr) {
+		// x = expr;
+		List<ExpressionNode> args = analyzeExprAssignScalar(atomicWriteExpr);
+		boolean isScalarAssignmentExpr = args.size() == 2;
+
+		if (isScalarAssignmentExpr) {// args = {x, expr}
+			ExpressionNode x = args.get(0);
+
+			return x.isLvalue() && verifyExprSeparatedEntity(x, args.get(1));
+		}
+		return false;
 	}
 
 	// Public functions or interfaces
@@ -1767,9 +2713,16 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		newItems.addAll(declaredItems);
 		// ADD: $input int _omp_thread_max
 		newItems.add(declOmpThreadMax(srcMethod));
+		// ADD: generated global variables for verification
+		newItems.addAll(globalVarDecls);
 		// ADD: decls for OpenMP critical variables
-		for (String cVName : criticalVarNames)
-			newItems.add(declOmpCriticalVar(srcMethod, cVName));
+		for (String signalNameCritical : criticalNames)
+			newItems.add(declOmpHelperSignal(srcMethod, signalNameCritical,
+					nodeExprInt(srcMethod, 0)));
+		if (hasAtomicConstruct) {
+			newItems.add(declOmpHelperSignal(srcMethod, ATOMIC_,
+					nodeExprInt(srcMethod, 0)));
+		}
 		// ADD: int omp_num_threads = _omp_thread_max;
 		newItems.add(declOmpNumThreads(srcMethod));
 		// ADD: transformed Civl AST nodes from the old AST.
@@ -1780,7 +2733,6 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 				.newSequenceNode(root.getSource(), "Omp2CivlProgram", newItems);
 		AST newAst = astFactory.newAST(newRoot, oldAst.getSourceFiles(),
 				oldAst.isWholeProgram());
-
 		completeSources(newRoot);
 		return newAst;
 	}
