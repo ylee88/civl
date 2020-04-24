@@ -210,7 +210,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 	/** A counter for OpenMP ordered construct */
 	private int ctrOmpOrdered = 0;
 
-	private int levelParallel = 0;
+//	private int levelParallel = 0;
 
 	/** is the binding region specified with <code>ordered(concurrent)</code> */
 	private boolean orderConcurrent = false;
@@ -1758,7 +1758,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 
 		// PRE: Record the current OpenMP region info
 		ompRgn.push(new OmpRegion(OmpRgnKind.PARALLEL));
-		levelParallel += 1;
+//		levelParallel += 1;
 
 		// PROC: _omp_num_threads
 		ExpressionNode _omp_num_threads = ompParallelNode.numThreads();

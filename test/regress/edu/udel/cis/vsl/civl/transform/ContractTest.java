@@ -166,7 +166,7 @@ public class ContractTest {
 
 	@Test
 	public void diff2dExchange() {
-		assertTrue(ui.run("verify", MPI_NPROCS, TestConstants.QUIET, "-loop",
+		assertTrue(ui.run("verify", MPI_NPROCS, /*TestConstants.QUIET,*/ "-loop",
 				"-mpiContract=exchange",
 				filename("/contractsMPI/diffusion2d.c")));
 	}

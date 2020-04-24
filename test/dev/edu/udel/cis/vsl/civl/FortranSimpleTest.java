@@ -18,7 +18,7 @@ public class FortranSimpleTest {
 	private static File DIR_FLASH_GETDATA = new File(DIR_ROOT,
 			"flash/eos_getData_min");
 
-	private static File DIR_MXM = new File(DIR_ROOT, "nek/mxm");
+//	private static File DIR_MXM = new File(DIR_ROOT, "nek/mxm");
 
 	private static UserInterface ui = new UserInterface();
 

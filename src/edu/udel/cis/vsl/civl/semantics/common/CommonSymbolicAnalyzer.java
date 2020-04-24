@@ -4,7 +4,6 @@ import java.math.BigInteger;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 import edu.udel.cis.vsl.abc.ast.node.IF.acsl.ExtendedQuantifiedExpressionNode.ExtendedQuantifier;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;

@@ -1,15 +1,15 @@
 package edu.udel.cis.vsl.civl.semantics.common;
 
+import static edu.udel.cis.vsl.sarl.IF.expr.valueSetReference.ValueSetReference.VSReferenceKind.IDENTITY;
+
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
-import edu.udel.cis.vsl.abc.ast.type.IF.TypeFactory;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.log.IF.CIVLErrorLogger;
-import edu.udel.cis.vsl.civl.log.IF.CIVLExecutionException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
@@ -35,11 +35,14 @@ import edu.udel.cis.vsl.civl.semantics.IF.Evaluator;
 import edu.udel.cis.vsl.civl.semantics.IF.LibraryEvaluatorLoader;
 import edu.udel.cis.vsl.civl.semantics.IF.LibraryExecutorLoader;
 import edu.udel.cis.vsl.civl.semantics.IF.SymbolicAnalyzer;
-import edu.udel.cis.vsl.civl.state.IF.*;
+import edu.udel.cis.vsl.civl.state.IF.DynamicScope;
+import edu.udel.cis.vsl.civl.state.IF.MemoryUnitFactory;
+import edu.udel.cis.vsl.civl.state.IF.State;
+import edu.udel.cis.vsl.civl.state.IF.StateFactory;
+import edu.udel.cis.vsl.civl.state.IF.UnsatisfiablePathConditionException;
 import edu.udel.cis.vsl.civl.util.IF.Triple;
 import edu.udel.cis.vsl.sarl.IF.Reasoner;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
-import edu.udel.cis.vsl.sarl.IF.UnaryOperator;
 import edu.udel.cis.vsl.sarl.IF.ValidityResult.ResultType;
 import edu.udel.cis.vsl.sarl.IF.expr.ArrayElementReference;
 import edu.udel.cis.vsl.sarl.IF.expr.BooleanExpression;
@@ -68,8 +71,6 @@ import edu.udel.cis.vsl.sarl.IF.type.SymbolicTupleType;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicType.SymbolicTypeKind;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicUnionType;
-
-import static edu.udel.cis.vsl.sarl.IF.expr.valueSetReference.ValueSetReference.VSReferenceKind.IDENTITY;
 
 /**
  * 
