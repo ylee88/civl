@@ -262,22 +262,21 @@ public class FunctionTranslator {
 	 * Constructs new instance of function translator. This constructor will be
 	 * used for translating all function nodes except for the system function.
 	 * See also
-	 * {@link #FunctionTranslator(ModelBuilderWorker, ModelFactory,
-	 * StatementNode, CIVLFunction, CIVLConfiguration)}
+	 * {@link #FunctionTranslator(ModelBuilderWorker, ModelFactory, StatementNode, CIVLFunction, CIVLConfiguration)}
 	 * .
 	 *
 	 * @param modelBuilder
-	 *         The model builder worker where this function translator is
-	 *         created.
+	 *            The model builder worker where this function translator is
+	 *            created.
 	 * @param modelFactory
-	 *         The unique model factory used by the system to create new
-	 *         instances of CIVL expressions, statements, etc.
+	 *            The unique model factory used by the system to create new
+	 *            instances of CIVL expressions, statements, etc.
 	 * @param bodyNode
-	 *         The AST node of the function body that this function
-	 *         translator is going to translate.
+	 *            The AST node of the function body that this function
+	 *            translator is going to translate.
 	 * @param function
-	 *         The CIVL function that will be the result of this function
-	 *         translator.
+	 *            The CIVL function that will be the result of this function
+	 *            translator.
 	 */
 	FunctionTranslator(ModelBuilderWorker modelBuilder,
 			ModelFactory modelFactory, StatementNode bodyNode,
@@ -1872,14 +1871,15 @@ public class FunctionTranslator {
 	}
 
 	/**
-	 * <p>tests if a {@link CIVLFunction} is one of the system functions:
+	 * <p>
+	 * tests if a {@link CIVLFunction} is one of the system functions:
 	 * <code>$local_start()</code> and <code>$local_end()</code>.
 	 * </p>
 	 *
 	 * @param func
-	 *         an instance of {@link CIVLFunction}
+	 *            an instance of {@link CIVLFunction}
 	 * @return true iff the given function is either <code>$local_start()</code>
-	 * and <code>$local_end()</code>
+	 *         and <code>$local_end()</code>
 	 */
 	private boolean isLocalBlockEnterOrExit(CIVLFunction func) {
 		String name = func.name().name();
@@ -1888,28 +1888,32 @@ public class FunctionTranslator {
 	}
 
 	/**
-	 * <p>Translates system function call <code>$local_start()</code> to ATOMIC_ENTER
-	 * and marks the location as {@link Location#isEntryOfLocalBlock()};
-	 * Translates system function call <code>$local_end()</code> to ATOMIC_EXIT.
+	 * <p>
+	 * Translates system function call <code>$local_start()</code> to
+	 * ATOMIC_ENTER and marks the location as
+	 * {@link Location#isEntryOfLocalBlock()}; Translates system function call
+	 * <code>$local_end()</code> to ATOMIC_EXIT.
 	 * </p>
 	 *
-	 * <p>The translation is based on the fact that the only difference between
+	 * <p>
+	 * The translation is based on the fact that the only difference between
 	 * local block and atomic block is that entering a local block is a purely
-	 * local action while whether entering an atomic block is purely local depends
-	 * on the body of the atomic block.  Therefore, the location associated with
-	 * the <code>$local_start</code> will be labeled as "isEntryOfLocalBlock".
-	 * During verification, the AmpleSetWorker can use the label on the location
-	 * to make the local block-entering transition an ample set.
+	 * local action while whether entering an atomic block is purely local
+	 * depends on the body of the atomic block. Therefore, the location
+	 * associated with the <code>$local_start</code> will be labeled as
+	 * "isEntryOfLocalBlock". During verification, the AmpleSetWorker can use
+	 * the label on the location to make the local block-entering transition an
+	 * ample set.
 	 * </p>
 	 *
 	 * @param scope
-	 *         the scope where the given call node is in
+	 *            the scope where the given call node is in
 	 * @param function
-	 *         the {@link CIVLFunction} called by the call node
+	 *            the {@link CIVLFunction} called by the call node
 	 * @param callNode
-	 *         a {@link FunctionCallNode} to the specific system function
+	 *            a {@link FunctionCallNode} to the specific system function
 	 * @return the translated {@link Fragment} which contains either an
-	 * ATOMIC_ENTER or ATOMIC_EXIT action.
+	 *         ATOMIC_ENTER or ATOMIC_EXIT action.
 	 */
 	private Statement translateLocalBlockEnterOrExit(Scope scope,
 			CIVLFunction function, FunctionCallNode callNode) {
@@ -1942,7 +1946,7 @@ public class FunctionTranslator {
 		int defaultOffset = 0;
 		Fragment result = new CommonFragment();
 		Expression defaultGuard = null; // guard of default cqse
-		Expression wholeGuard = null; // guard of wholse statement
+		Expression wholeGuard = null; // guard of whole statement
 		NoopStatement insertedNoop;
 
 		if (chooseStatementNode.getDefaultCase() != null) {
@@ -3747,10 +3751,11 @@ public class FunctionTranslator {
 		Expression whenGuard = translateExpressionNode(whenNode.getGuard(),
 				scope, true);
 		Fragment result;
-		Location whenLocation = modelFactory
-				.location(modelFactory.sourceOfBeginning(whenNode), scope);
+		// Location whenLocation = modelFactory
+		// .location(modelFactory.sourceOfBeginning(whenNode), scope);
 
 		try {
+			// Convert numerical type to boolean type.
 			whenGuard = modelFactory.booleanExpression(whenGuard);
 		} catch (ModelFactoryException err) {
 			throw new CIVLSyntaxException("The condition of the when statement "
@@ -3765,7 +3770,9 @@ public class FunctionTranslator {
 			// and that statement's guard.
 			result.addGuardToStartLocation(whenGuard, modelFactory);
 		}
-		result.updateStartLocation(whenLocation);
+		result.startLocation()
+				.setCIVLSource(modelFactory.sourceOfBeginning(whenNode));
+		// result.updateStartLocation(whenLocation);
 		return result;
 	}
 

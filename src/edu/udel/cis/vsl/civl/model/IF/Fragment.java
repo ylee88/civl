@@ -10,7 +10,7 @@ import edu.udel.cis.vsl.civl.model.IF.statement.Statement;
 /**
  * A fragment is a sequence of statements. It has a "pointer" to the start
  * location and a set of statements as its final statements which should all
- * enamate from the same location.
+ * emanate from the same location.
  * 
  * @author Manchun Zheng
  * 
@@ -77,7 +77,7 @@ public interface Fragment {
 
 	/**
 	 * 
-	 * @return The set of final statementss of this fragment
+	 * @return The set of final statements of this fragment
 	 */
 	Set<Statement> finalStatements();
 

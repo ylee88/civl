@@ -29,7 +29,7 @@ public class CommonFragment implements Fragment {
 	/**
 	 * The last statement of the fragment
 	 */
-	public Set<Statement> finalStatements;//
+	public Set<Statement> finalStatements;
 
 	/**
 	 * The start location of the fragment
@@ -67,7 +67,8 @@ public class CommonFragment implements Fragment {
 	 * @param lastStatement
 	 *            the last statement
 	 */
-	public CommonFragment(Location startLocation, Set<Statement> lastStatements) {
+	public CommonFragment(Location startLocation,
+			Set<Statement> lastStatements) {
 		this.startLocation = startLocation;
 		this.finalStatements = lastStatements;
 	}
@@ -124,7 +125,8 @@ public class CommonFragment implements Fragment {
 	/* *********************** Methods from Fragment *********************** */
 
 	@Override
-	public void addGuardToStartLocation(Expression guard, ModelFactory factory) {
+	public void addGuardToStartLocation(Expression guard,
+			ModelFactory factory) {
 		int statementCount = this.startLocation.getNumOutgoing();
 
 		for (int i = 0; i < statementCount; i++) {
@@ -136,8 +138,8 @@ public class CommonFragment implements Fragment {
 			} else if (!factory.isTrue(guard)) {
 				Expression newGuard = factory.binaryExpression(
 						factory.sourceOfSpan(guard.getSource(),
-								oldGuard.getSource()), BINARY_OPERATOR.AND,
-						guard, oldGuard);
+								oldGuard.getSource()),
+						BINARY_OPERATOR.AND, guard, oldGuard);
 
 				statement.setGuard(newGuard);
 			}
@@ -158,10 +160,8 @@ public class CommonFragment implements Fragment {
 
 	@Override
 	public boolean isEmpty() {
-		if (startLocation == null
-				&& (finalStatements == null || finalStatements.isEmpty()))
-			return true;
-		return false;
+		return startLocation == null
+				&& (finalStatements == null || finalStatements.isEmpty());
 	}
 
 	@Override
@@ -252,6 +252,24 @@ public class CommonFragment implements Fragment {
 					}
 				}
 			}
+		}
+		switch (this.startLocation.atomicKind()) {
+			case ATOM_ENTER :
+				newLocation.setEnterAtomic(true);
+				break;
+			case ATOMIC_ENTER :
+				newLocation.setEnterAtomic(false);
+				break;
+			case ATOM_EXIT :
+				newLocation.setLeaveAtomic(true);
+				break;
+			case ATOMIC_EXIT :
+				newLocation.setLeaveAtomic(false);
+				break;
+			case NONE :
+				break;
+			default :
+				assert false; // Invalid Kind
 		}
 		this.startLocation = newLocation;
 	}

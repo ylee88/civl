@@ -6,6 +6,7 @@
  * or writing while another process is in the act of writing to it. 
  * (In particular, it is allowed for two or more readers to access the share at the same time.)
  */
+ // This is an 'bad' version with an incorrect protocol causing a datarace problem.
 #include<civlc.cvh>
 
 $input int NREADER = 3;
@@ -17,12 +18,8 @@ int readCount = 0;
 
 void reader(int rid){
     while($true){
-        $when(writeLock == 0) {
-          $atomic {
-            readLock = 1;
-            readCount++;
-          }
-        }
+        $when(writeLock == 0) readLock = 1;
+        readCount++;
         // reading
         $assert(writeCount == 0);
         readCount--;

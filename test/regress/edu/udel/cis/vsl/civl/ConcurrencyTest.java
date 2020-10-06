@@ -172,6 +172,17 @@ public class ConcurrencyTest {
 	}
 
 	@Test
+	public void readerWriter() {
+		assertTrue(ui.run(VERIFY, MIN, QUIET, filename("readerWriter.cvl")));
+	}
+
+	@Test
+	public void readerWriterBad() {
+		assertFalse(
+				ui.run(VERIFY, MIN, QUIET, filename("readerWriterBad.cvl")));
+	}
+
+	@Test
 	public void ring() {
 		assertTrue(ui.run(VERIFY, POTENTIAL_DEADLOCK, QUIET,
 				" -inputNPROCS_BOUND=8", "-inputN_BOUND=4",
@@ -229,8 +240,7 @@ public class ConcurrencyTest {
 	@Test
 	public void localBlock() {
 		assertTrue(
-				ui.run(VERIFY, NO_PRINTF, QUIET,
-						filename("localBlock.cvl")));
+				ui.run(VERIFY, NO_PRINTF, QUIET, filename("localBlock.cvl")));
 	}
 
 	@AfterClass
