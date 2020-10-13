@@ -157,28 +157,28 @@ public class ContractTest {
 				filename("/contractsMPI/diffusion1dUpdate_loop_bad.c")));
 	}
 
-	@Test
+	@Ignore
 	public void diff2dUpdate() {
 		assertTrue(ui.run(VERIFY, TestConstants.QUIET, "-mpiContract=update",
 				"-loop", "-input_mpi_nprocs=1",
 				filename("/contractsMPI/diffusion2d.c")));
 	}
 
-	@Test
+	@Ignore
 	public void diff2dExchange() {
 		assertTrue(ui.run("verify", MPI_NPROCS, /*TestConstants.QUIET,*/ "-loop",
 				"-mpiContract=exchange",
 				filename("/contractsMPI/diffusion2d.c")));
 	}
 
-	@Test
+	@Ignore
 	public void diff2dExchangeBadImpl() {
 		assertFalse(ui.run(VERIFY, MPI_NPROCS, TestConstants.QUIET, "-loop",
 				"-mpiContract=exchange",
 				filename("/contractsMPI/diffusion2d_dev-impl_bad.c")));
 	}
 
-	@Test
+	@Ignore
 	public void diff2dExchangeBadEnsure() {
 		assertFalse(ui.run(VERIFY, MPI_NPROCS, TestConstants.QUIET, "-loop",
 				"-mpiContract=exchange",
