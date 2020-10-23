@@ -18,12 +18,12 @@ public interface Transition {
 	}
 
 	public enum AtomicLockAction {
-		NONE,
 		/** no action to the atomic lock */
-		GRAB,
+		NONE,
 		/** attempts to grab the atomic lock */
-		RELEASE
+		GRAB,
 		/** releases the atomic lock */
+		RELEASE
 	}
 
 	/**

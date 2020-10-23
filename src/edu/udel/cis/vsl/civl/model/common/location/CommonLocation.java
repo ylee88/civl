@@ -388,6 +388,7 @@ public class CommonLocation extends CommonSourceable implements Location {
 				headString += ", purely local";
 			if (loopPossible)
 				headString += ", loop";
+			headString += ", " + atomicKind;
 			if (this.enterAtom() || this.enterAtomic()) {
 				headString += ", atom/atomic's impact scope: "
 						+ this.impactScopeOfAtomicOrAtomBlock.id();
