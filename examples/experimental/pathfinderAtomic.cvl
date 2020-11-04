@@ -117,7 +117,7 @@ void GPU_BLOCK(int bx, int bIteration, int bBorderCols, int src, int dst, int st
     	}
 	}
 	
-	$atom {
+	$atomic {
 		for(int tp = 0; tp < BLOCK_SIZE; tp++) {
 			in_barrier[tp] = 0;
 		}
@@ -125,7 +125,7 @@ void GPU_BLOCK(int bx, int bIteration, int bBorderCols, int src, int dst, int st
 	}
   
     //Launch the threads per block
-    $atom {
+    $atomic {
     	for (int tp = 0; tp < BLOCK_SIZE; tp++) {
     		thread_procs[tp] = $spawn GPU_THREAD(tp, bx, bIteration, bBorderCols, src, dst, prev, result, startStep);
     	}

@@ -1,7 +1,6 @@
        PROGRAM MXMDRIVER
 
-       INTEGER N
-       PARAMETER (N=4)
+       INTEGER N = 4
        real A(N,N),B(N,N),C(N,N)
        INTEGER I,J
 
@@ -25,7 +24,7 @@ c       ENDDO
 
        DO J=1,N
          DO I=1,N
-            PRINT *,'C(',I,',',J,') = ',C(I,J)
+c           PRINT *,"C(",I,",",J,") = ",C(I,J)
          ENDDO
        ENDDO
 

@@ -115,11 +115,6 @@ public class LanguageFeaturesTest {
 	}
 
 	@Test
-	public void atomChooseBad() throws ABCException {
-		assertFalse(ui.run(VERIFY, QUIET, filename("atomChooseBad.cvl")));
-	}
-
-	@Test
 	public void atomicBlockedResume() throws ABCException {
 		assertTrue(ui.run(VERIFY, QUIET, filename("atomicBlockedResume.cvl")));
 	}
@@ -138,16 +133,6 @@ public class LanguageFeaturesTest {
 	public void atomicWait() throws ABCException {
 		assertTrue(
 				ui.run(VERIFY, "-inputN=3", QUIET, filename("atomicWait.cvl")));
-	}
-
-	@Test
-	public void atomStatement() throws ABCException {
-		assertTrue(ui.run(VERIFY, QUIET, filename("atomStatement.cvl")));
-	}
-
-	@Test
-	public void atomWaitBad() throws ABCException {
-		assertFalse(ui.run(VERIFY, QUIET, filename("atomWaitBad.cvl")));
 	}
 
 	@Test

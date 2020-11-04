@@ -23,7 +23,7 @@ void reader(int rid){
         // reading
         $assert(writeCount == 0);
         readCount--;
-        $atom{
+        $atomic{
             if(readCount == 0)
                 readLock = 0;
         }

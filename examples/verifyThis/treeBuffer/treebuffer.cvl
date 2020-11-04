@@ -369,7 +369,7 @@ int hasSeen(Node * node, Node * seens[], int n) {
 /* Computing the H_<h, which is descried as the bound of the heap
    size */
 int computing_bounds(Tree * tree) {
-  $atom{
+  $atomic{
     TBTree * t = tree->tree;
     Node *active = t->active;
     Node * level[];

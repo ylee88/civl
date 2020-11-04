@@ -11,9 +11,9 @@ import edu.udel.cis.vsl.civl.model.IF.statement.AtomicLockAssignStatement;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 
 /**
- * When translating an $atomic/$atom block, we need to create a noop statement
- * at the beginning and at the end of the block. In order to have more
- * information about the transitions, we create this class to extend
+ * When translating an $atomic block, we need to create a noop statement at the
+ * beginning and at the end of the block. In order to have more information
+ * about the transitions, we create this class to extend
  * {@link CommonNoopStatement}. Currently, there is a field {@link #enter} to
  * denote if the statement is
  * <ol>

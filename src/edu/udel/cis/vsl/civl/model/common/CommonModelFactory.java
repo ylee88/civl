@@ -93,7 +93,16 @@ import edu.udel.cis.vsl.civl.model.IF.expression.reference.MemoryUnitReference;
 import edu.udel.cis.vsl.civl.model.IF.expression.reference.SelfReference;
 import edu.udel.cis.vsl.civl.model.IF.expression.reference.StructOrUnionFieldReference;
 import edu.udel.cis.vsl.civl.model.IF.location.Location;
-import edu.udel.cis.vsl.civl.model.IF.statement.*;
+import edu.udel.cis.vsl.civl.model.IF.statement.AssignStatement;
+import edu.udel.cis.vsl.civl.model.IF.statement.CallOrSpawnStatement;
+import edu.udel.cis.vsl.civl.model.IF.statement.CivlParForSpawnStatement;
+import edu.udel.cis.vsl.civl.model.IF.statement.DomainIteratorStatement;
+import edu.udel.cis.vsl.civl.model.IF.statement.MallocStatement;
+import edu.udel.cis.vsl.civl.model.IF.statement.NoopStatement;
+import edu.udel.cis.vsl.civl.model.IF.statement.ParallelAssignStatement;
+import edu.udel.cis.vsl.civl.model.IF.statement.Statement;
+import edu.udel.cis.vsl.civl.model.IF.statement.UpdateStatement;
+import edu.udel.cis.vsl.civl.model.IF.statement.WithStatement;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLArrayType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLFunctionType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPointerType;
@@ -155,7 +164,6 @@ import edu.udel.cis.vsl.civl.model.common.expression.reference.CommonSelfReferen
 import edu.udel.cis.vsl.civl.model.common.expression.reference.CommonStructOrUnionFieldReference;
 import edu.udel.cis.vsl.civl.model.common.location.CommonLocation;
 import edu.udel.cis.vsl.civl.model.common.statement.CommonAssignStatement;
-import edu.udel.cis.vsl.civl.model.common.statement.CommonAtomBranchStatement;
 import edu.udel.cis.vsl.civl.model.common.statement.CommonAtomicLockAssignStatement;
 import edu.udel.cis.vsl.civl.model.common.statement.CommonCallStatement;
 import edu.udel.cis.vsl.civl.model.common.statement.CommonCivlForEnterStatement;
@@ -203,7 +211,7 @@ public class CommonModelFactory implements ModelFactory {
 	 * 
 	 */
 	public enum TempVariableKind {
-	CONDITIONAL
+		CONDITIONAL
 	}
 
 	/* *************************** Static Fields *************************** */
@@ -1021,38 +1029,25 @@ public class CommonModelFactory implements ModelFactory {
 	// }
 
 	@Override
-	public Fragment atomicFragment(boolean deterministic, Fragment fragment,
-			Location start, Location end) {
-		Statement enterAtomic;
-		Statement leaveAtomic;
-		Fragment startFragment;
-		Fragment endFragment;
+	public Fragment atomicFragment(Fragment fragment, Location start,
+			Location end) {
+		Statement enterAtomic = new CommonAtomicLockAssignStatement(
+				start.getSource(), this.systemScope, this.systemScope, start,
+				this.trueExpression(start.getSource()), true,
+				this.atomicLockVariableExpression,
+				this.selfExpression(systemSource));
+		Statement leaveAtomic = new CommonAtomicLockAssignStatement(
+				end.getSource(), this.systemScope, this.systemScope, end,
+				this.trueExpression(end.getSource()), false,
+				this.atomicLockVariableExpression,
+				new CommonUndefinedProcessExpression(systemSource,
+						typeFactory.processType, this.undefinedProcessValue));
+		Fragment startFragment = new CommonFragment(enterAtomic);
+		Fragment endFragment = new CommonFragment(leaveAtomic);
 		Fragment result;
 		Expression startGuard = null;
 
-		if (deterministic) {
-			enterAtomic = new CommonAtomBranchStatement(start.getSource(),
-					start, this.trueExpression(start.getSource()), true);
-			leaveAtomic = new CommonAtomBranchStatement(end.getSource(), end,
-					this.trueExpression(end.getSource()), false);
-		} else {
-			enterAtomic = new CommonAtomicLockAssignStatement(start.getSource(),
-					this.systemScope, this.systemScope, start,
-					this.trueExpression(start.getSource()), true,
-					this.atomicLockVariableExpression,
-					this.selfExpression(systemSource));
-			leaveAtomic = new CommonAtomicLockAssignStatement(end.getSource(),
-					this.systemScope, this.systemScope, end,
-					this.trueExpression(end.getSource()), false,
-					this.atomicLockVariableExpression,
-					new CommonUndefinedProcessExpression(systemSource,
-							typeFactory.processType,
-							this.undefinedProcessValue));
-		}
-		startFragment = new CommonFragment(enterAtomic);
-		endFragment = new CommonFragment(leaveAtomic);
-		start.setEnterAtomic(deterministic);
-
+		start.setEnterAtomic();
 		if (fragment.startLocation().getNumOutgoing() == 1) {
 			Statement firstStmtOfBody = fragment.startLocation()
 					.getSoleOutgoing();
@@ -1072,7 +1067,7 @@ public class CommonModelFactory implements ModelFactory {
 		}
 		if (startGuard != null)
 			enterAtomic.setGuard(startGuard);
-		end.setLeaveAtomic(deterministic);
+		end.setLeaveAtomic();
 		result = startFragment.combineWith(fragment);
 		result = result.combineWith(endFragment);
 		return result;
@@ -1082,8 +1077,8 @@ public class CommonModelFactory implements ModelFactory {
 	public Statement atomicEnter(Location loc) {
 		CIVLSource source = loc.getSource();
 
-		return new CommonAtomicLockAssignStatement(source,
-				systemScope, systemScope, loc, trueExpression(source), true,
+		return new CommonAtomicLockAssignStatement(source, systemScope,
+				systemScope, loc, trueExpression(source), true,
 				atomicLockVariableExpression, selfExpression(systemSource));
 	}
 
@@ -1091,8 +1086,8 @@ public class CommonModelFactory implements ModelFactory {
 	public Statement atomicExit(Location loc) {
 		CIVLSource source = loc.getSource();
 
-		return new CommonAtomicLockAssignStatement(source,
-				systemScope, systemScope, loc, trueExpression(source), false,
+		return new CommonAtomicLockAssignStatement(source, systemScope,
+				systemScope, loc, trueExpression(source), false,
 				atomicLockVariableExpression, selfExpression(systemSource));
 	}
 
@@ -1276,8 +1271,8 @@ public class CommonModelFactory implements ModelFactory {
 
 	@Override
 	public void computeImpactScopeOfLocation(Location location) {
-		if (location.enterAtom() || location.enterAtomic()) {
-			Stack<Integer> atomFlags = new Stack<Integer>();
+		if (location.enterAtomic()) {
+			Stack<Integer> atomicFlags = new Stack<Integer>();
 			Set<Integer> checkedLocations = new HashSet<Integer>();
 			Scope impactScope = null;
 			Stack<Location> workings = new Stack<Location>();
@@ -1289,58 +1284,47 @@ public class CommonModelFactory implements ModelFactory {
 				Location currentLocation = workings.pop();
 
 				checkedLocations.add(currentLocation.id());
-				if (location.enterAtom() && currentLocation.enterAtom())
-					atomFlags.push(1);
 				if (location.enterAtomic() && currentLocation.enterAtomic())
-					atomFlags.push(1);
-				if (location.enterAtom() && currentLocation.leaveAtom())
-					atomFlags.pop();
+					atomicFlags.push(1);
 				if (location.enterAtomic() && currentLocation.leaveAtomic())
-					atomFlags.pop();
-				if (atomFlags.isEmpty()) {
-					if (location.enterAtom()) {
-						if (!currentLocation.enterAtom())
-							atomFlags.push(1);
-					}
+					atomicFlags.pop();
+				if (atomicFlags.isEmpty()) {
 					if (location.enterAtomic()) {
 						if (!currentLocation.enterAtomic())
-							atomFlags.push(1);
+							atomicFlags.push(1);
 					}
 					continue;
 				}
-				if (currentLocation.getNumOutgoing() > 0) {
-					int number = currentLocation.getNumOutgoing();
-					for (int i = 0; i < number; i++) {
-						Statement s = currentLocation.getOutgoing(i);
+				for (int i = 0; i < currentLocation.getNumOutgoing(); i++) {
+					Statement s = currentLocation.getOutgoing(i);
 
-						if (s instanceof CallOrSpawnStatement) {
-							if (((CallOrSpawnStatement) s).isCall()) {
-								// calling a function is considered as impact
-								// scope because we don't keep record of the
-								// total impact scope of a function
-								location.setImpactScopeOfAtomicOrAtomBlock(
-										systemScope);
-								return;
-							}
-						}
-						if (impactScope == null)
-							impactScope = s.statementScope();
-						else
-							impactScope = join(impactScope, s.statementScope());
-						if (impactScope != null
-								&& impactScope.id() == systemScope.id()) {
+					if (s instanceof CallOrSpawnStatement) {
+						if (((CallOrSpawnStatement) s).isCall()) {
+							// calling a function is considered as impact
+							// scope because we don't keep record of the
+							// total impact scope of a function
 							location.setImpactScopeOfAtomicOrAtomBlock(
-									impactScope);
+									systemScope);
 							return;
 						}
-						if (s.target() != null) {
-							if (!checkedLocations.contains(s.target().id())) {
-								workings.push(s.target());
+					}
+					if (impactScope == null)
+						impactScope = s.statementScope();
+					else
+						impactScope = join(impactScope, s.statementScope());
+					if (impactScope != null
+							&& impactScope.id() == systemScope.id()) {
+						location.setImpactScopeOfAtomicOrAtomBlock(impactScope);
+						return;
+					}
+					if (s.target() != null) {
+						if (!checkedLocations.contains(s.target().id())) {
+							workings.push(s.target());
 
-							}
 						}
 					}
 				}
+
 			}
 			location.setImpactScopeOfAtomicOrAtomBlock(impactScope);
 			return;

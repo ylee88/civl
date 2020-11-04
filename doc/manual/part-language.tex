@@ -729,60 +729,6 @@ Once the function \cexit\, declared in the header \texttt{civlc.cvh}, is called,
 
 \section{Atomicity}
 
-\subsection{Atom blocks: \catom} This defines a number of statements
-to be executed as a single atomic transition.  An \catom~block has the
-following form:
-\begin{verbatim}
-  $atom {
-    stmt1;
-    stmt2;
-    ...
-  }
-\end{verbatim}
-
-The statements inside an \catom\ block are to be executed as one
-transition. It is required that the execution of the statements in an
-\catom\ block satisfy all of the following properties:
-\begin{enumerate}
-\item \emph{deterministic}: at each step in the execution of the atom
-  block, there must be at most one enabled statement;
-\item \emph{nonblocking}: at each step in the execution, there must be
-  at least one enabled statement, hence, together with (1), there must
-  be exactly one enabled statement;
-\item \emph{finite}: the execution of the atom block must terminate
-  after a finite number of steps; and
-\item \emph{isolated}: there are no jumps from outside the atom block
-  to inside the atom block, or from inside the atomc block to outside
-  of it.
-\end{enumerate}
-
-Violations of the \emph{deterministic}, \emph{nonblocking}, or
-\emph{isolated} properties will be reported either statically or
-dynamically.  If the \emph{finite} property is violated, the
-verification may just run forever.
-
-Once the process enters an \catom\ block is said to be \emph{executing
-  atomly}.  The process remains executing atomly until it reaches the
-terminating right brace of the block.  Hence \emph{executing atomly}
-is a dynamic, not static condition.  For example, the block might
-contain a function call which takes the process to a point in code
-which is not statically contained in an atom block; that process is
-nevertheless still executing atomly and is subject to the rules above.
-The process only stops executing atomly when that function call
-returns and control finally reaches the right curly brace at the end
-of the atom block (assuming the block is not contained in another atom
-block).
-
-\emph{Note:} \cwait\ or \cwaitall\ calls are not allowed in \catom\ blocks.
-The rationale for this is that there is never a way to know for
-certain that another process has terminated (until \cwait\ or \cwaitall\ has
-returned) so there is never a way to be certain the \cwait\ or \cwaitall call
-will not block.  If one does occur in an \catom\ block, an error will
-be reported statically (if it can be detected statically) or
-dynamically (otherwise).  Note that it is not always possible to
-detect this statically because the \catom\ block may contain a
-function call, and the function may contain \cwait\ or \cwaitall\ calls.
-
 \subsection{Atomic blocks: \catomic}
 
 The statements in an \emph{atomic} block will be executed without
@@ -795,13 +741,12 @@ form:
     ...
   }
 \end{verbatim}
-It is essentially a weaker form of \catom.  Unlike \catom, there are
-no restrictions on the statements that can go inside an \catomic\
-block.  A process executing an \catomic~block will try to execute the
-statements without interleaving with other processes, unless it
-becomes blocked.  Unlike an \catom, the statements in an atomic block
-do not necessarily execute as a single transition; they may be spread
-out over multiple transitions.
+There are no restrictions on the statements that can go inside an 
+\catomic\ block.  A process executing an \catomic~block will try to 
+execute the statements without interleaving with other processes, 
+unless it becomes blocked.  The statements in an atomic block do not 
+necessarily execute as a single transition; they may be spread out 
+over multiple transitions.
 
 When no statement is enabled, the execution of the \catomic\ block
 will be interrupted.  At this point, other processes are allowed to
@@ -826,11 +771,9 @@ A process that enters an $\catomic$ block is said to be
 \emph{executing atomically}; it remains executing atomically until it
 reaches the closing curly brace.
 
-Both $\catom$ and $\catomic$ blocks can be nested arbitrarily, but
-$\catom$ overrides $\catomic$: a process that is executing atomly will
-continue executing atomly if it encounters an $\catomic$ statement;
-but a process executing atomically that encounters an $\catom$ will
-begin executing atomly.
+$\catomic$ blocks can be nested arbitrarily: 
+a process that is executing atomly will continue executing atomly 
+if it encounters an $\catomic$ statement;
 
 The atomic semantics are defined more precisely as follows: there is a
 single global variable called the \emph{atomic lock}. This variable

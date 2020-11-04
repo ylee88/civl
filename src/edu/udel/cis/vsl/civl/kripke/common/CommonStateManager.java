@@ -18,7 +18,6 @@ import edu.udel.cis.vsl.civl.kripke.IF.Enabler;
 import edu.udel.cis.vsl.civl.kripke.IF.TraceStep;
 import edu.udel.cis.vsl.civl.kripke.common.StateStatus.EnabledStatus;
 import edu.udel.cis.vsl.civl.log.IF.CIVLErrorLogger;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.location.Location;
 import edu.udel.cis.vsl.civl.model.IF.statement.Statement;
@@ -152,8 +151,8 @@ public class CommonStateManager extends CIVLStateManager {
 	/* *************************** Private Methods ************************* */
 	/**
 	 * Execute a transition (obtained by the enabler) from a state. When the
-	 * corresponding process is in atomic/atom execution, continues to execute
-	 * more statements---as many as possible. Also executes more statements if
+	 * corresponding process is in atomic execution, continues to execute more
+	 * statements---as many as possible. Also executes more statements if
 	 * possible.
 	 * 
 	 * @param state
@@ -172,28 +171,23 @@ public class CommonStateManager extends CIVLStateManager {
 		Transition firstTransition;
 		StateStatus stateStatus;
 		String process;
-		int atomCount = 0;
 
 		pid = transition.pid();
 		process = "p" + pid;
 		firstTransition = (Transition) transition;
-		if (state.getProcessState(pid).getLocation().enterAtom())
-			atomCount = 1;
 		state = executor.execute(state, pid, firstTransition);
 		traceStep.addAtomicStep(new CommonAtomicStep(state, firstTransition));
-		for (stateStatus = singleEnabled(state, pid, atomCount,
-				process); stateStatus.val; stateStatus = singleEnabled(state,
-						pid, stateStatus.atomCount, process)) {
+		for (stateStatus = singleEnabled(state, pid,
+				process); stateStatus.canExecuteMore; stateStatus = singleEnabled(
+						state, pid, process)) {
 			assert stateStatus.enabledTransition != null;
 			assert stateStatus.enabledStatus == EnabledStatus.DETERMINISTIC;
-			assert stateStatus.atomCount >= 0;
 			state = executor.execute(state, stateStatus.enabledTransition.pid(),
 					stateStatus.enabledTransition);
 			numStatesExplored.getAndIncrement();
 			traceStep.addAtomicStep(
 					new CommonAtomicStep(state, stateStatus.enabledTransition));
 		}
-		assert stateStatus.atomCount == 0;
 		assert stateStatus.enabledStatus != EnabledStatus.DETERMINISTIC;
 		if (stateStatus.enabledStatus == EnabledStatus.BLOCKED
 				&& stateFactory.lockedByAtomic(state))
@@ -214,13 +208,6 @@ public class CommonStateManager extends CIVLStateManager {
 	 * transition. TODO Predicates are not checked for intermediate states.
 	 * Conditions for a process p at a state s to execute more:
 	 * <ul>
-	 * <li>p is about to enter an atom block or p is already in some atom
-	 * blocks:
-	 * <ul>
-	 * <li>the size of enabled(p, s) should be exactly 1;</li>
-	 * <li>otherwise, an error will be reported.</li>
-	 * </ul>
-	 * </li> or
 	 * <li>p is currently holding the atomic lock:
 	 * <ol>
 	 * <li>the current location of p has exactly one incoming statement;</li>
@@ -238,80 +225,48 @@ public class CommonStateManager extends CIVLStateManager {
 	 *            The current state.
 	 * @param pid
 	 *            The ID of the current process.
-	 * @param atomCount
-	 *            The number of incomplete atom blocks.
 	 * @return
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	protected StateStatus singleEnabled(State state, int pid, int atomCount,
-			String process) throws UnsatisfiablePathConditionException {
+	protected StateStatus singleEnabled(State state, int pid, String process)
+			throws UnsatisfiablePathConditionException {
 		List<Transition> enabled;
 		ProcessState procState = state.getProcessState(pid);
 		Location pLocation;
 		boolean inAtomic = false;
-		boolean inAtom = false;
 
 		if (procState == null || procState.hasEmptyStack())
-			return new StateStatus(false, null, atomCount,
-					EnabledStatus.TERMINATED);
+			return new StateStatus(false, null, EnabledStatus.TERMINATED);
 		else
 			pLocation = procState.getLocation();
 		assert pLocation != null;
 		if (pLocation.isGuardedLocation())
-			return new StateStatus(false, null, atomCount,
-					EnabledStatus.BLOCKED);
+			return new StateStatus(false, null, EnabledStatus.BLOCKED);
 		enabled = enabler.enabledTransitionsOfProcess(state, pid);
-		if (pLocation.enterAtom()) {
-			if (atomCount == 0 && !pLocation.isPurelyLocal())
-				return new StateStatus(false, null, 0, EnabledStatus.UNSAFE);
-			atomCount++;
-		} else if (pLocation.leaveAtom()) {
-			inAtom = true;
-			atomCount--;
-		}
-		if (inAtom || atomCount > 0) {
-			// in atom execution
-			if (enabled.size() == 1)
-				return new StateStatus(true, enabled.get(0), atomCount,
-						EnabledStatus.DETERMINISTIC);
-			else if (enabled.size() > 1) {// non deterministic
-				reportErrorForAtom(EnabledStatus.NONDETERMINISTIC, state,
-						pLocation, process);
-				return new StateStatus(false, null, atomCount,
-						EnabledStatus.NONDETERMINISTIC);
-			} else {// blocked
-				reportErrorForAtom(EnabledStatus.BLOCKED, state, pLocation,
-						process);
-				return new StateStatus(false, null, atomCount,
-						EnabledStatus.BLOCKED);
-			}
-		} else {
-			int pidInAtomic = stateFactory.processInAtomic(state);
 
-			if (pidInAtomic == pid) {
-				// the process is in atomic execution
-				// assert pidInAtomic == pid;
-				if ((pLocation.isInLoop() && !pLocation.isSafeLoop())
-						|| (pLocation.isStart()
-								&& pLocation.getNumIncoming() > 0))
-					// possible loop, save state
-					return new StateStatus(false, null, atomCount,
-							EnabledStatus.LOOP_POSSIBLE);
-				inAtomic = true;
-			}
-			if (inAtomic || pLocation.isPurelyLocal()) {
-				if (enabled.size() == 1)
-					return new StateStatus(true, enabled.get(0), atomCount,
-							EnabledStatus.DETERMINISTIC);
-				else if (enabled.size() > 1) // blocking
-					return new StateStatus(false, null, atomCount,
-							EnabledStatus.NONDETERMINISTIC);
-				else
-					return new StateStatus(false, null, atomCount,
-							EnabledStatus.BLOCKED);
-			}
-			return new StateStatus(false, null, atomCount, EnabledStatus.NONE);
+		// Atomic processing
+		if (stateFactory.processInAtomic(state) == pid) {
+			// the process is in atomic execution
+			// assert pidInAtomic == pid;
+			if ((pLocation.isInLoop() && !pLocation.isSafeLoop())
+					|| (pLocation.isStart() && pLocation.getNumIncoming() > 0))
+				// possible loop, save state
+				return new StateStatus(false, null,
+						EnabledStatus.LOOP_POSSIBLE);
+			inAtomic = true;
 		}
+		if (inAtomic || pLocation.isPurelyLocal()) {
+			if (enabled.size() == 1)
+				return new StateStatus(true, enabled.get(0),
+						EnabledStatus.DETERMINISTIC);
+			else if (enabled.size() > 1) // blocking
+				return new StateStatus(false, null,
+						EnabledStatus.NONDETERMINISTIC);
+			else
+				return new StateStatus(false, null, EnabledStatus.BLOCKED);
+		}
+		return new StateStatus(false, null, EnabledStatus.NONE);
+
 	}
 
 	/**
@@ -327,9 +282,6 @@ public class CommonStateManager extends CIVLStateManager {
 	 *            The statement that has been executed in the current step.
 	 * @param atomicKind
 	 *            The atomic kind of the source location of the statement.
-	 * @param atomCount
-	 *            The atomic/atom count of the process that the statement
-	 *            belongs to.
 	 * @param atomicLockVarChanged
 	 *            True iff the atomic lock variable is changed during the
 	 *            execution of the statement.
@@ -398,41 +350,6 @@ public class CommonStateManager extends CIVLStateManager {
 	private void printUpdateWork() {
 		updater.print(config.out());
 		config.out().flush();
-	}
-
-	/**
-	 * Report error message for $atom block execution, when
-	 * <ol>
-	 * <li>non-determinism is detected, or</li>
-	 * <li>a blocked location is encountered.</li>
-	 * </ol>
-	 * 
-	 * @param kind
-	 *            The status kind of the error.
-	 * @param state
-	 *            The state that the error occurs.
-	 * @param location
-	 *            The location that the error occurs.
-	 * @throws UnsatisfiablePathConditionException
-	 */
-	private void reportErrorForAtom(EnabledStatus enabled, State state,
-			Location location, String process)
-			throws UnsatisfiablePathConditionException {
-		switch (enabled) {
-			case NONDETERMINISTIC :
-				errorLogger.logSimpleError(location.getSource(), state, process,
-						symbolicAnalyzer.stateInformation(state),
-						ErrorKind.OTHER,
-						"nondeterminism is encountered in $atom block.");
-				throw new UnsatisfiablePathConditionException();
-			case BLOCKED :
-				errorLogger.logSimpleError(location.getSource(), state, process,
-						symbolicAnalyzer.stateInformation(state),
-						ErrorKind.OTHER,
-						"blocked location is encountered in $atom block.");
-				throw new UnsatisfiablePathConditionException();
-			default :
-		}
 	}
 
 	/* ********************* Methods from StateManagerIF ******************* */

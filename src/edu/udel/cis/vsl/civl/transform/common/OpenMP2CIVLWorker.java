@@ -2096,8 +2096,7 @@ public class OpenMP2CIVLWorker extends BaseWorker {
 				replaceOMPPragmas(body, privateIDs, sharedIDs, reductionIDs,
 						firstPrivateIDs, threadPrivateIDs);
 				atomicNode = nodeFactory.newAtomicStatementNode(
-						newSource(atomicSrc, CivlcTokenConstant.ATOMIC), false,
-						body);
+						newSource(atomicSrc, CivlcTokenConstant.ATOMIC), body);
 
 				int index = ompAtomicNode.childIndex();
 				ASTNode parent = ompAtomicNode.parent();

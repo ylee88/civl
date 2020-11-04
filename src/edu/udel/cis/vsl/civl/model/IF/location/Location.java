@@ -28,18 +28,18 @@ public interface Location extends Sourceable {
 	/**
 	 * Atomic flags of a location:
 	 * <ul>
-	 * <li>NONE: no $atomic/$atom boundary;</li>
+	 * <li>NONE: no $atomic boundary;</li>
 	 * <li>ATOMIC_ENTER/ATOM_ENTER: the location is the starting point of an
-	 * $atomic/$atom block;</li>
-	 * <li>ATOMIC_EXIT/ATOM_EXIT: the location is the ending point of an
-	 * $atomic/$atom block.</li>
+	 * $atomic block;</li>
+	 * <li>ATOMIC_EXIT/ATOM_EXIT: the location is the ending point of an $atomic
+	 * block.</li>
 	 * </ul>
 	 * 
 	 * @author Manchun Zheng
-	 * 
+	 * @author Wenhao Wu (wuwenhao@udel.edu)
 	 */
 	public enum AtomicKind {
-		NONE, ATOMIC_ENTER, ATOMIC_EXIT, ATOM_ENTER, ATOM_EXIT
+		NONE, ATOMIC_ENTER, ATOMIC_EXIT
 	}
 
 	/**
@@ -170,27 +170,13 @@ public interface Location extends Sourceable {
 
 	/**
 	 * This location is the start location of a certain atomic block
-	 * 
-	 * @param deterministic
-	 *            True iff the atomic block is a $datomic block
 	 */
-	void setEnterAtomic(boolean deterministic);
+	void setEnterAtomic();
 
 	/**
 	 * This location is the end location of a certain atomic block
-	 * 
-	 * @param deterministic
-	 *            True iff the atomic block is a $datomic block
 	 */
-	void setLeaveAtomic(boolean deterministic);
-
-	/**
-	 * Check if the location is entering a deterministic atomic block.
-	 * 
-	 * @return true iff the location is entering a deterministic atomic block.
-	 * 
-	 */
-	boolean enterAtom();
+	void setLeaveAtomic();
 
 	/**
 	 * Check if the location is entering a general atomic block.
@@ -199,12 +185,6 @@ public interface Location extends Sourceable {
 	 * 
 	 */
 	boolean enterAtomic();
-
-	/**
-	 * 
-	 * @return true iff the location is leaving a deterministic atomic block
-	 */
-	boolean leaveAtom();
 
 	/**
 	 * 
@@ -218,8 +198,6 @@ public interface Location extends Sourceable {
 	 * <li>NONE: a normal location</li>
 	 * <li>ENTER: the start location of an $atomic block</li>
 	 * <li>LEAVE: the end location of an $atomic block</li>
-	 * <li>DENTER: the start location of an $atom block</li>
-	 * <li>LEAVE: the end location of an $atom block</li>
 	 * </ol>
 	 * 
 	 * @return the atomic kind of the location
@@ -453,14 +431,14 @@ public interface Location extends Sourceable {
 
 	/**
 	 * @return true iff this location is the entry of a local block, i.e., this
-	 * location is associated with a system function call <code>$local_start</code>
+	 *         location is associated with a system function call
+	 *         <code>$local_start</code>
 	 */
 	boolean isEntryOfLocalBlock();
 
 	/**
 	 * @param isEntryOfLocalBlock
-	 *         true to mark that this location
-	 *         {@link #isEntryOfLocalBlock()}
+	 *            true to mark that this location {@link #isEntryOfLocalBlock()}
 	 */
 	void setIsEntryOfLocalBlock(boolean isEntryOfLocalBlock);
 }

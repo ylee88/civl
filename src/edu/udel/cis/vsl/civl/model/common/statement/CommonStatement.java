@@ -283,14 +283,6 @@ public abstract class CommonStatement extends CommonSourceable
 					result += "LEAVE_ATOMIC (atomicCount--) ";
 				result += Integer.toString(atomCount);
 				break;
-			case ATOM_ENTER :
-				result += toString() + " ";
-				result += Integer.toString(atomCount - 1);
-				break;
-			case ATOM_EXIT :
-				result += toString() + " ";
-				result += Integer.toString(atomCount);
-				break;
 			default :
 				result += toString();
 		}

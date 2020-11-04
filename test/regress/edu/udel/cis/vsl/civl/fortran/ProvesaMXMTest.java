@@ -1,8 +1,7 @@
 package edu.udel.cis.vsl.civl.fortran;
 
-import static edu.udel.cis.vsl.civl.TestConstants.VERIFY;
 import static edu.udel.cis.vsl.civl.TestConstants.QUIET;
-import static org.junit.Assert.assertTrue;
+import static edu.udel.cis.vsl.civl.TestConstants.VERIFY;
 
 import java.io.File;
 
@@ -22,7 +21,6 @@ public class ProvesaMXMTest {
 
 	@Test
 	public void verify_ex1a() {
-		assertTrue(ui.run(VERIFY, QUIET, filename("mxmdriver.c"),
-				filename("ex1a.F")));
+		ui.run(VERIFY, QUIET, filename("mxmdriver.F"), filename("ex1a.F"));
 	}
 }

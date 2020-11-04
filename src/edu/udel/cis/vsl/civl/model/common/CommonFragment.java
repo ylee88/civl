@@ -254,17 +254,11 @@ public class CommonFragment implements Fragment {
 			}
 		}
 		switch (this.startLocation.atomicKind()) {
-			case ATOM_ENTER :
-				newLocation.setEnterAtomic(true);
-				break;
 			case ATOMIC_ENTER :
-				newLocation.setEnterAtomic(false);
-				break;
-			case ATOM_EXIT :
-				newLocation.setLeaveAtomic(true);
+				newLocation.setEnterAtomic();
 				break;
 			case ATOMIC_EXIT :
-				newLocation.setLeaveAtomic(false);
+				newLocation.setLeaveAtomic();
 				break;
 			case NONE :
 				break;

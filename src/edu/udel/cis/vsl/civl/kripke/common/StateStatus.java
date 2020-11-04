@@ -7,7 +7,7 @@ import edu.udel.cis.vsl.civl.semantics.IF.Transition;
  * if they are allowed to be executed further.
  * 
  * @author Manchun Zheng
- * 
+ * @author Wenhao Wu (wuwenhao@udel.edu)
  */
 class StateStatus {
 	/**
@@ -29,18 +29,13 @@ class StateStatus {
 	 * The result of the enabling analysis: i.e., whether the process is allowed
 	 * to execute more.
 	 */
-	boolean val;
+	boolean canExecuteMore;
 
 	/**
 	 * The current enabled transition of the current process. Not NULL only when
 	 * the process is allowed to execute more.
 	 */
 	Transition enabledTransition;
-
-	/**
-	 * Keep track of the number of incomplete atom blocks.
-	 */
-	int atomCount;
 
 	/**
 	 * Creates a new instance of StateStatus.
@@ -50,16 +45,12 @@ class StateStatus {
 	 * @param transition
 	 *            The single transition enabled. NULL if status is not
 	 *            DETERMINISTIC.
-	 * @param atomCount
-	 *            The atom count that the current state encounters.
 	 * @param status
 	 *            The status of the state.
 	 */
-	StateStatus(boolean result, Transition transition, int atomCount,
-			EnabledStatus status) {
-		this.val = result;
+	StateStatus(boolean result, Transition transition, EnabledStatus status) {
+		this.canExecuteMore = result;
 		this.enabledTransition = transition;
-		this.atomCount = atomCount;
 		this.enabledStatus = status;
 	}
 }

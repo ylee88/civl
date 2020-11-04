@@ -259,8 +259,7 @@ public class GeneralWorker extends BaseWorker {
 			bodyNode.remove();
 			items.add(bodyNode);
 			exit = this.functionCall(newSource("$exit_collate_state", 0),
-					"$exit_collate_state",
-					Arrays.asList(
+					"$exit_collate_state", Arrays.asList(
 							// this.identifierExpression(oldCol.getName()),
 							this.nodeFactory.newOperatorNode(
 									colStateExpr.getSource(),
@@ -269,7 +268,7 @@ public class GeneralWorker extends BaseWorker {
 					));
 			items.add(nodeFactory.newExpressionStatementNode(exit));
 			atomic = nodeFactory.newAtomicStatementNode(withNode.getSource(),
-					true, this.nodeFactory.newCompoundStatementNode(
+					this.nodeFactory.newCompoundStatementNode(
 							withNode.getSource(), items));
 			parent.setChild(withNode.childIndex(), atomic);
 		} else {
@@ -315,11 +314,10 @@ public class GeneralWorker extends BaseWorker {
 	 */
 	private ExpressionStatementNode argcAssumption(Source source,
 			String argcName) throws SyntaxException {
-		ExpressionNode lowerBound = nodeFactory
-				.newOperatorNode(source, Operator.LT,
-						Arrays.asList(
-								nodeFactory.newIntegerConstantNode(source, "0"),
-								this.identifierExpression(source, argcName)));
+		ExpressionNode lowerBound = nodeFactory.newOperatorNode(source,
+				Operator.LT,
+				Arrays.asList(nodeFactory.newIntegerConstantNode(source, "0"),
+						this.identifierExpression(source, argcName)));
 
 		return nodeFactory.newExpressionStatementNode(
 				this.functionCall(source, ASSUME, Arrays.asList(lowerBound)));
@@ -392,8 +390,8 @@ public class GeneralWorker extends BaseWorker {
 
 		ArrayLambdaNode arrayLambda = this.nodeFactory
 				.newArrayLambdaNode(
-						this.newSource("array lambda",
-								CivlcTokenConstant.LAMBDA),
+						this.newSource(
+								"array lambda", CivlcTokenConstant.LAMBDA),
 						arrayOfCharPointer,
 						Arrays.asList(this.variableDeclaration("i",
 								this.basicType(BasicTypeKind.INT))),
@@ -530,9 +528,9 @@ public class GeneralWorker extends BaseWorker {
 	 */
 	private void processMalloc(ASTNode currentNode) throws SyntaxException {
 		/* Determine the type of the current node. */
-		if (currentNode instanceof FunctionCallNode &&
-				((FunctionCallNode) currentNode).getFunction().
-				expressionKind() == ExpressionKind.IDENTIFIER_EXPRESSION) {
+		if (currentNode instanceof FunctionCallNode
+				&& ((FunctionCallNode) currentNode).getFunction()
+						.expressionKind() == ExpressionKind.IDENTIFIER_EXPRESSION) {
 			FunctionCallNode funcCallNode = (FunctionCallNode) currentNode;
 			Source funcCallSource = funcCallNode.getSource();
 			IdentifierNode funcIdNode = ((IdentifierExpressionNode) funcCallNode

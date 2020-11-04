@@ -145,7 +145,7 @@ public class MemoryUnitExpressionAnalyzer {
 		Set<MemoryUnitExpression> impactMemUnits = new HashSet<>();
 		Set<CallOrSpawnStatement> systemCalls = new HashSet<>();
 
-		if (location.enterAtom() || location.enterAtomic()) {
+		if (location.enterAtomic()) {
 			boolean predictable = computeImpactMemoryUnitsOfAtomicAndAtom(
 					location.writableVariables(), location, impactMemUnits,
 					systemCalls);
@@ -170,7 +170,7 @@ public class MemoryUnitExpressionAnalyzer {
 			Set<CallOrSpawnStatement> systemCalls) {
 		int atomicCount = 0;
 
-		if (location.enterAtom() || location.enterAtomic()) {
+		if (location.enterAtomic()) {
 			Set<Integer> checkedLocations = new HashSet<Integer>();
 			Stack<Location> workings = new Stack<Location>();
 
@@ -181,17 +181,11 @@ public class MemoryUnitExpressionAnalyzer {
 				Location currentLocation = workings.pop();
 
 				checkedLocations.add(currentLocation.id());
-				if (location.enterAtom() && currentLocation.enterAtom())
-					atomicCount++;
 				if (location.enterAtomic() && currentLocation.enterAtomic())
 					atomicCount++;
-				if (location.enterAtom() && currentLocation.leaveAtom())
-					atomicCount--;
 				if (location.enterAtomic() && currentLocation.leaveAtomic())
 					atomicCount--;
 				if (atomicCount == 0) {
-					if (location.enterAtom() && !currentLocation.enterAtom())
-						atomicCount++;
 					if (location.enterAtomic()
 							&& !currentLocation.enterAtomic())
 						atomicCount++;

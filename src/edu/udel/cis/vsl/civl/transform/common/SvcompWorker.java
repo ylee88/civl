@@ -330,8 +330,8 @@ public class SvcompWorker extends BaseWorker {
 					BlockItemNode atomicStmt;
 
 					body.remove();
-					atomicStmt = this.nodeFactory.newAtomicStatementNode(
-							body.getSource(), false, body);
+					atomicStmt = this.nodeFactory
+							.newAtomicStatementNode(body.getSource(), body);
 					body = this.nodeFactory.newCompoundStatementNode(
 							body.getSource(), Arrays.asList(atomicStmt));
 					funcDef.setBody(body);
@@ -339,7 +339,7 @@ public class SvcompWorker extends BaseWorker {
 					process_atomic_begin_end(funcDef.getBody());
 				}
 			}
-			//process_nondet_int(item);
+			// process_nondet_int(item);
 		}
 	}
 
@@ -348,34 +348,25 @@ public class SvcompWorker extends BaseWorker {
 	 * 
 	 * @param node
 	 */
-	/* 
+	/*
 	 * The following transformation is incorrect in general
 	 * 
-	private void process_nondet_int(ASTNode node) {
-		if (node instanceof FunctionCallNode) {
-			FunctionCallNode callNode = (FunctionCallNode) node;
-
-			if (this.is_callee_name_equals(callNode, VERIFIER_NONDET_INT)
-					|| this.is_callee_name_equals(callNode,
-							VERIFIER_NONDET_UINT)) {
-				VariableDeclarationNode inputVar = this.variableDeclaration(
-						this.newUniqueIdentifier(NONDET_INT),
-						this.basicType(BasicTypeKind.INT));
-				ExpressionNode inputVarID = this
-						.identifierExpression(inputVar.getName());
-
-				inputVar.getTypeNode().setInputQualified(true);
-				this.nondet_int_variable_declarations.add(inputVar);
-				callNode.parent().setChild(callNode.childIndex(), inputVarID);
-				return;
-			}
-		}
-		for (ASTNode child : node.children()) {
-			if (child != null)
-				process_nondet_int(child);
-		}
-	}
-    */
+	 * private void process_nondet_int(ASTNode node) { if (node instanceof
+	 * FunctionCallNode) { FunctionCallNode callNode = (FunctionCallNode) node;
+	 * 
+	 * if (this.is_callee_name_equals(callNode, VERIFIER_NONDET_INT) ||
+	 * this.is_callee_name_equals(callNode, VERIFIER_NONDET_UINT)) {
+	 * VariableDeclarationNode inputVar = this.variableDeclaration(
+	 * this.newUniqueIdentifier(NONDET_INT), this.basicType(BasicTypeKind.INT));
+	 * ExpressionNode inputVarID = this
+	 * .identifierExpression(inputVar.getName());
+	 * 
+	 * inputVar.getTypeNode().setInputQualified(true);
+	 * this.nondet_int_variable_declarations.add(inputVar);
+	 * callNode.parent().setChild(callNode.childIndex(), inputVarID); return; }
+	 * } for (ASTNode child : node.children()) { if (child != null)
+	 * process_nondet_int(child); } }
+	 */
 	private List<BlockItemNode> removeVariableDeclarations(
 			List<BlockItemNode> nodes) {
 		List<BlockItemNode> declarations = new LinkedList<>();
@@ -441,11 +432,10 @@ public class SvcompWorker extends BaseWorker {
 								this.releaseNodes(atomicItems);
 								declarations.addAll(removeVariableDeclarations(
 										atomicItems));
-								newItems.add(
-										this.nodeFactory.newAtomicStatementNode(
-												this.newSource("$atomic",
-														CivlcTokenConstant.ATOMIC),
-												false,
+								newItems.add(this.nodeFactory
+										.newAtomicStatementNode(this.newSource(
+												"$atomic",
+												CivlcTokenConstant.ATOMIC),
 												this.nodeFactory
 														.newCompoundStatementNode(
 																this.newSource(
@@ -464,7 +454,7 @@ public class SvcompWorker extends BaseWorker {
 								item.remove();
 								atomicNode = this.nodeFactory
 										.newAtomicStatementNode(
-												item.getSource(), false,
+												item.getSource(),
 												nodeFactory
 														.newCompoundStatementNode(
 																item.getSource(),

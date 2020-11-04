@@ -96,11 +96,10 @@ public class CommonLocation extends CommonSourceable implements Location {
 	 * following conditions.
 	 * <ol>
 	 * <li>it has exactly one incoming edge; (to avoid loop)</li>
-	 * <li>if it is not the starting point of an $atomic/$atom block, then all
-	 * its outgoing statements should be purely local;</li>
-	 * <li>if it is the starting point of an $atomic/$atom bloc, then all
-	 * statements reachable within that $atomic/$atom block are purely local.
-	 * </li>
+	 * <li>if it is not the starting point of an $atomic block, then all its
+	 * outgoing statements should be purely local;</li>
+	 * <li>if it is the starting point of an $atomic block, then all statements
+	 * reachable within that $atomic block are purely local.</li>
 	 * </ol>
 	 */
 	private boolean purelyLocal = true;
@@ -230,11 +229,6 @@ public class CommonLocation extends CommonSourceable implements Location {
 	}
 
 	@Override
-	public boolean enterAtom() {
-		return this.atomicKind == AtomicKind.ATOM_ENTER;
-	}
-
-	@Override
 	public CIVLFunction function() {
 		return function;
 	}
@@ -302,11 +296,6 @@ public class CommonLocation extends CommonSourceable implements Location {
 	@Override
 	public boolean leaveAtomic() {
 		return this.atomicKind == AtomicKind.ATOMIC_EXIT;
-	}
-
-	@Override
-	public boolean leaveAtom() {
-		return this.atomicKind == AtomicKind.ATOM_EXIT;
 	}
 
 	private Statement singleNoopOutgoing(Location location) {
@@ -389,12 +378,9 @@ public class CommonLocation extends CommonSourceable implements Location {
 			if (loopPossible)
 				headString += ", loop";
 			headString += ", " + atomicKind;
-			if (this.enterAtom() || this.enterAtomic()) {
-				headString += ", atom/atomic's impact scope: "
+			if (this.enterAtomic())
+				headString += ", atomic's impact scope: "
 						+ this.impactScopeOfAtomicOrAtomBlock.id();
-			}
-			if (this.leaveAtom())
-				headString += ", atom-end";
 			if (this.leaveAtomic())
 				headString += ", atomic-end";
 			if (this.writableVariables != null
@@ -451,7 +437,7 @@ public class CommonLocation extends CommonSourceable implements Location {
 	}
 
 	private void purelyLocalAnalysisForAtomic() {
-		int atomicCount = 0, atomCount = 0;
+		int atomicCount = 0;
 		Set<Integer> visited = new HashSet<Integer>();
 		Stack<Location> working = new Stack<>();
 
@@ -460,11 +446,7 @@ public class CommonLocation extends CommonSourceable implements Location {
 			Location current = working.pop();
 
 			visited.add(current.id());
-			if (current.enterAtom())
-				atomCount++;
-			else if (current.leaveAtom())
-				atomCount--;
-			else if (current.enterAtomic())
+			if (current.enterAtomic())
 				atomicCount++;
 			else if (current.leaveAtomic())
 				atomicCount--;
@@ -476,7 +458,7 @@ public class CommonLocation extends CommonSourceable implements Location {
 					return;
 				}
 				target = stmt.target();
-				if (target != null && !(atomicCount == 0 && atomCount == 0)
+				if (target != null && atomicCount != 0
 						&& !visited.contains(target.id()))
 					working.push(target);
 			}
@@ -497,8 +479,7 @@ public class CommonLocation extends CommonSourceable implements Location {
 		// local only
 		// if all the statements that are to be executed in the atomic block are
 		// purely local
-		if (this.atomicKind == AtomicKind.ATOM_ENTER
-				|| this.atomicKind == AtomicKind.ATOMIC_ENTER)
+		if (this.atomicKind == AtomicKind.ATOMIC_ENTER)
 			purelyLocalAnalysisForAtomic();
 		else {
 			for (Statement s : this.outgoing) {
@@ -560,11 +541,8 @@ public class CommonLocation extends CommonSourceable implements Location {
 	}
 
 	@Override
-	public void setEnterAtomic(boolean deterministic) {
-		if (deterministic)
-			this.atomicKind = AtomicKind.ATOM_ENTER;
-		else
-			this.atomicKind = AtomicKind.ATOMIC_ENTER;
+	public void setEnterAtomic() {
+		this.atomicKind = AtomicKind.ATOMIC_ENTER;
 	}
 
 	@Override
@@ -578,11 +556,8 @@ public class CommonLocation extends CommonSourceable implements Location {
 	}
 
 	@Override
-	public void setLeaveAtomic(boolean deterministic) {
-		if (deterministic)
-			this.atomicKind = AtomicKind.ATOM_EXIT;
-		else
-			this.atomicKind = AtomicKind.ATOMIC_EXIT;
+	public void setLeaveAtomic() {
+		this.atomicKind = AtomicKind.ATOMIC_EXIT;
 	}
 
 	// TODO improve the static analysis of loop locations

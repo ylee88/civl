@@ -837,9 +837,6 @@ public interface ModelFactory {
 	 * location at before and after the fragment to denote the boundary of the
 	 * atomic block
 	 * 
-	 * @param deterministic
-	 *            True iff the atomic block is deterministic (i.e., $atom),
-	 *            otherwise it should be a general atomic block (i.e., $atomic).
 	 * @param fragment
 	 *            The fragment representing the body of the atomic block
 	 * @param start
@@ -848,14 +845,13 @@ public interface ModelFactory {
 	 *            The end location of the atomic node
 	 * @return The new fragment with atomic signs
 	 */
-	Fragment atomicFragment(boolean deterministic, Fragment fragment,
-			Location start, Location end);
+	Fragment atomicFragment(Fragment fragment, Location start, Location end);
 
 	/**
 	 * Generate an atomic enter statement
 	 *
 	 * @param loc
-	 *         the location that is associated with the generated statement
+	 *            the location that is associated with the generated statement
 	 * @return the generated atomic enter statement
 	 */
 	Statement atomicEnter(Location loc);
@@ -864,7 +860,7 @@ public interface ModelFactory {
 	 * Generate an atomic exit statement
 	 *
 	 * @param loc
-	 *         the location that is associated with the generated statement
+	 *            the location that is associated with the generated statement
 	 * @return the generated atomic exit statement
 	 */
 	Statement atomicExit(Location loc);

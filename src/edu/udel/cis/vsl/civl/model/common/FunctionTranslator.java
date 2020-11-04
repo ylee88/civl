@@ -177,7 +177,6 @@ import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.type.StructOrUnionField;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.civl.model.common.expression.CommonUndefinedProcessExpression;
-import edu.udel.cis.vsl.civl.model.common.statement.CommonAtomBranchStatement;
 import edu.udel.cis.vsl.civl.model.common.statement.CommonAtomicLockAssignStatement;
 import edu.udel.cis.vsl.civl.util.IF.Pair;
 import edu.udel.cis.vsl.civl.util.IF.Singleton;
@@ -209,8 +208,6 @@ public class FunctionTranslator {
 	/* ************************** Instance Fields ************************** */
 
 	private int atomicCount = 0;
-
-	private int atomCount = 0;
 
 	/**
 	 * Counter for the variable of a counter for $for loop on literal domains.
@@ -1413,8 +1410,7 @@ public class FunctionTranslator {
 			Location lastLocation = uniqueLastStatement.source();
 			Set<Integer> locationIds = new HashSet<Integer>();
 
-			while (lastLocation.atomicKind() == AtomicKind.ATOMIC_EXIT
-					|| lastLocation.atomicKind() == AtomicKind.ATOM_EXIT) {
+			while (lastLocation.atomicKind() == AtomicKind.ATOMIC_EXIT) {
 				locationIds.add(lastLocation.id());
 				if (lastLocation.getNumIncoming() == 1) {
 					lastLocation = lastLocation.getIncoming(0).source();
@@ -1810,8 +1806,7 @@ public class FunctionTranslator {
 	}
 
 	/**
-	 * Translate an ABC AtomicNode, which represents either an $atomic block or
-	 * an $atom block, dependent on {@link AtomicNode#isDeterministic()}.
+	 * Translate an ABC AtomicNode, which represents an $atomic block
 	 * 
 	 * @param scope
 	 * @param statementNode
@@ -1828,10 +1823,7 @@ public class FunctionTranslator {
 		Iterator<Statement> firstStmtsIter;
 		Expression guard = null;
 
-		if (atomicNode.isAtom())
-			this.atomCount++;
-		else
-			this.atomicCount++;
+		this.atomicCount++;
 		bodyFragment = translateStatementNode(scope, bodyNode);
 		firstStmtLoc = bodyFragment.startLocation();
 		// translate of the first statement guard:
@@ -1851,12 +1843,8 @@ public class FunctionTranslator {
 							BINARY_OPERATOR.AND, guard, currStmt.guard());
 		}
 		// }
-		if (atomicNode.isAtom())
-			this.atomCount--;
-		else
-			this.atomicCount--;
-		bodyFragment = modelFactory.atomicFragment(atomicNode.isAtom(),
-				bodyFragment, start, end);
+		this.atomicCount--;
+		bodyFragment = modelFactory.atomicFragment(bodyFragment, start, end);
 		atomicEnterLoc = bodyFragment.startLocation();
 
 		Location atomicBlockModel[] = {atomicEnterLoc, end};
@@ -3277,20 +3265,6 @@ public class FunctionTranslator {
 			}
 		} else
 			expression = null;
-		if (this.atomCount > 0) {
-			Statement leaveAtom;
-
-			for (int i = 0; i < this.atomCount; i++) {
-				location = modelFactory.location(
-						modelFactory.sourceOfBeginning(returnNode), scope);
-				location.setLeaveAtomic(true);
-				leaveAtom = new CommonAtomBranchStatement(location.getSource(),
-						location,
-						modelFactory.trueExpression(location.getSource()),
-						false);
-				atomicReleaseFragment.addNewStatement(leaveAtom);
-			}
-		}
 		if (this.atomicCount > 0) {
 			Statement leaveAtomic;
 			SymbolicUniverse universe = modelFactory.universe();
@@ -3303,7 +3277,7 @@ public class FunctionTranslator {
 			for (int i = 0; i < this.atomicCount; i++) {
 				location = modelFactory.location(
 						modelFactory.sourceOfBeginning(returnNode), scope);
-				location.setLeaveAtomic(false);
+				location.setLeaveAtomic();
 				leaveAtomic = new CommonAtomicLockAssignStatement(
 						location.getSource(),
 						modelFactory.atomicLockVariableExpression()

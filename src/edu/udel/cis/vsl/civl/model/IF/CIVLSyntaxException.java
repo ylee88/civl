@@ -5,8 +5,7 @@ import edu.udel.cis.vsl.civl.model.common.ABC_CIVLSource;
 
 /**
  * An exception thrown when there is syntax error in the program being verified,
- * e.g., calling $choose_int with more than one arguments, executing $wait in
- * $atom block, etc.
+ * e.g., calling $choose_int with more than one arguments, etc.
  * 
  * @author Manchun Zheng (zmanchun)
  * 
