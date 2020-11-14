@@ -1,7 +1,6 @@
 package edu.udel.cis.vsl.civl.run.IF;
 
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.errorBoundO;
-import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.guiO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.maxdepthO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.minO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.randomO;
@@ -154,8 +153,6 @@ public abstract class Player {
 				.newLibraryEvaluatorLoader(this.civlConfig);
 		this.symbolicAnalyzer = Semantics.newSymbolicAnalyzer(this.civlConfig,
 				this.log, universe, modelFactory, symbolicUtil);
-		this.gui = (Boolean) gmcConfig.getAnonymousSection()
-				.getValueOrDefault(guiO);
 		this.libraryExecutorLoader = Semantics.newLibraryExecutorLoader(
 				this.libraryEvaluatorLoader, this.civlConfig);
 		this.libraryEnablerLoader = Kripkes.newLibraryEnablerLoader(

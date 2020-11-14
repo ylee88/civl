@@ -212,7 +212,7 @@ public class DirectingWorker extends BaseWorker {
 			if (directingFile.equals(sourceFile) ) {
 				if (node instanceof IfNode) {
 					int lineNum = ((IfNode)node).getCondition().getSource().getFirstToken().getLine();
-					if ( directingLines.contains(new Integer(lineNum)) ) {
+					if ( directingLines.contains(Integer.valueOf(lineNum)) ) {
 						if (debug) System.out.println("About to instrument if at line: "+lineNum);
 						node.parent().setChild(node.childIndex(), instrumentedIf((IfNode)node));
 					}
@@ -225,7 +225,7 @@ public class DirectingWorker extends BaseWorker {
 					 */
 					if (ln.getCondition() != null) {
 						int lineNum = (ln.getCondition().getSource().getFirstToken().getLine());
-						if ( directingLines.contains(new Integer(lineNum)) ) {
+						if ( directingLines.contains(Integer.valueOf(lineNum)) ) {
 							node.parent().setChild(node.childIndex(), instrumentedLoop((LoopNode)node));
 						}
 					}

@@ -7,7 +7,6 @@ import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.collectScopesO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.date;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.debugO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.enablePrintfO;
-import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.guiO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.idO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.showModelO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.showProverQueriesO;
@@ -58,7 +57,6 @@ import edu.udel.cis.vsl.abc.transform.IF.Transform;
 import edu.udel.cis.vsl.civl.analysis.IF.Analysis;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConstants;
-import edu.udel.cis.vsl.civl.gui.IF.CIVL_GUI;
 import edu.udel.cis.vsl.civl.kripke.IF.CIVLStateManager;
 import edu.udel.cis.vsl.civl.kripke.common.WitnessGenerator;
 import edu.udel.cis.vsl.civl.model.IF.CIVLException;
@@ -601,7 +599,6 @@ public class UserInterface {
 		boolean result;
 		Model model;
 		TracePlayer replayer;
-		boolean guiMode = modelTranslator.cmdSection.isTrue(guiO);
 		boolean witnessMode = modelTranslator.config.witness();
 		boolean sliceMode = modelTranslator.config.sliceAnalysis();
 		Trace<Transition, State> trace;
@@ -613,10 +610,6 @@ public class UserInterface {
 			trace = replayer.run();
 			result = trace.result();
 			BranchConstraints.evaluator = replayer.evaluator;
-			if (guiMode) {
-				@SuppressWarnings("unused")
-				CIVL_GUI gui = new CIVL_GUI(trace, replayer.symbolicAnalyzer);
-			}
 			if (!modelTranslator.config.isQuiet()) {
 				printSourcefiles(out,
 						modelTranslator.frontEnd.getFileIndexer());
@@ -702,9 +695,8 @@ public class UserInterface {
 					| InterruptedException e) {
 				// time out
 			} catch (OutOfMemoryError oome) {
-				throw new CIVLException(
-						"JVM is running out of memory"
-								+ ", use java flag '-Xmx' to increase the allocated memory sapce for JVM",
+				throw new CIVLException("JVM is running out of memory"
+						+ ", use java flag '-Xmx' to increase the allocated memory sapce for JVM",
 						null);
 			} catch (VirtualMachineError vme) {
 				throw vme;
@@ -1026,7 +1018,6 @@ public class UserInterface {
 			SymbolicUniverse universe) throws CommandLineException,
 			FileNotFoundException, IOException, SyntaxException,
 			PreprocessorException, ParseException, MisguidedExecutionException {
-		boolean guiMode = gmcConfig.getAnonymousSection().isTrue(guiO);
 		TracePlayer replayer;
 		Trace<Transition, State> trace;
 		boolean result;
@@ -1036,10 +1027,6 @@ public class UserInterface {
 				err);
 		trace = replayer.run();
 		result = trace.result();
-		if (guiMode) {
-			@SuppressWarnings("unused")
-			CIVL_GUI gui = new CIVL_GUI(trace, replayer.symbolicAnalyzer);
-		}
 		if (!quiet) {
 			printSourcefiles(out, fileIndexer);
 			this.printCommand(out, command);

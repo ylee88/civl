@@ -510,12 +510,6 @@ public class CIVLConstants {
 			BOOLEAN, "verbose mode", false);
 
 	/**
-	 * Launch gui? false by default.
-	 */
-	public final static Option guiO = Option.newScalarOption(GUI, BOOLEAN,
-			"launch GUI? (under development, only works with replay)", false);
-
-	/**
 	 * What kind of deadlock is to be checked, potential, absolute or none?
 	 * absolute by default.
 	 */
@@ -702,7 +696,7 @@ public class CIVLConstants {
 	public final static Option[] getAllOptions() {
 		return new Option[]{astO, collectHeapsO, collectProcessesO,
 				collectScopesO, collectSymbolicConstantsO, deadlockO, debugO,
-				enablePrintfO, errorBoundO, errorStateEquivO, guiO, guidedO,
+				enablePrintfO, errorBoundO, errorStateEquivO, guidedO,
 				idO, inputO, linkO, loopO, macroO, maxdepthO, minO,
 				mpiContractO, ompLoopDecompO, ompNoSimplifyO,
 				ompOnlySimplifierO, probO, preprocO, procBoundO, randomO,

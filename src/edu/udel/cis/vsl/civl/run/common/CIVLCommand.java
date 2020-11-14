@@ -14,7 +14,6 @@ import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.debugO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.direct0;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.enablePrintfO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.errorBoundO;
-import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.guiO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.guidedO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.idO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.inputO;
@@ -121,7 +120,7 @@ public class CIVLCommand {
 		CIVLCommand.addReplayOption(showModelO, verboseO, debugO,
 				showTransitionsO, showStatesO, showSavedStatesO, showQueriesO,
 				showProverQueriesO, idO, traceO, enablePrintfO, showAmpleSetO,
-				showAmpleSetWtStatesO, statelessPrintfO, guiO, showProgramO,
+				showAmpleSetWtStatesO, statelessPrintfO, showProgramO,
 				showPathConditionO, preprocO, astO, showMemoryUnitsO,
 				collectOutputO, checkDivisionByZeroO, checkMemoryLeakO, quietO,
 				unpreprocO, svcomp16O, svcomp17O, sliceAnalysisO, witnessO,

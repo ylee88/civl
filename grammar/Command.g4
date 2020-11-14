@@ -1,13 +1,12 @@
 /**
 * This file defines the syntax of CIVL's command line specification.
-* There are totally 8 commands, namely, config, compare, gui, help,
+* There are totally 7 commands, namely, config, compare, help,
 * replay, run, show, and verify.
 * There are a number of options to be chosen as well.
 *  
 * The usage of the commands are as follows:
 * civl config
 * civl compare [option]* -spec [option]* file+ -impl [option]* file+
-* civl gui (no options needed)
 * civl help [command]
 * civl replay [option]* file+ (replay for one program)
 * civl replay [option]* -spec [option]* file+ -impl [option]* file+ 
@@ -99,7 +98,7 @@ MACRO
     ;
 
 COMMAND:
-    'verify' | 'run' | 'show' | 'gui'
+    'verify' | 'run' | 'show'
     ;
 
 REPLAY
@@ -125,7 +124,6 @@ OPTION_NAME
     | '-enablePrintf'
     | '-errorBound'
     | '-errorStateEquiv'
-    | '-gui'
     | '-guided'
     | '-id'
     | '-int_bit'
