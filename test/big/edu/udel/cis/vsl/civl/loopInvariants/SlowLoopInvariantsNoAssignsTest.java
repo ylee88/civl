@@ -216,7 +216,7 @@ public class SlowLoopInvariantsNoAssignsTest {
 				filename("summation-bad_assert.cvl")));
 	}
 
-	@Test
+	@Ignore // why3 needed
 	public void relaxPrefix() {
 		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop=true",
 				filename("relaxedPrefix_loop.cvl")));

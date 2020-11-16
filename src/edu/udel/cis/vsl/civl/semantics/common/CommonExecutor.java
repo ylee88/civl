@@ -485,19 +485,23 @@ public class CommonExecutor implements Executor {
 		}
 		mallocResult = stateFactory.malloc(state, pid, dyScopeID,
 				statement.getMallocId(), dynamicElementType, elementCount);
-
-		boolean saveWrite = state.isMonitoringWrites(pid);
-
-		if (saveWrite) {
-			SymbolicExpression pointer2memoryBlk = symbolicUtil
-					.parentPointer(mallocResult.right);
-			// write is also a read
-
-			if (saveWrite)
-				state = stateFactory.addReadWriteRecords(state, pid,
-						pointer2memoryBlk, false);
-		}
 		state = mallocResult.left;
+
+		/*
+		 * Comment out the following code for the reason that malloc shall not
+		 * be recorded as a write footprint.
+		 * 
+		 * 
+		 * boolean saveWrite = state.isMonitoringWrites(pid);
+		 * 
+		 * if (saveWrite) { SymbolicExpression pointer2memoryBlk = symbolicUtil
+		 * .parentPointer(mallocResult.right);
+		 * 
+		 * eval = evaluator.memEvaluator().pointer2memValue(state, pid,
+		 * pointer2memoryBlk, source); state = eval.state; // write is also a
+		 * read state = stateFactory.addReadWriteRecords(state, pid, eval.value,
+		 * false); }
+		 */
 		if (lhs != null)
 			// note that malloc only assigns pointers which have scalar type, so
 			// weather they are initialized by the malloc statement is not
@@ -1384,7 +1388,6 @@ public class CommonExecutor implements Executor {
 		int sid = stateFactory
 				.getDyscopeId(symbolicUtil.getScopeValue(pointer));
 		ReferenceExpression symRef = symbolicUtil.getSymRef(pointer);
-		State result;
 		Variable variable;
 		// Evaluation eval;
 
@@ -1422,20 +1425,9 @@ public class CommonExecutor implements Executor {
 				throw new UnsatisfiablePathConditionException();
 			}
 		}
-
-		boolean saveWrite = state.isMonitoringWrites(pid);
-
-		if (saveWrite) {
-			Evaluation eval = evaluator.memEvaluator()
-					.pointer2memValue(state, pid, pointer, source);
-
-			state = eval.state;
-			if (saveWrite)
-				state = stateFactory
-						.addReadWriteRecords(state, pid, eval.value, false);
-		}
+		// write to variable:
 		if (symRef.isIdentityReference()) {
-			result = stateFactory.setVariable(state, vid, sid, value);
+			state = stateFactory.setVariable(state, vid, sid, value);
 		} else {
 			SymbolicExpression oldVariableValue = state.getVariableValue(sid,
 					vid);
@@ -1444,7 +1436,7 @@ public class CommonExecutor implements Executor {
 				SymbolicExpression newVariableValue = universe
 						.assign(oldVariableValue, symRef, value);
 
-				result = stateFactory.setVariable(state, vid, sid,
+				state = stateFactory.setVariable(state, vid, sid,
 						newVariableValue);
 			} catch (SARLException e) {
 				String process = state.getProcessState(pid).name();
@@ -1456,8 +1448,17 @@ public class CommonExecutor implements Executor {
 				throw new UnsatisfiablePathConditionException();
 			}
 		}
-		return result;
-		// }
+		// write set recording:
+		boolean saveWrite = state.isMonitoringWrites(pid);
+
+		if (saveWrite) {
+			Evaluation eval = evaluator.memEvaluator().pointer2memValue(state,
+					pid, pointer, source);
+
+			state = stateFactory.addReadWriteRecords(eval.state, pid,
+					eval.value, false);
+		}
+		return state;
 	}
 
 	/**
@@ -1487,17 +1488,14 @@ public class CommonExecutor implements Executor {
 	private State assignLHS(State state, int pid, String process,
 			LHSExpression lhs, SymbolicExpression value, boolean isInitializer)
 			throws UnsatisfiablePathConditionException {
-		/* Note that here the memory location represented by the LHS
-		 * expression itself shall not be recorded in read set.
-		 */
 		boolean captureRead = state.isMonitoringReads(pid);
 
 		if (captureRead)
 			this.evaluator = this.evaluatorOnTheBench;
 
 		LHSExpressionKind kind = lhs.lhsExpressionKind();
-		Evaluation eval =
-				processRHSValue(state, pid, lhs, value, isInitializer);
+		Evaluation eval = processRHSValue(state, pid, lhs, value,
+				isInitializer);
 
 		value = eval.value;
 		state = eval.state;
@@ -1506,18 +1504,15 @@ public class CommonExecutor implements Executor {
 			int dyscopeId = state.getDyscopeID(pid, variable);
 			boolean saveWrite = state.isMonitoringWrites(pid);
 
-			if (saveWrite) {
-				eval = evaluator.memEvaluator().pointer2memValue(state, pid,
-						symbolicUtil.makePointer(dyscopeId, variable.vid(),
-								universe.identityReference()),
-						lhs.getSource());
-				state = eval.state;
-				if (saveWrite)
-					state = stateFactory
-							.addReadWriteRecords(state, pid, eval.value,
-									false);
-			}
 			state = stateFactory.setVariable(state, variable, pid, value);
+			if (saveWrite) {
+				eval = evaluator.memEvaluator().pointer2memValue(
+						state, pid, symbolicUtil.makePointer(dyscopeId,
+								variable.vid(), universe.identityReference()),
+						lhs.getSource());
+				state = stateFactory.addReadWriteRecords(eval.state, pid,
+						eval.value, false);
+			}
 		} else {
 			boolean toCheckPointer = kind == LHSExpressionKind.DEREFERENCE;
 
@@ -1665,9 +1660,8 @@ public class CommonExecutor implements Executor {
 
 			state = eval.state;
 			// write is also read
-			if (saveWrite)
-				state = stateFactory.addReadWriteRecords(state, pid,
-						eval.value, false);
+			state = stateFactory.addReadWriteRecords(state, pid, eval.value,
+					false);
 		}
 		return state;
 	}
@@ -1704,21 +1698,26 @@ public class CommonExecutor implements Executor {
 		heapObject = universe.array(objectType.getDynamicType(universe),
 				Arrays.asList(objectValue));
 		result = stateFactory.malloc(state, dyscopeID, mallocId, heapObject);
+		state = result.left;
 
-		boolean saveWrite = state.isMonitoringWrites(pid);
-
-		if (saveWrite) {
-			SymbolicExpression pointer2memoryBlk = symbolicUtil
-					.parentPointer(result.right);
-			Evaluation eval = evaluator.memEvaluator().pointer2memValue(state,
-					pid, pointer2memoryBlk, source);
-
-			state = eval.state;
-			if (saveWrite)
-				state = stateFactory.addReadWriteRecords(state, pid,
-						eval.value, false);
-		}
-		return new Evaluation(result.left, result.right);
+		/*
+		 * Comment out the following code for the reason of not recording malloc
+		 * as a write footprint.
+		 * 
+		 * boolean saveWrite = state.isMonitoringWrites(pid);
+		 * 
+		 * if (saveWrite) { SymbolicExpression pointer2memoryBlk = symbolicUtil
+		 * .parentPointer(result.right);
+		 * 
+		 * 
+		 * 
+		 * Evaluation eval = evaluator.memEvaluator().pointer2memValue(state,
+		 * pid, pointer2memoryBlk, source);
+		 * 
+		 * state = eval.state; if (saveWrite) state =
+		 * stateFactory.addReadWriteRecords(state, pid, eval.value, false); }
+		 */
+		return new Evaluation(state, result.right);
 	}
 
 	@Override

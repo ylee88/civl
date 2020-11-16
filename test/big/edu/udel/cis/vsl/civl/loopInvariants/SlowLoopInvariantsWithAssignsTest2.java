@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 
 import org.junit.AfterClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import edu.udel.cis.vsl.civl.TestConstants;
@@ -60,13 +61,13 @@ public class SlowLoopInvariantsWithAssignsTest2 {
 						"foVeOOS/twoEqualElements/two_equal_elements-bad_invariant.cvl")));
 	}
 
-	@Test
+	@Ignore // need why3
 	public void JanLoop() {
 		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
 				filename("/Jans_example/fixed_block/invariant.cvl")));
 	}
 
-	@Test
+	@Ignore // need why3
 	public void JanLoopAbitraryBlock() {
 		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
 				filename("/Jans_example/arbitrary_block/arbitrary_block.cvl")));

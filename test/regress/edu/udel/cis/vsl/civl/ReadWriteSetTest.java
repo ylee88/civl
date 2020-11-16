@@ -83,6 +83,12 @@ public class ReadWriteSetTest {
 				filenameForWritesetTest("ws_push_pop_memcpy-bad.cvl")));
 	}
 
+	@Test
+	public void wsPushPopSeqUnsupported() throws ABCException {
+		assertFalse(ui.run(VERIFY, QUIET,
+				filenameForWritesetTest("ws_push_seq-unsupported.cvl")));
+	}
+
 	/* ****************** read set tests ******************** */
 	@Test
 	public void simple() throws ABCException {
@@ -127,5 +133,4 @@ public class ReadWriteSetTest {
 		assertTrue(ui.run(VERIFY, QUIET,
 				filenameForReadsetTest("structComplex2.cvl")));
 	}
-
 }

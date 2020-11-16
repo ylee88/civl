@@ -50,7 +50,7 @@ public interface Executor {
 	 * "valueSetTemplate" of {@link SymbolicUniverse#valueSetTemplateType()},
 	 * which refers to a set of regions in the variable or the heap object, this
 	 * method carves the part that is referred by the "valueSetTemplate" out of
-	 * the "newValue" and assigns it to the corresponding part in the variable
+	 * the "newValue" and assigns it to the counterpart in the variable
 	 * or the heap object.
 	 * </p>
 	 * 

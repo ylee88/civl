@@ -153,7 +153,7 @@ public class SlowLoopInvariantsWithAssignsTest {
 				filename("max-bad_invariants.cvl")));
 	}
 
-	@Test
+	@Ignore // experimental permutation predicates need why3
 	public void insertionSort() {
 		assertTrue(ui.run("verify", "-loop", TestConstants.QUIET,
 				filename("insertSort.cvl")));
@@ -171,7 +171,7 @@ public class SlowLoopInvariantsWithAssignsTest {
 				filename("insertSort-bad_assert2.cvl")));
 	}
 
-	@Test
+	@Ignore // ignore, experimental permutation predicate for why3 only
 	public void selectSort() {
 		assertTrue(ui.run("verify", "-loop", TestConstants.QUIET,
 				filename("selectSort.cvl")));
@@ -280,7 +280,7 @@ public class SlowLoopInvariantsWithAssignsTest {
 				"../Jans_example/fixed_block/invariant_3rd_loop-bad_assigns.cvl")));
 	}
 
-	@Test
+	@Ignore // needs why3
 	public void relaxedPrefix() {
 		assertTrue(ui.run("verify", "-loop", TestConstants.QUIET, filename(
 				"../verifyThisUB/relaxedPrefix/relaxedPrefix_loop.cvl")));
@@ -310,7 +310,7 @@ public class SlowLoopInvariantsWithAssignsTest {
 				"../verifyThisUB/relaxedPrefix/relaxedPrefix_loop-bad_weak4assert.cvl")));
 	}
 
-	@Test
+	@Ignore // need why3
 	public void sort() {
 		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop", filename(
 				"../verifyThisUB/longestRepeatedSubstring/sort_deductive.cvl")));
@@ -340,7 +340,7 @@ public class SlowLoopInvariantsWithAssignsTest {
 				"../verifyThisUB/longestRepeatedSubstring/lrs-bad_assert.cvl")));
 	}
 
-	@Test
+	@Ignore // need why3
 	public void lrs() {
 		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop", filename(
 				"../verifyThisUB/longestRepeatedSubstring/lrs_deductive.cvl ")));

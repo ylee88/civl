@@ -195,6 +195,7 @@ public class MemEvaluator extends CommonEvaluator {
 	Evaluation evaluateMemCastingExpression(State state, int pid,
 			Expression expr) throws UnsatisfiablePathConditionException {
 		Evaluation eval = evaluate(state, pid, expr);
+		ValueSetReference vsref;
 
 		if (!expr.getExpressionType().isSetType()) {
 			if (!symbolicUtil.isConcretePointer(eval.value))
@@ -204,34 +205,30 @@ public class MemEvaluator extends CommonEvaluator {
 						ErrorKind.POINTER,
 						"Cannot convert a non-concrete pointer value to a value of $mem type.\nPointer: "
 								+ expr + "\nPointer value: " + eval.value);
-			int vid = symbolicUtil.getVariableId(expr.getSource(), eval.value);
-			int sid = stateFactory
-					.getDyscopeId(symbolicUtil.getScopeValue(eval.value));
+
 			ReferenceExpression ref = (ReferenceExpression) getSymRef(
 					eval.value);
 
-			return makeValueOfMemType(state, pid, vid, sid,
-					convertToValueSetReference(ref), expr.getSource());
+			vsref = convertToValueSetReference(ref);
 		} else {
 			assert eval.value.type() == valueSetPointerType;
-
-			int vid = symbolicUtil.getVariableId(expr.getSource(), eval.value);
-			int sid = stateFactory
-					.getDyscopeId(symbolicUtil.getScopeValue(eval.value));
-			ValueSetReference ref = (ValueSetReference) universe
-					.tupleRead(eval.value, universe.intObject(2));
-
-			return makeValueOfMemType(state, pid, vid, sid, ref,
-					expr.getSource());
+			vsref = (ValueSetReference) universe.tupleRead(eval.value,
+					universe.intObject(2));
 		}
+		int vid = symbolicUtil.getVariableId(expr.getSource(), eval.value);
+		int sid = stateFactory
+				.getDyscopeId(symbolicUtil.getScopeValue(eval.value));
+
+		return makeValueOfMemType(state, pid, vid, sid, vsref,
+				expr.getSource());
 	}
 
 	/**
 	 * <p>
 	 * Convert a symbolic expression of pointer type to a symbolic expression of
-	 * {@link CIVLMemType#dynamicType(SymbolicUniverse)}. The converted symbolic
-	 * expression includes references to the same object that is referred by the
-	 * given pointer.
+	 * {@link CIVLMemType#dynamicType(SymbolicUniverse)}. The converted mem
+	 * value contains a reference to the same object as is referred by the
+	 * pointer.
 	 * </p>
 	 * 
 	 * @param state
@@ -399,14 +396,13 @@ public class MemEvaluator extends CommonEvaluator {
 			SymbolicUniverse universe, State state, SymbolicExpression memValue,
 			CIVLSource source) {
 		CIVLMemType memType = typeFactory.civlMemType();
-		Function<SymbolicExpression, IntegerNumber> scopeValToInt =
-				typeFactory.scopeType().scopeValueToIdentityOperator(universe);
+		Function<SymbolicExpression, IntegerNumber> scopeValToInt = typeFactory
+				.scopeType().scopeValueToIdentityOperator(universe);
 		String result = "{";
 
 		for (CIVLMemType.MemoryLocationReference mlr : memType
 				.memValueIterator().apply(memValue)) {
-			int dyscopeId = scopeValToInt.apply(
-					mlr.scopeValue()).intValue();
+			int dyscopeId = scopeValToInt.apply(mlr.scopeValue()).intValue();
 
 			if (dyscopeId < 0) // if memory location destroyed:
 				continue;
@@ -418,12 +414,13 @@ public class MemEvaluator extends CommonEvaluator {
 				obj = dyscope.lexicalScope().variable(mlr.vid()).name().name();
 			else
 				obj = "Dyscope" + dyscopeId + "_malloc_" + mlr.mallocID();
-			for (String ref : prettyPrintValueSetTemplate(universe, mlr.valueSetTemplate(),
-					source))
+			for (String ref : prettyPrintValueSetTemplate(universe,
+					mlr.valueSetTemplate(), source))
 				result += obj + ref + ", ";
 		}
 		if (result.length() > 1)
-			result = result.substring(0, result.length() - 2); // remove extra ", "
+			result = result.substring(0, result.length() - 2); // remove extra
+																// ", "
 		result += "}";
 		return result;
 	}
@@ -731,11 +728,16 @@ public class MemEvaluator extends CommonEvaluator {
 		SymbolicExpression value = state.getVariableValue(sid, vid);
 		SymbolicType valueType;
 		int heapID = -1, mallocID = -1;
+		Variable var = state.getDyscope(sid).lexicalScope().variable(vid);
 
+		// variable type shall not (currently) contain sequence type:
+		if (Utils.containSequenceType(var.type()))
+			throw new CIVLUnimplementedFeatureException(
+					"Capturing read/write footprints on"
+							+ "variables whose types containing CIVL-C sequences at "
+							+ source);
 		// currently, no offset reference is allowed ...
 		if (containsOffsetReference(vsRef)) {
-			Variable var = state.getDyscope(sid).lexicalScope().variable(vid);
-
 			errorLogger.logSimpleError(source, state,
 					state.getProcessState(pid).name(),
 					symbolicAnalyzer.stateInformation(state), ErrorKind.OTHER,
@@ -744,9 +746,10 @@ public class MemEvaluator extends CommonEvaluator {
 							+ "\nReference: " + vsRef);
 			throw new UnsatisfiablePathConditionException();
 		}
-		if (value.isNull())
-			valueType = state.getDyscope(sid).lexicalScope().variable(vid)
-					.type().getDynamicType(universe);
+		assert !value.isNull() || var.type()
+				.isScalar() : "value-set references to an uninitialized aggregate-type variable";
+		if (var.type().isScalar())
+			valueType = var.type().getDynamicType(universe); // value maybe NULL
 		else
 			valueType = value.type();
 		if (valueType == typeFactory.heapSymbolicType()) {
@@ -858,8 +861,8 @@ public class MemEvaluator extends CommonEvaluator {
 	 * sense. Even though {@link CIVLTypeFactory#heapSymbolicType()} is
 	 * incomplete, the caller of this method is responsible to make sure the
 	 * type, which is a sub-type of "valueType", of the referred single heap
-	 * object must be complete.
-	 * (TODO: alas, CIVL-C sequence can break the pre-condition. So far, just skip checking for sequences)
+	 * object must be complete. (TODO: alas, CIVL-C sequence can break the
+	 * pre-condition. So far, just skip checking for sequences)
 	 * </p>
 	 *
 	 * 
@@ -1154,8 +1157,8 @@ public class MemEvaluator extends CommonEvaluator {
 		String result[];
 		List<String> tmp = new LinkedList<>();
 
-		for (ValueSetReference vsr : universe.
-				valueSetReferences(valueSetTemplate)) {
+		for (ValueSetReference vsr : universe
+				.valueSetReferences(valueSetTemplate)) {
 			tmp.add(prettyPrintValueSetReference(vsr, source));
 		}
 		result = new String[tmp.size()];
@@ -1163,8 +1166,8 @@ public class MemEvaluator extends CommonEvaluator {
 		return result;
 	}
 
-	private static String prettyPrintValueSetReference(ValueSetReference vsr, CIVLSource
-			source) {
+	private static String prettyPrintValueSetReference(ValueSetReference vsr,
+			CIVLSource source) {
 		if (vsr.valueSetReferenceKind() == IDENTITY)
 			return "";
 
@@ -1172,40 +1175,38 @@ public class MemEvaluator extends CommonEvaluator {
 		String result = prettyPrintValueSetReference(ntRef.getParent(), source);
 
 		switch (vsr.valueSetReferenceKind()) {
-			case ARRAY_ELEMENT: {
-				VSArrayElementReference vsElementRef = (VSArrayElementReference)
-						vsr;
+			case ARRAY_ELEMENT : {
+				VSArrayElementReference vsElementRef = (VSArrayElementReference) vsr;
 
 				return result + "[" + vsElementRef.getIndex() + "]";
 			}
-			case ARRAY_SECTION: {
-				VSArraySectionReference vsSectionRef = (VSArraySectionReference)
-						vsr;
+			case ARRAY_SECTION : {
+				VSArraySectionReference vsSectionRef = (VSArraySectionReference) vsr;
 
-				return result + "[" + vsSectionRef.lowerBound() + " .. " +
-					   vsSectionRef.upperBound() + "]";
+				return result + "[" + vsSectionRef.lowerBound() + " .. "
+						+ vsSectionRef.upperBound() + "]";
 			}
-			case TUPLE_COMPONENT: {
-				VSTupleComponentReference vsTupleRef = (VSTupleComponentReference)
-						vsr;
+			case TUPLE_COMPONENT : {
+				VSTupleComponentReference vsTupleRef = (VSTupleComponentReference) vsr;
 
-				//TODO: improve numeric field index with field name:
+				// TODO: improve numeric field index with field name:
 				return result + "." + vsTupleRef.getIndex();
 			}
-			case UNION_MEMBER: {
+			case UNION_MEMBER : {
 				VSUnionMemberReference vsUnionRef = (VSUnionMemberReference) vsr;
 
 				return result + "." + vsUnionRef.getIndex();
 			}
-			case OFFSET: {
+			case OFFSET : {
 				VSOffsetReference vsOffsetReference = (VSOffsetReference) vsr;
 
 				return result + "+" + vsOffsetReference.getOffset();
 			}
-			default:
+			default :
 				throw new CIVLUnimplementedFeatureException(
-						"unknown value-set-ref kind " +
-						vsr.valueSetReferenceKind(), source);
+						"unknown value-set-ref kind "
+								+ vsr.valueSetReferenceKind(),
+						source);
 		}
 	}
 }
