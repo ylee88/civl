@@ -135,6 +135,15 @@ public class ParseSystemLibrary implements DynamicTask {
 	 *         file, or null if there is no implementation of the header file.
 	 */
 	private File getSystemImplementation(File file) {
+		// Check that the path is one of the system include
+		// paths. Because a user could create their own "pthread.h"
+		// (for example), in which case we don't want to link in the
+		// system implementation.
+		if (!file.getPath().startsWith("/include"))
+			return null;
+		// for debugging...
+		// System.out.println("Including system file: "+file.getPath());
+
 		String name = file.getName();
 
 		if (CIVLConstants.getAllCivlLibs().contains(name))

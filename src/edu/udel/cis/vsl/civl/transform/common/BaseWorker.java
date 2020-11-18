@@ -1133,10 +1133,12 @@ public abstract class BaseWorker {
 	}
 
 	protected boolean hasHeader(AST ast, String header) {
-		for (SourceFile file : ast.getSourceFiles()) {
-			String name = file.getName();
+		for (SourceFile sourceFile : ast.getSourceFiles()) {
+			File file = sourceFile.getFile();
+			String name = sourceFile.getName();
 
-			if (name.equals(header))
+			if (file.getPath().startsWith("/include")
+					&& name.equals(header))
 				return true;
 		}
 		return false;
