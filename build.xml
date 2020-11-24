@@ -154,7 +154,7 @@
 
 	<target name="test-run" depends="test-compile">
 		<jacoco:coverage>
-			<junit fork="true" forkmode="once" timeout="900000">
+			<junit fork="true" forkmode="perTest" threads="${nthreads}" timeout="900000">
 				<jvmarg value="-ea" />
 				<classpath refid="test.execute.classpath" />
 				<formatter type="brief" usefile="false" />

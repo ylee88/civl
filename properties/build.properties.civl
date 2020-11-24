@@ -8,3 +8,5 @@ antlr.runtime.jar=${root}/lib/antlr-runtime-4.4.jar
 sarl.jar=/opt/repos/sarl/trunk/sarl.jar
 gmc.jar=/opt/repos/gmc/trunk/gmc.jar
 abc.jar=/opt/repos/abc/trunk/abc.jar
+javaversion=11
+nthreads=4

@@ -6,3 +6,5 @@ junit.jar=${root}/lib/junit-4.11.jar
 abc.jar=${workspace}/ABC/abc.jar
 gmc.jar=${workspace}/GMC/gmc.jar
 sarl.jar=${workspace}/SARL/sarl.jar
+javaversion=11
+nthreads=4

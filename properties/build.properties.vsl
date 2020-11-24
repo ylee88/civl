@@ -11,3 +11,5 @@ antlr.runtime.jar=${root}/lib/antlr-runtime-4.4.jar
 abc.jar=${workspace}/abc/trunk/latest/abc.jar
 gmc.jar=${workspace}/gmc/trunk/latest/gmc.jar
 sarl.jar=${workspace}/sarl/trunk/latest/sarl.jar
+javaversion=11
+nthreads=4
