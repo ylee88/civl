@@ -9,4 +9,4 @@ abc.jar=${workspace}/abc/abc.jar
 gmc.jar=${workspace}/gmc/gmc.jar
 sarl.jar=${workspace}/sarl/sarl.jar
 javaversion=11
-nthreads=4
+nthreads=8
