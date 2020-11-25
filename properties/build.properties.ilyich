@@ -1,0 +1,12 @@
+root=/opt/vsl
+workspace=/opt/local/work
+hamcrest.jar=${root}/lib/hamcrest-core.jar
+jacoco.jar=${root}/src/jacoco/lib/jacocoant.jar
+junit.jar=${root}/lib/junit.jar
+antlr.jar=${root}/lib/antlr-4.4-complete.jar
+antlr.runtime.jar=${root}/lib/antlr-runtime-4.4.jar
+abc.jar=${workspace}/abc/abc.jar
+gmc.jar=${workspace}/gmc/gmc.jar
+sarl.jar=${workspace}/sarl/sarl.jar
+javaversion=11
+nthreads=4
