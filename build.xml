@@ -152,18 +152,25 @@
 		</javac>
 	</target>
 
+	<!-- What t nclde n nstrmentatn
+	     All CVL classes nt generated Lstener Lexer Parser
+
+	-->
+
 	<target name="test-run" depends="test-compile">
-		<jacoco:coverage>
-			<junit fork="true" forkmode="perTest" threads="${nthreads}" timeout="900000">
-				<jvmarg value="-ea" />
-				<classpath refid="test.execute.classpath" />
-				<formatter type="brief" usefile="false" />
-				<formatter type="xml" />
-				<batchtest todir="${junit.data.dir}">
-					<fileset dir="${test.bin.dir}" includes="**/*Test.class" />
-				</batchtest>
-			</junit>
-		</jacoco:coverage>
+	  <jacoco:coverage
+	      excludes="**/*Listener.class,**/*Lexer.class,**/*Parser.class"
+	      includes="edu/udel/cis/vsl/civl/**/*.class,edu/udel/cis/vsl/civl/*.class">
+	    <junit fork="true" forkmode="perTest" threads="${nthreads}" timeout="900000">
+	      <jvmarg value="-ea" />
+	      <classpath refid="test.execute.classpath" />
+	      <formatter type="brief" usefile="false" />
+	      <formatter type="xml" />
+	      <batchtest todir="${junit.data.dir}">
+		<fileset dir="${test.bin.dir}" includes="**/*Test.class" />
+	      </batchtest>
+	    </junit>
+	  </jacoco:coverage>
 		<junitreport todir="${junit.data.dir}">
 			<fileset dir="${junit.data.dir}">
 				<include name="TEST-*.xml" />
