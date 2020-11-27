@@ -565,6 +565,31 @@ public class LoopContractTransformerWorker extends BaseWorker {
 	 * $mem_assigns_from(preState, $mem_unary_widening(m));  
 	 * $mem_havoc(m); 
 	 * </code>
+	 * 
+	 * <p>
+	 * The purpose of this two statements is to swipe out modification
+	 * footprints on objects left by the loop body. For example:
+	 * 
+	 * <code>
+	 * // loop assigns a[x .. y];
+	 * { // loop body
+	 *    a[i] = j;
+	 * }
+	 * $havoc(&a[x .. y]);  
+	 * </code>
+	 * 
+	 * Suppose array a initially has value A. After the loop body, it has value
+	 * A[i := j]. Then $havoc does not necessarily know that i belongs to the
+	 * range [x .. y] hence array a will have a value like
+	 * <code>array-lambda int. k : x <= k <= y ? A'[k] : A[i: = j][k]</code>.
+	 * But since the frame-condition is always checked. It guarantees i belongs
+	 * to the range [x .. y]. We'd like to have the value of a be simpler <code>
+	 * array-lambda int. k : x <= k <= y ? A'[k] : A[k]
+	 * </code>.
+	 * 
+	 * The two statements returned by this method delivers such a desire.
+	 * </p>
+	 * 
 	 */
 	private BlockItemNode backToPreState(ExpressionNode m, String preState) {
 		String funcName;
