@@ -159,8 +159,8 @@
 
 	<target name="test-run" depends="test-compile">
 	  <jacoco:coverage
-	      excludes="**/*Listener.class,**/*Lexer.class,**/*Parser.class"
-	      includes="edu/udel/cis/vsl/civl/**/*.class,edu/udel/cis/vsl/civl/*.class">
+	      excludes="*Listener*:*Lexer*:*Parser*"
+	      includes="edu/udel/cis/vsl/civl/*">
 	    <junit fork="true" forkmode="perTest" threads="${nthreads}" timeout="900000">
 	      <jvmarg value="-ea" />
 	      <classpath refid="test.execute.classpath" />
