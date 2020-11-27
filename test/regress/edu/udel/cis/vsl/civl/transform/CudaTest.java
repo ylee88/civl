@@ -7,7 +7,7 @@ import java.io.File;
 import org.junit.AfterClass;
 import org.junit.Test;
 
-import static edu.udel.cis.vsl.civl.TestConstants.QUIET;
+import static edu.udel.cis.vsl.civl.ConstantsTest.QUIET;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class CudaTest {

@@ -10,7 +10,7 @@ import org.junit.Test;
 
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
-public class OmpTransformNoSimplifiy {
+public class OmpTransformNoSimplifiyTest {
 
 	/* *************************** Static Fields *************************** */
 
@@ -103,7 +103,7 @@ public class OmpTransformNoSimplifiy {
 
 	@Test
 	public void arrayOutOfBound() {
-		assertFalse(ui.run("verify", TestConstants.QUIET, "-ompNoSimplify",
+		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-ompNoSimplify",
 				"-input_omp_thread_max=2", filename("array_out_bound.c")));
 	}
 

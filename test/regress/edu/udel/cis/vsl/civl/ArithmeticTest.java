@@ -1,11 +1,11 @@
 package edu.udel.cis.vsl.civl;
 
-import static edu.udel.cis.vsl.civl.TestConstants.DMATH_ELABORATE_ASSUMPTIONS;
-import static edu.udel.cis.vsl.civl.TestConstants.MIN;
-import static edu.udel.cis.vsl.civl.TestConstants.NO_PRINTF;
-import static edu.udel.cis.vsl.civl.TestConstants.QUIET;
-import static edu.udel.cis.vsl.civl.TestConstants.RUN;
-import static edu.udel.cis.vsl.civl.TestConstants.VERIFY;
+import static edu.udel.cis.vsl.civl.ConstantsTest.DMATH_ELABORATE_ASSUMPTIONS;
+import static edu.udel.cis.vsl.civl.ConstantsTest.MIN;
+import static edu.udel.cis.vsl.civl.ConstantsTest.NO_PRINTF;
+import static edu.udel.cis.vsl.civl.ConstantsTest.QUIET;
+import static edu.udel.cis.vsl.civl.ConstantsTest.RUN;
+import static edu.udel.cis.vsl.civl.ConstantsTest.VERIFY;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 

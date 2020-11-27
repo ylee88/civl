@@ -1,10 +1,10 @@
 package edu.udel.cis.vsl.civl.omp;
 
-import static edu.udel.cis.vsl.civl.TestConstants.OMP_NO_SIMP;
-import static edu.udel.cis.vsl.civl.TestConstants.OMP_THREAD_TEN;
-import static edu.udel.cis.vsl.civl.TestConstants.OMP_THREAD_TWO;
-import static edu.udel.cis.vsl.civl.TestConstants.QUIET;
-import static edu.udel.cis.vsl.civl.TestConstants.VERIFY;
+import static edu.udel.cis.vsl.civl.ConstantsTest.OMP_NO_SIMP;
+import static edu.udel.cis.vsl.civl.ConstantsTest.OMP_THREAD_TEN;
+import static edu.udel.cis.vsl.civl.ConstantsTest.OMP_THREAD_TWO;
+import static edu.udel.cis.vsl.civl.ConstantsTest.QUIET;
+import static edu.udel.cis.vsl.civl.ConstantsTest.VERIFY;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -14,7 +14,7 @@ import org.junit.Test;
 
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
-public class DataRaceBenchTests {
+public class DataRaceBenchTest {
 	/* ******************* Fields *************************** */
 
 	private final boolean DEBUG = false;

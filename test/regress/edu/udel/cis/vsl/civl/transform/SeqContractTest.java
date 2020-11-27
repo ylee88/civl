@@ -1,13 +1,13 @@
 package edu.udel.cis.vsl.civl.transform;
 
-import static edu.udel.cis.vsl.civl.TestConstants.VERIFY;
+import static edu.udel.cis.vsl.civl.ConstantsTest.VERIFY;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 
 import org.junit.Test;
 
-import edu.udel.cis.vsl.civl.TestConstants;
+import edu.udel.cis.vsl.civl.ConstantsTest;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class SeqContractTest {
@@ -24,7 +24,7 @@ public class SeqContractTest {
 
 	@Test
 	public void sum() {
-		assertTrue(ui.run(VERIFY, TestConstants.QUIET,
+		assertTrue(ui.run(VERIFY, ConstantsTest.QUIET,
 				"-mpiContract=_CIVL_CONTRACT_ALL", "-loop",
 				filename("sum.cvl")));
 	}

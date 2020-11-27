@@ -10,7 +10,7 @@ import org.junit.Test;
 
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
-public class OpenMP2CIVLTransformerTestDev {
+public class OpenMP2CIVLTransformerDevTest {
 
 	/* *************************** Static Fields *************************** */
 

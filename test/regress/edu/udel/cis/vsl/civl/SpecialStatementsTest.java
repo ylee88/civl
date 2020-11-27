@@ -2,7 +2,7 @@ package edu.udel.cis.vsl.civl;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static edu.udel.cis.vsl.civl.TestConstants.QUIET;
+import static edu.udel.cis.vsl.civl.ConstantsTest.QUIET;
 
 import java.io.File;
 

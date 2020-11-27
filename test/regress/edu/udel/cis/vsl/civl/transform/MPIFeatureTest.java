@@ -8,10 +8,10 @@ import java.io.File;
 import org.junit.AfterClass;
 import org.junit.Test;
 
-import edu.udel.cis.vsl.civl.TestConstants;
+import edu.udel.cis.vsl.civl.ConstantsTest;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
-public class MPIFeatureTests {
+public class MPIFeatureTest {
 	/* *************************** Static Fields *************************** */
 
 	private static File rootDir = new File(new File("examples"),
@@ -30,20 +30,20 @@ public class MPIFeatureTests {
 	@Test
 	public void dynamicBuffer() {
 		assertTrue(ui.run("verify -input_mpi_nprocs=3", "-deadlock=potential",
-				TestConstants.QUIET, filename("dy_buf_good.c")));
+				ConstantsTest.QUIET, filename("dy_buf_good.c")));
 	}
 
 	@Test
 	public void dynamicBufferBad() {
 		assertFalse(ui.run("verify -input_mpi_nprocs=3", "-deadlock=potential",
-				TestConstants.QUIET, filename("dy_buf_bad.c")));
+				ConstantsTest.QUIET, filename("dy_buf_bad.c")));
 		assertFalse(ui.run("replay ", "-deadlock=potential",
-				TestConstants.QUIET, filename("dy_buf_bad.c")));
+				ConstantsTest.QUIET, filename("dy_buf_bad.c")));
 	}
 
 	@Test
 	public void matmatCompareBad() {
-		assertFalse(ui.run("compare -input_mpi_nprocs=2", TestConstants.QUIET,
+		assertFalse(ui.run("compare -input_mpi_nprocs=2", ConstantsTest.QUIET,
 				"-impl", filename("matmat_mw_bad.c"), "-spec",
 				filename("matmat_spec.c")));
 	}
@@ -51,7 +51,7 @@ public class MPIFeatureTests {
 	@Test
 	public void matmatCompare() {
 		assertTrue(ui.run("compare -input_mpi_nprocs=2 -collectHeaps=false",
-				TestConstants.QUIET, "-impl", filename("matmat_mw_good.c"),
+				ConstantsTest.QUIET, "-impl", filename("matmat_mw_good.c"),
 				"-spec", filename("matmat_spec.c")));
 	}
 

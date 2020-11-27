@@ -1,8 +1,8 @@
 package edu.udel.cis.vsl.civl;
 
-import static edu.udel.cis.vsl.civl.TestConstants.COMPARE;
-import static edu.udel.cis.vsl.civl.TestConstants.QUIET;
-import static edu.udel.cis.vsl.civl.TestConstants.VERIFY;
+import static edu.udel.cis.vsl.civl.ConstantsTest.COMPARE;
+import static edu.udel.cis.vsl.civl.ConstantsTest.QUIET;
+import static edu.udel.cis.vsl.civl.ConstantsTest.VERIFY;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;

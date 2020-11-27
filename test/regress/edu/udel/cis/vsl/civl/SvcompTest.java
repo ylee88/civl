@@ -28,25 +28,25 @@ public class SvcompTest {
 
 	@Test
 	public void intPointer() throws ABCException {
-		assertTrue(ui.run("verify", "-svcomp16", TestConstants.QUIET,
+		assertTrue(ui.run("verify", "-svcomp16", ConstantsTest.QUIET,
 				filename("intPointer.c")));
 	}
 
 	@Test
 	public void thread_local() throws ABCException {
-		assertTrue(ui.run("verify", "-svcomp16", TestConstants.QUIET,
+		assertTrue(ui.run("verify", "-svcomp16", ConstantsTest.QUIET,
 				filename("threadLocal.c")));
 	}
 
 	@Test
 	public void threadLocal() {
-		assertTrue(ui.run("verify", "-svcomp16", TestConstants.QUIET,
+		assertTrue(ui.run("verify", "-svcomp16", ConstantsTest.QUIET,
 				filename("threadLocal.c")));
 	}
 
 	@Test
 	public void assume_with_disjuncts() {
-		assertFalse(ui.run("verify  -svcomp16", TestConstants.QUIET,
+		assertFalse(ui.run("verify  -svcomp16", ConstantsTest.QUIET,
 				filename("assume_with_disjuncts.cvl")));
 	}
 }

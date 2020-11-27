@@ -1,7 +1,7 @@
 package edu.udel.cis.vsl.civl;
 
-import static edu.udel.cis.vsl.civl.TestConstants.QUIET;
-import static edu.udel.cis.vsl.civl.TestConstants.VERIFY;
+import static edu.udel.cis.vsl.civl.ConstantsTest.QUIET;
+import static edu.udel.cis.vsl.civl.ConstantsTest.VERIFY;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -70,14 +70,14 @@ public class ReasoningTest {
 	@Test
 	public void cg2Absolute() {
 		assertTrue(
-				ui.run(VERIFY, QUIET, TestConstants.NO_CHECK_DIVISION_BY_ZERO,
+				ui.run(VERIFY, QUIET, ConstantsTest.NO_CHECK_DIVISION_BY_ZERO,
 						"-inputN=2", cgfilename("cg.cvl")));
 	}
 
 	@Test
 	public void cg5Probabilistic() {
-		assertTrue(ui.run(VERIFY, QUIET, "-inputN=5", TestConstants.ENABLE_PROB,
-				TestConstants.NO_CHECK_DIVISION_BY_ZERO, cgfilename("cg.cvl")));
+		assertTrue(ui.run(VERIFY, QUIET, "-inputN=5", ConstantsTest.ENABLE_PROB,
+				ConstantsTest.NO_CHECK_DIVISION_BY_ZERO, cgfilename("cg.cvl")));
 	}
 
 	@Test

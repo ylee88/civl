@@ -6,7 +6,7 @@ package edu.udel.cis.vsl.civl;
  * 
  *
  */
-public class TestConstants {
+public class ConstantsTest {
 
 	/**
 	 * commands

@@ -9,7 +9,7 @@ import org.junit.AfterClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import edu.udel.cis.vsl.civl.TestConstants;
+import edu.udel.cis.vsl.civl.ConstantsTest;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class SlowLoopInvariantsWithAssignsTest {
@@ -25,342 +25,342 @@ public class SlowLoopInvariantsWithAssignsTest {
 
 	@Test
 	public void arrayEquals() {
-		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
+		assertTrue(ui.run("verify", ConstantsTest.QUIET, "-loop",
 				filename("arrayEquals.cvl")));
 	}
 
 	@Ignore
 	public void arrayEqualsBug() {
-		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
+		assertTrue(ui.run("verify", ConstantsTest.QUIET, "-loop",
 				filename("arrayEquals-bug.cvl")));
 	}
 
 	@Ignore
 	public void arrayEqualsEarlyReturn() {
-		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
+		assertTrue(ui.run("verify", ConstantsTest.QUIET, "-loop",
 				filename("arrayEquals_early_return.cvl")));
 	}
 
 	@Test
 	public void arrayEquals2() {
-		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
+		assertTrue(ui.run("verify", ConstantsTest.QUIET, "-loop",
 				filename("arrayEquals2.cvl")));
 	}
 
 	@Test
 	public void arrayEqualsNoReturn() {
-		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
+		assertTrue(ui.run("verify", ConstantsTest.QUIET, "-loop",
 				filename("arrayEqualsNoReturn.cvl")));
 	}
 
 	@Test
 	public void arrayEqualsNoReturnBadImpl() {
-		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop",
+		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop",
 				filename("arrayEqualsNoReturn-bad_impl.cvl")));
 	}
 
 	@Ignore
 	public void arrayEqualsNoReturnBadAssert() {
-		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop",
+		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop",
 				filename("arrayEqualsNoReturn-bad_assert.cvl")));
 	}
 
 	@Test
 	public void arrayZeroes1d() {
-		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
+		assertTrue(ui.run("verify", ConstantsTest.QUIET, "-loop",
 				filename("arrayZeroes1d.cvl")));
 	}
 
 	@Test
 	public void arrayZeroes1dBad() {
-		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop",
+		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop",
 				filename("arrayZeroes1d-bad.cvl")));
 	}
 
 	@Test
 	public void arrayZeroes2d() {
-		assertTrue(ui.run("verify", "-loop", TestConstants.QUIET,
+		assertTrue(ui.run("verify", "-loop", ConstantsTest.QUIET,
 				filename("arrayZeroes2d.cvl")));
 	}
 
 	@Test
 	public void arrayZeroes2dColumn() {
-		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
+		assertTrue(ui.run("verify", ConstantsTest.QUIET, "-loop",
 				filename("arrayZeroes2d_column.cvl")));
 	}
 
 	@Test
 	public void arrayZeroes2d2Columns() {
-		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
+		assertTrue(ui.run("verify", ConstantsTest.QUIET, "-loop",
 				filename("arrayZeroes2d_2columns.cvl")));
 	}
 
 	@Test
 	public void arrayZeroes2dColumnPreserve() {
-		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
+		assertTrue(ui.run("verify", ConstantsTest.QUIET, "-loop",
 				filename("arrayZeroes2d_2columns_preserve.cvl")));
 	}
 
 	@Test
 	public void arrayZeroes2d2ColumnsPreserve() {
-		assertTrue(ui.run("verify", "-loop", TestConstants.QUIET,
+		assertTrue(ui.run("verify", "-loop", ConstantsTest.QUIET,
 				filename("arrayZeroes2d_2columns_preserve.cvl")));
 	}
 
 	@Test
 	public void arrayZeroes2d2ColumnsPreserveBadAssert() {
-		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET,
+		assertFalse(ui.run("verify", "-loop", ConstantsTest.QUIET,
 				filename("arrayZeroes2d_2columns_preserve-bad_assert.cvl")));
 	}
 
 	@Test
 	public void arrayZeroes2dColumnBadAssert() {
-		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop",
+		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop",
 				filename("arrayZeroes2d_column-bad_assert.cvl")));
 	}
 
 	@Test
 	public void arrayZeroes2dColumnBadInvariant() {
-		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop",
+		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop",
 				filename("arrayZeroes2d_column-bad_invariant.cvl")));
 	}
 
 	@Test
 	public void arrayZeroes2dBadAssert() {
-		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop",
+		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop",
 				filename("arrayZeroes2d-bad_assert.cvl")));
 	}
 
 	@Test
 	public void arrayZeroes2dBadInvariants() {
-		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop",
+		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop",
 				filename("arrayZeroes2d-bad_invariants.cvl")));
 	}
 	@Ignore
 	public void max() {
-		assertTrue(ui.run("verify", TestConstants.QUIET, filename("max.cvl")));
+		assertTrue(ui.run("verify", ConstantsTest.QUIET, filename("max.cvl")));
 	}
 
 	@Test
 	public void maxBadAssert() {
-		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop",
+		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop",
 				filename("max-bad_assert.cvl")));
 	}
 
 	@Test
 	public void maxBadInvariants() {
-		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop",
+		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop",
 				filename("max-bad_invariants.cvl")));
 	}
 
 	@Ignore // experimental permutation predicates need why3
 	public void insertionSort() {
-		assertTrue(ui.run("verify", "-loop", TestConstants.QUIET,
+		assertTrue(ui.run("verify", "-loop", ConstantsTest.QUIET,
 				filename("insertSort.cvl")));
 	}
 
 	@Test
 	public void insertionSortBadAssert() {
-		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET,
+		assertFalse(ui.run("verify", "-loop", ConstantsTest.QUIET,
 				filename("insertSort-bad_assert.cvl")));
 	}
 
 	@Test
 	public void insertionSortBadAssert2() {
-		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET,
+		assertFalse(ui.run("verify", "-loop", ConstantsTest.QUIET,
 				filename("insertSort-bad_assert2.cvl")));
 	}
 
 	@Ignore // ignore, experimental permutation predicate for why3 only
 	public void selectSort() {
-		assertTrue(ui.run("verify", "-loop", TestConstants.QUIET,
+		assertTrue(ui.run("verify", "-loop", ConstantsTest.QUIET,
 				filename("selectSort.cvl")));
 	}
 
 	@Test
 	public void selectSortBadAssert() {
-		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop",
-				TestConstants.errorBound(3),
+		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop",
+				ConstantsTest.errorBound(3),
 				filename("selectSort-bad_assert.cvl")));
 	}
 
 	@Test
 	public void selectSortBadInvariants() {
-		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop",
+		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop",
 				filename("selectSort-bad_invariants.cvl")));
 	}
 
 	@Test
 	public void selectSortBadThink() {
-		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop",
+		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop",
 				filename("selectSort-bad_think.cvl")));
 	}
 
 	@Test
 	public void twoLoopsUnreachable() {
-		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
+		assertTrue(ui.run("verify", ConstantsTest.QUIET, "-loop",
 				filename("twoLoops.cvl")));
 	}
 
 	@Test
 	public void twoLoopsBad() {
-		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop",
+		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop",
 				filename("twoLoops2.cvl")));
 	}
 
 	@Test
 	public void summation() {
-		assertTrue(ui.run("verify", "-loop", TestConstants.QUIET,
+		assertTrue(ui.run("verify", "-loop", ConstantsTest.QUIET,
 				filename("summation.cvl")));
 	}
 
 	@Test
 	public void summationBadInvariant() {
-		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop",
+		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop",
 				filename("summation-bad_invariant.cvl")));
 	}
 
 	@Test
 	public void summationBadAssert() {
-		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop",
+		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop",
 				filename("summation-bad_assert.cvl")));
 	}
 
 	@Test
 	public void JanLoop1st() {
-		assertTrue(ui.run("verify", "-loop", TestConstants.QUIET, filename(
+		assertTrue(ui.run("verify", "-loop", ConstantsTest.QUIET, filename(
 				"../Jans_example/fixed_block/invariant_1st_loop.cvl")));
 	}
 
 	@Test
 	public void JanLoop1stBadAssert() {
-		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET, filename(
+		assertFalse(ui.run("verify", "-loop", ConstantsTest.QUIET, filename(
 				"../Jans_example/fixed_block/invariant_1st_loop-bad_assert.cvl")));
 	}
 
 	@Test
 	public void JanLoop1stBadAssigns() {
-		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET, filename(
+		assertFalse(ui.run("verify", "-loop", ConstantsTest.QUIET, filename(
 				"../Jans_examp/Jans_example/fixed_block/fixed_block/fixed_block/st_loop-bad_assigns.cvl")));
 	}
 
 	@Test
 	public void JanLoop2nd() {
-		assertTrue(ui.run("verify", "-loop", TestConstants.QUIET, filename(
+		assertTrue(ui.run("verify", "-loop", ConstantsTest.QUIET, filename(
 				"../Jans_example/fixed_block/invariant_2nd_loop.cvl")));
 	}
 
 	@Test
 	public void JanLoop2ndBadAssert() {
-		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET, filename(
+		assertFalse(ui.run("verify", "-loop", ConstantsTest.QUIET, filename(
 				"../Jans_example/fixed_block/invariant_2nd_loop_bad-assert.cvl")));
 	}
 
 	@Test
 	public void JanLoop2ndBadAssigns() {
-		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET, filename(
+		assertFalse(ui.run("verify", "-loop", ConstantsTest.QUIET, filename(
 				"../Jans_example/fixed_block/invariant_2nd_loop_bad-assigns.cvl")));
 	}
 
 	@Test
 	public void JanLoop3rd() {
-		assertTrue(ui.run("verify", "-loop", TestConstants.QUIET, filename(
+		assertTrue(ui.run("verify", "-loop", ConstantsTest.QUIET, filename(
 				"../Jans_example/fixed_block/invariant_3rd_loop.cvl")));
 	}
 
 	@Test
 	public void JanLoop3rdBadAssert() {
-		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET, filename(
+		assertFalse(ui.run("verify", "-loop", ConstantsTest.QUIET, filename(
 				"../Jans_example/fixed_block/invariant_3rd_loop-bad_assert.cvl")));
 	}
 
 	@Test
 	public void JanLoop3rdBadAssigns() {
-		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET, filename(
+		assertFalse(ui.run("verify", "-loop", ConstantsTest.QUIET, filename(
 				"../Jans_example/fixed_block/invariant_3rd_loop-bad_assigns.cvl")));
 	}
 
 	@Ignore // needs why3
 	public void relaxedPrefix() {
-		assertTrue(ui.run("verify", "-loop", TestConstants.QUIET, filename(
+		assertTrue(ui.run("verify", "-loop", ConstantsTest.QUIET, filename(
 				"../verifyThisUB/relaxedPrefix/relaxedPrefix_loop.cvl")));
 	}
 
 	@Test
 	public void relaxedPrefixWeak() {
-		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET, filename(
+		assertFalse(ui.run("verify", "-loop", ConstantsTest.QUIET, filename(
 				"../verifyThisUB/relaxedPrefix/relaxedPrefix_loop-bad_weak.cvl")));
 	}
 
 	@Test
 	public void relaxedPrefixWeak2() {
-		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET, filename(
+		assertFalse(ui.run("verify", "-loop", ConstantsTest.QUIET, filename(
 				"../verifyThisUB/relaxedPrefix/relaxedPrefix_loop-bad_weak2.cvl")));
 	}
 
 	@Test
 	public void relaxedPrefixBadAssert() {
-		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET, filename(
+		assertFalse(ui.run("verify", "-loop", ConstantsTest.QUIET, filename(
 				"../verifyThisUB/relaxedPrefix/relaxedPrefix_loop-bad_assert.cvl")));
 	}
 
 	@Test
 	public void relaxedPrefixWeak4Assert() {
-		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET, filename(
+		assertFalse(ui.run("verify", "-loop", ConstantsTest.QUIET, filename(
 				"../verifyThisUB/relaxedPrefix/relaxedPrefix_loop-bad_weak4assert.cvl")));
 	}
 
 	@Ignore // need why3
 	public void sort() {
-		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop", filename(
+		assertTrue(ui.run("verify", ConstantsTest.QUIET, "-loop", filename(
 				"../verifyThisUB/longestRepeatedSubstring/sort_deductive.cvl")));
 	}
 
 	@Test
 	public void sortBadInvariant() {
-		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop", filename(
+		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop", filename(
 				"../verifyThisUB/longestRepeatedSubstring/sort-bad_invariant.cvl")));
 	}
 
 	@Test
 	public void sortBadAssert() {
-		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop", filename(
+		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop", filename(
 				"../verifyThisUB/longestRepeatedSubstring/sort-bad_assert.cvl")));
 	}
 
 	@Test
 	public void lrsBadInvariant() {
-		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop", filename(
+		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop", filename(
 				"../verifyThisUB/longestRepeatedSubstring/lrs-bad_invariant.cvl")));
 	}
 
 	@Test
 	public void lrsBadAssert() {
-		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop", filename(
+		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop", filename(
 				"../verifyThisUB/longestRepeatedSubstring/lrs-bad_assert.cvl")));
 	}
 
 	@Ignore // need why3
 	public void lrs() {
-		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop", filename(
+		assertTrue(ui.run("verify", ConstantsTest.QUIET, "-loop", filename(
 				"../verifyThisUB/longestRepeatedSubstring/lrs_deductive.cvl ")));
 	}
 
 	@Test
 	public void pairInsertion() {
-		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop", filename(
+		assertTrue(ui.run("verify", ConstantsTest.QUIET, "-loop", filename(
 				"../verifyThisUB/pairInsertSort/pairInsertSort_partial.cvl")));
 	}
 
 	@Test
 	public void pairInsertionBadAssert() {
-		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop", filename(
+		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop", filename(
 				"../verifyThisUB/pairInsertSort/pairInsertSort_partial-bad_assert.cvl")));
 	}
 
 	@Ignore // requires why3 with TIMEOUT > 10 seconds
 	public void lcp2() {
-		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop", filename(
+		assertTrue(ui.run("verify", ConstantsTest.QUIET, "-loop", filename(
 				"../verifyThisUB/longestRepeatedSubstring/lcp2.cvl ")));
 	}
 

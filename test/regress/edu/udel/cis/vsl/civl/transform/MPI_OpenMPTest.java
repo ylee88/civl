@@ -8,7 +8,7 @@ import org.junit.AfterClass;
 import org.junit.Test;
 
 import edu.udel.cis.vsl.abc.err.IF.ABCException;
-import edu.udel.cis.vsl.civl.TestConstants;
+import edu.udel.cis.vsl.civl.ConstantsTest;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class MPI_OpenMPTest {
@@ -31,7 +31,7 @@ public class MPI_OpenMPTest {
 		assertTrue(ui.run(
 				"verify -enablePrintf=false -DMATH_ELABORATE_ASSUMPTIONS -input_mpi_nprocs=2 "
 						+ "-input_omp_thread_max=3 -ompLoopDecomp=ALL",
-				TestConstants.QUIET, filename("mpi-omp-pie-calculation.c")));
+				ConstantsTest.QUIET, filename("mpi-omp-pie-calculation.c")));
 	}
 
 	@Test
@@ -39,13 +39,13 @@ public class MPI_OpenMPTest {
 		assertTrue(ui.run(
 				"verify -enablePrintf=false -DMATH_ELABORATE_ASSUMPTIONS ",
 				"-input_mpi_nprocs=2 -input_omp_thread_max=10 -ompLoopDecomp=ALL",
-				TestConstants.QUIET, filename("mpi-omp-pie-calculation100.c")));
+				ConstantsTest.QUIET, filename("mpi-omp-pie-calculation100.c")));
 	}
 
 	@Test
 	public void helloworld() throws ABCException {
 		assertTrue(ui.run("verify -enablePrintf=false -input_mpi_nprocs=2",
-				TestConstants.QUIET, filename("mpi-omp-hello-world.c")));
+				ConstantsTest.QUIET, filename("mpi-omp-hello-world.c")));
 	}
 
 	@AfterClass

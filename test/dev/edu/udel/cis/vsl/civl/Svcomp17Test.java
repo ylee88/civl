@@ -27,37 +27,37 @@ public class Svcomp17Test {
 
 	@Test
 	public void uchar() {
-		ui.run("verify ", TestConstants.QUIET, filename("uchar.c"));
+		ui.run("verify ", ConstantsTest.QUIET, filename("uchar.c"));
 	}
 
 	@Test
 	public void uniqueLoop() {
 		assertFalse(
 				ui.run("verify -svcomp17 -showProgram=false -errorBound=10 -errorStateEquiv=FULL",
-						TestConstants.QUIET, filename("unique_loop.c")));
+						ConstantsTest.QUIET, filename("unique_loop.c")));
 	}
 
 	@Test
 	public void stringLiteral() {
-		assertTrue(ui.run("verify -showModel=false ", TestConstants.QUIET,
+		assertTrue(ui.run("verify -showModel=false ", ConstantsTest.QUIET,
 				filename("stringLiteralIf.c")));
 	}
 
 	@Test
 	public void assumeTest() {
-		ui.run("verify -svcomp17", TestConstants.QUIET,
+		ui.run("verify -svcomp17", ConstantsTest.QUIET,
 				filename("assume_with_disjuncts.c"));
 	}
 
 	@Test
 	public void lorBug() {
-		ui.run("verify -showTransitions=false ", TestConstants.QUIET,
+		ui.run("verify -showTransitions=false ", ConstantsTest.QUIET,
 				filename("lorBug.cvl"));
 	}
 
 	@Test
 	public void unnamed_field() {
-		assertTrue(ui.run("verify", TestConstants.QUIET,
+		assertTrue(ui.run("verify", ConstantsTest.QUIET,
 				filename("unnamedField.c")));
 	}
 
@@ -65,7 +65,7 @@ public class Svcomp17Test {
 
 	@Test
 	public void floppy_false() {
-		assertFalse(ui.run("verify -svcomp17", TestConstants.QUIET, filename(
+		assertFalse(ui.run("verify -svcomp17", ConstantsTest.QUIET, filename(
 				"floppy_simpl4_false-unreach-call_true-termination.cil.c")));
 	}
 
@@ -73,13 +73,13 @@ public class Svcomp17Test {
 	public void memtrack() {
 		assertFalse(
 				ui.run("verify -svcomp17 -showProgram=false -errorBound=10 -errorStateEquiv=FULL",
-						TestConstants.QUIET,
+						ConstantsTest.QUIET,
 						filename("20051113-1.c_false-valid-memtrack.c")));
 	}
 
 	@Test
 	public void callocTest() {
-		assertFalse(ui.run("verify -svcomp17 ", TestConstants.QUIET,
+		assertFalse(ui.run("verify -svcomp17 ", ConstantsTest.QUIET,
 				filename("race-2_2-container_of_false-unreach-call.i")));
 	}
 
@@ -137,7 +137,7 @@ public class Svcomp17Test {
 
 	@Test
 	public void gcd_true() throws ABCException {
-		assertTrue(ui.run("verify", "-svcomp16", TestConstants.QUIET,
+		assertTrue(ui.run("verify", "-svcomp16", ConstantsTest.QUIET,
 				filename("gcd_true-unreach-call_true-termination.i")));
 	}
 

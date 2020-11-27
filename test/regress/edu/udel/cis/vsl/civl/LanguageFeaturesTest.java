@@ -1,9 +1,9 @@
 package edu.udel.cis.vsl.civl;
 
-import static edu.udel.cis.vsl.civl.TestConstants.NO_PRINTF;
-import static edu.udel.cis.vsl.civl.TestConstants.QUIET;
-import static edu.udel.cis.vsl.civl.TestConstants.VERIFY;
-import static edu.udel.cis.vsl.civl.TestConstants.errorBound;
+import static edu.udel.cis.vsl.civl.ConstantsTest.NO_PRINTF;
+import static edu.udel.cis.vsl.civl.ConstantsTest.QUIET;
+import static edu.udel.cis.vsl.civl.ConstantsTest.VERIFY;
+import static edu.udel.cis.vsl.civl.ConstantsTest.errorBound;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -314,7 +314,7 @@ public class LanguageFeaturesTest {
 
 	@Test
 	public void funcRetStruct() {
-		assertTrue(ui.run("verify", TestConstants.QUIET,
+		assertTrue(ui.run("verify", ConstantsTest.QUIET,
 				filename("functionRetStruct.cvl")));
 	}
 
@@ -687,7 +687,7 @@ public class LanguageFeaturesTest {
 
 	@Test
 	public void procBound() {
-		assertFalse(ui.run(VERIFY, TestConstants.procBound(10), QUIET,
+		assertFalse(ui.run(VERIFY, ConstantsTest.procBound(10), QUIET,
 				filename("procBound.cvl")));
 	}
 

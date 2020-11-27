@@ -1,14 +1,14 @@
 package edu.udel.cis.vsl.civl;
 
-import static edu.udel.cis.vsl.civl.TestConstants.MIN;
-import static edu.udel.cis.vsl.civl.TestConstants.MPI_CONTRACT;
-import static edu.udel.cis.vsl.civl.TestConstants.NO_PRINTF;
-import static edu.udel.cis.vsl.civl.TestConstants.POTENTIAL_DEADLOCK;
-import static edu.udel.cis.vsl.civl.TestConstants.QUIET;
-import static edu.udel.cis.vsl.civl.TestConstants.REPLAY;
-import static edu.udel.cis.vsl.civl.TestConstants.SHOW;
-import static edu.udel.cis.vsl.civl.TestConstants.VERIFY;
-import static edu.udel.cis.vsl.civl.TestConstants.errorBound;
+import static edu.udel.cis.vsl.civl.ConstantsTest.MIN;
+import static edu.udel.cis.vsl.civl.ConstantsTest.MPI_CONTRACT;
+import static edu.udel.cis.vsl.civl.ConstantsTest.NO_PRINTF;
+import static edu.udel.cis.vsl.civl.ConstantsTest.POTENTIAL_DEADLOCK;
+import static edu.udel.cis.vsl.civl.ConstantsTest.QUIET;
+import static edu.udel.cis.vsl.civl.ConstantsTest.REPLAY;
+import static edu.udel.cis.vsl.civl.ConstantsTest.SHOW;
+import static edu.udel.cis.vsl.civl.ConstantsTest.VERIFY;
+import static edu.udel.cis.vsl.civl.ConstantsTest.errorBound;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 

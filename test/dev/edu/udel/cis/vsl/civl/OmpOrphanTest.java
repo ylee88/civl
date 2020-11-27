@@ -1,6 +1,6 @@
 package edu.udel.cis.vsl.civl;
 
-import static edu.udel.cis.vsl.civl.TestConstants.NO_PRINTF;
+import static edu.udel.cis.vsl.civl.ConstantsTest.NO_PRINTF;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -49,14 +49,14 @@ public class OmpOrphanTest {
 	public void sharedVarTest2() {
 		// This test will break when "-ompNoSimplify" option is not specified.
 		assertTrue(ui.run("verify", NO_PRINTF, "-input_omp_thread_max=2",
-				TestConstants.QUIET, filename("sharedVar2.cvl")));
+				ConstantsTest.QUIET, filename("sharedVar2.cvl")));
 	}
 
 	@Test
 	public void sharedVarTest3() {
 		// When disable omp simplifier, this test will fail.
 		assertTrue(ui.run("verify", NO_PRINTF, "-input_omp_thread_max=2",
-				"-ompNoSimplify", TestConstants.QUIET,
+				"-ompNoSimplify", ConstantsTest.QUIET,
 				filename("sharedVar3.cvl")));
 	}
 }
