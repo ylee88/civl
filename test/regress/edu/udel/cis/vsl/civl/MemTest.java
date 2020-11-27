@@ -1,5 +1,5 @@
 package edu.udel.cis.vsl.civl;
-import static edu.udel.cis.vsl.civl.ConstantsTest.VERIFY;
+import static edu.udel.cis.vsl.civl.TestConstants.VERIFY;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -11,7 +11,7 @@ import edu.udel.cis.vsl.abc.err.IF.ABCException;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 public class MemTest {
 
-	static String QUIET = ConstantsTest.QUIET;
+	static String QUIET = TestConstants.QUIET;
 
 	/* *************************** Static Fields *************************** */
 

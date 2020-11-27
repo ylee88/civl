@@ -1,11 +1,11 @@
 package edu.udel.cis.vsl.civl.transform;
 
-import static edu.udel.cis.vsl.civl.ConstantsTest.NO_PRINTF;
-import static edu.udel.cis.vsl.civl.ConstantsTest.OMP_NO_SIMP;
-import static edu.udel.cis.vsl.civl.ConstantsTest.OMP_THREAD_TEN;
-import static edu.udel.cis.vsl.civl.ConstantsTest.OMP_THREAD_TWO;
-import static edu.udel.cis.vsl.civl.ConstantsTest.QUIET;
-import static edu.udel.cis.vsl.civl.ConstantsTest.VERIFY;
+import static edu.udel.cis.vsl.civl.TestConstants.NO_PRINTF;
+import static edu.udel.cis.vsl.civl.TestConstants.OMP_NO_SIMP;
+import static edu.udel.cis.vsl.civl.TestConstants.OMP_THREAD_TEN;
+import static edu.udel.cis.vsl.civl.TestConstants.OMP_THREAD_TWO;
+import static edu.udel.cis.vsl.civl.TestConstants.QUIET;
+import static edu.udel.cis.vsl.civl.TestConstants.VERIFY;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 

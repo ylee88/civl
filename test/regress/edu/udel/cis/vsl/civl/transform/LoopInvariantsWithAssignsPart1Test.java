@@ -7,7 +7,7 @@ import java.io.File;
 import org.junit.AfterClass;
 import org.junit.Test;
 
-import edu.udel.cis.vsl.civl.ConstantsTest;
+import edu.udel.cis.vsl.civl.TestConstants;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class LoopInvariantsWithAssignsPart1Test {
@@ -23,13 +23,13 @@ public class LoopInvariantsWithAssignsPart1Test {
 
 	@Test
 	public void arrayEquals() {
-		assertTrue(ui.run("verify", ConstantsTest.QUIET, "-loop",
+		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
 				filename("arrayEquals.cvl")));
 	}
 
 	@Test
 	public void add() {
-		assertTrue(ui.run("verify", ConstantsTest.QUIET, "-loop",
+		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
 				filename("add.cvl")));
 	}
 

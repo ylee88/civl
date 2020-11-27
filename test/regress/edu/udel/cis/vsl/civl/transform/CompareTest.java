@@ -1,11 +1,11 @@
 package edu.udel.cis.vsl.civl.transform;
 
-import static edu.udel.cis.vsl.civl.ConstantsTest.COMPARE;
-import static edu.udel.cis.vsl.civl.ConstantsTest.IMPL;
-import static edu.udel.cis.vsl.civl.ConstantsTest.NO_PRINTF;
-import static edu.udel.cis.vsl.civl.ConstantsTest.QUIET;
-import static edu.udel.cis.vsl.civl.ConstantsTest.REPLAY;
-import static edu.udel.cis.vsl.civl.ConstantsTest.SPEC;
+import static edu.udel.cis.vsl.civl.TestConstants.COMPARE;
+import static edu.udel.cis.vsl.civl.TestConstants.IMPL;
+import static edu.udel.cis.vsl.civl.TestConstants.NO_PRINTF;
+import static edu.udel.cis.vsl.civl.TestConstants.QUIET;
+import static edu.udel.cis.vsl.civl.TestConstants.REPLAY;
+import static edu.udel.cis.vsl.civl.TestConstants.SPEC;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -14,7 +14,7 @@ import java.io.File;
 import org.junit.AfterClass;
 import org.junit.Test;
 
-import edu.udel.cis.vsl.civl.ConstantsTest;
+import edu.udel.cis.vsl.civl.TestConstants;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class CompareTest {
@@ -117,7 +117,7 @@ public class CompareTest {
 
 	@Test
 	public void dotHybrid() {
-		assertTrue(ui.run(ConstantsTest.VERIFY, QUIET,
+		assertTrue(ui.run(TestConstants.VERIFY, QUIET,
 				"-inputVECLEN=1 -input_mpi_nprocs=2 -inputMAXTHRDS=2",
 				filename("dot", "mpithreads_both.c")));
 	}

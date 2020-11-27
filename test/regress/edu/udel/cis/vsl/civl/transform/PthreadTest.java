@@ -1,7 +1,7 @@
 package edu.udel.cis.vsl.civl.transform;
 
-import static edu.udel.cis.vsl.civl.ConstantsTest.NO_PRINTF;
-import static edu.udel.cis.vsl.civl.ConstantsTest.QUIET;
+import static edu.udel.cis.vsl.civl.TestConstants.NO_PRINTF;
+import static edu.udel.cis.vsl.civl.TestConstants.QUIET;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 

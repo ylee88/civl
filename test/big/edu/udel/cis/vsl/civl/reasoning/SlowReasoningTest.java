@@ -7,7 +7,7 @@ import java.io.File;
 import org.junit.AfterClass;
 import org.junit.Test;
 
-import edu.udel.cis.vsl.civl.ConstantsTest;
+import edu.udel.cis.vsl.civl.TestConstants;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class SlowReasoningTest {
@@ -23,7 +23,7 @@ public class SlowReasoningTest {
 
 	@Test
 	public void lemmasOfArbitraryBlock() {
-		assertTrue(ui.run("verify -D_PROVE", ConstantsTest.QUIET, filename(
+		assertTrue(ui.run("verify -D_PROVE", TestConstants.QUIET, filename(
 				loopInvDir, "Jans_example/arbitrary_block/loop_bounds.cvl")));
 	}
 

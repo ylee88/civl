@@ -103,7 +103,7 @@ public class OmpTransformNoSimplifiyTest {
 
 	@Test
 	public void arrayOutOfBound() {
-		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-ompNoSimplify",
+		assertFalse(ui.run("verify", TestConstants.QUIET, "-ompNoSimplify",
 				"-input_omp_thread_max=2", filename("array_out_bound.c")));
 	}
 

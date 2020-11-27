@@ -1,7 +1,7 @@
 package edu.udel.cis.vsl.civl.fortran;
 
-import static edu.udel.cis.vsl.civl.ConstantsTest.QUIET;
-import static edu.udel.cis.vsl.civl.ConstantsTest.VERIFY;
+import static edu.udel.cis.vsl.civl.TestConstants.QUIET;
+import static edu.udel.cis.vsl.civl.TestConstants.VERIFY;
 
 import java.io.File;
 

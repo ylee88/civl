@@ -1,10 +1,10 @@
 package edu.udel.cis.vsl.civl;
 
 import static org.junit.Assert.assertTrue;
-import static edu.udel.cis.vsl.civl.ConstantsTest.ANALYZE_ABS;
-import static edu.udel.cis.vsl.civl.ConstantsTest.VERIFY;
-import static edu.udel.cis.vsl.civl.ConstantsTest.QUIET;
-import static edu.udel.cis.vsl.civl.ConstantsTest.NO_PRINTF;
+import static edu.udel.cis.vsl.civl.TestConstants.ANALYZE_ABS;
+import static edu.udel.cis.vsl.civl.TestConstants.VERIFY;
+import static edu.udel.cis.vsl.civl.TestConstants.QUIET;
+import static edu.udel.cis.vsl.civl.TestConstants.NO_PRINTF;
 
 import java.io.File;
 

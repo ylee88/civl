@@ -9,7 +9,7 @@ import org.junit.AfterClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import edu.udel.cis.vsl.civl.ConstantsTest;
+import edu.udel.cis.vsl.civl.TestConstants;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class SlowLoopInvariantsWithAssigns2Test {
@@ -25,81 +25,81 @@ public class SlowLoopInvariantsWithAssigns2Test {
 
 	@Test
 	public void foVeOOS_max() {
-		assertTrue(ui.run("verify", ConstantsTest.QUIET, "-loop=true",
+		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop=true",
 				filename("foVeOOS/max/max.cvl")));
 	}
 
 	@Test
 	public void foVeOOS_maxBadAssert() {
-		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop=true",
+		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop=true",
 				filename("foVeOOS/max/max-bad_assert.cvl")));
 	}
 
 	@Test
 	public void foVeOOS_maxBadInvariant() {
-		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop=true",
+		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop=true",
 				filename("foVeOOS/max/max-bad_invariant.cvl")));
 	}
 
 	@Test
 	public void foVeOOS_duplets() {
-		assertTrue(ui.run("verify", ConstantsTest.QUIET, "-loop=true",
+		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop=true",
 				filename("foVeOOS/twoEqualElements/two_equal_elements.cvl")));
 	}
 
 	@Test
 	public void foVeOOS_dupletsBadAssert() {
 		assertFalse(
-				ui.run("verify", ConstantsTest.QUIET, "-loop=true", filename(
+				ui.run("verify", TestConstants.QUIET, "-loop=true", filename(
 						"foVeOOS/twoEqualElements/two_equal_elements-bad_assert.cvl")));
 	}
 
 	@Test
 	public void foVeOOS_dupletsBadInvariant() {
 		assertFalse(
-				ui.run("verify", ConstantsTest.QUIET, "-loop=true", filename(
+				ui.run("verify", TestConstants.QUIET, "-loop=true", filename(
 						"foVeOOS/twoEqualElements/two_equal_elements-bad_invariant.cvl")));
 	}
 
 	@Ignore // need why3
 	public void JanLoop() {
-		assertTrue(ui.run("verify", ConstantsTest.QUIET, "-loop",
+		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
 				filename("/Jans_example/fixed_block/invariant.cvl")));
 	}
 
 	@Ignore // need why3
 	public void JanLoopAbitraryBlock() {
-		assertTrue(ui.run("verify", ConstantsTest.QUIET, "-loop",
+		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
 				filename("/Jans_example/arbitrary_block/arbitrary_block.cvl")));
 	}
 
 	@Test
 	public void JanLoopAbitraryBlockBadAssert() {
-		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop", filename(
+		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop", filename(
 				"/Jans_example/arbitrary_block/arbitrary_block-bad_assert.cvl")));
 	}
 
 	@Test
 	public void JanLoopAbitraryBlockBadInv() {
-		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop", filename(
+		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop", filename(
 				"/Jans_example/arbitrary_block/arbitrary_block-bad_invariants1.cvl")));
 	}
 	@Test
 	public void JanLoopAbitraryBlockBadInv2() {
-		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop", filename(
+		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop", filename(
 				"/Jans_example/arbitrary_block/arbitrary_block-bad_invariants2.cvl")));
 	}
 	@Test
 	public void JanLoopAbitraryBlockBadInv3() {
-		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop", filename(
+		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop", filename(
 				"/Jans_example/arbitrary_block/arbitrary_block-bad_invariants3.cvl")));
 	}
 
 	@Test
 	public void adderCompare() {
-		assertTrue(ui.run("compare", ConstantsTest.QUIET, "-loop",
-				ConstantsTest.SPEC, "-loop", filename("/compare/adder_spec.c"),
-				ConstantsTest.IMPL, "-loop", "-input_mpi_nprocs=3",
+		assertTrue(ui.run("compare", TestConstants.QUIET, "-loop",
+				TestConstants.SPEC, "-loop", filename("/compare/adder_spec.c"),
+				TestConstants.IMPL, "-loop", "-input_mpi_nprocs=3",
 				filename("/compare/adder_par.c")));
 	}
 

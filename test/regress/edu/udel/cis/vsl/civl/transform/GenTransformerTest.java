@@ -7,7 +7,7 @@ import java.io.File;
 import org.junit.AfterClass;
 import org.junit.Test;
 
-import edu.udel.cis.vsl.civl.ConstantsTest;
+import edu.udel.cis.vsl.civl.TestConstants;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class GenTransformerTest {
@@ -28,19 +28,19 @@ public class GenTransformerTest {
 
 	@Test
 	public void gen_argc() {
-		assertTrue(ui.run("verify", ConstantsTest.QUIET, filename("gen.c")));
+		assertTrue(ui.run("verify", TestConstants.QUIET, filename("gen.c")));
 	}
 
 	@Test
 	public void simpleMPI() {
 		assertTrue(ui.run("verify -input_mpi_nprocs=2 -enablePrintf=false",
-				ConstantsTest.QUIET, filename("simpleMPI.c")));
+				TestConstants.QUIET, filename("simpleMPI.c")));
 	}
 
 	@Test
 	public void simpleMPI2() {
 		assertTrue(ui.run("verify -input_mpi_nprocs=2 -enablePrintf=false",
-				ConstantsTest.QUIET, filename("simpleMPI2.c")));
+				TestConstants.QUIET, filename("simpleMPI2.c")));
 	}
 
 	@AfterClass

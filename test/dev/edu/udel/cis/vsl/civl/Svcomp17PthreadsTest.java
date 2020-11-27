@@ -1,6 +1,6 @@
 package edu.udel.cis.vsl.civl;
 
-import static edu.udel.cis.vsl.civl.ConstantsTest.QUIET;
+import static edu.udel.cis.vsl.civl.TestConstants.QUIET;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -29,7 +29,7 @@ public class Svcomp17PthreadsTest {
 
 	@Test
 	public void callocTest() {
-		assertFalse(ui.run("verify -svcomp17 ", ConstantsTest.QUIET,
+		assertFalse(ui.run("verify -svcomp17 ", TestConstants.QUIET,
 				filename("race-2_2-container_of_false-unreach-call.i")));
 	}
 

@@ -9,7 +9,7 @@ import org.junit.AfterClass;
 import org.junit.Test;
 
 import edu.udel.cis.vsl.abc.err.IF.ABCException;
-import edu.udel.cis.vsl.civl.ConstantsTest;
+import edu.udel.cis.vsl.civl.TestConstants;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class MPITranslationTest {
@@ -30,33 +30,33 @@ public class MPITranslationTest {
 
 	@Test
 	public void ring1() {
-		assertTrue(ui.run("verify", "-input_mpi_nprocs=2", ConstantsTest.QUIET,
+		assertTrue(ui.run("verify", "-input_mpi_nprocs=2", TestConstants.QUIET,
 				filename("ring1.c")));
 	}
 
 	@Test
 	public void ring1NotSaveStates() {
 		assertTrue(ui.run("verify", "-input_mpi_nprocs=2 -saveStates=false",
-				ConstantsTest.QUIET, filename("ring1.c")));
+				TestConstants.QUIET, filename("ring1.c")));
 	}
 
 	@Test
 	public void reduce() {
-		assertTrue(ui.run("verify", "-input_mpi_nprocs=4", ConstantsTest.QUIET,
-				ConstantsTest.NO_PRINTF, filename("routines/reduce.c")));
+		assertTrue(ui.run("verify", "-input_mpi_nprocs=4", TestConstants.QUIET,
+				TestConstants.NO_PRINTF, filename("routines/reduce.c")));
 	}
 
 	@Test
 	public void mpithreads_mpi() {
 		assertTrue(ui.run("verify", "-input_mpi_nprocs=2",
-				"-enablePrintf=false", ConstantsTest.QUIET,
+				"-enablePrintf=false", TestConstants.QUIET,
 				filename("../mpi-pthread/mpithreads_mpi.c")));
 	}
 
 	@Test
 	public void adder_par() {
 		assertTrue(ui.run("verify", "-input_mpi_nprocs=2", "-inputNB=4",
-				ConstantsTest.QUIET, ConstantsTest.NO_PRINTF,
+				TestConstants.QUIET, TestConstants.NO_PRINTF,
 				filename("adder_par.c")));
 	}
 
@@ -64,48 +64,48 @@ public class MPITranslationTest {
 	public void adder_comp() {
 		assertTrue(ui.run("compare", "-enablePrintf=false",
 				"-input_mpi_nprocs=2", "-inputNB=4", "-spec",
-				ConstantsTest.QUIET, filename("seq/adder_spec.c"), "-impl",
+				TestConstants.QUIET, filename("seq/adder_spec.c"), "-impl",
 				filename("adder_par.c")));
 	}
 
 	@Test
 	public void mpi_scatter() throws ABCException {
 		assertTrue(ui.run("verify", "-input_mpi_nprocs=4",
-				"-enablePrintf=false", ConstantsTest.QUIET,
+				"-enablePrintf=false", TestConstants.QUIET,
 				filename("routines/Gather_Scatter/mpi_scatter.c")));
 	}
 
 	@Test
 	public void mpi_gather() throws ABCException {
 		assertTrue(ui.run("verify", "-input_mpi_nprocs=4",
-				"-enablePrintf=false", ConstantsTest.QUIET,
+				"-enablePrintf=false", TestConstants.QUIET,
 				filename("routines/Gather_Scatter/mpi_gather.c")));
 	}
 
 	@Test
 	public void mpi_gatherv() throws ABCException {
 		assertTrue(ui.run("verify", "-input_mpi_nprocs=4",
-				"-enablePrintf=false", ConstantsTest.QUIET,
+				"-enablePrintf=false", TestConstants.QUIET,
 				filename("routines/Gather_Scatter/mpi_gather_inPlace.c")));
 	}
 
 	@Test
 	public void mpi_scatterv() throws ABCException {
 		assertTrue(ui.run("verify", "-input_mpi_nprocs=4",
-				"-enablePrintf=false", ConstantsTest.QUIET,
+				"-enablePrintf=false", TestConstants.QUIET,
 				filename("routines/Gather_Scatter/mpi_scatter_inPlace.c")));
 	}
 
 	@Test
 	public void mpi_wave1d() throws ABCException {
 		assertTrue(ui.run("verify", "-input_mpi_nprocs_hi=3", "-inputNSTEPSB=2",
-				"-inputNXB=4", "-enablePrintf=false", ConstantsTest.QUIET,
+				"-inputNXB=4", "-enablePrintf=false", TestConstants.QUIET,
 				filename("wave1d.c")));
 	}
 
 	@Test
 	public void mpi_diff1d() throws ABCException {
-		assertTrue(ui.run("verify", "-inputnsteps=2", ConstantsTest.QUIET,
+		assertTrue(ui.run("verify", "-inputnsteps=2", TestConstants.QUIET,
 				filename("diffusion1d.c")));
 	}
 
@@ -113,7 +113,7 @@ public class MPITranslationTest {
 	public void mpi_diff2d() throws ABCException {
 		assertTrue(ui.run("verify", "-input_mpi_nprocs=4", "-inputnsteps=2",
 				"-inputnx=2", "-inputny=2", "-enablePrintf=false",
-				"-inputNPROCSX=2", "-inputNPROCSY=2", ConstantsTest.QUIET,
+				"-inputNPROCSX=2", "-inputNPROCSY=2", TestConstants.QUIET,
 				filename("diffusion2d.c")));
 	}
 
@@ -122,41 +122,41 @@ public class MPITranslationTest {
 		assertTrue(ui.run(
 				"verify -showTransitions=false -inputNSTEPSB=2 -inputNXB=1 -inputNYB=2 "
 						+ "-inputNPROCSX=1 -inputNPROCSY=2 -enablePrintf=false",
-				ConstantsTest.QUIET, filename("diffusion2d.c")));
+				TestConstants.QUIET, filename("diffusion2d.c")));
 	}
 
 	@Test
 	public void mpi_diff2dBad() throws ABCException {
 		assertFalse(ui.run("verify", "-input_mpi_nprocs=4",
 				"-enablePrintf=false", "-inputNPROCSX=2", "-inputNPROCSY=2",
-				ConstantsTest.QUIET, filename("diffusion2dBad.c")));
+				TestConstants.QUIET, filename("diffusion2dBad.c")));
 	}
 
 	@Test
 	public void mpiPrime() {
 		assertTrue(ui.run("verify", "-enablePrintf=false",
 				"-input_mpi_nprocs_hi=2", "-inputLIMITB=13",
-				ConstantsTest.QUIET, filename("mpi_prime.c")));
+				TestConstants.QUIET, filename("mpi_prime.c")));
 	}
 
 	@Test
 	public void mpiMatmat() {
 		assertTrue(ui.run("verify", "-enablePrintf=false",
 				"-input_mpi_nprocs_hi=3", "-inputNB=2", "-inputLB=2",
-				"-inputMB=2", ConstantsTest.QUIET,
+				"-inputMB=2", TestConstants.QUIET,
 				filename("matmat_mw/matmat_mw.c")));
 	}
 
 	@Test
 	public void mpiSumArray() {
 		assertTrue(ui.run("verify", "-enablePrintf=false",
-				"-input_mpi_nprocs_hi=3", "-inputNB=8", ConstantsTest.QUIET,
+				"-input_mpi_nprocs_hi=3", "-inputNB=8", TestConstants.QUIET,
 				filename("sum_array.c")));
 	}
 
 	@Test
 	public void sendrecv() {
-		assertTrue(ui.run("verify -input_mpi_nprocs=3", ConstantsTest.QUIET,
+		assertTrue(ui.run("verify -input_mpi_nprocs=3", TestConstants.QUIET,
 				filename("sendrecv.c")));
 	}
 
@@ -164,24 +164,24 @@ public class MPITranslationTest {
 	public void gaussJordan() {
 		assertTrue(ui.run(
 				"verify -enablePrintf=false -inputnumRow=2 -inputnumCol=2 -input_mpi_nprocs=2",
-				ConstantsTest.QUIET, filename("gaussJordan_elimination.c")));
+				TestConstants.QUIET, filename("gaussJordan_elimination.c")));
 	}
 
 	@Test
 	public void sendIntRecvDouble() {
-		assertFalse(ui.run("verify -input_mpi_nprocs=2", ConstantsTest.QUIET,
+		assertFalse(ui.run("verify -input_mpi_nprocs=2", TestConstants.QUIET,
 				filename("simple/send_int_recv_double.c")));
 	}
 
 	@Test
 	public void allgather() {
-		assertTrue(ui.run("verify -input_mpi_nprocs=3", ConstantsTest.QUIET,
+		assertTrue(ui.run("verify -input_mpi_nprocs=3", TestConstants.QUIET,
 				filename("simple/allgather.c")));
 	}
 
 	@Test
 	public void allgatherInplace() {
-		assertTrue(ui.run("verify -input_mpi_nprocs=3", ConstantsTest.QUIET,
+		assertTrue(ui.run("verify -input_mpi_nprocs=3", TestConstants.QUIET,
 				filename("simple/allgather_inplace.c")));
 	}
 

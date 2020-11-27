@@ -1,9 +1,9 @@
 package edu.udel.cis.vsl.civl;
 
-import static edu.udel.cis.vsl.civl.ConstantsTest.COMPARE;
-import static edu.udel.cis.vsl.civl.ConstantsTest.IMPL;
-import static edu.udel.cis.vsl.civl.ConstantsTest.QUIET;
-import static edu.udel.cis.vsl.civl.ConstantsTest.SPEC;
+import static edu.udel.cis.vsl.civl.TestConstants.COMPARE;
+import static edu.udel.cis.vsl.civl.TestConstants.IMPL;
+import static edu.udel.cis.vsl.civl.TestConstants.QUIET;
+import static edu.udel.cis.vsl.civl.TestConstants.SPEC;
 
 import java.io.File;
 

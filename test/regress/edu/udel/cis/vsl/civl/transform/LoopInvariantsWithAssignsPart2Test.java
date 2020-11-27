@@ -8,7 +8,7 @@ import java.io.File;
 import org.junit.AfterClass;
 import org.junit.Test;
 
-import edu.udel.cis.vsl.civl.ConstantsTest;
+import edu.udel.cis.vsl.civl.TestConstants;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class LoopInvariantsWithAssignsPart2Test {
@@ -24,31 +24,31 @@ public class LoopInvariantsWithAssignsPart2Test {
 
 	@Test
 	public void foVeOOS_max() {
-		assertTrue(ui.run("verify", ConstantsTest.QUIET, "-loop",
+		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
 				filename("foVeOOS/max/max.cvl")));
 	}
 
 	@Test
 	public void foVeOOS_maxBadAssert() {
-		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop",
+		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop",
 				filename("foVeOOS/max/max-bad_assert.cvl")));
 	}
 
 	@Test
 	public void foVeOOS_maxBadInvariant() {
-		assertFalse(ui.run("verify", ConstantsTest.QUIET, "-loop",
+		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop",
 				filename("foVeOOS/max/max-bad_invariant.cvl")));
 	}
 
 	@Test
 	public void arrayTwoSection() {
-		assertTrue(ui.run("verify", ConstantsTest.QUIET, "-loop",
+		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
 				filename("loop_assigns_given/twoSectionArray.cvl")));
 	}
 
 	@Test
 	public void twoSec() {
-		assertTrue(ui.run("verify", ConstantsTest.QUIET, "-loop",
+		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
 				filename("loop_assigns_given/twoSec.cvl")));
 	}
 
