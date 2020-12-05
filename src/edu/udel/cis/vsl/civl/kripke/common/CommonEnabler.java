@@ -148,17 +148,15 @@ public abstract class CommonEnabler implements Enabler {
 	 */
 	protected SymbolicAnalyzer symbolicAnalyzer;
 
-	protected CIVLConfiguration config;
-
 	/**
-	 * CIVL configuration file, which is associated with the given command line.
+	 * CIVL configuration object, which is associated with the given command
+	 * line.
 	 */
-	protected CIVLConfiguration civlConfig;
+	protected CIVLConfiguration config;
 
 	private CollateExecutor collateExecutor;
 
 	/* ***************************** Constructor *************************** */
-
 
 	/**
 	 * Creates a new instance of Enabler, called by the constructors of the
@@ -172,7 +170,6 @@ public abstract class CommonEnabler implements Enabler {
 		this.evaluator = evaluator;
 		this.executor = executor;
 		this.symbolicAnalyzer = symbolicAnalyzer;
-		this.config = civlConfig;
 		this.debugOut = civlConfig.out();
 		this.debugging = civlConfig.debug();
 		this.showAmpleSet = civlConfig.showAmpleSet()
@@ -186,7 +183,7 @@ public abstract class CommonEnabler implements Enabler {
 		this.stateFactory = stateFactory;
 		this.showMemoryUnits = civlConfig.showMemoryUnits();
 		this.procBound = civlConfig.getProcBound();
-		this.civlConfig = civlConfig;
+		this.config = civlConfig;
 		collateExecutor = new CollateExecutor(this, this.executor, errorLogger,
 				civlConfig, gmcConfig);
 	}
@@ -199,10 +196,13 @@ public abstract class CommonEnabler implements Enabler {
 	}
 
 	/**
-	 * the common worker for {@link #ampleSet(State)} and {@link #fullSet(State)}
+	 * the common worker for {@link #ampleSet(State)} and
+	 * {@link #fullSet(State)}
 	 *
-	 * @param state      the current state
-	 * @param isAmpleSet true returns the ample set; false returns the full set
+	 * @param state
+	 *            the current state
+	 * @param isAmpleSet
+	 *            true returns the ample set; false returns the full set
 	 * @return the enabled transitions
 	 */
 	private Collection<Transition> ampleOrFullSet(State state,
@@ -212,8 +212,8 @@ public abstract class CommonEnabler implements Enabler {
 		if (state.getPathCondition(universe).isFalse())
 			return transitions;
 
-		Pair<BooleanExpression, Collection<Transition>> transitionsAssumption =
-				enabledAtomicTransitions(state);
+		Pair<BooleanExpression, Collection<Transition>> transitionsAssumption = enabledAtomicTransitions(
+				state);
 
 		if (transitionsAssumption != null) {
 			// there is process holding atomic lock...
@@ -232,10 +232,10 @@ public abstract class CommonEnabler implements Enabler {
 
 		// enabled transitions for the case that no atomic transition can be
 		// enabled or atomic process is blocked:
-		boolean noAtomicTran = transitionsAssumption == null ||
-							   transitionsAssumption.right == null;
-		boolean atomicProcMayBlocked = !noAtomicTran &&
-									   transitionsAssumption.left != null;
+		boolean noAtomicTran = transitionsAssumption == null
+				|| transitionsAssumption.right == null;
+		boolean atomicProcMayBlocked = !noAtomicTran
+				&& transitionsAssumption.left != null;
 
 		if (noAtomicTran || atomicProcMayBlocked) {
 			if (isAmpleSet)
@@ -410,12 +410,12 @@ public abstract class CommonEnabler implements Enabler {
 				Number lowerNum = interval.lower(), upperNum = interval.upper();
 				int lower = Integer.MIN_VALUE, upper = Integer.MAX_VALUE;
 
-				if (this.civlConfig.svcomp() && upperNum.isInfinite()) {
+				if (this.config.svcomp() && upperNum.isInfinite()) {
 					continue;
 				}
 				if (!lowerNum.isInfinite()) {
 					lower = ((IntegerNumber) lowerNum).intValue();
-				} else if (civlConfig.svcomp())
+				} else if (config.svcomp())
 					lower = 0;
 				if (!upperNum.isInfinite()) {
 					upper = ((IntegerNumber) upperNum).intValue();
@@ -759,7 +759,7 @@ public abstract class CommonEnabler implements Enabler {
 		// obtain State by key from state factory
 		mergedState = stateFactory.getStateByReference(mergedStateRefID);
 		finalMergedStates = collateExecutor.run2Completion(state, pid,
-				mergedState, civlConfig);
+				mergedState, config);
 		/*
 		 * The execution of the $with statement results in a set of final
 		 * states. Those final states are consequences of the merged collate
