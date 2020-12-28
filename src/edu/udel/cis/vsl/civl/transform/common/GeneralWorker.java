@@ -638,7 +638,7 @@ public class GeneralWorker extends BaseWorker {
 							.child(0).copy();
 				} else {
 					throw new CIVLUnimplementedFeatureException(
-							"\nCurrently, CIVL only supports calloc functino call in"
+							"\nCurrently, CIVL only supports calloc function call in"
 									+ "\n\t a variable declaration in .c file, "
 									+ "\n\t\t (e.g., int *p = calloc(..);)"
 									+ "\n\t an assignment expression in .c file, "
