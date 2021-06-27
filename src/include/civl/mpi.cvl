@@ -181,6 +181,7 @@ int MPI_Reduce(const void* sendbuf, void* recvbuf, int count,
   specEntry = $collate_check(comm.collator, checkerEntry);
   $mpi_diff_coroutine_entries(specEntry, checkerEntry, place);
   $mpi_check_buffer(sendbuf, count, datatype);
+  $assert(0 <= op && op <= 13, "unknown MPI reduce operation"); // refer to op.h & mpi.h in ABC/src/include for how MPI_Op is defined
   $mpi_reduce(sendbuf, recvbuf, count, datatype, op, root, REDUCE_TAG, comm, "MPI_Reduce()");
   return 0;
 }
@@ -208,6 +209,7 @@ int MPI_Allreduce(const void* sendbuf, void* recvbuf, int count,
 		 (int)op, 1, datatypes);
   specEntry = $collate_check(comm.collator, checkerEntry);
   $mpi_diff_coroutine_entries(specEntry, checkerEntry, place);
+  $assert(0 <= op && op <= 13, "unknown MPI reduce operation"); // refer to op.h & mpi.h in ABC/src/include for how MPI_Op is defined
   $mpi_reduce(sendbuf, recvbuf, count, datatype, op, root, ALLREDUCE_TAG, comm,
 	      "MPI_Allreduce()");
   $mpi_bcast(recvbuf, count, datatype, root, ALLREDUCE_TAG, comm, 
@@ -419,6 +421,7 @@ int MPI_Reduce_scatter(const void *sendbuf, void *recvbuf, const int recvcount[]
    * allowed in CIVL yet. */
   void * temp = $mpi_malloc(total_count, datatype);
 
+  $assert(0 <= op && op <= 13, "unknown MPI reduce operation"); // refer to op.h & mpi.h in ABC/src/include for how MPI_Op is defined
   $mpi_reduce(sendbuf, temp, total_count, datatype, op, 
 	      root, RED_SCATTER_TAG, comm, "MPI_Reduce_scatter()");
   $mpi_scatterv(temp, recvcount, displs, datatype, recvbuf,

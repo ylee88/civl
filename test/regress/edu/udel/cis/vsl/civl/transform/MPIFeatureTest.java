@@ -28,6 +28,12 @@ public class MPIFeatureTest {
 	/* **************************** Test Methods *************************** */
 
 	@Test
+	public void mpiOpNullReduce() {
+		assertFalse(ui.run("verify -input_mpi_nprocs=3", TestConstants.QUIET,
+				filename("mpi_opnull_reduce.c")));
+	}
+	
+	@Test
 	public void dynamicBuffer() {
 		assertTrue(ui.run("verify -input_mpi_nprocs=3", "-deadlock=potential",
 				TestConstants.QUIET, filename("dy_buf_good.c")));
