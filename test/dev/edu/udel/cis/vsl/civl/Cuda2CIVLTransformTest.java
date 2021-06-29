@@ -138,7 +138,7 @@ public class Cuda2CIVLTransformTest {
 	}
 	
 	@Test
-	public void includeOrder() {
-		assertTrue(ui.run("verify", filename("include_order_1.cu")));
+	public void kernelAfterMain() {
+		assertTrue(ui.run("verify", filename("kernel_after_main.cu")));
 	}
 }
