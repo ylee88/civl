@@ -136,4 +136,9 @@ public class Cuda2CIVLTransformTest {
 		assertTrue(ui.run("verify", "-inputBLOCK_B=4", "-inputTHREADS_B=2",
 				filename("cuda-omp.cu")));
 	}
+	
+	@Test
+	public void includeOrder() {
+		assertTrue(ui.run("verify", filename("include_order_1.cu")));
+	}
 }
