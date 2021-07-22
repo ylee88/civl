@@ -136,9 +136,4 @@ public class Cuda2CIVLTransformTest {
 		assertTrue(ui.run("verify", "-inputBLOCK_B=4", "-inputTHREADS_B=2",
 				filename("cuda-omp.cu")));
 	}
-	
-	@Test
-	public void kernelAfterMain() {
-		assertTrue(ui.run("verify", filename("kernel_after_main.cu")));
-	}
 }

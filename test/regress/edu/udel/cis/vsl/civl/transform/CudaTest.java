@@ -43,6 +43,11 @@ public class CudaTest {
 		assertTrue(ui.run("verify -inputN_B=3 -input threadsPerBlock_B=3",
 				QUIET, filename("dot.cu")));
 	}
+	
+	@Test
+	public void kernelAfterMain() {
+		assertTrue(ui.run("verify", filename("kernel_after_main.cu")));
+	}
 
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {

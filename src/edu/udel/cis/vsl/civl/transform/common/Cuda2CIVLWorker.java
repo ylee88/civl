@@ -12,6 +12,7 @@ import edu.udel.cis.vsl.abc.ast.IF.ASTFactory;
 import edu.udel.cis.vsl.abc.ast.node.IF.ASTNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.ASTNode.NodeKind;
 import edu.udel.cis.vsl.abc.ast.node.IF.SequenceNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.declaration.FunctionDeclarationNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.declaration.FunctionDefinitionNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.declaration.VariableDeclarationNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.CastNode;
@@ -69,6 +70,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		}
 		translateMainDefinition(root);
 		translateKernelDefinitions(root);
+		translateKernelDeclarations(root);
 		newAST = astFactory.newAST(root, ast.getSourceFiles(),
 				ast.isWholeProgram());
 		// newAST.prettyPrint(System.out, false);
@@ -105,7 +107,22 @@ public class Cuda2CIVLWorker extends BaseWorker {
 					root.setChild(child.childIndex(),
 							kernelDefinitionTransform(definition));
 				}
+			}
+		}
+	}
+	
+	protected void translateKernelDeclarations(ASTNode root) {
+		for (ASTNode child : root.children()) {
+			if (child == null)
+				continue;
 
+			if (child.nodeKind() == NodeKind.FUNCTION_DECLARATION) {
+				FunctionDeclarationNode declaration = (FunctionDeclarationNode) child;
+				if (declaration.hasGlobalFunctionSpecifier() &&
+						declaration.getTypeNode() instanceof FunctionTypeNode) {
+					root.setChild(child.childIndex(),
+							kernelDeclarationTransform(declaration));
+				}
 			}
 		}
 	}
@@ -276,6 +293,47 @@ public class Cuda2CIVLWorker extends BaseWorker {
 				.newFunctionDefinitionNode(source,
 						nodeFactory.newIdentifierNode(source, newKernelName),
 						newKernelType, null, newKernelBody);
+		return newKernel;
+	}
+	
+	protected FunctionDeclarationNode kernelDeclarationTransform(
+			FunctionDeclarationNode oldDeclaration) {
+		// TODO: add execution configuration parameters as regular parameters
+		Source source = oldDeclaration.getSource();
+		String newKernelName = this.transformKernelName(oldDeclaration
+				.getIdentifier().name());
+		List<VariableDeclarationNode> newKernelFormalsList = new ArrayList<>();
+
+		newKernelFormalsList.add(nodeFactory.newVariableDeclarationNode(source,
+				this.identifier("gridDim"),
+				nodeFactory.newTypedefNameNode(this.identifier("dim3"), null)));
+		newKernelFormalsList.add(nodeFactory.newVariableDeclarationNode(source,
+				this.identifier("blockDim"),
+				nodeFactory.newTypedefNameNode(this.identifier("dim3"), null)));
+		newKernelFormalsList
+				.add(nodeFactory.newVariableDeclarationNode(
+						source,
+						this.identifier("_cuda_mem_size"),
+						nodeFactory.newTypedefNameNode(
+								this.identifier("size_t"), null)));
+		newKernelFormalsList.add(nodeFactory.newVariableDeclarationNode(source,
+				this.identifier("_cuda_stream"), nodeFactory
+						.newTypedefNameNode(this.identifier("cudaStream_t"),
+								null)));
+		
+		FunctionTypeNode oldDeclarationTypeNode = ((FunctionTypeNode) oldDeclaration.getTypeNode());
+		for (VariableDeclarationNode decl : oldDeclarationTypeNode.getParameters()) {
+			newKernelFormalsList.add(decl.copy());
+		}
+		SequenceNode<VariableDeclarationNode> newKernelFormals = nodeFactory
+				.newSequenceNode(source, "kernel formals", newKernelFormalsList);
+		FunctionTypeNode newKernelType = nodeFactory.newFunctionTypeNode(
+				source, oldDeclarationTypeNode.getReturnType().copy(),
+				newKernelFormals, true);
+		FunctionDeclarationNode newKernel = nodeFactory
+				.newFunctionDeclarationNode(source,
+						nodeFactory.newIdentifierNode(source, newKernelName),
+						newKernelType, null);
 		return newKernel;
 	}
 
