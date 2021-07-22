@@ -28,6 +28,7 @@ int main ()
 
   cudaMemcpy(data, d_data, N * sizeof(int), cudaMemcpyDeviceToHost);
   cudaFree(d_data);
+  free(data);
   return 0;
 }
 
