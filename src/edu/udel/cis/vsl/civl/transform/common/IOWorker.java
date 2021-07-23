@@ -983,6 +983,7 @@ public class IOWorker extends BaseWorker {
 			processFprintf(rootNode);
 		}
 
+		completeSources(rootNode);
 		AST result = astFactory.newAST(rootNode, unit.getSourceFiles(),
 				unit.isWholeProgram());
 

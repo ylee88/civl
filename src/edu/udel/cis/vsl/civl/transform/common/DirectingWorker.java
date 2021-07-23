@@ -156,6 +156,7 @@ public class DirectingWorker extends BaseWorker {
 
 		instrumentBranchStatements(rootNode);
 		
+		completeSources(rootNode);
 		if (civlcAST != null) {
 			return this.combineASTs(
 				civlcAST, 
