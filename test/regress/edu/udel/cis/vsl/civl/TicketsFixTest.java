@@ -112,4 +112,17 @@ public class TicketsFixTest {
 		assertFalse(ui.run(VERIFY, QUIET,
 				filename("ticket_853_valid_arg_for_pow.cvl")));
 	}
+
+	/**
+	 * See: https://vsl.cis.udel.edu/trac/civl/ticket/954 </br>
+	 * 
+	 * @author Wenhao Wu (wuwenhao@udel.edu)
+	 * @throws ABCException
+	 */
+	@Test
+	public void ticket_954_MPI_handle_struct_disabled_in_equ_expr()
+			throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, "-input_mpi_nprocs=3", filename(
+				"ticket_954_MPI_handle_struct_disabled_in_equ_expr.cvl")));
+	}
 }
