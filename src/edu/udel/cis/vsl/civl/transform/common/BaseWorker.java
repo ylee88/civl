@@ -440,26 +440,26 @@ public abstract class BaseWorker {
 		FunctionDefinitionNode newMainFunction;
 
 		callMain = nodeFactory.newFunctionCallNode(
-				this.newSource("new main function", CivlcTokenConstant.CALL),
+				this.newSource("createNewMainFunction", CivlcTokenConstant.CALL),
 				this.identifierExpression(GEN_MAIN),
 				new LinkedList<ExpressionNode>(), null);
 		blockItems.add(nodeFactory.newExpressionStatementNode(callMain));
 		mainFuncType = nodeFactory.newFunctionTypeNode(
-				this.newSource("new main function", CivlcTokenConstant.TYPE),
-				nodeFactory.newBasicTypeNode(this.newSource("new main function",
+				this.newSource("createNewMainFunction", CivlcTokenConstant.TYPE),
+				nodeFactory.newBasicTypeNode(this.newSource("createNewMainFunction",
 						CivlcTokenConstant.TYPE), BasicTypeKind.INT),
 				nodeFactory.newSequenceNode(
-						this.newSource("new main function",
+						this.newSource("createNewMainFunction",
 								CivlcTokenConstant.PARAMETER_TYPE_LIST),
 						"formal parameter types",
 						new LinkedList<VariableDeclarationNode>()),
 				false);
 		newMainFunction = nodeFactory.newFunctionDefinitionNode(
-				this.newSource("new main function",
+				this.newSource("createNewMainFunction",
 						CivlcTokenConstant.FUNCTION_DEFINITION),
 				this.identifier(MAIN), mainFuncType, null,
 				nodeFactory.newCompoundStatementNode(
-						this.newSource("new main function",
+						this.newSource("createNewMainFunction",
 								CivlcTokenConstant.BODY),
 						blockItems));
 		root.addSequenceChild(newMainFunction);
