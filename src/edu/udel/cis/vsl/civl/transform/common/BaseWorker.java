@@ -180,7 +180,7 @@ public abstract class BaseWorker {
 	 */
 	protected StatementNode elaborateExpression(ExpressionNode expression)
 			throws SyntaxException {
-		Source source = newSource("Elaborate", CivlcTokenConstant.FOR);
+		Source source = newSource("elaborateExpression", CivlcTokenConstant.FOR);
 		VariableDeclarationNode forLoopVarDecl = nodeFactory
 				.newVariableDeclarationNode(source,
 						identifier(ELABORATE_LOOP_VAR),
@@ -332,7 +332,7 @@ public abstract class BaseWorker {
 	}
 
 	protected ExpressionNode nullPointer() throws SyntaxException {
-		return nodeFactory.newCastNode(newSource("NULL", 0),
+		return nodeFactory.newCastNode(newSource("nullPointer", 0),
 				this.typeNode(nodeFactory.typeFactory()
 						.pointerType(nodeFactory.typeFactory().voidType())),
 				this.integerConstant(0));
@@ -530,7 +530,7 @@ public abstract class BaseWorker {
 
 	protected StatementNode assumeNode(ExpressionNode expression) {
 		return nodeFactory.newExpressionStatementNode(this.functionCall(
-				this.newSource("assumption",
+				this.newSource("assumeNode",
 						CivlcTokenConstant.EXPRESSION_STATEMENT),
 				ASSUME, Arrays.asList(expression)));
 	}
@@ -681,7 +681,7 @@ public abstract class BaseWorker {
 	 * @return the new identifier expression node.
 	 */
 	protected ExpressionNode identifierExpression(String name) {
-		Source source = this.newSource("identifier " + name,
+		Source source = this.newSource("identifierExpression " + name,
 				CivlcTokenConstant.IDENTIFIER);
 
 		return nodeFactory.newIdentifierExpressionNode(source,
@@ -716,7 +716,7 @@ public abstract class BaseWorker {
 	protected VariableDeclarationNode variableDeclaration(String name,
 			TypeNode type) {
 		return nodeFactory.newVariableDeclarationNode(
-				this.newSource("variable declaration of " + name,
+				this.newSource("variableDeclaration " + name,
 						CivlcTokenConstant.DECLARATION),
 				this.identifier(name), type);
 	}
@@ -740,7 +740,7 @@ public abstract class BaseWorker {
 		// if (init != null)
 		// text = text + " = " + init.prettyRepresentation();
 		return nodeFactory.newVariableDeclarationNode(
-				this.newSource("variable declaration of " + name,
+				this.newSource("variableDeclaration " + name,
 						CivlcTokenConstant.DECLARATION),
 				this.identifier(name), type, init);
 	}
@@ -753,7 +753,7 @@ public abstract class BaseWorker {
 	 */
 	protected ExpressionNode hereNode() {
 		return nodeFactory.newHereNode(
-				this.newSource("constant $here", CivlcTokenConstant.HERE));
+				this.newSource("hereNode", CivlcTokenConstant.HERE));
 	}
 
 	/**
@@ -764,7 +764,7 @@ public abstract class BaseWorker {
 	 */
 	protected TypeNode voidType() {
 		return nodeFactory.newVoidTypeNode(
-				this.newSource("type void", CivlcTokenConstant.VOID));
+				this.newSource("voidType", CivlcTokenConstant.VOID));
 	}
 
 	protected boolean isVoidType(Type type) {
@@ -850,7 +850,7 @@ public abstract class BaseWorker {
 	 * @return the new type node.
 	 */
 	protected TypeNode typeNode(Type type) {
-		Source source = this.newSource("type " + type, CivlcTokenConstant.TYPE);
+		Source source = this.newSource("typeNode " + type, CivlcTokenConstant.TYPE);
 
 		return this.typeNode(source, type);
 	}
@@ -940,7 +940,7 @@ public abstract class BaseWorker {
 	 * @return the new boolean constant node
 	 */
 	protected ExpressionNode booleanConstant(boolean value) {
-		String method = value ? "constant $true" : "constant $false";
+		String method = value ? "booleanConstant $true" : "booleanConstant $false";
 		int tokenType = value ? 1 : 0;
 
 		return nodeFactory.newBooleanConstantNode(
@@ -957,7 +957,7 @@ public abstract class BaseWorker {
 	 */
 	protected ExpressionNode integerConstant(int value) throws SyntaxException {
 		return nodeFactory.newIntegerConstantNode(
-				this.newSource("constant " + value,
+				this.newSource("integerConstant " + value,
 						CivlcTokenConstant.INTEGER_CONSTANT),
 				Integer.toString(value));
 	}
