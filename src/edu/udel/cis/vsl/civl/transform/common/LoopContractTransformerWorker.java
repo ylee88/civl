@@ -196,9 +196,9 @@ public class LoopContractTransformerWorker extends BaseWorker {
 						TokenVocabulary.DUMMY);
 	}
 
-	/* ******************* The only public interface ********************** */
+	/* **************** Main transformation logic methods ****************** */
 	@Override
-	public AST transform(AST ast) throws SyntaxException {
+	protected AST transformCore(AST ast) throws SyntaxException {
 		SequenceNode<BlockItemNode> root = ast.getRootNode();
 		boolean hasContractedLoop = false;
 
@@ -216,14 +216,12 @@ public class LoopContractTransformerWorker extends BaseWorker {
 			return astFactory.newAST(root, ast.getSourceFiles(),
 					ast.isWholeProgram());;
 
-		completeSources(root);
 		ast = astFactory.newAST(root, ast.getSourceFiles(),
 				ast.isWholeProgram());
 		// ast.prettyPrint(System.out, true);
 		return ast;
 	}
-
-	/* **************** Main transformation logic methods ****************** */
+	
 	/**
 	 * Given a function body, transform all contracted loops in it into CIVL-C
 	 * codes.

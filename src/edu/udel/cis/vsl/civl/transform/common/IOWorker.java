@@ -957,7 +957,7 @@ public class IOWorker extends BaseWorker {
 	/* ********************* Methods From BaseTransformer ****************** */
 
 	@Override
-	public AST transform(AST unit) throws SyntaxException {
+	protected AST transformCore(AST unit) throws SyntaxException {
 		if (!this.hasHeader(unit, IO_HEADER))
 			return unit;
 
@@ -983,7 +983,6 @@ public class IOWorker extends BaseWorker {
 			processFprintf(rootNode);
 		}
 
-		completeSources(rootNode);
 		AST result = astFactory.newAST(rootNode, unit.getSourceFiles(),
 				unit.isWholeProgram());
 

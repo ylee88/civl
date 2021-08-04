@@ -150,7 +150,7 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 	}
 
 	@Override
-	public AST transform(AST unit) throws SyntaxException {
+	protected AST transformCore(AST unit) throws SyntaxException {
 		if (config.ompNoSimplify())
 			return unit;
 

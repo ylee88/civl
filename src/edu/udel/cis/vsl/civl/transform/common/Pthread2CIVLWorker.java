@@ -1142,7 +1142,7 @@ public class Pthread2CIVLWorker extends BaseWorker {
 	/* ********************* Methods From BaseTransformer ****************** */
 
 	@Override
-	public AST transform(AST ast) throws SyntaxException {
+	protected AST transformCore(AST ast) throws SyntaxException {
 		if (!this.hasHeader(ast, PTHREAD_HEADER))
 			return ast;
 
@@ -1158,7 +1158,6 @@ public class Pthread2CIVLWorker extends BaseWorker {
 		movePthreadGpoolDeclaration(root);
 		movePthreadMutexInitializer(root);
 		transformWorker(root);
-		this.completeSources(root);
 		AST result = astFactory.newAST(root, ast.getSourceFiles(),
 				ast.isWholeProgram());
 		// result.prettyPrint(System.out, false);

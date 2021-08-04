@@ -333,9 +333,8 @@ public class ShortCircuitTransformerWorker extends BaseWorker {
 		super(transformerName, astFactory);
 	}
 
-	/* ***************** The public interface ******************* */
 	@Override
-	public AST transform(AST ast) throws SyntaxException {
+	protected AST transformCore(AST ast) throws SyntaxException {
 		List<ShortCircuitOperation> scOperations = new LinkedList<>();
 		SequenceNode<BlockItemNode> rootNode = ast.getRootNode();
 

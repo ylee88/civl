@@ -136,9 +136,9 @@ public class ContractTransformerWorker extends BaseWorker {
 				CivlcTokenConstant.IDENTIFIER);
 	}
 
-	/* ************************* Public methods: ************************** */
+	/* ************************* Protected methods: ************************** */
 	@Override
-	public AST transform(AST ast) throws SyntaxException {
+	protected AST transformCore(AST ast) throws SyntaxException {
 		SequenceNode<BlockItemNode> root = ast.getRootNode();
 		List<BlockItemNode> externalList = new LinkedList<>();
 		SequenceNode<BlockItemNode> newRootNode;
@@ -193,7 +193,6 @@ public class ContractTransformerWorker extends BaseWorker {
 				newSource("TranslationUnit",
 						CivlcTokenConstant.TRANSLATION_UNIT),
 				"TranslationUnit", externalList);
-		completeSources(newRootNode);
 		newAst = astFactory.newAST(newRootNode, ast.getSourceFiles(),
 				ast.isWholeProgram());
 		// newAst.prettyPrint(System.out, false);

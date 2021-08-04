@@ -49,7 +49,7 @@ public class SvcompWorker extends BaseWorker {
 	}
 
 	@Override
-	public AST transform(AST ast) throws SyntaxException {
+	protected AST transformCore(AST ast) throws SyntaxException {
 		if (!config.svcomp())
 			return ast;
 
@@ -59,7 +59,6 @@ public class SvcompWorker extends BaseWorker {
 		// this.processUnsignedOperators(rootNode);
 		this.processVerifierFunctions(rootNode);
 		rootNode = insert_input_variables(rootNode);
-		this.completeSources(rootNode);
 		ast = astFactory.newAST(rootNode, ast.getSourceFiles(),
 				ast.isWholeProgram());
 		// ast.prettyPrint(System.out, false);

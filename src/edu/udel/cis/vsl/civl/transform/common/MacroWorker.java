@@ -39,7 +39,7 @@ public class MacroWorker extends BaseWorker {
 	}
 
 	@Override
-	public AST transform(AST unit) throws SyntaxException {
+	protected AST transformCore(AST unit) throws SyntaxException {
 		if (!this.hasHeader(unit, Pthread2CIVLWorker.PTHREAD_HEADER)
 				|| !config.svcomp())
 			return unit;

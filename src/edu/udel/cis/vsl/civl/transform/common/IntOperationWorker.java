@@ -88,7 +88,7 @@ public class IntOperationWorker extends BaseWorker {
 	}
 
 	@Override
-	public AST transform(AST unit) throws SyntaxException {
+	protected AST transformCore(AST unit) throws SyntaxException {
 		SequenceNode<BlockItemNode> root = unit.getRootNode();
 		AST newAst;
 
@@ -123,7 +123,6 @@ public class IntOperationWorker extends BaseWorker {
 		if (!intDivProcessed)
 			linkIntDivLibrary(root);
 		processIntegerOperation(root);
-		this.completeSources(root);
 		newAst = astFactory.newAST(root, unit.getSourceFiles(),
 				unit.isWholeProgram());
 

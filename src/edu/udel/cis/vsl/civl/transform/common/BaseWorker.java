@@ -158,7 +158,13 @@ public abstract class BaseWorker {
 	 *             if some statically-detectable error is discovered in the
 	 *             process of transformation
 	 */
-	protected abstract AST transform(AST ast) throws SyntaxException;
+	public AST transform(AST ast) throws SyntaxException {
+		AST newAST = transformCore(ast);
+		completeSources(newAST.getRootNode());
+		return newAST;
+	}
+
+	protected abstract AST transformCore(AST ast) throws SyntaxException;
 
 	/**
 	 * Elaborate an expression by inserting an empty for-loop bounded by the
@@ -614,6 +620,11 @@ public abstract class BaseWorker {
 		ASTNode preNode = null;
 
 		for (; node != null; node = node.nextDFS()) {
+			if (node == postNode) {
+				preNode = postNode;
+				postNode = nextRealNode(preNode);
+				continue;
+			}
 			Source source = node.getSource();
 
 			if (source != null) {
@@ -639,11 +650,6 @@ public abstract class BaseWorker {
 							tf.setPreToken(preToken);
 							tf.setPostToken(postToken);
 							firstToken.setText(text);
-						} else {
-							if (node == postNode) {
-								preNode = postNode;
-								postNode = nextRealNode(preNode);
-							}
 						}
 					}
 				}
@@ -1137,8 +1143,7 @@ public abstract class BaseWorker {
 			File file = sourceFile.getFile();
 			String name = sourceFile.getName();
 
-			if (file.getPath().startsWith("/include")
-					&& name.equals(header))
+			if (file.getPath().startsWith("/include") && name.equals(header))
 				return true;
 		}
 		return false;

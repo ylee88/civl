@@ -66,7 +66,7 @@ public class MPI2CIVLWorker extends BaseWorker {
 
 	/*
 	 * ************************** Private Static Fields **********************
-	 */
+	 */	
 
 	private final static String MPI_DATATYPE = "MPI_Datatype";
 
@@ -915,7 +915,7 @@ public class MPI2CIVLWorker extends BaseWorker {
 	 * @throws SyntaxException
 	 */
 	@Override
-	public AST transform(AST ast) throws SyntaxException {
+	protected AST transformCore(AST ast) throws SyntaxException {
 		if (!this.hasHeader(ast, MPI_HEADER))
 			return ast;
 
@@ -1026,7 +1026,6 @@ public class MPI2CIVLWorker extends BaseWorker {
 		externalList.add(mainFunction);
 		newRootNode = nodeFactory.newSequenceNode(null, "TranslationUnit",
 				externalList);
-		this.completeSources(newRootNode);
 		newAst = astFactory.newAST(newRootNode, ast.getSourceFiles(),
 				ast.isWholeProgram());
 		// newAst.prettyPrint(System.out, false);

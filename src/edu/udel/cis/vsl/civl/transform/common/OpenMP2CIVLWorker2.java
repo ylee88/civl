@@ -2640,9 +2640,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		}
 		return false;
 	}
-
-	// Public functions or interfaces
-
+	
 	/**
 	 * Transform an AST of a OpenMP program in C into an equivalent AST of
 	 * CIVL-C program.<br>
@@ -2654,7 +2652,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 	 * @throws SyntaxException
 	 */
 	@Override
-	public AST transform(AST oldAst) throws SyntaxException {
+	protected AST transformCore(AST oldAst) throws SyntaxException {
 		assert super.astFactory == oldAst.getASTFactory();
 		assert super.nodeFactory == astFactory.getNodeFactory();
 		// Check the inclusion of CIVL's OpenMP Implementation file.
@@ -2733,7 +2731,6 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 				.newSequenceNode(root.getSource(), "Omp2CivlProgram", newItems);
 		AST newAst = astFactory.newAST(newRoot, oldAst.getSourceFiles(),
 				oldAst.isWholeProgram());
-		completeSources(newRoot);
 		return newAst;
 	}
 }

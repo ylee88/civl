@@ -47,7 +47,7 @@ public class OpenMPOrphanWorker extends BaseWorker {
 	}
 
 	@Override
-	public AST transform(AST ast) throws SyntaxException {
+	protected AST transformCore(AST ast) throws SyntaxException {
 		SequenceNode<BlockItemNode> root = ast.getRootNode();
 		AST newAst;
 		Function main = ast.getMain();

@@ -107,7 +107,7 @@ public class GeneralWorker extends BaseWorker {
 	}
 
 	@Override
-	public AST transform(AST unit) throws SyntaxException {
+	protected AST transformCore(AST unit) throws SyntaxException {
 		SequenceNode<BlockItemNode> root = unit.getRootNode();
 		AST newAst;
 		List<VariableDeclarationNode> inputVars = new ArrayList<>();
@@ -193,7 +193,6 @@ public class GeneralWorker extends BaseWorker {
 			newExternalList.add(newMainFunction);
 		root = nodeFactory.newSequenceNode(root.getSource(), "TranslationUnit",
 				newExternalList);
-		this.completeSources(root);
 		newAst = astFactory.newAST(root, unit.getSourceFiles(),
 				unit.isWholeProgram());
 		// newAst.prettyPrint(System.out, false);

@@ -115,7 +115,7 @@ public class DirectingWorker extends BaseWorker {
 	}
 
 	@Override
-	public AST transform(AST unit) throws SyntaxException {
+	protected AST transformCore(AST unit) throws SyntaxException {
 		String inputFile = config.directSymEx();
 		assert inputFile != null : "Expected lines and directions file for directed symbolic execution";
 		
@@ -155,8 +155,7 @@ public class DirectingWorker extends BaseWorker {
 		instrumentGlobalDefinitions(rootNode);
 
 		instrumentBranchStatements(rootNode);
-		
-		completeSources(rootNode);
+
 		if (civlcAST != null) {
 			return this.combineASTs(
 				civlcAST, 
