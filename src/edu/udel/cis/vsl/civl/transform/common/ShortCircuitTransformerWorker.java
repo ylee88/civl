@@ -465,7 +465,7 @@ public class ShortCircuitTransformerWorker extends BaseWorker {
 			case PRAGMA :
 				// TODO: when are pragma nodes translated away ?
 				// TODO: following kinds of block item nodes haven't been
-				// carefullt considered.
+				// carefully considered.
 			case STATIC_ASSERTION :
 				// no-op
 			case ENUMERATION :
@@ -737,8 +737,9 @@ public class ShortCircuitTransformerWorker extends BaseWorker {
 	 * @param expression
 	 *            An expression in the short circuit operation.
 	 * @param holderName
-	 *            The identifier name of the artificial variable which evetually
-	 *            will hold the evaluation of the short circuit operation.
+	 *            The identifier name of the artificial variable which
+	 *            eventually will hold the evaluation of the short circuit
+	 *            operation.
 	 * @return A sequence of the transformed statements.
 	 */
 	private List<BlockItemNode> transformShortCircuitExpressionWorker(
@@ -752,6 +753,12 @@ public class ShortCircuitTransformerWorker extends BaseWorker {
 				ExpressionNode left = oprtNode.getArgument(0);
 				ExpressionNode right = oprtNode.getArgument(1);
 				Source source = oprtNode.getSource();
+
+				// We can keep this operator as it is because it's right operand
+				// is side effect free. Thus we terminate early.
+				if (!hasErrorSideEffectApprox(right)) {
+					return new LinkedList<>();
+				}
 
 				if (oprtNode.getOperator() == Operator.LAND)
 					return transformShortCircuitExpressionWorker_LAND(left,
@@ -768,42 +775,34 @@ public class ShortCircuitTransformerWorker extends BaseWorker {
 		// If the expression is not a short circuit expression, a new artificial
 		// variable is needed to hold the evaluation of it.
 		Source source = expression.getSource();
-		String subHolderName = nextHolderName();
 		List<BlockItemNode> result = new LinkedList<>();
+		ExpressionNode newExpression = expression.copy();
 
-		for (ASTNode child : expression.children())
+		for (ASTNode child : expression.children()) {
 			if (child != null && child.nodeKind() == NodeKind.EXPRESSION) {
+				String subHolderName = nextHolderName();
 				List<BlockItemNode> subChildResult = transformShortCircuitExpressionWorker(
 						(ExpressionNode) child, subHolderName);
 				Type type = ((ExpressionNode) child).getType();
 
 				if (!subChildResult.isEmpty()) {
-					VariableDeclarationNode subHolderDecl = nodeFactory
-							.newVariableDeclarationNode(source,
-									identifier(subHolderName), typeNode(type));
-					ExpressionNode newExpression = expression.copy();
-					StatementNode assignHolder = nodeFactory
-							.newExpressionStatementNode(nodeFactory
-									.newOperatorNode(source, Operator.ASSIGN,
-											Arrays.asList(
-													identifierExpression(
-															subHolderName),
-													newExpression)));
-					int childIdx = child.childIndex();
-
-					// replace child with subHolder:
-					newExpression.setChild(childIdx,
-							identifierExpression(subHolderName));
-					result.add(subHolderDecl);
+					result.add(nodeFactory.newVariableDeclarationNode(source,
+							identifier(subHolderName), typeNode(type)));
 					result.addAll(subChildResult);
-					result.add(assignHolder);
+
+					// This child of the expression is now stored in our
+					// subHolder variable so
+					// we need to replace it here.
+					newExpression.setChild(child.childIndex(),
+							identifierExpression(subHolderName));
+
 				}
 			}
+		}
 		if (!result.isEmpty())
-			result.add(nodeFactory.newExpressionStatementNode(
-					nodeFactory.newOperatorNode(source, Operator.ASSIGN,
-							Arrays.asList(identifierExpression(holderName),
-									identifierExpression(subHolderName)))));
+			result.add(nodeFactory.newExpressionStatementNode(nodeFactory
+					.newOperatorNode(source, Operator.ASSIGN, Arrays.asList(
+							identifierExpression(holderName), newExpression))));
 		return result;
 	}
 
