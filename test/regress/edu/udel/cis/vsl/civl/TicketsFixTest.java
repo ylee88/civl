@@ -125,4 +125,17 @@ public class TicketsFixTest {
 		assertTrue(ui.run(VERIFY, QUIET, "-input_mpi_nprocs=3", filename(
 				"ticket_954_MPI_handle_struct_disabled_in_equ_expr.cvl")));
 	}
+	
+	/**
+	 * See: https://vsl.cis.udel.edu/trac/civl/ticket/943 </br>
+	 * 
+	 * @author Alex Wilton (awilton@udel.edu)
+	 * @throws ABCException
+	 */
+	@Test
+	public void ticket_943_short_circuit()
+			throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, filename(
+				"ticket_943_short_circuit.cvl")));
+	}
 }

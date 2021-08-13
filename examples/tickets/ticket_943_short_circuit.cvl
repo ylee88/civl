@@ -1,0 +1,5 @@
+_Bool f[5];
+
+int main() {
+  return (($false && $true) != ($true && f[2])) || (($true && $false) == (f[2] && $true));
+}
