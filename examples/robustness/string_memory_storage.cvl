@@ -1,0 +1,14 @@
+/*
+ * "SOME_STRING" has dy-scope Id -1 and Variable Id 0
+ * It should not be considered in heap memory because its dy-scope Id is less than 0. 
+ */
+
+static char * x2s() {
+  return "SOME_STRING";
+}
+
+int main() {
+  int *p = (int*)$malloc($here, sizeof(int));
+  char *q = x2s();
+  $free(p);
+}

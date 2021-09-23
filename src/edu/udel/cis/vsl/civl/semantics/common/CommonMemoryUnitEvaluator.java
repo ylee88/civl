@@ -48,10 +48,7 @@ import edu.udel.cis.vsl.sarl.IF.expr.ArrayElementReference;
 import edu.udel.cis.vsl.sarl.IF.expr.NumericExpression;
 import edu.udel.cis.vsl.sarl.IF.expr.ReferenceExpression;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
-import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
 import edu.udel.cis.vsl.sarl.IF.number.IntegerNumber;
-import edu.udel.cis.vsl.sarl.IF.object.SymbolicObject;
-import edu.udel.cis.vsl.sarl.IF.object.SymbolicSequence;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicTupleType;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
 
@@ -260,110 +257,6 @@ public class CommonMemoryUnitEvaluator
 		}
 	}
 
-	/**
-	 * Finds pointers contained in a given expression recursively.
-	 * 
-	 * @param expr
-	 * @param set
-	 * @param state
-	 */
-	private void findPointersInExpression(SymbolicExpression expr,
-			MemoryUnitSet set, State state, String process) {
-		SymbolicType type = expr.type();
-
-		// TODO check comm type
-		if (type != null && !type.equals(typeFactory.heapSymbolicType())
-				&& !type.equals(typeFactory.bundleSymbolicType())) {
-			// need to eliminate heap type as well. each proc has its own.
-			if (typeFactory.pointerSymbolicType().equals(type)) {
-				SymbolicExpression pointerValue;
-				Evaluation eval;
-
-				this.muFactory.add(set,
-						this.muFactory.newMemoryUnit(
-								stateFactory.getDyscopeId(
-										symbolicUtil.getScopeValue(expr)),
-								this.symbolicUtil.getVariableId(null, expr),
-								symbolicUtil.getSymRef(expr)));
-				// set.add(expr);
-				try {
-					if (expr.operator() == SymbolicOperator.TUPLE
-							&& stateFactory.getDyscopeId(
-									symbolicUtil.getScopeValue(expr)) >= 0) {
-						/*
-						 * If the expression is an arrayElementReference
-						 * expression, and finally it turns that the array type
-						 * has length 0, return immediately. Because we can not
-						 * dereference it and the dereference exception
-						 * shouldn't report here.
-						 */
-						if (symbolicUtil.getSymRef(expr)
-								.isArrayElementReference()) {
-							SymbolicExpression arrayPointer = symbolicUtil
-									.parentPointer(expr);
-
-							eval = evaluator.dereference(null, state, process,
-									arrayPointer, false, true);
-							/* Check if it's length == 0 */
-							if (universe.length(eval.value).isZero())
-								return;
-						}
-						eval = evaluator.dereference(null, state, process, expr,
-								false, true);
-						pointerValue = eval.value;
-						state = eval.state;
-						if (pointerValue.operator() == SymbolicOperator.TUPLE
-								&& pointerValue.type() != null
-								&& pointerValue.type().equals(
-										typeFactory.pointerSymbolicType()))
-							if (this.symbolicUtil.isNullPointer(pointerValue))
-								return;
-						findPointersInExpression(pointerValue, set, state,
-								process);
-					}
-				} catch (UnsatisfiablePathConditionException e) {
-					// // TODO Auto-generated catch block
-					// e.printStackTrace();
-				}
-			} else {
-				int numArgs = expr.numArguments();
-
-				for (int i = 0; i < numArgs; i++) {
-					SymbolicObject arg = expr.argument(i);
-
-					findPointersInObject(arg, set, state, process);
-				}
-			}
-		}
-	}
-
-	/**
-	 * Finds all the pointers that can be dereferenced inside a symbolic object.
-	 * 
-	 * @param object
-	 *            a symbolic object
-	 * @param set
-	 *            a set to which the pointer values will be added
-	 * @param heapType
-	 *            the heap type, which will be ignored
-	 */
-	private void findPointersInObject(SymbolicObject object, MemoryUnitSet set,
-			State state, String process) {
-		switch (object.symbolicObjectKind()) {
-			case EXPRESSION :
-				findPointersInExpression((SymbolicExpression) object, set,
-						state, process);
-				break;
-			case SEQUENCE :
-				for (SymbolicExpression expr : (SymbolicSequence<?>) object)
-					findPointersInExpression(expr, set, state, process);
-				break;
-			default :
-				// ignore types and primitives, they don't have any pointers
-				// you can dereference.
-		}
-	}
-
 	@Override
 	public MemoryUnitSet evaluateMemoryUnit(State state,
 			Pair<Scope, SymbolicExpression[]> parameterScope, int pid,
@@ -396,9 +289,8 @@ public class CommonMemoryUnitEvaluator
 				if (!offsetType.isInteger()
 						&& !offsetType.equals(this.typeFactory.rangeType()
 								.getDynamicType(universe))) {
-					throw new CIVLInternalException(
-							"invalid pointer addition: "
-									+ "the right hand side operand should be either of integer or range type",
+					throw new CIVLInternalException("invalid pointer addition: "
+							+ "the right hand side operand should be either of integer or range type",
 							muExpr.getSource());
 				}
 				for (MemoryUnit mu : leftMus) {
@@ -447,11 +339,12 @@ public class CommonMemoryUnitEvaluator
 					value = state.valueOf(pid, variable);
 				if (!value.isNull())
 					if (isPointer(value)) {
-						int dyscopeID = stateFactory
-								.getDyscopeId(symbolicUtil.getScopeValue(value)),
-								vid = this.symbolicUtil.getVariableId(null, value);
-						Variable object = state.getDyscope(dyscopeID).lexicalScope()
-								.variable(vid);
+						int dyscopeID = stateFactory.getDyscopeId(
+								symbolicUtil.getScopeValue(value)),
+								vid = this.symbolicUtil.getVariableId(null,
+										value);
+						Variable object = state.getDyscope(dyscopeID)
+								.lexicalScope().variable(vid);
 
 						if (!(object.isInput() || object.isConst()))
 							result.add(this.pointer2MemoryUnit(value));

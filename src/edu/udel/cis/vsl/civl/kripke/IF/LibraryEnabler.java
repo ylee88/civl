@@ -61,10 +61,8 @@ public interface LibraryEnabler {
 	 * @throws UnsatisfiablePathConditionException
 	 */
 	BitSet ampleSet(State state, int pid, CallOrSpawnStatement statement,
-			MemoryUnitSet[] reachablePtrWritableMap,
-			MemoryUnitSet[] reachablePtrReadonlyMap,
-			MemoryUnitSet[] reachableNonPtrWritableMap,
-			MemoryUnitSet[] reachableNonPtrReadonlyMap)
+			MemoryUnitSet[] setsReachableRead,
+			MemoryUnitSet[] setsReachableWrite)
 			throws UnsatisfiablePathConditionException;
 
 	/**

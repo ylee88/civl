@@ -1,0 +1,203 @@
+#include <stdlib.h>
+
+int global = 0;
+
+typedef struct _node Node;
+typedef struct _pqueue PQueue;
+
+struct _node
+{
+  int v;
+  int p;
+  int mthis;
+  int mnext;
+  Node* next;
+};
+
+struct _pqueue
+{
+  Node* head;
+  Node* tail;
+};
+
+
+Node* n_create(int val, int prior) {
+  Node* n = (Node*)malloc(sizeof(Node));
+  n->v = val;
+  n->p = prior;
+  n->mthis = 0;
+  n->mnext = 0;
+  n->next = NULL;
+  return n;
+}
+
+PQueue* pq_create() {
+  PQueue* q = (PQueue*)malloc(sizeof(PQueue));
+  q->head = n_create(-1, -100);
+  q->tail = n_create(-1,  100);
+  q->head->mnext = 0;
+  q->head->next = q->tail;
+  return q;
+}
+
+
+int comp_set(Node** ref, int* mref, 
+                       Node*  exp, int  mexp,
+                       Node*  new, int  mnew) {
+  $atomic{
+  if (*ref == exp && *mref == mexp) {
+    *ref = new;
+    *mref = mnew;
+    return 1;
+  }
+  return 0;
+  }
+}
+
+int find(PQueue* q, Node* n, Node** preds, Node** succs) {
+  int marked = 0;
+  int snip;
+  Node* pred = NULL;
+  Node* curr = NULL;
+  Node* succ = NULL;
+retry:
+  while(1==1) {
+    pred = q->head;
+    curr = pred->next;
+    while(1==1) {
+      succ = curr->next;
+      marked = curr->mnext;
+      while(marked) {
+        if (comp_set(&(pred->next), &(pred->mnext), 
+                        curr, 0, succ, 0) == 0)
+	  goto retry;
+        curr = pred->next;
+        succ = curr->next;
+        marked = curr->mnext;
+      }
+      if (curr->p < n->p) {
+        pred = curr;
+        curr = succ;
+      } else {
+        break;
+      }
+    }
+    preds[0] = pred;
+    succs[0] = curr;
+    if (curr->p == n->p) return 1;
+    else return 0;
+  }
+}
+
+int atom_comp_set(int* v, int vexp, int vnew) {
+  $atomic{
+  if (*v == vexp) {
+    *v = vnew;
+    return 1;
+  }
+  return 0;
+  }
+}
+
+Node* find_min(PQueue* q, int tid) {
+  int local = 0;
+  Node* curr = NULL;
+  Node* succ = NULL;
+  int marked;
+  curr = q->head->next;
+  while(curr != q->tail) {
+    $atomic {marked = curr->mthis;}
+    if (marked == 0) {
+      if (atom_comp_set(&(curr->mthis), 0, 1)) {
+#ifdef GLOBAL
+        global = 1;
+#else
+	local = 1;
+#endif
+        return curr;
+      }
+    } else {
+      curr = curr->next;
+    }  
+  }
+  return NULL;
+}
+
+int add(PQueue* q, int val, int prior, int tid) {
+  Node* n = n_create(val, prior);
+  Node** preds = (Node**)malloc(sizeof(Node*));
+  Node** succs = (Node**)malloc(sizeof(Node*));
+  while(1==1) {
+    int found = find(q, n, preds, succs);
+    if (found == 1) {
+      return 0;
+    } else {
+      n->next = succs[0];
+      n->mnext = 0;
+      Node* pred = preds[0];
+      Node* succ = succs[0];
+      n->next = succ;
+      n->mnext = 0;
+      if (!comp_set(&(pred->next), &(pred->mnext), succ, 0, n, 0)) {
+        continue;
+      }
+      return 1;
+    }
+  }
+}
+
+int del(PQueue* q, int tid) {
+  Node* n = find_min(q, tid);
+  
+  if(n == NULL) return -1;
+
+  Node* succ;
+  Node** preds = (Node**)malloc(sizeof(Node*));
+  Node** succs = (Node**)malloc(sizeof(Node*));
+  while(1==1) {
+    int found = find(q, n, preds, succs);
+    if (found == 0) {
+      return 0;
+    } else {
+      int marked = 0;
+      succ = n->next;
+      marked = n->mnext;
+      while(marked == 0) {
+        // attempt_mark(&(n->next), &(n->mnext), succ, 1);
+        comp_set(&(n->next), &(n->mnext), succ, n->mnext, succ, 1);
+        succ = n->next;
+        marked = n->mnext;
+      }
+      succ = n->next;
+      marked = n->mnext;
+      while(1==1) {
+        int imarked = comp_set(&(n->next), &(n->mnext), succ, 0, succ, 1);
+        succ = succs[0]->next;
+        marked = succs[0]->mnext;
+        if (imarked == 1) {
+          find(q, n, preds, succs);
+          return n->v;
+        } else if (marked == 1) {
+          return n->v;
+        }
+      }
+    }  
+  }
+}
+
+int main() {
+  int res[2];
+  PQueue* q = pq_create();
+  add(q, 0, 2, 0);
+  $parfor(int tid: 1..3) {
+    if (tid == 1) {
+      $atomic {
+        add(q, 1, 1, tid);
+        add(q, 2, 3, tid);
+      }
+    } else {
+      res[tid-2] = del(q, tid);
+    }
+  }
+  $assert(res[0] != 2);
+}

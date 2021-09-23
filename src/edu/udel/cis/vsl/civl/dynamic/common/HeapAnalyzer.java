@@ -4,6 +4,7 @@ import java.util.List;
 
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.ModelConfiguration;
+import edu.udel.cis.vsl.civl.state.IF.StateFactory;
 import edu.udel.cis.vsl.civl.util.IF.Pair;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.expr.ArrayElementReference;
@@ -120,6 +121,8 @@ public class HeapAnalyzer {
 	 */
 	private CommonSymbolicUtility symbolicUtil;
 
+	private StateFactory stateFactory;
+
 	/**
 	 * The symbolic universe for operations on symbolic expressions.
 	 */
@@ -138,7 +141,9 @@ public class HeapAnalyzer {
 	 * @param util
 	 *            The symbolic utility to be used.
 	 */
-	HeapAnalyzer(SymbolicUniverse universe, CommonSymbolicUtility util) {
+	HeapAnalyzer(StateFactory stateFactory, SymbolicUniverse universe,
+			CommonSymbolicUtility util) {
+		this.stateFactory = stateFactory;
 		this.symbolicUtil = util;
 		this.universe = universe;
 		this.twoObj = universe.intObject(2);
@@ -418,12 +423,10 @@ public class HeapAnalyzer {
 	 * @return True iff the pointer points to a certain part of some heap.
 	 */
 	boolean isPointerToHeap(SymbolicExpression pointer) {
-		if (pointer.operator() != SymbolicOperator.TUPLE)
-			return false;
-
-		int vid = symbolicUtil.getVariableId(null, pointer);
-
-		return vid == 0;
+		return pointer.operator() == SymbolicOperator.TUPLE
+				&& 0 <= stateFactory
+						.getDyscopeId(symbolicUtil.getScopeValue(pointer))
+				&& symbolicUtil.getVariableId(null, pointer) == 0;
 	}
 
 	/**

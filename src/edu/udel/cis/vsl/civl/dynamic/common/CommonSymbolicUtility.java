@@ -147,7 +147,7 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 		this.stateFactory = stateFactory;
 		this.universe = universe;
 		this.typeFactory = modelFactory.typeFactory();
-		this.heapAnalyzer = new HeapAnalyzer(universe, this);
+		this.heapAnalyzer = new HeapAnalyzer(stateFactory, universe, this);
 		dynamicType = typeFactory.dynamicSymbolicType();
 		this.zeroObj = universe.intObject(0);
 		this.oneObj = universe.intObject(1);

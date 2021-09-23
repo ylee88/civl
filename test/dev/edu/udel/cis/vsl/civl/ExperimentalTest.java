@@ -120,6 +120,12 @@ public class ExperimentalTest {
 		assertTrue(ui.run("verify", filename("test.c")));
 	}
 
+	@Test
+	public void por_bug() {
+		ui.run("verify", "-DGLOBAL", "-cyclesViolate", "-checkMemoryLeak=false",
+				"-enablePrintf=false", filename("por_bug.cvl"));
+	}
+
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
 		ui = null;

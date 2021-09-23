@@ -2120,14 +2120,14 @@ public class ImmutableStateFactory implements StateFactory {
 						}
 				}
 			}
-		} else if (value.operator() != SymbolicOperator.TUPLE) {
-			return;
 		} else if (symbolicUtil.isPointerToHeap(value)) {
 			SymbolicExpression heapObjPtr = this.symbolicUtil
 					.heapMemUnit(value);
 
 			// if (!reachable.contains(heapObjPtr))
 			reachable.add(heapObjPtr);
+		} else if (value.operator() != SymbolicOperator.TUPLE) {
+			return;
 		} else if (value.type()
 				.equals(this.typeFactory.pointerSymbolicType())) {
 			// other pointers

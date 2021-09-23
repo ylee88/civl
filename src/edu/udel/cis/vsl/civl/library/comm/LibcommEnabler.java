@@ -70,10 +70,8 @@ public class LibcommEnabler extends BaseLibraryEnabler
 
 	@Override
 	public BitSet ampleSet(State state, int pid, CallOrSpawnStatement statement,
-			MemoryUnitSet[] reachablePtrWritableMap,
-			MemoryUnitSet[] reachablePtrReadonlyMap,
-			MemoryUnitSet[] reachableNonPtrWritableMap,
-			MemoryUnitSet[] reachableNonPtrReadonlyMap)
+			MemoryUnitSet[] setsReachableRead,
+			MemoryUnitSet[] setsReachableWrite)
 			throws UnsatisfiablePathConditionException {
 		Identifier name;
 		CallOrSpawnStatement call;
@@ -87,13 +85,11 @@ public class LibcommEnabler extends BaseLibraryEnabler
 		switch (name.name()) {
 			case "$comm_enqueue" :
 			case "$comm_dequeue" :
-				return ampleSetWork(state, pid, call, reachablePtrWritableMap,
-						reachablePtrReadonlyMap, reachableNonPtrWritableMap,
-						reachableNonPtrReadonlyMap);
+				return ampleSetWork(state, pid, call, setsReachableRead,
+						setsReachableWrite);
 			default :
-				return super.ampleSet(state, pid, statement,
-						reachablePtrWritableMap, reachablePtrReadonlyMap,
-						reachableNonPtrWritableMap, reachableNonPtrReadonlyMap);
+				return super.ampleSet(state, pid, statement, setsReachableRead,
+						setsReachableWrite);
 		}
 	}
 
@@ -133,10 +129,8 @@ public class LibcommEnabler extends BaseLibraryEnabler
 	 * @throws LibraryLoaderException
 	 */
 	private BitSet ampleSetWork(State state, int pid, CallOrSpawnStatement call,
-			MemoryUnitSet[] reachablePtrWritableMap,
-			MemoryUnitSet[] reachablePtrReadonlyMap,
-			MemoryUnitSet[] reachableNonPtrWritableMap,
-			MemoryUnitSet[] reachableNonPtrReadonlyMap)
+			MemoryUnitSet[] setsReachableRead,
+			MemoryUnitSet[] setsReachableWrite)
 			throws UnsatisfiablePathConditionException {
 		int numArgs;
 		numArgs = call.arguments().size();
@@ -170,10 +164,8 @@ public class LibcommEnabler extends BaseLibraryEnabler
 
 				if (reasoner.isValid(universe.lessThanEquals(zero, argSrc))) {
 					return this.computeAmpleSetByHandleObject(state, pid,
-							arguments[0], argumentValues[0],
-							reachablePtrWritableMap, reachablePtrReadonlyMap,
-							reachableNonPtrWritableMap,
-							reachableNonPtrReadonlyMap);
+							arguments[0], argumentValues[0], setsReachableRead,
+							setsReachableWrite);
 				} else {
 					for (int otherPid : procIdsInComm(state, pid, process,
 							arguments, argumentValues))
@@ -185,9 +177,8 @@ public class LibcommEnabler extends BaseLibraryEnabler
 				// card receive(dequeue), we have to put all processes into
 				// ample process set.
 				ampleSet = this.computeAmpleSetByHandleObject(state, pid,
-						arguments[0], argumentValues[0],
-						reachablePtrWritableMap, reachablePtrReadonlyMap,
-						reachableNonPtrWritableMap, reachableNonPtrReadonlyMap);
+						arguments[0], argumentValues[0], setsReachableRead,
+						setsReachableWrite);
 
 				if (civlConfig.deadlock().equals(DeadlockKind.POTENTIAL)) {
 					BooleanExpression hasMatchedDequeue;

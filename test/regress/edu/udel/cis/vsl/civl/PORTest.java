@@ -104,6 +104,20 @@ public class PORTest {
 		assertTrue(ui.run("verify", QUIET, filename("loop3.cvl")));
 	}
 
+	@Test
+	public void por_ptr_analysis_node() {
+		assertFalse(ui.run("verify", QUIET, "-checkMemoryLeak=false", //
+				// "-showStates", "-showTransitions", "-showAmpleSetWtStates",
+				filename("por_ptr_analysis_node.cvl")));
+	}
+
+	@Test
+	public void por_ptr_analysis_list() {
+		assertFalse(ui.run("verify", QUIET, "-checkMemoryLeak=false", //
+				// "-showStates", "-showTransitions", "-showAmpleSetWtStates",
+				filename("por_ptr_analysis_list.cvl")));
+	}
+
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
 		ui = null;

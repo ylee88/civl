@@ -57,5 +57,10 @@ public class RobustnessTest {
 	public void missing_source_file() throws ABCException {
 		assertTrue(ui.run(VERIFY, QUIET, filename("missing_source_file.cvl")));
 	}
+	
+	@Test
+	public void string_memory_location() {
+		assertTrue(ui.run(VERIFY, QUIET, filename("string_memory_storage.cvl")));
+	}
 
 }

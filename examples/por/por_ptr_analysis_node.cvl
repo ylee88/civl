@@ -1,0 +1,39 @@
+#include <stdlib.h>
+
+typedef struct node {
+  int x;
+  struct node * nxt;
+} * node_t;
+
+node_t head_create() {
+  return (node_t)malloc(sizeof(struct node));
+}
+
+node_t node_create() {
+  return (node_t)malloc(sizeof(struct node));
+}
+
+void f(node_t l) {
+  node_t z = l->nxt;
+  z->x = 1;
+}
+
+void g(node_t l) {
+  node_t y = l->nxt;
+  y->x = 0;
+  // f should intervene here but doesn't because...
+  y->x *= 2;
+}
+
+int main() {
+  node_t head = node_create();  // head_create violates, node_create not
+  head->nxt =  node_create();
+  $parfor (int i:1..2) {
+    if (i==1) {
+      $atomic {f(head);}
+    } else {
+      g(head);
+    }
+  }
+  $assert(head->nxt->x != 2);
+}

@@ -1,0 +1,47 @@
+
+#include <stdlib.h>
+
+typedef struct node {
+  int x;
+  struct node * nxt;
+} * node_t;
+
+typedef struct list {
+  node_t first;
+} * list_t;
+
+list_t list_create() {
+  return (list_t)malloc(sizeof(struct list));
+}
+
+node_t node_create(int x) {
+  node_t u = malloc(sizeof(struct node));
+  u->x = x;
+  u->nxt = NULL;
+  return u;
+}
+
+void f(list_t l) {
+  node_t z = l->first;
+  z->x = 3;
+}
+
+void g(list_t l) {
+  node_t y = l->first;
+  y->x = 7;
+  // f should intervene here but doesn't because...
+  y->x *= 2;
+}
+
+int main() {
+  list_t lst = list_create();
+  lst->first = node_create(1);
+  $parfor (int i:1..2) {
+    if (i==1) {
+      $atomic {f(lst);}
+    } else {
+      g(lst);
+    }
+  }
+  $assert(lst->first->x != 6);
+}

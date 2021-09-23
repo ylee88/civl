@@ -83,10 +83,8 @@ public class LibcivlcEnabler extends BaseLibraryEnabler
 
 	@Override
 	public BitSet ampleSet(State state, int pid, CallOrSpawnStatement call,
-			MemoryUnitSet[] reachablePtrWritableMap,
-			MemoryUnitSet[] reachablePtrReadonlyMap,
-			MemoryUnitSet[] reachableNonPtrWritableMap,
-			MemoryUnitSet[] reachableNonPtrReadonlyMap)
+			MemoryUnitSet[] setsReachableRead,
+			MemoryUnitSet[] setsReachableWrite)
 			throws UnsatisfiablePathConditionException {
 		return this.ampleSetWork(state, pid, call);
 	}
@@ -234,7 +232,7 @@ public class LibcivlcEnabler extends BaseLibraryEnabler
 			case "$waitall" :
 				return ampleSetOfWaitall(state, pid, arguments, argumentValues);
 			default :
-				return super.ampleSet(state, pid, call, null, null, null, null);
+				return super.ampleSet(state, pid, call, null, null);
 		}
 	}
 

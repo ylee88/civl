@@ -49,7 +49,6 @@ import edu.udel.cis.vsl.civl.state.IF.StackEntry;
 import edu.udel.cis.vsl.civl.state.IF.State;
 import edu.udel.cis.vsl.civl.state.IF.UnsatisfiablePathConditionException;
 import edu.udel.cis.vsl.civl.util.IF.Pair;
-import edu.udel.cis.vsl.sarl.IF.SARLException;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.expr.BooleanExpression;
 import edu.udel.cis.vsl.sarl.IF.expr.ReferenceExpression;
@@ -270,28 +269,14 @@ public class AmpleSetWorker {
 	private MemoryUnitFactory memUnitFactory;
 
 	/**
-	 * The reachable memory unit sets of processes which have no pointers and
-	 * are read-only. Index is PID.
+	 * The reachable writable memory unit sets of processes. Index is PID.
 	 */
-	private MemoryUnitSet[] reachableNonPtrReadonly;
+	private MemoryUnitSet setsReachableWrite[];
 
 	/**
-	 * The reachable memory unit sets of processes which have no pointers and
-	 * are writable. Index is PID.
+	 * The reachable read-only memory unit sets of processes. Index is PID.
 	 */
-	private MemoryUnitSet[] reachableNonPtrWritable;
-
-	/**
-	 * The reachable memory unit sets of processes which have some pointers and
-	 * are read-only. Index is PID.
-	 */
-	private MemoryUnitSet[] reachablePtrReadonly;
-
-	/**
-	 * The reachable memory unit sets of processes which have some pointers and
-	 * are writable. Index is PID.
-	 */
-	private MemoryUnitSet[] reachablePtrWritable;
+	private MemoryUnitSet setsReachableRead[];
 
 	/**
 	 * processes at a location of infinite loop
@@ -389,9 +374,9 @@ public class AmpleSetWorker {
 
 		if (procEnterLocal >= 0) {
 			/*
-			  For an active process, if the location it is currently at has only
-			  one outgoing statement and the statement is a "local block enter",
-			  this process forms an ample set:
+			 * For an active process, if the location it is currently at has
+			 * only one outgoing statement and the statement is a
+			 * "local block enter", this process forms an ample set:
 			 */
 			result.clear();
 			result.set(procEnterLocal);
@@ -448,8 +433,8 @@ public class AmpleSetWorker {
 	/**
 	 *
 	 * @return a PID of the process which is at a location such that 1) the
-	 * location only has one outgoing statement; and 2) the location is marked
-	 * as {@link Location#isEntryOfLocalBlock()}
+	 *         location only has one outgoing statement; and 2) the location is
+	 *         marked as {@link Location#isEntryOfLocalBlock()}
 	 */
 	private int existSoleEnabledEnterLocal() {
 		for (int pid = 0; pid < this.activeProcesses.length(); pid++) {
@@ -462,7 +447,6 @@ public class AmpleSetWorker {
 		}
 		return -1;
 	}
-
 
 	/**
 	 * Checks if there exist a process in the given ample process set that is
@@ -703,10 +687,8 @@ public class AmpleSetWorker {
 									systemFunction.getLibrary());
 
 							ampleSubSet = lib.ampleSet(state, pid, call,
-									this.reachablePtrWritable,
-									this.reachablePtrReadonly,
-									this.reachableNonPtrWritable,
-									this.reachableNonPtrReadonly);
+									this.setsReachableRead,
+									this.setsReachableWrite);
 						} catch (LibraryLoaderException e) {
 							// when neither dependency contract nor library
 							// enabler is present,
@@ -926,13 +908,9 @@ public class AmpleSetWorker {
 					if (thatPid == pid || currentAmpleSet.get(thatPid))
 						continue;
 					if (memUnitFactory.isJoint(criticalMuSet,
-							this.reachableNonPtrReadonly[thatPid])
+							this.setsReachableRead[thatPid])
 							|| memUnitFactory.isJoint(criticalMuSet,
-									this.reachableNonPtrWritable[thatPid])
-							|| memUnitFactory.isJoint(criticalMuSet,
-									this.reachablePtrReadonly[thatPid])
-							|| memUnitFactory.isJoint(criticalMuSet,
-									this.reachablePtrWritable[thatPid]))
+									this.setsReachableWrite[thatPid]))
 						result.set(thatPid);
 				}
 				break;
@@ -976,10 +954,8 @@ public class AmpleSetWorker {
 									systemFunction.getLibrary());
 
 							ampleSubSet = lib.ampleSet(state, pid1, call,
-									this.reachablePtrWritable,
-									this.reachablePtrReadonly,
-									this.reachableNonPtrWritable,
-									this.reachableNonPtrReadonly);
+									this.setsReachableRead,
+									this.setsReachableWrite);
 							this.waitMap[pid1] = ampleSubSet;
 						} catch (LibraryLoaderException e) {
 							throw new CIVLInternalException(
@@ -1266,7 +1242,7 @@ public class AmpleSetWorker {
 		for (int i = 0; i < state.numProcs(); i++) {
 			this.enabledSystemCallMap.add(null);
 		}
-		reachableMemoryAnalysis();
+		analyzeReachableMemoryUnits();
 		for (int pid = 0; pid < nonEmptyProcesses.length(); pid++) {
 			pid = nonEmptyProcesses.nextSetBit(pid);
 			// reachableMemoryUnits = state.getReachableMemUnitsWoPointer(pid);
@@ -1405,260 +1381,180 @@ public class AmpleSetWorker {
 			if (proc == null || proc.hasEmptyStack())
 				continue;
 			debugOut.println(
-					"reachable memory units (non-ptr, readonly) of process " + i
-							+ ":");
-			this.printMemoryUnitSet(debugOut, reachableNonPtrReadonly[i]);
+					"reachable readonly  memory units of process " + i + ":");
+			this.printMemoryUnitSet(debugOut, this.setsReachableRead[i]);
 			// reachableNonPtrReadonly[i].print(debugOut);
 			debugOut.println();
 			debugOut.println(
-					"reachable memory units (non-ptr, writable) of process " + i
-							+ ":");
-			printMemoryUnitSet(debugOut, reachableNonPtrWritable[i]);
+					"reachable writable memory units of process " + i + ":");
+			printMemoryUnitSet(debugOut, this.setsReachableWrite[i]);
 			// reachableNonPtrWritable[i].print(debugOut);
-			debugOut.println();
-			debugOut.println(
-					"reachable memory units (ptr, readonly) of process " + i
-							+ ":");
-			// reachablePtrReadonly[i].print(debugOut);
-			printMemoryUnitSet(debugOut, reachablePtrReadonly[i]);
-			debugOut.println();
-			debugOut.println(
-					"reachable memory units (ptr, writable) of process " + i
-							+ ":");
-			// reachablePtrWritable[i].print(debugOut);
-			printMemoryUnitSet(debugOut, reachablePtrWritable[i]);
 			debugOut.println();
 		}
 	}
 
-	private void reachableMemoryAnalysis() {
+	private void analyzeReachableMemoryUnits() {
 		int numProcs = state.numProcs();
-		ReferenceExpression identity = universe.identityReference();
+		ReferenceExpression ref = universe.identityReference();
 
-		this.reachableNonPtrReadonly = new MemoryUnitSet[numProcs];
-		this.reachableNonPtrWritable = new MemoryUnitSet[numProcs];
-		this.reachablePtrReadonly = new MemoryUnitSet[numProcs];
-		this.reachablePtrWritable = new MemoryUnitSet[numProcs];
+		this.setsReachableRead = new MemoryUnitSet[numProcs];
+		this.setsReachableWrite = new MemoryUnitSet[numProcs];
 		for (int pid = 0; pid < numProcs; pid++) {
-			Set<Variable> writableVars = new HashSet<>();
-			ProcessState process = state.getProcessState(pid);
-			Set<MemoryUnitExpression> reachableNonPtrExpr = new HashSet<>(),
-					reachablePtrExpr = new HashSet<>();
-			MemoryUnitSet nonPtrReadonly = memUnitFactory.newMemoryUnitSet(),
-					nonPtrWritable = memUnitFactory.newMemoryUnitSet(),
-					ptrReadonly = memUnitFactory.newMemoryUnitSet(),
-					ptrWritable = memUnitFactory.newMemoryUnitSet();
+			ProcessState pState = state.getProcessState(pid);
+			Set<Variable> varsWrite = new HashSet<>();
+			Set<MemoryUnitExpression> ptr = new HashSet<>();
+			Set<MemoryUnitExpression> nonPtr = new HashSet<>();
+			MemoryUnitSet setRead = memUnitFactory.newMemoryUnitSet();
+			MemoryUnitSet setWrite = memUnitFactory.newMemoryUnitSet();
+			MemoryUnit mu;
+			SymbolicExpression varValue;
+			int dsId, vId;
 
-			if (process != null && !process.hasEmptyStack())
-				for (StackEntry call : process.getStackEntries()) {
-					Location location = call.location();
+			if (pState != null && !pState.hasEmptyStack())
+				for (StackEntry call : pState.getStackEntries()) {
+					Location l = call.location();
 
-					writableVars.addAll(location.writableVariables());
-					for (MemoryUnitExpression memUnit : location
-							.reachableMemUnitsWtPointer()) {
-						if (memUnit.writable())
-							reachablePtrExpr.remove(memUnit);
-						reachablePtrExpr.add(memUnit);
-					}
-					for (MemoryUnitExpression memUnit : location
-							.reachableMemUnitsWoPointer()) {
-						if (memUnit.writable())
-							reachableNonPtrExpr.remove(memUnit);
-						reachableNonPtrExpr.add(memUnit);
-					}
+					varsWrite.addAll(l.writableVariables());
+					ptr.addAll(l.reachableMemUnitsWtPointer());
+					nonPtr.addAll(l.reachableMemUnitsWoPointer());
 				}
-			for (MemoryUnitExpression memUnitExpr : reachablePtrExpr) {
-				int dyscopeID = state.getDyscope(pid, memUnitExpr.scopeId());
-				int varID = memUnitExpr.variableId();
-				MemoryUnit mu = memUnitFactory.newMemoryUnit(dyscopeID, varID,
-						identity);
-				SymbolicExpression varValue = state.getVariableValue(dyscopeID,
-						varID);
-
-				if (writableVars.contains(memUnitExpr.variable())) {
-					// ptrWritable =
-					memUnitFactory.add(ptrWritable, mu);
-					// ptrWritable =
-					findPointersInExpression(varValue, ptrWritable, state);
+			for (MemoryUnitExpression memUnitExpr : ptr) {
+				dsId = state.getDyscope(pid, memUnitExpr.scopeId());
+				vId = memUnitExpr.variableId();
+				mu = memUnitFactory.newMemoryUnit(dsId, vId, ref);
+				varValue = state.getVariableValue(dsId, vId);
+				if (varsWrite.contains(memUnitExpr.variable())) {
+					memUnitFactory.add(setWrite, mu);
+					analyzePointersInExpr(varValue, setWrite);
 				} else {
-					// ptrReadonly =
-					memUnitFactory.add(ptrReadonly, mu);
-					// ptrReadonly =
-					findPointersInExpression(varValue, ptrReadonly, state);
+					memUnitFactory.add(setRead, mu);
+					analyzePointersInExpr(varValue, setRead);
 				}
 			}
-			for (MemoryUnitExpression memUnitExpr : reachableNonPtrExpr) {
-				int dyscopeID = state.getDyscope(pid, memUnitExpr.scopeId());
-				int varID = memUnitExpr.variableId();
-				MemoryUnit mu = memUnitFactory.newMemoryUnit(dyscopeID, varID,
-						identity);
-				// Variable variable = memUnitExpr.variable();
-
-				// if (variable.type().isHandleType()) {
-				// SymbolicExpression value = state.getVariableValue(
-				// dyscopeID, varID);
-				// CIVLSource source = variable.getSource();
-				//
-				// if (!value.isNull()
-				// && symbolicAnalyzer
-				// .isDerefablePointer(state, value).right == ResultType.YES)
-				// memUnitFactory.add(nonPtrReadonly, memUnitFactory
-				// .newMemoryUnit(symbolicUtil.getDyscopeId(
-				// source, value), symbolicUtil
-				// .getVariableId(source, value),
-				// symbolicUtil.getSymRef(value)));
-				// }
-				if (writableVars.contains(memUnitExpr.variable()))
-					memUnitFactory.add(nonPtrWritable, mu);
+			for (MemoryUnitExpression memUnitExpr : nonPtr) {
+				dsId = state.getDyscope(pid, memUnitExpr.scopeId());
+				vId = memUnitExpr.variableId();
+				mu = memUnitFactory.newMemoryUnit(dsId, vId, ref);
+				if (varsWrite.contains(memUnitExpr.variable()))
+					memUnitFactory.add(setWrite, mu);
 				else
-					memUnitFactory.add(nonPtrReadonly, mu);
+					memUnitFactory.add(setRead, mu);
 			}
-			reachableNonPtrReadonly[pid] = nonPtrReadonly;
-			reachableNonPtrWritable[pid] = nonPtrWritable;
-			reachablePtrReadonly[pid] = ptrReadonly;
-			reachablePtrWritable[pid] = ptrWritable;
+			setsReachableWrite[pid] = setWrite;
+			setsReachableRead[pid] = setRead;
 		}
 	}
 
 	private boolean hasAccessConflict(int thisPid, int thatPid, MemoryUnit mu) {
-		MemoryUnitSet reachablePtrWritableThat = this.reachablePtrWritable[thatPid];
-		MemoryUnitSet reachablePtrReadonlyThat = this.reachablePtrReadonly[thatPid];
-		MemoryUnitSet reachableNonPtrWritableThat = this.reachableNonPtrWritable[thatPid];
-		MemoryUnitSet reachableNonPtrReadonlyThat = this.reachableNonPtrReadonly[thatPid];
-		MemoryUnitSet reachablePtrWritableThis = this.reachablePtrWritable[thisPid];
-		MemoryUnitSet reachablePtrReadonlyThis = this.reachablePtrReadonly[thisPid];
-		MemoryUnitSet reachableNonPtrWritableThis = this.reachableNonPtrWritable[thisPid];
-		MemoryUnitSet reachableNonPtrReadonlyThis = this.reachableNonPtrReadonly[thisPid];
-		boolean thisRead = false, thisWrite = false, thatRead = false,
-				thatWrite = false;
+		MemoryUnitSet thisSetRead = this.setsReachableRead[thisPid];
+		MemoryUnitSet thisSetWrite = this.setsReachableWrite[thisPid];
+		MemoryUnitSet thatSetRead = this.setsReachableRead[thatPid];
+		MemoryUnitSet thatSetWrite = this.setsReachableWrite[thatPid];
 
-		if (memUnitFactory.isJoint(reachablePtrWritableThis, mu)
-				|| memUnitFactory.isJoint(reachableNonPtrWritableThis, mu))
-			thisWrite = true;
-		else if (memUnitFactory.isJoint(reachablePtrReadonlyThis, mu)
-				|| memUnitFactory.isJoint(reachableNonPtrReadonlyThis, mu))
-			thisRead = true;
-		if (memUnitFactory.isJoint(reachablePtrWritableThat, mu)
-				|| memUnitFactory.isJoint(reachableNonPtrWritableThat, mu))
-			thatWrite = true;
-		else if (memUnitFactory.isJoint(reachablePtrReadonlyThat, mu)
-				|| memUnitFactory.isJoint(reachableNonPtrReadonlyThat, mu))
-			thatRead = true;
-		if ((thisWrite && thatRead) || (thisRead && thatWrite)
-				|| (thisWrite && thatWrite))
-			return true;
+		if (memUnitFactory.isJoint(thisSetWrite, mu)) {
+			return memUnitFactory.isJoint(thatSetWrite, mu) || // write-write
+					memUnitFactory.isJoint(thatSetRead, mu); // write-read
+		} else if (memUnitFactory.isJoint(thisSetRead, mu)) {
+			return memUnitFactory.isJoint(thatSetWrite, mu); // read-write
+		}
 		return false;
 	}
 
-	/**
-	 * Finds pointers contained in a given expression recursively.
-	 * 
-	 * @param expr
-	 * @param set
-	 * @param state
-	 */
-	private void findPointersInExpression(SymbolicExpression expr,
-			MemoryUnitSet muSet, State state) {
-		SymbolicType type = expr.type();
-		MemoryUnitSet result = muSet;
+	private void analyzePointersInExpr(SymbolicExpression expr,
+			MemoryUnitSet muSet) {
+		Stack<SymbolicExpression> targetExprs = new Stack<>();
+		SymbolicExpression curExpr = null;
+		SymbolicType type = null;
 
-		if (type != null && !type.equals(typeFactory.heapSymbolicType())
-				&& !type.equals(typeFactory.bundleSymbolicType())) {
-			// need to eliminate heap type as well. each proc has its own.
-			if (typeFactory.pointerSymbolicType().equals(type)) {
+		targetExprs.push(expr);
+		while (!targetExprs.isEmpty()) {
+			curExpr = targetExprs.pop();
+			// Check whether `curExpr` has a valid type
+			type = curExpr.type();
+			if (type == null)
+				// Invalid types; continue
+				continue;
+			if (type.equals(typeFactory.pointerSymbolicType())) {
+				// Add `curExpr` if valid and not analyzed yet.
+				MemoryUnit mu;
+				ReferenceExpression ref;
 				SymbolicExpression pointerValue;
 				SymbolicExpression eval;
-				Variable variable;
+				Variable var;
+				int dsID, vID;
 
-				if (expr.operator() != SymbolicOperator.TUPLE)
-					return;
-
-				int dyscopeid = evaluator.stateFactory()
-						.getDyscopeId(symbolicUtil.getScopeValue(expr));
-
-				if (dyscopeid < 0)
-					return;
-
-				variable = state.getDyscope(dyscopeid).lexicalScope()
-						.variable(symbolicUtil.getVariableId(null, expr));
-				if (variable.isConst() || variable.isInput())
-					return;
-				this.memUnitFactory.add(result, expr, evaluator.stateFactory());
-				if (expr.operator() == SymbolicOperator.TUPLE) {
-					/*
-					 * If the expression is an arrayElementReference expression,
-					 * and finally it turns that the array type has length 0,
-					 * return immediately. Because we can not dereference it and
-					 * the dereference exception shouldn't report here.
-					 */
-					if (symbolicUtil.getSymRef(expr)
-							.isArrayElementReference()) {
-						SymbolicExpression arrayPointer = symbolicUtil
-								.parentPointer(expr);
-
-						try {
-							eval = this.dereference(state, arrayPointer);
-						} catch (SARLException ex) {
-							return;
+				if (curExpr.operator() == SymbolicOperator.TUPLE) {
+					// Valid operator for extracting dyscope id
+					dsID = evaluator.stateFactory()
+							.getDyscopeId(symbolicUtil.getScopeValue(curExpr));
+					if (dsID >= 0) {
+						// Valid dyscope id
+						vID = symbolicUtil.getVariableId(null, curExpr);
+						var = state.getDyscope(dsID).lexicalScope()
+								.variable(vID);
+						if (var.isConst() || var.isInput())
+							// Omit const/$input pointer-type variables
+							continue;
+						ref = symbolicUtil.getSymRef(curExpr);
+						mu = this.memUnitFactory.newMemoryUnit(dsID, vID, ref);
+						if (this.memUnitFactory.isJoint(muSet, mu))
+							// `curExpr` has been analyzed; continue
+							continue;
+						// Add memory unit of `curExpr` to the reachable set.
+						this.memUnitFactory.add(muSet, mu);
+						assert curExpr.operator() == SymbolicOperator.TUPLE;
+						if (ref.isArrayElementReference()) {
+							/*
+							 * If the expression is an arrayElementReference
+							 * expression, and finally it turns that the array
+							 * type has length 0, return immediately. Because we
+							 * can not dereference it and the dereference
+							 * exception shouldn't report here.
+							 */
+							eval = this.dereference(
+									symbolicUtil.parentPointer(curExpr));
+							if (eval == null || universe.length(eval).isZero())
+								continue;
 						}
-						/* Check if it's length == 0 */
-						if (eval == null || universe.length(eval).isZero())
-							return;
+						assert curExpr.operator() == SymbolicOperator.TUPLE;
+						pointerValue = this.dereference(curExpr);
+						if (pointerValue != null
+								&& pointerValue.type() != null) {
+							switch (pointerValue.operator()) {
+								case TUPLE :
+									if (pointerValue.type().equals(typeFactory
+											.pointerSymbolicType())) {
+										targetExprs.push(pointerValue);
+										continue;
+									} // else is same w/ case DENSE_TUPLE_WRITE
+								case DENSE_TUPLE_WRITE :
+									curExpr = pointerValue;
+								default :
+									// Do nothing.
+							}
+						}
 					}
-					pointerValue = this.dereference(state, expr);
-					// TODO what's this?
-					if (pointerValue == null)
-						return;
-					if (pointerValue.operator() == SymbolicOperator.TUPLE
-							&& pointerValue.type() != null
-							&& pointerValue.type()
-									.equals(typeFactory.pointerSymbolicType()))
-						findPointersInExpression(pointerValue, result, state);
 				}
-			} else {
-				int numArgs = expr.numArguments();
-
-				for (int i = 0; i < numArgs; i++) {
-					SymbolicObject arg = expr.argument(i);
-
-					findPointersInObject(arg, result, state);
+			} else if (type.equals(typeFactory.heapSymbolicType()) || //
+					type.equals(typeFactory.bundleSymbolicType())) {
+				// Do nothing; omit exploring field/referenced objects
+				continue;
+			}
+			for (SymbolicObject obj : curExpr.getArguments()) {
+				switch (obj.symbolicObjectKind()) {
+					case EXPRESSION :
+						targetExprs.push((SymbolicExpression) obj);
+						continue;
+					case SEQUENCE :
+						for (SymbolicExpression se : (SymbolicSequence<?>) obj)
+							targetExprs.push(se);
+						continue;
+					default :
+						// ignore types and primitives, they don't have any
+						// pointers you can dereference.
 				}
 			}
 		}
-		return;
-	}
-
-	/**
-	 * Finds all the pointers that can be dereferenced inside a symbolic object.
-	 * 
-	 * @param object
-	 *            a symbolic object
-	 * @param set
-	 *            a set to which the pointer values will be added
-	 * @param heapType
-	 *            the heap type, which will be ignored
-	 */
-	private void findPointersInObject(SymbolicObject object,
-			MemoryUnitSet muSet, State state) {
-		switch (object.symbolicObjectKind()) {
-			case EXPRESSION : {
-				findPointersInExpression((SymbolicExpression) object, muSet,
-						state);
-				return;
-			}
-			case SEQUENCE : {
-				MemoryUnitSet result = muSet;
-
-				for (SymbolicExpression expr : (SymbolicSequence<?>) object)
-					findPointersInExpression(expr, result, state);
-
-				return;
-			}
-			default :
-				// ignore types and primitives, they don't have any pointers
-				// you can dereference.
-		}
-		return;
 	}
 
 	/**
@@ -1667,8 +1563,7 @@ public class AmpleSetWorker {
 	 * @param pointer
 	 * @return
 	 */
-	private SymbolicExpression dereference(State state,
-			SymbolicExpression pointer) {
+	private SymbolicExpression dereference(SymbolicExpression pointer) {
 		int sid = evaluator.stateFactory()
 				.getDyscopeId(symbolicUtil.getScopeValue(pointer));
 		int vid = symbolicUtil.getVariableId(null, pointer);

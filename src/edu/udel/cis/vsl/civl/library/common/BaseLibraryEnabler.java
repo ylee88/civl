@@ -85,10 +85,8 @@ public abstract class BaseLibraryEnabler extends LibraryComponent
 
 	@Override
 	public BitSet ampleSet(State state, int pid, CallOrSpawnStatement statement,
-			MemoryUnitSet[] reachablePtrWritableMap,
-			MemoryUnitSet[] reachablePtrReadonlyMap,
-			MemoryUnitSet[] reachableNonPtrWritableMap,
-			MemoryUnitSet[] reachableNonPtrReadonlyMap)
+			MemoryUnitSet[] setsReachableRead,
+			MemoryUnitSet[] setsReachableWrite)
 			throws UnsatisfiablePathConditionException {
 		return new BitSet(0);
 	}
@@ -123,10 +121,8 @@ public abstract class BaseLibraryEnabler extends LibraryComponent
 	 */
 	protected BitSet computeAmpleSetByHandleObject(State state, int pid,
 			Expression handleObj, SymbolicExpression handleObjValue,
-			MemoryUnitSet[] reachablePtrWritableMap,
-			MemoryUnitSet[] reachablePtrReadonlyMap,
-			MemoryUnitSet[] reachableNonPtrWritableMap,
-			MemoryUnitSet[] reachableNonPtrReadonlyMap) {
+			MemoryUnitSet[] setsReachableRead,
+			MemoryUnitSet[] setsReachableWrite) {
 		MemoryUnitSet handleObjMemUnits = memUnitFactory.newMemoryUnitSet();
 		BitSet ampleSet = new BitSet();
 		int numProcs = state.numProcs();
@@ -152,19 +148,11 @@ public abstract class BaseLibraryEnabler extends LibraryComponent
 			if (otherPid == pid || ampleSet.get(otherPid))
 				continue;
 			else {
-				MemoryUnitSet reachablePtrWritable = reachablePtrWritableMap[otherPid];
-				MemoryUnitSet reachableNonPtrWritable = reachableNonPtrWritableMap[otherPid];
-				MemoryUnitSet reachablePtrReadonly = reachablePtrReadonlyMap[otherPid];
-				MemoryUnitSet reachableNonPtrReadonly = reachableNonPtrReadonlyMap[otherPid];
+				MemoryUnitSet setRead = setsReachableRead[otherPid];
+				MemoryUnitSet setWrite = setsReachableWrite[otherPid];
 
-				if (memUnitFactory.isJoint(handleObjMemUnits,
-						reachablePtrWritable)
-						|| memUnitFactory.isJoint(handleObjMemUnits,
-								reachableNonPtrWritable)
-						|| memUnitFactory.isJoint(handleObjMemUnits,
-								reachablePtrReadonly)
-						|| memUnitFactory.isJoint(handleObjMemUnits,
-								reachableNonPtrReadonly))
+				if (memUnitFactory.isJoint(handleObjMemUnits, setWrite)
+						|| memUnitFactory.isJoint(handleObjMemUnits, setRead))
 					ampleSet.set(otherPid);
 			}
 		}

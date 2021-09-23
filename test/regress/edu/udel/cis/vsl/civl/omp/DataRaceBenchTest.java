@@ -79,7 +79,7 @@ public class DataRaceBenchTest {
 	public void DRB005_indirectaccess1_orig_yes() {
 		// iter48 and 53 have a data race,
 		// N > 54
-		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_60, // QUIET,
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_60, QUIET,
 				pathToSrcFile("DRB005-indirectaccess1-orig-yes.c")));
 	}
 
