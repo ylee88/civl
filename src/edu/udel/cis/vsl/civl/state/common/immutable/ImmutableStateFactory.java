@@ -823,6 +823,12 @@ public class ImmutableStateFactory implements StateFactory {
 	@Override
 	public ImmutableState collectProcesses(State state) {
 		ImmutableState theState = (ImmutableState) state;
+
+		// Never change process IDs when doing a preemptive-bounded
+		// search...
+		if (config.preemptionBound() >= 0)
+			return theState;
+
 		int numProcs = theState.numProcs();
 		boolean change = false;
 		int counter = 0;

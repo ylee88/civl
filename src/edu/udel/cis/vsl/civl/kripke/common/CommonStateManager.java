@@ -621,4 +621,9 @@ public class CommonStateManager extends CIVLStateManager {
 		}
 		traceStep.setFinalState(state);
 	}
+
+	@Override
+	public int getPid(Transition transition) {
+		return transition.pid();
+	}
 }

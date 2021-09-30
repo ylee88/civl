@@ -257,6 +257,9 @@ public class Verifier extends Player {
 			log.setMinimize(true);
 		if (config.getAnonymousSection().getValue(maxdepthO) != null)
 			searcher.boundDepth(maxdepth);
+		if (civlConfig.preemptionBound() >= 0) {
+			searcher.setPreemptionBound(civlConfig.preemptionBound());
+		}
 		if (config.getAnonymousSection().isTrue(CIVLConstants.webO)) {
 			updatePeriod = CIVLConstants.webUpdatePeriod;
 			updater = new WebUpdater(new File(CIVLConstants.CIVLREP), "update");

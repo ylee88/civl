@@ -293,6 +293,13 @@ public class CIVLConfiguration {
 	private boolean runtimeUpdate;
 
 	/**
+	 * Upper bound on the number of preemptions allowed in an execution, if
+	 * doing a preemptive-bounded search. If it is -1 for a normal (not
+	 * preemption-bounded) search.
+	 */
+	private int preemptionBound;
+
+	/**
 	 * Constructs a new CIVL configuration object from the command line
 	 * configuration.
 	 * 
@@ -456,6 +463,8 @@ public class CIVLConfiguration {
 		}
 		this.directSymEx = (String) config.getValue(CIVLConstants.direct0);
 		this.runtimeUpdate = config.isTrue(CIVLConstants.runtimeUpdateO);
+		this.preemptionBound = (Integer) config
+				.getValueOrDefault(CIVLConstants.preemptionBoundO);
 	}
 
 	public CIVLConfiguration(CIVLConfiguration config) {
@@ -508,7 +517,6 @@ public class CIVLConfiguration {
 	}
 
 	public CIVLConfiguration() {
-		// TODO Auto-generated constructor stub
 	}
 
 	public void setOut(PrintStream out) {
@@ -1064,5 +1072,16 @@ public class CIVLConfiguration {
 	 */
 	public boolean cyclesViolate() {
 		return this.cyclesViolate;
+	}
+
+	/**
+	 * An upper bound on the number of preemptions allowed in an execution. Only
+	 * used if doing a preemptive-bounded search. If doing a regular search,
+	 * this will be -1, the default value. Otherwise, it should be nonnegative.
+	 * 
+	 * @return the preemption bound or -1
+	 */
+	public int preemptionBound() {
+		return this.preemptionBound;
 	}
 }

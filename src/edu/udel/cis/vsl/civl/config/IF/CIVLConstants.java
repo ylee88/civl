@@ -191,6 +191,7 @@ public class CIVLConstants {
 	public static String TEST_GEN = "testGen";
 	public static String CYCLES_VIOLATE = "cyclesViolate";
 	public static String RUNTIME_UPDATE = "runtimeUpdate";
+	public static String PREEMPTION_BOUND = "preemptionBound";
 
 	// Option objects
 	/**
@@ -324,10 +325,6 @@ public class CIVLConstants {
 			"use probabilistic techniques for verifying numeric identifies",
 			false);
 
-	/**
-	 * TODO can it be cleaned up? Select enabled transitions randomly? Default
-	 * for run.
-	 */
 	public final static Option randomO = Option.newScalarOption(RANDOM, BOOLEAN,
 			"select enabled transitions randomly; default for run,\n"
 					+ "    ignored for all other commands",
@@ -682,6 +679,9 @@ public class CIVLConstants {
 			"Generating SARL Junit tests for some validity tests that CIVL encountered",
 			false);
 
+	public final static Option preemptionBoundO = Option
+			.newScalarOption(PREEMPTION_BOUND, INTEGER, "preemption bound", -1);
+
 	/**
 	 * The name of the CIVL system function, which is the starting point of a
 	 * CIVL model.
@@ -696,13 +696,12 @@ public class CIVLConstants {
 	public final static Option[] getAllOptions() {
 		return new Option[]{astO, collectHeapsO, collectProcessesO,
 				collectScopesO, collectSymbolicConstantsO, deadlockO, debugO,
-				enablePrintfO, errorBoundO, errorStateEquivO, guidedO,
-				idO, inputO, linkO, loopO, macroO, maxdepthO, minO,
-				mpiContractO, ompLoopDecompO, ompNoSimplifyO,
-				ompOnlySimplifierO, probO, preprocO, procBoundO, randomO,
-				runtimeUpdateO, saveStatesO, seedO, showAmpleSetO,
-				showAmpleSetWtStatesO, showInputVarsO, showMemoryUnitsO,
-				showModelO, showPathConditionO, showProgramO,
+				enablePrintfO, errorBoundO, errorStateEquivO, guidedO, idO,
+				inputO, linkO, loopO, macroO, maxdepthO, minO, mpiContractO,
+				ompLoopDecompO, ompNoSimplifyO, ompOnlySimplifierO, probO,
+				preprocO, procBoundO, randomO, runtimeUpdateO, saveStatesO,
+				seedO, showAmpleSetO, showAmpleSetWtStatesO, showInputVarsO,
+				showMemoryUnitsO, showModelO, showPathConditionO, showProgramO,
 				showProverQueriesO, showQueriesO, showSavedStatesO, showStatesO,
 				showTimeO, showTransitionsO, showUnreachedCodeO, simplifyO,
 				solveO, statelessPrintfO, svcomp16O, svcomp17O, quietO,
@@ -711,7 +710,7 @@ public class CIVLConstants {
 				checkDivisionByZeroO, checkMemoryLeakO, timeoutO, unpreprocO,
 				sliceAnalysisO, witnessO, direct0, intBit,
 				intOperationTransformer, maxProcsO, SARLTestGenO,
-				cyclesViolateO};
+				cyclesViolateO, preemptionBoundO};
 	}
 
 	// headers...
