@@ -12,7 +12,7 @@ public interface CommandLine {
 
 	/**
 	 * This contains the names of all commands supported by CIVL, either it is a
-	 * normal command or a compare comamnd.
+	 * normal command or a compare command.
 	 * 
 	 * @author zmanchun
 	 *

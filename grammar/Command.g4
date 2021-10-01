@@ -135,6 +135,7 @@ OPTION_NAME
     | '-ompNoSimplify'
     | '-ompOnlySimplifier'
     | '-ompLoopDecomp'
+    | '-preemptionBound'
     | '-preproc'
     | '-procBound'
     | '-prob'  
