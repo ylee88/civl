@@ -267,6 +267,11 @@ public class CommonEvaluator implements Evaluator {
 	private SymbolicTupleType functionPointerType;
 
 	/**
+	 * 
+	 */
+	private boolean enableShortCircuitLogicEval;
+
+	/**
 	 * The unique state factory used in the system.
 	 */
 	protected StateFactory stateFactory;
@@ -752,18 +757,18 @@ public class CommonEvaluator implements Evaluator {
 		Evaluation eval = evaluate(state, pid, expression.left());
 		BooleanExpression leftValue = (BooleanExpression) eval.value;
 
-		if (leftValue.isTrue())
-			return evaluate(eval.state, pid, expression.right());
-		if (leftValue.isFalse()) {
-			// false && x = false;
-			eval.value = universe.falseExpression();
-			return eval;
-		} else {
-			eval = evaluate(eval.state, pid, expression.right());
-			eval.value = universe.and(leftValue,
-					(BooleanExpression) eval.value);
-			return eval;
+		if (enableShortCircuitLogicEval) {
+			if (leftValue.isTrue())
+				return evaluate(eval.state, pid, expression.right());
+			if (leftValue.isFalse()) {
+				// false && x = false;
+				eval.value = universe.falseExpression();
+				return eval;
+			}
 		}
+		eval = evaluate(eval.state, pid, expression.right());
+		eval.value = universe.and(leftValue, (BooleanExpression) eval.value);
+		return eval;
 	}
 
 	/**
@@ -2023,17 +2028,17 @@ public class CommonEvaluator implements Evaluator {
 		Evaluation eval = evaluate(state, pid, expression.left());
 		BooleanExpression p = (BooleanExpression) eval.value;
 
-		if (p.isTrue()) {
-			eval.value = universe.trueExpression();
-			return eval;
+		if (enableShortCircuitLogicEval) {
+			if (p.isTrue()) {
+				eval.value = universe.trueExpression();
+				return eval;
+			}
+			if (p.isFalse())
+				return evaluate(eval.state, pid, expression.right());
 		}
-		if (p.isFalse())
-			return evaluate(eval.state, pid, expression.right());
-		else {
-			eval = evaluate(eval.state, pid, expression.right());
-			eval.value = universe.or(p, (BooleanExpression) eval.value);
-			return eval;
-		}
+		eval = evaluate(eval.state, pid, expression.right());
+		eval.value = universe.or(p, (BooleanExpression) eval.value);
+		return eval;
 	}
 
 	protected SymbolicExpression lambda(State state, int pid,
@@ -2986,8 +2991,8 @@ public class CommonEvaluator implements Evaluator {
 				break;
 			}
 			case MEM : {
-				SymbolicExpression empty = typeFactory.civlMemType().
-						memValueCreator(universe).apply(new LinkedList<>());
+				SymbolicExpression empty = typeFactory.civlMemType()
+						.memValueCreator(universe).apply(new LinkedList<>());
 
 				return new Evaluation(state, empty);
 			}
@@ -4340,8 +4345,8 @@ public class CommonEvaluator implements Evaluator {
 			arraySliceSizes = symbolicUtil
 					.arraySlicesSizes(symbolicUtil.arrayDimensionExtents(
 							(SymbolicCompleteArrayType) arrayType));
-			for (int i = leftPtrIndices.length, j = arraySliceSizes.length
-					- 1; --i >= 0; j--) {
+			for (int i = leftPtrIndices.length,
+					j = arraySliceSizes.length - 1; --i >= 0; j--) {
 				NumericExpression leftIdx, rightIdx;
 				NumericExpression sliceSizes = arraySliceSizes[j];
 
@@ -4853,6 +4858,18 @@ public class CommonEvaluator implements Evaluator {
 	@Override
 	public Evaluation evaluate(State state, int pid, Expression expression)
 			throws UnsatisfiablePathConditionException {
+		if (expression != null) {
+			CIVLSource civlSrc = expression.getSource();
+
+			if (civlSrc != null) {
+				String fName = civlSrc.getFileName();
+
+				if (fName != null) {
+					enableShortCircuitLogicEval = fName.toUpperCase()
+							.contains(".F");
+				}
+			}
+		}
 		return this.evaluate(state, pid, expression, true);
 	}
 

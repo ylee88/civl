@@ -345,7 +345,9 @@ void $check_data_race($omp_team team) {
   team->gteam->write_sets[cur_tid] = cur_mw;
   team->gteam->read_sets[cur_tid] = cur_mr;
   // Check data race.
-  for (int tmp_tid = cur_tid+1; tmp_tid < team->gteam->nthreads; tmp_tid++) {    
+  for (int tmp_tid = 0; tmp_tid < team->gteam->nthreads; tmp_tid++) {
+    if (tmp_tid == cur_tid) continue;
+    
     $mem tmp_mr = team->gteam->read_sets[tmp_tid];
     $mem tmp_mw = team->gteam->write_sets[tmp_tid];
     
@@ -380,8 +382,9 @@ void $omp_barrier($omp_team team) {
 
   team->gteam->write_sets[cur_tid] = cur_mw;
   team->gteam->read_sets[cur_tid] = cur_mr;
-  $barrier_call(team->barrier);
-  for (int tmp_tid = cur_tid+1; tmp_tid < team->gteam->nthreads; tmp_tid++) {    
+  for (int tmp_tid = 0; tmp_tid < team->gteam->nthreads; tmp_tid++) {
+    if (tmp_tid == cur_tid) continue;
+    
     $mem tmp_mr = team->gteam->read_sets[tmp_tid];
     $mem tmp_mw = team->gteam->write_sets[tmp_tid];
     

@@ -18,7 +18,7 @@ public class FortranSimpleTest {
 	private static File DIR_FLASH_GETDATA = new File(DIR_ROOT,
 			"flash/eos_getData_min");
 
-//	private static File DIR_MXM = new File(DIR_ROOT, "nek/mxm");
+	// private static File DIR_MXM = new File(DIR_ROOT, "nek/mxm");
 
 	private static UserInterface ui = new UserInterface();
 
@@ -50,5 +50,17 @@ public class FortranSimpleTest {
 				filename(DIR_FLASH_GETDATA, "Eos_getData_loop1.F90"), //
 				filename(DIR_FLASH_GETDATA, "Eos_getData_new.F90"), //
 				filename(DIR_FLASH_GETDATA, "driver.F90"));
+	}
+
+	@Test
+	public void omp_loop() {
+		assertTrue(ui.run("verify -showProgram=true",
+				filename(DIR_SIMPLE, "omp_loop.F95")));
+	}
+
+	@Test
+	public void tmp() {
+		assertTrue(ui.run("verify -showProgram=true", "-ompNoSimplify", "-input_omp_thread_max=2",  
+ 				"/Users/wwh/Documents/workspace/examples/valSt/valSet.c"));
 	}
 }

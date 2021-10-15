@@ -478,6 +478,24 @@ public class ShortCircuitTransformerWorker extends BaseWorker {
 		return SCRemovers;
 	}
 
+	private boolean disableShortCircuit(ASTNode node) {
+		if (node == null) return false;
+		
+		Source src = node.getSource();
+		
+		if (src == null) return false;
+		
+		String locationString = src.getLocation(false);
+		int fileSuffixStart = locationString.indexOf(".");
+		int fileSuffixEnd = locationString.indexOf(":");
+
+		if (fileSuffixStart < 0 || fileSuffixEnd < 0
+				|| fileSuffixStart > fileSuffixEnd)
+			return false;
+		return locationString.substring(fileSuffixStart, fileSuffixEnd)
+				.toUpperCase().contains(".F");
+	}
+
 	/**
 	 * <p>
 	 * {@linkplain #searchSCExpressionInSubTree(BlockItemNode)}
@@ -493,11 +511,13 @@ public class ShortCircuitTransformerWorker extends BaseWorker {
 	 */
 	private void searchSCExpressionInSubTreeWorker(ASTNode subTree,
 			BlockItemNode location, List<ShortCircuitOperation> output) {
+		// no short-circut transformation for node from Fortran code.
+		if (disableShortCircuit(subTree))
+			return;
 		// no short-circut transformation for logic function definitions:
 		if (location instanceof FunctionDeclarationNode)
 			if (((FunctionDeclarationNode) location).isLogicFunction())
 				return;
-
 		for (ASTNode child : subTree.children()) {
 			if (child == null)
 				continue;

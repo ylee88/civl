@@ -2,7 +2,10 @@ package edu.udel.cis.vsl.civl.model.common;
 
 import java.io.PrintStream;
 
+import edu.udel.cis.vsl.abc.token.IF.CivlcToken;
+import edu.udel.cis.vsl.abc.token.IF.Formation;
 import edu.udel.cis.vsl.abc.token.IF.Source;
+import edu.udel.cis.vsl.abc.token.IF.SourceFile;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 
 /**
@@ -64,11 +67,26 @@ public class ABC_CIVLSource implements CIVLSource {
 
 	@Override
 	public String getFileName() {
-		return abcSource.getFirstToken().getFormation().getLastFile().getName();
+		if (abcSource != null) {
+			CivlcToken t = abcSource.getFirstToken();
+
+			if (t != null) {
+				Formation f = t.getFormation();
+
+				if (f != null) {
+					SourceFile sf = f.getLastFile();
+
+					if (sf != null)
+						return sf.getName();
+				}
+			}
+		}
+		return "";
 	}
-	
-	public String getAbsoluteFilePath(){
-		return abcSource.getFirstToken().getSourceFile().getFile().getAbsolutePath();
+
+	public String getAbsoluteFilePath() {
+		return abcSource.getFirstToken().getSourceFile().getFile()
+				.getAbsolutePath();
 	}
 
 }

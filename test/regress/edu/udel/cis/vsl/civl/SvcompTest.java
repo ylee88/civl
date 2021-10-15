@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import edu.udel.cis.vsl.abc.err.IF.ABCException;
@@ -32,13 +33,13 @@ public class SvcompTest {
 				filename("intPointer.c")));
 	}
 
-	@Test
+	@Ignore
 	public void thread_local() throws ABCException {
 		assertTrue(ui.run("verify", "-svcomp16", TestConstants.QUIET,
 				filename("threadLocal.c")));
 	}
 
-	@Test
+	@Ignore
 	public void threadLocal() {
 		assertTrue(ui.run("verify", "-svcomp16", TestConstants.QUIET,
 				filename("threadLocal.c")));

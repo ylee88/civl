@@ -125,11 +125,11 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 	/* OpenMP helper types */
 	static private final String OMP_HELPER_SIGNAL = "$omp_helper_signal";
 	/* OpenMP function identifier */
-	static private final String OMP_GET_MAX_THREADS = "omp_get_max_threads";
-	static private final String OMP_GET_NUM_PROCS = "omp_get_num_procs";
-	static private final String OMP_GET_NUM_THREADS = "omp_get_num_threads";
-	static private final String OMP_GET_THREAD_NUM = "omp_get_thread_num";
 	static private final String OMP_SET_NUM_THREADS = "omp_set_num_threads";
+	static private final String OMP_GET_NUM_THREADS = "omp_get_num_threads";
+	static private final String OMP_GET_MAX_THREADS = "omp_get_max_threads";
+	static private final String OMP_GET_THREAD_NUM = "omp_get_thread_num";
+	static private final String OMP_GET_NUM_PROCS = "omp_get_num_procs";
 	static private final String OMP_SET_LOCK = "omp_set_lock";
 	static private final String OMP_SET_NEST_LOCK = "omp_set_nest_lock";
 	static private final String OMP_TEST_LOCK = "omp_test_lock";
@@ -210,7 +210,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 	/** A counter for OpenMP ordered construct */
 	private int ctrOmpOrdered = 0;
 
-//	private int levelParallel = 0;
+	// private int levelParallel = 0;
 
 	/** is the binding region specified with <code>ordered(concurrent)</code> */
 	private boolean orderConcurrent = false;
@@ -1389,11 +1389,11 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		stmt.remove();
 		// ADD: stmt
 		block.add(stmt);
+		// ADD: $omp_helper_signal_send(&signalName, 0);
+		block.add(callSignalSend(srcMethod, signalName, 0));
 		// ADD: $read_and_write_set_update(team);
 		// ADD: $yield();
 		block.addAll(callYield(srcMethod));
-		// ADD: $omp_helper_signal_send(&signalName, 0);
-		block.add(callSignalSend(srcMethod, signalName, 0));
 		// ADD: $check_data_race(team);
 		block.add(callCheckDataRace(srcMethod));
 		return block;
@@ -1465,9 +1465,9 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		// ADD: $check_data_race(team);
 		// ADD: $_omp_helper_signal_send(&critical_X, 1);
 		// TRANS: criticalBlock
+		// ADD: $_omp_helper_signal_send(&critical_X, 0);
 		// ADD: $read_and_write_set_update(team);
 		// ADD: $yield();
-		// ADD: $_omp_helper_signal_send(&critical_X, 0);
 		// ADD: $check_data_race(team);
 		ompBlockItems.addAll(nodeStmtsSignalProtected(srcMethod, criticalBlock,
 				criticalName));
@@ -1507,6 +1507,8 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 
 		// ADD: $read_set_pop();
 		// ADD: $write_set_pop();
+		// TODO: shouold be push and then pop to omit
+		// but collecting domian_decomp will cause CIVL internal error.
 		ompBlockItems.addAll(callRWSetPop(srcMethod));
 		// ADD: $range _omp_rangeX = {lo .. hi, step};
 		// * note that X is [1 .. numLoopRanges]
@@ -1585,6 +1587,13 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		if (!ompForNode.nowait())
 			// ADD: $omp_barrier(team);
 			ompBlockItems.add(callOmpBarrier(srcMethod));
+		else {
+			// ADD: $read_and_write_set_update(team);
+			// ADD: $yield();
+			ompBlockItems.addAll(callYield(srcMethod));
+			// ADD: $check_data_race(team);
+			ompBlockItems.add(callCheckDataRace(srcMethod));
+		}
 
 		// TRANS: replace parallel region with transformed block
 		replaceOmpNode(srcMethod, ompForNode, ompBlockItems);
@@ -1758,8 +1767,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 
 		// PRE: Record the current OpenMP region info
 		ompRgn.push(new OmpRegion(OmpRgnKind.PARALLEL));
-//		levelParallel += 1;
-
+		// levelParallel += 1;
 		// PROC: _omp_num_threads
 		ExpressionNode _omp_num_threads = ompParallelNode.numThreads();
 		// PROC: shared, private and firstprivate variabe list.
@@ -1773,7 +1781,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 				ompParallelNode.reductionList());
 		Boolean hasExplicitNumThreadsClause = _omp_num_threads != null;
 
-		if (hasExplicitNumThreadsClause) 
+		if (hasExplicitNumThreadsClause)
 			_omp_num_threads.remove();
 		else // If absent
 			_omp_num_threads = nodeExprId(srcMethod, _OMP_ + "num_threads");
@@ -1915,6 +1923,13 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		if (!ompSectionsNode.nowait())
 			// ADD: $omp_barrier(team);
 			ompBlockItems.add(callOmpBarrier(srcMethod));
+		else {
+			// ADD: $read_and_write_set_update(team);
+			// ADD: $yield();
+			ompBlockItems.addAll(callYield(srcMethod));
+			// ADD: $check_data_race(team);
+			ompBlockItems.add(callCheckDataRace(srcMethod));
+		}
 		// TRANS: replace sections region with transformed block
 		replaceOmpNode(srcMethod, ompSectionsNode, ompBlockItems);
 		ompRgn.pop();
@@ -1969,6 +1984,13 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		if (!ompSingleNode.nowait())
 			// ADD: $omp_barrier(team);
 			ompBlockItems.add(callOmpBarrier(srcMethod));
+		else {
+			// ADD: $read_and_write_set_update(team);
+			// ADD: $yield();
+			ompBlockItems.addAll(callYield(srcMethod));
+			// ADD: $check_data_race(team);
+			ompBlockItems.add(callCheckDataRace(srcMethod));
+		}
 		// TRANS: replace single construct with transformed block
 		replaceOmpNode(srcMethod, ompSingleNode, ompBlockItems);
 		ompRgn.pop();

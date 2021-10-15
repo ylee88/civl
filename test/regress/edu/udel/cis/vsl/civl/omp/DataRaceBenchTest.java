@@ -18,7 +18,7 @@ public class DataRaceBenchTest {
 	/* ******************* Fields *************************** */
 
 	private final boolean DEBUG = false;
-	private final String VER_DRB = "1.2.0";
+	private final String VER_DRB = "1.3.2";
 	private final String PATH_DIR_DRB_SRC = "examples/omp/dataracebench-"
 			+ VER_DRB + "/micro-benchmarks";
 	private final String DBAD = "-DBAD";
@@ -40,10 +40,10 @@ public class DataRaceBenchTest {
 	 * scheduled in a single thread. As a result, the potential data-race (when
 	 * num_threads > 2) will not be reported.
 	 */
-	private void loopDistributionRoundRobinLimitation() {
+	private void loopDistributionRoundRobinLimitation(String drb_name) {
 		if (DEBUG)
 			System.out.println("WARNING:\n"//
-					+ "\tDataRaceBenchTests: DRB011_minusminus_orig_yes shall fail."
+					+ "\tDataRaceBenchTests: " + drb_name + " shall fail."
 					+ "\tThe conditional update operation is based on iteration number moded by 2. "
 					+ "\tIf the number of threads is 2, then all update operations will be distributed "
 					+ "\tto a single thread. In this case, the data race can not be detected.");
@@ -113,66 +113,65 @@ public class DataRaceBenchTest {
 
 	@Test
 	public void DRB011_minusminus_orig_yes() {
-		loopDistributionRoundRobinLimitation();
+		loopDistributionRoundRobinLimitation("DRB011-minusminus-orig-yes.c");
 		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TEN, DN_10, QUIET,
 				pathToSrcFile("DRB011-minusminus-orig-yes.c")));
 	}
 
 	@Test
 	public void DRB012_minusminus_var_yes() {
-		loopDistributionRoundRobinLimitation();
+		loopDistributionRoundRobinLimitation("DRB012-minusminus-var-yes.c");
 		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TEN, QUIET,
 				pathToSrcFile("DRB012-minusminus-var-yes.c")));
 	}
 
-	// @Ignore // TODO:
-	// public void DRB013_nowait_orig_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10,
-	// "-showProgram", // QUIET,
-	// pathToSrcFile("DRB013-nowait-orig-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB014_outofbounds_orig_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB014-outofbounds-orig-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB015_outofbounds_var_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB015-outofbounds-var-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB016_outputdep_orig_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB016-outputdep-orig-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB017_outputdep_var_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB017-outputdep-var-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB018_plusplus_orig_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB018-plusplus-orig-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB019_plusplus_var_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB019-plusplus-var-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB020_privatemissing_var_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB020-privatemissing-var-yes.c")));
-	// }
+	@Test
+	public void DRB013_nowait_orig_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB013-nowait-orig-yes.c")));
+	}
+
+	@Test
+	public void DRB014_outofbounds_orig_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				pathToSrcFile("DRB014-outofbounds-orig-yes.c")));
+	}
+
+	@Test
+	public void DRB015_outofbounds_var_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				pathToSrcFile("DRB015-outofbounds-var-yes.c")));
+	}
+
+	@Test
+	public void DRB016_outputdep_orig_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				pathToSrcFile("DRB016-outputdep-orig-yes.c")));
+	}
+
+	@Test
+	public void DRB017_outputdep_var_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				pathToSrcFile("DRB017-outputdep-var-yes.c")));
+	}
+
+	@Test
+	public void DRB018_plusplus_orig_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB018-plusplus-orig-yes.c")));
+	}
+
+	@Test
+	public void DRB019_plusplus_var_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB019-plusplus-var-yes.c")));
+	}
+
+	@Test
+	public void DRB020_privatemissing_var_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB020-privatemissing-var-yes.c")));
+	}
 
 	@Test
 	public void DRB021_reductionmissing_orig_yes() {
@@ -216,251 +215,252 @@ public class DataRaceBenchTest {
 	// pathToSrcFile("DRB027-taskdependmissing-orig-yes.c")));
 	// }
 
-	// @Ignore // TODO:
-	// public void DRB028_privatemissing_orig_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB028-privatemissing-orig-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB029_truedep1_orig_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB029-truedep1-orig-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB030_truedep1_var_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB030-truedep1-var-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB031_truedepfirstdimension_orig_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB031-truedepfirstdimension-orig-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB032_truedepfirstdimension_var_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB032-truedepfirstdimension-var-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB033_truedeplinear_orig_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB033-truedeplinear-orig-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB034_truedeplinear_var_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB034-truedeplinear-var-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB035_truedepscalar_orig_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB035-truedepscalar-orig-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB036_truedepscalar_var_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB036-truedepscalar-var-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB037_truedepseconddimension_orig_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB037-truedepseconddimension-orig-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB038_truedepseconddimension_var_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB038-truedepseconddimension-var-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB039_truedepsingleelement_orig_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB039-truedepsingleelement-orig-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB040_truedepsingleelement_var_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB040-truedepsingleelement-var-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
+	@Test
+	public void DRB028_privatemissing_orig_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				pathToSrcFile("DRB028-privatemissing-orig-yes.c")));
+	}
+
+	@Test
+	public void DRB029_truedep1_orig_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				pathToSrcFile("DRB029-truedep1-orig-yes.c")));
+	}
+
+	@Test
+	public void DRB030_truedep1_var_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB030-truedep1-var-yes.c")));
+	}
+
+	@Test
+	public void DRB031_truedepfirstdimension_orig_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB031-truedepfirstdimension-orig-yes.c")));
+	}
+
+	@Test
+	public void DRB032_truedepfirstdimension_var_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB032-truedepfirstdimension-var-yes.c")));
+	}
+
+	@Test
+	public void DRB033_truedeplinear_orig_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB033-truedeplinear-orig-yes.c")));
+	}
+
+	@Test
+	public void DRB034_truedeplinear_var_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB034-truedeplinear-var-yes.c")));
+	}
+
+	@Test
+	public void DRB035_truedepscalar_orig_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				pathToSrcFile("DRB035-truedepscalar-orig-yes.c")));
+	}
+
+	@Test
+	public void DRB036_truedepscalar_var_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				pathToSrcFile("DRB036-truedepscalar-var-yes.c")));
+	}
+
+	@Test
+	public void DRB037_truedepseconddimension_orig_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB037-truedepseconddimension-orig-yes.c")));
+	}
+
+	@Test
+	public void DRB038_truedepseconddimension_var_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB038-truedepseconddimension-var-yes.c")));
+	}
+
+	@Test
+	public void DRB039_truedepsingleelement_orig_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB039-truedepsingleelement-orig-yes.c")));
+	}
+
+	@Test
+	public void DRB040_truedepsingleelement_var_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB040-truedepsingleelement-var-yes.c")));
+	}
+
+	// @Ignore // Containing external functions, which have no definition.
 	// public void DRB041_3mm_parallel_no() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+	// assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+	// pathToSrcFile("utilities/polybench.c"),
 	// pathToSrcFile("DRB041-3mm-parallel-no.c")));
 	// }
 	//
-	// @Ignore // TODO:
+	// @Ignore // PolyBench See above -- DRB041
 	// public void DRB042_3mm_tile_no() {
 	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
 	// pathToSrcFile("DRB042-3mm-tile-no.c")));
 	// }
 	//
-	// @Ignore // TODO:
+	// @Ignore // PolyBench See above -- DRB041
 	// public void DRB043_adi_parallel_no() {
 	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
 	// pathToSrcFile("DRB043-adi-parallel-no.c")));
 	// }
 	//
-	// @Ignore // TODO:
+	// @Ignore // PolyBench See above -- DRB041
 	// public void DRB044_adi_tile_no() {
 	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
 	// pathToSrcFile("DRB044-adi-tile-no.c")));
 	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB045_doall1_orig_no() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB045-doall1-orig-no.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB046_doall2_orig_no() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB046-doall2-orig-no.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB047_doallchar_orig_no() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB047-doallchar-orig-no.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB048_firstprivate_orig_no() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB048-firstprivate-orig-no.c")));
-	// }
-	//
-	// @Ignore // TODO:
+
+	@Test
+	public void DRB045_doall1_orig_no() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				pathToSrcFile("DRB045-doall1-orig-no.c")));
+	}
+
+	@Test
+	public void DRB046_doall2_orig_no() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB046-doall2-orig-no.c")));
+	}
+
+	@Test
+	public void DRB047_doallchar_orig_no() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				pathToSrcFile("DRB047-doallchar-orig-no.c")));
+	}
+
+	@Test
+	public void DRB048_firstprivate_orig_no() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				pathToSrcFile("DRB048-firstprivate-orig-no.c")));
+	}
+
+	// @Ignore // File operations are not supported yet.
 	// public void DRB049_fprintf_orig_no() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+	// assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
 	// pathToSrcFile("DRB049-fprintf-orig-no.c")));
 	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB050_functionparameter_orig_no() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB050-functionparameter-orig-no.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB051_getthreadnum_orig_no() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB051-getthreadnum-orig-no.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB052_indirectaccesssharebase_orig_no() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB052-indirectaccesssharebase-orig-no.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB053_inneronly1_orig_no() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB053-inneronly1-orig-no.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB054_inneronly2_orig_no() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB054-inneronly2-orig-no.c")));
-	// }
-	//
-	// @Ignore // TODO:
+
+	@Test
+	public void DRB050_functionparameter_orig_no() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				pathToSrcFile("DRB050-functionparameter-orig-no.c")));
+	}
+
+	@Test
+	public void DRB051_getthreadnum_orig_no() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				pathToSrcFile("DRB051-getthreadnum-orig-no.c")));
+	}
+
+	@Test
+	public void DRB052_indirectaccesssharebase_orig_no() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB052-indirectaccesssharebase-orig-no.c")));
+	}
+
+	@Test
+	public void DRB053_inneronly1_orig_no() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				pathToSrcFile("DRB053-inneronly1-orig-no.c")));
+	}
+
+	@Test
+	public void DRB054_inneronly2_orig_no() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB054-inneronly2-orig-no.c")));
+	}
+
+	// @Ignore // PolyBench See above -- DRB041
 	// public void DRB055_jacobi2d_parallel_no() {
 	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
 	// pathToSrcFile("DRB055-jacobi2d-parallel-no.c")));
 	// }
 	//
-	// @Ignore // TODO:
+	// @Ignore // PolyBench See above -- DRB041
 	// public void DRB056_jacobi2d_tile_no() {
 	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
 	// pathToSrcFile("DRB056-jacobi2d-tile-no.c")));
 	// }
 	//
-	// @Ignore // TODO:
+	// @Ignore // PolyBench See above -- DRB041
 	// public void DRB057_jacobiinitialize_orig_no() {
 	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
 	// pathToSrcFile("DRB057-jacobiinitialize-orig-no.c")));
 	// }
 	//
-	// @Ignore // TODO:
+	// @Ignore // PolyBench See above -- DRB041
 	// public void DRB058_jacobikernel_orig_no() {
 	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
 	// pathToSrcFile("DRB058-jacobikernel-orig-no.c")));
 	// }
-	//
+
 	// @Ignore // TODO:
 	// public void DRB059_lastprivate_orig_no() {
 	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
 	// pathToSrcFile("DRB059-lastprivate-orig-no.c")));
 	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB060_matrixmultiply_orig_no() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB060-matrixmultiply-orig-no.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB061_matrixvector1_orig_no() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB061-matrixvector1-orig-no.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB062_matrixvector2_orig_no() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB062-matrixvector2-orig-no.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB063_outeronly1_orig_no() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB063-outeronly1-orig-no.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB064_outeronly2_orig_no() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB064-outeronly2-orig-no.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB065_pireduction_orig_no() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB065-pireduction-orig-no.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB066_pointernoaliasing_orig_no() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB066-pointernoaliasing-orig-no.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB067_restrictpointer1_orig_no() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB067-restrictpointer1-orig-no.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB068_restrictpointer2_orig_no() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB068-restrictpointer2-orig-no.c")));
-	// }
+
+	@Test
+	public void DRB060_matrixmultiply_orig_no() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB060-matrixmultiply-orig-no.c")));
+	}
+
+	@Test
+	public void DRB061_matrixvector1_orig_no() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB061-matrixvector1-orig-no.c")));
+	}
+
+	@Test
+	public void DRB062_matrixvector2_orig_no() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB062-matrixvector2-orig-no.c")));
+	}
+
+	@Test
+	public void DRB063_outeronly1_orig_no() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB063-outeronly1-orig-no.c")));
+	}
+
+	@Test
+	public void DRB064_outeronly2_orig_no() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB064-outeronly2-orig-no.c")));
+	}
+
+	@Test
+	public void DRB065_pireduction_orig_no() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_60, QUIET,
+				pathToSrcFile("DRB065-pireduction-orig-no.c")));
+	}
+
+	@Test
+	public void DRB066_pointernoaliasing_orig_no() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB066-pointernoaliasing-orig-no.c")));
+	}
+
+	@Test
+	public void DRB067_restrictpointer1_orig_no() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB067-restrictpointer1-orig-no.c")));
+	}
+
+	@Test
+	public void DRB068_restrictpointer2_orig_no() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB068-restrictpointer2-orig-no.c")));
+	}
 
 	@Test
 	public void DRB069_sectionslock1_orig_no() {
@@ -527,92 +527,92 @@ public class DataRaceBenchTest {
 	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
 	// pathToSrcFile("DRB079-taskdep3-orig-no.c")));
 	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB080_func_arg_orig_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB080-func-arg-orig-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB081_func_arg_orig_no() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB081-func-arg-orig-no.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB082_declared_in_func_orig_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB082-declared-in-func-orig-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB083_declared_in_func_orig_no() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB083-declared-in-func-orig-no.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB084_threadprivatemissing_orig_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB084-threadprivatemissing-orig-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
+
+	@Test
+	public void DRB080_func_arg_orig_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				pathToSrcFile("DRB080-func-arg-orig-yes.c")));
+	}
+
+	@Test
+	public void DRB081_func_arg_orig_no() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				pathToSrcFile("DRB081-func-arg-orig-no.c")));
+	}
+
+	@Test
+	public void DRB082_declared_in_func_orig_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				pathToSrcFile("DRB082-declared-in-func-orig-yes.c")));
+	}
+
+	@Test
+	public void DRB083_declared_in_func_orig_no() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				pathToSrcFile("DRB083-declared-in-func-orig-no.c")));
+	}
+
+	@Test
+	public void DRB084_threadprivatemissing_orig_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				pathToSrcFile("DRB084-threadprivatemissing-orig-yes.c")));
+	}
+
+	// @Ignore // TODO: thread private
 	// public void DRB085_threadprivate_orig_no() {
 	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
 	// pathToSrcFile("DRB085-threadprivate-orig-no.c")));
 	// }
-	//
-	// @Ignore // TODO:
+
+	// @Ignore // C++ is not supported by CIVL
 	// public void DRB086_static_data_member_orig_yes() {
 	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
 	// pathToSrcFile("DRB086-static-data-member-orig-yes.cpp")));
 	// }
 	//
-	// @Ignore // TODO:
+	// @Ignore // C++ is not supported by CIVL
 	// public void DRB087_static_data_member2_orig_yes() {
 	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
 	// pathToSrcFile("DRB087-static-data-member2-orig-yes.cpp")));
 	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB088_dynamic_storage_orig_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB088-dynamic-storage-orig-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB089_dynamic_storage2_orig_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB089-dynamic-storage2-orig-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB090_static_local_orig_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB090-static-local-orig-yes.c")));
-	// }
-	//
+
+	@Test
+	public void DRB088_dynamic_storage_orig_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				pathToSrcFile("DRB088-dynamic-storage-orig-yes.c")));
+	}
+
+	@Test
+	public void DRB089_dynamic_storage2_orig_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				pathToSrcFile("DRB089-dynamic-storage2-orig-yes.c")));
+	}
+
+	@Test
+	public void DRB090_static_local_orig_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				pathToSrcFile("DRB090-static-local-orig-yes.c")));
+	}
+
 	// @Ignore // TODO:
 	// public void DRB091_threadprivate2_orig_no() {
 	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
 	// pathToSrcFile("DRB091-threadprivate2-orig-no.c")));
 	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB092_threadprivatemissing2_orig_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB092-threadprivatemissing2-orig-yes.c")));
-	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB093_doall2_collapse_orig_no() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB093-doall2-collapse-orig-no.c")));
-	// }
-	//
-	// @Ignore // TODO:
+
+	@Test
+	public void DRB092_threadprivatemissing2_orig_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				pathToSrcFile("DRB092-threadprivatemissing2-orig-yes.c")));
+	}
+
+	@Test
+	public void DRB093_doall2_collapse_orig_no() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
+				pathToSrcFile("DRB093-doall2-collapse-orig-no.c")));
+	}
+
+	// @Ignore // TODO: ordered dep/src
 	// public void DRB094_doall2_ordered_orig_no() {
 	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
 	// pathToSrcFile("DRB094-doall2-ordered-orig-no.c")));
@@ -722,24 +722,24 @@ public class DataRaceBenchTest {
 				pathToSrcFile("DRB110-ordered-orig-no.c")));
 	}
 
-	// @Ignore // TODO:
-	// public void DRB111_linearmissing_orig_yes() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB111-linearmissing-orig-yes.c")));
-	// }
-	//
+	@Test
+	public void DRB111_linearmissing_orig_yes() {
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+				pathToSrcFile("DRB111-linearmissing-orig-yes.c")));
+	}
+
 	// @Ignore // TODO:
 	// public void DRB112_linear_orig_no() {
 	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
 	// pathToSrcFile("DRB112-linear-orig-no.c")));
 	// }
-	//
-	// @Ignore // TODO:
-	// public void DRB113_default_orig_no() {
-	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
-	// pathToSrcFile("DRB113-default-orig-no.c")));
-	// }
-	//
+
+	@Test
+	public void DRB113_default_orig_no() {
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, // QUIET,
+				pathToSrcFile("DRB113-default-orig-no.c")));
+	}
+
 	// @Ignore // TODO:
 	// public void DRB114_if_orig_yes() {
 	// assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,

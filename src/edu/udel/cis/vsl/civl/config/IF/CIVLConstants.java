@@ -722,6 +722,10 @@ public class CIVLConstants {
 	public final static String CONCURRENCY = "concurrency.cvh";
 	public final static String CIVL_OMP = "civl-omp.cvh";
 	public final static String CIVL_OMP_IMP = "civl-omp.cvl";
+	public final static String FORTRAN_ARRAY = "fortran_array.cvh";
+	public final static String FORTRAN_ARRAY_IMP = "fortran_array.cvl";
+	public final static String FORTRAN_SIGP = "fortran_sigp.cvh";
+	public final static String FORTRAN_SIGP_IMP = "fortran_sigp.cvl";
 	public final static String MEM = "mem.cvh";
 	// public final static String CIVL_DOMAIN = "domain.cvh";
 	public final static String MPI = "mpi.h";
@@ -765,9 +769,9 @@ public class CIVLConstants {
 	 * @return all CIVL-C libraries.
 	 */
 	public final static Set<String> getAllCivlLibs() {
-		return new HashSet<String>(
-				Arrays.asList(BUNDLE, CIVLC, CIVL_MPI, CIVL_PTHREAD, COMM,
-						CONCURRENCY, CIVL_OMP, SEQ, CIVL_CUDA, COLLATE));
+		return new HashSet<String>(Arrays.asList(BUNDLE, CIVLC, CIVL_MPI,
+				CIVL_PTHREAD, COMM, CONCURRENCY, CIVL_OMP, SEQ, CIVL_CUDA,
+				COLLATE, FORTRAN_ARRAY, FORTRAN_SIGP));
 	}
 
 	/**

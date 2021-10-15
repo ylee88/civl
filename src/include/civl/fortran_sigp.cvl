@@ -1,0 +1,63 @@
+/* This CVL file contains the function prototypes for 
+ * Fortran standard generic intrinsic procedures (SGIPs).
+ */
+
+#ifndef __FORTRAN_SGIP_C__
+#define __FORTRAN_SGIP_C__
+
+#include <fortran_sgip.cvh>
+
+int		__fortran__command_argument_count(
+){
+  return F_ARGC;
+}
+
+void	__fortran__get_command_argument(
+  int  *number,	/* the nth argument, 0 for program entry name*/
+  char *value,	/* the variable pointing to the nth argument */
+                /* if no such argument exists, blanks are assigend*/
+  int  *length, /* the length of the value assigned to 'value' */
+  int  *status, /* -1, if 'value' has insufficient length for assigned actual arg */
+  				/*  0, if 'value' is correctly assigned */
+  				/* >0, if the actual argument is invalid */
+  char *errmsg	/* Processor-dependent error messages if 'status' is positive */
+){
+  int stat = 0;
+  int n = 0;
+  
+  if (*number > F_ARGC || *number < 0) {		/* Invalid number */
+    stat = ERRSTAT_NUMBER_OUT_OF_RANGE;
+  } else if (*number > 0) {						/* Try to get nth command arg */
+    n = *number - 1;
+    if (value != NULL) {
+      if (sizeof(value)/sizeof(char) < F_ARGL[n]) {
+        stat = ERRSTAT_ARGUMENT_OUT_OF_RANGE;	/* Insufficient memory for arg */
+      } else {
+        value = F_ARGV[n];
+      }
+    }
+    if (length != NULL) {
+      length = F_ARGL[n];
+    }
+  } else {									/* Try to get program entry name */
+    n = *number - 1;
+    if (value != NULL) {
+      if (sizeof(value)/sizeof(char) < F_ARGL[n]) {
+        stat = ERRSTAT_ARGUMENT_OUT_OF_RANGE;	/* Insufficient memory for arg */
+      } else {
+        value = F_PENV;
+      }
+    }
+    if (length != NULL) {
+      length = F_PENL;
+    }
+  }
+  if (status != NULL) {
+    *status = stat;
+  }
+  if (errmsg != NULL) {
+    // TODO: set errmsg
+  }
+}
+
+#endif

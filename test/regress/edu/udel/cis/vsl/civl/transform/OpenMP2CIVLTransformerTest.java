@@ -45,33 +45,33 @@ public class OpenMP2CIVLTransformerTest {
 
 	/* **************************** Test Methods *************************** */
 
-	@Test
+	@Ignore
 	public void atomicReadWrite() {
 		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, QUIET,
 				atomicFilename("atomic_read_write.c")));
 	}
 
-	@Test
+	@Ignore
 	public void atomicDefault() {
 		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, QUIET,
 				atomicFilename("atomic_default.c")));
 	}
 
-	@Test
+	@Ignore
 	public void atomicUpdate() {
 		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, QUIET,
 				atomicFilename("atomic_update.c")));
 	}
 
-	@Test
+	@Ignore
 	public void atomicReadWriteDot() {
 		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, QUIET,
 				atomicFilename("atomic_read_write_dot.c")));
 	}
 
-	@Test
+	@Ignore
 	public void atomicReadWriteArray() {
-		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, QUIET,
+		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, 
 				atomicFilename("atomic_read_write_array.c")));
 	}
 
@@ -260,7 +260,7 @@ public class OpenMP2CIVLTransformerTest {
 				filename(transformDir, "omp_simple_lock.c")));
 	}
 
-	@Test
+	@Ignore
 	public void omp_simple_atomic() {
 		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
 				filename(transformDir, "omp_atomic.c")));
