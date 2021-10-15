@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 
 import org.junit.AfterClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import edu.udel.cis.vsl.abc.err.IF.ABCException;
@@ -35,7 +36,7 @@ public class PthreadTest {
 				filename("bigshot_p_false-unreach-call.c")));
 	}
 
-	@Test
+	@Ignore
 	public void bigshot_s_true() throws ABCException {
 		assertTrue(ui.run("verify", "-enablePrintf=false", "-svcomp16", QUIET,
 				filename("bigshot_s_true-unreach-call.c")));
@@ -98,7 +99,7 @@ public class PthreadTest {
 				filename("singleton_false-unreach-call.c")));
 	}
 
-	@Test
+	@Ignore
 	public void singleton_with_uninit_problems_true() throws ABCException {
 		assertTrue(ui.run("verify", "-enablePrintf=false", "-svcomp16", QUIET,
 				filename("singleton_with-uninit-problems-true.c")));
