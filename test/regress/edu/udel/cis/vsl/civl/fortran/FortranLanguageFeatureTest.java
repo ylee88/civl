@@ -52,7 +52,7 @@ public class FortranLanguageFeatureTest {
 
 	@Test
 	public void civl_short_circuit() {
-		assertTrue(UI.run(VERIFY, QUIET, //
+		assertFalse(UI.run(VERIFY, QUIET, //
 				filename(DIR_CIVL, "short_circuit.f90")));
 	}
 
@@ -67,13 +67,6 @@ public class FortranLanguageFeatureTest {
 		assertTrue(UI.run(COMPARE, "-showProgram", // QUIET, //
 				SPEC, filename(DIR_CIVL, "mod_spec.f90"), //
 				IMPL, filename(DIR_CIVL, "mod_impl.f90")));
-	}
-
-	@Test
-	public void civl_pow() {
-		assertTrue(UI.run(COMPARE, "-showProgram", // QUIET, //
-				SPEC, filename(DIR_CIVL, "pow_spec.f90"), //
-				IMPL, filename(DIR_CIVL, "pow_impl.f90")));
 	}
 
 	@Test
