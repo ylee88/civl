@@ -39,6 +39,7 @@ import edu.udel.cis.vsl.abc.ast.type.IF.Type;
 import edu.udel.cis.vsl.abc.ast.type.IF.Type.TypeKind;
 import edu.udel.cis.vsl.abc.token.IF.Source;
 import edu.udel.cis.vsl.abc.token.IF.SyntaxException;
+import edu.udel.cis.vsl.abc.transform.IF.Transformer;
 import edu.udel.cis.vsl.civl.transform.IF.Cuda2CIVLTransformer;
 
 public class Cuda2CIVLWorker extends BaseWorker {
@@ -77,10 +78,20 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		return newAST;
 	}
 
+	/**
+	 * Returns a new temporary variable each time it is called.
+	 */
 	protected String newTemporaryVariableName() {
 		return this.identifierPrefix + "tmp" + tempVarNum++;
 	}
 
+	/**
+	 * Finds the main function definition node underneath root and calls
+	 * {@link Cuda2CIVLWorker#transformMainFunctionDefinition(FunctionDefinitionNode)}
+	 * on it
+	 * 
+	 * @param root
+	 */
 	protected void translateMainDefinition(ASTNode root) {
 		for (ASTNode child : root.children()) {
 			if (child == null)
@@ -88,14 +99,22 @@ public class Cuda2CIVLWorker extends BaseWorker {
 
 			if (child.nodeKind() == NodeKind.FUNCTION_DEFINITION) {
 				FunctionDefinitionNode definition = (FunctionDefinitionNode) child;
+
 				if (definition.getName() != null
 						&& definition.getName().equals("main")) {
 					transformMainFunctionDefinition(definition);
+					return;
 				}
 			}
 		}
 	}
 
+	/**
+	 * Transforms every kernel definition node under root using
+	 * {@link Cuda2CIVLWorker#kernelDefinitionTransform(FunctionDefinitionNode)}.
+	 * 
+	 * @param root
+	 */
 	protected void translateKernelDefinitions(ASTNode root) {
 		for (ASTNode child : root.children()) {
 			if (child == null)
@@ -103,6 +122,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 
 			if (child.nodeKind() == NodeKind.FUNCTION_DEFINITION) {
 				FunctionDefinitionNode definition = (FunctionDefinitionNode) child;
+
 				if (definition.hasGlobalFunctionSpecifier()) {
 					root.setChild(child.childIndex(),
 							kernelDefinitionTransform(definition));
@@ -111,6 +131,12 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		}
 	}
 
+	/**
+	 * Transforms every kernel declaration node under root using
+	 * {@link Cuda2CIVLWorker#kernelDeclarationTransform(FunctionDeclarationNode)}.
+	 * 
+	 * @param root
+	 */
 	protected void translateKernelDeclarations(ASTNode root) {
 		for (ASTNode child : root.children()) {
 			if (child == null)
@@ -118,6 +144,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 
 			if (child.nodeKind() == NodeKind.FUNCTION_DECLARATION) {
 				FunctionDeclarationNode declaration = (FunctionDeclarationNode) child;
+
 				if (declaration.hasGlobalFunctionSpecifier() && declaration
 						.getTypeNode() instanceof FunctionTypeNode) {
 					root.setChild(child.childIndex(),
@@ -127,6 +154,12 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		}
 	}
 
+	/**
+	 * Transforms every cuda malloc function call using
+	 * {@link Cuda2CIVLWorker#cudaMallocTransform(FunctionCallNode)}.
+	 * 
+	 * @param root
+	 */
 	protected void translateCudaMallocCalls(ASTNode root) {
 		for (ASTNode child : root.children()) {
 			if (child == null)
@@ -134,16 +167,20 @@ public class Cuda2CIVLWorker extends BaseWorker {
 
 			if (child.nodeKind() == NodeKind.EXPRESSION) {
 				ExpressionNode expression = (ExpressionNode) child;
+
 				if (expression
 						.expressionKind() == ExpressionKind.FUNCTION_CALL) {
 					FunctionCallNode functionCall = (FunctionCallNode) expression;
+
 					if (functionCall.getFunction()
 							.expressionKind() == ExpressionKind.IDENTIFIER_EXPRESSION) {
 						IdentifierExpressionNode identifierExpression = (IdentifierExpressionNode) functionCall
 								.getFunction();
+
 						if (identifierExpression.getIdentifier().name()
 								.equals("cudaMalloc")) {
 							int index = functionCall.childIndex();
+
 							root.setChild(index,
 									cudaMallocTransform(functionCall));
 							continue;
@@ -156,6 +193,12 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		}
 	}
 
+	/**
+	 * Transforms every kernel call using
+	 * {@link Cuda2CIVLWorker#kernelCallTransform(FunctionCallNode)}.
+	 * 
+	 * @param root
+	 */
 	protected void translateKernelCalls(ASTNode root) {
 		for (ASTNode child : root.children()) {
 			if (child == null)
@@ -163,6 +206,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 
 			if (child.nodeKind() == NodeKind.STATEMENT) {
 				StatementNode statement = (StatementNode) child;
+
 				if (statement.statementKind() == StatementKind.EXPRESSION) {
 					ExpressionStatementNode expressionStatement = (ExpressionStatementNode) statement;
 					ExpressionNode expression = expressionStatement
@@ -183,9 +227,14 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		}
 	}
 
-	// translates "cudaMalloc( (void**) ptrPtr, size)" to
-	// "*ptrPtr = (type)$malloc($root, size), cudaSuccess"
-	// where "type" is the type of *ptrPtr
+	/**
+	 * Translates "cudaMalloc( (void**) ptrPtr, size)" to "*ptrPtr =
+	 * (type)$malloc($root, size), cudaSuccess" where "type" is the type of
+	 * *ptrPtr
+	 * 
+	 * @param cudaMallocCall
+	 * @return The translated cuda malloc call as an expression node
+	 */
 	protected ExpressionNode cudaMallocTransform(
 			FunctionCallNode cudaMallocCall) {
 		Source source = cudaMallocCall.getSource();
@@ -226,6 +275,13 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		return finalExpression;
 	}
 
+	/**
+	 * Inserts a call to $cuda_init at the beginning of main and a call to
+	 * $cuda_finalize at the end of main
+	 * 
+	 * @param mainFunction
+	 *            The function definition node for the main function
+	 */
 	private void transformMainFunctionDefinition(
 			FunctionDefinitionNode mainFunction) {
 		Source source = mainFunction.getSource();
@@ -245,10 +301,29 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		mainFunction.setBody(body);
 	}
 
+	/**
+	 * Given a kernel name, returns a transformed version of it to distinguish
+	 * it as a transformed version of the original kernel
+	 * 
+	 * @param name
+	 * @return the transformed name
+	 */
 	private String transformKernelName(String name) {
 		return "_cuda_" + name;
 	}
 
+	/**
+	 * Given a kernel definition node, this method transforms the kernel name
+	 * (see {@link Cuda2CIVLWorker#transformKernelName(String)}), prepends
+	 * formal parameters for the context arguments of the kernel, builds and
+	 * inserts the inner kernel definition from the kernel's body (see
+	 * {@link Cuda2CIVLWorker#buildInnerKernelDefinition(CompoundStatementNode)}),
+	 * and enqueues a call to the inner kernel definition using
+	 * $cuda_enqueue_kernel.
+	 * 
+	 * @param oldDefinition
+	 * @return the transformed kernel definition
+	 */
 	protected FunctionDefinitionNode kernelDefinitionTransform(
 			FunctionDefinitionNode oldDefinition) {
 		// TODO: add execution configuration parameters as regular parameters
@@ -299,9 +374,16 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		return newKernel;
 	}
 
+	/**
+	 * Given a kernel declaration node, this method transforms the kernel name
+	 * (see {@link Cuda2CIVLWorker#transformKernelName(String)}) and prepends
+	 * formal parameters for the context arguments of the kernel.
+	 * 
+	 * @param oldDeclaration
+	 * @return the transformed kernel declaration node
+	 */
 	protected FunctionDeclarationNode kernelDeclarationTransform(
 			FunctionDeclarationNode oldDeclaration) {
-		// TODO: add execution configuration parameters as regular parameters
 		Source source = oldDeclaration.getSource();
 		String newKernelName = this
 				.transformKernelName(oldDeclaration.getIdentifier().name());
@@ -600,6 +682,14 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		}
 	}
 
+	/**
+	 * Transforms the kernel call to instead use the kernel's transformed
+	 * signature as transformed by
+	 * {@link Cuda2CIVLWorker#kernelDeclarationTransform(FunctionDeclarationNode)}.
+	 * 
+	 * @param kernelCall
+	 * @return The transformed kernel call
+	 */
 	protected StatementNode kernelCallTransform(FunctionCallNode kernelCall) {
 		Source source = kernelCall.getSource();
 		List<VariableDeclarationNode> tempVarDecls = new ArrayList<>();
