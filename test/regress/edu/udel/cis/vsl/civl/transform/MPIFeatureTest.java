@@ -32,7 +32,7 @@ public class MPIFeatureTest {
 		assertFalse(ui.run("verify -input_mpi_nprocs=3", TestConstants.QUIET,
 				filename("mpi_opnull_reduce.c")));
 	}
-	
+
 	@Test
 	public void dynamicBuffer() {
 		assertTrue(ui.run("verify -input_mpi_nprocs=3", "-deadlock=potential",
@@ -59,6 +59,18 @@ public class MPIFeatureTest {
 		assertTrue(ui.run("compare -input_mpi_nprocs=2 -collectHeaps=false",
 				TestConstants.QUIET, "-impl", filename("matmat_mw_good.c"),
 				"-spec", filename("matmat_spec.c")));
+	}
+
+	@Test
+	public void nonblockingSendRecv() {
+		assertTrue(ui.run("verify -input_mpi_nprocs=2", TestConstants.QUIET,
+				filename("nonblocking_sendrecv.c")));
+	}
+
+	@Test
+	public void nonblockingSendRecvBad() {
+		assertFalse(ui.run("verify -input_mpi_nprocs=2", TestConstants.QUIET,
+				filename("nonblocking_sendrecv-bad.c")));
 	}
 
 	@AfterClass

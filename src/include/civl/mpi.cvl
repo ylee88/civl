@@ -15,10 +15,14 @@
 extern const int MPI_IN_PLACE_SPOT = 0;
 
 /* Completed definition for mpi-common.h */
+
+// the definition of "struct MPI_Request":
 struct MPI_Request{
   MPI_Status status;
-  _Bool isSend;
+  _Bool completed;
+  $proc proc;  
 };
+// Note that the type "MPI_Request" is defined as "pointer-to-struct MPI_Request".
 
 #ifndef CIVL_MPI_COMM_STRUCT
 #define CIVL_MPI_COMM_STRUCT 1
@@ -93,6 +97,25 @@ int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest,
   return $mpi_send(buf, count, datatype, dest, tag, comm);
 }
 
+int MPI_Isend(void *buf, int count, MPI_Datatype datatype, int dest,
+	      int tag, MPI_Comm comm, MPI_Request * request) {
+  // Isend allocates an MPI_Request object (MPI-3.0 sec 3.7.2):
+  MPI_Request req = (MPI_Request) malloc(sizeof(struct MPI_Request));
+
+  req->completed = 0;
+
+  void async_send() {
+    $atomic{
+      MPI_Send(buf, count, datatype, dest, tag, comm);
+      req->completed = 1;
+    }
+  }  
+  $proc proc = $spawn async_send();
+  req->proc = proc;
+  *request = req;
+  return 0;
+}
+
 int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source,
 	     int tag, MPI_Comm comm, MPI_Status *status) {
   $assert(_mpi_state == _MPI_INIT, "MPI_Recv() cannot be invoked "
@@ -101,6 +124,72 @@ int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source,
   $elaborate(source);
 #endif
   return $mpi_recv(buf, count, datatype, source, tag, comm, status);
+}
+
+int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source,
+	      int tag, MPI_Comm comm, MPI_Request * request) {
+  // Irecv allocates an MPI_Request object (MPI-3.0 sec 3.7.2):
+  MPI_Request req = (MPI_Request) malloc(sizeof(struct MPI_Request));
+
+  req->completed = 0;
+
+  void async_recv() {
+    $atomic{
+      MPI_Recv(buf, count, datatype, source, tag, comm, &req->status);
+      req->completed = 1;
+    }
+  }  
+  $proc proc = $spawn async_recv();
+  req->proc = proc;
+  *request = req;
+  return 1;
+}
+
+int MPI_Wait(MPI_Request * request, MPI_Status * status) {
+  if (*request == MPI_REQUEST_NULL) 
+    return 1;
+  $wait((*request)->proc);
+  (*request)->proc = $proc_null;
+  if (status != MPI_STATUS_IGNORE)
+    $copy(status, &((*request)->status));
+  MPI_Request_free(request);
+  return 1;
+}
+
+int MPI_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of_statuses[]) {
+  $for (int i : 0 .. count-1) {
+    MPI_Status * status = array_of_statuses == MPI_STATUSES_IGNORE ? MPI_STATUS_IGNORE : array_of_statuses + i;
+    MPI_Request * req = array_of_requests + i;
+    
+    MPI_Wait(req, status);
+  }
+  return 1;
+}
+
+int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status) {
+  if (request == MPI_REQUEST_NULL) {
+    *flag = 1; 
+    return 1;
+  }  
+  if ((*request)->completed) {
+    $wait((*request)->proc);
+    (*request)->proc = $proc_null;
+    *flag = 1;
+    if (status != MPI_STATUS_IGNORE)
+      $copy(status, &((*request)->status));
+    MPI_Request_free(request);
+  } else
+    *flag = 0;
+  return 1;
+}
+
+int MPI_Request_free(MPI_Request * request) {
+  // The standard does not say this function accepts MPI_REQUEST_NULL
+  if ((*request)->proc != $proc_null)
+    $wait((*request)->proc);
+  $free(*request);
+  *request = MPI_REQUEST_NULL;
+  return 1;
 }
 
 int MPI_Get_count(MPI_Status *status, MPI_Datatype datatype, int *count) {
