@@ -7,18 +7,22 @@ import java.util.Stack;
 import java.util.TreeSet;
 
 /**
- * A SeqSet represents a set of sequences of integers. By sequence, we mean
- * finite sequence of integers. Only certain sets are representable. If p and q
- * are sequences, write p<=q if p is a prefix of q. (This includes the case
- * p=q.) If p is a sequence, let [p] = {q|p<=q}. A SeqSet represents a finite
- * union of sets of the form [p]. If p<=q then [p] contains [q], so any SeqSet
- * equals a SeqSet in which every element is minimal in the set. (Only keep
- * minimal elements.)
+ * A {@link SeqSet} represents a set of sequences of integers. By sequence, we
+ * mean finite sequence of integers. Only certain sets are representable. If p
+ * and q are sequences, write p<=q if p is a prefix of q. (This includes the
+ * case p=q.) If p is a sequence, let [p] = {q|p<=q}. A {@link SeqSet}
+ * represents a finite union of sets of the form [p]. If p<=q then [p] contains
+ * [q], so any SeqSet S can be represented as a finite union of sets of the form
+ * [p] where p is a minimal element of S.
  * 
+ * <p>
  * If () is the empty sequence then [()] consists of all sequences. It is
  * represented by the SeqSet {()}.
+ * </p>
  * 
- * {(1,2),(1,3,4),(2)} is a SeqSet.
+ * <p>
+ * {(1,2),(1,3,4),(2)} is a {@link SeqSet}.
+ * </p>
  * 
  * 
  * @author siegel
@@ -26,8 +30,16 @@ import java.util.TreeSet;
  */
 public class SeqSet {
 
-	class Node {
+	// Types...
 
+	/**
+	 * A node in the tree representation. Each node represents a single integer.
+	 * A minimal element of the set corresponds to a path in the tree from the
+	 * root to a leaf node.
+	 * 
+	 * @author siegel
+	 */
+	class Node {
 		/**
 		 * The parent node in the tree, or null if this is the root.
 		 */
@@ -42,7 +54,8 @@ public class SeqSet {
 		/**
 		 * The set consisting of the indexes of the children of this node.
 		 */
-		SortedSet<Integer> childrenIndexes; // would a BitSet be faster?
+		SortedSet<Integer> childrenIndexes = new TreeSet<Integer>();
+		// would a BitSet be faster? HashSet?
 
 		/**
 		 * The children nodes. If i is in childrenIndexes, then children[i] will
@@ -53,7 +66,7 @@ public class SeqSet {
 		 * should be functionally equivalent but faster than setting children[i]
 		 * to null and creating a new Node.
 		 */
-		Node[] children;
+		Node[] children = new Node[2];
 
 		/**
 		 * Creates new node with given index, empty set of childrenIndexes.
@@ -68,10 +81,24 @@ public class SeqSet {
 		Node(Node parent, int index) {
 			this.parent = parent;
 			this.index = index;
-			childrenIndexes = new TreeSet<Integer>();
-			children = new Node[2];
 		}
 
+		/**
+		 * Does this node have a child with the given index?
+		 * 
+		 * @param index
+		 *            a nonnegative integer
+		 * @return {@code true} iff this node has a child with that index
+		 */
+		boolean hasChild(int index) {
+			return childrenIndexes.contains(index);
+		}
+
+		/**
+		 * Is this node a leaf node? A node is a leaf iff it has 0 children.
+		 * 
+		 * @return {@code true} iff this is a leaf node
+		 */
 		boolean isLeaf() {
 			return childrenIndexes.isEmpty();
 		}
@@ -79,8 +106,8 @@ public class SeqSet {
 		/**
 		 * If this node already contains the child at index, does nothing and
 		 * returns {@code false}. Otherwise, the node is created or reactivated
-		 * and cleared, and the child index is added to this node's @{code
-		 * childrenIndexes} set.
+		 * and cleared, and the child index is added to this node's
+		 * {@link #childrenIndexes}.
 		 * 
 		 * @param index
 		 *            index of child
@@ -110,14 +137,24 @@ public class SeqSet {
 			return true;
 		}
 
+		/**
+		 * Empties {@link #childrenIndexes}.
+		 */
 		void clear() {
 			childrenIndexes.clear();
 		}
 
+		/**
+		 * Returns a new iterator over {@link #childrenIndexes}.
+		 * 
+		 * @return
+		 */
 		Iterator<Integer> iterator() {
 			return childrenIndexes.iterator();
 		}
 	}
+
+	// Fields...
 
 	/**
 	 * Is this the empty set? If true, then the root is inactive.
@@ -129,11 +166,19 @@ public class SeqSet {
 	 */
 	private Node root = new Node(null, -1);
 
+	// Constructors...
+
 	/**
 	 * Creates new empty set. The root node will be created but will be
 	 * inactive.
 	 */
 	public SeqSet() {
+	}
+
+	// Methods...
+
+	public boolean isEmpty() {
+		return isEmpty;
 	}
 
 	/**
@@ -192,77 +237,44 @@ public class SeqSet {
 	}
 
 	/*
-	class LeafIterator implements Iterator<Node> {
-
-		private Stack<Iterator<Integer>> stack = new Stack<>();
-
-		private Node currentNode;
-
-		private Iterator<Integer> currentIter;
-
-		LeafIterator(Node root) {
-			currentNode = root;
-			if (currentNode == null)
-				return;
-			currentIter = currentNode.iterator();
-			stack.push(currentIter);
-			while (currentIter.hasNext()) {
-				currentNode = currentNode.children[currentIter.next()];
-				currentIter = currentNode.iterator();
-				stack.push(currentIter);
-			}
-		}
-
-		private void proceedToNext() {
-			// backtrack from current leaf...
-			do {
-				stack.pop();
-				currentNode = currentNode.parent;
-				if (currentNode == null) {
-					assert stack.isEmpty();
-					currentIter = null;
-					return;
-				}
-				currentIter = stack.peek();
-			} while (!currentIter.hasNext());
-			// now go down to next leaf...
-			do {
-				currentNode = currentNode.children[currentIter.next()];
-				currentIter = currentNode.iterator();
-				stack.push(currentIter);
-			} while (currentIter.hasNext());
-		}
-
-		@Override
-		public boolean hasNext() {
-			return currentNode != null;
-		}
-
-		@Override
-		public Node next() {
-			Node result = currentNode;
-
-			if (result == null)
-				throw new NoSuchElementException();
-			proceedToNext();
-			return result;
-		}
-
-	}
-
-	private Iterator<Node> leafIterator() {
-		return new LeafIterator(root);
-	}
-
-	private Iterable<Node> leaves() {
-		return new Iterable<Node>() {
-			@Override
-			public Iterator<Node> iterator() {
-				return new LeafIterator(root);
-			}
-		};
-	}
-	*/
+	 * class LeafIterator implements Iterator<Node> {
+	 * 
+	 * private Stack<Iterator<Integer>> stack = new Stack<>();
+	 * 
+	 * private Node currentNode;
+	 * 
+	 * private Iterator<Integer> currentIter;
+	 * 
+	 * LeafIterator(Node root) { currentNode = root; if (currentNode == null)
+	 * return; currentIter = currentNode.iterator(); stack.push(currentIter);
+	 * while (currentIter.hasNext()) { currentNode =
+	 * currentNode.children[currentIter.next()]; currentIter =
+	 * currentNode.iterator(); stack.push(currentIter); } }
+	 * 
+	 * private void proceedToNext() { // backtrack from current leaf... do {
+	 * stack.pop(); currentNode = currentNode.parent; if (currentNode == null) {
+	 * assert stack.isEmpty(); currentIter = null; return; } currentIter =
+	 * stack.peek(); } while (!currentIter.hasNext()); // now go down to next
+	 * leaf... do { currentNode = currentNode.children[currentIter.next()];
+	 * currentIter = currentNode.iterator(); stack.push(currentIter); } while
+	 * (currentIter.hasNext()); }
+	 * 
+	 * @Override public boolean hasNext() { return currentNode != null; }
+	 * 
+	 * @Override public Node next() { Node result = currentNode;
+	 * 
+	 * if (result == null) throw new NoSuchElementException(); proceedToNext();
+	 * return result; }
+	 * 
+	 * }
+	 * 
+	 * private Iterator<Node> leafIterator() { return new LeafIterator(root); }
+	 * 
+	 * private Iterable<Node> leaves() { return new Iterable<Node>() {
+	 * 
+	 * @Override public Iterator<Node> iterator() { return new
+	 * LeafIterator(root); } }; }
+	 */
 
 	@Override
 	public String toString() {
@@ -323,18 +335,30 @@ public class SeqSet {
 	}
 
 	/**
+	 * Adds everything in the given set to this set. In the post-state, this
+	 * SeqSet will represent the union of the set represented by this SeqSet in
+	 * the pre-state and the set represented by {@code that}. SeqSet
+	 * {@code that} is not modified.
 	 * 
-	 * Perform DFS of that and walk along this in tandem with the search. Let u
-	 * be the current node for this and v for that. If u is a leaf then
+	 * <p>
+	 * Perform DFS of that while walking through this in tandem with the search.
+	 * Specifically:
+	 * </p>
+	 * 
+	 * <p>
+	 * Let u be the current node for this and v for that. If u is a leaf then
 	 * backtrack. If v is leaf than prune the children of u and backtrack.
 	 * 
 	 * Otherwise, iterate over the edges of v. For an edge on int a, see if u
 	 * has an edge on a. If u does have an edge on a, proceed to the target node
-	 * in both graphs. If u does not have an edge on a, copy the branch starting
+	 * in both trees. If u does not have an edge on a, copy the branch starting
 	 * with a from v to u.
+	 * </p>
 	 * 
 	 * @param that
-	 * @return
+	 *            a non-null {@code SeqSet}
+	 * @return {@code true} iff this operation results in a change to this
+	 *         {@code SeqSet}
 	 */
 	public boolean addAll(SeqSet that) {
 		if (isEmpty) {
@@ -348,7 +372,7 @@ public class SeqSet {
 		Stack<Iterator<Integer>> stack = new Stack<>(); // DFS stack for that
 		Node thisNode = root, thatNode = that.root; // current nodes
 
-		// invariant: stack specifies a path in that starting from root
+		// invariant: stack specifies a path in that starting from root.
 		// for all nodes v in that path: neither v nor the corresponding node
 		// u in this is a leaf.
 		// invariant: thisNode and thatNode correspond and thatNode results
@@ -372,17 +396,19 @@ public class SeqSet {
 			} else { // neither is leaf: push
 				stack.push(thatNode.iterator());
 			}
-			// thisNode and thatNode correspond and are not null
-			// neither is a leaf
-			// the iterator at top of stack corresponds to thatNode
-			// proceed to next new node pair...
+			/*
+			 * At this point, thisNode and thatNode are non-null corresponding
+			 * nodes, and neither is a leaf. The iterator at top of stack
+			 * corresponds to thatNode. The following will push the search
+			 * forward to the next new node pair...
+			 */
 			do {
 				Iterator<Integer> thatIter = stack.peek();
 
 				while (thatIter.hasNext()) {
 					int idx = thatIter.next();
 
-					if (thatNode.childrenIndexes.contains(idx)) { // new nodes!
+					if (thatNode.hasChild(idx)) { // new pair!
 						thisNode = thisNode.children[idx];
 						thatNode = thatNode.children[idx];
 						continue top;
@@ -397,27 +423,173 @@ public class SeqSet {
 		return change;
 	}
 
-	public boolean contains(int[] seq) {
-		// TODO
-		return false;
+	/**
+	 * Does this set contain the set [s] of sequences which extend a given
+	 * sequence s?
+	 * 
+	 * @param seq
+	 *            a non-null (but possibly empty) sequence of nonnegative
+	 *            integers; note that if s is the empty sequence the [s] is the
+	 *            universal set consisting of all sequences
+	 * @return {@code} true iff this set contains all sequences which extend
+	 *         {@code seq} (including {@code seq} itself)
+	 */
+	public boolean contains(int... seq) {
+		int n = seq.length;
+
+		if (isEmpty)
+			return false;
+		Node node = root;
+		for (int i = 0; i < n; i++) {
+			int idx = seq[i];
+
+			if (!node.hasChild(idx))
+				break;
+			node = node.children[idx];
+		}
+		return node.isLeaf();
 	}
 
+	/**
+	 * Does this set contain the given set?
+	 * 
+	 * @param that
+	 *            a non-null (but possibly empty) SeqSet
+	 * @return {@code true} iff the set of sequences represented by this SeqSet
+	 *         contains the set of sequences represented by {@code that}
+	 */
 	public boolean containsAll(SeqSet that) {
-		// TODO
-		return false;
+		if (that.isEmpty)
+			return true;
+		if (this.isEmpty)
+			return false;
+
+		Node thisNode = root, thatNode = that.root;
+
+		if (thatNode.isLeaf() && !thisNode.isLeaf())
+			return false;
+
+		Stack<Iterator<Integer>> stack = new Stack<>();
+
+		stack.push(thatNode.iterator());
+		top : do {
+			Iterator<Integer> iter = stack.peek();
+
+			while (iter.hasNext()) {
+				int idx = iter.next();
+
+				if (thisNode.hasChild(idx)) {
+					thisNode = thisNode.children[idx];
+					thatNode = thatNode.children[idx];
+					if (thatNode.isLeaf() && !thisNode.isLeaf())
+						return false;
+					stack.push(thatNode.iterator());
+					continue top;
+				} else if (!thisNode.isLeaf())
+					return false;
+			}
+			// backtrack
+			thisNode = thisNode.parent;
+			thatNode = thatNode.parent;
+			stack.pop();
+		} while (!stack.isEmpty());
+		return true;
 	}
 
+	/**
+	 * Are this set and the given set disjoint?
+	 * 
+	 * @param that
+	 *            a non-null SeqSet
+	 * @return {@code true} iff the two sets are disjoint
+	 */
 	public boolean disjoint(SeqSet that) {
-		// TODO
-		return false;
+		if (isEmpty || that.isEmpty)
+			return true;
+
+		Node thisNode = root, thatNode = that.root;
+
+		if (thatNode.isLeaf() || thisNode.isLeaf())
+			return false;
+
+		Stack<Iterator<Integer>> stack = new Stack<>();
+
+		stack.push(thatNode.iterator());
+		top : do {
+			Iterator<Integer> iter = stack.peek();
+
+			while (iter.hasNext()) {
+				int idx = iter.next();
+
+				if (thisNode.hasChild(idx)) {
+					thisNode = thisNode.children[idx];
+					thatNode = thatNode.children[idx];
+					if (thatNode.isLeaf() || thisNode.isLeaf())
+						return false;
+					stack.push(thatNode.iterator());
+					continue top;
+				}
+			}
+			// backtrack
+			thisNode = thisNode.parent;
+			thatNode = thatNode.parent;
+			stack.pop();
+		} while (!stack.isEmpty());
+		return true;
 	}
 
+	/**
+	 * Do this set and the given set represent the same set of sequences?
+	 * 
+	 * @param obj
+	 *            any object to be compared with this one
+	 * @return {@code true} iff {@code obj} is a SeqSet representing the same
+	 *         set as this SeqSet
+	 */
 	@Override
 	public boolean equals(Object obj) {
-		return false;
+		if (obj == this)
+			return true;
+		if (!(obj instanceof SeqSet))
+			return false;
+		SeqSet that = (SeqSet) obj;
 
+		if (isEmpty)
+			return that.isEmpty;
+		if (that.isEmpty)
+			return false;
+
+		Node thisNode = root, thatNode = that.root;
+
+		if (!thisNode.childrenIndexes.equals(thatNode.childrenIndexes))
+			return false;
+
+		Stack<Iterator<Integer>> stack = new Stack<>();
+
+		stack.push(thisNode.iterator());
+		while (!stack.isEmpty()) {
+			Iterator<Integer> iter = stack.peek();
+
+			if (iter.hasNext()) {
+				int index = iter.next();
+
+				thisNode = thisNode.children[index];
+				thatNode = thatNode.children[index];
+				if (!thisNode.childrenIndexes.equals(thatNode.childrenIndexes))
+					return false;
+				stack.push(thisNode.iterator());
+			} else {
+				stack.pop();
+				thisNode = thisNode.parent;
+				thatNode = thatNode.parent;
+			}
+		}
+		return true;
 	}
 
+	/**
+	 * Makes this set empty.
+	 */
 	public void clear() {
 		isEmpty = true;
 		root.clear();
