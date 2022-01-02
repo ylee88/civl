@@ -63,13 +63,20 @@ public class MPIFeatureTest {
 
 	@Test
 	public void nonblockingSendRecv() {
-		assertTrue(ui.run("verify -input_mpi_nprocs=2", TestConstants.QUIET,
+		assertTrue(ui.run("verify -input_mpi_nprocs=4", TestConstants.QUIET,
 				filename("nonblocking_sendrecv.c")));
 	}
 
 	@Test
+	public void nonblockingSendRecvDL() {
+		assertFalse(ui.run("verify -input_mpi_nprocs=4", "-deadlock=potential",
+				TestConstants.QUIET, 
+				filename("nonblocking_sendrecv_dl.c")));
+	}
+
+	@Test
 	public void nonblockingSendRecvBad() {
-		assertFalse(ui.run("verify -input_mpi_nprocs=2", TestConstants.QUIET,
+		assertFalse(ui.run("verify -input_mpi_nprocs=4", TestConstants.QUIET,
 				filename("nonblocking_sendrecv-bad.c")));
 	}
 

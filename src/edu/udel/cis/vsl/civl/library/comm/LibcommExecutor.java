@@ -89,6 +89,7 @@ public class LibcommExecutor extends BaseLibraryExecutor
 						argumentValues, false);
 				break;
 			case "$comm_enqueue" :
+			case "$comm_ienqueue" :
 				callEval = executeCommEnqueue(state, pid, process, arguments,
 						argumentValues);
 				break;
@@ -294,7 +295,14 @@ public class LibcommExecutor extends BaseLibraryExecutor
 		SymbolicExpression buf;
 		Evaluation eval;
 		Pair<SymbolicExpression, SymbolicExpression> msg_buf;
+		BooleanExpression commHandleIsNull = universe.equals(commHandle,
+				this.symbolicUtil.nullPointer());
 
+		if (commHandleIsNull.isTrue())
+			return new Evaluation(state, null);
+		assert commHandleIsNull
+				.isFalse() : "expecting concrete boolean value for "
+						+ commHandleIsNull;
 		eval = evaluator.dereference(civlsource, state, process, commHandle,
 				false, true);
 		state = eval.state;
@@ -347,7 +355,14 @@ public class LibcommExecutor extends BaseLibraryExecutor
 		SymbolicExpression gcomm;
 		SymbolicExpression buf;
 		Evaluation eval;
+		BooleanExpression commHandleIsNull = universe.equals(commHandle,
+				this.symbolicUtil.nullPointer());
 
+		if (commHandleIsNull.isTrue())
+			return new Evaluation(state, null);
+		assert commHandleIsNull
+				.isFalse() : "expecting concrete boolean value for "
+						+ commHandleIsNull;
 		eval = evaluator.dereference(civlsource, state, process, commHandle,
 				false, true);
 		state = eval.state;
@@ -487,11 +502,8 @@ public class LibcommExecutor extends BaseLibraryExecutor
 		state = eval.state;
 		gcomm = eval.value;
 		dest = (NumericExpression) universe.tupleRead(comm, zeroObject);
-		queue = universe
-				.arrayRead(
-						universe.arrayRead(
-								universe.tupleRead(gcomm, threeObject), source),
-						dest);
+		queue = universe.arrayRead(universe.arrayRead(
+				universe.tupleRead(gcomm, threeObject), source), dest);
 		queueLength = universe.tupleRead(queue, zeroObject);
 		messages = universe.tupleRead(queue, oneObject);
 		msgIdx = this.getMatchedMsgIdx(state, pid, process, messages,

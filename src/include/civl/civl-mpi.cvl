@@ -21,20 +21,6 @@ char * $mpi_coroutine_name(int tag);
 /* Duplicated definition with the same struct in mpi.h.
    The reason of this duplication is to make civlmpi.cvl
    independent with mpi.cvl. */
-#ifndef CIVL_MPI_COMM_STRUCT
-#define CIVL_MPI_COMM_STRUCT 1
-typedef struct CIVL_MPI_Comm {
-  $comm p2p; // point-to-point communication
-  $comm col; // collective communication
-  $collator collator;
-  $barrier barrier;
-  int gcommIndex; //the index of the corresponding global communicator.
-};
-
-struct CIVL_MPI_Comm CIVL_MPI_COMM_NULL;
-MPI_Comm MPI_COMM_NULL = ((MPI_Comm)((char*)(&CIVL_MPI_COMM_NULL)));
-
-#endif
 
 
 /* Definition of CMPI_Gcomm (CMPI_Gcomm has a type of __CMPI_Gcomm) 
@@ -183,6 +169,7 @@ MPI_Comm $mpi_comm_create($scope scope, $mpi_gcomm gc, int rank) {
   result->collator = $collator_create(gc.gcollator, scope, rank);
   result->barrier = $barrier_create(scope, gc.gbarrier, rank);
   result->gcommIndex = 0;
+  $seq_init(&result->irecv_tasks, 0, NULL);
   return result;
 }
 
@@ -227,6 +214,20 @@ int $mpi_send(const void *buf, int count, MPI_Datatype datatype, int dest,
     $elaborate(dest);
     out = $message_pack(place, dest, tag, buf, size);
     $comm_enqueue(comm->p2p, out);   
+  }
+  return 0;
+}
+
+int $mpi_isend(const void *buf, int count, MPI_Datatype datatype, int dest,
+	      int tag, MPI_Comm comm) {
+  if (dest >= 0) {
+    int size = count*sizeofDatatype(datatype);
+    int place = $comm_place(comm->p2p);
+    $message out;
+    
+    $elaborate(dest);
+    out = $message_pack(place, dest, tag, buf, size);    
+    $comm_ienqueue(comm->p2p, out);    
   }
   return 0;
 }

@@ -1,6 +1,7 @@
 #ifndef __CIVL_MPI__
 #define __CIVL_MPI__
 
+#include <seq.cvh>
 #include <civlc.cvh>
 #include <concurrency.cvh>
 #include <bundle.cvh>
@@ -16,24 +17,37 @@ extern const int MPI_IN_PLACE_SPOT = 0;
 
 /* Completed definition for mpi-common.h */
 
+/*
+  Aboout MPI Isend and Irecv:
+
+  For MPI_Isend, the implementation simply performs a send operation.
+  The send operation needs to be special because it shall never cause
+  potential deadlock.  Instead, waiting for the completion of an
+  MPI_Isend may deadlock.
+  
+  For MPI_Irecv, the actual receive operation is delayed until an
+  explicit MPI_Wait is called. The return of the MPI_Wait guarantees
+  the completion of the receive operation.  A call to MPI_Irecv
+  appends a record for the receive operation in a sequence.  The
+  sequence of records encodes the order of all (un-MPI_Wait-ed)
+  non-blocking receive operations associated to an MPI communicator in
+  an MPI process.
+
+  An "active" MPI request object for an MPI_Irecv operation carries a
+  pointer to the corresponding record t.  When calling MPI_Wait on the
+  request object, a standard receive will be performed for every
+  record that is before t in the sequence (including t itself).  All
+  the "executed" records will then be removed from the sequence.
+ */
 // the definition of "struct MPI_Request":
 struct MPI_Request{
+  MPI_Comm comm;
   MPI_Status status;
-  _Bool completed;
-  $proc proc;  
+  _Bool isSend;   
+  _mpi_irecv_info_t * irecv_task;   // points to the irecv task
 };
 // Note that the type "MPI_Request" is defined as "pointer-to-struct MPI_Request".
 
-#ifndef CIVL_MPI_COMM_STRUCT
-#define CIVL_MPI_COMM_STRUCT 1
-struct CIVL_MPI_Comm {
-  $comm p2p; // point-to-point communication
-  $comm col; // collective communication
-  $collator collator;
-  $barrier barrier;
-  int gcommIndex; //the index of the corresponding global communicator.
-};
-#endif
 
 $mpi_state _mpi_state=_MPI_UNINIT;
 
@@ -99,20 +113,27 @@ int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest,
 
 int MPI_Isend(void *buf, int count, MPI_Datatype datatype, int dest,
 	      int tag, MPI_Comm comm, MPI_Request * request) {
+  $assert(_mpi_state == _MPI_INIT, "MPI_Isend() cannot be invoked "
+	  "without MPI_Init() being called before.\n");
+#ifdef _MPI_CONTRACT
+  $elaborate(dest);
+#else
+  $mpi_check_buffer(buf, count, datatype);
+#endif  
   // Isend allocates an MPI_Request object (MPI-3.0 sec 3.7.2):
   MPI_Request req = (MPI_Request) malloc(sizeof(struct MPI_Request));
-
-  req->completed = 0;
-
-  void async_send() {
-    $atomic{
-      MPI_Send(buf, count, datatype, dest, tag, comm);
-      req->completed = 1;
-    }
-  }  
-  $proc proc = $spawn async_send();
-  req->proc = proc;
+  int place;
+  
+  MPI_Comm_rank(comm, &place);
+  req->comm = comm;
+  req->status.MPI_SOURCE = place;
+  req->status.MPI_TAG = tag;
+  req->status.MPI_ERROR = 0;
+  req->status.size = count*sizeofDatatype(datatype);
+  req->isSend = $true;  
+  req->irecv_task = NULL;
   *request = req;
+  $mpi_isend(buf, count, datatype, dest, tag, comm);
   return 0;
 }
 
@@ -128,65 +149,104 @@ int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source,
 
 int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source,
 	      int tag, MPI_Comm comm, MPI_Request * request) {
+  $assert(_mpi_state == _MPI_INIT, "MPI_Irecv() cannot be invoked "
+	  "without MPI_Init() being called before.\n");
+#ifdef _MPI_CONTRACT
+  $elaborate(source);
+#endif
+  
   // Irecv allocates an MPI_Request object (MPI-3.0 sec 3.7.2):
   MPI_Request req = (MPI_Request) malloc(sizeof(struct MPI_Request));
 
-  req->completed = 0;
-
-  void async_recv() {
-    $atomic{
-      MPI_Recv(buf, count, datatype, source, tag, comm, &req->status);
-      req->completed = 1;
-    }
-  }  
-  $proc proc = $spawn async_recv();
-  req->proc = proc;
+  req->comm = comm;
+  req->isSend = $false;
+  req->irecv_task = (_mpi_irecv_info_t*)malloc(sizeof(_mpi_irecv_info_t));
+  req->irecv_task->buf = buf;
+  req->irecv_task->count = count;
+  req->irecv_task->datatype = datatype;
+  req->irecv_task->src = source;
+  req->irecv_task->tag = tag;
+  req->irecv_task->completed = $false;  
+  $seq_append(&comm->irecv_tasks, &req->irecv_task, 1);
   *request = req;
   return 1;
 }
 
-int MPI_Wait(MPI_Request * request, MPI_Status * status) {
+int _mpi_wait(MPI_Request * request, MPI_Status * status) {
   if (*request == MPI_REQUEST_NULL) 
-    return 1;
-  $wait((*request)->proc);
-  (*request)->proc = $proc_null;
+    return 1;  
+  if ((*request)->isSend) {
+    // waits for isend
+    $message msg = $message_pack(0, 0, 0, NULL, 0);
+    // a blocking no-op enqueue:
+    $comm_enqueue($comm_null, msg);
+  } else {
+    // waits for irecv
+    _mpi_irecv_info_t * irecv_task = (*request)->irecv_task;
+    MPI_Comm comm = (*request)->comm;
+
+    if (irecv_task->completed) {
+      $free(irecv_task);
+    } else {
+      int num_tasks = $seq_length(&comm->irecv_tasks);
+      int i = 0;
+      _mpi_irecv_info_t * each_task = NULL;      
+
+      while (i < num_tasks && each_task != irecv_task) {
+	each_task = comm->irecv_tasks[i++];
+	$mpi_recv(each_task->buf, each_task->count, each_task->datatype,
+		  each_task->src, each_task->tag, comm, &((*request)->status));
+      }
+      $assert(each_task == irecv_task);
+      $free(irecv_task);
+      $seq_remove(&comm->irecv_tasks, 0, NULL, i);
+    }
+  }
   if (status != MPI_STATUS_IGNORE)
-    $copy(status, &((*request)->status));
+    *status = (*request)->status;
   MPI_Request_free(request);
   return 1;
 }
 
+int MPI_Wait(MPI_Request * request, MPI_Status * status) {
+  $assert(_mpi_state == _MPI_INIT, "MPI_Wait() cannot be invoked "
+	  "without MPI_Init() being called before.\n");
+  _mpi_wait(request, status);
+  return 1;
+}
+
 int MPI_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of_statuses[]) {
+  $assert(_mpi_state == _MPI_INIT, "MPI_Waitall() cannot be invoked "
+	  "without MPI_Init() being called before.\n");
   $for (int i : 0 .. count-1) {
     MPI_Status * status = array_of_statuses == MPI_STATUSES_IGNORE ? MPI_STATUS_IGNORE : array_of_statuses + i;
     MPI_Request * req = array_of_requests + i;
     
-    MPI_Wait(req, status);
+    _mpi_wait(req, status);
   }
   return 1;
 }
 
 int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status) {
+  $assert(_mpi_state == _MPI_INIT, "MPI_Test() cannot be invoked "
+	  "without MPI_Init() being called before.\n");
   if (request == MPI_REQUEST_NULL) {
     *flag = 1; 
     return 1;
   }  
-  if ((*request)->completed) {
-    $wait((*request)->proc);
-    (*request)->proc = $proc_null;
-    *flag = 1;
-    if (status != MPI_STATUS_IGNORE)
-      $copy(status, &((*request)->status));
-    MPI_Request_free(request);
-  } else
-    *flag = 0;
+  $choose {
+    $when ($true) {
+      _mpi_wait(request, status);
+      *flag = 1;
+    }
+    $when ($true) 
+      *flag = 0;
+  }
   return 1;
 }
 
 int MPI_Request_free(MPI_Request * request) {
   // The standard does not say this function accepts MPI_REQUEST_NULL
-  if ((*request)->proc != $proc_null)
-    $wait((*request)->proc);
   $free(*request);
   *request = MPI_REQUEST_NULL;
   return 1;

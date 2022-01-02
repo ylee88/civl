@@ -15,17 +15,14 @@ int main(int argc, char *argv[])  {
   if (rank == 0)  prev = numtasks - 1;
   if (rank == (numtasks - 1))  next = 0;
 
-
-  reqs[0] = MPI_REQUEST_NULL;
-  // MPI_Irecv(&buf[0], 1, MPI_INT, prev, tag1, MPI_COMM_WORLD, &reqs[0]);
+  MPI_Irecv(&buf[0], 1, MPI_INT, prev, tag1, MPI_COMM_WORLD, &reqs[0]);
   MPI_Irecv(&buf[1], 1, MPI_INT, next, tag2, MPI_COMM_WORLD, &reqs[1]);  
   MPI_Isend(&rank, 1, MPI_INT, prev, tag2, MPI_COMM_WORLD, &reqs[2]);
-  //MPI_Isend(&rank, 1, MPI_INT, next, tag1, MPI_COMM_WORLD, &reqs[3]);
-  reqs[3] = MPI_REQUEST_NULL;
+  MPI_Isend(&rank, 1, MPI_INT, next, tag1, MPI_COMM_WORLD, &reqs[3]);
 
   MPI_Waitall(4, reqs, stats);
 
-  assert(buf[1] == next);
+  assert(buf[0] == prev && buf[1] == next);
 
   MPI_Finalize();
 }

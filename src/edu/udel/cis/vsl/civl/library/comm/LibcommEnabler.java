@@ -458,8 +458,20 @@ public class LibcommEnabler extends BaseLibraryEnabler
 					"LibcommEnabler loads LibcommEvaluator failed",
 					(CIVLSource) null);
 		}
-		eval = libevaluator.getCommByCommHandleExpr(state, pid, process,
-				commHandleExpr);
+
+		SymbolicExpression commHandle;
+		BooleanExpression commHandleIsNull;
+
+		eval = evaluator.evaluate(state, pid, commHandleExpr);
+		commHandle = eval.value;
+		commHandleIsNull = universe.equals(commHandle, symbolicUtil.nullPointer());
+		if (commHandleIsNull.isTrue())
+			return universe.falseExpression();
+		assert commHandleIsNull
+				.isFalse() : "expecting concrete boolean value for "
+						+ commHandleIsNull;
+		eval = evaluator.dereference(commHandleExpr.getSource(), eval.state,
+				process, commHandle, false, true);
 		comm = eval.value;
 		eval = libevaluator.getGcommByComm(eval.state, pid, process, eval.value,
 				commHandleExpr.getSource());
