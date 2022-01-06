@@ -34,6 +34,7 @@ import edu.udel.cis.vsl.abc.main.UnitTask;
 import edu.udel.cis.vsl.abc.program.IF.Program;
 import edu.udel.cis.vsl.abc.token.IF.FileIndexer;
 import edu.udel.cis.vsl.abc.transform.common.ExternLinkageVariableRenamer;
+import edu.udel.cis.vsl.abc.transform.common.GenericSelectionRemover;
 import edu.udel.cis.vsl.abc.transform.common.Pruner;
 import edu.udel.cis.vsl.abc.transform.common.SideEffectRemover;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
@@ -307,6 +308,7 @@ public class ModelTranslator {
 
 	private void addTransformations(TranslationTask task,
 			Map<String, String> macros) throws ABCException {
+		task.addTransformCode(GenericSelectionRemover.CODE);
 		if (config.svcomp())
 			task.addTransformRecord(
 					transformerFactory.getSvcompTransformerRecord(config));
