@@ -224,3 +224,177 @@ cudaError_t cudaThreadExit() {
   return cudaSuccess;
 }
 
+/* C++ Language Extensions */
+
+/* Reads the 16-bit, 32-bit or 64-bit word old located at the address address in
+ * global or shared memory, computes (old + val), and stores the result back to
+ * memory at the same address. These three operations are performed in one atomic
+ * transaction. The function returns old.
+ */
+int cudaAtomicAdd_int(int* address, int val) {
+	int old = *address;
+	*address += val;
+	return old;
+}
+unsigned int cudaAtomicAdd_uint(unsigned int* address, unsigned int val) {
+	unsigned int old = *address;
+	*address += val;
+	return old;
+}
+unsigned long long int cudaAtomicAdd_ullint(unsigned long long int* address,
+                                        unsigned long long int val) {
+	unsigned long long int old = *address;
+	*address += val;
+	return old;
+}
+float cudaAtomicAdd_float(float* address, float val) {
+	float old = *address;
+	*address += val;
+	return old;
+}
+double cudaAtomicAdd_double(double* address, double val) {
+	double old = *address;
+	*address += val;
+	return old;
+}
+
+/* reads the 32-bit word old located at the address address in global or shared
+ * memory, computes (old - val), and stores the result back to memory at the same
+ * address. These three operations are performed in one atomic transaction. The
+ * function returns old.
+ */
+int cudaAtomicSub_int(int* address, int val) {
+	int old = *address;
+	*address -= val;
+	return old;
+}
+unsigned int cudaAtomicSub_uint(unsigned int* address, unsigned int val) {
+	unsigned int old = *address;
+	*address -= val;
+	return old;
+}
+
+/* reads the 32-bit or 64-bit word old located at the address address in global
+ * or shared memory and stores val back to memory at the same address. These two
+ * operations are performed in one atomic transaction. The function returns old. 
+ */
+int cudaAtomicExch_int(int* address, int val) {
+	int old = *address;
+	*address = val;
+	return old;
+}
+unsigned int cudaAtomicExch_uint(unsigned int* address, unsigned int val) {
+	unsigned int old = *address;
+	*address = val;
+	return old;
+}
+unsigned long long int cudaAtomicExch_ullint(unsigned long long int* address,
+                                  unsigned long long int val) {
+	unsigned long long int old = *address;
+	*address = val;
+	return old;
+}
+float cudaAtomicExch_float(float* address, float val) {
+	float old = *address;
+	*address = val;
+	return old;
+}
+
+/* reads the 32-bit or 64-bit word old located at the address address in global
+ * or shared memory, computes the minimum of old and val, and stores the result
+ * back to memory at the same address. These three operations are performed in one
+ * atomic transaction. The function returns old.
+ */
+int cudaAtomicMin_int(int* address, int val) {
+	int old = *address;
+	*address = (old <= val) ? old : val;
+	return old;
+}
+unsigned int cudaAtomicMin_uint(unsigned int* address, unsigned int val) {
+	unsigned int old = *address;
+	*address = (old <= val) ? old : val;
+	return old;
+}
+unsigned long long int cudaAtomicMin_ullint(unsigned long long int* address,
+                                        unsigned long long int val) {
+	unsigned long long int old = *address;
+	*address = (old <= val) ? old : val;
+	return old;
+}
+
+/* reads the 32-bit or 64-bit word old located at the address address in global
+ * or shared memory, computes the maximum of old and val, and stores the result
+ * back to memory at the same address. These three operations are performed in one
+ * atomic transaction. The function returns old.
+ */
+int cudaAtomicMax_int(int* address, int val) {
+	int old = *address;
+	*address = (old >= val) ? old : val;
+	return old;
+}
+unsigned int cudaAtomicMax_uint(unsigned int* address, unsigned int val) {
+	unsigned int old = *address;
+	*address = (old >= val) ? old : val;
+	return old;
+}
+unsigned long long int cudaAtomicMax_ullint(unsigned long long int* address,
+                                        unsigned long long int val) {
+	unsigned long long int old = *address;
+	*address = (old >= val) ? old : val;
+	return old;
+}
+
+/* reads the 32-bit word old located at the address address in global or shared
+ * memory, computes ((old >= val) ? 0 : (old+1)), and stores the result back to
+ * memory at the same address. These three operations are performed in one atomic
+ * transaction. The function returns old.
+ */
+unsigned int atomicInc(unsigned int* address, unsigned int val) {
+	unsigned int old = *address;
+	*address = (old >= val) ? 0 : old + 1;
+	return old;
+}
+
+/* reads the 32-bit word old located at the address address in global or shared
+ * memory, computes (((old == 0) || (old > val)) ? val : (old-1) ), and stores
+ * the result back to memory at the same address. These three operations are
+ * performed in one atomic transaction. The function returns old.
+ */
+unsigned int atomicDec(unsigned int* address, unsigned int val) {
+	unsigned int old = *address;
+	*address = ((old == 0) || (old > val)) ? val : old-1;
+	return old;
+}
+
+/* reads the 16-bit, 32-bit or 64-bit word old located at the address address in
+ * global or shared memory, computes (old == compare ? val : old) , and stores the
+ * result back to memory at the same address. These three operations are performed
+ * in one atomic transaction. The function returns old (Compare And Swap).
+ */
+int cudaAtomicCAS_int(int* address, int compare, int val) {
+	int old = *address;
+	*address = old == compare ? val : old;
+	return old;
+}
+unsigned int cudaAtomicCAS_uint(unsigned int* address,
+                            unsigned int compare,
+                            unsigned int val) {
+	unsigned int old = *address;
+	*address = old == compare ? val : old;
+	return old;
+}
+unsigned long long int cudaAtomicCAS_ullint(unsigned long long int* address,
+                                        unsigned long long int compare,
+                                        unsigned long long int val) {
+	unsigned long long int old = *address;
+	*address = old == compare ? val : old;
+	return old;
+}
+unsigned short int cudaAtomicCAS_usint(unsigned short int* address,
+                                   unsigned short int compare,
+                                   unsigned short int val) {
+	unsigned short int old = *address;
+	*address = old == compare ? val : old;
+	return old;
+}
+
