@@ -51,6 +51,12 @@ struct MPI_Request{
 
 $mpi_state _mpi_state=_MPI_UNINIT;
 
+// declare worker function of MPI_Wait
+int _mpi_wait(MPI_Request * request, MPI_Status * status);
+// declare worker function of MPI_Recv and MPI_IRecv
+int _mpi_irecv(void *buf, int count, MPI_Datatype datatype, int source,
+	       int tag, MPI_Comm comm, MPI_Request * request);
+
 /************************** MPI LIB Implementations *******************************/
 
 int $mpi_init(void) {
@@ -137,20 +143,9 @@ int MPI_Isend(void *buf, int count, MPI_Datatype datatype, int dest,
   return 0;
 }
 
-int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source,
-	     int tag, MPI_Comm comm, MPI_Status *status) {
-  $assert(_mpi_state == _MPI_INIT, "MPI_Recv() cannot be invoked "
-	  "without MPI_Init() being called before.\n");
-#ifdef _MPI_CONTRACT
-  $elaborate(source);
-#endif
-  return $mpi_recv(buf, count, datatype, source, tag, comm, status);
-}
-
-int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source,
-	      int tag, MPI_Comm comm, MPI_Request * request) {
-  $assert(_mpi_state == _MPI_INIT, "MPI_Irecv() cannot be invoked "
-	  "without MPI_Init() being called before.\n");
+// worker function of MPI_Recv and MPI_IRecv
+int _mpi_irecv(void *buf, int count, MPI_Datatype datatype, int source,
+	       int tag, MPI_Comm comm, MPI_Request * request) {
 #ifdef _MPI_CONTRACT
   $elaborate(source);
 #endif
@@ -169,9 +164,29 @@ int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source,
   req->irecv_task->completed = $false;  
   $seq_append(&comm->irecv_tasks, &req->irecv_task, 1);
   *request = req;
+  return 1;  
+}
+
+int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source,
+	     int tag, MPI_Comm comm, MPI_Status *status) {
+  $assert(_mpi_state == _MPI_INIT, "MPI_Recv() cannot be invoked "
+	  "without MPI_Init() being called before.\n");
+  
+  MPI_Request request;
+  
+  _mpi_irecv(buf, count, datatype, source, tag, comm, &request);
+  _mpi_wait(&request, status);
   return 1;
 }
 
+int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source,
+	      int tag, MPI_Comm comm, MPI_Request * request) {
+  $assert(_mpi_state == _MPI_INIT, "MPI_Irecv() cannot be invoked "
+	  "without MPI_Init() being called before.\n");
+  return _mpi_irecv(buf, count, datatype, source, tag, comm, request);
+}
+
+// worker function of MPI_Wait
 int _mpi_wait(MPI_Request * request, MPI_Status * status) {
   if (*request == MPI_REQUEST_NULL) 
     return 1;  
