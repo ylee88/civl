@@ -350,7 +350,6 @@ public class ReadSetAnalyzer {
 			case DERIVATIVE :
 			case DIFFERENTIABLE :
 			case DOMAIN_GUARD :// what is this ?
-			case NON_DET_FUNC :// what is this ?
 				throw new CIVLUnimplementedFeatureException(
 						"dynamic analysis of read set during evaluation of "
 								+ "expression of " + kind + " kind");

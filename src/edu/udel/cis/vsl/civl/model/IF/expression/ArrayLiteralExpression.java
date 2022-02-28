@@ -13,18 +13,4 @@ public interface ArrayLiteralExpression extends LiteralExpression {
 
 	CIVLType elementType();
 
-//	/**
-//	 * Return the unique ID of this array literal. Only valid when this literal
-//	 * is used to initialize a pointer type variable, otherwise, id should be
-//	 * -1.
-//	 * 
-//	 * @return
-//	 */
-//	int id();
-//	
-//	/**
-//	 * 
-//	 * @param id
-//	 */
-//	void setId(int id);
 }

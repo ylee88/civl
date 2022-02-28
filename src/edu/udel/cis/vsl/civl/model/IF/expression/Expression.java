@@ -57,7 +57,7 @@ public interface Expression extends Sourceable {
 		/**
 		 * an array lambda expression, instance of {@link ArrayLambdaExpression}
 		 */
-		ARRAY_LAMBDA, LAMBDA, EXTENDED_QUANTIFIER, VALUE_AT, NON_DET_FUNC,
+		ARRAY_LAMBDA, LAMBDA, EXTENDED_QUANTIFIER, VALUE_AT
 	}
 
 	/**

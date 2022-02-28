@@ -5,7 +5,7 @@ import java.util.List;
 import edu.udel.cis.vsl.civl.model.IF.CIVLFunction;
 
 /**
- * A system guard expression is a sudo guard expression for system function
+ * A system guard expression is a pseudo guard expression for system function
  * calls. Its evaluation is actually done in the corresponding library executor.
  * 
  * @author Manchun Zheng (zmanchun)

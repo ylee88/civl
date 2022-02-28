@@ -34,7 +34,7 @@ public interface Statement extends Sourceable {
 	 * @author Wenhao Wu (W.Wu) for CALLOC
 	 */
 	public enum StatementKind {
-		/** Assignment */
+		/** Assignment, including atomic lock assignments */
 		ASSIGN,
 		/** Function call or process spawn */
 		CALL_OR_SPAWN,
@@ -42,8 +42,6 @@ public interface Statement extends Sourceable {
 		DOMAIN_ITERATOR,
 		/** $contractVerify statement */
 		CIVL_PAR_FOR_ENTER,
-		/** Clean Memory allocation */ /* W.Wu */
-		CALLOC,
 		/** Memory allocation */
 		MALLOC,
 		/** No operation */

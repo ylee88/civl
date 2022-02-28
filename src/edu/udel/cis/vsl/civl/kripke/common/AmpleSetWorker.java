@@ -1559,7 +1559,7 @@ public class AmpleSetWorker {
 
 	/**
 	 * 
-	 * @param state
+	 * @param theState
 	 * @param pointer
 	 * @return
 	 */

@@ -14,7 +14,7 @@ import edu.udel.cis.vsl.civl.model.IF.expression.Expression;
 public interface NoopStatement extends Statement {
 
 	public enum NoopKind {
-		IF_ELSE, SWITCH, LOOP, NONE, GOTO, ATOMIC_ATOM
+		IF_ELSE, SWITCH, LOOP, NONE, GOTO
 	}
 
 	/**

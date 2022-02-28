@@ -1475,6 +1475,11 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 		return results;
 	}
 
+	// TODO: what is the point of all these checks? If the type
+	// is the pointer symbolic type, and the kind is tuple, the 3
+	// components must be expressions and they must have types
+	// integer (dynamic scope ID), integer (variable ID), reference type.
+	// Note this does not check that the two integer components are concrete.
 	@Override
 	public boolean isConcretePointer(SymbolicExpression pointer) {
 		if (pointer.type() != typeFactory.pointerSymbolicType())
