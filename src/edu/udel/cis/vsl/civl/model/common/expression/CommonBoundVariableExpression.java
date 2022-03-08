@@ -10,8 +10,9 @@ import edu.udel.cis.vsl.civl.model.IF.expression.Expression;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 
-public class CommonBoundVariableExpression extends CommonExpression implements
-		BoundVariableExpression {
+public class CommonBoundVariableExpression extends CommonExpression
+		implements
+			BoundVariableExpression {
 
 	/* ************************** Private Fields *************************** */
 
@@ -33,6 +34,10 @@ public class CommonBoundVariableExpression extends CommonExpression implements
 	@Override
 	public ExpressionKind expressionKind() {
 		return ExpressionKind.BOUND_VARIABLE;
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
 	}
 
 	/* *************** Methods from BoundVariableExpression **************** */
@@ -61,7 +66,7 @@ public class CommonBoundVariableExpression extends CommonExpression implements
 
 	@Override
 	protected boolean expressionEquals(Expression expression) {
-		return this.name.name().equals(
-				((BoundVariableExpression) expression).name().name());
+		return this.name.name()
+				.equals(((BoundVariableExpression) expression).name().name());
 	}
 }

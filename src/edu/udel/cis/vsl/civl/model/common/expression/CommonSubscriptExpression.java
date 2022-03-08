@@ -23,8 +23,9 @@ import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
  * @author Timothy K. Zirkel (zirkel)
  * 
  */
-public class CommonSubscriptExpression extends CommonExpression implements
-		SubscriptExpression {
+public class CommonSubscriptExpression extends CommonExpression
+		implements
+			SubscriptExpression {
 
 	private LHSExpression array;
 	private Expression index;
@@ -39,7 +40,8 @@ public class CommonSubscriptExpression extends CommonExpression implements
 	 *            An expression evaluating to an integer.
 	 */
 	public CommonSubscriptExpression(CIVLSource source, Scope hscope,
-			Scope lscope, CIVLType type, LHSExpression array, Expression index) {
+			Scope lscope, CIVLType type, LHSExpression array,
+			Expression index) {
 		super(source, hscope, lscope, type);
 		this.array = array;
 		this.index = index;
@@ -204,5 +206,11 @@ public class CommonSubscriptExpression extends CommonExpression implements
 	@Override
 	public boolean containsHere() {
 		return array.containsHere() || index.containsHere();
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		((CommonExpression) array).addFreeVariables(result);
+		((CommonExpression) index).addFreeVariables(result);
 	}
 }

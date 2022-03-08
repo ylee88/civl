@@ -18,8 +18,9 @@ import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
  * @author zirkel
  * 
  */
-public class CommonConditionalExpression extends CommonExpression implements
-		ConditionalExpression {
+public class CommonConditionalExpression extends CommonExpression
+		implements
+			ConditionalExpression {
 
 	Expression condition;
 	Expression trueBranch;
@@ -47,9 +48,8 @@ public class CommonConditionalExpression extends CommonExpression implements
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see
-	 * edu.udel.cis.vsl.civl.model.IF.expression.ConditionalExpression#getCondition
-	 * ()
+	 * @see edu.udel.cis.vsl.civl.model.IF.expression.ConditionalExpression#
+	 * getCondition ()
 	 */
 	@Override
 	public Expression getCondition() {
@@ -59,9 +59,8 @@ public class CommonConditionalExpression extends CommonExpression implements
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see
-	 * edu.udel.cis.vsl.civl.model.IF.expression.ConditionalExpression#getTrueBranch
-	 * ()
+	 * @see edu.udel.cis.vsl.civl.model.IF.expression.ConditionalExpression#
+	 * getTrueBranch ()
 	 */
 	@Override
 	public Expression getTrueBranch() {
@@ -163,8 +162,8 @@ public class CommonConditionalExpression extends CommonExpression implements
 						this.expressionScope(), this.lowestScope(),
 						this.expressionType, condition, newTrue, falseBranch);
 			} else {
-				newFalse = falseBranch
-						.replaceWith(oldExpression, newExpression);
+				newFalse = falseBranch.replaceWith(oldExpression,
+						newExpression);
 
 				if (newFalse != null)
 					result = new CommonConditionalExpression(this.getSource(),
@@ -221,6 +220,13 @@ public class CommonConditionalExpression extends CommonExpression implements
 	public boolean containsHere() {
 		return condition.containsHere() || trueBranch.containsHere()
 				|| falseBranch.containsHere();
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		((CommonExpression) condition).addFreeVariables(result);
+		((CommonExpression) trueBranch).addFreeVariables(result);
+		((CommonExpression) falseBranch).addFreeVariables(result);
 	}
 
 }

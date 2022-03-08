@@ -75,4 +75,15 @@ public class CommonParallelAssignStatement extends CommonStatement
 		return false;
 	}
 
+	@Override
+	public Set<Variable> freeVariables() {
+		Set<Variable> result = super.freeVariables();
+
+		for (Pair<LHSExpression, Expression> pair : assignPairs) {
+			result.addAll(pair.left.freeVariables());
+			result.addAll(pair.right.freeVariables());
+		}
+		return result;
+	}
+
 }

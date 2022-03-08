@@ -17,8 +17,9 @@ import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
  * @author Timothy K. Zirkel (zirkel)
  * 
  */
-public class CommonVariableExpression extends CommonExpression implements
-		VariableExpression {
+public class CommonVariableExpression extends CommonExpression
+		implements
+			VariableExpression {
 
 	Variable variable;
 
@@ -30,8 +31,8 @@ public class CommonVariableExpression extends CommonExpression implements
 	 */
 	public CommonVariableExpression(CIVLSource source, Variable variable) {
 		// Don't need to worry about the expression scope of constants.
-		super(source, variable.isConst() ? null : variable.scope(), variable
-				.scope(), variable.type());
+		super(source, variable.isConst() ? null : variable.scope(),
+				variable.scope(), variable.type());
 		this.variable = variable;
 	}
 
@@ -118,5 +119,11 @@ public class CommonVariableExpression extends CommonExpression implements
 		VariableExpression that = (VariableExpression) expression;
 
 		return this.variable.equals(that.variable());
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		if (!variable.isBound())
+			result.add(variable);
 	}
 }

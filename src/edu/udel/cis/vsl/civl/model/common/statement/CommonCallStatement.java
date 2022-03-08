@@ -420,4 +420,17 @@ public class CommonCallStatement extends CommonStatement
 	public boolean isInitializer() {
 		return this.isInitializer;
 	}
+
+	@Override
+	public Set<Variable> freeVariables() {
+		Set<Variable> result = super.freeVariables();
+
+		result.addAll(functionExpression.freeVariables());
+		if (lhs != null)
+			result.addAll(lhs.freeVariables());
+		for (Expression arg : arguments) {
+			result.addAll(arg.freeVariables());
+		}
+		return result;
+	}
 }

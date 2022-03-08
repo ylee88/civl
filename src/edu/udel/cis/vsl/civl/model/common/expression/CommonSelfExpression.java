@@ -54,4 +54,8 @@ public class CommonSelfExpression extends CommonExpression implements
 	protected boolean expressionEquals(Expression expression) {
 		return true;
 	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+	}
 }

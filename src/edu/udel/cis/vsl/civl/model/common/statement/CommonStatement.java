@@ -5,6 +5,7 @@ package edu.udel.cis.vsl.civl.model.common.statement;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.Model;
@@ -15,6 +16,7 @@ import edu.udel.cis.vsl.civl.model.IF.expression.VariableExpression;
 import edu.udel.cis.vsl.civl.model.IF.location.Location;
 import edu.udel.cis.vsl.civl.model.IF.location.Location.AtomicKind;
 import edu.udel.cis.vsl.civl.model.IF.statement.Statement;
+import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.civl.model.common.CommonSourceable;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 
@@ -390,6 +392,11 @@ public abstract class CommonStatement extends CommonSourceable
 
 	protected boolean containsHereWork() {
 		return false;
+	}
+
+	@Override
+	public Set<Variable> freeVariables() {
+		return guard.freeVariables();
 	}
 
 }

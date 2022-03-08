@@ -17,7 +17,8 @@ import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
  * 
  */
 public class CommonAbstractFunctionCallExpression extends CommonExpression
-		implements AbstractFunctionCallExpression {
+		implements
+			AbstractFunctionCallExpression {
 
 	/* ************************** Private Fields *************************** */
 
@@ -48,8 +49,8 @@ public class CommonAbstractFunctionCallExpression extends CommonExpression
 	 *            Expressions for the arguments used in the abstract function
 	 *            call.
 	 */
-	public CommonAbstractFunctionCallExpression(CIVLSource source,
-			Scope hscope, Scope lscope, AbstractFunction function,
+	public CommonAbstractFunctionCallExpression(CIVLSource source, Scope hscope,
+			Scope lscope, AbstractFunction function,
 			List<Expression> arguments) {
 		super(source, hscope, lscope, function.returnType());
 		this.function = function;
@@ -71,6 +72,12 @@ public class CommonAbstractFunctionCallExpression extends CommonExpression
 	@Override
 	public Set<Variable> variableAddressedOf() {
 		return null;
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		for (Expression arg : arguments)
+			((CommonExpression) arg).addFreeVariables(result);
 	}
 
 	/* ************* Methods from AbstractFunctionCallExpression *********** */

@@ -16,7 +16,8 @@ import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 
 public class CommonUpdateStatement extends CommonStatement
-		implements UpdateStatement {
+		implements
+			UpdateStatement {
 
 	private Expression collator;
 
@@ -168,5 +169,15 @@ public class CommonUpdateStatement extends CommonStatement
 		}
 		sb.append(")");
 		return sb.toString();
+	}
+
+	@Override
+	public Set<Variable> freeVariables() {
+		Set<Variable> result = super.freeVariables();
+
+		result.addAll(collator.freeVariables());
+		for (Expression arg : arguments)
+			result.addAll(arg.freeVariables());
+		return result;
 	}
 }

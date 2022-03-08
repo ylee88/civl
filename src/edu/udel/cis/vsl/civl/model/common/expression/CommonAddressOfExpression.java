@@ -137,6 +137,11 @@ public class CommonAddressOfExpression extends CommonExpression
 		return variableSet;
 	}
 
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		((CommonExpression) operand).addFreeVariables(result);
+	}
+
 	/* ************************ Methods from Object ************************ */
 
 	@Override

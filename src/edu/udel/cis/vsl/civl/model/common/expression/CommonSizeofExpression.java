@@ -12,8 +12,9 @@ import edu.udel.cis.vsl.civl.model.IF.expression.VariableExpression;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 
-public class CommonSizeofExpression extends CommonExpression implements
-		SizeofExpression {
+public class CommonSizeofExpression extends CommonExpression
+		implements
+			SizeofExpression {
 
 	private Expression argument;
 
@@ -106,7 +107,13 @@ public class CommonSizeofExpression extends CommonExpression implements
 
 	@Override
 	protected boolean expressionEquals(Expression expression) {
-		return this.argument.equals(((SizeofExpression) expression)
-				.getArgument());
+		return this.argument
+				.equals(((SizeofExpression) expression).getArgument());
 	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		((CommonExpression) argument).addFreeVariables(result);
+	}
+
 }

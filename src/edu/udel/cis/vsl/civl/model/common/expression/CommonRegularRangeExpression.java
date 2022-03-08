@@ -164,4 +164,14 @@ public class CommonRegularRangeExpression extends CommonExpression
 		return result;
 	}
 
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		if (high != null)
+			((CommonExpression) high).addFreeVariables(result);
+		if (low != null)
+			((CommonExpression) low).addFreeVariables(result);
+		if (step != null)
+			((CommonExpression) step).addFreeVariables(result);
+	}
+
 }

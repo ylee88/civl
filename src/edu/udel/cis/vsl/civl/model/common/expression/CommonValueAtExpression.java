@@ -98,4 +98,11 @@ public class CommonValueAtExpression extends CommonExpression
 		return result.toString();
 	}
 
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		((CommonExpression) expression).addFreeVariables(result);
+		((CommonExpression) pid).addFreeVariables(result);
+		((CommonExpression) state).addFreeVariables(result);
+	}
+
 }

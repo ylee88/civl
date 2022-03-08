@@ -1,9 +1,12 @@
 package edu.udel.cis.vsl.civl.model.common.type;
 
+import java.util.Set;
+
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
+import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.expr.BooleanExpression;
 import edu.udel.cis.vsl.sarl.IF.expr.NumericExpression;
@@ -179,5 +182,9 @@ public class CommonPrimitiveType extends CommonType
 	@Override
 	public boolean isScalar() {
 		return true;
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
 	}
 }

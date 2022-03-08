@@ -217,4 +217,9 @@ public class CommonUnaryExpression extends CommonExpression
 	public boolean containsHere() {
 		return operand.containsHere();
 	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		((CommonExpression) operand).addFreeVariables(result);
+	}
 }

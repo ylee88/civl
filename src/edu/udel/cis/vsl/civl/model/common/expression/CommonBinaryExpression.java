@@ -206,6 +206,12 @@ public class CommonBinaryExpression extends CommonExpression
 		return variableSet;
 	}
 
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		((CommonExpression) left).addFreeVariables(result);
+		((CommonExpression) right).addFreeVariables(result);
+	}
+
 	/* ********************** Methods from Expression ********************** */
 
 	@Override

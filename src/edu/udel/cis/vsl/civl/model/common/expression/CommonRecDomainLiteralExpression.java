@@ -18,7 +18,8 @@ import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicTupleType;
 
 public class CommonRecDomainLiteralExpression extends CommonExpression
-		implements RecDomainLiteralExpression {
+		implements
+			RecDomainLiteralExpression {
 
 	private Expression[] ranges;
 
@@ -145,5 +146,12 @@ public class CommonRecDomainLiteralExpression extends CommonExpression
 		}
 
 		return false;
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		for (Expression range : ranges)
+			((CommonExpression) range).addFreeVariables(result);
+
 	}
 }

@@ -275,4 +275,12 @@ public interface Statement extends Sourceable {
 	 * @return
 	 */
 	boolean containsHere();
+
+	/**
+	 * Returns all free (not bound) variables that are referenced in this
+	 * statement.
+	 * 
+	 * @return the free variables referenced in this statement
+	 */
+	Set<Variable> freeVariables();
 }

@@ -10,8 +10,9 @@ import edu.udel.cis.vsl.civl.model.IF.expression.FunctionGuardExpression;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 
-public class CommonFunctionGuardExpression extends CommonExpression implements
-		FunctionGuardExpression {
+public class CommonFunctionGuardExpression extends CommonExpression
+		implements
+			FunctionGuardExpression {
 
 	/**
 	 * The expression of the function pointer of the corresponding function
@@ -24,8 +25,8 @@ public class CommonFunctionGuardExpression extends CommonExpression implements
 	 */
 	private List<Expression> arguments;
 
-	public CommonFunctionGuardExpression(CIVLSource source,
-			Expression function, List<Expression> arguments, CIVLType type) {
+	public CommonFunctionGuardExpression(CIVLSource source, Expression function,
+			List<Expression> arguments, CIVLType type) {
 		super(source, null, null, type);
 		this.functionExpression = function;
 		this.arguments = arguments;
@@ -85,6 +86,13 @@ public class CommonFunctionGuardExpression extends CommonExpression implements
 				return true;
 		}
 		return false;
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		for (Expression arg : arguments)
+			((CommonExpression) arg).addFreeVariables(result);
+		((CommonExpression) functionExpression).addFreeVariables(result);
 	}
 
 }

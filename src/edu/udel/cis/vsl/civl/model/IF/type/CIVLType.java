@@ -1,5 +1,7 @@
 package edu.udel.cis.vsl.civl.model.IF.type;
 
+import java.util.Set;
+
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType.PrimitiveTypeKind;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
@@ -242,4 +244,6 @@ public interface CIVLType {
 	boolean areSubtypesScalar();
 
 	boolean isFunction();
+
+	Set<Variable> freeVariables();
 }

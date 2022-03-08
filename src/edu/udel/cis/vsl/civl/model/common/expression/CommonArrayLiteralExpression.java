@@ -17,8 +17,9 @@ import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
 
-public class CommonArrayLiteralExpression extends CommonExpression implements
-		ArrayLiteralExpression {
+public class CommonArrayLiteralExpression extends CommonExpression
+		implements
+			ArrayLiteralExpression {
 
 	/* ************************** Private Fields *************************** */
 
@@ -115,6 +116,12 @@ public class CommonArrayLiteralExpression extends CommonExpression implements
 			}
 		}
 		return result;
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		for (Expression element : elements)
+			((CommonExpression) element).addFreeVariables(result);
 	}
 
 	/* ************************ Methods from Object ************************ */

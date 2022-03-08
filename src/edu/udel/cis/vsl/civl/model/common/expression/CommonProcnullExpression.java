@@ -10,8 +10,9 @@ import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
 
-public class CommonProcnullExpression extends CommonExpression implements
-		ProcnullExpression {
+public class CommonProcnullExpression extends CommonExpression
+		implements
+			ProcnullExpression {
 
 	public CommonProcnullExpression(CIVLSource source, CIVLType type,
 			SymbolicExpression constantValue) {
@@ -42,6 +43,10 @@ public class CommonProcnullExpression extends CommonExpression implements
 	@Override
 	protected boolean expressionEquals(Expression expression) {
 		return true;
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
 	}
 
 }

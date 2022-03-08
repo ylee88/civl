@@ -9,8 +9,9 @@ import edu.udel.cis.vsl.civl.model.IF.expression.SizeofTypeExpression;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 
-public class CommonSizeofTypeExpression extends CommonExpression implements
-		SizeofTypeExpression {
+public class CommonSizeofTypeExpression extends CommonExpression
+		implements
+			SizeofTypeExpression {
 
 	private CIVLType type;
 
@@ -51,5 +52,10 @@ public class CommonSizeofTypeExpression extends CommonExpression implements
 	protected boolean expressionEquals(Expression expression) {
 		// TODO Auto-generated method stub
 		return false;
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		result.addAll(type.freeVariables());
 	}
 }

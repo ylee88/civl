@@ -1,9 +1,12 @@
 package edu.udel.cis.vsl.civl.model.common.type;
 
+import java.util.Set;
+
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLArrayType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLCompleteArrayType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
+import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
 
@@ -126,5 +129,10 @@ public class CommonArrayType extends CommonType implements CIVLArrayType {
 			dimension = dim;
 		}
 		return dimension;
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		((CommonType) elementType).addFreeVariables(result);
 	}
 }

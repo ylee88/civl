@@ -1,6 +1,7 @@
 package edu.udel.cis.vsl.civl.model.common.expression;
 
 import java.util.List;
+import java.util.Set;
 
 import edu.udel.cis.vsl.civl.model.IF.AbstractFunction;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
@@ -11,9 +12,11 @@ import edu.udel.cis.vsl.civl.model.IF.expression.IntegerLiteralExpression;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.civl.util.IF.Pair;
 
-public class CommonDerivativeCallExpression extends
-		CommonAbstractFunctionCallExpression implements
-		DerivativeCallExpression {
+public class CommonDerivativeCallExpression
+		extends
+			CommonAbstractFunctionCallExpression
+		implements
+			DerivativeCallExpression {
 
 	private List<Pair<Variable, IntegerLiteralExpression>> partials;
 
@@ -74,4 +77,12 @@ public class CommonDerivativeCallExpression extends
 		return result;
 	}
 
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		super.addFreeVariables(result);
+		for (Pair<Variable, IntegerLiteralExpression> pair : partials) {
+			result.add(pair.left);
+			((CommonExpression) pair.right).addFreeVariables(result);
+		}
+	}
 }

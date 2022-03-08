@@ -22,7 +22,8 @@ import edu.udel.cis.vsl.civl.util.IF.Pair;
  * 
  */
 public class CommonQuantifiedExpression extends CommonExpression
-		implements QuantifiedExpression {
+		implements
+			QuantifiedExpression {
 
 	private Quantifier quantifier;
 
@@ -94,18 +95,18 @@ public class CommonQuantifiedExpression extends CommonExpression
 		boolean isFirstVariableSubList = true;
 
 		switch (quantifier) {
-		case EXISTS:
-			result += "EXISTS";
-			break;
-		case FORALL:
-			result += "FORALL";
-			break;
-		case UNIFORM:
-			result += "UNIFORM";
-			break;
-		default:
-			result += "UNKNOWN_QUANTIFIER";
-			break;
+			case EXISTS :
+				result += "EXISTS";
+				break;
+			case FORALL :
+				result += "FORALL";
+				break;
+			case UNIFORM :
+				result += "UNIFORM";
+				break;
+			default :
+				result += "UNKNOWN_QUANTIFIER";
+				break;
 		}
 		result += "(";
 		for (Pair<List<Variable>, Expression> variableSubList : this.boundVariableList) {
@@ -223,5 +224,18 @@ public class CommonQuantifiedExpression extends CommonExpression
 	@Override
 	public int numBoundVariables() {
 		return this.numBoundVariables;
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		for (Pair<List<Variable>, Expression> pair : boundVariableList) {
+			Expression right = pair.right;
+
+			if (right != null)
+				((CommonExpression) right).addFreeVariables(result);
+		}
+		((CommonExpression) expression).addFreeVariables(result);
+		if (restriction != null)
+			((CommonExpression) restriction).addFreeVariables(result);
 	}
 }

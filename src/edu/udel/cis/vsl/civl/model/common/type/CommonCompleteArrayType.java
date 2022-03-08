@@ -3,19 +3,23 @@
  */
 package edu.udel.cis.vsl.civl.model.common.type;
 
+import java.util.Set;
+
 import edu.udel.cis.vsl.civl.model.IF.expression.Expression;
 import edu.udel.cis.vsl.civl.model.IF.expression.Expression.ExpressionKind;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLCompleteArrayType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
+import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 
 /**
  * @author zirkel
  * 
  */
-public class CommonCompleteArrayType extends CommonArrayType implements
-		CIVLCompleteArrayType {
+public class CommonCompleteArrayType extends CommonArrayType
+		implements
+			CIVLCompleteArrayType {
 
 	private Expression extent;
 
@@ -73,5 +77,10 @@ public class CommonCompleteArrayType extends CommonArrayType implements
 		if (newElementType.equals(this.elementType()))
 			return this;
 		return new CommonCompleteArrayType(newElementType, extent);
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		super.addFreeVariables(result);
 	}
 }

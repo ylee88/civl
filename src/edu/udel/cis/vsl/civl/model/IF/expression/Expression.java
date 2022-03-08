@@ -206,4 +206,12 @@ public interface Expression extends Sourceable {
 	 * @return
 	 */
 	boolean isErrorFree();
+
+	/**
+	 * Computes the set of variables which occur freely in this expression.
+	 * "Free" means not bound, i.e., quantified variables are not included.
+	 * 
+	 * @return the set of free variables occurring in the expression
+	 */
+	Set<Variable> freeVariables();
 }

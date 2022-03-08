@@ -9,8 +9,9 @@ import edu.udel.cis.vsl.civl.model.IF.expression.WildcardExpression;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 
-public class CommonWildcardExpression extends CommonExpression implements
-		WildcardExpression {
+public class CommonWildcardExpression extends CommonExpression
+		implements
+			WildcardExpression {
 
 	public CommonWildcardExpression(CIVLSource source, CIVLType type) {
 		super(source, null, null, type);
@@ -42,5 +43,9 @@ public class CommonWildcardExpression extends CommonExpression implements
 	@Override
 	public String toString() {
 		return "...";
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
 	}
 }

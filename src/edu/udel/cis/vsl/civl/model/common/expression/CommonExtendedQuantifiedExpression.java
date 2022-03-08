@@ -102,4 +102,13 @@ public class CommonExtendedQuantifiedExpression extends CommonExpression
 		return false;
 	}
 
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		((CommonExpression) function).addFreeVariables(result);
+		if (higher != null)
+			((CommonExpression) higher).addFreeVariables(result);
+		if (lower != null)
+			((CommonExpression) lower).addFreeVariables(result);
+	}
+
 }

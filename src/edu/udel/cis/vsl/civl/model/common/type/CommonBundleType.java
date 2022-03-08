@@ -7,10 +7,12 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLBundleType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
+import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicUnionType;
@@ -64,7 +66,8 @@ public class CommonBundleType extends CommonType implements CIVLBundleType {
 
 	@Override
 	public void complete(List<CIVLType> types,
-			Collection<SymbolicType> elementTypes, SymbolicUnionType dynamicType) {
+			Collection<SymbolicType> elementTypes,
+			SymbolicUnionType dynamicType) {
 		int n = elementTypes.size();
 
 		this.types = types;
@@ -128,5 +131,11 @@ public class CommonBundleType extends CommonType implements CIVLBundleType {
 	@Override
 	public CIVLType getStaticElementType(int index) {
 		return types.get(index);
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		for (CIVLType type : types)
+			((CommonType) type).addFreeVariables(result);
 	}
 }

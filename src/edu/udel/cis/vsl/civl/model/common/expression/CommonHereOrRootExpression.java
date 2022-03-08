@@ -10,8 +10,9 @@ import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
 
-public class CommonHereOrRootExpression extends CommonExpression implements
-		HereOrRootExpression {
+public class CommonHereOrRootExpression extends CommonExpression
+		implements
+			HereOrRootExpression {
 
 	private boolean isRoot;
 
@@ -66,4 +67,7 @@ public class CommonHereOrRootExpression extends CommonExpression implements
 		return this.isHere();
 	}
 
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+	}
 }

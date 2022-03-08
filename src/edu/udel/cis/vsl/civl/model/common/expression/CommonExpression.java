@@ -3,12 +3,16 @@
  */
 package edu.udel.cis.vsl.civl.model.common.expression;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.Scope;
 import edu.udel.cis.vsl.civl.model.IF.expression.ConditionalExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.Expression;
 import edu.udel.cis.vsl.civl.model.IF.expression.VariableExpression;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
+import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.civl.model.common.CommonSourceable;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
@@ -21,8 +25,9 @@ import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
  * @author Timothy K. Zirkel (zirkel)
  * 
  */
-public abstract class CommonExpression extends CommonSourceable implements
-		Expression {
+public abstract class CommonExpression extends CommonSourceable
+		implements
+			Expression {
 
 	// TODO: add field private SymbolicExpression constantValue
 	// with setters and getters. Initially null, this is
@@ -180,5 +185,17 @@ public abstract class CommonExpression extends CommonSourceable implements
 	@Override
 	public boolean isErrorFree() {
 		return this.isErrorFree;
+	}
+
+	protected abstract void addFreeVariables(Set<Variable> result);
+
+	@Override
+	public Set<Variable> freeVariables() {
+		HashSet<Variable> result = new HashSet<>();
+
+		if (expressionType != null)
+			result.addAll(expressionType.freeVariables());
+		addFreeVariables(result);
+		return result;
 	}
 }

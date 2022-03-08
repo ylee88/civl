@@ -111,4 +111,10 @@ public class CommonMPIContractExpression extends CommonExpression
 		return pattern;
 	}
 
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		for (Expression arg : arguments)
+			((CommonExpression) arg).addFreeVariables(result);
+	}
+
 }

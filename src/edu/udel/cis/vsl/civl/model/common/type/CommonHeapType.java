@@ -4,11 +4,13 @@
 package edu.udel.cis.vsl.civl.model.common.type;
 
 import java.util.Collection;
+import java.util.Set;
 
 import edu.udel.cis.vsl.civl.model.IF.statement.MallocStatement;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLHeapType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
+import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
@@ -105,5 +107,9 @@ public class CommonHeapType extends CommonType implements CIVLHeapType {
 	@Override
 	public boolean areSubtypesScalar() {
 		return false;
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
 	}
 }

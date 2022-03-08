@@ -128,4 +128,14 @@ public class CommonCivlForEnterStatement extends CommonStatement
 	protected void calculateConstantValueWork(SymbolicUniverse universe) {
 		this.domain.calculateConstantValue(universe);
 	}
+
+	@Override
+	public Set<Variable> freeVariables() {
+		Set<Variable> result = super.freeVariables();
+
+		result.addAll(domain.freeVariables());
+		result.add(literalDomCounter);
+		result.addAll(loopVariables);
+		return result;
+	}
 }

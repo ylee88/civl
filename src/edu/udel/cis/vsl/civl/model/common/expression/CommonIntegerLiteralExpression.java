@@ -94,4 +94,8 @@ public class CommonIntegerLiteralExpression extends CommonExpression implements
 
 		return this.value.equals(that.value());
 	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {		
+	}
 }

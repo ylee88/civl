@@ -31,6 +31,9 @@ import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 public interface LambdaExpression extends Expression {
 
 	/**
+	 * TODO: shouldn't this be called the "bound variable"? It is the opposite
+	 * of free.
+	 * 
 	 * @return The free variable in this lambda expression
 	 */
 	Variable freeVariable();

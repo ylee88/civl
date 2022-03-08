@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import edu.udel.cis.vsl.civl.model.IF.CIVLException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
@@ -17,6 +18,7 @@ import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLStructOrUnionType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.type.StructOrUnionField;
+import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.civl.model.common.CommonIdentifier;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
@@ -231,5 +233,15 @@ public class CommonStructOrUnionType extends CommonType
 				return false;
 		}
 		return true;
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		for (StructOrUnionField field : fields) {
+			((CommonType) ((CommonStructOrUnionField) field).type())
+					.addFreeVariables(result);
+		}
+		// TODO Auto-generated method stub
+
 	}
 }

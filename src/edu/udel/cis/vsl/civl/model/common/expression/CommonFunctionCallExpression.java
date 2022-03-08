@@ -11,14 +11,15 @@ import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 
 public class CommonFunctionCallExpression extends CommonExpression
-		implements FunctionCallExpression {
+		implements
+			FunctionCallExpression {
 
 	CallOrSpawnStatement callStatement;
 
 	public CommonFunctionCallExpression(CIVLSource source,
 			CallOrSpawnStatement callStatement) {
-		super(source, callStatement.statementScope(), callStatement
-				.lowestScope(), null);
+		super(source, callStatement.statementScope(),
+				callStatement.lowestScope(), null);
 		this.callStatement = callStatement;
 	}
 
@@ -66,5 +67,13 @@ public class CommonFunctionCallExpression extends CommonExpression
 	@Override
 	public boolean containsHere() {
 		return callStatement.containsHere();
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		for (Expression arg : callStatement.arguments())
+			((CommonExpression) arg).addFreeVariables(result);
+		((CommonExpression) callStatement.functionExpression())
+				.addFreeVariables(result);
 	}
 }

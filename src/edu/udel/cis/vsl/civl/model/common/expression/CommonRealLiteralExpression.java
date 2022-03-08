@@ -99,4 +99,8 @@ public class CommonRealLiteralExpression extends CommonExpression implements
 	protected boolean expressionEquals(Expression expression) {
 		return this.value == ((RealLiteralExpression) expression).value();
 	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+	}
 }

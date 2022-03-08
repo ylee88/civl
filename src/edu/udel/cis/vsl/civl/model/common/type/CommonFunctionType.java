@@ -1,8 +1,11 @@
 package edu.udel.cis.vsl.civl.model.common.type;
 
+import java.util.Set;
+
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLFunctionType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
+import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
 
@@ -110,6 +113,14 @@ public class CommonFunctionType extends CommonType implements CIVLFunctionType {
 	@Override
 	public boolean isFunction() {
 		return true;
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		if (returnType != null)
+			((CommonType) returnType).addFreeVariables(result);
+		for (CIVLType atype : parameterTypes)
+			((CommonType) atype).addFreeVariables(result);
 	}
 
 }

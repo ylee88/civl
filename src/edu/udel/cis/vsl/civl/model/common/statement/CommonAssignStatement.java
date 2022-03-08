@@ -224,4 +224,13 @@ public class CommonAssignStatement extends CommonStatement
 		}
 		return false;
 	}
+
+	@Override
+	public Set<Variable> freeVariables() {
+		Set<Variable> result = super.freeVariables();
+
+		result.addAll(lhs.freeVariables());
+		result.addAll(rhs.freeVariables());
+		return result;
+	}
 }

@@ -12,7 +12,8 @@ import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
 
 public class CommonStatenullExpression extends CommonExpression
-		implements StatenullExpression {
+		implements
+			StatenullExpression {
 
 	public CommonStatenullExpression(CIVLSource source, CIVLType type,
 			SymbolicExpression constantValue) {
@@ -43,5 +44,9 @@ public class CommonStatenullExpression extends CommonExpression
 	@Override
 	public String toString() {
 		return "$state_null";
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
 	}
 }

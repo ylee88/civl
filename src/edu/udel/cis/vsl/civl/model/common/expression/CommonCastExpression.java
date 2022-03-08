@@ -21,8 +21,9 @@ import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
  * @author zirkel
  * 
  */
-public class CommonCastExpression extends CommonExpression implements
-		CastExpression {
+public class CommonCastExpression extends CommonExpression
+		implements
+			CastExpression {
 
 	private Expression expression;
 
@@ -138,4 +139,8 @@ public class CommonCastExpression extends CommonExpression implements
 		return expression.containsHere();
 	}
 
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		((CommonExpression) expression).addFreeVariables(result);
+	}
 }

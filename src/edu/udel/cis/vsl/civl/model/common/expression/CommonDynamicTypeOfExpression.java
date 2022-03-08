@@ -18,8 +18,9 @@ import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
  * @author zirkel
  * 
  */
-public class CommonDynamicTypeOfExpression extends CommonExpression implements
-		DynamicTypeOfExpression {
+public class CommonDynamicTypeOfExpression extends CommonExpression
+		implements
+			DynamicTypeOfExpression {
 
 	private CIVLType type;
 
@@ -61,6 +62,11 @@ public class CommonDynamicTypeOfExpression extends CommonExpression implements
 		DynamicTypeOfExpression that = (DynamicTypeOfExpression) expression;
 
 		return this.type.equals(that.getType());
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		result.addAll(type.freeVariables());
 	}
 
 }

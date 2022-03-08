@@ -36,4 +36,8 @@ public class CommonNothing extends CommonExpression implements Nothing {
 		return false;
 	}
 
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+	}
+
 }

@@ -21,7 +21,8 @@ import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
  * 
  */
 public class CommonUndefinedProcessExpression extends CommonExpression
-		implements UndefinedProcessExpression {
+		implements
+			UndefinedProcessExpression {
 
 	/**
 	 * Self expression. Returns a reference to the process in which the
@@ -56,5 +57,9 @@ public class CommonUndefinedProcessExpression extends CommonExpression
 	@Override
 	protected boolean expressionEquals(Expression expression) {
 		return true;
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
 	}
 }

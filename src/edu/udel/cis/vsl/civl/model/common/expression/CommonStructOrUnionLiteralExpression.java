@@ -71,4 +71,8 @@ public class CommonStructOrUnionLiteralExpression extends CommonExpression
 	public void setLiteralConstantValue(SymbolicExpression value) {
 		this.constantValue = value;
 	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+	}
 }

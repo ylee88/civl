@@ -3,10 +3,13 @@
  */
 package edu.udel.cis.vsl.civl.model.common.type;
 
+import java.util.Set;
+
 import edu.udel.cis.vsl.civl.model.IF.Scope;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPointerType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
+import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
 
@@ -86,5 +89,10 @@ public class CommonPointerType extends CommonType implements CIVLPointerType {
 	@Override
 	public boolean isScalar() {
 		return true;
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		((CommonType) baseType).addFreeVariables(result);
 	}
 }

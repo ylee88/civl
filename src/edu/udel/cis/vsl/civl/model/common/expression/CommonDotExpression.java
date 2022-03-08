@@ -215,4 +215,8 @@ public class CommonDotExpression extends CommonExpression
 		return this.structOrUnion.containsHere();
 	}
 
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		((CommonExpression) structOrUnion).addFreeVariables(result);
+	}
 }

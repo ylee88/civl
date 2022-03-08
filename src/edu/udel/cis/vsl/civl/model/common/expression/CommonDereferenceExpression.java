@@ -14,8 +14,9 @@ import edu.udel.cis.vsl.civl.model.IF.expression.VariableExpression;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 
-public class CommonDereferenceExpression extends CommonExpression implements
-		DereferenceExpression {
+public class CommonDereferenceExpression extends CommonExpression
+		implements
+			DereferenceExpression {
 
 	private Expression pointer;
 
@@ -92,10 +93,12 @@ public class CommonDereferenceExpression extends CommonExpression implements
 		if (pointer instanceof BinaryExpression) {
 			BinaryExpression binaryExpression = (BinaryExpression) pointer;
 
-			if (binaryExpression.operator() == BinaryExpression.BINARY_OPERATOR.POINTER_ADD) {
+			if (binaryExpression
+					.operator() == BinaryExpression.BINARY_OPERATOR.POINTER_ADD) {
 				Expression pointerVariable;
 
-				if (binaryExpression.left().getExpressionType().isPointerType()) {
+				if (binaryExpression.left().getExpressionType()
+						.isPointerType()) {
 					pointerVariable = binaryExpression.left();
 				} else {
 					pointerVariable = binaryExpression.right();
@@ -127,10 +130,12 @@ public class CommonDereferenceExpression extends CommonExpression implements
 		if (pointer instanceof BinaryExpression) {
 			BinaryExpression binaryExpression = (BinaryExpression) pointer;
 
-			if (binaryExpression.operator() == BinaryExpression.BINARY_OPERATOR.POINTER_ADD) {
+			if (binaryExpression
+					.operator() == BinaryExpression.BINARY_OPERATOR.POINTER_ADD) {
 				Expression pointerVariable;
 
-				if (binaryExpression.left().getExpressionType().isPointerType()) {
+				if (binaryExpression.left().getExpressionType()
+						.isPointerType()) {
 					pointerVariable = binaryExpression.left();
 				} else {
 					pointerVariable = binaryExpression.right();
@@ -168,5 +173,10 @@ public class CommonDereferenceExpression extends CommonExpression implements
 	@Override
 	public boolean containsHere() {
 		return this.pointer.containsHere();
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		((CommonExpression) pointer).addFreeVariables(result);
 	}
 }

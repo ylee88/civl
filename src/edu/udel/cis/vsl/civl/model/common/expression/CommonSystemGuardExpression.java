@@ -19,8 +19,9 @@ import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
  * @author Manchun Zheng (zmanchun)
  * 
  */
-public class CommonSystemGuardExpression extends CommonExpression implements
-		SystemGuardExpression {
+public class CommonSystemGuardExpression extends CommonExpression
+		implements
+			SystemGuardExpression {
 
 	/* *************************** Instance Fields ************************* */
 
@@ -119,6 +120,12 @@ public class CommonSystemGuardExpression extends CommonExpression implements
 				return true;
 		}
 		return false;
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		for (Expression arg : arguments)
+			((CommonExpression) arg).addFreeVariables(result);
 	}
 
 }

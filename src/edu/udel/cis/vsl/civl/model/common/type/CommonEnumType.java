@@ -2,12 +2,14 @@ package edu.udel.cis.vsl.civl.model.common.type;
 
 import java.math.BigInteger;
 import java.util.Map;
+import java.util.Set;
 
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLEnumType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
+import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
 
@@ -45,8 +47,9 @@ public class CommonEnumType extends CommonType implements CIVLEnumType {
 	@Override
 	public BigInteger valueOf(String member) {
 		if (!valueMap.containsKey(member))
-			throw new CIVLInternalException("no enumerator " + member
-					+ " defined in the enumeration type " + name,
+			throw new CIVLInternalException(
+					"no enumerator " + member
+							+ " defined in the enumeration type " + name,
 					(CIVLSource) null);
 		return valueMap.get(member);
 	}
@@ -99,6 +102,10 @@ public class CommonEnumType extends CommonType implements CIVLEnumType {
 	@Override
 	public boolean isScalar() {
 		return true;
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
 	}
 
 }

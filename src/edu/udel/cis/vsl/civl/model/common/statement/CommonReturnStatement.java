@@ -181,4 +181,13 @@ public class CommonReturnStatement extends CommonStatement
 			}
 		return false;
 	}
+
+	@Override
+	public Set<Variable> freeVariables() {
+		Set<Variable> result = super.freeVariables();
+
+		if (expression != null)
+			result.addAll(expression.freeVariables());
+		return result;
+	}
 }

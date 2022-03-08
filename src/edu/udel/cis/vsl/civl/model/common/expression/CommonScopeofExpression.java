@@ -16,8 +16,9 @@ import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
  * @author Manchun Zheng
  * 
  */
-public class CommonScopeofExpression extends CommonExpression implements
-		ScopeofExpression {
+public class CommonScopeofExpression extends CommonExpression
+		implements
+			ScopeofExpression {
 
 	private LHSExpression argument;
 
@@ -62,6 +63,11 @@ public class CommonScopeofExpression extends CommonExpression implements
 	@Override
 	public boolean containsHere() {
 		return argument.containsHere();
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		((CommonExpression) argument).addFreeVariables(result);
 	}
 
 }

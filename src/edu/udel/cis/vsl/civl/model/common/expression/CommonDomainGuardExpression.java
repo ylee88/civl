@@ -11,8 +11,9 @@ import edu.udel.cis.vsl.civl.model.IF.type.CIVLCompleteDomainType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 
-public class CommonDomainGuardExpression extends CommonExpression implements
-		DomainGuardExpression {
+public class CommonDomainGuardExpression extends CommonExpression
+		implements
+			DomainGuardExpression {
 
 	private Variable[] variables;
 
@@ -90,5 +91,13 @@ public class CommonDomainGuardExpression extends CommonExpression implements
 	protected boolean expressionEquals(Expression expression) {
 		return this.domain
 				.equals(((DomainGuardExpression) expression).domain());
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		((CommonExpression) domain).addFreeVariables(result);
+		result.add(literalDomCounter);
+		for (Variable var : variables)
+			result.add(var);
 	}
 }

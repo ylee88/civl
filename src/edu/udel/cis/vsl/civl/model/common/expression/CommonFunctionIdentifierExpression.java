@@ -13,7 +13,8 @@ import edu.udel.cis.vsl.civl.model.common.type.CommonPointerType;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
 
 public class CommonFunctionIdentifierExpression extends CommonExpression
-		implements FunctionIdentifierExpression {
+		implements
+			FunctionIdentifierExpression {
 
 	private CIVLFunction function;
 
@@ -63,5 +64,9 @@ public class CommonFunctionIdentifierExpression extends CommonExpression
 
 		return this.function.name().name()
 				.equals(that.function().name().name());
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
 	}
 }

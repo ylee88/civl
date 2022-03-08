@@ -123,4 +123,14 @@ public class CommonCivlParForSpawnStatement extends CommonStatement
 		}
 		return false;
 	}
+
+	@Override
+	public Set<Variable> freeVariables() {
+		Set<Variable> result = super.freeVariables();
+
+		result.addAll(domain.freeVariables());
+		result.addAll(domSizeVar.freeVariables());
+		result.addAll(parProcsVar.freeVariables());
+		return result;
+	}
 }

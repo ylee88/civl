@@ -1,9 +1,12 @@
 package edu.udel.cis.vsl.civl.model.common.type;
 
+import java.util.Set;
+
 import edu.udel.cis.vsl.civl.model.IF.CIVLUnimplementedFeatureException;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLSetType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
+import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
 
@@ -73,5 +76,10 @@ public class CommonSetType extends CommonType implements CIVLSetType {
 	@Override
 	public String toString() {
 		return "set-of-(" + elementType.toString() + ")";
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		((CommonType) elementType).addFreeVariables(result);
 	}
 }

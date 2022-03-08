@@ -22,8 +22,11 @@ import edu.udel.cis.vsl.civl.util.IF.Pair;
 public class CommonArrrayLambdaExpression extends CommonExpression
 		implements
 			ArrayLambdaExpression {
+
 	private Expression restriction;
+
 	private Expression expression;
+
 	private List<Pair<List<Variable>, Expression>> boundVariableList;
 
 	/**
@@ -195,4 +198,18 @@ public class CommonArrrayLambdaExpression extends CommonExpression
 	public boolean containsHere() {
 		return restriction.containsHere() || expression.containsHere();
 	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		if (restriction != null)
+			((CommonExpression) restriction).addFreeVariables(result);
+		((CommonExpression) expression).addFreeVariables(result);
+		for (Pair<List<Variable>, Expression> pair : boundVariableList) {
+			Expression domain = pair.right;
+
+			if (domain != null)
+				((CommonExpression) domain).addFreeVariables(result);
+		}
+	}
+
 }

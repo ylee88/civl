@@ -248,4 +248,18 @@ public class CommonMallocStatement extends CommonStatement
 		}
 		return false;
 	}
+
+	@Override
+	public Set<Variable> freeVariables() {
+		Set<Variable> result = super.freeVariables();
+
+		if (lhs != null)
+			result.addAll(lhs.freeVariables());
+		if (scopeExpression != null)
+			result.addAll(scopeExpression.freeVariables());
+		result.addAll(sizeExpression.freeVariables());
+		if (staticElementType != null)
+			result.addAll(staticElementType.freeVariables());
+		return result;
+	}
 }

@@ -55,4 +55,9 @@ public class CommonInitialValueExpression extends CommonExpression implements
 		// TODO Auto-generated method stub
 		return false;
 	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		result.add(variable);
+	}
 }

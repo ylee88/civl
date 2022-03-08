@@ -37,6 +37,8 @@ public interface ArrayLambdaExpression extends Expression {
 	/**
 	 * The list of bound variables.
 	 * 
+	 * TODO: WHAT IS THE Expression for?
+	 * 
 	 * @return
 	 */
 	List<Pair<List<Variable>, Expression>> boundVariableList();

@@ -17,8 +17,9 @@ import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
  * @author Manchun Zheng (zmanchun)
  *
  */
-public class CommonMemoryUnitExpression extends CommonExpression implements
-		MemoryUnitExpression {
+public class CommonMemoryUnitExpression extends CommonExpression
+		implements
+			MemoryUnitExpression {
 
 	private Variable variable;
 
@@ -143,5 +144,11 @@ public class CommonMemoryUnitExpression extends CommonExpression implements
 	@Override
 	public Variable variable() {
 		return this.variable;
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		assert !variable.isBound();
+		result.add(variable);
 	}
 }

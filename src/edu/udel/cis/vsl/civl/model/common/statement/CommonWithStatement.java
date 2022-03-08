@@ -115,4 +115,12 @@ public class CommonWithStatement extends CommonStatement
 		}
 		return false;
 	}
+
+	@Override
+	public Set<Variable> freeVariables() {
+		Set<Variable> result = super.freeVariables();
+
+		result.addAll(colStateExpr.freeVariables());
+		return result;
+	}
 }

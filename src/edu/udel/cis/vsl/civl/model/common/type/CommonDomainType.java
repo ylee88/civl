@@ -3,11 +3,13 @@ package edu.udel.cis.vsl.civl.model.common.type;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLCompleteDomainType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLDomainType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
+import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicArrayType;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicTupleType;
@@ -54,8 +56,8 @@ public class CommonDomainType extends CommonType implements CIVLDomainType {
 			SymbolicType rangeType = this.rangeType.getDynamicType(universe);
 
 			recDomainType = universe.arrayType(rangeType);
-			literalDomainType = universe.arrayType(universe
-					.arrayType(integerType));
+			literalDomainType = universe
+					.arrayType(universe.arrayType(integerType));
 			tupleComponents.add(universe.integerType());
 			tupleComponents.add(universe.integerType());
 			if (this.subtypesUnion == null)
@@ -71,7 +73,8 @@ public class CommonDomainType extends CommonType implements CIVLDomainType {
 	}
 
 	@Override
-	public SymbolicUnionType getDynamicSubTypesUnion(SymbolicUniverse universe) {
+	public SymbolicUnionType getDynamicSubTypesUnion(
+			SymbolicUniverse universe) {
 		if (this.subtypesUnion == null)
 			this.getDynamicType(universe);
 		return this.subtypesUnion;
@@ -113,5 +116,10 @@ public class CommonDomainType extends CommonType implements CIVLDomainType {
 	@Override
 	public boolean areSubtypesScalar() {
 		return false;
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		((CommonType) rangeType).addFreeVariables(result);
 	}
 }

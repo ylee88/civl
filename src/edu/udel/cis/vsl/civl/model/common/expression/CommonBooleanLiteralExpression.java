@@ -20,8 +20,9 @@ import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
  * @author Timothy K. Zirkel (zirkel)
  * 
  */
-public class CommonBooleanLiteralExpression extends CommonExpression implements
-		BooleanLiteralExpression {
+public class CommonBooleanLiteralExpression extends CommonExpression
+		implements
+			BooleanLiteralExpression {
 
 	/* ************************** Private Fields *************************** */
 
@@ -84,6 +85,10 @@ public class CommonBooleanLiteralExpression extends CommonExpression implements
 		return null;
 	}
 
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+	}
+
 	/* ************************ Methods from Object ************************ */
 
 	@Override
@@ -96,8 +101,9 @@ public class CommonBooleanLiteralExpression extends CommonExpression implements
 
 	@Override
 	public void calculateConstantValueWork(SymbolicUniverse universe) {
-		this.constantValue = value ? universe.trueExpression() : universe
-				.falseExpression();
+		this.constantValue = value
+				? universe.trueExpression()
+				: universe.falseExpression();
 	}
 
 	@Override

@@ -3,12 +3,14 @@ package edu.udel.cis.vsl.civl.model.common.type;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLMemType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPointerType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
+import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.UnaryOperator;
 import edu.udel.cis.vsl.sarl.IF.expr.NumericExpression;
@@ -286,5 +288,9 @@ public class CommonMemType extends CommonType implements CIVLMemType {
 		public int mallocID() {
 			return mallocID;
 		}
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
 	}
 }

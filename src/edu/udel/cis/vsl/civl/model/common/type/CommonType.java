@@ -1,5 +1,8 @@
 package edu.udel.cis.vsl.civl.model.common.type;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
@@ -116,16 +119,6 @@ public abstract class CommonType implements CIVLType {
 		return dynamicTypeIndex;
 	}
 
-	// @Override
-	// public boolean isHandleType() {
-	// return false;
-	// }
-
-	// @Override
-	// public boolean isHandleObjectType() {
-	// return false;
-	// }
-
 	/**
 	 * 
 	 * Sets the dynamic type index for this CIVL type. CIVL associates a single
@@ -197,4 +190,15 @@ public abstract class CommonType implements CIVLType {
 	public boolean isFunction() {
 		return false;
 	}
+
+	protected abstract void addFreeVariables(Set<Variable> result);
+
+	@Override
+	public Set<Variable> freeVariables() {
+		HashSet<Variable> result = new HashSet<>();
+
+		addFreeVariables(result);
+		return result;
+	}
+
 }

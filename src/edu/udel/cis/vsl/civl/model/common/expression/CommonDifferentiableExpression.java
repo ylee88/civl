@@ -12,7 +12,8 @@ import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 
 public class CommonDifferentiableExpression extends CommonExpression
-		implements DifferentiableExpression {
+		implements
+			DifferentiableExpression {
 
 	private AbstractFunction function;
 
@@ -74,6 +75,14 @@ public class CommonDifferentiableExpression extends CommonExpression
 	@Override
 	public AbstractFunction function() {
 		return function;
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		for (Expression expr : lowerBounds)
+			((CommonExpression) expr).addFreeVariables(result);
+		for (Expression expr : upperBounds)
+			((CommonExpression) expr).addFreeVariables(result);
 	}
 
 }

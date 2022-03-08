@@ -20,7 +20,10 @@ import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 public class CommonLambdaExpression extends CommonExpression
 		implements
 			LambdaExpression {
+
 	private Expression expression;
+
+	// TODO: isn't this a bound variable?
 	private Variable freeVariable;
 
 	/**
@@ -134,5 +137,10 @@ public class CommonLambdaExpression extends CommonExpression
 	@Override
 	public CIVLFunctionType getExpressionType() {
 		return (CIVLFunctionType) this.expressionType;
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		((CommonExpression) expression).addFreeVariables(result);
 	}
 }
