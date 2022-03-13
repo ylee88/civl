@@ -291,6 +291,7 @@ public class CommonMemType extends CommonType implements CIVLMemType {
 	}
 
 	@Override
-	protected void addFreeVariables(Set<Variable> result) {
+	protected void addFreeVariables(Set<Variable> result,
+			Set<CIVLType> seenTypes) {
 	}
 }

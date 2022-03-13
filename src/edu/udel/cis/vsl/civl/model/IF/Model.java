@@ -222,4 +222,5 @@ public interface Model extends Sourceable {
 	 *            the translated logic functions that will be added to the model
 	 */
 	void setLogicFunctions(List<LogicFunction> logicFunctions);
+
 }

@@ -132,7 +132,9 @@ public class CommonArrayType extends CommonType implements CIVLArrayType {
 	}
 
 	@Override
-	protected void addFreeVariables(Set<Variable> result) {
-		((CommonType) elementType).addFreeVariables(result);
+	protected void addFreeVariables(Set<Variable> result,
+			Set<CIVLType> seenTypes) {
+		if (seenTypes.add(this))
+			((CommonType) elementType).addFreeVariables(result, seenTypes);
 	}
 }

@@ -134,8 +134,10 @@ public class CommonBundleType extends CommonType implements CIVLBundleType {
 	}
 
 	@Override
-	protected void addFreeVariables(Set<Variable> result) {
-		for (CIVLType type : types)
-			((CommonType) type).addFreeVariables(result);
+	protected void addFreeVariables(Set<Variable> result,
+			Set<CIVLType> seenTypes) {
+		if (seenTypes.add(this))
+			for (CIVLType type : types)
+				((CommonType) type).addFreeVariables(result, seenTypes);
 	}
 }

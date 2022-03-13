@@ -80,7 +80,9 @@ public class CommonCompleteArrayType extends CommonArrayType
 	}
 
 	@Override
-	protected void addFreeVariables(Set<Variable> result) {
-		super.addFreeVariables(result);
+	protected void addFreeVariables(Set<Variable> result,
+			Set<CIVLType> seenTypes) {
+		if (seenTypes.add(this))
+			super.addFreeVariables(result, seenTypes);
 	}
 }

@@ -191,13 +191,15 @@ public abstract class CommonType implements CIVLType {
 		return false;
 	}
 
-	protected abstract void addFreeVariables(Set<Variable> result);
+	protected abstract void addFreeVariables(Set<Variable> result,
+			Set<CIVLType> seenTypes);
 
 	@Override
 	public Set<Variable> freeVariables() {
 		HashSet<Variable> result = new HashSet<>();
+		HashSet<CIVLType> seenTypes = new HashSet<>();
 
-		addFreeVariables(result);
+		addFreeVariables(result, seenTypes);
 		return result;
 	}
 

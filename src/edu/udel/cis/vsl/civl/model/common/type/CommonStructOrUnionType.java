@@ -236,12 +236,12 @@ public class CommonStructOrUnionType extends CommonType
 	}
 
 	@Override
-	protected void addFreeVariables(Set<Variable> result) {
-		for (StructOrUnionField field : fields) {
-			((CommonType) ((CommonStructOrUnionField) field).type())
-					.addFreeVariables(result);
-		}
-		// TODO Auto-generated method stub
-
+	protected void addFreeVariables(Set<Variable> result,
+			Set<CIVLType> seenTypes) {
+		if (seenTypes.add(this))
+			for (StructOrUnionField field : fields) {
+				((CommonType) ((CommonStructOrUnionField) field).type())
+						.addFreeVariables(result, seenTypes);
+			}
 	}
 }

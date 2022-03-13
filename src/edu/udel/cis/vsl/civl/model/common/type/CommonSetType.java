@@ -79,7 +79,9 @@ public class CommonSetType extends CommonType implements CIVLSetType {
 	}
 
 	@Override
-	protected void addFreeVariables(Set<Variable> result) {
-		((CommonType) elementType).addFreeVariables(result);
+	protected void addFreeVariables(Set<Variable> result,
+			Set<CIVLType> seenTypes) {
+		if (seenTypes.add(this))
+			((CommonType) elementType).addFreeVariables(result, seenTypes);
 	}
 }

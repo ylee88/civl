@@ -119,7 +119,9 @@ public class CommonDomainType extends CommonType implements CIVLDomainType {
 	}
 
 	@Override
-	protected void addFreeVariables(Set<Variable> result) {
-		((CommonType) rangeType).addFreeVariables(result);
+	protected void addFreeVariables(Set<Variable> result,
+			Set<CIVLType> seenTypes) {
+		if (seenTypes.add(this))
+			((CommonType) rangeType).addFreeVariables(result, seenTypes);
 	}
 }

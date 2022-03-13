@@ -116,11 +116,14 @@ public class CommonFunctionType extends CommonType implements CIVLFunctionType {
 	}
 
 	@Override
-	protected void addFreeVariables(Set<Variable> result) {
-		if (returnType != null)
-			((CommonType) returnType).addFreeVariables(result);
-		for (CIVLType atype : parameterTypes)
-			((CommonType) atype).addFreeVariables(result);
+	protected void addFreeVariables(Set<Variable> result,
+			Set<CIVLType> seenTypes) {
+		if (seenTypes.add(this)) {
+			if (returnType != null)
+				((CommonType) returnType).addFreeVariables(result, seenTypes);
+			for (CIVLType atype : parameterTypes)
+				((CommonType) atype).addFreeVariables(result, seenTypes);
+		}
 	}
 
 }

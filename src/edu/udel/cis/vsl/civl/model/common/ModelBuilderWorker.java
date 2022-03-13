@@ -32,6 +32,7 @@ import edu.udel.cis.vsl.civl.config.IF.CIVLConstants;
 import edu.udel.cis.vsl.civl.model.IF.CIVLFunction;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
+import edu.udel.cis.vsl.civl.model.IF.CIVLSyntaxException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLTypeFactory;
 import edu.udel.cis.vsl.civl.model.IF.Identifier;
 import edu.udel.cis.vsl.civl.model.IF.LogicFunction;
@@ -39,6 +40,7 @@ import edu.udel.cis.vsl.civl.model.IF.Model;
 import edu.udel.cis.vsl.civl.model.IF.ModelConfiguration;
 import edu.udel.cis.vsl.civl.model.IF.ModelFactory;
 import edu.udel.cis.vsl.civl.model.IF.Scope;
+import edu.udel.cis.vsl.civl.model.IF.SystemFunction;
 import edu.udel.cis.vsl.civl.model.IF.contract.CallEvent;
 import edu.udel.cis.vsl.civl.model.IF.contract.FunctionContract;
 import edu.udel.cis.vsl.civl.model.IF.expression.BinaryExpression;
@@ -48,6 +50,7 @@ import edu.udel.cis.vsl.civl.model.IF.expression.LHSExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.VariableExpression;
 import edu.udel.cis.vsl.civl.model.IF.location.Location;
 import edu.udel.cis.vsl.civl.model.IF.statement.AssignStatement;
+import edu.udel.cis.vsl.civl.model.IF.statement.AtomicLockAssignStatement;
 import edu.udel.cis.vsl.civl.model.IF.statement.CallOrSpawnStatement;
 import edu.udel.cis.vsl.civl.model.IF.statement.LoopBranchStatement;
 import edu.udel.cis.vsl.civl.model.IF.statement.MallocStatement;
@@ -63,6 +66,7 @@ import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.type.StructOrUnionField;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.civl.model.common.location.CommonLocation;
+import edu.udel.cis.vsl.civl.model.common.statement.CommonAtomicLockAssignStatement;
 import edu.udel.cis.vsl.civl.model.common.type.CommonType;
 import edu.udel.cis.vsl.civl.transform.IF.GeneralTransformer;
 import edu.udel.cis.vsl.civl.transform.IF.SvcompTransformer;
@@ -835,6 +839,19 @@ public class ModelBuilderWorker {
 		for (Location[] atomic : atomicBlocks)
 			atomicBlockTerminationAnalysis(atomic[0], atomic[1]);
 		memUnitAnalyzer.memoryUnitAnalysis(model);
+		// Compute the variables used in every atomic block:
+		for (CIVLFunction f : model.functions()) {
+			for (Statement stmt : f.statements()) {
+				if (stmt instanceof AtomicLockAssignStatement) {
+					AtomicLockAssignStatement lockStmt = (AtomicLockAssignStatement) stmt;
+
+					if (lockStmt.enterAtomic()) {
+						((CommonAtomicLockAssignStatement) lockStmt)
+								.setVariables(computeVariables(lockStmt));
+					}
+				}
+			}
+		}
 	}
 
 	/**
@@ -1247,6 +1264,107 @@ public class ModelBuilderWorker {
 			if (tmType != null)// tmType may be null because of the pruner
 				brokenTimeVar.setType(tmType);
 		}
+	}
+
+	private Set<Variable> computeVariables(
+			AtomicLockAssignStatement atomicEnterStmt) {
+		assert atomicEnterStmt.enterAtomic();
+
+		class Node {
+			Location location;
+			int atomicDepth;
+			int statementIndex;
+			Node(Location location, int atomicDepth, int statementIndex) {
+				this.location = location;
+				this.atomicDepth = atomicDepth;
+				this.statementIndex = statementIndex;
+			}
+		}
+
+		Scope originalScope = atomicEnterStmt.source().scope();
+		Map<Location, Node> seenLocations = new HashMap<>();
+		Stack<Node> stack = new Stack<>();
+		Set<Variable> result = new HashSet<>();
+		Set<CIVLFunction> seenFunctions = new HashSet<>();
+		Node node0 = new Node(atomicEnterStmt.target(), 1, 0);
+
+		seenLocations.put(atomicEnterStmt.target(), node0);
+		stack.push(node0);
+		while (!stack.empty()) {
+			Node top = stack.peek();
+
+			if (top.statementIndex >= top.location.getNumOutgoing()) {
+				stack.pop();
+				continue;
+			}
+
+			Statement newStatement = top.location
+					.getOutgoing(top.statementIndex);
+
+			top.statementIndex++;
+			for (Variable var : newStatement.freeVariables())
+				if (originalScope.isDescendantOf(var.scope()))
+					result.add(var);
+			if (newStatement.statementKind() == StatementKind.CALL_OR_SPAWN) {
+				CallOrSpawnStatement call = (CallOrSpawnStatement) newStatement;
+				CIVLFunction function = call.function();
+
+				if (function == null)
+					return null; // nothing known about called function
+				seenFunctions.add(function);
+			}
+
+			int newDepth = top.atomicDepth;
+
+			if (newStatement instanceof AtomicLockAssignStatement) {
+				if (((AtomicLockAssignStatement) newStatement).enterAtomic()) {
+					newDepth++;
+				} else {
+					newDepth--;
+					if (newDepth == 0)
+						continue;
+				}
+			}
+
+			Location newLocation = newStatement.target();
+			Node newNode = seenLocations.get(newLocation);
+
+			if (newNode != null) {
+				if (newNode.atomicDepth != newDepth)
+					throw new CIVLSyntaxException(
+							"Possible branch into atomic block: atomic depths "
+									+ newNode.atomicDepth + " and " + newDepth,
+							newLocation);
+				continue;
+			}
+			newNode = new Node(newLocation, newDepth, 0);
+			seenLocations.put(newLocation, newNode);
+			stack.push(newNode);
+		}
+
+		List<CIVLFunction> workList = new LinkedList<>(seenFunctions);
+
+		while (!workList.isEmpty()) {
+			CIVLFunction function = workList.remove(0);
+
+			if (function instanceof SystemFunction)
+				return null; // or look at contract? (TODO)
+			for (Statement stmt : function.statements()) {
+				if (stmt.statementKind() == StatementKind.CALL_OR_SPAWN) {
+					CallOrSpawnStatement call = (CallOrSpawnStatement) stmt;
+					CIVLFunction function2 = call.function();
+
+					if (function2 == null)
+						return null;
+					if (seenFunctions.add(function2))
+						workList.add(function2);
+				}
+				for (Variable var : stmt.freeVariables())
+					if (originalScope.isDescendantOf(var.scope()))
+						result.add(var);
+			}
+		}
+		return result;
 	}
 
 	/**

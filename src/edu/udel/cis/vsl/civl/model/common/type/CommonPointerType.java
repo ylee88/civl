@@ -92,7 +92,9 @@ public class CommonPointerType extends CommonType implements CIVLPointerType {
 	}
 
 	@Override
-	protected void addFreeVariables(Set<Variable> result) {
-		((CommonType) baseType).addFreeVariables(result);
+	protected void addFreeVariables(Set<Variable> result,
+			Set<CIVLType> seenTypes) {
+		if (seenTypes.add(this))
+			((CommonType) baseType).addFreeVariables(result, seenTypes);
 	}
 }

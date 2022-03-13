@@ -1,5 +1,6 @@
 package edu.udel.cis.vsl.civl.model.common.statement;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
@@ -39,6 +40,11 @@ public class CommonAtomicLockAssignStatement extends CommonAssignStatement
 	 */
 	private boolean enter;
 
+	/**
+	 * The external variables which are accessed in the atomic region, or null.
+	 */
+	private Set<Variable> variables = null;
+
 	/* **************************** Constructors *************************** */
 
 	/**
@@ -64,10 +70,25 @@ public class CommonAtomicLockAssignStatement extends CommonAssignStatement
 	public String toString() {
 		String result = super.toString();
 
-		if (enter)
-			return "ENTER_ATOMIC (" + result + ", atomicCount++)";
-		else
-			return "LEAVE_ATOMIC (" + result + ", atomicCount--)";
+		if (enter) {
+			result = "ENTER_ATOMIC (" + result + ", atomicCount++; vars=";
+			if (variables == null)
+				result += "unknown";
+			else
+				result += variables.toString();
+			result += ")";
+		} else
+			result = "LEAVE_ATOMIC (" + result + ", atomicCount--)";
+		return result;
+	}
+
+	public void setVariables(Set<Variable> variables) {
+		this.variables = variables;
+	}
+
+	@Override
+	public Set<Variable> getVariables() {
+		return variables;
 	}
 
 	@Override
@@ -105,5 +126,10 @@ public class CommonAtomicLockAssignStatement extends CommonAssignStatement
 			}
 		}
 		return false;
+	}
+
+	@Override
+	public Set<Variable> freeVariables() {
+		return new HashSet<>();
 	}
 }

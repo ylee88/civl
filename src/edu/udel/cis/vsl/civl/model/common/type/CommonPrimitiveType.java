@@ -185,6 +185,7 @@ public class CommonPrimitiveType extends CommonType
 	}
 
 	@Override
-	protected void addFreeVariables(Set<Variable> result) {
+	protected void addFreeVariables(Set<Variable> result,
+			Set<CIVLType> seenTypes) {
 	}
 }
