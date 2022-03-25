@@ -45,33 +45,33 @@ public class OpenMP2CIVLTransformerTest {
 
 	/* **************************** Test Methods *************************** */
 
-	@Ignore
+	@Test
 	public void atomicReadWrite() {
 		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, QUIET,
 				atomicFilename("atomic_read_write.c")));
 	}
 
-	@Ignore
+	@Test
 	public void atomicDefault() {
 		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, QUIET,
 				atomicFilename("atomic_default.c")));
 	}
 
-	@Ignore
+	@Test
 	public void atomicUpdate() {
 		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, QUIET,
 				atomicFilename("atomic_update.c")));
 	}
 
-	@Ignore
+	@Test
 	public void atomicReadWriteDot() {
 		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, QUIET,
 				atomicFilename("atomic_read_write_dot.c")));
 	}
 
-	@Ignore
+	@Test
 	public void atomicReadWriteArray() {
-		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, 
+		assertTrue(ui.run(VERIFY, OMP_THREAD_TWO, QUIET,
 				atomicFilename("atomic_read_write_array.c")));
 	}
 
@@ -242,9 +242,9 @@ public class OpenMP2CIVLTransformerTest {
 				filename(transformDir, "omp_sections.c")));
 	}
 
-	@Test
+	@Ignore //@Test
 	public void omp_loop_ordered_collapse() {
-		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, "-showProgram",
 				filename(transformDir, "omp_loop_ordered_collapse.c")));
 	}
 

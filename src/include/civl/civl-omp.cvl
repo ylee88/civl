@@ -334,7 +334,7 @@ void $omp_flush_all($omp_team team) {
    }
 }
 
-void $check_data_race($omp_team team) {
+$atomic_f void $check_data_race($omp_team team) {
   int cur_tid = team->tid;
   $mem out_s0 = $mem_empty();
   $mem out_s1 = $mem_empty();
@@ -598,7 +598,11 @@ $atomic_f $omp_helper_signal $omp_helper_signal_create(
 $atomic_f void $omp_helper_signal_wait(
   $omp_helper_signal *signal, int waitValue
 ){
-  $when(signal->value == waitValue) /* do nothing */;
+  $read_set_push();
+  $write_set_push();
+  $when(signal->value == waitValue) signal->value = -(signal->value)-1 /* do nothing */;
+  $read_set_pop();
+  $write_set_pop();
 }
 
 $atomic_f void $omp_helper_signal_send(

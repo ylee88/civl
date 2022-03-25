@@ -736,7 +736,7 @@ public class DataRaceBenchTest {
 
 	@Test
 	public void DRB113_default_orig_no() {
-		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, // QUIET,
+		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
 				pathToSrcFile("DRB113-default-orig-no.c")));
 	}
 

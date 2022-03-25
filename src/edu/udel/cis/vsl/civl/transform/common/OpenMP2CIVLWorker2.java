@@ -1392,10 +1392,10 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		// ADD: $omp_helper_signal_send(&signalName, 0);
 		block.add(callSignalSend(srcMethod, signalName, 0));
 		// ADD: $read_and_write_set_update(team);
-		// ADD: $yield();
-		block.addAll(callYield(srcMethod));
 		// ADD: $check_data_race(team);
 		block.add(callCheckDataRace(srcMethod));
+		// ADD: $yield();
+		block.addAll(callYield(srcMethod));
 		return block;
 	}
 
@@ -2137,6 +2137,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		String srcMethod = SRC_INFO + ".procOmpAtomicNode";
 		StatementNode atomicStmt = ompAtomicNode.statementNode();
 		ExpressionNode atomicExpr[] = new ExpressionNode[2];
+		List<BlockItemNode> transformedOmpAtomicNodes;
 
 		assert atomicExpr[1] == null;
 		if (atomicStmt instanceof ExpressionStatementNode)
@@ -2189,8 +2190,9 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		// It gives a stronger condition that enforces exclusive access
 		// between atomic regions, which may access different storage locations.
 		// (see: OpenMP std. 4.5: 2.17.7 atomic Construct: Description [Pg.240])
-		replaceOmpNode(srcMethod, ompAtomicNode,
-				nodeStmtsSignalProtected(srcMethod, atomicStmt, ATOMIC_));
+		transformedOmpAtomicNodes = nodeStmtsSignalProtected(srcMethod,
+				atomicStmt, ATOMIC_);
+		replaceOmpNode(srcMethod, ompAtomicNode, transformedOmpAtomicNodes);
 
 	}
 
@@ -2662,7 +2664,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		}
 		return false;
 	}
-	
+
 	/**
 	 * Transform an AST of a OpenMP program in C into an equivalent AST of
 	 * CIVL-C program.<br>
