@@ -1,11 +1,13 @@
 package edu.udel.cis.vsl.civl;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.PrintStream;
+import java.util.List;
 
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -168,6 +170,28 @@ public class SeqSetTest {
 		ss3.add(2, 4);
 		assertFalse(ss1.disjoint(ss3));
 		assertFalse(ss3.disjoint(ss1));
+	}
+
+	@Test
+	public void getLeaves() {
+		SeqSet ss = new SeqSet();
+
+		ss.add(1, 3);
+		ss.add(1, 4, 6);
+
+		List<int[]> leaves = ss.getLeaves();
+
+		assertEquals(2, leaves.size());
+		
+		int[] l0 = leaves.get(0), l1 = leaves.get(1);
+		
+		if (l0.length != 2) {
+			int[] tmp = l0;
+			l0 = l1;
+			l1 = tmp;
+		}
+		assertArrayEquals(new int[]{1, 3}, l0);
+		assertArrayEquals(new int[]{1, 4, 6}, l1);
 	}
 
 }

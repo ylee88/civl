@@ -1,6 +1,10 @@
 package edu.udel.cis.vsl.civl.kripke.common;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.Stack;
 
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
@@ -8,6 +12,7 @@ import edu.udel.cis.vsl.civl.model.IF.CIVLFunction;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.CIVLTypeFactory;
+import edu.udel.cis.vsl.civl.model.IF.Scope;
 import edu.udel.cis.vsl.civl.model.IF.contract.DependsEvent;
 import edu.udel.cis.vsl.civl.model.IF.contract.FunctionBehavior;
 import edu.udel.cis.vsl.civl.model.IF.contract.FunctionContract;
@@ -72,6 +77,9 @@ import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
 import edu.udel.cis.vsl.civl.semantics.IF.Evaluation;
 import edu.udel.cis.vsl.civl.semantics.IF.Evaluator;
 import edu.udel.cis.vsl.civl.semantics.IF.Transition;
+import edu.udel.cis.vsl.civl.state.IF.DynamicScope;
+import edu.udel.cis.vsl.civl.state.IF.ProcessState;
+import edu.udel.cis.vsl.civl.state.IF.StackEntry;
 import edu.udel.cis.vsl.civl.state.IF.State;
 import edu.udel.cis.vsl.civl.state.IF.StateFactory;
 import edu.udel.cis.vsl.civl.state.IF.UnsatisfiablePathConditionException;
@@ -91,7 +99,17 @@ import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
 import edu.udel.cis.vsl.sarl.IF.expr.TupleComponentReference;
 import edu.udel.cis.vsl.sarl.IF.number.IntegerNumber;
+import edu.udel.cis.vsl.sarl.IF.object.SymbolicObject;
+import edu.udel.cis.vsl.sarl.IF.object.SymbolicSequence;
+import edu.udel.cis.vsl.sarl.IF.type.SymbolicArrayType;
+import edu.udel.cis.vsl.sarl.IF.type.SymbolicCompleteArrayType;
+import edu.udel.cis.vsl.sarl.IF.type.SymbolicFunctionType;
+import edu.udel.cis.vsl.sarl.IF.type.SymbolicMapType;
+import edu.udel.cis.vsl.sarl.IF.type.SymbolicSetType;
+import edu.udel.cis.vsl.sarl.IF.type.SymbolicTupleType;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
+import edu.udel.cis.vsl.sarl.IF.type.SymbolicTypeSequence;
+import edu.udel.cis.vsl.sarl.IF.type.SymbolicUnionType;
 
 /*
   how to make this data persistent? extra state for stack only (not stored)
@@ -137,6 +155,8 @@ public class SimpleEnablerWorker {
 
 	SymbolicType heapSymbolicType;
 
+	SymbolicType pointerSymbolicType;
+
 	SymbolicUniverse universe;
 
 	BooleanExpression[][] theGuards;
@@ -163,19 +183,16 @@ public class SimpleEnablerWorker {
 			this.pid = pid;
 		}
 
-		SeqSet getDependSet() throws UnsatisfiablePathConditionException,
-				NoReductionException {
+		SeqSet getDependSet() throws UnsatisfiablePathConditionException {
 			if (depend == null) {
-				depend = new SeqSet();
-				computeDepends(depend, pid);
+				depend = computeDepends(pid);
 			}
 			return depend;
 		}
 
 		SeqSet getReachSet() {
 			if (reach == null) {
-				reach = new SeqSet();
-				computeReach(reach, pid);
+				reach = computeReach(pid);
 			}
 			return reach;
 		}
@@ -191,6 +208,7 @@ public class SimpleEnablerWorker {
 		this.stateFactory = evaluator.stateFactory();
 		this.symbolicUtil = evaluator.symbolicUtility();
 		this.heapSymbolicType = typeFactory.heapSymbolicType();
+		this.pointerSymbolicType = typeFactory.pointerSymbolicType();
 		this.universe = evaluator.universe();
 		this.reasoner = universe.reasoner(state.getPathCondition(universe));
 		this.theGuards = new BooleanExpression[theState.numProcs()][];
@@ -231,15 +249,13 @@ public class SimpleEnablerWorker {
 	 *            a non-null pointer value
 	 */
 	private void addPointer(SeqSet result, State state, CIVLSource source,
-			SymbolicExpression pointer) {
+			SymbolicExpression pointer) throws NoReductionException {
 		assert pointer.type() == typeFactory.pointerSymbolicType();
 		if (pointer == symbolicUtil.nullPointer()
 				|| pointer == symbolicUtil.undefinedPointer())
 			return;
-		if (pointer.operator() != SymbolicOperator.TUPLE) {
-			result.add(); // make it the universal set
-			return;
-		}
+		if (pointer.operator() != SymbolicOperator.TUPLE)
+			throw new NoReductionException();
 
 		int dyscopeID = stateFactory
 				.getDyscopeId(symbolicUtil.getScopeValue(pointer));
@@ -286,6 +302,239 @@ public class SimpleEnablerWorker {
 				result.add(dyscopeID, variableID, mallocIndex,
 						objectNumber.intValue());
 		}
+	}
+
+	/**
+	 * Given a symbolic constant X of type type, is there some sequence of
+	 * operations that could be performed on X to yield a pointer value? For
+	 * example, if type is array-of-pointer-to-int, the X[1] yields a pointer
+	 * value.
+	 * 
+	 * @param type
+	 *            any type, the type of the symbolic constant X
+	 * @return {@code true} iff it is possible to get a pointer value from X
+	 */
+	private boolean containsPointer(SymbolicType type) {
+		switch (type.typeKind()) {
+			case ARRAY :
+				return containsPointer(((SymbolicArrayType) type).baseType());
+			case FUNCTION : {
+				SymbolicFunctionType ftype = (SymbolicFunctionType) type;
+
+				return containsPointer(ftype.outputType());
+			}
+			case MAP : {
+				SymbolicMapType mtype = (SymbolicMapType) type;
+
+				return containsPointer(mtype.keyType())
+						|| containsPointer(mtype.valueType());
+			}
+			case SET :
+				return containsPointer(((SymbolicSetType) type).elementType());
+			case TUPLE :
+				for (SymbolicType ftype : ((SymbolicTupleType) type).sequence())
+					if (containsPointer(ftype))
+						return true;
+				return false;
+			case UNION :
+				for (SymbolicType ftype : ((SymbolicUnionType) type).sequence())
+					if (containsPointer(ftype))
+						return true;
+				return false;
+			case BOOLEAN :
+			case CHAR :
+			case INTEGER :
+			case REAL :
+			case UNINTERPRETED :
+		}
+		return false;
+	}
+
+	private void getPointedObjects(Collection<SymbolicExpression> result,
+			SymbolicType type) throws NoReductionException {
+		switch (type.typeKind()) {
+			case ARRAY :
+				getPointedObjects(result,
+						((SymbolicArrayType) type).baseType());
+				if (type instanceof SymbolicCompleteArrayType)
+					result.add(((SymbolicCompleteArrayType) type).extent());
+				break;
+			case FUNCTION : {
+				SymbolicFunctionType ftype = (SymbolicFunctionType) type;
+
+				getPointedObjects(result, ftype.outputType());
+				for (SymbolicType itype : ftype.inputTypes())
+					getPointedObjects(result, itype);
+				break;
+			}
+			case MAP : {
+				SymbolicMapType mtype = (SymbolicMapType) type;
+
+				getPointedObjects(result, mtype.keyType());
+				getPointedObjects(result, mtype.valueType());
+				break;
+			}
+			case SET :
+				getPointedObjects(result,
+						((SymbolicSetType) type).elementType());
+				break;
+			case TUPLE :
+				for (SymbolicType ftype : ((SymbolicTupleType) type).sequence())
+					getPointedObjects(result, ftype);
+				break;
+			case UNION :
+				for (SymbolicType ftype : ((SymbolicUnionType) type).sequence())
+					getPointedObjects(result, ftype);
+				break;
+			case BOOLEAN :
+			case CHAR :
+			case INTEGER :
+			case REAL :
+			case UNINTERPRETED :
+				// no pointers, nothing to do
+		}
+	}
+
+	/**
+	 * Computes over-approximation of set of objects that could be pointed to by
+	 * some component of the given value.
+	 * 
+	 * @param result
+	 * @param state
+	 * @param source
+	 * @param expr
+	 * @throws NoReductionException
+	 */
+	private void getPointedObjects(SeqSet result, State state,
+			CIVLSource source, SymbolicExpression value)
+			throws NoReductionException {
+		Stack<SymbolicExpression> worklist = new Stack<>();
+
+		worklist.push(value);
+		while (!worklist.isEmpty()) {
+			SymbolicExpression expr = worklist.pop();
+			SymbolicType type = expr.type();
+
+			if (type == null) {// a NULL object has null type, ignore
+			} else if (type == pointerSymbolicType) {
+				addPointer(result, state, source, expr);
+			} else if (expr.operator() == SymbolicOperator.SYMBOLIC_CONSTANT) {
+				if (containsPointer(type))
+					throw new NoReductionException();
+				// } else if (type == typeFactory.heapSymbolicType()
+				// || type == typeFactory.bundleSymbolicType()) { // ignore:
+				// WHY??
+			} else {
+				for (SymbolicObject obj : expr.getArguments()) {
+					switch (obj.symbolicObjectKind()) {
+						case EXPRESSION :
+							worklist.push((SymbolicExpression) obj);
+							break;
+						case TYPE :
+							getPointedObjects(worklist, (SymbolicType) obj);
+							break;
+						case SEQUENCE :
+							for (SymbolicExpression se : (SymbolicSequence<?>) obj)
+								worklist.push(se);
+							break;
+						case TYPE_SEQUENCE :
+							for (SymbolicType stype : (SymbolicTypeSequence) obj)
+								getPointedObjects(worklist, stype);
+							break;
+						case BOOLEAN :
+						case CHAR :
+						case INT :
+						case NUMBER :
+						case STRING :
+							// no pointers, nothing to do
+					}
+				}
+			}
+		}
+	}
+
+	private SymbolicExpression getValue(State state, int[] objectID) {
+		// dyscope, var; or dyscope, var, field, objID
+		int dyscopeID = objectID[0];
+		int variableID = objectID[1];
+		SymbolicExpression value = state.getVariableValue(dyscopeID,
+				variableID);
+
+		if (objectID.length == 2) {
+			return value;
+		} else {
+			assert objectID.length == 4;
+
+			int mallocID = objectID[2];
+			int objID = objectID[3];
+			SymbolicExpression row, result;
+
+			assert value.type() == heapSymbolicType;
+			if (value.operator() == SymbolicOperator.TUPLE)
+				row = (SymbolicExpression) value.argument(mallocID);
+			else
+				row = universe.tupleRead(value, universe.intObject(mallocID));
+			if (row.operator() == SymbolicOperator.ARRAY)
+				result = (SymbolicExpression) row.argument(objID);
+			else
+				result = universe.arrayRead(row, universe.integer(objID));
+			return result;
+		}
+	}
+
+	// given a set of objects, find all objects reachable from that set
+	// through pointer operations (dereference, pointer arithmetic).
+	// start with given set S.
+	// form a worklist, find all pointed objects, repeat until convergence.
+
+	/**
+	 * Give a set of objects S, this method adds to S an over-approximation of
+	 * all objects that can be reached from S by pointers.
+	 * 
+	 * @param objectSet
+	 *            a SeqSet representing a set of objects S
+	 * @param state
+	 *            the state in which all evaluation takes place
+	 * @param source
+	 *            the source used for error reporting
+	 * @throws NoReductionException
+	 *             if no good over-approximation can be made
+	 */
+	private void close(SeqSet objectSet, State state, CIVLSource source)
+			throws NoReductionException {
+		LinkedList<int[]> workset = objectSet.getLeaves();
+
+		// invariant: workset is a subset of objectSet
+		while (!workset.isEmpty()) {
+			int[] objId = workset.remove();
+			SymbolicExpression value = getValue(state, objId);
+			SeqSet pointedObjects = new SeqSet();
+
+			getPointedObjects(pointedObjects, state, source, value);
+			for (int[] pObj : pointedObjects.getLeaves())
+				if (objectSet.add(pObj))
+					workset.add(pObj);
+		}
+	}
+
+	/**
+	 * All objects that can be reached from the given variables. There is an
+	 * edge from one object to another if the first contains a pointer value
+	 * which references (some part of) the second.
+	 * 
+	 * @param state
+	 * @param pid
+	 * @param source
+	 * @param vars
+	 */
+	private SeqSet findReachableObjects(State state, int pid, CIVLSource source,
+			Set<Variable> vars) throws NoReductionException {
+		SeqSet result = new SeqSet();
+
+		for (Variable var : vars)
+			result.add(state.getDyscopeID(pid, var), var.vid());
+		close(result, state, source);
+		return result;
 	}
 
 	private State executeCall(State state, int pid, CIVLFunction function,
@@ -586,8 +835,6 @@ public class SimpleEnablerWorker {
 						statement);
 		}
 	}
-	
-	
 
 	/**
 	 * Computes an over-approximation of the existing memory locations accessed
@@ -596,6 +843,10 @@ public class SimpleEnablerWorker {
 	 * atomic statement may be a compound statement and hence will consist of
 	 * many edges ({@link Statement).
 	 * 
+	 * Current implementation: all objects reachable from variables that occur
+	 * within the atomic regions (which includes functions called within the
+	 * atomic block, functions called by those functions, etc.).
+	 * 
 	 * @param result
 	 *            the set to which the memory locations should be added
 	 * @param pid
@@ -603,23 +854,15 @@ public class SimpleEnablerWorker {
 	 * @param as
 	 *            the {@link Statement} that marks the entrance to the atomic
 	 *            statement by obtaining the atomic lock
+	 * @throws NoReductionException
 	 */
 	private void computeMemAtomic(SeqSet result, State state, int pid,
-			AtomicLockAssignStatement as) {
-		// TODO
-		// look for all occurrences of variables that exist at state.
-		// find everything reachable from them (by pointers).
-		// for function calls: go into function bodies, do same.
-		// for calls to functions with contracts: if they say depends_on
-		// nothing, OK, otherwise? for now, everything.
-		// find all statements until hitting end of atomic
+			AtomicLockAssignStatement as) throws NoReductionException {
+		Set<Variable> vars = as.getVariables();
 
-		// after re-entering atomic --- ditto.
-		// find all reachable locations without passing through
-		// exit atomic.  (this should be done statically)
-		
-		// put in the statement the set of variables. accessed.
-		// do that for every statement --- this is a union.
+		if (vars == null)
+			throw new NoReductionException();
+		result.addAll(findReachableObjects(state, pid, as.getSource(), vars));
 	}
 
 	/**
@@ -1042,28 +1285,40 @@ public class SimpleEnablerWorker {
 	 * memory locations that are read by any guard of an (enabled or disabled)
 	 * statement emanating from that location.
 	 * 
-	 * @param result
 	 * @param pid
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	private void computeDepends(SeqSet result, int pid)
-			throws UnsatisfiablePathConditionException, NoReductionException {
+	private SeqSet computeDepends(int pid)
+			throws UnsatisfiablePathConditionException {
 		Location location = theState.getProcessState(pid).getLocation();
 		int numOutgoing = location.getNumOutgoing();
+		SeqSet result = new SeqSet();
 
-		for (int i = 0; i < numOutgoing; i++) {
-			Statement statement = location.getOutgoing(i);
-			Expression guard = statement.guard();
-			BooleanExpression guardValue = getGuardValue(pid, i);
+		try {
+			for (int i = 0; i < numOutgoing; i++) {
+				Statement statement = location.getOutgoing(i);
+				Expression guard = statement.guard();
+				BooleanExpression guardValue = getGuardValue(pid, i);
 
-			findObjects(result, theState, pid, guard);
-			if (reasoner.unsat(guardValue).getResultType() != ResultType.YES)
-				computeMem(result, theState, pid, statement);
+				findObjects(result, theState, pid, guard);
+				if (reasoner.unsat(guardValue)
+						.getResultType() != ResultType.YES)
+					computeMem(result, theState, pid, statement);
+			}
+		} catch (NoReductionException e) {
+			result.makeFull();
 		}
+		return result;
 	}
 
-	private void computeReach(SeqSet result, int pid) {
-		// TODO Auto-generated method stub
+	/**
+	 * Computes an over-approximation of all objects reachable from process pid
+	 * in theState.
+	 * 
+	 * @param pid
+	 * @throws NoReductionException
+	 */
+	private SeqSet computeReach(int pid) {
 		// find all dyscopes reachable from the stack and parent relation
 		// iterate over all variables in those dyscopes, except for heap
 		// add those variables to the result, then find all pointers
@@ -1073,7 +1328,30 @@ public class SimpleEnablerWorker {
 		// result (if it isn't already there). find all pointers in the
 		// resulting objects value to the workset, repeat until workset
 		// empty.
+		ProcessState ps = theState.getProcessState(pid);
+		Set<Integer> dyscopeIDs = new HashSet<>();
+		SeqSet varSet = new SeqSet();
 
+		for (StackEntry se : ps.getStackEntries()) {
+			int dyscopeID = se.scope();
+
+			while (dyscopeID != -1 && dyscopeIDs.add(dyscopeID))
+				dyscopeID = theState.getParentId(dyscopeID);
+		}
+		for (int dyscopeID : dyscopeIDs) {
+			DynamicScope ds = theState.getDyscope(dyscopeID);
+			Scope scope = ds.lexicalScope();
+
+			for (Variable var : scope.variables())
+				if (!var.type().isHeapType())
+					varSet.add(dyscopeID, var.vid());
+		}
+		try {
+			close(varSet, theState, ps.getLocation().getSource());
+		} catch (NoReductionException e) {
+			varSet.add();
+		}
+		return varSet;
 	}
 
 	protected void computeAmpleSet() {
@@ -1084,7 +1362,12 @@ public class SimpleEnablerWorker {
 		// nodes are processes
 		// there is an edge p->q if q reaches something on which p depends,
 		// i.e., the depends set of p and the reach set of q are not disjoint.
-		// to compute this we must be able to compute these two sets.
+
+		// visibility: cannot have a proper ample set with a visible transition.
+		// visibility depends on the property being checked (deadlock, potential
+		// deadlock)
+
+		// special handling needed for comm???
 
 		// TODO
 	}
@@ -1099,10 +1382,5 @@ public class SimpleEnablerWorker {
 }
 
 class NoReductionException extends Exception {
-
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
-
 }

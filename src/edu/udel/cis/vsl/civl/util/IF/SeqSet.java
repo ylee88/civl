@@ -1,7 +1,9 @@
 package edu.udel.cis.vsl.civl.util.IF;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.SortedSet;
 import java.util.Stack;
 import java.util.TreeSet;
@@ -234,6 +236,33 @@ public class SeqSet {
 				trail.pop();
 			}
 		}
+	}
+
+	private void getLeaves(Collection<int[]> result, Node node,
+			Stack<Integer> trail) {
+		if (node.childrenIndexes.isEmpty()) {
+			int len = trail.size();
+			int[] leaf = new int[len];
+
+			for (int i = 0; i < len; i++)
+				leaf[i] = trail.get(i);
+			result.add(leaf);
+		} else {
+			for (int child : node.childrenIndexes) {
+				trail.push(child);
+				getLeaves(result, node.children[child], trail);
+				trail.pop();
+			}
+		}
+	}
+
+	public LinkedList<int[]> getLeaves() {
+		LinkedList<int[]> result = new LinkedList<>();
+		Stack<Integer> trail = new Stack<>();
+
+		if (!isEmpty)
+			getLeaves(result, root, trail);
+		return result;
 	}
 
 	/*
@@ -593,6 +622,14 @@ public class SeqSet {
 	public void clear() {
 		isEmpty = true;
 		root.clear();
+	}
+
+	/**
+	 * Makes this the full set (consisting of all tuples).
+	 */
+	public void makeFull() {
+		clear();
+		add();
 	}
 
 }
