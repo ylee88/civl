@@ -32,6 +32,15 @@ struct $mpi_gcomm {
   $gbarrier gbarrier;
 };
 
+// the definition of "struct MPI_Request":
+struct MPI_Request{
+  MPI_Comm comm;
+  MPI_Status status;
+  _Bool isSend;                // true if this request is associated to a send; otherwise, it is associated to a receive.
+  _mpi_nb_record_t * record;   // points to the record
+};
+// Note that the type "MPI_Request" is defined as "pointer-to-struct MPI_Request".
+
 /****************************** Helper Functions **********************************/
 $state_f size_t $mpi_extentof(MPI_Datatype datatype) {
   $abstract size_t $mpi_sizeof(MPI_Datatype datatype);
@@ -169,7 +178,8 @@ MPI_Comm $mpi_comm_create($scope scope, $mpi_gcomm gc, int rank) {
   result->collator = $collator_create(gc.gcollator, scope, rank);
   result->barrier = $barrier_create(scope, gc.gbarrier, rank);
   result->gcommIndex = 0;
-  $seq_init(&result->irecv_tasks, 0, NULL);
+  $seq_init(&result->send_records, 0, NULL);
+  $seq_init(&result->recv_records, 0, NULL);  
   return result;
 }
 
@@ -218,18 +228,49 @@ int $mpi_send(const void *buf, int count, MPI_Datatype datatype, int dest,
   return 0;
 }
 
+/* This function 
+
+   1) allocates an MPI Request object and assigns the address of the
+   object to the handle "*request"; and
+
+   2) creates a record carrying all the information of this send
+   operation and enqueues the record into the send record queue
+   associated to "comm"; and
+ 
+   3) enqueues the message into the message channel as if it is a
+   standard $mpi_send.
+   
+   A pointer to the created record is saved in the allocated MPI
+   Request object.
+
+   Step 2) may be skipped if only checking absolute deadlock.
+*/
 int $mpi_isend(const void *buf, int count, MPI_Datatype datatype, int dest,
-	      int tag, MPI_Comm comm) {
+	       int tag, MPI_Comm comm, MPI_Request * request) {
   if (dest >= 0) {
-    int size = count*sizeofDatatype(datatype);
     int place = $comm_place(comm->p2p);
-    $message out;
-    
-    $elaborate(dest);
-    out = $message_pack(place, dest, tag, buf, size);    
-    $comm_ienqueue(comm->p2p, out);    
-  }
-  return 0;
+    // Isend allocates an MPI_Request object (MPI-3.0 sec 3.7.2):
+    MPI_Request req = (MPI_Request) malloc(sizeof(struct MPI_Request));    
+
+    req->comm = comm;
+    req->status.MPI_SOURCE = place;
+    req->status.MPI_TAG = tag;
+    req->status.MPI_ERROR = 0;
+    req->status.size = count*sizeofDatatype(datatype);
+    req->isSend = 1;
+    req->record = (_mpi_nb_record_t *)malloc(sizeof(_mpi_nb_record_t));
+    req->record->buf = (void*)buf;
+    req->record->count = count;
+    req->record->datatype = datatype;
+    req->record->src_or_dest = dest;
+    req->record->tag = tag;
+    req->record->completed = 0;
+    *request = req;
+    $seq_append(&comm->send_records, &req->record, 1);
+    return $mpi_send(buf, count, datatype, dest, tag, comm);
+  } else
+    *request = MPI_REQUEST_NULL;
+  return 1;
 }
 
 int $mpi_recv(void *buf, int count, MPI_Datatype datatype, int source,
@@ -238,7 +279,7 @@ int $mpi_recv(void *buf, int count, MPI_Datatype datatype, int source,
     $message in;
     int place = $comm_place(comm->p2p);
     int deterministicTag;
-
+ 
     $assert(tag == -2 || tag >= 0, "Illegal MPI message receive tag %d.\n", tag);
     deterministicTag = tag < 0 ? -2 : tag;
     $elaborate(source);
@@ -256,6 +297,41 @@ int $mpi_recv(void *buf, int count, MPI_Datatype datatype, int source,
   }
   return 0;
 }
+
+/* This function 
+
+   1) allocates an MPI Request object and assigns the address of the
+   object to the handle "*request"; and
+
+   2) creates a record carrying all the information of this receive
+   operation and enqueues the record into the receive record queue
+   associated to "comm".
+   
+   A pointer to the created record is saved in the allocated MPI
+   Request object.
+*/
+int $mpi_irecv(void *buf, int count, MPI_Datatype datatype, int source,
+	       int tag, MPI_Comm comm, MPI_Request * request) {
+  if ((source >= 0 || source == MPI_ANY_SOURCE)) {  
+    // Irecv allocates an MPI_Request object (MPI-3.0 sec 3.7.2):
+    MPI_Request req = (MPI_Request) malloc(sizeof(struct MPI_Request));
+    
+    req->comm = comm;
+    req->isSend = $false;
+    req->record = (_mpi_nb_record_t*)malloc(sizeof(_mpi_nb_record_t));
+    req->record->buf = buf;
+    req->record->count = count;
+    req->record->datatype = datatype;
+    req->record->src_or_dest = source;
+    req->record->tag = tag;
+    req->record->completed = $false;
+    $seq_append(&comm->recv_records, &req->record, 1);
+    *request = req;
+  } else
+    *request = MPI_REQUEST_NULL;
+  return 1;
+}
+
 
 int $mpi_sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
 		  int dest, int sendtag, void *recvbuf, int recvcount, 
@@ -305,6 +381,163 @@ int $mpi_sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
   else if (source >= 0 || source == MPI_ANY_SOURCE) 
     $mpi_recv(recvbuf, recvcount, recvtype, source, deterministicRecvTag, comm, status);
   return 0;
+}
+
+
+/* 
+   This function completes a non-blocking send operation and removes
+   the record associated to the send operation in the record queue.
+   This function can potentially be blocked at a state where there is
+   no matching receive for this send operation.
+
+   requires "request" to be valid and "status" to be either valid or
+   MPI_STATUS_IGNORE
+ */
+int $mpi_wait_send(MPI_Request * request, MPI_Status * status) {
+  // TODO: To check potential deadlock, need to look through the message
+  // channel and the send record queue at the same time to determine
+  // if there is (or was) a matching receive enabled for this send
+  // operation.  Currently, the model only detects absolute deadlock.
+  MPI_Request req = *request;
+  
+  $assert(req->isSend);
+  if (status != MPI_STATUS_IGNORE)
+    $copy(status, &(req->status));
+
+  int queue_size = $seq_length(&(req->comm->send_records));
+
+  for (int i = 0; i < queue_size; i++) {
+    if (req->comm->send_records[i] == req->record) {
+      $seq_remove(&(req->comm->send_records), i, NULL, 1);
+      break;
+    }
+  }  
+  $free(req->record);
+  return 1;
+}
+
+/* 
+   This function completes the receive operation associated to the
+   "request" handle and assigns "MPI_Status" data to "*status".
+
+   requires "request" to be valid and "status" to be either valid or
+   MPI_STATUS_IGNORE
+ */
+int $mpi_wait_recv(MPI_Request * request, MPI_Status * status) {
+  MPI_Request req = *request;  
+  _mpi_nb_record_t * record = req->record;
+  MPI_Comm comm = req->comm;
+  int queue_size = $seq_length(&comm->recv_records);
+  
+  $assert(!req->isSend);
+  // if the operation of "*request" has already completed:
+  if (record->completed) {
+    if (status != MPI_STATUS_IGNORE) {
+      status->MPI_SOURCE = record->src_or_dest;
+      status->MPI_TAG = record->tag;
+      status->MPI_ERROR = 0;
+      status->size = record->count * sizeofDatatype(record->datatype);
+    }
+    for (int i = 0; i < queue_size; i++)
+      if (comm->recv_records[i] == record) {
+	$seq_remove(&comm->recv_records, i, NULL, 1);
+	break;
+      }
+    $free(record);
+    return 1;
+  }   
+  $elaborate(record->src_or_dest);
+  /*
+    For any wildcard record "wr", on which "record" depends, "wr" must
+    be completed first.  But we can only over-approximate the
+    dependency relation.
+  */  
+  for (int i = 0; i < queue_size; i++) {
+    _mpi_nb_record_t * wr = comm->recv_records[i];
+
+    if (wr->completed)
+      continue;
+    if (wr == record)
+      break;
+    $elaborate(wr->src_or_dest);
+    if (wr->src_or_dest == MPI_ANY_SOURCE && (wr->tag == record->tag ||
+					      wr->tag == MPI_ANY_TAG ||      
+					      record->tag == MPI_ANY_TAG)) {
+      // Over-approximately "record" depends on "wr". If receive of
+      // "wr" can be enabled, we always let "wr" go first.  In this
+      // case, "record" may or may not depend on "wr".  It is still
+      // correct to let "wr" go first as it is already matched anyway.
+      // If only the operation of "record" can be enabled, it means
+      // that "record" in fact does not depend on "wr".  We can ignore
+      // "wr".  Otherwise, blocked.
+      _Bool wr_enabled = 0;
+      MPI_Status tmp_status;
+      
+      $choose {
+	$when($comm_probe(comm->p2p, MPI_ANY_SOURCE, wr->tag))
+	  wr_enabled = 1;
+	$when(!$comm_probe(comm->p2p, MPI_ANY_SOURCE, wr->tag) && $comm_probe(comm->p2p, record->src_or_dest, record->tag))
+	  ;
+      }     
+      if (wr_enabled) {
+	$mpi_recv(wr->buf, wr->count, wr->datatype, wr->src_or_dest, wr->tag, comm, &tmp_status);
+	wr->src_or_dest = tmp_status.MPI_SOURCE;
+	wr->tag = tmp_status.MPI_TAG;
+	wr->completed = 1;
+	continue;
+      }
+    }
+  }  
+  // At this point, there is no wildcard receive record on which
+  // "record" depends on precedes "record" in queue.
+  $message in;
+  _Bool recv_again;
+  int idx = -1;
+    
+  do {    
+    in = $comm_dequeue(comm->p2p, record->src_or_dest, record->tag);    
+    // check if any preceding record matches this message:
+    recv_again = 0;
+    for (int i = 0; i < queue_size; i++) {
+      _mpi_nb_record_t * r = comm->recv_records[i];
+      
+      if (r->completed)
+	continue;
+      if (r == record)
+	idx = i;
+      if (r == record || (r->src_or_dest == $message_source(in) &&
+			  (r->tag == $message_tag(in) || r->tag == MPI_ANY_TAG))) {
+	// this message belongs to r:
+	r->src_or_dest = $message_source(in);
+	r->tag = $message_tag(in);
+	$message_unpack(in, r->buf, r->count * sizeofDatatype(r->datatype));
+	r->completed = 1;
+	recv_again = r != record;
+	break;
+      }
+    }
+  } while (recv_again);
+  if (status != MPI_STATUS_IGNORE) {
+    status->MPI_SOURCE = $message_source(in);
+    status->MPI_TAG = $message_tag(in);
+    status->MPI_ERROR = 0;
+    status->size = $message_size(in);      
+  }
+  $seq_remove(&comm->recv_records, idx, NULL, 1);
+  free(record);
+  return 1;
+}
+
+int $mpi_wait(MPI_Request * request, MPI_Status * status) {
+  if (*request == MPI_REQUEST_NULL) 
+    return 1;
+  if ((*request)->isSend)
+    $mpi_wait_send(request, status);
+  else
+    $mpi_wait_recv(request, status);  
+  $free(*request);
+  *request = MPI_REQUEST_NULL;
+  return 1;
 }
 
 /********************* Collective helper functions ********************/

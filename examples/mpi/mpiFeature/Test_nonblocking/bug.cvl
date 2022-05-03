@@ -1,0 +1,47 @@
+#include "mpi.h"
+#include "assert.h"
+
+int many_to_one () {
+  int comm_size;
+  int comm_rank;
+  MPI_Comm comm = MPI_COMM_WORLD;
+  MPI_Datatype type = MPI_INT;
+  
+  MPI_Comm_size (comm, &comm_size);
+  MPI_Comm_rank (comm, &comm_rank);
+
+  int rbuf[comm_size];
+  MPI_Request reqs[comm_size];
+  MPI_Status statuses[comm_size];
+
+  MPI_Send(&comm_rank, 1, type, 0, comm_rank, comm);
+  if (comm_rank == 0) {
+    for (int i = 0; i < comm_size; i++) {
+      $choose {
+	$when ($true) {
+	  MPI_Irecv(rbuf + i, 1, type, MPI_ANY_SOURCE, MPI_ANY_TAG, comm, reqs + i);
+	  assert (reqs[i] != MPI_REQUEST_NULL);
+	}
+	$when ($true) {
+	  MPI_Recv(rbuf + i, 1, type, MPI_ANY_SOURCE, MPI_ANY_TAG, comm, statuses + i);
+	  reqs[i] = MPI_REQUEST_NULL;
+	}
+      }
+    }
+    MPI_Waitall(comm_size, reqs, statuses);
+    for (int i = 0; i < comm_size; i++) {
+      int src = statuses[i].MPI_SOURCE;
+      
+      assert (statuses[i].MPI_TAG == src);
+      assert (rbuf[i] == src);
+    }
+  }
+  return 0;
+}
+
+int main() {
+  MPI_Init(NULL, NULL);
+  many_to_one();
+  MPI_Finalize();
+  return 0;
+}
