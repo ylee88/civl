@@ -234,6 +234,7 @@ cudaError_t cudaThreadExit() {
 int cudaAtomicAdd_int(int* address, int val) {
 	int old = *address;
 	*address += val;
+	// Add call to $check_data_race??
 	return old;
 }
 unsigned int cudaAtomicAdd_uint(unsigned int* address, unsigned int val) {

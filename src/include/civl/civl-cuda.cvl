@@ -4,16 +4,26 @@
  */
 
 #include <string.h>
+// To print for debugging
+#include <stdio.h>
 #include <stdlib.h>
 #include <concurrency.cvh>
+#include <seq.cvh>
+#include <mem.cvh>
 #include <civl-cuda.cvh>
 #pragma CIVL ACSL
 
 /* type used to represent an instance of a Cuda kernel
+ * TODO: Update with read/write sets
  */
 struct $cuda_kernel_instance {
   $proc process;        // the actual process executing this kernel
   $cuda_kernel_status status; // the kernel status
+  // Read and Write sets
+  $mem read_sets[];
+  $mem write_sets[];
+  // Number of threads in kernel
+  int size;
 };
 
 /* a type that wraps a kernel instance for insertion into a list
@@ -124,6 +134,13 @@ int $cuda_index (dim3 size, uint3 location) {
   return location.x + size.x * (location.y + size.y * location.z);
 }
 
+/* Computes the one dimensional index of a specific thread in the grid given
+ * the grid dimension, block dimension, block index, and thread index
+ */
+int $cuda_kernel_index (dim3 gDim, dim3 bDim, uint3 bIdx, uint3 tIdx) {
+  return $cuda_index(gDim, bIdx) * (bDim.x * bDim.y * bDim.z) + $cuda_index(bDim, tIdx);
+}
+
 /* Lifts a single integer x into a three dimensional vector representing
  * a one dimensional grid of length x
  */
@@ -167,12 +184,20 @@ $cuda_context_t $cuda_current_context = {
 
 /* malloc and initialize a new $cuda_kernel_instance_t
  */
-$cuda_kernel_instance_t *$cuda_kernel_instance_create() {
+ 
+ // TODO: Determine if passing parameters is better or not
+$cuda_kernel_instance_t *$cuda_kernel_instance_create(dim3 gDim, dim3 bDim) {
   //printf("mallocing kernel instance\n");
   $cuda_kernel_instance_t *i = ($cuda_kernel_instance_t*)malloc(sizeof($cuda_kernel_instance_t));
 
   i->process = $proc_null;
   i->status = $cuda_kernel_status_waiting;
+  int threadNum = gDim.x * gDim.y * gDim.z * bDim.x * bDim.y * bDim.z;
+  i->size = threadNum;
+  // TODO: either sequentially or non-sequentially?
+  $mem empty = $mem_empty();
+  $seq_init(&i->read_sets, threadNum, &empty);
+  $seq_init(&i->write_sets, threadNum, &empty);
   return i;
 }
 
@@ -211,7 +236,8 @@ cudaStream_t $cuda_stream_create() {
   //printf("mallocing cuda stream\n");
   s = (cudaStream_t)malloc(sizeof(_CUstream));
   s->mostRecent = $cuda_kernel_instance_node_create();
-  s->mostRecent->instance = $cuda_kernel_instance_create();
+  dim3 arbitrary = { 1, 1, 1 };
+  s->mostRecent->instance = $cuda_kernel_instance_create(arbitrary, arbitrary);
   s->mostRecent->instance->status = $cuda_kernel_status_finished;
   s->usable = $true;
   return s;
@@ -353,7 +379,8 @@ $cuda_kernel_instance_t **$cuda_all_most_recent_kernels() {
 /* create a kernel instance for the given function k, and enqueue it
  * onto the given stream.
  */
-void $cuda_enqueue_kernel(cudaStream_t stream, void (*k)($cuda_kernel_instance_t*, cudaEvent_t)) {
+void $cuda_enqueue_kernel(cudaStream_t stream, void (*k)($cuda_kernel_instance_t*, cudaEvent_t), dim3 gDim, 
+dim3 bDim) {
   cudaStream_t s;
   cudaEvent_t e = $cuda_event_create();
   $cuda_kernel_instance_node_t *newNode = $cuda_kernel_instance_node_create();
@@ -371,7 +398,7 @@ void $cuda_enqueue_kernel(cudaStream_t stream, void (*k)($cuda_kernel_instance_t
     s = stream;
   }
   $assert((s->usable));
-  newNode->instance = $cuda_kernel_instance_create();
+  newNode->instance = $cuda_kernel_instance_create(gDim, bDim);
   newNode->next = s->mostRecent;
   s->mostRecent = newNode;
   s->mostRecent->instance->process = $spawn k(s->mostRecent->instance, e);
@@ -393,3 +420,50 @@ void $cuda_kernel_finish($cuda_kernel_instance_t *k) {
   k->status = $cuda_kernel_status_finished;
 }
 
+/* TODO: Finish check_data_race
+ */
+void $cuda_barrier($cuda_kernel_instance_t *k, int kernel_id, $barrier g) {
+  $check_data_race(k, kernel_id);
+  // We have to push a new read and write set before the barrier call to ignore it's reads and writes
+  $read_set_push();
+  $write_set_push();
+  $barrier_call(g);
+  $read_set_pop();
+  $write_set_pop();
+}
+
+/* TODO: Finish read_write_sets
+ */
+void $check_data_race($cuda_kernel_instance_t *k, int cur_tid) {
+  printf("Current id: %d\n", cur_tid);
+  $mem out_s0 = $mem_empty();
+  $mem out_s1 = $mem_empty();
+  $mem cur_mw = $write_set_pop();
+  $mem cur_mr = $read_set_pop();
+  
+  // Update current R/W sets
+  k->write_sets[cur_tid] = cur_mw;
+  k->read_sets[cur_tid] = cur_mr;
+  // Check data race
+  for (int tmp_tid = 0; tmp_tid < k->size; tmp_tid++) {
+    if (tmp_tid == cur_tid) continue;
+    
+    $mem tmp_mr = k->read_sets[tmp_tid];
+    $mem tmp_mw = k->write_sets[tmp_tid];
+    
+    $assert($mem_no_intersect(cur_mr, tmp_mw, &out_s0, &out_s1), 
+              "Data-race detected: %p read by thread %d intersects %p written by thread %d\n",
+	          out_s0, cur_tid, out_s1, tmp_tid);
+    $assert($mem_no_intersect(cur_mw, tmp_mr, &out_s0, &out_s1), 
+              "Data-race detected: %p read by thread %d intersects %p written by thread %d\n",
+	          out_s0, cur_tid, out_s1, tmp_tid);
+    $assert($mem_no_intersect(cur_mw, tmp_mw, &out_s0, &out_s1), 
+              "Data-race detected: %p written by thread %d intersects %p written by thread %d\n",
+	          out_s0, cur_tid, out_s1, tmp_tid);
+  }
+  // Update current R/W sets
+  k->write_sets[cur_tid] = $mem_empty();
+  k->read_sets[cur_tid] = $mem_empty();
+  $read_set_push();
+  $write_set_push();
+}

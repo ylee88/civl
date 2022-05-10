@@ -1,5 +1,6 @@
 package edu.udel.cis.vsl.civl.transform.common;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -335,7 +336,9 @@ public class Cuda2CIVLWorker extends BaseWorker {
 				source,
 				this.identifierExpression(source, "$cuda_enqueue_kernel"),
 				Arrays.asList(this.identifierExpression(source, "_cuda_stream"),
-						this.identifierExpression(source, "_cuda_kernel")),
+						this.identifierExpression(source, "_cuda_kernel"),
+						this.identifierExpression(source, "gridDim"),
+						this.identifierExpression(source, "blockDim")),
 				null);
 		CompoundStatementNode newKernelBody = nodeFactory
 				.newCompoundStatementNode(source,
@@ -607,6 +610,24 @@ public class Cuda2CIVLWorker extends BaseWorker {
 										this.identifierExpression(source,
 												"threadIdx")),
 								null));
+		// Kernel_id
+		VariableDeclarationNode kidDecl = nodeFactory
+				.newVariableDeclarationNode(source,
+						this.identifier("_cuda_kid"),
+						nodeFactory.newBasicTypeNode(source, BasicTypeKind.INT),
+						nodeFactory.newFunctionCallNode(source,
+								this.identifierExpression(source,
+										"$cuda_kernel_index"),
+								Arrays.asList(
+										this.identifierExpression(source,
+												"gridDim"),
+										this.identifierExpression(source,
+												"blockDim"),
+										this.identifierExpression(source,
+												"blockIdx"),
+										this.identifierExpression(source,
+												"threadIdx")),
+								null));
 		FunctionCallNode newBarrier = nodeFactory.newFunctionCallNode(source,
 				this.identifierExpression(source, "$barrier_create"),
 				Arrays.asList(nodeFactory.newHereNode(source),
@@ -621,18 +642,54 @@ public class Cuda2CIVLWorker extends BaseWorker {
 						nodeFactory.newTypedefNameNode(nodeFactory
 								.newIdentifierNode(source, "$barrier"), null),
 						newBarrier);
+		// FIXME: Not sure if this works with FunctionCallNode
+		FunctionCallNode readPop = nodeFactory.newFunctionCallNode(
+				source, this.identifierExpression(source, "$read_set_pop"),
+				Arrays.asList(), null
+				);
+		FunctionCallNode writePop = nodeFactory.newFunctionCallNode(
+				source, this.identifierExpression(source, "$write_set_pop"),
+				Arrays.asList(), null
+				);
 		FunctionCallNode barrierDestruction = nodeFactory.newFunctionCallNode(
 				source, this.identifierExpression(source, "$barrier_destroy"),
 				Arrays.asList(this.identifierExpression(source,
 						"_cuda_thread_barrier")),
 				null);
+		// FIXME: Not sure if this works
+		FunctionCallNode readPush = nodeFactory.newFunctionCallNode(
+				source, this.identifierExpression(source, "$read_set_push"),
+				Arrays.asList(), null
+				);
+		FunctionCallNode writePush = nodeFactory.newFunctionCallNode(
+				source, this.identifierExpression(source, "$write_set_push"),
+				Arrays.asList(), null
+				);
+		// Node for check_data_race
+		FunctionCallNode checkDataRace = nodeFactory.newFunctionCallNode(
+				source, this.identifierExpression(source, "$check_data_race"),
+				Arrays.asList(
+						this.identifierExpression(source,
+								"_cuda_this"),
+						this.identifierExpression(source,
+								"_cuda_kid")),
+				null);
 		List<BlockItemNode> threadBodyItems = new ArrayList<BlockItemNode>();
 		threadBodyItems.add(tidDecl);
+		threadBodyItems.add(kidDecl);
 		threadBodyItems.add(barrierCreation);
+		// threadBodyItems.add(Node for read/write set push)
+		threadBodyItems.add(nodeFactory.newExpressionStatementNode(readPush));
+		threadBodyItems.add(nodeFactory.newExpressionStatementNode(writePush));
 		for (BlockItemNode child : body) {
 			if (child != null)
 				threadBodyItems.add(child.copy());
 		}
+		// check data race call (make Node)
+		threadBodyItems.add(nodeFactory.newExpressionStatementNode(checkDataRace));
+		// threadBodyItems.add(Node for read/write set pop)
+		threadBodyItems.add(nodeFactory.newExpressionStatementNode(readPop));
+		threadBodyItems.add(nodeFactory.newExpressionStatementNode(writePop));
 		threadBodyItems.add(
 				nodeFactory.newExpressionStatementNode(barrierDestruction));
 		CompoundStatementNode threadBody = nodeFactory
@@ -645,12 +702,20 @@ public class Cuda2CIVLWorker extends BaseWorker {
 								threadFormals, false),
 						null, threadBody);
 
-		FunctionCallNode barrierCall = nodeFactory.newFunctionCallNode(source,
-				this.identifierExpression(source, "$barrier_call"),
-				Arrays.asList(this.identifierExpression(source,
-						"_cuda_thread_barrier")),
+		//TODO Change into $cuda_barrier
+		FunctionCallNode cudaBarrier = nodeFactory.newFunctionCallNode(source,
+				this.identifierExpression(source, "$cuda_barrier"),
+				Arrays.asList(
+						this.identifierExpression(source,
+								"_cuda_this"),
+						this.identifierExpression(source,
+								"_cuda_kid"),
+						this.identifierExpression(source,
+								"_cuda_thread_barrier")),
 				null);
-		replaceSyncThreadsCalls(threadDefinition, barrierCall);
+		
+		
+		replaceSyncThreadsCalls(threadDefinition, cudaBarrier);
 		return threadDefinition;
 	}
 
