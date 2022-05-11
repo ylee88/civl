@@ -434,8 +434,8 @@ void $cuda_barrier($cuda_kernel_instance_t *k, int kernel_id, $barrier g) {
 
 /* TODO: Finish read_write_sets
  */
-void $check_data_race($cuda_kernel_instance_t *k, int cur_tid) {
-  printf("Current id: %d\n", cur_tid);
+$atomic_f void $check_data_race($cuda_kernel_instance_t *k, int cur_tid) {
+  //printf("Current id: %d\n", cur_tid);
   $mem out_s0 = $mem_empty();
   $mem out_s1 = $mem_empty();
   $mem cur_mw = $write_set_pop();
@@ -462,8 +462,8 @@ void $check_data_race($cuda_kernel_instance_t *k, int cur_tid) {
 	          out_s0, cur_tid, out_s1, tmp_tid);
   }
   // Update current R/W sets
-  k->write_sets[cur_tid] = $mem_empty();
-  k->read_sets[cur_tid] = $mem_empty();
+  //k->write_sets[cur_tid] = $mem_empty();
+  //k->read_sets[cur_tid] = $mem_empty();
   $read_set_push();
   $write_set_push();
 }
