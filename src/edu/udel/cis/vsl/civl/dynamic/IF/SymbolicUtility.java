@@ -889,6 +889,11 @@ public interface SymbolicUtility {
 	SymbolicConstant freshBoundVariableFor(SymbolicType type,
 			SymbolicExpression... expressions);
 
+	List<SymbolicConstant> freshBoundVariablesFor(int num, SymbolicType type,
+			SymbolicExpression... expressions);
+
+	ValueSetUtility getValueSetUtility();
+
 	SymbolicExpression makeFunctionPointer(int dyscopeID, int fid);
 
 	SymbolicExpression nullFunctionPointer();

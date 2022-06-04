@@ -203,7 +203,7 @@ public class ConcurrencyTest {
 
 	@Test
 	public void ring2() {
-		assertTrue(ui.run(VERIFY, POTENTIAL_DEADLOCK, //QUIET, 
+		assertTrue(ui.run(VERIFY, POTENTIAL_DEADLOCK, QUIET, 
 				"-inputNPROCS=3",
 				filename("ring2.cvl")));
 	}

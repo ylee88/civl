@@ -3,13 +3,16 @@ package edu.udel.cis.vsl.civl.dynamic.common;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.Stack;
+import java.util.stream.Collectors;
 
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
+import edu.udel.cis.vsl.civl.dynamic.IF.ValueSetUtility;
 import edu.udel.cis.vsl.civl.dynamic.common.HeapAnalyzer.CIVLMemoryBlock;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
@@ -1438,22 +1441,42 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 
 	@Override
 	public SymbolicConstant freshBoundVariableFor(SymbolicType type,
-			SymbolicExpression... expressions) {
-		int nameSuffix = 0;
-		SymbolicConstant bv = universe.symbolicConstant(
-				universe.stringObject("i" + nameSuffix++), type);
-		Set<SymbolicConstant> freeVars;
+			SymbolicExpression... exprs) {
+		return freshBoundVariablesForWorker(1, type, exprs).get(0);
+	}
 
-		if (expressions.length < 1)
-			return bv;
-		freeVars = expressions[0].getFreeVars();
-		for (int i = 1; i < expressions.length; i++)
-			freeVars.addAll(expressions[i].getFreeVars());
-		do {
-			bv = universe.symbolicConstant(
-					universe.stringObject("i" + nameSuffix++), type);
-		} while (freeVars.contains(bv));
-		return bv;
+	@Override
+	public List<SymbolicConstant> freshBoundVariablesFor(int num,
+			SymbolicType type, SymbolicExpression... exprs) {
+		return freshBoundVariablesForWorker(num, type, exprs);
+	}
+
+	// TODO: need a good way to get free bound variables when necessary
+	private List<SymbolicConstant> freshBoundVariablesForWorker(int num,
+			SymbolicType type, SymbolicExpression... exprs) {
+		Set<SymbolicConstant> symConsts = new HashSet<>();
+		Set<String> freeVarNames;
+
+		for (SymbolicExpression e : exprs)
+			symConsts.addAll(e.getFreeVars());
+		freeVarNames = symConsts.stream().map(c -> c.name().getString())
+				.collect(Collectors.toSet());
+
+		String boundVarNamePrefix = "i";
+		int boundVarNameCounter = 0;
+		List<SymbolicConstant> boundVars = new LinkedList<>();
+
+		for (int i = 0; i < num; i++) {
+			while (freeVarNames
+					.contains(boundVarNamePrefix + boundVarNameCounter))
+				boundVarNameCounter++;
+
+			String name = boundVarNamePrefix + boundVarNameCounter++;
+
+			boundVars.add(universe.symbolicConstant(universe.stringObject(name),
+					type));
+		}
+		return boundVars;
 	}
 
 	@Override
@@ -1506,5 +1529,10 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 			return false;
 		return true;
 
+	}
+
+	@Override
+	public ValueSetUtility getValueSetUtility() {
+		return new CommonValueSetUtility(universe, this);
 	}
 }

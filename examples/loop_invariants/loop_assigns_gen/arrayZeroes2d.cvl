@@ -14,6 +14,8 @@ void arrayZeroes(int (*a)[], int n) {
     @*/
   for (i = 0; i < n; i++) {
     /*@ loop invariant 0 <= j && j <= n;
+      @ loop invariant \forall int t; 0<=t && t<i ==> (\forall int k;  0<=k && k<n ==>
+      @                               a[t][k] == 0);    
       @ loop invariant \forall int k; 0<=k && k<j 
       @                               ==> a[i][k] == 0;
       @*/

@@ -1829,7 +1829,7 @@ public class ImmutableStateFactory implements StateFactory {
 		BitSet bitSet = new BitSet(newProcesses.length);
 
 		if (functionCallParentDyscopeId < 0 && callerPid >= 0) {
-			// Find a dynamic instance of the static parent scope of the calle
+			// Find a dynamic instance of the static parent scope of the callee
 			// function definition as the parent scope:
 			ProcessState caller = state.getProcessState(callerPid);
 			ImmutableDynamicScope containingDynamicScope;

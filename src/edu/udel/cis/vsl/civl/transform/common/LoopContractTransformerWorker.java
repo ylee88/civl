@@ -24,7 +24,6 @@ import edu.udel.cis.vsl.abc.ast.node.IF.statement.LoopNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.LoopNode.LoopKind;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.StatementNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.StatementNode.StatementKind;
-import edu.udel.cis.vsl.abc.ast.type.IF.StandardBasicType.BasicTypeKind;
 import edu.udel.cis.vsl.abc.front.IF.CivlcTokenConstant;
 import edu.udel.cis.vsl.abc.token.IF.CivlcToken;
 import edu.udel.cis.vsl.abc.token.IF.CivlcToken.TokenVocabulary;
@@ -50,8 +49,6 @@ public class LoopContractTransformerWorker extends BaseWorker {
 
 	private final static String WRITE_SET_POP = "$write_set_pop";
 
-	private final static String WRITE_SET_PEEK = "$write_set_peek";
-
 	private final static String MEM_EMPTY = "$mem_empty";
 
 	private final static String MEM_CONTAINS = "$mem_contains";
@@ -64,9 +61,12 @@ public class LoopContractTransformerWorker extends BaseWorker {
 
 	private final static String MEM_HAVOC = "$mem_havoc";
 
-	private final static String MEM_ASSIGN_FROM = "$mem_assign_from";
+	@Deprecated
+	private final static String MEM_HAVOC_SIDECOND = "$mem_havoc_sidecond";
 
-	private final static String GET_FULL_STATE = "$get_full_state";
+	// private final static String MEM_ASSIGN_FROM = "$mem_assign_from";
+	//
+	// private final static String GET_FULL_STATE = "$get_full_state";
 
 	/* *** Generated identifier prefixes: *** */
 	/**
@@ -165,15 +165,6 @@ public class LoopContractTransformerWorker extends BaseWorker {
 		return LOOP_TMP_VAR_PREFIX + loopTmpCounter++;
 	}
 
-	// TODO: deal with jump statements
-	// /**
-	// * @return A unique identifier name for a label which helps transforming
-	// * 'continue's
-	// */
-	// private String nextLabelIdentifier() {
-	// return LOOP_LABEL + loopContinueCounter++;
-	// }
-
 	/* ******************* Constructor ********************** */
 
 	public LoopContractTransformerWorker(String transformerName,
@@ -221,7 +212,7 @@ public class LoopContractTransformerWorker extends BaseWorker {
 		// ast.prettyPrint(System.out, true);
 		return ast;
 	}
-	
+
 	/**
 	 * Given a function body, transform all contracted loops in it into CIVL-C
 	 * codes.
@@ -284,19 +275,23 @@ public class LoopContractTransformerWorker extends BaseWorker {
 		// transform inner loops
 		transformLoopInFunction(loop.getLoopNode().getBody());
 
-		List<BlockItemNode> LISEComponents = new LinkedList<>(),
-				newBodyComponents;
+		List<BlockItemNode> LISEComponents = new LinkedList<>();
 		ASTNode loopParent = loop.getLoopNode().parent();
 		int childIdx = loop.getLoopNode().childIndex();
-		String writeSetName = nextLoopTmpIdentifier();
-		String preStateName = nextLoopTmpIdentifier();
 
-		LISEComponents.addAll(
-				transformLoopEntrance(loop, writeSetName, preStateName));
-		// transforms loop body:
-		newBodyComponents = transformLoopBody(loop, writeSetName, preStateName);
-		// transforms the loop to a while(true|false) loop :
-		LISEComponents.addAll(toWhileOrBranch(loop, newBodyComponents));
+		if (!loop.getLoopAssignSet().isEmpty()) {
+			// transforms loop body with [loop-assigns]:
+			LISEComponents
+					.add(toNDBranch(loop, inductionStepWithAssigns(loop)));
+		} else {
+			// transforms loop body by inferring [loop-assigns] automatically:
+			String writeSetName = nextLoopTmpIdentifier();
+
+			LISEComponents.add(memTypeVariableDeclaration(writeSetName));
+			LISEComponents
+					.addAll(inductionStepInferringAssigns(loop, writeSetName));
+			LISEComponents.addAll(createConclusion(loop, writeSetName));
+		}
 
 		Source source = loop.getLoopNode().getSource();
 		BlockItemNode LISEBlock = nodeFactory.newCompoundStatementNode(source,
@@ -309,109 +304,102 @@ public class LoopContractTransformerWorker extends BaseWorker {
 	/* **************** Loop transformation helper methods ****************** */
 	/**
 	 * <p>
-	 * In general, before the loop, three things must be done: 1) establish the
-	 * base case; 2) save a pre-loop state for havoc later:
+	 * Transform the loop body to the form that proves the induction step w.r.t
+	 * the given invariants through computing the write set until a fixed-point
+	 * reached.
 	 * </p>
-	 * <code>
-	 * $assert(loop-inv);             // base case establish
-	 * $state pre =$get_full_state(); // pre-loop state
-	 * </code>
-	 * <p>
-	 * When the "loop assigns" are missing, write set must be accumulated, hence
-	 * a $mem type variable is also needed to be declared before the loop:
-	 * </p>
-	 * <code>
-	 * $mem ws = $mem_empty();
-	 * </code>
 	 * 
+	 * <code>
+	 *   $mem ws = $mem_empty();
+	 *   $assert(loop-inv); // base case establishment
+	 *   while ($choose_int(1)) {
+	 *     $mem_havoc(ws);
+	 *     $assume_push([loop-inv] && [loop-cond]);
+	 *     $write_push();
+	 *     [loop-body]
+	 *     $assert([loop-inv]); // invariant preserves
+	 *     
+	 *     $mem tmp = $write_pop();
+	 *     
+	 *     ws = $mem_union_widening(ws, tmp);
+	 *     $assume_pop();
+	 *   }
+	 * </code>
 	 */
-	private List<BlockItemNode> transformLoopEntrance(LoopContractBlock loop,
-			String writeSetName, String preStateName) throws SyntaxException {
-		List<BlockItemNode> results = new LinkedList<>();
+	private List<BlockItemNode> inductionStepInferringAssigns(
+			LoopContractBlock loop, String collectedWriteSetName)
+			throws SyntaxException {
+		List<BlockItemNode> result = new LinkedList<>();
 
-		// loop initializer:
-		if (isForLoop(loop.getLoopNode())) {
-			ForLoopNode forLoop = (ForLoopNode) loop.getLoopNode();
-			ForLoopInitializerNode initializer = forLoop.getInitializer();
+		result.addAll(getForLoopInitializers(loop));
+		result.add(createAssertion(loop.getLoopInvariants(nodeFactory), 0));
+		result.add(createAssignment(identifierExpression(collectedWriteSetName),
+				createMemEmptyCall()));
 
-			if (initializer != null) {
-				initializer.remove();
-				if (initializer instanceof ExpressionNode)
-					results.add(nodeFactory.newExpressionStatementNode(
-							(ExpressionNode) initializer));
-				else {
-					DeclarationListNode declList = (DeclarationListNode) initializer;
+		List<BlockItemNode> whileLoopBody = new LinkedList<>();
+		ExpressionNode inv = loop.getLoopInvariants(nodeFactory);
+		ExpressionNode loopCond = loop.getLoopNode().getCondition();
+		Source invAndCondSource = tokenFactory.join(inv.getSource(),
+				loopCond.getSource());
+		ExpressionNode invAndCond = nodeFactory.newOperatorNode(
+				invAndCondSource, Operator.LAND, inv.copy(), loopCond.copy());
 
-					for (VariableDeclarationNode decl : declList) {
-						decl.remove();
-						results.add(decl);
-					}
-				}
-			}
-		}
-		// base case establishment
-		results.add(createAssertion(loop.getLoopInvariants(nodeFactory), 0));
-		// create a pre-state
-		results.add(createPreState(preStateName));
-		// declare a accumulated write set if the "loop assigns" is not given:
-		if (loop.getLoopAssignSet().isEmpty()) {
-			Source source = newSource("$mem ws",
-					CivlcTokenConstant.DECLARATION);
+		whileLoopBody.addAll(createMemHavoc(collectedWriteSetName));
+		whileLoopBody.add(createAssumptionPush(invAndCond));
+		whileLoopBody.add(createWriteSetPush());
+		whileLoopBody.add(wrapLoopBody(loop));
+		// assert (inv);
+		whileLoopBody.add(createAssertion(inv.copy(), 2));
 
-			results.add(nodeFactory.newVariableDeclarationNode(source,
-					identifier(writeSetName),
-					nodeFactory.newMemTypeNode(source),
-					nodeFactory.newFunctionCallNode(source,
-							identifierExpression(MEM_EMPTY), Arrays.asList(),
-							null)));
-		}
-		return results;
+		String tmpWsName = nextLoopTmpIdentifier();
+
+		whileLoopBody.add(memTypeVariableDeclaration(tmpWsName));
+		// pop write set
+		whileLoopBody.add(createWriteSetPop(tmpWsName));
+		whileLoopBody.add(createMemUnionWidening(collectedWriteSetName,
+				tmpWsName, collectedWriteSetName));
+		whileLoopBody.add(createAssumptionPop());
+
+		ExpressionNode choiceAsCond = createNDBinaryChoice();
+		Source whileLoopSource = joinSource(whileLoopBody);
+
+		result.add(nodeFactory.newWhileLoopNode(whileLoopSource, choiceAsCond,
+				nodeFactory.newCompoundStatementNode(whileLoopSource,
+						whileLoopBody),
+				null));
+		return result;
 	}
 
 	/**
 	 * <p>
-	 * the original loop body will be wrapped by $assume_push and $assume_pop
-	 * and $write_set_push and $write_set_pop. In addition, after the original
-	 * body, the frame condition and loop invariant preservation will be
-	 * checked. Then modified objects will be refreshed.
+	 * the induction proof code for a loop body.
 	 * </p>
 	 * 
 	 * <p>
-	 * If an object in a variable is modified by the loop, it will be refreshed.
-	 * Non-modified part of the variable will remain its value as in the
-	 * pre-loop state.
-	 * </p>
-	 * 
-	 * <p>
-	 * If "loop assigns" are missing, the modified objects must be added into
-	 * the accumulated write set while no frame condition needs to check.
-	 * </p>
-	 * 
-	 * <p>
-	 * In general: <code>
-	 * $mem_havoc(ws);                              // after arbitrary iterations
-	 * $assume_push(loop-inv && loop-cond);
-	 * $write_set_push();
-	 * "original body"
-	 * ws = $write_set_peek();
-	 * $assert(loop-inv);                           // preservation
-	 * $assert($mem_contains("loop assigns"), ws);  // check frame-condition
-	 * $mem_havoc_with(preState, ws);               // refresh
-	 * $write_set_pop();
-	 * $assume_pop();
+	 * The translation is : <code>
+	 *   $assert(loop-inv); // base case establishment
+	 *   
+	 *   $mem ws = $mem_union([loop-assigns]);
+	 *   
+	 *   $mem_havoc(ws);
+	 *   $assume([loop-inv] && [loop-cond]);
+	 *   $write_set_push();
+	 *   [loop-body];
+	 *   
+	 *   $mem tmp = $write_set_pop();
+	 *   
+	 *   $assert($mem_contains(ws, tmp));
+	 *   $assert([loop-inv]);
+	 *   while(true); // to an endless loop so that this state space path ends
 	 * </code>
 	 * </p>
-	 * <p>
-	 * If "loop assigns" are missing, write set needs to be accumulated: <code>
-	 * ...
-	 * $mem tmp = $write_set_peek();
-	 * $mem_union_widening(ws, tmp);
-	 * ...
-	 * </code>
-	 * </p>
+	 * 
+	 * @throws SyntaxException
 	 */
-	private List<BlockItemNode> transformLoopBody(LoopContractBlock loop,
-			String writeSetName, String preStateName) throws SyntaxException {
+	private List<BlockItemNode> inductionStepWithAssigns(LoopContractBlock loop)
+			throws SyntaxException {
+		assert !loop.getLoopAssignSet().isEmpty();
+
 		List<BlockItemNode> results = new LinkedList<>();
 		ExpressionNode inv = loop.getLoopInvariants(nodeFactory);
 		ExpressionNode loopCond = loop.getLoopNode().getCondition();
@@ -419,20 +407,44 @@ public class LoopContractTransformerWorker extends BaseWorker {
 				loopCond.getSource());
 		ExpressionNode invAndCond = nodeFactory.newOperatorNode(
 				invAndCondSource, Operator.LAND, inv.copy(), loopCond.copy());
-		String loopAssignsUnionName = nextLoopTmpIdentifier();
+		String writeSetName = nextLoopTmpIdentifier();
 
-		// havoc, if loop assigns given ...
-		if (!loop.getLoopAssignSet().isEmpty()) {
-			results.addAll(unionLoopAssigns(loop.getLoopAssignSet(),
-					loopAssignsUnionName));
-			results.addAll(
-					createMemHavoc(identifierExpression(loopAssignsUnionName)));
-		}
-		// assume_push ...
-		results.add(createAssumptionPush(invAndCond));
+		results.addAll(getForLoopInitializers(loop));
+		results.add(createAssertion(loop.getLoopInvariants(nodeFactory), 0));
+		// declaring a $mem variable for holding the set of modified memory
+		// locations:
+		results.add(memTypeVariableDeclaration(writeSetName));
+		// havoc the change set either specified in loop assigns:
+		results.addAll(unionLoopAssigns(loop.getLoopAssignSet(), writeSetName));
+		results.addAll(createMemHavoc(writeSetName));
+		// assume([loop-inv] && [loop-cond]) ...
+		results.add(assumeNode(invAndCond));
 		// write set push ...
 		results.add(createWriteSetPush());
 
+		// original body ...
+		results.add(wrapLoopBody(loop));
+		// assert (inv);
+		results.add(createAssertion(inv.copy(), 2));
+
+		String tmpWsName = nextLoopTmpIdentifier();
+
+		results.add(memTypeVariableDeclaration(tmpWsName));
+		// pop write set:
+		results.add(createWriteSetPop(tmpWsName));
+		// check frame-condition:
+		results.addAll(checkFrameCondition(tmpWsName, writeSetName));
+
+		// add endless loop to terminate the search path:
+		results.addAll(endlessWhileLoop());
+		return results;
+	}
+
+	/**
+	 * Wraps the original loop body (and the incrementor if it is a for-loop) in
+	 * a pair of curly-braces.
+	 */
+	private BlockItemNode wrapLoopBody(LoopContractBlock loop) {
 		// original body ...
 		List<BlockItemNode> bodyAndIncrementor = new LinkedList<>();
 		StatementNode originalBody = loop.getLoopNode().getBody();
@@ -440,182 +452,168 @@ public class LoopContractTransformerWorker extends BaseWorker {
 		bodyAndIncrementor.add(originalBody);
 		originalBody.remove();
 		// for-loop incrementer ...
+		bodyAndIncrementor.addAll(getForLoopIncrementors(loop));
+		// wrap the original body with a pair of curly braces so that loop-body
+		// local variables won't be saved in the write set:
+		return nodeFactory.newCompoundStatementNode(originalBody.getSource(),
+				bodyAndIncrementor);
+	}
+
+	/**
+	 * 
+	 * @return the loop initializers of the <code>loop</code>, if it is a
+	 *         for-loop; empty list otherwise.
+	 */
+	private List<BlockItemNode> getForLoopInitializers(LoopContractBlock loop) {
+		List<BlockItemNode> result = new LinkedList<>();
+
+		// loop initializer:
+		if (isForLoop(loop.getLoopNode())) {
+			ForLoopNode forLoop = (ForLoopNode) loop.getLoopNode();
+			ForLoopInitializerNode initializer = forLoop.getInitializer();
+
+			if (initializer != null) {
+				if (initializer instanceof ExpressionNode)
+					result.add(nodeFactory.newExpressionStatementNode(
+							(ExpressionNode) initializer.copy()));
+				else {
+					DeclarationListNode declList = (DeclarationListNode) initializer;
+
+					for (VariableDeclarationNode decl : declList) {
+						result.add(decl.copy());
+					}
+				}
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * @returns copy of loop incrementors of the <code>loop</code> if it is a
+	 *          for-loop; empty list otherwise.
+	 */
+	private List<BlockItemNode> getForLoopIncrementors(LoopContractBlock loop) {
+		List<BlockItemNode> result = new LinkedList<>();
+
 		if (isForLoop(loop.getLoopNode())) {
 			ForLoopNode forLoop = (ForLoopNode) loop.getLoopNode();
 
 			if (forLoop.getIncrementer() != null)
-				bodyAndIncrementor.add(nodeFactory.newExpressionStatementNode(
+				result.add(nodeFactory.newExpressionStatementNode(
 						forLoop.getIncrementer().copy()));
 		}
-		// wrap the original body with a pair of curly braces so that loop-body
-		// local variables won't be saved in the write set:
-		results.add(nodeFactory.newCompoundStatementNode(
-				originalBody.getSource(), bodyAndIncrementor));
-		// assert (inv);
-		results.add(createAssertion(inv.copy(), 2));
-
-		String finalHavocWriteSetName;
-
-		// check frame-condition and havoc:
-		if (!loop.getLoopAssignSet().isEmpty()) {
-			results.add(memTypeVariableDeclaration(writeSetName));
-			results.addAll(createWriteSetPeek(writeSetName));
-			results.addAll(
-					checkFrameCondition(writeSetName, loopAssignsUnionName));
-			results.add(backToPreState(
-					identifierExpression(loopAssignsUnionName), preStateName));
-			finalHavocWriteSetName = loopAssignsUnionName;
-		} else {
-			String tmpWsName = nextLoopTmpIdentifier();
-			ExpressionNode memUnionWidening = identifierExpression(
-					MEM_UNION_WIDENING);
-
-			results.add(memTypeVariableDeclaration(tmpWsName));
-			results.addAll(createWriteSetPeek(tmpWsName));
-			// union & widening tmpWs with write set:
-			results.add(createAssignment(identifierExpression(writeSetName),
-					nodeFactory.newFunctionCallNode(
-							memUnionWidening.getSource(), memUnionWidening,
-							Arrays.asList(identifierExpression(tmpWsName),
-									identifierExpression(writeSetName)),
-							null)));
-			// havoc the accumulated write set
-			results.add(backToPreState(identifierExpression(writeSetName),
-					preStateName));
-			finalHavocWriteSetName = writeSetName;
-		}
-		// pop write set:
-		results.add(createWriteSetPop());
-		// $mem havoc
-		results.addAll(
-				createMemHavoc(identifierExpression(finalHavocWriteSetName)));
-		// pop assume:
-		results.add(createAssumptionPop());
-		return results;
+		return result;
 	}
 
 	/**
-	 * If "loop assigns" are given, the preservation step can be done by
-	 * executing the body once: <code>
-	 *   if ($choose_int(2)) {
-	 *     "body";
-	 *   }
-	 *   $assume(inv && !loop-cond);
-	 * </code> Else, the preservation step completes when the state converges,
-	 * <code>
-	 *   int tmp = 1;
-	 *   while (tmp) {
-	 *     "body";
-	 *     tmp = $choose_int(2);
-	 *   }
-	 *   $assume(inv && !loop-cond);
-	 * </code>
+	 * The non-deterministic branch: one branch goes to the endless while loop
+	 * completing the induction step and the other branch goes to the
+	 * conclusion, i.e., havoc write set nicely, assume invariants hold, etc.
 	 * 
 	 * @throws SyntaxException
 	 */
-	private List<BlockItemNode> toWhileOrBranch(LoopContractBlock loop,
-			List<BlockItemNode> body) throws SyntaxException {
+	private BlockItemNode toNDBranch(LoopContractBlock loop,
+			List<BlockItemNode> inductionStep) throws SyntaxException {
 		ExpressionNode bnd = createNDBinaryChoice();
-		StatementNode compoundBody;
-		List<BlockItemNode> results = new LinkedList<>();
+		StatementNode inductionBranch, concludeBranch;
+		Source inductionStepSource = joinSource(inductionStep);
 
-		if (!loop.getLoopAssignSet().isEmpty()) {
-			compoundBody = nodeFactory.newCompoundStatementNode(
-					loop.getLoopNode().getSource(), body);
-			results.add(
-					nodeFactory.newIfNode(bnd.getSource(), bnd, compoundBody));
+		inductionBranch = nodeFactory
+				.newCompoundStatementNode(inductionStepSource, inductionStep);
+
+		// build conclusion branch ...
+		List<BlockItemNode> concludeBranchComponents = new LinkedList<>();
+
+		concludeBranchComponents.addAll(getForLoopInitializers(loop));
+		concludeBranchComponents.addAll(createConclusion(loop, null));
+		concludeBranch = nodeFactory.newCompoundStatementNode(
+				joinSource(concludeBranchComponents), concludeBranchComponents);
+
+		Source source = joinSource(
+				Arrays.asList(bnd, inductionBranch, concludeBranch));
+
+		return nodeFactory.newIfNode(source, bnd, inductionBranch,
+				concludeBranch);
+	}
+
+	/**
+	 * <p>
+	 * Depending on whether <code>writeSetName</code> is <code>null</code>, the
+	 * returned code is slightly different.
+	 * </p>
+	 * 
+	 * <p>
+	 * If<code>writeSetName</code> is <code>null</code>,<code>loop</code> must
+	 * have non-empty loop-assigns. Returning <code>
+	 * 
+	 *  $mem_havoc([loop-assigns]);
+	 *  $assume([loop-inv] && ![loop-cond]);
+	 *  
+	 * </code>
+	 * </p>
+	 * 
+	 * <p>
+	 * If<code>writeSetName</code> is <code>non-null</code>, returning <code>
+	 * 
+	 *  $mem_havoc(writeSetName);
+	 *  $assume([loop-inv] && ![loop-cond]);
+	 *  
+	 * </code>
+	 * </p>
+	 */
+	private List<BlockItemNode> createConclusion(LoopContractBlock loop,
+			String writeSetName) {
+		List<BlockItemNode> result = new LinkedList<>();
+
+		if (writeSetName == null) {
+			assert !loop.getLoopAssignSet().isEmpty();
+			String tmpWsName = nextLoopTmpIdentifier();
+
+			result.add(memTypeVariableDeclaration(tmpWsName));
+			result.addAll(unionLoopAssigns(loop.getLoopAssignSet(), tmpWsName));
+			result.addAll(createMemHavoc(tmpWsName));
 		} else {
-			String bndInitName = nextLoopTmpIdentifier();
-			BlockItemNode bndInit = nodeFactory.newVariableDeclarationNode(
-					newSource("int " + bndInitName + " = 1",
-							CivlcTokenConstant.DECLARATION),
-					identifier(bndInitName), basicType(BasicTypeKind.INT),
-					integerConstant(1));
-			ExpressionNode bndIdent = identifierExpression(bndInitName);
-
-			// put the ND choice at the end, so that it won't get side-effect
-			// removed:
-			body.add(createAssignment(bndIdent, bnd));
-			compoundBody = nodeFactory.newCompoundStatementNode(
-					loop.getLoopNode().getSource(), body);
-			// initially, let control always enter the while loop:
-			results.add(bndInit);
-			results.add(nodeFactory.newWhileLoopNode(bndIdent.getSource(),
-					bndIdent.copy(), compoundBody, null));
+			result.addAll(createMemHavoc(writeSetName));
 		}
-		ExpressionNode negLoopCond = nodeFactory.newOperatorNode(
-				loop.getLoopNode().getCondition().getSource(), Operator.NOT,
-				loop.getLoopNode().getCondition().copy());
-		ExpressionNode inv = loop.getLoopInvariants(nodeFactory);
 
-		Source source = tokenFactory.join(inv.getSource(),
-				negLoopCond.getSource());
+		// assuming (loop-inv && !loop-cond && sidecond) holds:
+		ExpressionNode loopInv = loop.getLoopInvariants(nodeFactory);
+		ExpressionNode loopCond = loop.getLoopNode().getCondition();
+		ExpressionNode notLoopCond = nodeFactory.newOperatorNode(
+				loopCond.getSource(), Operator.NOT, loopCond.copy());
+		Source finalAssumeSource = joinSource(
+				Arrays.asList(loopInv, notLoopCond));
+		ExpressionNode assumption = nodeFactory.newOperatorNode(
+				finalAssumeSource, Operator.LAND, loopInv.copy(), notLoopCond);
 
-		results.add(
-				assumeNode(nodeFactory.newOperatorNode(source, Operator.LAND,
-						loop.getLoopInvariants(nodeFactory), negLoopCond)));
-		return results;
+		result.add(assumeNode(assumption));
+		return result;
+	}
+
+	/**
+	 * @return <code>while(1);</code>
+	 */
+	private List<BlockItemNode> endlessWhileLoop() throws SyntaxException {
+		Source source = this.newSource("while(1);", CivlcTokenConstant.WHILE);
+		Source trueSource = this.newSource("1", CivlcTokenConstant.CONST);
+
+		return Arrays.asList(nodeFactory.newWhileLoopNode(source,
+				nodeFactory.newIntegerConstantNode(trueSource, "1"),
+				nodeFactory.newNullStatementNode(source), null));
 	}
 
 	/* *********************** Utility methods ****************************** */
 	/**
-	 * <code>
-	 * $mem_assigns_from(preState, $mem_unary_widening(m));  
-	 * $mem_havoc(m); 
-	 * </code>
-	 * 
-	 * <p>
-	 * The purpose of this two statements is to swipe out modification
-	 * footprints on objects left by the loop body. For example:
-	 * 
-	 * <code>
-	 * // loop assigns a[x .. y];
-	 * { // loop body
-	 *    a[i] = j;
-	 * }
-	 * $havoc(&a[x .. y]);  
-	 * </code>
-	 * 
-	 * Suppose array a initially has value A. After the loop body, it has value
-	 * A[i := j]. Then $havoc does not necessarily know that i belongs to the
-	 * range [x .. y] hence array a will have a value like
-	 * <code>array-lambda int. k : x <= k <= y ? A'[k] : A[i: = j][k]</code>.
-	 * But since the frame-condition is always checked. It guarantees i belongs
-	 * to the range [x .. y]. We'd like to have the value of a be simpler <code>
-	 * array-lambda int. k : x <= k <= y ? A'[k] : A[k]
-	 * </code>.
-	 * 
-	 * The two statements returned by this method delivers such a desire.
-	 * </p>
-	 * 
-	 */
-	private BlockItemNode backToPreState(ExpressionNode m, String preState) {
-		String funcName;
-		List<ExpressionNode> args;
-		ExpressionNode call;
-
-		funcName = MEM_UNARY_WIDENING;
-		args = Arrays.asList(m);
-		call = nodeFactory.newFunctionCallNode(m.getSource(),
-				identifierExpression(funcName), args, null);
-		funcName = MEM_ASSIGN_FROM;
-		args = Arrays.asList(identifierExpression(preState), call);
-		call = nodeFactory.newFunctionCallNode(m.getSource(),
-				identifierExpression(funcName), args, null);
-		return nodeFactory.newExpressionStatementNode(call);
-	}
-
-	/**
 	 * $mem_havoc(m);
 	 */
-	private List<BlockItemNode> createMemHavoc(ExpressionNode m) {
+	private List<BlockItemNode> createMemHavoc(String varName) {
 		List<BlockItemNode> results = new LinkedList<>();
 		String funcName;
 		List<ExpressionNode> args;
-		ExpressionNode call;
+		ExpressionNode call, m = identifierExpression(varName);
 
 		funcName = MEM_HAVOC;
-		args = Arrays.asList(m.copy());
+		args = Arrays.asList(m);
 		call = nodeFactory.newFunctionCallNode(m.getSource(),
 				identifierExpression(funcName), args, null);
 		results.add(nodeFactory.newExpressionStatementNode(call));
@@ -665,25 +663,23 @@ public class LoopContractTransformerWorker extends BaseWorker {
 
 	/**
 	 * <code>
-	 * $mem loopAssignsUnionName = $mem_union(loopAssigns<sub>0</sub>, 
-	 *                                        loopAssigns<sub>1</sub>, 
-	 *                                        ...,
-	 *                                        loopAssigns<sub>n-1</sub>);
+	 *    writeSet = $mem_union(loopAssigns<sub>0</sub>, 
+	 *                          loopAssigns<sub>1</sub>, 
+	 *                          ...,
+	 *                          loopAssigns<sub>n-1</sub>);
 	 * </code>
 	 */
 	private List<BlockItemNode> unionLoopAssigns(
-			List<ExpressionNode> loopAssigns, String loopAssignsUnionName) {
+			List<ExpressionNode> loopAssigns, String writeSetName) {
 		Source muSource = newSource(MEM_UNION, CivlcTokenConstant.CALL);
 		Source meSource = newSource(MEM_EMPTY, CivlcTokenConstant.CALL);
 		List<BlockItemNode> results = new LinkedList<>();
 
-		// temp var "union"
-		results.add(memTypeVariableDeclaration(loopAssignsUnionName));
-		results.add(createAssignment(identifierExpression(loopAssignsUnionName),
+		// init to empty
+		results.add(createAssignment(identifierExpression(writeSetName),
 				nodeFactory.newFunctionCallNode(meSource,
 						identifierExpression(MEM_EMPTY), Arrays.asList(),
 						null)));
-
 		// executes union:
 		for (ExpressionNode loopAssignsArg : loopAssigns) {
 			ExpressionNode addrOf = nodeFactory.newOperatorNode(
@@ -691,29 +687,78 @@ public class LoopContractTransformerWorker extends BaseWorker {
 					loopAssignsArg.copy());
 			ExpressionNode unionCall = nodeFactory.newFunctionCallNode(muSource,
 					identifierExpression(MEM_UNION),
-					Arrays.asList(identifierExpression(loopAssignsUnionName),
-							addrOf),
+					Arrays.asList(identifierExpression(writeSetName), addrOf),
 					null);
 
-			results.add(createAssignment(
-					identifierExpression(loopAssignsUnionName), unionCall));
+			results.add(createAssignment(identifierExpression(writeSetName),
+					unionCall));
 		}
 		return results;
 	}
 
-	private BlockItemNode createPreState(String preStateName) {
-		Source srcDecl = newSource("$state " + preStateName,
-				CivlcTokenConstant.DECLARATION);
-		Source srcGetFullState = newSource(GET_FULL_STATE,
-				CivlcTokenConstant.CALL);
-		ExpressionNode getFullState = nodeFactory.newFunctionCallNode(
-				srcGetFullState, identifierExpression(GET_FULL_STATE),
-				Arrays.asList(), null);
-		BlockItemNode decl = nodeFactory.newVariableDeclarationNode(srcDecl,
-				identifier(preStateName), nodeFactory.newStateTypeNode(srcDecl),
-				getFullState);
+	/**
+	 * <code>$mem_unary_widening(memVarName)</code>
+	 */
+	@SuppressWarnings("unused")
+	private BlockItemNode createMemWidening(String memVarName) {
+		Source source = newSource(MEM_UNARY_WIDENING, CivlcTokenConstant.CALL);
+		return nodeFactory.newExpressionStatementNode(
+				functionCall(source, MEM_UNARY_WIDENING,
+						Arrays.asList(this.identifierExpression(memVarName))));
+	}
 
-		return decl;
+	/**
+	 * <code>lhs = $mem_unary_widening($mem_union(operand1, operand2))</code>
+	 */
+	private BlockItemNode createMemUnionWidening(String lhs, String operand1,
+			String operand2) {
+		Source unionSource = newSource(MEM_UNION, CivlcTokenConstant.CALL);
+		ExpressionNode unionNode = functionCall(unionSource, MEM_UNION,
+				Arrays.asList(identifierExpression(operand1),
+						identifierExpression(operand2)));
+		Source wideningsource = newSource(MEM_UNARY_WIDENING,
+				CivlcTokenConstant.CALL);
+		ExpressionNode wideningNode = functionCall(wideningsource,
+				MEM_UNARY_WIDENING, Arrays.asList(unionNode));
+
+		return createAssignment(identifierExpression(lhs), wideningNode);
+	}
+
+	@SuppressWarnings("unused")
+	private BlockItemNode createMemUnionWidening2(String lhs, String operand1,
+			String operand2) {
+		Source unionSource = newSource(MEM_UNION_WIDENING,
+				CivlcTokenConstant.CALL);
+		ExpressionNode unionNode = functionCall(unionSource, MEM_UNION_WIDENING,
+				Arrays.asList(identifierExpression(operand1),
+						identifierExpression(operand2)));
+
+		return createAssignment(identifierExpression(lhs), unionNode);
+	}
+
+	/**
+	 * <code>$mem_empty()</code> expression
+	 */
+	private ExpressionNode createMemEmptyCall() {
+		Source source = newSource(MEM_EMPTY, CivlcTokenConstant.CALL);
+		ExpressionNode callNode = functionCall(source, MEM_EMPTY,
+				Arrays.asList());
+
+		return callNode;
+	}
+
+	/**
+	 * <code>lhs = $mem_havoc_sidecond(writeSet)</code>
+	 */
+	@SuppressWarnings("unused")
+	@Deprecated
+	private BlockItemNode createMemHavocSidecond(String lhs,
+			String writeSetName) {
+		Source source = newSource(MEM_HAVOC_SIDECOND, CivlcTokenConstant.CALL);
+		ExpressionNode callNode = functionCall(source, MEM_HAVOC_SIDECOND,
+				Arrays.asList(identifierExpression(writeSetName)));
+
+		return createAssignment(identifierExpression(lhs), callNode);
 	}
 
 	/**
@@ -799,34 +844,13 @@ public class LoopContractTransformerWorker extends BaseWorker {
 
 	/**
 	 * <code>
-	 * $mem writeSetName = $write_set_peek();
+	 * lhs = $write_set_pop();
 	 * </code>
 	 */
-	private List<BlockItemNode> createWriteSetPeek(String writeSetName) {
-		Source writeSetPop = newSource(WRITE_SET_PEEK, CivlcTokenConstant.CALL);
-		Source writeSetAssign = newSource(
-				writeSetName + "= " + WRITE_SET_PEEK + ";",
-				CivlcTokenConstant.ASSIGN);
-		List<BlockItemNode> results = new LinkedList<>();
-
-		results.add(nodeFactory.newExpressionStatementNode(
-				nodeFactory.newOperatorNode(writeSetAssign, Operator.ASSIGN,
-						identifierExpression(writeSetName),
-						nodeFactory.newFunctionCallNode(writeSetPop,
-								identifierExpression(WRITE_SET_PEEK),
-								Arrays.asList(), null))));
-		return results;
-	}
-
-	/**
-	 * <code>
-	 * $write_set_pop();
-	 * </code>
-	 */
-	private BlockItemNode createWriteSetPop() {
+	private BlockItemNode createWriteSetPop(String lhs) {
 		Source writeSetPop = newSource(WRITE_SET_POP, CivlcTokenConstant.CALL);
 
-		return nodeFactory.newExpressionStatementNode(
+		return createAssignment(identifierExpression(lhs),
 				nodeFactory.newFunctionCallNode(writeSetPop,
 						identifierExpression(WRITE_SET_POP), Arrays.asList(),
 						null));
@@ -842,5 +866,21 @@ public class LoopContractTransformerWorker extends BaseWorker {
 				identifierExpression(CHOOSE_INT),
 				Arrays.asList(nodeFactory.newIntegerConstantNode(source, "2")),
 				null);
+	}
+
+	/**
+	 * combines {@link Source}s of a list of iterable of AST nodes.
+	 */
+	private Source joinSource(Iterable<? extends ASTNode> nodes) {
+		Source result = null;
+
+		for (ASTNode node : nodes) {
+			result = result == null
+					? node.getSource()
+					: tokenFactory.join(result, node.getSource());
+		}
+		if (result == null)
+			result = newSource("", CivlcTokenConstant.ABSENT);
+		return result;
 	}
 }
