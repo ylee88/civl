@@ -80,6 +80,8 @@ public class Cuda2CIVLWorker extends BaseWorker {
 
 	/**
 	 * Returns a new temporary variable each time it is called.
+	 * 
+	 * @return A generated temporary variable name
 	 */
 	protected String newTemporaryVariableName() {
 		return this.identifierPrefix + "tmp" + tempVarNum++;
@@ -90,7 +92,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 	 * {@link Cuda2CIVLWorker#transformMainFunctionDefinition(FunctionDefinitionNode)}
 	 * on it
 	 * 
-	 * @param root
+	 * @param root the root node of an Abstract Syntax Tree
 	 */
 	protected void translateMainDefinition(ASTNode root) {
 		for (ASTNode child : root.children()) {
@@ -113,7 +115,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 	 * Transforms every kernel definition node under root using
 	 * {@link Cuda2CIVLWorker#kernelDefinitionTransform(FunctionDefinitionNode)}.
 	 * 
-	 * @param root
+	 * @param root the root node of an Abstract Syntax Tree
 	 */
 	protected void translateKernelDefinitions(ASTNode root) {
 		for (ASTNode child : root.children()) {
@@ -135,7 +137,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 	 * Transforms every kernel declaration node under root using
 	 * {@link Cuda2CIVLWorker#kernelDeclarationTransform(FunctionDeclarationNode)}.
 	 * 
-	 * @param root
+	 * @param root the root node of an Abstract Syntax Tree
 	 */
 	protected void translateKernelDeclarations(ASTNode root) {
 		for (ASTNode child : root.children()) {
@@ -157,8 +159,10 @@ public class Cuda2CIVLWorker extends BaseWorker {
 	/**
 	 * Transforms every cuda malloc function call using
 	 * {@link Cuda2CIVLWorker#cudaMallocTransform(FunctionCallNode)}.
+	 * Cuda malloc calls are found by recursively searching through the
+	 * AST for a matching function call.
 	 * 
-	 * @param root
+	 * @param root the root node of an Abstract Syntax Tree
 	 */
 	protected void translateCudaMallocCalls(ASTNode root) {
 		for (ASTNode child : root.children()) {
@@ -196,8 +200,10 @@ public class Cuda2CIVLWorker extends BaseWorker {
 	/**
 	 * Transforms every kernel call using
 	 * {@link Cuda2CIVLWorker#kernelCallTransform(FunctionCallNode)}.
+	 * Kernel calls are found by recursively searching through the
+	 * AST for a matching function call.
 	 * 
-	 * @param root
+	 * @param root the root node of an Abstract Syntax Tree
 	 */
 	protected void translateKernelCalls(ASTNode root) {
 		for (ASTNode child : root.children()) {
@@ -232,7 +238,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 	 * (type)$malloc($root, size), cudaSuccess" where "type" is the type of
 	 * *ptrPtr
 	 * 
-	 * @param cudaMallocCall
+	 * @param cudaMallocCall a FunctionCallNode which is a call to cuda malloc
 	 * @return The translated cuda malloc call as an expression node
 	 */
 	protected ExpressionNode cudaMallocTransform(
@@ -279,8 +285,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 	 * Inserts a call to $cuda_init at the beginning of main and a call to
 	 * $cuda_finalize at the end of main
 	 * 
-	 * @param mainFunction
-	 *            The function definition node for the main function
+	 * @param mainFunction the function definition node for the main function
 	 */
 	private void transformMainFunctionDefinition(
 			FunctionDefinitionNode mainFunction) {
@@ -305,7 +310,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 	 * Given a kernel name, returns a transformed version of it to distinguish
 	 * it as a transformed version of the original kernel
 	 * 
-	 * @param name
+	 * @param name a string that is the name of the original kernel
 	 * @return the transformed name
 	 */
 	private String transformKernelName(String name) {
@@ -321,7 +326,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 	 * and enqueues a call to the inner kernel definition using
 	 * $cuda_enqueue_kernel.
 	 * 
-	 * @param oldDefinition
+	 * @param oldDefinition a FunctionDefinitionNode which is the definition of the original kernel
 	 * @return the transformed kernel definition
 	 */
 	protected FunctionDefinitionNode kernelDefinitionTransform(
@@ -381,7 +386,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 	 * (see {@link Cuda2CIVLWorker#transformKernelName(String)}) and prepends
 	 * formal parameters for the context arguments of the kernel.
 	 * 
-	 * @param oldDeclaration
+	 * @param oldDeclaration a FunctionDeclarationNode which is the declaration of the original kernel
 	 * @return the transformed kernel declaration node
 	 */
 	protected FunctionDeclarationNode kernelDeclarationTransform(
@@ -423,6 +428,14 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		return newKernel;
 	}
 
+	/**
+	 * Alters a body of code by removing any variable declaration 
+	 * with the "__shared__" tag and returning a new list of those removed declarations
+	 * without the "__shared__" tag.
+	 * 
+	 * @param statements a CompountStatementNode that is any section of code
+	 * @return The list of removed variable declarations
+	 */
 	protected List<VariableDeclarationNode> extractSharedVariableDeclarations(
 			CompoundStatementNode statements) {
 		List<VariableDeclarationNode> declarations = new ArrayList<>();
@@ -439,6 +452,19 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		return declarations;
 	}
 
+	/**
+	 * Given the body of a kernel definition, this method builds the 
+	 * inner kernel for the transformed kernel, which aims to generate a grid of blocks
+	 * and threads before running the body of the original kernel.
+	 * 
+	 * This method defines the inner kernel with formal parameters,
+	 * inserts the block function (see {@link Cuda2CIVLWorker#buildBlockDefinition(CompoundStatementNode)}),
+	 * and appends to that calls to $cuda_wait_in_queue,
+	 * $cuda_run_procs (for block generation), and $cuda_kernel_finish.
+	 * 
+	 * @param body a CompoundStatementNode which is the body of the original kernel 
+	 * @return The completed inner kernel definition
+	 */
 	protected FunctionDefinitionNode buildInnerKernelDefinition(
 			CompoundStatementNode body) {
 		Source source = body.getSource();
@@ -492,6 +518,19 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		return innerKernelDefinition;
 	}
 
+	/**
+	 * Given the body of a kernel definition, this method builds the 
+	 * block function within the inner kernel, which aims to create threads within
+	 * a block before running the body of the original kernel.
+	 * 
+	 * This method defines the block function with formal parameters,
+	 * begins it with a barrier creation using $gbarrier_create, and appends to that
+	 * the thread function (see {@link Cuda2CIVLWorker#buildThreadDefinition(CompoundStatementNode)},
+	 * a call to $cuda_run_procs (for thread generation), and a call to $gbarrier_destroy.
+	 * 
+	 * @param body a CompoundStatementNode which is the body of the original kernel 
+	 * @return The completed block function definition
+	 */
 	protected FunctionDefinitionNode buildBlockDefinition(
 			CompoundStatementNode body) {
 		Source source = body.getSource();
@@ -569,6 +608,10 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		return blockDefinition;
 	}
 
+	/**
+	 * 
+	 * @param sharedVars a list of VariableDeclarationNodes
+	 */
 	protected void completeSharedExternArrays(
 			List<VariableDeclarationNode> sharedVars) {
 		for (VariableDeclarationNode node : sharedVars) {
@@ -584,6 +627,18 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		}
 	}
 
+	/**
+	 * Given the body of a kernel definition, this method builds the 
+	 * thread function within the block function of the inner kernel,
+	 * which aims to create a barrier for the thread before running the body of the original kernel.
+	 * 
+	 * This method defines the thread function with formal parameters and
+	 * inserts into it the body of the original kernel among other functions calls 
+	 * for the creation/destruction of a barrier and for data race checking.
+	 * 
+	 * @param body a CompoundStatementNode which is the body of the original kernel 
+	 * @return The completed thread function definition
+	 */
 	protected FunctionDefinitionNode buildThreadDefinition(
 			CompoundStatementNode body) {
 		Source source = body.getSource();
@@ -719,6 +774,13 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		return threadDefinition;
 	}
 
+	/**
+	 * Replaces all calls to "__synchthreads" with the replacement expression passed in.
+	 * The AST is searched through recursively to find all function calls matching "__syncthreads".
+	 * 
+	 * @param root the root node of an Abstract Syntax Tree
+	 * @param replacement an ExpressionNode which will replace all instances of "__synchthreads"
+	 */
 	protected void replaceSyncThreadsCalls(ASTNode root,
 			ExpressionNode replacement) {
 
@@ -751,7 +813,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 	 * signature as transformed by
 	 * {@link Cuda2CIVLWorker#kernelDeclarationTransform(FunctionDeclarationNode)}.
 	 * 
-	 * @param kernelCall
+	 * @param kernelCall a FunctionCallNode which is a kernel call
 	 * @return The transformed kernel call
 	 */
 	protected StatementNode kernelCallTransform(FunctionCallNode kernelCall) {
@@ -828,6 +890,13 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		return replacementNode;
 	}
 
+	/**
+	 * Removes all definitions of the variables "threadIdx", "blockIdx", "gridDim", and "blockDim"
+	 * that exist in the original CUDA code. The AST is searched recursively to find all variable
+	 * declarations with a matching name.
+	 *  
+	 * @param root the root node of an Abstract Syntax Tree
+	 */
 	protected void removeBuiltinDefinitions(ASTNode root) {
 		Set<String> builtinVariables = new HashSet<>(
 				Arrays.asList("threadIdx", "blockIdx", "gridDim", "blockDim"));
