@@ -444,6 +444,16 @@ $atomic_f void $check_data_race($cuda_kernel_instance_t *k, int cur_tid) {
   // Update current R/W sets
   k->write_sets[cur_tid] = cur_mw;
   k->read_sets[cur_tid] = cur_mr;
+  
+  /*
+  printf("CHECKING DATA RACE %d [\n", cur_tid);
+  for (int tmp_tid = 0; tmp_tid < k->size; tmp_tid++) {
+    printf("  RS %d: %s\n", tmp_tid, k->read_sets[tmp_tid]);
+    printf("  WS %d: %s\n", tmp_tid, k->write_sets[tmp_tid]);
+  }
+  printf("]\n");
+  */
+  
   // Check data race
   for (int tmp_tid = 0; tmp_tid < k->size; tmp_tid++) {
     if (tmp_tid == cur_tid) continue;
@@ -466,4 +476,11 @@ $atomic_f void $check_data_race($cuda_kernel_instance_t *k, int cur_tid) {
   //k->read_sets[cur_tid] = $mem_empty();
   $read_set_push();
   $write_set_push();
+}
+
+/* Clears read and write memory sets of the given thread
+*/
+void $clear_mem_sets($cuda_kernel_instance_t *k, int cur_tid) {
+	k->write_sets[cur_tid] = $mem_empty();
+    k->read_sets[cur_tid] = $mem_empty();
 }

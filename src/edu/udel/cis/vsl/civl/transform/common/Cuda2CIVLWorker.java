@@ -4,17 +4,27 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
 import edu.udel.cis.vsl.abc.ast.IF.AST;
 import edu.udel.cis.vsl.abc.ast.IF.ASTFactory;
+import edu.udel.cis.vsl.abc.ast.entity.IF.Entity;
+import edu.udel.cis.vsl.abc.ast.entity.IF.Entity.EntityKind;
+import edu.udel.cis.vsl.abc.ast.entity.IF.Function;
+import edu.udel.cis.vsl.abc.ast.entity.IF.OrdinaryEntity;
+import edu.udel.cis.vsl.abc.ast.entity.IF.ProgramEntity;
+import edu.udel.cis.vsl.abc.ast.entity.IF.Variable;
 import edu.udel.cis.vsl.abc.ast.node.IF.ASTNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.ASTNode.NodeKind;
+import edu.udel.cis.vsl.abc.ast.node.IF.IdentifierNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.SequenceNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.declaration.FunctionDeclarationNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.declaration.FunctionDefinitionNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.declaration.InitializerNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.declaration.VariableDeclarationNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.CastNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.DotNode;
@@ -24,21 +34,31 @@ import edu.udel.cis.vsl.abc.ast.node.IF.expression.FunctionCallNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.IdentifierExpressionNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.OperatorNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.expression.OperatorNode.Operator;
+import edu.udel.cis.vsl.abc.ast.node.IF.statement.AtomicNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.BlockItemNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.CompoundStatementNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.ExpressionStatementNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.statement.IfNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.statement.LoopNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.StatementNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.statement.StatementNode.StatementKind;
 import edu.udel.cis.vsl.abc.ast.node.IF.type.ArrayTypeNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.type.BasicTypeNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.type.FunctionTypeNode;
+import edu.udel.cis.vsl.abc.ast.node.IF.type.TypeNode;
 import edu.udel.cis.vsl.abc.ast.node.IF.type.TypeNode.TypeNodeKind;
+import edu.udel.cis.vsl.abc.ast.type.IF.FunctionType;
+import edu.udel.cis.vsl.abc.ast.type.IF.ObjectType;
 import edu.udel.cis.vsl.abc.ast.type.IF.PointerType;
 import edu.udel.cis.vsl.abc.ast.type.IF.QualifiedObjectType;
 import edu.udel.cis.vsl.abc.ast.type.IF.StandardBasicType;
 import edu.udel.cis.vsl.abc.ast.type.IF.StandardBasicType.BasicTypeKind;
 import edu.udel.cis.vsl.abc.ast.type.IF.Type;
 import edu.udel.cis.vsl.abc.ast.type.IF.Type.TypeKind;
+import edu.udel.cis.vsl.abc.ast.type.common.CommonFunctionType;
+import edu.udel.cis.vsl.abc.token.IF.CivlcToken;
 import edu.udel.cis.vsl.abc.token.IF.Source;
+import edu.udel.cis.vsl.abc.token.IF.SourceFile;
 import edu.udel.cis.vsl.abc.token.IF.SyntaxException;
 import edu.udel.cis.vsl.civl.transform.IF.Cuda2CIVLTransformer;
 
@@ -350,6 +370,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 						Arrays.asList(innerKernelDefinition,
 								nodeFactory.newExpressionStatementNode(
 										enqueueKernelCall)));
+		
 		List<VariableDeclarationNode> newKernelFormalsList = new ArrayList<>();
 
 		newKernelFormalsList.add(nodeFactory.newVariableDeclarationNode(source,
@@ -438,8 +459,9 @@ public class Cuda2CIVLWorker extends BaseWorker {
 	 */
 	protected List<VariableDeclarationNode> extractSharedVariableDeclarations(
 			CompoundStatementNode statements) {
+		CompoundStatementNode statementCopy = statements.copy();
 		List<VariableDeclarationNode> declarations = new ArrayList<>();
-		for (BlockItemNode item : statements) {
+		for (BlockItemNode item : statementCopy) {
 			if (item instanceof VariableDeclarationNode) {
 				VariableDeclarationNode variableDeclaration = (VariableDeclarationNode) item;
 				if (variableDeclaration.hasSharedStorage()) {
@@ -534,7 +556,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 	protected FunctionDefinitionNode buildBlockDefinition(
 			CompoundStatementNode body) {
 		Source source = body.getSource();
-		CompoundStatementNode threadBody = body.copy();
+		//CompoundStatementNode threadBody = body.copy();
 		DotNode blockDimX = nodeFactory.newDotNode(source,
 				this.identifierExpression(source, "blockDim"),
 				nodeFactory.newIdentifierNode(source, "x"));
@@ -564,7 +586,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 								.newIdentifierNode(source, "$gbarrier"), null),
 						newGbarrier);
 		List<VariableDeclarationNode> sharedVars = this
-				.extractSharedVariableDeclarations(threadBody);
+				.extractSharedVariableDeclarations(body);
 		completeSharedExternArrays(sharedVars);
 		SequenceNode<VariableDeclarationNode> blockFormals = nodeFactory
 				.newSequenceNode(source, "blockFormals",
@@ -577,7 +599,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 														source, "uint3"),
 												null))));
 		FunctionDefinitionNode threadDefinition = this
-				.buildThreadDefinition(threadBody);
+				.buildThreadDefinition(body);
 		FunctionCallNode runProcsCall = nodeFactory.newFunctionCallNode(source,
 				this.identifierExpression(source, "$cuda_run_procs"),
 				Arrays.asList(this.identifierExpression(source, "blockDim"),
@@ -641,7 +663,8 @@ public class Cuda2CIVLWorker extends BaseWorker {
 	 */
 	protected FunctionDefinitionNode buildThreadDefinition(
 			CompoundStatementNode body) {
-		Source source = body.getSource();
+		CompoundStatementNode newBody = translateAtomicCalls(body);
+		Source source = newBody.getSource();
 		SequenceNode<VariableDeclarationNode> threadFormals = nodeFactory
 				.newSequenceNode(source, "threadFormals",
 						Arrays.asList(
@@ -652,6 +675,11 @@ public class Cuda2CIVLWorker extends BaseWorker {
 												nodeFactory.newIdentifierNode(
 														source, "uint3"),
 												null))));
+		
+		FunctionCallNode localStart = nodeFactory.newFunctionCallNode(source, 
+				this.identifierExpression(source, "$local_start"), 
+				Arrays.asList(), null);
+		
 		VariableDeclarationNode tidDecl = nodeFactory
 				.newVariableDeclarationNode(source,
 						this.identifier("_cuda_tid"),
@@ -711,6 +739,11 @@ public class Cuda2CIVLWorker extends BaseWorker {
 				Arrays.asList(this.identifierExpression(source,
 						"_cuda_thread_barrier")),
 				null);
+		
+		FunctionCallNode localEnd = nodeFactory.newFunctionCallNode(source,
+				this.identifierExpression(source, "$local_end"),
+				Arrays.asList(), null);
+		
 		// FIXME: Not sure if this works
 		FunctionCallNode readPush = nodeFactory.newFunctionCallNode(
 				source, this.identifierExpression(source, "$read_set_push"),
@@ -730,13 +763,14 @@ public class Cuda2CIVLWorker extends BaseWorker {
 								"_cuda_kid")),
 				null);
 		List<BlockItemNode> threadBodyItems = new ArrayList<BlockItemNode>();
+		threadBodyItems.add(nodeFactory.newExpressionStatementNode(localStart));
 		threadBodyItems.add(tidDecl);
 		threadBodyItems.add(kidDecl);
 		threadBodyItems.add(barrierCreation);
 		// threadBodyItems.add(Node for read/write set push)
 		threadBodyItems.add(nodeFactory.newExpressionStatementNode(readPush));
 		threadBodyItems.add(nodeFactory.newExpressionStatementNode(writePush));
-		for (BlockItemNode child : body) {
+		for (BlockItemNode child : newBody) {
 			if (child != null)
 				threadBodyItems.add(child.copy());
 		}
@@ -747,8 +781,10 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		threadBodyItems.add(nodeFactory.newExpressionStatementNode(writePop));
 		threadBodyItems.add(
 				nodeFactory.newExpressionStatementNode(barrierDestruction));
+		threadBodyItems.add(nodeFactory.newExpressionStatementNode(localEnd));
 		CompoundStatementNode threadBody = nodeFactory
 				.newCompoundStatementNode(source, threadBodyItems);
+		
 		FunctionDefinitionNode threadDefinition = nodeFactory
 				.newFunctionDefinitionNode(source,
 						nodeFactory.newIdentifierNode(source, "_cuda_thread"),
@@ -808,6 +844,222 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		}
 	}
 
+	/**
+	 * Searches through the kernel and performs a transformation on all atomic function
+	 * calls to ensure data races are accurately caught. This method acts on the statement
+	 * level and copies transformed statements to build a new kernel.
+	 * 
+	 * @param root the root node of an Abstract Syntax Tree (root of a kernel on initial call of this method)
+	 * @return A CompoundStatementNode with transformed statements (overall returns a new transformed kernel)
+	 */
+	protected CompoundStatementNode translateAtomicCalls(ASTNode root) {
+		List<BlockItemNode> newKernelItems = new ArrayList<BlockItemNode>();
+		
+		for (Iterator<ASTNode> it = root.children().iterator(); it.hasNext();) {
+			ASTNode child = it.next();
+			if (child == null)
+				continue;
+			
+			if (child.nodeKind() == NodeKind.STATEMENT) {
+				StatementNode statement = (StatementNode) child;
+				StatementKind statementKind = statement.statementKind();
+				if (statementKind == StatementKind.COMPOUND) {
+					newKernelItems.add(translateAtomicCalls(child));
+					continue;
+				}
+			}
+			replaceAtomicExpressions(child, newKernelItems);
+			newKernelItems.add((BlockItemNode)child.copy());
+		}
+		CompoundStatementNode newKernelBody = nodeFactory.newCompoundStatementNode(root.getSource(), newKernelItems);
+		return newKernelBody;
+	}
+	
+	/**
+	 * Takes in an ExpressionNode and determines if it is an atomic function call.
+	 * If the expression is such a call, the matching FunctionDefinitionNode is returned,
+	 * otherwise returns null.
+	 * 
+	 * @param expression an ExpressionNode
+	 * @return the FunctionDefinitionNode of the atomic function call that is passed in. 
+	 * If expression is not an atomic function call, null is returned.
+	 */
+	protected FunctionDefinitionNode findAtomicDefinition(ExpressionNode expression) {
+		if(expression.expressionKind() == ExpressionKind.FUNCTION_CALL) {
+			FunctionCallNode call = (FunctionCallNode) expression;
+			ExpressionNode function = call.getFunction();
+			if (function instanceof IdentifierExpressionNode) {
+				IdentifierNode identifier = ((IdentifierExpressionNode) function).getIdentifier();
+				String functionName = identifier.name();
+				if (functionName.toLowerCase().contains("atomic")) {
+					
+					Function functionEntity = (Function) identifier.getEntity();
+					FunctionDefinitionNode functionDefinition = functionEntity.getDefinition();
+					
+					Source source = functionDefinition.getSource();
+					CivlcToken token = source.getFirstToken();
+					SourceFile sourceFile = token.getSourceFile();
+					String fileName = sourceFile.getName();
+					
+					if(fileName.equals("cuda.cvl"))
+						return functionDefinition;
+				}
+			}
+		}
+		return null;
+	}
+	
+	/**
+	 * Extracts the expressions that are passed in as parameters to an atomic function call
+	 * and stores them in temporary variables. Recurses if a parameter is also an atomic 
+	 * function call. The temporary variable assignments are added to the new kernel.
+	 * 
+	 * @param functionCall the FunctionCallNode that is having its parameters transformed
+	 * @param newKernelItems a list of BlockItemNodes that will be built into the new kernel
+	 */
+	protected void transformParameters(FunctionCallNode functionCall, List<BlockItemNode> newKernelItems) {
+		for (ASTNode child: functionCall.getArguments()) {
+			if (child == null)
+				continue;
+			if (child.nodeKind() == NodeKind.EXPRESSION) {
+				ExpressionNode expression = (ExpressionNode) child;
+				if (expression.expressionKind() == ExpressionKind.CONSTANT)
+					continue;
+				FunctionDefinitionNode functionDefinition = findAtomicDefinition(expression);
+				if (functionDefinition != null) {
+					transformParameters((FunctionCallNode) expression, newKernelItems);
+					functionCall.setChild(child.childIndex(), atomicCallTransform((FunctionCallNode) expression, functionDefinition, newKernelItems));
+					continue;
+				}
+				replaceAtomicExpressions(child, newKernelItems);
+				Source source = expression.getSource();
+				Type type = expression.getType();
+				TypeNode typeNode;
+				if (type instanceof CommonFunctionType) {
+					FunctionType functionType = (FunctionType) type;
+					ObjectType returnType = functionType.getReturnType();
+					typeNode = this.typeNode(source, returnType);
+				}
+				else
+					typeNode = this.typeNode(source, type);
+				
+				String tmpVariableName = "$" + this.newTemporaryVariableName();
+				VariableDeclarationNode tmpDeclaration = nodeFactory.newVariableDeclarationNode(source, 
+					nodeFactory.newIdentifierNode(source, tmpVariableName),
+					typeNode.copy());
+					
+				tmpDeclaration.setInitializer(expression.copy());
+				
+				newKernelItems.add(tmpDeclaration);
+					
+				functionCall.setArgument(child.childIndex(), 
+						nodeFactory.newIdentifierExpressionNode(source, 
+								this.identifier(tmpVariableName)));
+			}
+			
+		}
+	}
+
+	/**
+	 * Searches through an AST in order to transform any atomic function calls. This method
+	 * searches on the expression level, thus it only replaces expressions in the parent
+	 * statements, and does not copy the statements into the new kernel.
+	 * 
+	 * @param root the root of an Abstract Syntax Tree
+	 * @param newKernelItems a list of BlockItemNodes that will be built into the new kernel
+	 */
+	protected void replaceAtomicExpressions(ASTNode root, List<BlockItemNode> newKernelItems) {
+		for (ASTNode child: root.children()) {
+			if (child == null)
+				continue;
+			
+			if(child.nodeKind() == NodeKind.STATEMENT) {
+				StatementNode statement = (StatementNode) child;
+				if (statement.statementKind() == StatementKind.COMPOUND) {
+					root.setChild(child.childIndex(), translateAtomicCalls(statement));
+					continue;
+				}
+				List<BlockItemNode> newStatementItems = new ArrayList<BlockItemNode>();
+				replaceAtomicExpressions(child, newStatementItems);
+				newStatementItems.add((BlockItemNode)child.copy());
+				CompoundStatementNode newStatementBody = nodeFactory.newCompoundStatementNode(root.getSource(), newStatementItems);
+				root.setChild(child.childIndex(), newStatementBody);
+				continue;	
+			}
+			
+			
+			if (child.nodeKind() == NodeKind.EXPRESSION) {
+				ExpressionNode expression = (ExpressionNode) child;
+				FunctionDefinitionNode functionDefinition = findAtomicDefinition(expression);
+				if (functionDefinition != null){
+					transformParameters((FunctionCallNode) expression, newKernelItems);
+					root.setChild(child.childIndex(), atomicCallTransform((FunctionCallNode) expression, functionDefinition, newKernelItems));
+					continue;
+				}
+			}
+			replaceAtomicExpressions(child, newKernelItems);
+		}
+	}
+	
+	/**
+	 * Performs the transformation of an atomic function call. This includes creating a
+	 * temporary variable to store the result of the function call, as well as checking
+	 * for data races and clearing memory sets within an atomic block. The series of statements
+	 * is added to the new kernel and the temporary variable identifier is returned.
+	 * 
+	 * @param atomicCall the FunctionCallNode that is an atomic function call
+	 * @param functionDefinition the FunctionDefinitionNode of the atomic function call
+	 * @param newKernelItems a list of BlockItemNodes that will be built into the new kernel
+	 * @return an IdentifierExpressionNode that holds the identifier for the temporary variable created in
+	 * the transformation
+	 */
+	protected IdentifierExpressionNode atomicCallTransform(FunctionCallNode atomicCall, FunctionDefinitionNode functionDefinition, List<BlockItemNode> newKernelItems) {
+		Source source = atomicCall.getSource();
+		
+		// Node for check_data_race
+		FunctionCallNode checkDataRace = nodeFactory.newFunctionCallNode(
+				source, this.identifierExpression(source, "$check_data_race"),
+				Arrays.asList(
+						this.identifierExpression(source,
+								"_cuda_this"),
+						this.identifierExpression(source,
+								"_cuda_kid")),
+				null);
+		
+		FunctionCallNode clearMemSets = nodeFactory.newFunctionCallNode(source, 
+				this.identifierExpression(source, "$clear_mem_sets"),
+				Arrays.asList(
+						this.identifierExpression(source, "_cuda_this"),
+						this.identifierExpression(source, "_cuda_kid")),
+				null);
+		
+		FunctionCallNode yeild = nodeFactory.newFunctionCallNode(source, 
+				this.identifierExpression(source, "$yield"), 
+				Arrays.asList(), null);
+		
+		FunctionTypeNode functionType = (FunctionTypeNode) functionDefinition.getTypeNode();
+		TypeNode functionReturnType = functionType.getReturnType();
+		
+		String tmpVariableName = "$" + this.newTemporaryVariableName();
+		VariableDeclarationNode tmpDeclaration = nodeFactory.newVariableDeclarationNode(source, 
+				nodeFactory.newIdentifierNode(source, tmpVariableName),
+				functionReturnType.copy());
+		
+		OperatorNode assignmentToTemp = nodeFactory.newOperatorNode(source, Operator.ASSIGN, 
+				Arrays.asList(nodeFactory.newIdentifierExpressionNode(source, this.identifier(tmpVariableName)),
+						atomicCall.copy()));
+		
+		newKernelItems.add(tmpDeclaration);
+		newKernelItems.add(nodeFactory.newExpressionStatementNode(checkDataRace.copy()));
+		newKernelItems.add(nodeFactory.newExpressionStatementNode(yeild.copy()));
+		newKernelItems.add(nodeFactory.newExpressionStatementNode(assignmentToTemp));
+		newKernelItems.add(nodeFactory.newExpressionStatementNode(checkDataRace.copy()));
+		newKernelItems.add(nodeFactory.newExpressionStatementNode(clearMemSets));
+		newKernelItems.add(nodeFactory.newExpressionStatementNode(yeild.copy()));
+		
+		return nodeFactory.newIdentifierExpressionNode(source, this.identifier(tmpVariableName));	
+	}
+	
 	/**
 	 * Transforms the kernel call to instead use the kernel's transformed
 	 * signature as transformed by
@@ -920,3 +1172,4 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		}
 	}
 }
+

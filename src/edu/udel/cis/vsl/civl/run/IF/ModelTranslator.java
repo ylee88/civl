@@ -341,6 +341,7 @@ public class ModelTranslator {
 		if (!config.svcomp()) {
 			task.addTransformRecord(
 					transformerFactory.getMPI2CIVLTransformerRecord());
+			task.addTransformCode(SideEffectRemover.CODE);
 			task.addTransformRecord(
 					transformerFactory.getCuda2CIVLTransformerRecord());
 		}
