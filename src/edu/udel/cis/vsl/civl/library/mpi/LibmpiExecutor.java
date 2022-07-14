@@ -104,12 +104,12 @@ public class LibmpiExecutor extends BaseLibraryExecutor
 				callEval = executeGetGcomm(state, pid, process, arguments,
 						argumentValues, source);
 				break;
-			case "$mpi_root_scope" :
-				callEval = executeRootScope(state, pid, process, arguments,
+			case "$mpi_root_scope_system" :
+				callEval = executeRootScopeSystem(state, pid, process, arguments,
 						argumentValues, source);
 				break;
-			case "$mpi_proc_scope" :
-				callEval = executeProcScope(state, pid, process, arguments,
+			case "$mpi_proc_scope_system" :
+				callEval = executeProcScopeSystem(state, pid, process, arguments,
 						argumentValues, source);
 				break;
 			default :
@@ -358,7 +358,7 @@ public class LibmpiExecutor extends BaseLibraryExecutor
 		return new Evaluation(state, gcomm);
 	}
 
-	private Evaluation executeRootScope(State state, int pid, String process,
+	private Evaluation executeRootScopeSystem(State state, int pid, String process,
 			Expression arguments[], SymbolicExpression argumentValues[],
 			CIVLSource source) throws UnsatisfiablePathConditionException {
 		SymbolicExpression commHandle = argumentValues[0];
@@ -377,7 +377,7 @@ public class LibmpiExecutor extends BaseLibraryExecutor
 		return new Evaluation(state, scopeVal);
 	}
 
-	private Evaluation executeProcScope(State state, int pid, String process,
+	private Evaluation executeProcScopeSystem(State state, int pid, String process,
 			Expression arguments[], SymbolicExpression argumentValues[],
 			CIVLSource source) throws UnsatisfiablePathConditionException {
 		SymbolicExpression commHandle = argumentValues[0];

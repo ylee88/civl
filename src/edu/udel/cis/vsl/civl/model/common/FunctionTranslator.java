@@ -5986,7 +5986,7 @@ public class FunctionTranslator {
 							(StandardBasicType) abcType);
 					break;
 				case HEAP :
-					result = typeFactory.pointerType(modelBuilder.heapType);
+					result = typeFactory.heapType();
 					break;
 				case OTHER_INTEGER :
 					result = typeFactory.integerType();

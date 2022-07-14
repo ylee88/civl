@@ -54,7 +54,13 @@ public class TestConstants {
 
 	public static String POTENTIAL_DEADLOCK = "-deadlock=potential";
 
-	public static String MPI_CONTRACT = "-mpiContract=true";
+	public static String MPI_CONTRACT = "-mpiContract"; 
+	
+	public static String MPI_CONTRACT(String function) {
+		return "-mpiContract=" + function;
+	}
+	
+	public static String MPI_NONBLOCKING_MODEL = "-mpi=nonblocking";
 
 	public static String SHOW_MODEL = "-showModel=true";
 

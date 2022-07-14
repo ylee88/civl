@@ -132,6 +132,7 @@ OPTION_NAME
     | '-maxdepth'
     | '-min'
     | '-mpiContract'
+    | '-mpi'
     | '-ompNoSimplify'
     | '-ompOnlySimplifier'
     | '-ompLoopDecomp'

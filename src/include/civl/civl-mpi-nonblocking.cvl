@@ -14,6 +14,25 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+typedef struct _mpi_nb_record_t {
+  void *buf;
+  int count;       
+  MPI_Datatype datatype;
+  int src_or_dest;
+  int tag;
+  _Bool completed;
+} _mpi_nb_record_t;
+
+struct CIVL_MPI_Comm {
+  $comm p2p; // point-to-point communication
+  $comm col; // collective communication
+  $collator collator;
+  $barrier barrier;
+  int gcommIndex; //the index of the corresponding global communicator.
+  _mpi_nb_record_t * send_records[];
+  _mpi_nb_record_t * recv_records[];
+};
+
 /* Library private helper function declaration */
 char * $mpi_coroutine_name(int tag);
 
@@ -945,7 +964,7 @@ int $mpi_comm_dup($scope scope, MPI_Comm comm, MPI_Comm * newcomm, char * routNa
   int place = $comm_place(comm->col);
   $mpi_gcomm newgcomm;
   int idx;
-  $scope CMPI_ROOT_SCOPE = $mpi_root_scope(comm->col);
+  $scope CMPI_ROOT_SCOPE = $mpi_root_scope(comm);
 
   if(place == 0) {
     int size = $comm_size(comm->col);
@@ -970,7 +989,7 @@ int $mpi_comm_free(MPI_Comm *comm, $mpi_state mpi_state) {
   int size = $comm_size((*comm)->col);
   int buf[size];
   int gcommIndex = (*comm)->gcommIndex;
-  $scope CMPI_ROOT_SCOPE = $mpi_root_scope((*comm)->col);
+  $scope CMPI_ROOT_SCOPE = $mpi_root_scope(*comm);
 
   //TODO: $mpi_gather here is just a ugly synchronization
   $mpi_gather(&place, 1, MPI_INT, buf, 1, MPI_INT, 0, 
@@ -1049,6 +1068,11 @@ void $mpi_diff_coroutine_entries($bundle specEntry, $bundle mineEntry, int rank)
 	      rank, routine);          
       break;
     }
+}
+
+int $mpi_barrier(MPI_Comm comm) {
+  $barrier_call(comm->barrier);
+  return 0;
 }
 
 #ifdef _MPI_CONTRACT
@@ -1141,5 +1165,38 @@ char * $mpi_coroutine_name(int tag) {
   default: $assert($false, "Internal Error: Unexpected MPI routine tag:%d.\n", tag);
   }
 }
+
+/**************** Bridging MPI and the comm library *****************/
+
+$atomic_f $state_f $comm $mpi_get_p2p_channel(MPI_Comm comm) {
+  return comm->p2p;
+}
+
+$atomic_f $state_f $comm $mpi_get_col_channel(MPI_Comm comm) {
+  return comm->col;
+}
+
+$atomic_f $state_f int $mpi_comm_size(MPI_Comm comm) {
+  return $comm_size(comm->p2p);
+}
+
+$atomic_f $state_f int $mpi_comm_place(MPI_Comm comm) {
+  return $comm_place(comm->p2p);
+}
+
+$atomic_f $state_f $scope $mpi_root_scope(MPI_Comm comm) {
+  return $mpi_root_scope_system(comm->p2p);
+}
+
+$atomic_f $state_f $scope $mpi_proc_scope(MPI_Comm comm) {
+  return $mpi_proc_scope_system(comm->p2p);
+}
+
+/**************** Bridging MPI and the collate library ****************/
+$atomic_f $state_f $bundle $mpi_check_collective(MPI_Comm comm,
+						       $bundle checking) {
+  return $collate_check(comm->collator, checking);
+}
+
 #endif
 

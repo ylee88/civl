@@ -56,7 +56,7 @@ public class MPIFeatureTest {
 
 	@Test
 	public void matmatCompare() {
-		assertTrue(ui.run("compare -input_mpi_nprocs=2 -collectHeaps=false",
+		assertTrue(ui.run("compare -input_mpi_nprocs=2", "-collectHeaps=false",
 				TestConstants.QUIET, "-impl", filename("matmat_mw_good.c"),
 				"-spec", filename("matmat_spec.c")));
 	}

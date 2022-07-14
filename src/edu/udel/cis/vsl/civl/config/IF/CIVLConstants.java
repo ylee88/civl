@@ -47,6 +47,35 @@ public class CIVLConstants {
 	}
 
 	/**
+	 * The different MPI implementation model that CIVL provides.
+	 * 
+	 * @author ziqingluo
+	 */
+	public enum MPIModelKind {
+		/* The default one, simple but only supports blocking operations */
+		BLOCKING,
+		/* supports both blocking and non-blocking operations but verbose */
+		NON_BLOCKING,
+		/* used for the contract-based verification */
+		CONTRACT;
+
+		/**
+		 * maps string literal option value to {@link MPIModelKind}.
+		 */
+		static public MPIModelKind select(String name) {
+			switch (name) {
+				case "nonblocking" :
+					return NON_BLOCKING;
+				case "contract" :
+					return CONTRACT;
+				case "blocking" :
+				default :
+					return BLOCKING; // default value
+			}
+		}
+	}
+
+	/**
 	 * The root of the include directory.
 	 */
 	public final static File ROOT_INCLUDE_PATH = new File(
@@ -133,7 +162,10 @@ public class CIVLConstants {
 
 	public static String MIN = "min";
 
-	public static String MPI_CONTRACT = "mpiContract";
+	public static String MPI_CONTRACT = "mpiContract"; //TODO: change to general "-contract"
+
+	public static String MPI_MODEL = "mpi";
+
 	public static String LOOP_INV = "loop";
 	public static String PROC_BOUND = "procBound";
 	public static String RANDOM = "random";
@@ -299,6 +331,15 @@ public class CIVLConstants {
 					+ " Default value \"" + CONTRACT_CHECK_NONE
 					+ "\" is equivalent to disble MPI contract mode",
 			CONTRACT_CHECK_NONE);
+
+	/**
+	 * Chooses MPI implementation models (see {@link MPIModelKind}).
+	 * {@link MPIModelKind#BLOCKING} is the default setting.
+	 */
+	public final static Option mpiModelO = Option.newScalarOption(MPI_MODEL,
+			STRING,
+			"select the MPI implementation model. Available values are blocking (default), nonblocking, contract.",
+			"blocking");
 
 	/**
 	 * Enable all settings that are required for verifying with loop invariants.
@@ -698,15 +739,16 @@ public class CIVLConstants {
 				collectScopesO, collectSymbolicConstantsO, deadlockO, debugO,
 				enablePrintfO, errorBoundO, errorStateEquivO, guidedO, idO,
 				inputO, linkO, loopO, macroO, maxdepthO, minO, mpiContractO,
-				ompLoopDecompO, ompNoSimplifyO, ompOnlySimplifierO, probO,
-				preprocO, procBoundO, randomO, runtimeUpdateO, saveStatesO,
-				seedO, showAmpleSetO, showAmpleSetWtStatesO, showInputVarsO,
-				showMemoryUnitsO, showModelO, showPathConditionO, showProgramO,
-				showProverQueriesO, showQueriesO, showSavedStatesO, showStatesO,
-				showTimeO, showTransitionsO, showUnreachedCodeO, simplifyO,
-				solveO, statelessPrintfO, svcomp16O, svcomp17O, quietO,
-				sysIncludePathO, traceO, userIncludePathO, verboseO, webO,
-				CIVLMacroO, analyzeAbsO, strictCompareO, collectOutputO,
+				mpiModelO, ompLoopDecompO, ompNoSimplifyO, ompOnlySimplifierO,
+				probO, preprocO, procBoundO, randomO, runtimeUpdateO,
+				saveStatesO, seedO, showAmpleSetO, showAmpleSetWtStatesO,
+				showInputVarsO, showMemoryUnitsO, showModelO,
+				showPathConditionO, showProgramO, showProverQueriesO,
+				showQueriesO, showSavedStatesO, showStatesO, showTimeO,
+				showTransitionsO, showUnreachedCodeO, simplifyO, solveO,
+				statelessPrintfO, svcomp16O, svcomp17O, quietO, sysIncludePathO,
+				traceO, userIncludePathO, verboseO, webO, CIVLMacroO,
+				analyzeAbsO, strictCompareO, collectOutputO,
 				checkDivisionByZeroO, checkMemoryLeakO, timeoutO, unpreprocO,
 				sliceAnalysisO, witnessO, direct0, intBit,
 				intOperationTransformer, maxProcsO, SARLTestGenO,
@@ -716,7 +758,8 @@ public class CIVLConstants {
 	// headers...
 	public final static String BUNDLE = "bundle.cvh";
 	public final static String CIVLC = "civlc.cvh";
-	public final static String CIVL_MPI = "civl-mpi.cvh";
+	public final static String CIVL_MPI_BLOCKING = "civl-mpi-blocking.cvh";
+	public final static String CIVL_MPI_NONBLOCKING = "civl-mpi-nonblocking.cvh";
 	public final static String CIVL_PTHREAD = "civl-pthread.cvh";
 	public final static String COMM = "comm.cvh";
 	public final static String CONCURRENCY = "concurrency.cvh";
@@ -769,9 +812,9 @@ public class CIVLConstants {
 	 * @return all CIVL-C libraries.
 	 */
 	public final static Set<String> getAllCivlLibs() {
-		return new HashSet<String>(Arrays.asList(BUNDLE, CIVLC, CIVL_MPI,
-				CIVL_PTHREAD, COMM, CONCURRENCY, CIVL_OMP, SEQ, CIVL_CUDA,
-				COLLATE, FORTRAN_ARRAY, FORTRAN_SIGP));
+		return new HashSet<String>(Arrays.asList(BUNDLE, CIVLC, CIVL_MPI_BLOCKING,
+				CIVL_MPI_NONBLOCKING, CIVL_PTHREAD, COMM, CONCURRENCY, CIVL_OMP,
+				SEQ, CIVL_CUDA, COLLATE, FORTRAN_ARRAY, FORTRAN_SIGP));
 	}
 
 	/**

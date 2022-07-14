@@ -112,10 +112,23 @@ public class ModelTranslator {
 	private static final String SVCOMP_MACRO = "_SVCOMP";
 
 	/**
-	 * A macro for MPI contract features. Once the option "-mpiContrac" is set
-	 * in command line, such a macro should be enabled.
+	 * A macro for MPI contract features. Once the option "-mpi=contract" or
+	 * "-contract" is set in command line, such a macro should be enabled.
 	 */
 	private static final String MPI_CONTRACT_MACRO = "_MPI_CONTRACT";
+
+	/**
+	 * A macro for MPI blocking model based implementation. Such a macro is by
+	 * default on or when the option "-mpi=blocking" is set in command line.
+	 */
+	private static final String MPI_BLOCKING_MACRO = "_MPI_BLOCKING";
+
+	/**
+	 * A macro for MPI implementation supporting both blocking and non-blocking.
+	 * Once the option "-mpi=nonblocking" is set in command line, such a macro
+	 * should be enabled.
+	 */
+	private static final String MPI_NON_BLOCKING_MACRO = "_MPI_NON_BLOCKING";
 
 	// package-private fields, which are accessed by UserInterface...
 
@@ -375,6 +388,19 @@ public class ModelTranslator {
 			macroDefs.put(SVCOMP_MACRO, "");
 		if (this.config.isEnableMpiContract())
 			macroDefs.put(MPI_CONTRACT_MACRO, "");
+		switch (this.config.mpiModel()) {
+			case BLOCKING :
+				macroDefs.put(MPI_BLOCKING_MACRO, "");
+				break;
+			case CONTRACT :
+				macroDefs.put(MPI_CONTRACT_MACRO, "");
+				break;
+			case NON_BLOCKING :
+				macroDefs.put(MPI_NON_BLOCKING_MACRO, "");
+				break;
+			default :
+				macroDefs.put(MPI_BLOCKING_MACRO, "");
+		}
 		if (macroDefMap != null) {
 			for (String name : macroDefMap.keySet()) {
 				macroDefs.put(name, (String) macroDefMap.get(name));

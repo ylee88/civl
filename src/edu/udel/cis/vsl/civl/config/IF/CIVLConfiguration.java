@@ -5,6 +5,7 @@ import java.util.Map;
 
 import edu.udel.cis.vsl.civl.config.IF.CIVLConstants.DeadlockKind;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConstants.ErrorStateEquivalence;
+import edu.udel.cis.vsl.civl.config.IF.CIVLConstants.MPIModelKind;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.ModelConfiguration;
@@ -261,6 +262,11 @@ public class CIVLConfiguration {
 	 * If CIVL enables "MPI CONTRACT" mode
 	 */
 	private String mpiContractFunction = null;
+	
+	/**
+	 * The MPI implementation model, by default is blocking:
+	 */
+	private MPIModelKind mpiModel = MPIModelKind.BLOCKING;
 
 	private boolean checkMemoryLeak = true;
 
@@ -314,6 +320,8 @@ public class CIVLConfiguration {
 		String errorStateEquivString = (String) config
 				.getValue(CIVLConstants.errorStateEquivO);
 
+		this.setMpiModel(MPIModelKind
+				.select((String) config.getValueOrDefault(CIVLConstants.mpiModelO)));
 		if (ompLoopDecompString != null) {
 			switch (ompLoopDecompString) {
 				case "ALL" :
@@ -920,6 +928,17 @@ public class CIVLConfiguration {
 			mpiContractFunction = function;
 	}
 
+	public void setMpiModel(MPIModelKind modelKind) {
+		mpiModel = modelKind;
+	}
+	
+	/**
+	 * @return the MPI implementation model that will be used for this run.
+	 */
+	public MPIModelKind mpiModel() {
+		return mpiModel;
+	}
+	
 	public boolean checkDivisionByZero() {
 		return checkDivisionByZero;
 	}
