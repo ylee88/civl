@@ -1,0 +1,70 @@
+#include <mem.cvh>
+#include <stdio.h>
+
+typedef int data_t;
+
+$mem ws[2];
+$mem rs[2];
+
+void check_data_race(int cur_tid) {
+  $mem out_s0 = $mem_empty();
+  $mem out_s1 = $mem_empty();
+  $mem cur_mw = $write_set_pop();
+  $mem cur_mr = $read_set_pop();
+  ws[cur_tid] = cur_mw;
+  rs[cur_tid] = cur_mr;
+  {
+    int tmp_tid = 0;
+    for (; tmp_tid < 2; tmp_tid = tmp_tid + 1) {
+      if (tmp_tid == cur_tid)
+        continue;
+      $mem tmp_mr = rs[tmp_tid];
+      $mem tmp_mw = ws[tmp_tid];
+      _Bool $sef$14 = $mem_no_intersect(cur_mr, tmp_mw, &(out_s0), &(out_s1));
+      $assert($sef$14, "Data-race detected: %p read by thread %d intersects %p written by thread %d\n", out_s0, cur_tid, out_s1, tmp_tid);
+      _Bool $sef$15 = $mem_no_intersect(cur_mw, tmp_mr, &(out_s0), &(out_s1));
+      $assert($sef$15, "Data-race detected: %p read by thread %d intersects %p written by thread %d\n", out_s0, cur_tid, out_s1, tmp_tid);
+      _Bool $sef$16 = $mem_no_intersect(cur_mw, tmp_mw, &(out_s0), &(out_s1));
+      $assert($sef$16, "Data-race detected: %p written by thread %d intersects %p written by thread %d\n", out_s0, cur_tid, out_s1, tmp_tid);
+    }
+  }
+  $read_set_push();
+  $write_set_push();
+}
+
+void clear_mem_sets(int cur_tid) {
+  ws[cur_tid] = $mem_empty();
+  rs[cur_tid] = $mem_empty();
+}
+
+int assignVal(int* p, int v) {
+  int ret = *p;
+  *p = v;
+  return ret;
+}
+
+void simpleKernel(int tid, int* data1) {
+  $local_start();
+  $read_set_push();
+  $write_set_push();
+  data1[0] = 1;
+  int* $_cuda_tmp2 = data1;
+  check_data_race(tid);
+  $yield();
+  int $_cuda_tmp3 = assignVal($_cuda_tmp2, 5);
+  check_data_race(tid);
+  clear_mem_sets(tid);
+  //printf("wow\n");
+  check_data_race(tid);
+  $read_set_pop();
+  $write_set_pop();
+  $local_end();
+}
+
+int main() {
+  //fprintf(stderr, "wut");
+  data_t data1 = 0;
+  $parfor(int x : 0.. 1) {
+    simpleKernel(x, &data1);
+  }
+}
