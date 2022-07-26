@@ -198,6 +198,7 @@ public class CommonExecutor implements Executor {
 		this.modelFactory = modelFactory;
 		this.typeFactory = modelFactory.typeFactory();
 		this.evaluator = evaluator;
+		this.evaluatorOnTheBench = evaluator;
 		this.symbolicUtil = evaluator.symbolicUtility();
 		this.int2PointerCaster = new Int2PointerCaster(universe, symbolicUtil,
 				modelFactory.typeFactory().pointerSymbolicType());
@@ -700,11 +701,8 @@ public class CommonExecutor implements Executor {
 			boolean monitorReads = state.isMonitoringReads(pid);
 
 			if (monitorReads) {
-				if (this.readSetCollectEvaluator == null)
-					this.readSetCollectEvaluator = evaluator
-							.newReadSetCollectEvaluator();
 				this.evaluatorOnTheBench = this.evaluator;
-				this.evaluator = this.readSetCollectEvaluator;
+				this.evaluator = getReadSetCollectEvaluator();
 			}
 			state = executeWork(state, pid, statement);
 			if (monitorReads)
@@ -1522,8 +1520,8 @@ public class CommonExecutor implements Executor {
 					eval.value, value, isInitializer, toCheckPointer);
 		}
 		if (captureRead) {
-			this.evaluator = readSetCollectEvaluator;
-			state = readSetCollectEvaluator.collectForLHS(state, pid, lhs);
+			this.evaluator = getReadSetCollectEvaluator();
+			state = getReadSetCollectEvaluator().collectForLHS(state, pid, lhs);
 		}
 		return state;
 	}
@@ -1589,6 +1587,12 @@ public class CommonExecutor implements Executor {
 								+ rhsType);
 		}
 		return eval;
+	}
+	
+	private ReadSetCollectEvaluator getReadSetCollectEvaluator() {
+		if(this.readSetCollectEvaluator == null)
+			this.readSetCollectEvaluator = evaluator.newReadSetCollectEvaluator();
+		return this.readSetCollectEvaluator;
 	}
 
 	/* *********************** Methods from Executor *********************** */

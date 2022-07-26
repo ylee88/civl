@@ -11,6 +11,7 @@
 #include <seq.cvh>
 #include <mem.cvh>
 #include <civl-cuda.cvh>
+#include <comm.cvh>
 #pragma CIVL ACSL
 
 /* type used to represent an instance of a Cuda kernel
@@ -484,3 +485,91 @@ void $clear_mem_sets($cuda_kernel_instance_t *k, int cur_tid) {
 	k->write_sets[cur_tid] = $mem_empty();
     k->read_sets[cur_tid] = $mem_empty();
 }
+
+/* Publishes current read a write sets to global arrays. Local sets are not cleared
+*/
+void $publish($cuda_kernel_instance_t *k, int cur_tid) {
+    k->write_sets[cur_tid] = $write_set_peek();
+    k->read_sets[cur_tid] = $read_set_peek();
+}
+
+int is_valid_width(int width){
+    for(int i = 32; i > 1; i /= 2){
+        if(width == i){
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int exchange_data(unsigned mask, int var, int srcLane, int tid, $comm comm, $gbarrier* warpBarriers){
+    $read_set_push();
+	$write_set_push();
+	int laneID = tid % 32;
+	int warpID = tid / 32;
+	int dest;
+	$gbarrier gbarrier = warpBarriers[warpID];
+	int numActiveThreads = 0;
+	for (int i = 0; i < $get_nprocs(gbarrier); i++){
+		numActiveThreads += (mask >> i) & 1;
+	}
+	$barrier barrier = $barrier_create($here, gbarrier, laneID);
+	$message request_message = $message_pack(tid, srcLane, 0, &tid, sizeof(int));
+	$comm_enqueue(comm, request_message);
+	if((mask >> laneID) & 1){
+		$barrier_call_subset(barrier, numActiveThreads);
+	}
+	while ($comm_probe(comm, $COMM_ANY_SOURCE, 0)){
+		$message recv_request = $comm_dequeue(comm, $COMM_ANY_SOURCE, 0);
+		$message_unpack(recv_request, &dest, sizeof(int));
+		$message send_message = $message_pack(tid, dest, 1, &var, sizeof(int));
+		$comm_enqueue(comm, send_message); 
+	}
+	$message recv_message = $comm_dequeue(comm, srcLane, 1);
+	$message_unpack(recv_message, &var, sizeof(int));
+	$barrier_destroy(barrier);
+	$read_set_pop();
+	$write_set_pop();
+	return var;
+}
+
+int _cuda__shfl_sync(unsigned mask, int var, int srcLane, int width, int numThreads, int tid, $comm comm, $gbarrier* warpBarriers){
+    $assert(is_valid_width(width));
+	int subWarpID = tid / width;
+	srcLane = srcLane % width + subWarpID * width;
+	if(srcLane >= numThreads){
+	    int lastSubWarpSize = numThreads % width;
+	    srcLane = srcLane % lastSubWarpSize + subWarpID * width;
+	}
+    return exchange_data(mask, var, srcLane, tid, comm, warpBarriers);
+}
+int _cuda__shfl_up_sync(unsigned mask, int var, unsigned int delta, int width, int numThreads, int tid, $comm comm, $gbarrier* warpBarriers){
+    $assert(is_valid_width(width));
+	int subWarpLaneID = tid % width;
+	int srcLane = tid;
+	if (subWarpLaneID - delta >= 0){
+	    srcLane = tid - delta;
+	}
+    return exchange_data(mask, var, srcLane, tid, comm, warpBarriers);
+}
+int _cuda__shfl_down_sync(unsigned mask, int var, unsigned int delta, int width, int numThreads, int tid, $comm comm, $gbarrier* warpBarriers){
+	$assert(is_valid_width(width));
+	int subWarpLaneID = tid % width;
+	int srcLane = tid;
+	if (subWarpLaneID + delta < width && tid + delta < numThreads) {
+	    srcLane = tid + delta;
+	}
+    return exchange_data(mask, var, srcLane, tid, comm, warpBarriers);
+}
+int _cuda__shfl_xor_sync(unsigned mask, int var, int laneMask, int width, int numThreads, int tid, $comm comm, $gbarrier* warpBarriers){
+    $assert(is_valid_width(width));
+    int laneID = tid % 32;
+	int warpID = tid / 32;
+	int subWarpID = tid / width; 
+	int srcLane = laneID ^ laneMask;
+	if(!(srcLane / 32 == warpID && srcLane / width <= subWarpID && srcLane < numThreads)){
+	    srcLane = tid;
+	}
+    return exchange_data(mask, var, srcLane, tid, comm, warpBarriers);
+}
+

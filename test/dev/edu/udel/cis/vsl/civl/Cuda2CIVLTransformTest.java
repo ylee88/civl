@@ -140,7 +140,7 @@ public class Cuda2CIVLTransformTest {
 	/*
 	@Test
 	public void debug() { //REMOVE before merge
-		assertTrue(ui.run("show", TestConstants.SHOW_PROGRAM, filename("test.cu")));
+		assertTrue(ui.run("verify", filename("test.cu")));
 		//assertTrue(ui.run("verify", filename("test.cu")));
 	}
 	*/
