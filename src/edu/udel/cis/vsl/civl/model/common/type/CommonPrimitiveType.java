@@ -188,4 +188,14 @@ public class CommonPrimitiveType extends CommonType
 	protected void addFreeVariables(Set<Variable> result,
 			Set<CIVLType> seenTypes) {
 	}
+
+	@Override
+	public boolean hasReferences() {
+		return false;
+	}
+
+	@Override
+	public boolean analyze() {
+		return true;
+	}
 }

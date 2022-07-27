@@ -10,6 +10,7 @@ import edu.udel.cis.vsl.civl.kripke.IF.Enabler;
 import edu.udel.cis.vsl.civl.log.IF.CIVLExecutionException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLException.Certainty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
+import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.location.Location;
 import edu.udel.cis.vsl.civl.model.IF.statement.Statement;
@@ -17,6 +18,7 @@ import edu.udel.cis.vsl.civl.predicate.IF.Deadlock;
 import edu.udel.cis.vsl.civl.semantics.IF.SymbolicAnalyzer;
 import edu.udel.cis.vsl.civl.state.IF.ProcessState;
 import edu.udel.cis.vsl.civl.state.IF.State;
+import edu.udel.cis.vsl.civl.state.IF.StateFactory;
 import edu.udel.cis.vsl.civl.state.IF.UnsatisfiablePathConditionException;
 import edu.udel.cis.vsl.sarl.IF.Reasoner;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
@@ -48,7 +50,11 @@ public class CommonDeadlock extends CommonCIVLStatePredicate
 
 	private Enabler enabler;
 
+	private StateFactory stateFactory;
+
 	private BooleanExpression falseExpr;
+
+	private BooleanExpression trueExpr;
 
 	/**
 	 * An absolute deadlock occurs if all of the following hold:
@@ -74,10 +80,12 @@ public class CommonDeadlock extends CommonCIVLStatePredicate
 	 *            The symbolic analyzer used in the system.
 	 */
 	public CommonDeadlock(SymbolicUniverse symbolicUniverse, Enabler enabler,
-			SymbolicAnalyzer symbolicAnalyzer) {
+			StateFactory stateFactory, SymbolicAnalyzer symbolicAnalyzer) {
 		this.universe = symbolicUniverse;
 		this.falseExpr = symbolicUniverse.falseExpression();
+		this.trueExpr = symbolicUniverse.trueExpression();
 		this.enabler = enabler;
+		this.stateFactory = stateFactory;
 		this.symbolicAnalyzer = symbolicAnalyzer;
 	}
 
@@ -95,48 +103,36 @@ public class CommonDeadlock extends CommonCIVLStatePredicate
 			throws UnsatisfiablePathConditionException {
 		StringBuffer explanation = new StringBuffer();
 		boolean first = true;
+		int apid = stateFactory.processInAtomic(state);
+		int nprocs = state.numProcs();
 
-		for (ProcessState p : state.getProcessStates()) {
-			if (p == null)
+		for (int pid = 0; pid < nprocs; pid++) {
+			if (apid >= 0 && pid != apid)
+				continue;
+
+			ProcessState procState = state.getProcessState(pid);
+
+			if (procState == null)
 				continue;
 
 			Location location = null;
 			BooleanExpression predicate = null;
-			// wait on unterminated function, no outgoing edges:
-			// String nonGuardExplanation = null;
-			int pid = p.getPid();
 
 			if (first)
 				first = false;
 			else
 				explanation.append("\n");
-			if (!p.hasEmptyStack())
-				location = p.getLocation();
-			explanation.append("process " + p.name() + " (id=" + pid + "): ");
+			if (!procState.hasEmptyStack())
+				location = procState.getLocation();
+			explanation.append(
+					"process " + procState.name() + " (id=" + pid + "): ");
 			if (location == null) {
 				explanation.append("terminated");
 			} else {
-				// CIVLSource source = location.getSource();
-
-				// explanation.append("at location " + location.id() + ", ");
-				// if (source != null)
-				// explanation.append(source.getSummary());
 				for (Statement statement : location.outgoing()) {
 					BooleanExpression guard;
 
 					guard = enabler.getGuard(statement, pid, state);
-					// if (statement instanceof WaitStatement) {
-					// // TODO: Check that the guard is actually true, but it
-					// // should be.
-					// WaitStatement wait = (WaitStatement) statement;
-					// Expression waitExpr = wait.process();
-					// SymbolicExpression joinProcess = evaluator.evaluate(
-					// state, pid, waitExpr).value;
-					// int pidValue = modelFactory.getProcessId(
-					// waitExpr.getSource(), joinProcess);
-					// nonGuardExplanation = "\n Waiting on process "
-					// + pidValue;
-					// }
 					if (predicate == null) {
 						predicate = guard;
 					} else {
@@ -145,8 +141,6 @@ public class CommonDeadlock extends CommonCIVLStatePredicate
 				}
 				if (predicate == null) {
 					explanation.append("No outgoing transitions.");
-					// } else if (nonGuardExplanation != null) {
-					// explanation.append(nonGuardExplanation);
 				} else {
 					explanation.append(predicate);
 				}
@@ -170,34 +164,72 @@ public class CommonDeadlock extends CommonCIVLStatePredicate
 		return true;
 	}
 
+	private BooleanExpression enabledPredicateForProc(State state, int pid) {
+		ProcessState procState = state.getProcessState(pid);
+		Location location = procState.getLocation();
+		BooleanExpression predicate = falseExpr;
+
+		for (Statement s : location.outgoing()) {
+			BooleanExpression guard = enabler.getGuard(s, pid, state);
+
+			if (guard.isFalse())
+				continue;
+			predicate = universe.or(predicate, guard);
+			if (predicate.isTrue())
+				return trueExpr;
+		}
+		return predicate;
+	}
+
+	private CIVLSource getSource(State state) {
+		int apid = stateFactory.processInAtomic(state);
+
+		if (apid >= 0) {
+			return state.getProcessState(apid).getLocation().getSource();
+		} else {
+			int nprocs = state.numProcs();
+
+			for (int i = 0; i < nprocs; i++) {
+				ProcessState procState = state.getProcessState(i);
+
+				if (procState == null || procState.hasEmptyStack())
+					continue;
+				return procState.getLocation().getSource();
+			}
+		}
+		throw new CIVLInternalException("unreachable", (CIVLSource) null);
+	}
+
 	private boolean holdsAtWork(State state)
 			throws UnsatisfiablePathConditionException {
 		if (allTerminated(state)) // all processes terminated: no deadlock.
 			return false;
 
-		BooleanExpression predicate = falseExpr;
+		BooleanExpression predicate;
 		Reasoner reasoner = universe.reasoner(state.getPathCondition(universe));
-		CIVLSource source = null; // location of first non-term proc
+		int apid = stateFactory.processInAtomic(state);
 
-		for (ProcessState p : state.getProcessStates()) {
-			if (p == null || p.hasEmptyStack())
-				continue;
+		if (apid >= 0) {
+			predicate = enabledPredicateForProc(state, apid);
+		} else {
+			int nprocs = state.numProcs();
 
-			int pid = p.getPid();
-			Location location = p.getLocation();
+			predicate = falseExpr;
+			for (int i = 0; i < nprocs; i++) {
+				ProcessState procState = state.getProcessState(i);
 
-			if (source == null)
-				source = location.getSource();
-			for (Statement s : location.outgoing()) {
-				BooleanExpression guard = enabler.getGuard(s, pid, state);
-
-				if (guard.isFalse())
+				if (procState == null || procState.hasEmptyStack())
 					continue;
-				predicate = universe.or(predicate, guard);
+
+				BooleanExpression clause = enabledPredicateForProc(state, i);
+
+				if (clause.isTrue())
+					return false; // optimization
+				predicate = universe.or(predicate, clause);
 				if (predicate.isTrue())
-					return false;
-			} // end loop over all outgoing statements
-		} // end loop over all processes
+					return false; // optimization
+			}
+		}
 
 		ResultType enabled = reasoner.valid(predicate).getResultType();
 
@@ -218,7 +250,7 @@ public class CommonDeadlock extends CommonCIVLStatePredicate
 					+ "\n  Enabling predicate: " + predicate + "\n";
 			message += explanationWork(state);
 			violation = new CIVLExecutionException(ErrorKind.DEADLOCK,
-					certainty, null, message, state, source);
+					certainty, null, message, state, getSource(state));
 			return true;
 		}
 	}
@@ -235,5 +267,4 @@ public class CommonDeadlock extends CommonCIVLStatePredicate
 	public String toString() {
 		return "Deadlock";
 	}
-
 }

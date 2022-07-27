@@ -9,12 +9,16 @@ import static org.junit.Assert.assertFalse;
 
 import java.io.File;
 
-import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class DataRaceBenchFortranTest {
+	@Rule
+	public Timeout globalTimeout = Timeout.seconds(30);
+
 	/* ******************* Fields *************************** */
 
 	private final boolean DEBUG = false;
@@ -55,17 +59,17 @@ public class DataRaceBenchFortranTest {
 
 	@Test
 	public void DRB001_antidep1_orig_yes() {
-		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, //QUIET,
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,
 				pathToSrcFile("DRB001-antidep1-orig-yes.f95")));
 	}
 
-	@Ignore
+	@Test
 	public void DRB002_antidep1_var_yes() {
-		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, //QUIET,
+		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
 				pathToSrcFile("DRB002-antidep1-var-yes.f95")));
 	}
 
-	@Ignore
+	@Test
 	public void DRB011_minusminus_orig_yes() {
 		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TEN, DN_10, QUIET,
 				pathToSrcFile("DRB011-minusminus-orig-yes.f95")));

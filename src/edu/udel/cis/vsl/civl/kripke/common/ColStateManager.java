@@ -49,7 +49,8 @@ public class ColStateManager extends CommonStateManager {
 	public ColStateManager(Enabler enabler, Executor executor,
 			SymbolicAnalyzer symbolicAnalyzer, CIVLErrorLogger errorLogger,
 			CIVLConfiguration config) {
-		super(enabler, executor, symbolicAnalyzer, errorLogger, config);
+		super((SimpleEnabler) enabler, executor, symbolicAnalyzer, errorLogger,
+				config);
 		super.config.setSimplify(false);
 		finalColStates = new HashSet<>();
 		ignoredHeapErrors = new HashSet<>(2);

@@ -93,6 +93,8 @@ public class CommonFunction extends CommonSourceable implements CIVLFunction {
 	 */
 	private boolean noUnsafeloop = false;
 
+	private Set<Variable> accesses = null;
+
 	/* **************************** Constructors *************************** */
 
 	/**
@@ -732,5 +734,16 @@ public class CommonFunction extends CommonSourceable implements CIVLFunction {
 	@Override
 	public void setLogic(boolean value) {
 		this.isLogic = value;
+	}
+
+	@Override
+	public void setAccessesAtomicFunction(Set<Variable> set) {
+		this.accesses = set;
+
+	}
+
+	@Override
+	public Set<Variable> getAccessesAtomicFunction() {
+		return accesses;
 	}
 }

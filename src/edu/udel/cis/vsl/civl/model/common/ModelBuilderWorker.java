@@ -847,10 +847,16 @@ public class ModelBuilderWorker {
 
 					if (lockStmt.enterAtomic()) {
 						((CommonAtomicLockAssignStatement) lockStmt)
-								.setVariables(computeVariables(lockStmt));
+								.setVariables(
+										computeAccessesAtomicBlock(lockStmt));
 					}
 				}
 			}
+		}
+		// Compute the variables used in every atomic function:
+		for (CIVLFunction f : model.functions()) {
+			if (f.isAtomicFunction() && f.startLocation() != null)
+				f.setAccessesAtomicFunction(computeAccessesAtomicFunction(f));
 		}
 	}
 
@@ -1266,10 +1272,31 @@ public class ModelBuilderWorker {
 		}
 	}
 
-	private Set<Variable> computeVariables(
-			AtomicLockAssignStatement atomicEnterStmt) {
-		assert atomicEnterStmt.enterAtomic();
+	// TODO: need to do the same thing for $atomic_f functions.
+	// factor out general method.
+	// Interested in the variables that exist outside of the function scope.
+	//
 
+	/**
+	 * Computes the variables that are accessed within an atomic code section.
+	 * The code section could be an atomic block or the body of an atomic
+	 * function.
+	 * 
+	 * Only variables that existed prior to entering the atomic section are
+	 * considered. I.e., only variables declared in originalScope or a scope
+	 * containing originalScope are considered. Other variables are ignored.
+	 * 
+	 * @param originalScope
+	 *            the scope containing the atomic section
+	 * @param start
+	 *            the start location of the atomic function, or the target
+	 *            location of an atomic-enter statement
+	 * @return an over-approximation of the set of previously existing variables
+	 *         accessed in the atomic section, or {@code null} if no
+	 *         approximation could be computed
+	 */
+	private Set<Variable> computeAccesses(Scope originalScope, Location start,
+			CIVLFunction theFunction) {
 		class Node {
 			Location location;
 			int atomicDepth;
@@ -1281,14 +1308,15 @@ public class ModelBuilderWorker {
 			}
 		}
 
-		Scope originalScope = atomicEnterStmt.source().scope();
 		Map<Location, Node> seenLocations = new HashMap<>();
 		Stack<Node> stack = new Stack<>();
 		Set<Variable> result = new HashSet<>();
 		Set<CIVLFunction> seenFunctions = new HashSet<>();
-		Node node0 = new Node(atomicEnterStmt.target(), 1, 0);
+		Node node0 = new Node(start, 1, 0);
 
-		seenLocations.put(atomicEnterStmt.target(), node0);
+		if (theFunction != null)
+			seenFunctions.add(theFunction);
+		seenLocations.put(start, node0);
 		stack.push(node0);
 		while (!stack.empty()) {
 			Node top = stack.peek();
@@ -1327,19 +1355,24 @@ public class ModelBuilderWorker {
 			}
 
 			Location newLocation = newStatement.target();
-			Node newNode = seenLocations.get(newLocation);
 
-			if (newNode != null) {
-				if (newNode.atomicDepth != newDepth)
-					throw new CIVLSyntaxException(
-							"Possible branch into atomic block: atomic depths "
-									+ newNode.atomicDepth + " and " + newDepth,
-							newLocation);
-				continue;
+			// a return statement has null target
+			if (newLocation != null) {
+				Node newNode = seenLocations.get(newLocation);
+
+				if (newNode != null) {
+					if (newNode.atomicDepth != newDepth)
+						throw new CIVLSyntaxException(
+								"Possible branch into atomic block: atomic depths "
+										+ newNode.atomicDepth + " and "
+										+ newDepth,
+								newLocation);
+					continue;
+				}
+				newNode = new Node(newLocation, newDepth, 0);
+				seenLocations.put(newLocation, newNode);
+				stack.push(newNode);
 			}
-			newNode = new Node(newLocation, newDepth, 0);
-			seenLocations.put(newLocation, newNode);
-			stack.push(newNode);
 		}
 
 		List<CIVLFunction> workList = new LinkedList<>(seenFunctions);
@@ -1365,6 +1398,23 @@ public class ModelBuilderWorker {
 			}
 		}
 		return result;
+	}
+
+	private Set<Variable> computeAccessesAtomicFunction(CIVLFunction function) {
+		assert function.isAtomicFunction();
+		assert !function.isSystemFunction();
+		Scope originalScope = function.containingScope();
+
+		return computeAccesses(originalScope, function.startLocation(),
+				function);
+
+	}
+
+	private Set<Variable> computeAccessesAtomicBlock(
+			AtomicLockAssignStatement atomicEnterStmt) {
+		assert atomicEnterStmt.enterAtomic();
+		return computeAccesses(atomicEnterStmt.source().scope(),
+				atomicEnterStmt.target(), null);
 	}
 
 	/**

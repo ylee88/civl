@@ -13,11 +13,15 @@ import java.io.File;
 
 import org.junit.AfterClass;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class OpenMP2CIVLTransformerTest {
+	@Rule
+	public Timeout globalTimeout = Timeout.seconds(30);
 
 	/* *************************** Static Fields *************************** */
 
@@ -242,7 +246,7 @@ public class OpenMP2CIVLTransformerTest {
 				filename(transformDir, "omp_sections.c")));
 	}
 
-	@Ignore //@Test
+	@Ignore // @Test
 	public void omp_loop_ordered_collapse() {
 		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, "-showProgram",
 				filename(transformDir, "omp_loop_ordered_collapse.c")));

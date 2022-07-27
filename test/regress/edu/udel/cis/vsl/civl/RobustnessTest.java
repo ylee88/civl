@@ -10,11 +10,15 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 import edu.udel.cis.vsl.abc.err.IF.ABCException;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 public class RobustnessTest {
+	@Rule
+	public Timeout globalTimeout = Timeout.seconds(30);
 
 	/* *************************** Static Fields *************************** */
 
@@ -57,10 +61,11 @@ public class RobustnessTest {
 	public void missing_source_file() throws ABCException {
 		assertTrue(ui.run(VERIFY, QUIET, filename("missing_source_file.cvl")));
 	}
-	
+
 	@Test
 	public void string_memory_location() {
-		assertTrue(ui.run(VERIFY, QUIET, filename("string_memory_storage.cvl")));
+		assertTrue(
+				ui.run(VERIFY, QUIET, filename("string_memory_storage.cvl")));
 	}
 
 }

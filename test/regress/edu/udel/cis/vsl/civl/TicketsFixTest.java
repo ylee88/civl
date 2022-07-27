@@ -12,11 +12,15 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 import edu.udel.cis.vsl.abc.err.IF.ABCException;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 public class TicketsFixTest {
+	@Rule
+	public Timeout globalTimeout = Timeout.seconds(30);
 
 	/* *************************** Static Fields *************************** */
 
@@ -122,10 +126,12 @@ public class TicketsFixTest {
 	@Test
 	public void ticket_954_MPI_handle_struct_disabled_in_equ_expr()
 			throws ABCException {
-		assertTrue(ui.run(VERIFY, QUIET, "-input_mpi_nprocs=3", filename(
-				"ticket_954_MPI_handle_struct_disabled_in_equ_expr.cvl")));
+		assertTrue(ui.run(VERIFY, QUIET,
+				// "-showAmpleSet", "-showTransitions",
+				"-input_mpi_nprocs=3", filename(
+						"ticket_954_MPI_handle_struct_disabled_in_equ_expr.cvl")));
 	}
-	
+
 	/**
 	 * See: https://vsl.cis.udel.edu/trac/civl/ticket/943 </br>
 	 * 
@@ -133,9 +139,8 @@ public class TicketsFixTest {
 	 * @throws ABCException
 	 */
 	@Test
-	public void ticket_943_short_circuit()
-			throws ABCException {
-		assertTrue(ui.run(VERIFY, QUIET, filename(
-				"ticket_943_short_circuit.cvl")));
+	public void ticket_943_short_circuit() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET,
+				filename("ticket_943_short_circuit.cvl")));
 	}
 }

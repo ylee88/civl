@@ -269,7 +269,7 @@ public class CommonEvaluator implements Evaluator {
 	/**
 	 * 
 	 */
-	private boolean enableShortCircuitLogicEval;
+	// private boolean enableShortCircuitLogicEval;
 
 	/**
 	 * The unique state factory used in the system.
@@ -757,15 +757,17 @@ public class CommonEvaluator implements Evaluator {
 		Evaluation eval = evaluate(state, pid, expression.left());
 		BooleanExpression leftValue = (BooleanExpression) eval.value;
 
-		if (enableShortCircuitLogicEval) {
-			if (leftValue.isTrue())
-				return evaluate(eval.state, pid, expression.right());
-			if (leftValue.isFalse()) {
-				// false && x = false;
-				eval.value = universe.falseExpression();
-				return eval;
-			}
+		// if (enableShortCircuitLogicEval) {
+		if (leftValue.isTrue())
+			return evaluate(eval.state, pid, expression.right());
+		if (leftValue.isFalse()) {
+			// false && x = false;
+			eval.value = universe.falseExpression();
+			return eval;
 		}
+		// } else {
+		// System.out.println("here");// for debugging
+		// }
 		eval = evaluate(eval.state, pid, expression.right());
 		eval.value = universe.and(leftValue, (BooleanExpression) eval.value);
 		return eval;
@@ -1688,13 +1690,13 @@ public class CommonEvaluator implements Evaluator {
 		SymbolicExpression result;
 
 		if (!variable.isInput() && variable.isStatic()) {
+			// if (!variable.isInput()) {
 			return initialValueOfType(state, pid, type);
 		} else if (!variable.isInput() && !variable.isBound()
 				&& (type instanceof CIVLPrimitiveType || type.isPointerType()
 						|| type.isDomainType())) {
 			result = nullExpression;
-		} else {// the case of an input variable or a variable of
-			// array/struct/union type.
+		} else {// the case of an input variable or compound type
 			String name;
 			StringObject nameObj;
 
@@ -2028,14 +2030,16 @@ public class CommonEvaluator implements Evaluator {
 		Evaluation eval = evaluate(state, pid, expression.left());
 		BooleanExpression p = (BooleanExpression) eval.value;
 
-		if (enableShortCircuitLogicEval) {
-			if (p.isTrue()) {
-				eval.value = universe.trueExpression();
-				return eval;
-			}
-			if (p.isFalse())
-				return evaluate(eval.state, pid, expression.right());
+		// if (enableShortCircuitLogicEval) {
+		if (p.isTrue()) {
+			eval.value = universe.trueExpression();
+			return eval;
 		}
+		if (p.isFalse())
+			return evaluate(eval.state, pid, expression.right());
+		// } else {
+		// System.out.println("here"); // for debugging
+		// }
 		eval = evaluate(eval.state, pid, expression.right());
 		eval.value = universe.or(p, (BooleanExpression) eval.value);
 		return eval;
@@ -2762,8 +2766,10 @@ public class CommonEvaluator implements Evaluator {
 					state = eval.state;
 					argumentValues[i] = eval.value;
 				}
-				state = stateFactory.pushCallStack(state, pid, function,
-						state.getProcessState(pid).getDyscopeId(),
+				// state = stateFactory.pushCallStack(state, pid, function,
+				// state.getProcessState(pid).getDyscopeId(),
+				// argumentValues);
+				state = stateFactory.pushContract(state, pid, function,
 						argumentValues);
 				return this.evaluate(state, pid, guard);
 			}
@@ -2882,29 +2888,15 @@ public class CommonEvaluator implements Evaluator {
 		}
 	}
 
-	// private Set<SymbolicExpression> heapCells(State state, int dyscopeId) {
-	// SymbolicExpression heapValue = state.getVariableValue(dyscopeId, 0);
-	//
-	// if (heapValue.isNull())
-	// return new HashSet<>();
-	// else {
-	// CIVLHeapType heapType = modelFactory.heapType();
-	// int numMallocs = heapType.getNumMallocs();
-	// Set<SymbolicExpression> result = new HashSet<>();
-	//
-	// for (int i = 0; i < numMallocs; i++) {
-	// ReferenceExpression ref = universe.tupleComponentReference(
-	// identityReference, universe.intObject(i));
-	// SymbolicExpression heapCell = symbolicUtil.makePointer(
-	// dyscopeId, 0, ref);
-	//
-	// result.add(heapCell);
-	// }
-	// return result;
-	// }
-	// }
-
-	// TODO: add doc here
+	// TODO:
+	// right now can't have a struct (for example) with a field
+	// which is a universe.nullExpression().
+	// Instead: use a symbolic constant UNDEF of each type.
+	// For a scalar: initialize to UNDEF of the scalar type.
+	// For an incomplete array: length 0 concrete
+	// For a complete array: length n all of the undefined value.
+	// For a struct: concrete tuple, each initial value of the field type
+	// For a union: choose type 0, undef
 	@Override
 	public Evaluation initialValueOfType(State state, int pid, CIVLType type)
 			throws UnsatisfiablePathConditionException {
@@ -4858,18 +4850,18 @@ public class CommonEvaluator implements Evaluator {
 	@Override
 	public Evaluation evaluate(State state, int pid, Expression expression)
 			throws UnsatisfiablePathConditionException {
-		if (expression != null) {
-			CIVLSource civlSrc = expression.getSource();
-
-			if (civlSrc != null) {
-				String fName = civlSrc.getFileName();
-
-				if (fName != null) {
-					enableShortCircuitLogicEval = fName.toUpperCase()
-							.contains(".F");
-				}
-			}
-		}
+		// if (expression != null) {
+		// CIVLSource civlSrc = expression.getSource();
+		//
+		// if (civlSrc != null) {
+		// String fName = civlSrc.getFileName();
+		//
+		// if (fName != null) {
+		// enableShortCircuitLogicEval = !fName.toUpperCase()
+		// .contains(".F");
+		// }
+		// }
+		// }
 		return this.evaluate(state, pid, expression, true);
 	}
 

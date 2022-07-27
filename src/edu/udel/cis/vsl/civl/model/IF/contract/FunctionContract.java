@@ -3,6 +3,7 @@ package edu.udel.cis.vsl.civl.model.IF.contract;
 import java.io.PrintStream;
 import java.util.Iterator;
 
+import edu.udel.cis.vsl.civl.model.IF.Scope;
 import edu.udel.cis.vsl.civl.model.IF.Sourceable;
 import edu.udel.cis.vsl.civl.model.IF.expression.Expression;
 
@@ -172,4 +173,13 @@ public interface FunctionContract extends Sourceable {
 	 * @param hasWaitsfor
 	 */
 	void setHasMPIWaitsfor(boolean hasWaitsfor);
+
+	/**
+	 * The static scope in which the function contract exists. Not necessarily
+	 * the same as the function definition's parameter scope, because the
+	 * contract may have been associated with a function prototype.
+	 * 
+	 * @return scope in which contract exists
+	 */
+	Scope scope();
 }

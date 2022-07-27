@@ -935,7 +935,7 @@ $atomic_f $state_f $scope $mpi_proc_scope(MPI_Comm comm) {
 }
 
 /**************** Bridging MPI and the collate library ****************/
-$atomic_f $state_f $bundle $mpi_check_collective(MPI_Comm comm,
+$state_f $bundle $mpi_check_collective(MPI_Comm comm,
 						       $bundle checking) {
   return $collate_check(comm->collator, checking);
 }

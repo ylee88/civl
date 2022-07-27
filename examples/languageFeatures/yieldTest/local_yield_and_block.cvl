@@ -9,8 +9,10 @@ int x = -1;
 int y = 0;
 void thread(int tid) {
   $local_start();
-  if (tid == 1)
+  if (tid == 1) {
+    $yield();
     $when(y == 1);
+  }
   x = tid;
   $yield();
   if (tid == 0)

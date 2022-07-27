@@ -122,6 +122,41 @@ public class SeqSetTest {
 	}
 
 	@Test
+	public void addAllEmpty() {
+		out.println("addAllEmpty...");
+		SeqSet ss1 = new SeqSet(), ss2 = new SeqSet(), ss3 = new SeqSet();
+
+		ss1.add(3);
+		ss3.add(3);
+		out.println("ss1 = " + ss1);
+		out.println("ss2 = " + ss2);
+		out.println("Adding ss2 to ss1...");
+		ss1.addAll(ss2);
+		out.println("ss1 = " + ss1);
+		assertEquals(ss1, ss3);
+	}
+
+	@Test
+	public void addAll2() {
+		out.println("addAll...");
+		SeqSet ss1 = new SeqSet(), ss2 = new SeqSet();
+
+		ss1.add(0, 0);
+		ss1.add(0, 3);
+		ss2.add(0, 0);
+		ss2.add(1, 1);
+		out.println("ss1 = " + ss1);
+		out.println("ss2 = " + ss2);
+		out.println("Adding ss2 to ss1...");
+		ss1.addAll(ss2);
+		out.println("ss1 = " + ss1);
+		assertTrue(ss1.contains(0, 0));
+		assertTrue(ss1.contains(0, 3));
+		assertTrue(ss1.contains(1, 1));
+		assertTrue(ss1.getLeaves().size() == 3);
+	}
+
+	@Test
 	public void contains() {
 		SeqSet ss1 = new SeqSet();
 
@@ -182,9 +217,9 @@ public class SeqSetTest {
 		List<int[]> leaves = ss.getLeaves();
 
 		assertEquals(2, leaves.size());
-		
+
 		int[] l0 = leaves.get(0), l1 = leaves.get(1);
-		
+
 		if (l0.length != 2) {
 			int[] tmp = l0;
 			l0 = l1;
@@ -194,4 +229,95 @@ public class SeqSetTest {
 		assertArrayEquals(new int[]{1, 4, 6}, l1);
 	}
 
+	@Test
+	public void intersectEmpties() {
+		SeqSet s1 = new SeqSet(), s2 = new SeqSet(), s3;
+		s3 = s1.intersectionWith(s2);
+		assertTrue(s1.isEmpty());
+		assertTrue(s2.isEmpty());
+		assertTrue(s3.isEmpty());
+	}
+
+	@Test
+	public void intersect1() {
+		SeqSet s1 = new SeqSet(), s2 = new SeqSet(), s3;
+		s1.add(1);
+		SeqSet s1copy = s1.clone(), s2copy = s2.clone();
+		s3 = s1.intersectionWith(s2);
+		assertEquals(s1, s1copy);
+		assertEquals(s2, s2copy);
+		assertTrue(s3.isEmpty());
+	}
+
+	@Test
+	public void intersect2() {
+		SeqSet s1 = new SeqSet(), s2 = new SeqSet(), s3;
+		s1.add(1);
+		s2.add(1, 2);
+		SeqSet s1copy = s1.clone(), s2copy = s2.clone();
+		s3 = s1.intersectionWith(s2);
+		assertEquals(s1, s1copy);
+		assertEquals(s2, s2copy);
+		assertEquals(s2, s3);
+		s3 = s2.intersectionWith(s1);
+		assertEquals(s1, s1copy);
+		assertEquals(s2, s2copy);
+		assertEquals(s2, s3);
+	}
+
+	@Test
+	public void intersect3() {
+		SeqSet s1 = new SeqSet(), s2 = new SeqSet(), s3;
+		s1.add(1, 2);
+		s1.add(1, 3);
+		s2.add(1);
+		SeqSet s1copy = s1.clone(), s2copy = s2.clone();
+		s3 = s1.intersectionWith(s2);
+		assertEquals(s1, s1copy);
+		assertEquals(s2, s2copy);
+		assertEquals(s1, s3);
+		s3 = s2.intersectionWith(s1);
+		assertEquals(s1, s1copy);
+		assertEquals(s2, s2copy);
+		assertEquals(s1, s3);
+	}
+
+	@Test
+	public void intersect4() {
+		SeqSet s1 = new SeqSet(), s2 = new SeqSet(), s3;
+		s1.add(1, 2);
+		s1.add(1, 3);
+		s2.add(1, 4);
+		SeqSet s1copy = s1.clone(), s2copy = s2.clone();
+		s3 = s1.intersectionWith(s2);
+		assertEquals(s1, s1copy);
+		assertEquals(s2, s2copy);
+		assertTrue(s3.isEmpty());
+		s3 = s2.intersectionWith(s1);
+		assertEquals(s1, s1copy);
+		assertEquals(s2, s2copy);
+		assertTrue(s3.isEmpty());
+	}
+
+	@Test
+	public void intersect5() {
+		SeqSet s1 = new SeqSet(), s2 = new SeqSet(), e = new SeqSet();
+		s1.add(1, 2);
+		s1.add(1, 3);
+		s1.add(1, 7);
+		s2.add(1, 4);
+		s2.add(1, 2, 5);
+		s2.add(1, 3, 6, 7);
+		e.add(1, 2, 5);
+		e.add(1, 3, 6, 7);
+		SeqSet s1copy = s1.clone(), s2copy = s2.clone();
+		SeqSet a = s1.intersectionWith(s2);
+		assertEquals(s1, s1copy);
+		assertEquals(s2, s2copy);
+		assertEquals(e, a);
+		a = s2.intersectionWith(s1);
+		assertEquals(s1, s1copy);
+		assertEquals(s2, s2copy);
+		assertEquals(e, a);
+	}
 }

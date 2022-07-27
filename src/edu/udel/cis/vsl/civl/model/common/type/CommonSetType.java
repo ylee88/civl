@@ -14,10 +14,15 @@ public class CommonSetType extends CommonType implements CIVLSetType {
 
 	private CIVLType elementType;
 
+	private boolean isAnalyzed = false;
+
+	private boolean hasReferences = false;
+
 	public CommonSetType(CIVLType elementType) {
 		super();
 		this.elementType = elementType;
 		assert elementType.typeKind() != TypeKind.SET;
+		analyze();
 	}
 
 	@Override
@@ -83,5 +88,19 @@ public class CommonSetType extends CommonType implements CIVLSetType {
 			Set<CIVLType> seenTypes) {
 		if (seenTypes.add(this))
 			((CommonType) elementType).addFreeVariables(result, seenTypes);
+	}
+
+	@Override
+	public boolean hasReferences() {
+		return hasReferences;
+	}
+
+	@Override
+	public boolean analyze() {
+		if (!isAnalyzed && elementType.analyze()) {
+			hasReferences = elementType.hasReferences();
+			isAnalyzed = true;
+		}
+		return isAnalyzed;
 	}
 }

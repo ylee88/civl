@@ -1,4 +1,5 @@
 package edu.udel.cis.vsl.civl.kripke.common;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -9,13 +10,12 @@ import java.util.Stack;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConstants.DeadlockKind;
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.kripke.IF.Enabler;
-import edu.udel.cis.vsl.civl.kripke.IF.LibraryEnabler;
 import edu.udel.cis.vsl.civl.model.IF.CIVLFunction;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.CIVLTypeFactory;
+import edu.udel.cis.vsl.civl.model.IF.ModelConfiguration;
 import edu.udel.cis.vsl.civl.model.IF.Scope;
-import edu.udel.cis.vsl.civl.model.IF.SystemFunction;
 import edu.udel.cis.vsl.civl.model.IF.contract.DependsEvent;
 import edu.udel.cis.vsl.civl.model.IF.contract.FunctionBehavior;
 import edu.udel.cis.vsl.civl.model.IF.contract.FunctionContract;
@@ -27,7 +27,6 @@ import edu.udel.cis.vsl.civl.model.IF.expression.ArrayLambdaExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.ArrayLiteralExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.BinaryExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.BinaryExpression.BINARY_OPERATOR;
-import edu.udel.cis.vsl.civl.model.IF.expression.BooleanLiteralExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.CastExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.ConditionalExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.DereferenceExpression;
@@ -74,15 +73,14 @@ import edu.udel.cis.vsl.civl.model.IF.statement.WithStatement;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLArrayType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLCompleteArrayType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLFunctionType;
+import edu.udel.cis.vsl.civl.model.IF.type.CIVLHeapType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPointerType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLSetType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLStructOrUnionType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLType;
 import edu.udel.cis.vsl.civl.model.IF.type.StructOrUnionField;
 import edu.udel.cis.vsl.civl.model.IF.variable.Variable;
-import edu.udel.cis.vsl.civl.semantics.IF.Evaluation;
 import edu.udel.cis.vsl.civl.semantics.IF.Evaluator;
-import edu.udel.cis.vsl.civl.semantics.IF.LibraryLoaderException;
 import edu.udel.cis.vsl.civl.semantics.IF.Semantics;
 import edu.udel.cis.vsl.civl.semantics.IF.Transition;
 import edu.udel.cis.vsl.civl.state.IF.DynamicScope;
@@ -93,7 +91,6 @@ import edu.udel.cis.vsl.civl.state.IF.StateFactory;
 import edu.udel.cis.vsl.civl.state.IF.UnsatisfiablePathConditionException;
 import edu.udel.cis.vsl.civl.util.IF.Pair;
 import edu.udel.cis.vsl.civl.util.IF.SeqSet;
-import edu.udel.cis.vsl.civl.util.IF.Triple;
 import edu.udel.cis.vsl.sarl.IF.Reasoner;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.ValidityResult.ResultType;
@@ -119,12 +116,52 @@ import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicTypeSequence;
 import edu.udel.cis.vsl.sarl.IF.type.SymbolicUnionType;
 
+/**
+ * <p>
+ * A worker object created to compute an ample set for one given {@link State}.
+ * This worker is created and owned by a {@link SimpleEnabler}. It maintains a
+ * reference to the enabler to access constant fields and utility methods.
+ * </p>
+ * 
+ * <p>
+ * This class makes extensive use of {@link SeqSet}s to represent sets of
+ * objects present in the state. A leave in the SeqSet in an {@code int} array
+ * of length 2, 3, or 4. The first two components are always a dynamic scope ID
+ * and a static variable ID. These specify a unique variable instance in the
+ * state. If the length is two, then the leaf represents the object which is
+ * that entire variable. If the variable is a heap, then the third integer
+ * represents a row in the heap table, which corresponds to a specific
+ * {@code $malloc} statement. Hence a length-3 leaf represents all objects
+ * created in a specific heap by a single {@code $malloc} statement. If the
+ * length is 4, the fourth integer specifies one object created by that
+ * {@code $malloc} statement.
+ * </p>
+ * 
+ * <p>
+ * In the future, we might consider getting even more precise and specifying
+ * sub-components of objects, such as array slices, or particular fields of
+ * structures. But for now, only complete objects can be specified.s
+ * </p>
+ * 
+ * @author siegel
+ */
 public class SimpleEnablerWorker {
+
+	// Constants ...
+
+	/**
+	 * This is the string used as prefix for symbolic constants that result from
+	 * havoc. (E.g., "Y".)
+	 */
+	public final static String havocPrefix = ModelConfiguration.SYMBOL_PREFIXES[ModelConfiguration.HAVOC_PREFIX_INDEX];
 
 	// Fields...
 
 	/**
-	 * The {@link Enabler} that created this worker.
+	 * The {@link Enabler} that created this worker. The {@code enabler}
+	 * provides many constant resources that this worker can access. It would be
+	 * inefficient to duplicate all those references in each worker, since so
+	 * many workers will be created and destroyed constantly.
 	 */
 	SimpleEnabler enabler;
 
@@ -144,18 +181,43 @@ public class SimpleEnablerWorker {
 	 */
 	Reasoner reasoner;
 
+	/**
+	 * The evaluator used to evaluate expressions.
+	 */
 	Evaluator evaluator;
 
+	/**
+	 * The factory used to create new states. This is needed when analyzing
+	 * transitions that involve a function call.
+	 */
 	StateFactory stateFactory;
 
+	/**
+	 * A utility class for analyzing and manipulating symbolic expressions
+	 * specific to how they are used in CIVL-C.
+	 */
 	SymbolicUtility symbolicUtil;
 
+	/**
+	 * Factory for creating and manipulating CIVL types.
+	 */
 	CIVLTypeFactory typeFactory;
 
+	/**
+	 * The value type (symbolic type) of a heap. A symbolic expression
+	 * representing the current state of a heap will have this type.
+	 */
 	SymbolicType heapSymbolicType;
 
+	/**
+	 * The value type for a pointer. All symbolic expressions representing a
+	 * pointer value will have this type.
+	 */
 	SymbolicType pointerSymbolicType;
 
+	/**
+	 * The symbolic universe used to create and manipulate symbolic expressions.
+	 */
 	SymbolicUniverse universe;
 
 	/**
@@ -185,7 +247,16 @@ public class SimpleEnablerWorker {
 
 	// Constructor...
 
+	/**
+	 * Creates a new worker. Initializes all fields.
+	 * 
+	 * @param enabler
+	 *            the {@link SimpleEnabler} that is creating this worker
+	 * @param state
+	 *            the {@link State} that this worker has been created to analyze
+	 */
 	SimpleEnablerWorker(SimpleEnabler enabler, State state) {
+		this.enabler = enabler;
 		this.evaluator = enabler.evaluator;
 		this.typeFactory = evaluator.modelFactory().typeFactory();
 		this.stateFactory = evaluator.stateFactory();
@@ -201,7 +272,34 @@ public class SimpleEnablerWorker {
 		this.nprocs = theState.numProcs();
 	}
 
-	// Methods...
+	// Private methods...
+
+	/**
+	 * Adds a dyscope ID - variable pair to the given {@link SeqSet}
+	 * {@code result}, with some exceptions. If {@code variable} is
+	 * {@code null}, or is an input variable, or is the atomic lock variable, or
+	 * is a heap, this method is a no-op. Otherwise the pair is added to
+	 * {@code result}.
+	 * 
+	 * @param result
+	 *            the {@code SeqSet} to which the pair will be added
+	 * @param dyid
+	 *            the ID number of a dynamic scope in {@link #theState}
+	 * @param variable
+	 *            a {@code Variable} that resides in the static scope
+	 *            corresponding to the dynamic scope {@code dyid}
+	 */
+	private void addVariable(SeqSet result, int dyid, Variable variable) {
+		if (variable == null || variable.isInput()
+				|| variable == enabler.atomicLockVariable
+				|| variable.type().isHeapType())
+			return;
+
+		int vid = variable.vid();
+
+		assert vid >= 0;
+		result.add(dyid, vid);
+	}
 
 	/**
 	 * Adds a variable instance to a set of objects. The set represents a set of
@@ -232,6 +330,15 @@ public class SimpleEnablerWorker {
 	 * this will be a no-op.
 	 * </p>
 	 * 
+	 * <p>
+	 * Certain variables are ignored and will not be added. Currently there are:
+	 * the atomic lock variable. Cases where dyscope ID < 0 are also ignored.
+	 * E.g., if a function type has an array type in which the length n is also
+	 * a formal parameter, then the function identifier will have a reference to
+	 * n in its type. n does not exist until the function is called, so the
+	 * dyscope ID of n is undefined, which is -2.
+	 * </p>
+	 * 
 	 * @param result
 	 *            the set to which the variable should be added
 	 * @param state
@@ -243,28 +350,25 @@ public class SimpleEnablerWorker {
 	 */
 	private void addVariable(SeqSet result, State state, int pid,
 			Variable variable) {
-		if (variable == null)
+		if (variable == null || variable == enabler.atomicLockVariable)
 			return;
 
 		int dyid = state.getDyscopeID(pid, variable);
 
-		assert dyid >= 0;
-		if (dyid >= theState.numDyscopes())
+		if (dyid < 0 || dyid >= theState.numDyscopes())
 			return;
-
-		int vid = variable.vid();
-
-		assert vid >= 0;
-		result.add(dyid, vid);
+		addVariable(result, dyid, variable);
 	}
 
 	/**
+	 * <p>
 	 * Adds to {@code result} an over-approximation to the set of memory
 	 * locations pointed to by a pointer value. The pointer value specifies a
 	 * sub-object (which may the whole object) of an object that exists in a
 	 * state. An object is either a variable instance or the object that is
 	 * created by a single call to malloc. This method will find and add the
 	 * entire object to the given set {@code result}.
+	 * </p>
 	 * 
 	 * <p>
 	 * If the object does not exist at the given state (because it is not in
@@ -299,10 +403,9 @@ public class SimpleEnablerWorker {
 		int dyscopeID = stateFactory
 				.getDyscopeId(symbolicUtil.getScopeValue(pointer));
 
-		assert (dyscopeID >= 0); // or are constants in dyscope -1 ?
 		// as in the case of addVariable, ignore new dyscopes from
 		// contracts...
-		if (dyscopeID >= theState.numDyscopes())
+		if (dyscopeID < 0 || dyscopeID >= theState.numDyscopes())
 			return;
 
 		int variableID = symbolicUtil.getVariableId(source, pointer);
@@ -314,8 +417,11 @@ public class SimpleEnablerWorker {
 				variableID);
 
 		if (object.type() != heapSymbolicType) {
-			result.add(dyscopeID, variableID);
-		} else { // ... of arrayElementRef of tupleComponentRef of IdentifyRef
+			Scope scope = state.getDyscope(dyscopeID).lexicalScope();
+			Variable var = scope.variable(variableID);
+
+			addVariable(result, dyscopeID, var);
+		} else { // ... of arrayElementRef of tupleComponentRef of IdentityRef
 			ReferenceExpression ref = symbolicUtil.getSymRef(pointer);
 			ReferenceExpression ref1 = ref, ref2 = null, ref3 = null;
 
@@ -344,17 +450,25 @@ public class SimpleEnablerWorker {
 	}
 
 	/**
-	 * Given a symbolic constant X of type {@code type}, is there some sequence
-	 * of operations that could be performed on X to yield a pointer value? For
-	 * example, if type is array-of-pointer-to-int, then X[1] yields a pointer
-	 * value.
+	 * <p>
+	 * Does a symbolic type {@code type}, contain, as a sub-type, the pointer
+	 * type {@link #pointerSymbolicType}?
+	 * </p>
 	 * 
-	 * TODO: is there a way to do this once, when the type is created?
+	 * <p>
+	 * Note: it would be better if there were a way to do this once, when the
+	 * symbolic type is created. This may have to be implemented in SARL. Also:
+	 * for now we are not using this method, instead relying on CIVL types to
+	 * answer this question. But it would be more accurate to use the symbolic
+	 * type.
+	 * </p>
 	 * 
 	 * @param type
-	 *            any type, the type of the symbolic constant X
-	 * @return {@code true} iff it is possible to get a pointer value from X
+	 *            any symbolic type
+	 * @return {@code true} iff the pointer type occurs as a sub-type of
+	 *         {@code type} (including {@code type} itself)
 	 */
+	@SuppressWarnings("unused")
 	private boolean containsPointer(SymbolicType type) {
 		if (type == pointerSymbolicType)
 			return true;
@@ -391,6 +505,36 @@ public class SimpleEnablerWorker {
 			case UNINTERPRETED :
 		}
 		return false;
+	}
+
+	/**
+	 * Determines whether an object has a static CIVL type which contains a
+	 * reference type as a sub-type. By reference type, we mean either the
+	 * pointer type or the {@code $mem} type.
+	 * 
+	 * @param state
+	 *            a {@link State} of the model
+	 * @param obj
+	 *            an integer sequence identifying an object in state
+	 *            {@code state}
+	 * @return {@code true} iff the variable or heap-allocated object identified
+	 *         by {@code obj} has a static type which contains the CIVL pointer
+	 *         or {@code $mem} type as a sub-type
+	 */
+	private boolean containsPointerType(State state, int[] obj) {
+		int len = obj.length, dyid = obj[0], vid = obj[1];
+		DynamicScope ds = state.getDyscope(dyid);
+		Variable var = ds.lexicalScope().variable(vid);
+		CIVLType type = var.type();
+
+		if (len == 2)
+			return type.hasReferences();
+		assert type.isHeapType();
+
+		CIVLType elementType = ((CIVLHeapType) type).getMalloc(obj[2])
+				.getStaticElementType();
+
+		return elementType.hasReferences();
 	}
 
 	/**
@@ -478,11 +622,17 @@ public class SimpleEnablerWorker {
 			} else if (type == pointerSymbolicType) {
 				addPointer(result, state, source, expr);
 			} else if (expr.operator() == SymbolicOperator.SYMBOLIC_CONSTANT) {
-				if (containsPointer(type))
-					throw new NoReductionException();
-				// } else if (type == typeFactory.heapSymbolicType()
-				// || type == typeFactory.bundleSymbolicType()) { // ignore:
-				// WHY??
+				// if (((StringObject) expr.argument(0)).getString()
+				// .startsWith(havocPrefix)) {
+				/*
+				 * do nothing. temporary hack. these are the "Y" symbolic
+				 * constants used to initialize an uninitialized variable, and
+				 * also used by havoc. we will assume for now they can't contain
+				 * a pointer to anything. Same for inputs "X" and uninitialized
+				 * heap cells "H".
+				 */
+				// } else if (containsPointer(type))
+				// throw new NoReductionException();
 			} else {
 				for (SymbolicObject obj : expr.getArguments()) {
 					switch (obj.symbolicObjectKind()) {
@@ -558,27 +708,43 @@ public class SimpleEnablerWorker {
 	}
 
 	/**
-	 * Given a set of objects S, this method adds to S an over-approximation of
-	 * all objects that can be reached from S by pointers. "Reached" means
-	 * through pointer dereferences, pointer arithmetic, and any other operation
-	 * that could be performed on a value. This computes the transitive closure
-	 * of the binary relation on objects where there is an edge from o1 to o2 if
-	 * o1 contains a pointer which points to some part of o2.
+	 * <p>
+	 * Computes the set of objects that can be reached in one or more steps
+	 * (pointer dereferences) from a given set of objects. There is a binary
+	 * relation -> on the set of objects in a state: o1->o2 if o1 contains a
+	 * pointer into some part of o2. Given a set of objects (specified as a
+	 * {@link SeqSet}), this method will compute the set of objects that are
+	 * reachable from the given set by traversing one or more edges of this
+	 * relation.
+	 * </p>
 	 * 
+	 * <p>
+	 * This method assumes that if an object's static type does not contain a
+	 * pointer type, then the value of that object can never include a pointer
+	 * value. This assumption is unsound if pointer values can be cast to
+	 * non-pointer values, e.g., if a pointer is cast to a {@code double} and
+	 * stored in a variable of type {@code double}. This is a known limitation.
+	 * </p>
+	 * 
+	 * @param result
+	 *            the result of the irreflexive transitive closure (out)
 	 * @param objectSet
-	 *            a SeqSet representing a set of objects S
+	 *            the starting points; this set will not be modified (in)
 	 * @param state
-	 *            the state in which all evaluation takes place
+	 *            the state
 	 * @param source
-	 *            the source used for error reporting
+	 *            source object for this operation
 	 * @throws NoReductionException
-	 *             if no good over-approximation can be made
+	 *             if no over-approximation of the result can be obtained
 	 */
-	private void close(SeqSet objectSet, State state, CIVLSource source)
-			throws NoReductionException {
-		LinkedList<int[]> workset = objectSet.getLeaves();
+	private void closeIrreflexive(SeqSet result, SeqSet objectSet, State state,
+			CIVLSource source) throws NoReductionException {
+		LinkedList<int[]> workset = new LinkedList<>();
 
-		// invariant: workset is a subset of objectSet
+		for (int[] leaf : objectSet.getLeaves()) {
+			if (containsPointerType(state, leaf))
+				workset.add(leaf);
+		}
 		while (!workset.isEmpty()) {
 			int[] objId = workset.remove();
 			SymbolicExpression value = getValue(state, objId);
@@ -586,18 +752,20 @@ public class SimpleEnablerWorker {
 
 			getPointedObjects(pointedObjects, state, source, value);
 			for (int[] pObj : pointedObjects.getLeaves())
-				if (objectSet.add(pObj))
+				if (result.add(pObj) && containsPointerType(state, pObj))
 					workset.add(pObj);
 		}
 	}
 
 	/**
-	 * Finds all objects that can be reached from the given variables. There is
-	 * an edge from one object to another if the first contains a pointer value
-	 * which references (some part of) the second.
+	 * Finds all objects of a state that can be reached in one or more steps
+	 * from the given set of variables, under the binary relation -> on the set
+	 * of objects, where o1->o2 if o1 contains a pointer into some part of o2.
+	 * Ignores variables that should be ignored according to the rules laid out
+	 * in {@link #addVariable(SeqSet, int, Variable)}.
 	 * 
 	 * @param state
-	 *            the state in which specifies the value of all objects
+	 *            the state which specifies the values of all objects
 	 * @param pid
 	 *            the ID of the process which is referencing the variables; used
 	 *            together with {@code state} to determine the variable
@@ -609,142 +777,14 @@ public class SimpleEnablerWorker {
 	 *            search
 	 * @return the set of reachable objects, represented as a {@link SeqSet}
 	 */
-	private SeqSet findReachableObjects(State state, int pid, CIVLSource source,
-			Set<Variable> vars) throws NoReductionException {
-		SeqSet result = new SeqSet();
+	private SeqSet findReachableIrreflexive(State state, int pid,
+			CIVLSource source, Set<Variable> vars) throws NoReductionException {
+		SeqSet input = new SeqSet(), result = new SeqSet();
 
 		for (Variable var : vars)
-			result.add(state.getDyscopeID(pid, var), var.vid());
-		close(result, state, source);
+			addVariable(input, state, pid, var);
+		closeIrreflexive(result, input, state, source);
 		return result;
-	}
-
-	/**
-	 * Gets the function being called or spawned in a call or spawn statement.
-	 * Usually this is obvious since the function expression is an identifier so
-	 * the function is known statically. However the function expression can be
-	 * any expression (think function pointers in C), and in general may only be
-	 * known dynamically. This method will figure it out in either case.
-	 * 
-	 * @param state
-	 *            the state in which the function is called or spawned; needed
-	 *            in case the function expression is not statically known
-	 * @param pid
-	 *            the ID of the process performing the call or spawn
-	 * @param statement
-	 *            the call or spawn statement
-	 * @return the function called or spawned
-	 * @throws UnsatisfiablePathConditionException
-	 *             if in the course of evaluating the function expression it is
-	 *             determined that the path condition is not satisfiable
-	 */
-	private CIVLFunction getFunction(State state, int pid,
-			CallOrSpawnStatement statement)
-			throws UnsatisfiablePathConditionException {
-		CIVLFunction function = statement.function();
-
-		if (function == null) {
-			Expression functionExpr = statement.functionExpression();
-			Triple<State, CIVLFunction, Integer> triple = evaluator
-					.evaluateFunctionIdentifier(state, pid, functionExpr,
-							functionExpr.getSource());
-
-			function = triple.second;
-		}
-		return function;
-	}
-
-	/**
-	 * Computes the guard from the contract of the called function, in the case
-	 * when the called function is not known statically.
-	 * 
-	 * <p>
-	 * For a call statement for which the function expression is not an
-	 * identifier (the usual case), the called function is not known statically.
-	 * In this case, the function guard (specified perhaps in the enabled_when
-	 * clause of the function contract) was not built into the statement's guard
-	 * expression, and must therefore be computed dynamically, at the given
-	 * state.
-	 * </p>
-	 * 
-	 * <p>
-	 * If the given {@code statement} is not a call statement, {@code null} is
-	 * returned. If the function expression of the call statement is an
-	 * identifier (the normal case), then
-	 * {@link CallOrSpawnStatement#function()} returns something non-null, and
-	 * this method will return {@code null}. Otherwise, the function expression
-	 * is evaluated at the given {@code state} to determine the called function
-	 * f. If f has a contract and that contract specifies a guard, then that
-	 * guard is returned, otherwise {@code null} is returned.
-	 * </p>
-	 * 
-	 * @param state
-	 *            the state from which the call will take place
-	 * @param pid
-	 *            the ID of the process in which the call takes place
-	 * @param statement
-	 *            a call statement
-	 * @return the guard expression, or {@code null} (if {@code statement} is
-	 *         not a call or if the called function is statically known)
-	 * @throws UnsatisfiablePathConditionException
-	 *             if in the course of evaluating the function expression it is
-	 *             determined that the path condition is not satisfiable
-	 */
-	private Expression getDynamicGuard(State state, int pid,
-			CallOrSpawnStatement statement)
-			throws UnsatisfiablePathConditionException {
-		if (!statement.isCall())
-			return null;
-
-		CIVLFunction function = statement.function();
-
-		if (function != null)
-			return null;
-
-		Expression functionExpr = statement.functionExpression();
-		Triple<State, CIVLFunction, Integer> triple = evaluator
-				.evaluateFunctionIdentifier(state, pid, functionExpr,
-						functionExpr.getSource());
-
-		function = triple.second;
-
-		FunctionContract contract = function.functionContract();
-
-		if (contract == null)
-			return null;
-
-		return contract.guard();
-	}
-
-	/**
-	 * Computes the new state resulting from executing a function call from a
-	 * given state.
-	 * 
-	 * @param state
-	 *            the original state
-	 * @param pid
-	 *            the ID of the process performing the call
-	 * @param function
-	 *            the function being called
-	 * @param arguments
-	 *            the actual argument expressions in the call
-	 * @return the new state immediately after the call (i.e., just after the
-	 *         new frame is pushed onto the call stack and control enters the
-	 *         called function)
-	 * @throws UnsatisfiablePathConditionException
-	 *             if in the course of evaluating the arguments it is discovered
-	 *             that the path condition is unsatisfiable
-	 */
-	private State executeCall(State state, int pid, CIVLFunction function,
-			List<Expression> arguments)
-			throws UnsatisfiablePathConditionException {
-		int numArgs = function.functionType().parameterTypes().length;
-		SymbolicExpression[] argumentValues = new SymbolicExpression[numArgs];
-		int index = 0;
-
-		for (Expression arg : arguments)
-			argumentValues[index++] = evaluator.evaluate(state, pid, arg).value;
-		return stateFactory.pushCallStack(state, pid, function, argumentValues);
 	}
 
 	/**
@@ -785,6 +825,10 @@ public class SimpleEnablerWorker {
 	 * depends on the the intersection of the X_i.
 	 * </p>
 	 * 
+	 * TODO: need to support depends_on(a[0..n-1]) which is equivalent to
+	 * depends_on(a[0], ..., a[n-1]). Where a is an array of pointers.
+	 * a[0..n-1][0..1] where a is an array of array of pointers.
+	 * 
 	 * @param result
 	 *            the set into which the dependent object of the call will be
 	 *            added
@@ -809,20 +853,15 @@ public class SimpleEnablerWorker {
 	private boolean memFromContract(SeqSet result, State state, int pid,
 			CallOrSpawnStatement statement)
 			throws UnsatisfiablePathConditionException, NoReductionException {
-		CIVLFunction function = getFunction(state, pid, statement);
+		CIVLFunction function = enabler.getFunction(state, pid, statement);
 
 		if (function.isPureFunction())
 			return true; // no dependencies
 
 		FunctionContract contract = function.functionContract();
-		boolean dependsRequired = function.isSystemFunction()
-				|| function.isAtomicFunction();
 
-		if (contract == null) {
-			if (dependsRequired)
-				throw new NoReductionException();
+		if (contract == null)
 			return false;
-		}
 
 		State newState = null; // after executing the call
 		SeqSet otherSet = null, dependSet = null;
@@ -848,7 +887,7 @@ public class SimpleEnablerWorker {
 			} else { // there are some depends_on clauses
 				dependSet = new SeqSet();
 				otherSet = new SeqSet();
-				newState = executeCall(state, pid, function,
+				newState = enabler.executeContract(state, pid, function,
 						statement.arguments());
 				for (DependsEvent event : behavior0.dependsEvents()) {
 					if (event instanceof MemoryEvent) {
@@ -876,13 +915,13 @@ public class SimpleEnablerWorker {
 				if (otherSet == null)
 					otherSet = new SeqSet();
 				if (newState == null)
-					newState = executeCall(state, pid, function,
+					newState = enabler.executeContract(state, pid, function,
 							statement.arguments());
 
 				findObjects(otherSet, newState, pid, assumption);
 
 				BooleanExpression assumptionValue = (BooleanExpression) evaluator
-						.evaluate(newState, pid, assumption);
+						.evaluate(newState, pid, assumption).value;
 
 				if (reasoner.isValid(assumptionValue)) {
 					if (behavior.dependsNoact()) { // depends_on \nothing
@@ -896,8 +935,8 @@ public class SimpleEnablerWorker {
 						SeqSet newDependSet = new SeqSet();
 
 						if (newState == null)
-							newState = executeCall(state, pid, function,
-									statement.arguments());
+							newState = enabler.executeContract(state, pid,
+									function, statement.arguments());
 						for (DependsEvent event : behavior.dependsEvents()) {
 							if (event instanceof MemoryEvent) {
 								MemoryEvent memEvent = (MemoryEvent) event;
@@ -931,8 +970,6 @@ public class SimpleEnablerWorker {
 			result.addAll(dependSet);
 			return true;
 		}
-		if (dependsRequired)
-			throw new NoReductionException();
 		return false;
 	}
 
@@ -969,9 +1006,12 @@ public class SimpleEnablerWorker {
 	 * Computes an over-approximation of the set of objects accessed (read or
 	 * modified) by executing a statement.
 	 *
-	 * @param result
-	 *            the set of objects to which the computed set of objects will
-	 *            be added
+	 * @param resultAll
+	 *            the set to which the computed set of all objects will be added
+	 *            (out variable)
+	 * @param resultRO
+	 *            the set to which the computed set of read-only objects will be
+	 *            added (out variable)
 	 * @param state
 	 *            the state from which the statement is executed
 	 * @param pid
@@ -984,8 +1024,8 @@ public class SimpleEnablerWorker {
 	 * @throws NoReductionException
 	 *             if a non-concrete pointer is encountered
 	 */
-	private void computeMem(SeqSet result, State state, int pid,
-			Statement statement)
+	private void computeMem(SeqSet resultAll, SeqSet resultWrite, State state,
+			int pid, Statement statement)
 			throws UnsatisfiablePathConditionException, NoReductionException {
 		StatementKind kind = statement.statementKind();
 
@@ -995,51 +1035,68 @@ public class SimpleEnablerWorker {
 					AtomicLockAssignStatement as = (AtomicLockAssignStatement) statement;
 
 					if (as.enterAtomic())
-						computeMemAtomic(result, state, pid, as);
+						computeMemAtomicBlock(resultAll, resultWrite, state,
+								pid, as);
 				} else {
 					AssignStatement as = (AssignStatement) statement;
 
-					findObjects(result, state, pid, as.getLhs());
-					findObjects(result, state, pid, as.rhs());
+					findAccessesLHS(resultAll, resultWrite, state, pid,
+							as.getLhs());
+					findObjects(resultAll, state, pid, as.rhs());
 				}
 				break;
 			}
 			case CALL_OR_SPAWN : {
 				CallOrSpawnStatement cs = (CallOrSpawnStatement) statement;
 
-				if (cs.isSpawn() && enabler.config.getProcBound() > 0)
+				if (cs.isSpawn() && enabler.config.getProcBound() > 0) {
 					throw new NoReductionException();
-				if (isYield(cs)) {
+				} else if (enabler.isYield(cs)) {
 					if (stateFactory.processInAtomic(state) != pid) {
 						// second part of $yield: this proc re-obtains
 						// atomic lock. For now, say depends on everything.
 						// TODO: eventually do same thing we do for atomic-enter
 						throw new NoReductionException();
-					} else {
-						// first part of $yield: no dependencies
-						break;
+					} // else: first part of $yield: no dependencies
+				} else {
+					findObjects(resultAll, state, pid, cs.functionExpression());
+					for (Expression arg : cs.arguments())
+						findObjects(resultAll, state, pid, arg);
+					if (cs.lhs() != null) {
+						findAccessesLHS(resultAll, resultWrite, state, pid,
+								cs.lhs());
+					}
+
+					CIVLFunction function = enabler.getFunction(state, pid, cs);
+
+					if (function.isAtomicFunction()
+							|| function.isSystemFunction()) {
+						SeqSet tmpSet = new SeqSet();
+
+						if (memFromContract(tmpSet, state, pid, cs)) {
+							resultAll.addAll(tmpSet);
+							resultWrite.addAll(tmpSet);
+						} else if (function.startLocation() != null) {
+							computeMemAtomicFunction(resultAll, resultWrite,
+									state, pid, cs.function(), cs.arguments());
+						} else
+							throw new NoReductionException();
 					}
 				}
-				findObjects(result, state, pid, cs.functionExpression());
-				if (cs.lhs() != null)
-					findObjects(result, state, pid, cs.lhs());
-				for (Expression arg : cs.arguments())
-					findObjects(result, state, pid, arg);
-				memFromContract(result, state, pid, cs);
 				break;
 			}
 			case CIVL_PAR_FOR_ENTER : {
 				CivlParForSpawnStatement ps = (CivlParForSpawnStatement) statement;
 
-				findObjects(result, state, pid, ps.domain());
-				findObjects(result, state, pid, ps.domSizeVar());
-				findObjects(result, state, pid, ps.parProcsVar());
+				findObjects(resultAll, state, pid, ps.domain());
+				findObjects(resultAll, state, pid, ps.domSizeVar());
+				findObjects(resultAll, state, pid, ps.parProcsVar());
 				break;
 			}
 			case DOMAIN_ITERATOR : {
 				DomainIteratorStatement ds = (DomainIteratorStatement) statement;
 
-				findObjects(result, state, pid, ds.domain());
+				findObjects(resultAll, state, pid, ds.domain());
 				// don't think these are needed...
 				// computeObjectsIn(result, pid, ds.getLiteralDomCounter());
 				// computeObjectsIn(result, pid, ds.loopVariables());
@@ -1048,8 +1105,10 @@ public class SimpleEnablerWorker {
 			case MALLOC : {
 				MallocStatement ms = (MallocStatement) statement;
 
-				findObjects(result, state, pid, ms.getScopeExpression());
-				findObjects(result, state, pid, ms.getSizeExpression());
+				findObjects(resultAll, state, pid, ms.getScopeExpression());
+				findObjects(resultAll, state, pid, ms.getSizeExpression());
+				findAccessesLHS(resultAll, resultWrite, state, pid,
+						ms.getLHS());
 				break;
 			}
 			case NOOP :
@@ -1058,37 +1117,88 @@ public class SimpleEnablerWorker {
 				ParallelAssignStatement ps = (ParallelAssignStatement) statement;
 
 				for (Pair<LHSExpression, Expression> pair : ps.assignments()) {
-					findObjects(result, state, pid, pair.left);
-					findObjects(result, state, pid, pair.right);
+					findObjects(resultAll, state, pid, pair.left);
+					findAccessesLHS(resultAll, resultWrite, state, pid,
+							pair.left);
+					findObjects(resultAll, state, pid, pair.right);
 				}
 				break;
 			}
 			case RETURN : {
 				ReturnStatement rs = (ReturnStatement) statement;
 
-				findObjects(result, state, pid, rs.expression());
+				findObjects(resultAll, state, pid, rs.expression());
 				break;
 			}
 			case UPDATE : {
 				UpdateStatement us = (UpdateStatement) statement;
 
 				for (Expression arg : us.arguments()) {
-					findObjects(result, state, pid, arg);
+					findObjects(resultAll, state, pid, arg);
 				}
-				findObjects(result, state, pid, us.collator());
-				computeMem(result, state, pid, us.call());
+				findObjects(resultAll, state, pid, us.collator());
+				computeMem(resultAll, resultWrite, state, pid, us.call());
 				break;
 			}
 			case WITH : {
 				WithStatement ws = (WithStatement) statement;
 
-				findObjects(result, state, pid, ws.collateState());
+				findObjects(resultAll, state, pid, ws.collateState());
 				break;
 			}
 			default :
 				throw new CIVLInternalException("unknown statement kind",
 						statement);
 		}
+	}
+
+	/**
+	 * Computes over-approximation to set of object accesses within an atomic
+	 * block or function.
+	 * 
+	 * @param resultAll
+	 *            set of objects which could be accessed (out)
+	 * @param resultWrite
+	 *            set of objects which could be accessed by writes (out)
+	 * @param state
+	 *            the state in which the objects reside (in)
+	 * @param pid
+	 *            the ID of the executing process (in)
+	 * @param start
+	 *            the start location of the atomic block or function (in)
+	 * @param vars
+	 *            the set of variables (in scope for process {@code pid} at
+	 *            state {@code state}) accessed within the atomic block or
+	 *            function, including through function calls, calls made by
+	 *            those functions, etc. (in)
+	 * @throws NoReductionException
+	 *             if it is determined that the path condition of {@code state}
+	 *             is unsatisfiable
+	 */
+	private void computeAccessesAtomic(SeqSet resultAll, SeqSet resultWrite,
+			State state, int pid, Location start, Set<Variable> vars)
+			throws NoReductionException {
+		if (vars == null)
+			throw new NoReductionException();
+
+		Set<Variable> varsWrite = start.writableVariables();
+
+		// all variables occurring in the atomic section are accessible:
+		for (Variable var : vars)
+			addVariable(resultAll, state, pid, var);
+		// only writable variables occurring in the atomic block are writable
+		// by this transition:
+		varsWrite.retainAll(vars);
+		for (Variable var : varsWrite)
+			addVariable(resultWrite, state, pid, var);
+
+		// anything that can be reached in one or more steps by pointer
+		// dereference from any variable is potentially writable...
+		SeqSet tmpSet = findReachableIrreflexive(state, pid, start.getSource(),
+				vars);
+
+		resultAll.addAll(tmpSet);
+		resultWrite.addAll(tmpSet);
 	}
 
 	/**
@@ -1102,11 +1212,15 @@ public class SimpleEnablerWorker {
 	 * <p>
 	 * Current implementation: all objects reachable from variables that occur
 	 * within the atomic region (which includes functions called within the
-	 * atomic block, functions called by those functions, etc.).
+	 * atomic block, functions called by those functions, etc.). Here, "atomic
+	 * region" includes a "begin local ... end local" section of code, but by
+	 * definition of local, such code depends on nothing.
 	 * </p>
 	 * 
-	 * @param result
-	 *            the set to which the objects should be added
+	 * @param resultAll
+	 *            set of objects which could be accessed (out)
+	 * @param resultWrite
+	 *            set of objects which could be accessed by writes (out)
 	 * @param state
 	 *            the state from which the atomic statement is executed
 	 * @param pid
@@ -1117,18 +1231,129 @@ public class SimpleEnablerWorker {
 	 * @throws NoReductionException
 	 *             if no upper bound on the set of objects can be found
 	 */
-	private void computeMemAtomic(SeqSet result, State state, int pid,
-			AtomicLockAssignStatement as) throws NoReductionException {
-		Set<Variable> vars = as.getVariables();
-
-		if (vars == null)
-			throw new NoReductionException();
-		result.addAll(findReachableObjects(state, pid, as.getSource(), vars));
+	private void computeMemAtomicBlock(SeqSet resultAll, SeqSet resultWrite,
+			State state, int pid, AtomicLockAssignStatement as)
+			throws NoReductionException {
+		if (as.source().isEntryOfLocalBlock())
+			// begin_local ... end_local: depends on nothing
+			return;
+		computeAccessesAtomic(resultAll, resultWrite, state, pid, as.source(),
+				as.getVariables());
 	}
 
 	/**
-	 * Computes an over-approximation of the set of objects specified by a
-	 * left-hand-side expressions (or "lexpr").
+	 * Computes over-approximation of the objects accessed by a call to an
+	 * atomic, defined (non-system) function.
+	 * 
+	 * @param resultAll
+	 *            objects that could be accessed (out)
+	 * @param resultWrite
+	 *            objects that could be accessed by a write (out)
+	 * @param state
+	 *            state from which the call is made (in)
+	 * @param pid
+	 *            ID of the process making the call (in)
+	 * @param function
+	 *            the atomic function being called
+	 * @param arguments
+	 *            the arguments in the call expression
+	 * @throws NoReductionException
+	 *             if no good approximation to the resulting sets can be
+	 *             obtained
+	 * @throws UnsatisfiablePathConditionException
+	 *             if it is determined that the path condition of {@code state}
+	 *             is unsatisfiable
+	 */
+	private void computeMemAtomicFunction(SeqSet resultAll, SeqSet resultWrite,
+			State state, int pid, CIVLFunction function,
+			List<Expression> arguments)
+			throws NoReductionException, UnsatisfiablePathConditionException {
+		assert function.isAtomicFunction() && function.startLocation() != null;
+
+		State newState = enabler.executeCall(state, pid, function, arguments);
+
+		computeAccessesAtomic(resultAll, resultWrite, newState, pid,
+				function.startLocation(), function.getAccessesAtomicFunction());
+	}
+
+	/**
+	 * Analyzes the object accesses associated to the left-hand side of an
+	 * assignment {@code lhs = ...}. If {@code lhs} is a variable {@code x},
+	 * then {@code x} is accessed as a write. If {@code lhs} is a dereference
+	 * expression {@code *p}, where {@code p} is an expression, then all
+	 * accessed arising from the evaluation of {@code p} occur, and in addition
+	 * a write access to the object pointed to by the pointer value resulting
+	 * from evaluating {@code p} occurs. And so on.
+	 * 
+	 * @param resultAll
+	 *            the set of objects accessed (out)
+	 * @param resultWrite
+	 *            the set of objects accessed by writing (out)
+	 * @param state
+	 *            the state at which the assignment takes place
+	 * @param pid
+	 *            the ID of the process performing the assignment
+	 * @param lhs
+	 *            the left hand side expression of the assignment
+	 * @throws NoReductionException
+	 *             if no good approximation can be obtained
+	 * @throws UnsatisfiablePathConditionException
+	 *             if it is determined that the path condition of {@code state}
+	 *             is unsatisfiable
+	 */
+	private void findAccessesLHS(SeqSet resultAll, SeqSet resultWrite,
+			State state, int pid, LHSExpression lhs)
+			throws NoReductionException, UnsatisfiablePathConditionException {
+		switch (lhs.lhsExpressionKind()) {
+			case DEREFERENCE : { // *p = e;
+				// evaluate p and find the object o into which it points,
+				// add o to resultWrite
+				Expression pointerArg = ((DereferenceExpression) lhs).pointer();
+				SymbolicExpression pointerVal = coarsePointerEval(state, pid,
+						pointerArg);
+				CIVLSource source = pointerArg.getSource();
+
+				findObjects(resultAll, state, pid, pointerArg);
+				addPointer(resultAll, state, source, pointerVal);
+				addPointer(resultWrite, state, source, pointerVal);
+				break;
+			}
+			case DOT : { // s.f = ...;
+				LHSExpression struct = (LHSExpression) ((DotExpression) lhs)
+						.structOrUnion();
+
+				findAccessesLHS(resultAll, resultWrite, state, pid, struct);
+				break;
+			}
+			case SUBSCRIPT : { // a[i] = ...;
+				SubscriptExpression sub = (SubscriptExpression) lhs;
+				LHSExpression array = sub.array();
+				Expression index = sub.index();
+
+				findAccessesLHS(resultAll, resultWrite, state, pid, array);
+				findObjects(resultAll, state, pid, index);
+				break;
+			}
+			case VARIABLE : {
+				Variable var = ((VariableExpression) lhs).variable();
+
+				addVariable(resultAll, state, pid, var);
+				addVariable(resultWrite, state, pid, var);
+				break;
+			}
+			default :
+				throw new CIVLInternalException("unreachable", lhs);
+		}
+	}
+
+	/**
+	 * Computes an over-approximation of the set of objects accessed by
+	 * evaluating an expression of the form {@code &lhs}. If {@code lhs} is a
+	 * variable, no objects are accessed: the variable is neither read nor
+	 * written. If {@code lhs} has the form {@code *p} the result is the set of
+	 * objects accessed in the course of evaluating {@code p}, but not the
+	 * objected pointed to by the result of that evaluation, as that object is
+	 * neither read nor modified. And so on.
 	 * 
 	 * @param result
 	 *            the set to which the memory locations should be added
@@ -1179,6 +1404,46 @@ public class SimpleEnablerWorker {
 			default :
 				throw new CIVLInternalException("Unknown kind of LExpression",
 						arg);
+		}
+	}
+
+	/**
+	 * Evaluates a pointer expression to get some pointer into the object
+	 * pointed to. If the expression contains bound variables this might make it
+	 * impossible to evaluate and the no-reduction exception is thrown.
+	 * 
+	 * @param state
+	 *            a state
+	 * @param pid
+	 *            ID of process evaluating the pointer expression
+	 * @param expr
+	 *            an expression of pointer type
+	 * @return pointer to the object pointed to, though not necessarily the
+	 *         exact location within that object
+	 * @throws NoReductionException
+	 *             if it is not possible to evaluate the pointer expression
+	 */
+	private SymbolicExpression coarsePointerEval(State state, int pid,
+			Expression expr) throws NoReductionException {
+		ExpressionKind kind = expr.expressionKind();
+
+		if (kind == ExpressionKind.BINARY) {
+			BinaryExpression be = (BinaryExpression) expr;
+			BINARY_OPERATOR op = be.operator();
+
+			if (op == BINARY_OPERATOR.POINTER_ADD) {
+				Expression arg0 = be.left();
+
+				return arg0.getExpressionType().isPointerType()
+						? coarsePointerEval(state, pid, arg0)
+						: coarsePointerEval(state, pid, be.right());
+			} else if (op == BINARY_OPERATOR.POINTER_SUBTRACT)
+				return coarsePointerEval(state, pid, be.left());
+		}
+		try {
+			return evaluator.evaluate(state, pid, expr).value;
+		} catch (Exception e) {
+			throw new NoReductionException();
 		}
 	}
 
@@ -1262,10 +1527,11 @@ public class SimpleEnablerWorker {
 			case DEREFERENCE : {
 				Expression pointerArg = ((DereferenceExpression) expr)
 						.pointer();
-				Evaluation eval = evaluator.evaluate(state, pid, pointerArg);
+				SymbolicExpression pointerVal = coarsePointerEval(state, pid,
+						pointerArg);
 
 				findObjects(result, state, pid, pointerArg);
-				addPointer(result, state, pointerArg.getSource(), eval.value);
+				addPointer(result, state, pointerArg.getSource(), pointerVal);
 				break;
 			}
 			case DERIVATIVE : {
@@ -1320,10 +1586,21 @@ public class SimpleEnablerWorker {
 			}
 			case FUNCTION_IDENTIFIER : // nothing
 				break;
-			case FUNC_CALL :
-				computeMem(result, state, pid,
-						((FunctionCallExpression) expr).callStatement());
+			case FUNC_CALL : {// these are atomic, pure functions
+				CallOrSpawnStatement call = ((FunctionCallExpression) expr)
+						.callStatement();
+
+				findObjects(result, state, pid, call.functionExpression());
+				for (Expression arg : call.arguments())
+					findObjects(result, state, pid, arg);
+				assert call.lhs() == null;
+				// if (call.lhs() != null) {
+				// findObjects(result, state, pid, call.lhs());
+				// findObjectsLHS(result, state, pid, call.lhs());
+				// }
+				// memFromContract(result, state, pid, call);
 				break;
+			}
 			case HERE_OR_ROOT : // nothing
 				break;
 			case INITIAL_VALUE : // nothing - abstract initial value
@@ -1459,15 +1736,46 @@ public class SimpleEnablerWorker {
 	 */
 	private void findObjects(SeqSet result, State state, int pid, CIVLType type)
 			throws UnsatisfiablePathConditionException, NoReductionException {
+		findObjectsHelper(result, state, pid, type, new HashSet<CIVLType>());
+	}
+
+	/**
+	 * Auxiliary function used by
+	 * {@link #findObjects(SeqSet, State, int, CIVLType)}. This is a recursive
+	 * function that keeps track of the set of seen types.
+	 * 
+	 * @param result
+	 *            the set to which the objects shall be added
+	 * @param state
+	 *            the state in which this type is evaluated
+	 * @param pid
+	 *            the ID of the process performing the evaluation
+	 * @param type
+	 *            the CIVL type
+	 * @param seen
+	 *            the set of types already encountered in this invocation of
+	 *            {@link #findObjects(SeqSet, State, int, CIVLType)}.
+	 * @throws UnsatisfiablePathConditionException
+	 *             if it is discovered that the path condition of {@code state}
+	 *             is unsatisfiable
+	 * @throws NoReductionException
+	 *             if no good over-approximation can be found
+	 */
+	private void findObjectsHelper(SeqSet result, State state, int pid,
+			CIVLType type, Set<CIVLType> seen)
+			throws UnsatisfiablePathConditionException, NoReductionException {
+		if (!seen.add(type))
+			return;
 		switch (type.typeKind()) {
 			case ARRAY :
-				findObjects(result, state, pid,
-						((CIVLArrayType) type).elementType());
+				findObjectsHelper(result, state, pid,
+						((CIVLArrayType) type).elementType(), seen);
 				break;
 			case COMPLETE_ARRAY : {
 				CIVLCompleteArrayType atype = (CIVLCompleteArrayType) type;
 
-				findObjects(result, state, pid, atype.elementType());
+				findObjectsHelper(result, state, pid, atype.elementType(),
+						seen);
 				findObjects(result, state, pid, atype.extent());
 				break;
 			}
@@ -1475,23 +1783,27 @@ public class SimpleEnablerWorker {
 				CIVLFunctionType ftype = (CIVLFunctionType) type;
 
 				for (CIVLType ptype : ftype.parameterTypes())
-					findObjects(result, state, pid, ptype);
-				findObjects(result, state, pid, ftype.returnType());
+					findObjectsHelper(result, state, pid, ptype, seen);
+				findObjectsHelper(result, state, pid, ftype.returnType(), seen);
 				break;
 			}
 			case POINTER :
-				findObjects(result, state, pid,
-						((CIVLPointerType) type).baseType());
+				findObjectsHelper(result, state, pid,
+						((CIVLPointerType) type).baseType(), seen);
 				break;
 			case SET :
-				findObjects(result, state, pid,
-						((CIVLSetType) type).elementType());
+				findObjectsHelper(result, state, pid,
+						((CIVLSetType) type).elementType(), seen);
 				break;
-			case STRUCT_OR_UNION :
-				for (StructOrUnionField field : ((CIVLStructOrUnionType) type)
-						.fields())
-					findObjects(result, state, pid, field.type());
+			case STRUCT_OR_UNION : {
+				CIVLStructOrUnionType sutype = (CIVLStructOrUnionType) type;
+
+				if (sutype.isComplete())
+					for (StructOrUnionField field : sutype.fields())
+						findObjectsHelper(result, state, pid, field.type(),
+								seen);
 				break;
+			}
 			case BUNDLE :
 			case DOMAIN :
 			case ENUM :
@@ -1504,24 +1816,11 @@ public class SimpleEnablerWorker {
 	}
 
 	/**
-	 * Gets the result of evaluating a guard for a statement. The guard is
-	 * evaluated at state {@link #theState}. If the result was previously
-	 * computed, the cached result is returned. Otherwise, the guard is
-	 * evaluated and then the {@link Reasoner} for the path condition of
-	 * {@link #theState} is used to determine whether the resulting symbolic
-	 * expression is satisfiable. If it is not satisfiable, the result is
-	 * replaced by the false expression.
-	 * 
-	 * <p>
-	 * This handles the case where the guard is not explicit in the model, due
-	 * to the call of a system or atomic function through a function pointer (so
-	 * the function called is not statically known).
-	 * </p>
-	 * 
-	 * <p>
-	 * TODO: Should we also check if the guard is valid? Should it be
-	 * simplified?
-	 * </p>
+	 * Gets the result of evaluating a guard for a statement. This method
+	 * handles the caching of the results. It uses
+	 * {@link SimpleEnabler#computeGuard(State, Reasoner, int, int)} to compute
+	 * the guard the first time. The guard is evaluated at state
+	 * {@link #theState}.
 	 * 
 	 * @param pid
 	 *            the process ID
@@ -1535,138 +1834,35 @@ public class SimpleEnablerWorker {
 	 */
 	private BooleanExpression getGuardValue(int pid, int sid)
 			throws UnsatisfiablePathConditionException {
-		Location location = theState.getProcessState(pid).getLocation();
-		int numOutgoing = location.getNumIncoming();
-		assert sid < numOutgoing;
+		if (theGuards[pid] == null) {
+			int numOutgoing = theState.getProcessState(pid).getLocation()
+					.getNumOutgoing();
 
-		if (theGuards[pid] == null)
 			theGuards[pid] = new BooleanExpression[numOutgoing];
+			return theGuards[pid][sid] = enabler.computeGuard(theState,
+					reasoner, pid, sid);
+		} else {
+			BooleanExpression evaluatedGuard = theGuards[pid][sid];
 
-		BooleanExpression evaluatedGuard = theGuards[pid][sid];
-
-		if (evaluatedGuard == null) {
-			Statement stmt = location.getOutgoing(sid);
-			Expression expr = stmt.guard();
-
-			if (stmt.statementKind() == StatementKind.CALL_OR_SPAWN) {
-				Expression dynamicGuard = getDynamicGuard(theState, pid,
-						(CallOrSpawnStatement) stmt);
-
-				if (dynamicGuard != null)
-					expr = enabler.modelFactory.binaryExpression(
-							stmt.getSource(), BINARY_OPERATOR.AND, expr,
-							dynamicGuard);
+			if (evaluatedGuard == null) {
+				evaluatedGuard = enabler.computeGuard(theState, reasoner, pid,
+						sid);
+				theGuards[pid][sid] = evaluatedGuard;
 			}
-			evaluatedGuard = (BooleanExpression) evaluator.evaluate(theState,
-					pid, expr);
-			if (reasoner.unsat(evaluatedGuard)
-					.getResultType() == ResultType.YES)
-				evaluatedGuard = universe.falseExpression();
-			theGuards[pid][sid] = evaluatedGuard;
-		}
-		return evaluatedGuard;
-	}
-
-	/**
-	 * Is the given {@link Statement} the {@code $yield} statement?
-	 * 
-	 * @param stmt
-	 *            a (non-null) {@link Statement}
-	 * @return {@code true} iff {@code stmt} is the {@code $yield statement}
-	 */
-	private boolean isYield(Statement stmt) {
-		return stmt.statementKind() == StatementKind.CALL_OR_SPAWN
-				&& ((CallOrSpawnStatement) stmt).isCall()
-				&& ((CallOrSpawnStatement) stmt)
-						.function() == enabler.yieldFunction;
-	}
-
-	/**
-	 * Is the given {@link Statement} an invocation of the {@code $assume}
-	 * statement?
-	 * 
-	 * @param stmt
-	 *            a (non-null) {@link Statement}
-	 * @return {@code true} iff {@code stmt} is an invocation of the
-	 *         {@code $assume statement}
-	 */
-	private boolean isAssume(Statement stmt) {
-		return stmt.statementKind() == StatementKind.CALL_OR_SPAWN
-				&& ((CallOrSpawnStatement) stmt).isCall()
-				&& ((CallOrSpawnStatement) stmt)
-						.function() == enabler.assumeFunction;
-	}
-
-	/**
-	 * Is the given {@link Statement} a call of a system function? This method
-	 * will produce the correct answer even if the call is through a function
-	 * pointer or other complex function expression.
-	 * 
-	 * @param state
-	 *            the state from which the statement is executed
-	 * @param pid
-	 *            the ID of the process executing {@code stmt}
-	 * @param stmt
-	 *            the statement being executed
-	 * @return {@code true} iff {@code stmt} is a call of a system function
-	 * @throws UnsatisfiablePathConditionException
-	 *             if in the course of evaluating the function expression it is
-	 *             discovered that the path condition of {@code state} is
-	 *             unsatisfiable
-	 */
-	private boolean isSystemCall(State state, int pid, Statement stmt)
-			throws UnsatisfiablePathConditionException {
-		if (stmt.statementKind() == StatementKind.CALL_OR_SPAWN) {
-			CallOrSpawnStatement call = (CallOrSpawnStatement) stmt;
-
-			if (call.isCall()) {
-				CIVLFunction function = getFunction(theState, pid, call);
-
-				if (function.isSystemFunction())
-					return true;
-			}
-		}
-		return false;
-	}
-
-	/**
-	 * Computes the set of enabled transitions of a call of a system function.
-	 * The set is obtained using the function's library's
-	 * {@link LibraryEnabler}.
-	 * 
-	 * @param pid
-	 *            the ID of the process making the call
-	 * @param guardValue
-	 *            the value of the guard expression of the call statement, in
-	 *            state {@link #theState}
-	 * @param call
-	 *            the call statement
-	 * @return the list of transitions enabled by this system call
-	 * @throws UnsatisfiablePathConditionException
-	 *             if in the process of evaluating the function expression it is
-	 *             determined that the path condition of {@link #theState} is
-	 *             unsatisfiable
-	 */
-	private List<Transition> enabledTransitionsOfSystemCall(int pid,
-			BooleanExpression guardValue, CallOrSpawnStatement call)
-			throws UnsatisfiablePathConditionException {
-		SystemFunction sf = (SystemFunction) getFunction(theState, pid, call);
-
-		try {
-			LibraryEnabler lib = enabler.libraryEnabler(call.getSource(),
-					sf.getLibrary());
-
-			return lib.enabledTransitions(theState, call, guardValue, pid,
-					null);
-		} catch (LibraryLoaderException e) {
-			throw new CIVLInternalException(
-					"unable to load library " + sf.getLibrary(), call);
+			return evaluatedGuard;
 		}
 	}
 
 	/**
+	 * <p>
 	 * Computes the set of transitions enabled at {@link #theState} by a given
 	 * statement.
+	 * </p>
+	 * 
+	 * <p>
+	 * Precondition: it is not the case that some other process owns the atomic
+	 * lock
+	 * </p>
 	 * 
 	 * @param result
 	 *            the list to which the enabled transitions will be added
@@ -1690,11 +1886,15 @@ public class SimpleEnablerWorker {
 
 		if (guardValue.isFalse())
 			return;
-		if (isSystemCall(theState, pid, stmt))
-			result.addAll(enabledTransitionsOfSystemCall(pid, guardValue,
-					(CallOrSpawnStatement) stmt));
-		else {
-			boolean simplify = isAssume(stmt);
+		// second half of $yield: re-obtaining lock...
+		if (enabler.isYield(stmt) && !stateFactory.lockedByAtomic(theState)) {
+			result.add(Semantics.newTransition(pid, guardValue, stmt, false,
+					null));
+		} else if (enabler.isSystemCall(theState, pid, stmt)) {
+			result.addAll(enabler.enabledTransitionsOfSystemCall(theState, pid,
+					guardValue, (CallOrSpawnStatement) stmt));
+		} else {
+			boolean simplify = enabler.isAssume(stmt);
 			boolean noop = stmt.statementKind() == StatementKind.NOOP;
 			Transition trans = noop
 					? Semantics.newNoopTransition(pid, guardValue, stmt,
@@ -1707,56 +1907,15 @@ public class SimpleEnablerWorker {
 	}
 
 	/**
-	 * Is the given expression the boolean expression "true"?
-	 * 
-	 * @param expr
-	 *            a non-null CIVL {@link Expression}
-	 * @return {@code true} iff {@code expr} is the expression "true"
-	 */
-	private boolean isTrue(Expression expr) {
-		return expr.expressionKind() == ExpressionKind.BOOLEAN_LITERAL
-				&& ((BooleanLiteralExpression) expr).value();
-	}
-
-	/**
-	 * Is the given statement a "send" operation, i.e., a call of function
-	 * {@code $comm_enqueue}?
-	 * 
-	 * @param state
-	 *            the state from which the statement is executed
-	 * @param pid
-	 *            the ID of the process executing the statement
-	 * @param stmt
-	 *            any non-null CIVL {@link Statement}
-	 * @return {@code true} iff {@code stmt} is a call of function
-	 *         {@code $comm_enqueue}
-	 * @throws UnsatisfiablePathConditionException
-	 *             if it is determined that the path condition of {@code state}
-	 *             is unsatisfiable
-	 */
-	private boolean isSend(State state, int pid, Statement stmt)
-			throws UnsatisfiablePathConditionException {
-		if (stmt.statementKind() == StatementKind.CALL_OR_SPAWN) {
-			CallOrSpawnStatement call = (CallOrSpawnStatement) stmt;
-
-			if (call.isCall()) {
-				CIVLFunction function = getFunction(state, pid, call);
-
-				if (function == enabler.commEnqueueFunction)
-					return true;
-			}
-		}
-		return false;
-	}
-
-	/**
+	 * <p>
 	 * Computes the set of transitions enabled at {@link #theState} in the
 	 * specified process.
+	 * </p>
 	 * 
 	 * <p>
 	 * Precondition: the atomic lock is not held by another process at
-	 * {@link #theState} Hence the atomic lock may be free, or it may be held by
-	 * the specified process.
+	 * {@link #theState}. Hence the atomic lock may be free, or it may be held
+	 * by the specified process.
 	 * </p>
 	 * 
 	 * @param result
@@ -1769,7 +1928,16 @@ public class SimpleEnablerWorker {
 	 */
 	private void computeEnabledInProcess(List<Transition> result, int pid)
 			throws UnsatisfiablePathConditionException {
-		Location location = theState.getProcessState(pid).getLocation();
+		ProcessState ps = theState.getProcessState(pid);
+
+		if (ps == null)
+			return;
+
+		Location location = ps.getLocation();
+
+		if (location == null)
+			return;
+
 		int numStatements = location.getNumOutgoing();
 
 		for (int i = 0; i < numStatements; i++)
@@ -1794,16 +1962,20 @@ public class SimpleEnablerWorker {
 	 * </p>
 	 * 
 	 * @param pid
-	 *            the ID of the process
-	 * @return the set of objects, represented as a {@link SeqSet}
+	 *            the ID of the process (in)
+	 * @param depend
+	 *            the set of objects of the process's depend set (out)
+	 * @param dependWrite
+	 *            the set of objects of the depend set that may be modified
+	 *            (out)
 	 * @throws UnsatisfiablePathConditionException
 	 *             if it is determined that the path condition of
 	 *             {@link #theState} is unsatisfiable
 	 */
-	SeqSet computeDepends(int pid) throws UnsatisfiablePathConditionException {
+	void computeDepends(int pid, SeqSet depend, SeqSet dependWrite)
+			throws UnsatisfiablePathConditionException {
 		Location location = theState.getProcessState(pid).getLocation();
 		int numOutgoing = location.getNumOutgoing();
-		SeqSet result = new SeqSet();
 
 		try {
 			for (int i = 0; i < numOutgoing; i++) {
@@ -1811,15 +1983,15 @@ public class SimpleEnablerWorker {
 				Expression guard = statement.guard();
 				BooleanExpression guardValue = getGuardValue(pid, i);
 
-				findObjects(result, theState, pid, guard);
+				findObjects(depend, theState, pid, guard);
 				if (reasoner.unsat(guardValue)
 						.getResultType() != ResultType.YES)
-					computeMem(result, theState, pid, statement);
+					computeMem(depend, dependWrite, theState, pid, statement);
 			}
 		} catch (NoReductionException e) {
-			result.makeFull();
+			depend.makeFull();
+			dependWrite.makeFull();
 		}
-		return result;
 	}
 
 	/**
@@ -1843,16 +2015,24 @@ public class SimpleEnablerWorker {
 	 * 
 	 * @param pid
 	 *            the ID of the process
+	 * @param reach
+	 *            out variable: set to which all reachable objects will be added
+	 * @param reachWrite
+	 *            out variable: set to which all reachable objects which are
+	 *            possibly modified will be added
 	 * @return the set of reachable objects represented as a {@link SeqSet}
 	 */
-	SeqSet computeReach(int pid) {
+	void computeReach(int pid, SeqSet reach, SeqSet reachWrite) {
 		ProcessState ps = theState.getProcessState(pid);
 		Set<Integer> dyscopeIDs = new HashSet<>();
-		SeqSet varSet = new SeqSet();
+		Set<Variable> writeableVars = new HashSet<>();
 
 		for (StackEntry se : ps.getStackEntries()) {
 			int dyscopeID = se.scope();
+			Location loc = se.location();
 
+			if (loc != null)
+				writeableVars.addAll(loc.writableVariables());
 			while (dyscopeID != -1 && dyscopeIDs.add(dyscopeID))
 				dyscopeID = theState.getParentId(dyscopeID);
 		}
@@ -1860,16 +2040,62 @@ public class SimpleEnablerWorker {
 			DynamicScope ds = theState.getDyscope(dyscopeID);
 			Scope scope = ds.lexicalScope();
 
-			for (Variable var : scope.variables())
-				if (!var.type().isHeapType())
-					varSet.add(dyscopeID, var.vid());
+			for (Variable var : scope.variables()) {
+				addVariable(reach, theState, pid, var);
+				if (writeableVars.contains(var))
+					addVariable(reachWrite, theState, pid, var);
+			}
 		}
 		try {
-			close(varSet, theState, ps.getLocation().getSource());
+			SeqSet closure = new SeqSet();
+
+			// any object that can be reached by one or more pointer derefs
+			// is a writable reachable object...
+			closeIrreflexive(closure, reach, theState,
+					ps.getLocation().getSource());
+			reach.addAll(closure);
+			reachWrite.addAll(closure);
 		} catch (NoReductionException e) {
-			varSet.add(); // makes it the universal set
+			reach.add(); // makes it the universal set
+			reachWrite.add(); // ditto
 		}
-		return varSet;
+	}
+
+	/**
+	 * Prints a {@code SeqSet} representing a set of objects in a human readable
+	 * form. The set represents a set of variable instances or heap objects in
+	 * the current state {@link #theState}.
+	 * 
+	 * @param out
+	 *            the stream to which the output should be printed
+	 * @param ss
+	 *            the set representing a set of objects
+	 */
+	protected void printObjSet(PrintStream out, SeqSet ss) {
+		boolean first = true;
+
+		for (int[] vec : ss.getLeaves()) {
+			if (first)
+				first = false;
+			else
+				out.print(", ");
+			if (vec.length == 0)
+				out.print("all");
+			else {
+				// dyscope, variable, mallocIdx(optional), objIdx(optional)
+				int dyid = vec[0], vid = vec[1];
+				DynamicScope dyscope = theState.getDyscope(dyid);
+				Scope scope = dyscope.lexicalScope();
+				Variable var = scope.variable(vid);
+
+				out.print(var.name().name() + "(" + dyid + ")");
+				if (vec.length > 2) {
+					out.print("." + vec[2]);
+					if (vec.length > 3)
+						out.print("[" + vec[3] + "]");
+				}
+			}
+		}
 	}
 
 	/**
@@ -1931,8 +2157,6 @@ public class SimpleEnablerWorker {
 	 * true. So there is no need for any special treatment for $wait.
 	 * </p>
 	 * 
-	 * TODO: make sure the contract for $wait is depends_on nothing.
-	 * 
 	 * <p>
 	 * $spawn is normally always enabled, except for a process-bounded search
 	 * (proc_bound > 0). For such a search, $spawn should never be considered
@@ -1947,6 +2171,8 @@ public class SimpleEnablerWorker {
 	 * @return {@code true} if it is possible the process has a visible enabled
 	 *         transition
 	 * @throws UnsatisfiablePathConditionException
+	 *             if it is determined that the path condition of
+	 *             {@link #theState} is unsatisfiable
 	 */
 	protected boolean allInvisible(int pid)
 			throws UnsatisfiablePathConditionException {
@@ -1960,6 +2186,9 @@ public class SimpleEnablerWorker {
 
 		Location location = theState.getProcessState(pid).getLocation();
 
+		if (location == null)
+			return true; // process pid has terminated
+
 		if (location.isBinaryBranching()
 				|| location.isSwitchOrChooseWithDefault())
 			return true;
@@ -1968,8 +2197,16 @@ public class SimpleEnablerWorker {
 
 		if (numOutgoing == 0)
 			return true;
-		if (numOutgoing == 1 && isTrue(location.getOutgoing(0).guard()))
-			return true;
+
+		if (numOutgoing == 1) {
+			Statement stmt = location.getOutgoing(0);
+
+			if (enabler.isTrue(stmt.guard())) {
+				if (kind == DeadlockKind.ABSOLUTE
+						|| !enabler.isSend(theState, pid, stmt))
+					return true;
+			}
+		}
 
 		BooleanExpression enabled = universe.falseExpression();
 
@@ -1978,9 +2215,35 @@ public class SimpleEnablerWorker {
 				enabled = universe.or(enabled, getGuardValue(pid, i));
 		else
 			for (int i = 0; i < numOutgoing; i++)
-				if (!isSend(theState, pid, location.getOutgoing(i)))
+				if (!enabler.isSend(theState, pid, location.getOutgoing(i))) {
 					enabled = universe.or(enabled, getGuardValue(pid, i));
+				}
 		return reasoner.isValid(enabled);
+	}
+
+	/**
+	 * Determines whether the specified process is at a location (at state
+	 * {@link #theState}) from which it could enter an atomic block for which
+	 * termination is not guaranteed.
+	 * 
+	 * @param pid
+	 *            the ID of the process
+	 * @return {@code} true if process {@code PID} is at a location from which
+	 *         it could enter a possibly non-terminating atomic block
+	 * 
+	 * @see Location#isEntryOfUnsafeAtomic()
+	 */
+	protected boolean unsafeAtomic(int pid) {
+		ProcessState ps = theState.getProcessState(pid);
+
+		if (ps == null)
+			return false;
+
+		Location location = ps.getLocation();
+
+		if (location == null)
+			return false;
+		return location.isEntryOfUnsafeAtomic();
 	}
 
 	/**
@@ -2025,23 +2288,57 @@ public class SimpleEnablerWorker {
 		StrongConnect sc = new StrongConnect(this);
 		LinkedList<Integer> amplePids = sc.findAmple();
 		int size = 0, c = 0;
+		int numProcs = 0;
 
 		if (amplePids == null) {
 			full = true;
-			for (int i = 0; i < nprocs; i++)
-				size += enabledTransitionsInProcess(i).length;
+			for (int i = 0; i < nprocs; i++) {
+				int ntrans = enabledTransitionsInProcess(i).length;
+
+				if (ntrans > 0) {
+					size += ntrans;
+					numProcs++;
+				}
+			}
 			ampleSet = new Transition[size];
 			for (int i = 0; i < nprocs; i++)
-				for (Transition tran : enabledTransitions[i])
+				for (Transition tran : enabledTransitions[i]) {
 					ampleSet[c++] = tran;
+				}
 		} else {
 			full = false;
-			for (int i : amplePids)
-				size += enabledTransitionsInProcess(i).length;
+			for (int i : amplePids) {
+				int ntrans = enabledTransitionsInProcess(i).length;
+
+				if (ntrans > 0) {
+					size += ntrans;
+					numProcs++;
+				}
+			}
 			ampleSet = new Transition[size];
 			for (int i : amplePids)
-				for (Transition tran : enabledTransitions[i])
+				for (Transition tran : enabledTransitions[i]) {
 					ampleSet[c++] = tran;
+				}
+		}
+		if (enabler.debugging || enabler.showAmpleSet) {
+			if (numProcs > 1) {
+				enabler.debugOut.print(
+						"\nample processes at state " + theState + ":\t");
+				if (full) {
+					for (int i = 0; i < nprocs; i++)
+						if (enabledTransitionsInProcess(i).length > 0)
+							enabler.debugOut.print(i + "\t");
+				} else {
+					for (int i : amplePids)
+						if (enabledTransitionsInProcess(i).length > 0)
+							enabler.debugOut.print(i + "\t");
+				}
+				enabler.debugOut.println();
+				sc.printData(enabler.debugOut);
+				if (!enabler.debugging && enabler.showAmpleSetWtStates)
+					enabler.debugOut.print(theState.callStackToString());
+			}
 		}
 	}
 

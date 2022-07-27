@@ -6,12 +6,16 @@ import static edu.udel.cis.vsl.civl.TestConstants.QUIET;
 
 import java.io.File;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 import edu.udel.cis.vsl.abc.err.IF.ABCException;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class SpecialStatementsTest {
+	@Rule
+	public Timeout globalTimeout = Timeout.seconds(30);
 
 	/* *************************** Static Fields *************************** */
 
@@ -30,43 +34,36 @@ public class SpecialStatementsTest {
 
 	@Test
 	public void choose1() throws ABCException {
-		assertTrue(
-				ui.run("verify", QUIET, filename("choose1.cvl")));
+		assertTrue(ui.run("verify", QUIET, filename("choose1.cvl")));
 	}
 
 	@Test
 	public void choose_bad1() throws ABCException {
-		assertFalse(ui.run("verify", QUIET,
-				filename("choose_bad1.cvl")));
+		assertFalse(ui.run("verify", QUIET, filename("choose_bad1.cvl")));
 	}
 
 	@Test
 	public void choose_bad2() throws ABCException {
-		assertFalse(ui.run("verify", QUIET,
-				filename("choose_bad2.cvl")));
+		assertFalse(ui.run("verify", QUIET, filename("choose_bad2.cvl")));
 	}
 
 	@Test
 	public void choose_bad3() throws ABCException {
-		assertFalse(ui.run("verify", QUIET,
-				filename("choose_bad3.cvl")));
+		assertFalse(ui.run("verify", QUIET, filename("choose_bad3.cvl")));
 	}
 
 	@Test
 	public void when1() throws ABCException {
-		assertTrue(
-				ui.run("verify", QUIET, filename("when1.cvl")));
+		assertTrue(ui.run("verify", QUIET, filename("when1.cvl")));
 	}
 
 	@Test
 	public void when2() throws ABCException {
-		assertTrue(
-				ui.run("verify", QUIET, filename("when2.cvl")));
+		assertTrue(ui.run("verify", QUIET, filename("when2.cvl")));
 	}
 
 	@Test
 	public void when3() throws ABCException {
-		assertTrue(
-				ui.run("verify", QUIET, filename("when3.cvl")));
+		assertTrue(ui.run("verify", QUIET, filename("when3.cvl")));
 	}
 }

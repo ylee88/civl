@@ -171,8 +171,9 @@ public abstract class Player {
 		this.maxdepth = (int) gmcConfig.getAnonymousSection()
 				.getValueOrDefault(maxdepthO);
 		if (civlConfig.deadlock() == DeadlockKind.ABSOLUTE) {
-			this.addPredicate(Predicates.newDeadlock(universe,
-					(Enabler) this.enabler, symbolicAnalyzer));
+			this.addPredicate(
+					Predicates.newDeadlock(universe, (Enabler) this.enabler,
+							this.stateFactory, symbolicAnalyzer));
 		} else if (civlConfig.deadlock() == DeadlockKind.POTENTIAL) {
 			this.addPredicate(Predicates.newPotentialDeadlock(universe,
 					(Enabler) this.enabler, libraryEnablerLoader,

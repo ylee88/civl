@@ -2681,10 +2681,16 @@ public class FunctionTranslator {
 			modelBuilder.functionMap.put(entity, result);
 		}
 		if (contract != null) {
-			FunctionContractTranslator contractTranslator = new FunctionContractTranslator(
-					modelBuilder, modelFactory, typeFactory, result,
-					this.civlConfig);
-			contractTranslator.translateFunctionContract(contract);
+			if (result.functionContract() != null) {
+				// TODO: eventually, find a way to combine contracts
+				System.err.println("Warning: ignoring new contract for function "
+						+ function.name());
+			} else {
+				FunctionContractTranslator contractTranslator = new FunctionContractTranslator(
+						modelBuilder, modelFactory, typeFactory, result,
+						this.civlConfig);
+				contractTranslator.translateFunctionContract(contract);
+			}
 		}
 		return fragment;
 	}

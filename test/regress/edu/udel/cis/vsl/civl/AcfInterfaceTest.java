@@ -13,12 +13,16 @@ import java.nio.file.Paths;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 import edu.udel.cis.vsl.abc.err.IF.ABCException;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class AcfInterfaceTest {
+	@Rule
+	public Timeout globalTimeout = Timeout.seconds(30);
 
 	/* *************************** Static Fields *************************** */
 
@@ -70,7 +74,8 @@ public class AcfInterfaceTest {
 			ui.run("verify", TestConstants.QUIET, "-svcomp16",
 					filename(fileStr));
 		}
-		ui.run("replay", "-sliceAnalysis", filename(fileStr));
+		ui.run("replay", "-sliceAnalysis", TestConstants.QUIET,
+				filename(fileStr));
 
 		String oraclePath = filename(filename + ".oracle");
 		String oracle = new String(Files.readAllBytes(Paths.get(oraclePath)),

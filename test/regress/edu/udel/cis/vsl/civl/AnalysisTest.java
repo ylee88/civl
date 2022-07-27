@@ -9,11 +9,16 @@ import static edu.udel.cis.vsl.civl.TestConstants.NO_PRINTF;
 import java.io.File;
 
 import org.junit.AfterClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class AnalysisTest {
+	@Rule
+	public Timeout globalTimeout = Timeout.seconds(30);
+
 	/* *************************** Static Fields *************************** */
 
 	private static File rootDir = new File(new File("examples"), "analysis");

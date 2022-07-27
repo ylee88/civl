@@ -12,12 +12,16 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 
 import org.junit.AfterClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 import edu.udel.cis.vsl.civl.TestConstants;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class CompareTest {
+	@Rule
+	public Timeout globalTimeout = Timeout.seconds(30);
 
 	/* *************************** Static Fields *************************** */
 
@@ -87,9 +91,10 @@ public class CompareTest {
 
 	@Test
 	public void dotHybridSerialWeakScaling() {
-		assertTrue(ui.run(COMPARE, QUIET, "-inputVECLEN=5", SPEC,
-				filename("dot", "mpithreads_serial.c"), IMPL,
-				"-input_mpi_nprocs=2 -inputMAXTHRDS=2",
+		assertTrue(ui.run(COMPARE, QUIET,
+				// "-showAmpleSetWtStates",
+				"-inputVECLEN=5", SPEC, filename("dot", "mpithreads_serial.c"),
+				IMPL, "-input_mpi_nprocs=2 -inputMAXTHRDS=2",
 				filename("dot", "mpithreads_both_weak_scaling.c")));
 	}
 

@@ -5,6 +5,7 @@ import java.util.Set;
 
 import edu.udel.cis.vsl.civl.model.IF.CIVLFunction;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
+import edu.udel.cis.vsl.civl.model.IF.Scope;
 import edu.udel.cis.vsl.civl.model.IF.contract.CompositeEvent.CompositeEventOperator;
 import edu.udel.cis.vsl.civl.model.IF.contract.DependsEvent.DependsEventKind;
 import edu.udel.cis.vsl.civl.model.IF.contract.MPICollectiveBehavior.MPICommunicationPattern;
@@ -42,7 +43,7 @@ public interface ContractFactory {
 	 * @param source
 	 * @return
 	 */
-	FunctionContract newFunctionContract(CIVLSource source);
+	FunctionContract newFunctionContract(CIVLSource source, Scope scope);
 
 	/**
 	 * Creates a new instance of call event.
@@ -59,7 +60,7 @@ public interface ContractFactory {
 	 * 
 	 * @param source
 	 * @param op
-	 * @param left
+	 * @param@Override left
 	 * @param right
 	 * @return
 	 */
@@ -115,5 +116,4 @@ public interface ContractFactory {
 	 */
 	MPICollectiveBehavior newMPICollectiveBehavior(CIVLSource source,
 			Expression communicator, MPICommunicationPattern pattern);
-
 }

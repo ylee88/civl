@@ -9,12 +9,17 @@ import java.io.File;
 
 import org.junit.AfterClass;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 import edu.udel.cis.vsl.abc.err.IF.ABCException;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class PthreadTest {
+	@Rule
+	public Timeout globalTimeout = Timeout.seconds(30);
+
 	/* *************************** Static Fields *************************** */
 
 	private static File rootDir = new File(new File("examples"),
@@ -73,19 +78,19 @@ public class PthreadTest {
 				filename("queue_false-unreach-call.c")));
 	}
 
-/*  This test passing quickly depends on a tranformation of input
-	reads (in SvcompWorker: process_nondet_int(ASTNode node))
-	that allows the following benchmark in SVCOMP to have its
-	answer classified correctly, but the transformation is incorrect 
-    for general problems involving input reads in loops
-*/
-/*	@Test
-	public void queue_ok_longest_true() throws ABCException {
-		assertTrue(ui.run("verify", "-svcomp16", "-inputSIZE=50", "-showProgram",
-				"-inputEMPTY=-1", "-inputFULL=-2", QUIET, NO_PRINTF,
-				filename("queue_ok_longest_true-unreach-call.c")));
-	}
-*/
+	/*
+	 * This test passing quickly depends on a tranformation of input reads (in
+	 * SvcompWorker: process_nondet_int(ASTNode node)) that allows the following
+	 * benchmark in SVCOMP to have its answer classified correctly, but the
+	 * transformation is incorrect for general problems involving input reads in
+	 * loops
+	 */
+	/*
+	 * @Test public void queue_ok_longest_true() throws ABCException {
+	 * assertTrue(ui.run("verify", "-svcomp16", "-inputSIZE=50", "-showProgram",
+	 * "-inputEMPTY=-1", "-inputFULL=-2", QUIET, NO_PRINTF,
+	 * filename("queue_ok_longest_true-unreach-call.c"))); }
+	 */
 	@Test
 	public void reorder_2_false() throws ABCException {
 		assertFalse(

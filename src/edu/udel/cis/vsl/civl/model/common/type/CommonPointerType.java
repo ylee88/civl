@@ -26,7 +26,6 @@ public class CommonPointerType extends CommonType implements CIVLPointerType {
 		super();
 		this.dynamicType = pointerType;
 		this.baseType = baseType;
-		// this.isHandle = baseType.isHandleObjectType();
 	}
 
 	@Override
@@ -58,11 +57,6 @@ public class CommonPointerType extends CommonType implements CIVLPointerType {
 	public SymbolicType getDynamicType(SymbolicUniverse universe) {
 		return dynamicType;
 	}
-
-	// @Override
-	// public boolean isHandleType() {
-	// return this.isHandle;
-	// }
 
 	@Override
 	public TypeKind typeKind() {
@@ -96,5 +90,15 @@ public class CommonPointerType extends CommonType implements CIVLPointerType {
 			Set<CIVLType> seenTypes) {
 		if (seenTypes.add(this))
 			((CommonType) baseType).addFreeVariables(result, seenTypes);
+	}
+
+	@Override
+	public boolean hasReferences() {
+		return true;
+	}
+
+	@Override
+	public boolean analyze() {
+		return true;
 	}
 }

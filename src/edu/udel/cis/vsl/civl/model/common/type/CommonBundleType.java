@@ -25,11 +25,9 @@ public class CommonBundleType extends CommonType implements CIVLBundleType {
 
 	private Map<SymbolicType, Integer> indexMap = null;
 
-	private boolean containsProcRefs = false;
+	private boolean isAnalyzed = false;
 
-	private boolean containsScopeRefs = false;
-
-	private boolean containsPointerRefs = false;
+	private boolean hasReferences = false;
 
 	public CommonBundleType() {
 	}
@@ -76,6 +74,7 @@ public class CommonBundleType extends CommonType implements CIVLBundleType {
 		this.indexMap = new LinkedHashMap<SymbolicType, Integer>(n);
 		for (int i = 0; i < n; i++)
 			indexMap.put(this.elementTypes[i], i);
+		analyze();
 	}
 
 	@Override
@@ -91,18 +90,6 @@ public class CommonBundleType extends CommonType implements CIVLBundleType {
 	@Override
 	public Integer getIndexOf(SymbolicType elementType) {
 		return indexMap.get(elementType);
-	}
-
-	public boolean containsProcRefs() {
-		return this.containsProcRefs;
-	}
-
-	public boolean containsScopeRefs() {
-		return this.containsScopeRefs;
-	}
-
-	public boolean containsPointerRefs() {
-		return this.containsPointerRefs;
 	}
 
 	@Override
@@ -139,5 +126,32 @@ public class CommonBundleType extends CommonType implements CIVLBundleType {
 		if (seenTypes.add(this))
 			for (CIVLType type : types)
 				((CommonType) type).addFreeVariables(result, seenTypes);
+	}
+
+	@Override
+	public boolean hasReferences() {
+		return hasReferences;
+	}
+
+	@Override
+	public boolean analyze() {
+		if (!isAnalyzed && types != null) {
+			boolean allTypesAnalyzed = true;
+
+			for (CIVLType type : types) {
+				if (!type.analyze())
+					allTypesAnalyzed = false;
+			}
+			if (allTypesAnalyzed) {
+				for (CIVLType type : types) {
+					if (type.hasReferences()) {
+						hasReferences = true;
+						break;
+					}
+				}
+				isAnalyzed = true;
+			}
+		}
+		return isAnalyzed;
 	}
 }

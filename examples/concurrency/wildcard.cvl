@@ -5,7 +5,7 @@
 #include <seq.cvh>
 
 #define ANY_SRC -1
-#define NPROCS 5
+#define NPROCS 3
 $scope root = $here;
 $gcomm gcomm;
 

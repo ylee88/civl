@@ -364,6 +364,30 @@ public interface StateFactory {
 			int functionParentDyscope, SymbolicExpression[] arguments);
 
 	/**
+	 * Pushes a new frame onto the call stack where static scope of the frame is
+	 * the contract scope of a function. This can be used to evaluate
+	 * expressions in contract clauses.
+	 * 
+	 * <p>
+	 * Precondition: the function must have a contract.
+	 * </p>
+	 * 
+	 * @param state
+	 *            The old state
+	 * @param pid
+	 *            The PID of the process making the call
+	 * @param function
+	 *            The function being called
+	 * @param arguments
+	 *            The (actual) arguments to the function being called
+	 * @return A new state that is the same as the old state with the given
+	 *         process having a new entry on its call stack corresponding to the
+	 *         contract of the function
+	 */
+	State pushContract(State state, int pid, CIVLFunction function,
+			SymbolicExpression[] arguments);
+
+	/**
 	 * Pops an entry off the call stack for a process. Does not modify or remove
 	 * and dynamic scopes (even if they become unreachable). Does not nullify or
 	 * remove the process state (even if the call stack becomes empty).

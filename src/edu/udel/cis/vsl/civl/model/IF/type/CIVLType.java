@@ -31,6 +31,16 @@ public interface CIVLType {
 	TypeKind typeKind();
 
 	/**
+	 * Does this type contain a sub-type of pointer or mem type? A value of such
+	 * a type may contain references to memory locations and those references
+	 * can be used to read or modify that memory.
+	 * 
+	 * @return {@code true} iff there is a sub-type of this type which is a
+	 *         pointer type or is the "$mem" type.
+	 */
+	boolean hasReferences();
+
+	/**
 	 * If this type contains any array with non-constant extent, it "has state"
 	 * in the sense that the dynamic type may depend on the state.
 	 * 
@@ -246,4 +256,14 @@ public interface CIVLType {
 	boolean isFunction();
 
 	Set<Variable> freeVariables();
+
+	/**
+	 * This method should be called after all the types are complete; it
+	 * analyzes the completed type and caches certain information about them in
+	 * the instance fields.
+	 * 
+	 * @return {@code true} iff the analysis was successful. The analysis can
+	 *         feel, for example, because a sub-type is incomplete.
+	 */
+	boolean analyze();
 }

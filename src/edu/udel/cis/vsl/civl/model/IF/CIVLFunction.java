@@ -399,4 +399,9 @@ public interface CIVLFunction extends Sourceable {
 	 *            otherwise.
 	 */
 	void setLogic(boolean value);
+	
+	void setAccessesAtomicFunction(Set<Variable> set);
+	
+	Set<Variable> getAccessesAtomicFunction();
+	
 }

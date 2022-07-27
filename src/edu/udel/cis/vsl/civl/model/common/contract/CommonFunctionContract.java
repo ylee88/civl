@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
+import edu.udel.cis.vsl.civl.model.IF.Scope;
 import edu.udel.cis.vsl.civl.model.IF.contract.FunctionBehavior;
 import edu.udel.cis.vsl.civl.model.IF.contract.FunctionContract;
 import edu.udel.cis.vsl.civl.model.IF.contract.MPICollectiveBehavior;
@@ -13,8 +14,9 @@ import edu.udel.cis.vsl.civl.model.IF.contract.NamedFunctionBehavior;
 import edu.udel.cis.vsl.civl.model.IF.expression.Expression;
 import edu.udel.cis.vsl.civl.model.common.CommonSourceable;
 
-public class CommonFunctionContract extends CommonSourceable implements
-		FunctionContract {
+public class CommonFunctionContract extends CommonSourceable
+		implements
+			FunctionContract {
 
 	private boolean pure = false;
 
@@ -28,9 +30,27 @@ public class CommonFunctionContract extends CommonSourceable implements
 
 	private HashMap<String, NamedFunctionBehavior> namedBehaviors = new HashMap<>();
 
-	public CommonFunctionContract(CIVLSource source) {
+	/**
+	 * The static cope in which the contract occurs, usually the parameter scope
+	 * of the function definition or prototype in which the contract occurred.
+	 * Not necessarily the same as the final value of the function's parameter
+	 * scope because if the contract occurred first on a prototype and then
+	 * later the function definition occurred, the function object will be
+	 * updated to use the definition's parameter scope. Note the variable names
+	 * used in the definition do not have to be the same as those used in the
+	 * prototype (and contract).
+	 */
+	private Scope scope;
+
+	public CommonFunctionContract(CIVLSource source, Scope scope) {
 		super(source);
+		this.scope = scope;
 		defaultBehavior = new CommonFunctionBehavior(source);
+	}
+
+	@Override
+	public Scope scope() {
+		return scope;
 	}
 
 	@Override
@@ -107,15 +127,14 @@ public class CommonFunctionContract extends CommonSourceable implements
 
 	@Override
 	public boolean hasDependsClause() {
-		return defaultBehavior.dependsAnyact()
-				|| defaultBehavior.dependsNoact()
+		return defaultBehavior.dependsAnyact() || defaultBehavior.dependsNoact()
 				|| defaultBehavior.numDependsEvents() > 0;
 	}
 
 	@Override
 	public boolean hasRequirementsOrEnsurances() {
-		return (defaultBehavior.numEnsurances() + defaultBehavior
-				.numRequirements()) > 0;
+		return (defaultBehavior.numEnsurances()
+				+ defaultBehavior.numRequirements()) > 0;
 	}
 
 	@Override

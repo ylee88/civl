@@ -8,13 +8,16 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 
 import org.junit.AfterClass;
-import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 import edu.udel.cis.vsl.abc.err.IF.ABCException;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class ReasoningTest {
+	@Rule
+	public Timeout globalTimeout = Timeout.seconds(30);
 
 	/* *************************** Static Fields *************************** */
 
@@ -76,7 +79,7 @@ public class ReasoningTest {
 
 	@Test
 	public void cg5Probabilistic() {
-		assertTrue(ui.run(VERIFY, QUIET, "-inputN=5", TestConstants.ENABLE_PROB,
+		assertTrue(ui.run(VERIFY, "-inputN=5", QUIET, TestConstants.ENABLE_PROB,
 				TestConstants.NO_CHECK_DIVISION_BY_ZERO, cgfilename("cg.cvl")));
 	}
 
@@ -88,15 +91,13 @@ public class ReasoningTest {
 
 	@Test
 	public void powerDecomposeSimplification() {
-		// this test is suppose to be reported as containing an error:
 		assertTrue(
 				ui.run(VERIFY, QUIET, reasoningfilename("powerSimplify.cvl")));
 	}
 
-	@Ignore
+	@Test
 	public void squareRootPoly() {
-		// this test is suppose to be reported as containing an error:
-		assertFalse(ui.run(VERIFY, "-showTransitions",
+		assertFalse(ui.run(VERIFY, QUIET,
 				cgfilename("../experimental/powerSimplify.cvl")));
 	}
 

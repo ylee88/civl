@@ -320,8 +320,8 @@ public class ImmutableStateFactory implements StateFactory {
 			boolean selfDestructable) {
 		ImmutableState theState = createNewProcess(state, selfDestructable);
 
-		return pushCallStack2(theState, state.numProcs(), function, -1,
-				arguments, callerPid);
+		return pushCallStack2(theState, state.numProcs(), function,
+				function.outerScope(), -1, arguments, callerPid);
 	}
 
 	@Override
@@ -331,7 +331,8 @@ public class ImmutableStateFactory implements StateFactory {
 		ImmutableState theState = createNewProcess(state, selfDestructable);
 
 		return pushCallStack2(theState, state.numProcs(), function,
-				functionParentDyscope, arguments, callerPid);
+				function.outerScope(), functionParentDyscope, arguments,
+				callerPid);
 	}
 
 	@Override
@@ -809,15 +810,22 @@ public class ImmutableStateFactory implements StateFactory {
 	@Override
 	public ImmutableState pushCallStack(State state, int pid,
 			CIVLFunction function, SymbolicExpression[] arguments) {
-		return pushCallStack2((ImmutableState) state, pid, function, -1,
-				arguments, pid);
+		return pushCallStack2((ImmutableState) state, pid, function,
+				function.outerScope(), -1, arguments, pid);
 	}
 
 	@Override
 	public State pushCallStack(State state, int pid, CIVLFunction function,
 			int functionParentDyscope, SymbolicExpression[] arguments) {
 		return pushCallStack2((ImmutableState) state, pid, function,
-				functionParentDyscope, arguments, pid);
+				function.outerScope(), functionParentDyscope, arguments, pid);
+	}
+
+	@Override
+	public State pushContract(State state, int pid, CIVLFunction function,
+			SymbolicExpression[] arguments) {
+		return pushCallStack2((ImmutableState) state, pid, function,
+				function.functionContract().scope(), -1, arguments, pid);
 	}
 
 	@Override
@@ -1796,7 +1804,11 @@ public class ImmutableStateFactory implements StateFactory {
 	 *            stack may be empty
 	 * @param function
 	 *            the called function that will be pushed onto the stack
-	 * @param functionCallParentDyscope
+	 * @param newScope
+	 *            the static scope that will be used for the new dynamic scope
+	 *            that will be associated to the new frame. This is usually
+	 *            either the outer scope of the function, or the contract scope
+	 * @param cid
 	 *            The dyscope ID of the parent of the new function; If the
 	 *            caller has no knowledge about what is suppose to be the
 	 *            correct parent scope, caller can pass "-1" for this argument.
@@ -1816,55 +1828,38 @@ public class ImmutableStateFactory implements StateFactory {
 	 * @return new stack with new frame on call stack of process pid
 	 */
 	protected ImmutableState pushCallStack2(ImmutableState state, int pid,
-			CIVLFunction function, int functionCallParentDyscope,
+			CIVLFunction function, Scope newScope, int cid,
 			SymbolicExpression[] arguments, int callerPid) {
-		Scope StaticFuncDefiParent = function.containingScope();
-		Scope StaticFuncOuter = function.outerScope();
+		Scope containingScope = newScope.parent();
+		// function.containingScope();
+
+		if (cid < 0 && callerPid >= 0) {
+			ProcessState caller = state.getProcessState(callerPid);
+
+			for (cid = caller.getDyscopeId(); cid >= 0
+					&& containingScope != state.getDyscope(cid)
+							.lexicalScope(); cid = state.getParentId(cid));
+			assert cid >= 0;
+		}
+
+		ImmutableDynamicScope[] newScopes = state.copyAndExpandScopes();
+		int sid = state.numDyscopes();
+		// Scope funcScope = function.outerScope();
+		SymbolicExpression[] values = initialValues(newScope);
 		ImmutableProcessState[] newProcesses = state.copyProcessStates();
-		int numScopes = state.numDyscopes();
-		SymbolicExpression[] values;
-		ImmutableDynamicScope[] newScopes;
-		int sid;
-		int functionCallParentDyscopeId = functionCallParentDyscope;
 		BitSet bitSet = new BitSet(newProcesses.length);
 
-		if (functionCallParentDyscopeId < 0 && callerPid >= 0) {
-			// Find a dynamic instance of the static parent scope of the callee
-			// function definition as the parent scope:
-			ProcessState caller = state.getProcessState(callerPid);
-			ImmutableDynamicScope containingDynamicScope;
-
-			functionCallParentDyscopeId = caller.getDyscopeId();
-			while (functionCallParentDyscopeId >= 0) {
-				containingDynamicScope = (ImmutableDynamicScope) state
-						.getDyscope(functionCallParentDyscopeId);
-				// TODO: why comparing with "containingStaticScope" ? When
-				// you push a function f, the parent dyscope of the called f
-				// is not necessarily the static parent scope of the
-				// definitions of f (ziqing). I think this may be incorrect.
-				if (StaticFuncDefiParent == containingDynamicScope
-						.lexicalScope())
-					break;
-				functionCallParentDyscopeId = state
-						.getParentId(functionCallParentDyscopeId);
-			}
-		}
-		newScopes = state.copyAndExpandScopes();
-		sid = numScopes;
-		values = initialValues(StaticFuncOuter);
+		// first value is always heap, which will be null initially
 		for (int i = 0; i < arguments.length; i++)
 			if (arguments[i] != null)
 				values[i + 1] = arguments[i];
 		bitSet.set(pid);
-		newScopes[sid] = new ImmutableDynamicScope(StaticFuncOuter,
-				functionCallParentDyscopeId, values, bitSet);
+		newScopes[sid] = new ImmutableDynamicScope(newScope, cid, values,
+				bitSet);
+		for (int id = cid; id >= 0;) {
+			ImmutableDynamicScope scope = newScopes[id];
 
-		int id = functionCallParentDyscopeId;
-		ImmutableDynamicScope scope;
-
-		while (id >= 0) {
-			scope = newScopes[id];
-			bitSet = newScopes[id].getReachers();
+			bitSet = scope.getReachers();
 			if (bitSet.get(pid))
 				break;
 			bitSet = (BitSet) bitSet.clone();
@@ -1872,13 +1867,11 @@ public class ImmutableStateFactory implements StateFactory {
 			newScopes[id] = scope.setReachers(bitSet);
 			id = scope.getParent();
 		}
-
 		newProcesses[pid] = state.getProcessState(pid)
 				.push(stackEntry(null, sid));
 		state = ImmutableState.newState(state, newProcesses, newScopes, null);
-		if (!function.isSystemFunction()) {
+		if (!function.isSystemFunction() && newScope == function.outerScope())
 			state = setLocation(state, pid, function.startLocation());
-		}
 		return state;
 	}
 

@@ -3,7 +3,7 @@ package edu.udel.cis.vsl.civl.kripke.IF;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.kripke.common.CommonLibraryEnablerLoader;
 import edu.udel.cis.vsl.civl.kripke.common.CommonStateManager;
-import edu.udel.cis.vsl.civl.kripke.common.PointeredEnabler;
+import edu.udel.cis.vsl.civl.kripke.common.SimpleEnabler;
 import edu.udel.cis.vsl.civl.log.IF.CIVLErrorLogger;
 import edu.udel.cis.vsl.civl.semantics.IF.Evaluator;
 import edu.udel.cis.vsl.civl.semantics.IF.Executor;
@@ -45,9 +45,9 @@ public class Kripkes {
 			SymbolicAnalyzer symbolicAnalyzer, MemoryUnitFactory memUnitFactory,
 			LibraryEnablerLoader libLoader, CIVLErrorLogger errorLogger,
 			CIVLConfiguration civlConfig, GMCConfiguration gmcConfig) {
-		return new PointeredEnabler(stateFactory, evaluator, executor,
-				symbolicAnalyzer, memUnitFactory, libLoader, errorLogger,
-				civlConfig, gmcConfig);
+		return new SimpleEnabler(stateFactory, evaluator, executor,
+				symbolicAnalyzer, libLoader, errorLogger, civlConfig,
+				gmcConfig);
 	}
 
 	/**
@@ -84,7 +84,7 @@ public class Kripkes {
 	public static CIVLStateManager newStateManager(Enabler enabler,
 			Executor executor, SymbolicAnalyzer symbolicAnalyzer,
 			CIVLErrorLogger errorLogger, CIVLConfiguration config) {
-		return new CommonStateManager(enabler, executor, symbolicAnalyzer,
-				errorLogger, config);
+		return new CommonStateManager((SimpleEnabler) enabler, executor,
+				symbolicAnalyzer, errorLogger, config);
 	}
 }

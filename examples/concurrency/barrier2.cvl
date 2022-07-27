@@ -38,6 +38,7 @@ void CIVL_barrier(CIVL_Barrier *barrier, int tid) {
       barrier->num_in_barrier = 0;
     }
     barrier->lock = 0;
+    $yield();
     $when (barrier->in_barrier[tid] == 0);
   }
 }

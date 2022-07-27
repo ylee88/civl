@@ -50,12 +50,15 @@ public interface CIVLStructOrUnionType extends CIVLType {
 	StructOrUnionField getField(int index);
 
 	/**
-	 * Returns an iterable object over all the fields of this struct type, in
-	 * ascending order.
+	 * Returns an iterable object over all the fields of this struct/union type,
+	 * in ascending order.
+	 * 
+	 * <p>
+	 * Precondition: the type is complete (i.e., the fileds have been
+	 * specified).
+	 * </p>
 	 * 
 	 * @return A list of the field types in this struct.
-	 * @throws CIVLInternalException
-	 *             if this type is not complete
 	 */
 	Iterable<StructOrUnionField> fields();
 

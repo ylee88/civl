@@ -16,6 +16,7 @@ void main(){
       ps[j-1] = $spawn foo(j);
     }
     for(int j = 1; j < N+1; j ++){
+      $yield();
       $wait(ps[j-1]);
     }
   }

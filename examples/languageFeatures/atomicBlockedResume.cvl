@@ -13,12 +13,13 @@ void foo(int i) {
     y = y + i;
     z++;
     // blocked here until x is set to 0
+    $yield();
     $when(x==0) 
-    switch(y) {
-      case 1: sum += 1*i; break;
-      case 2: sum += 2*i; break;
-      case 3: sum += 3*i; break;
-    };
+      switch(y) {
+        case 1: sum += 1*i; break;
+        case 2: sum += 2*i; break;
+        case 3: sum += 3*i; break;
+      };
   }
 }
 
@@ -29,6 +30,7 @@ void main(){
     fp1 = $spawn foo(1);
     fp2 = $spawn foo(2);
     // blocked here until z++ has been executed twice
+    $yield();
     $when (z==2) x = 0;
   }
   $wait(fp1);

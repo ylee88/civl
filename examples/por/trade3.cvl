@@ -1,10 +1,10 @@
-#include<civlc.cvh>
 
 int x=0;
 
 void p1() {
   $atomic {
     x=1;
+    $yield();
     $when(x==2);
     x=3;
   }

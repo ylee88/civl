@@ -126,4 +126,13 @@ public class CommonFunctionType extends CommonType implements CIVLFunctionType {
 		}
 	}
 
+	@Override
+	public boolean hasReferences() {
+		return false;
+	}
+
+	@Override
+	public boolean analyze() {
+		return true;
+	}
 }

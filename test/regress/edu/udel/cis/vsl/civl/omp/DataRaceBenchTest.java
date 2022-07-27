@@ -10,11 +10,16 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class DataRaceBenchTest {
+	@Rule
+	public Timeout globalTimeout = Timeout.seconds(30);
+
 	/* ******************* Fields *************************** */
 
 	private final boolean DEBUG = false;

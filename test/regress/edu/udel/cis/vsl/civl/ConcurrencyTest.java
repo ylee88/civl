@@ -12,11 +12,15 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 
 import org.junit.AfterClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class ConcurrencyTest {
+	@Rule
+	public Timeout globalTimeout = Timeout.seconds(30);
 
 	/* *************************** Static Fields *************************** */
 
@@ -39,7 +43,7 @@ public class ConcurrencyTest {
 
 	@Test
 	public void adderBad() {
-		assertFalse(ui.run(VERIFY, "-inputB=4", "-showAmpleSet", MIN, QUIET,
+		assertFalse(ui.run(VERIFY, "-inputB=4", MIN, QUIET,
 				filename("adderBad.cvl")));
 		assertFalse(ui.run(REPLAY, QUIET, filename("adderBad.cvl")));
 	}
@@ -185,13 +189,13 @@ public class ConcurrencyTest {
 	@Test
 	public void ring() {
 		assertTrue(ui.run(VERIFY, POTENTIAL_DEADLOCK, QUIET,
-				" -inputNPROCS_BOUND=8", "-inputN_BOUND=4",
+				" -inputNPROCS_BOUND=4", "-inputN_BOUND=4",
 				filename("ring.cvl")));
 	}
 
 	@Test
 	public void ring1Bad() {
-		assertFalse(ui.run(VERIFY, POTENTIAL_DEADLOCK, QUIET, "-inputNPROCS=3",
+		assertFalse(ui.run(VERIFY, POTENTIAL_DEADLOCK, QUIET, "-inputNPROCS=2",
 				filename("ring1Bad.cvl")));
 	}
 
@@ -203,8 +207,7 @@ public class ConcurrencyTest {
 
 	@Test
 	public void ring2() {
-		assertTrue(ui.run(VERIFY, POTENTIAL_DEADLOCK, QUIET, 
-				"-inputNPROCS=3",
+		assertTrue(ui.run(VERIFY, POTENTIAL_DEADLOCK, QUIET, "-inputNPROCS=3",
 				filename("ring2.cvl")));
 	}
 

@@ -39,6 +39,10 @@ public class CommonStructOrUnionType extends CommonType
 
 	private StructOrUnionField[] fields = null;
 
+	private boolean isAnalyzed = false;
+
+	private boolean hasReferences = false;
+
 	/**
 	 * Create a new (incomplete) struct or union.
 	 * 
@@ -118,6 +122,7 @@ public class CommonStructOrUnionType extends CommonType
 				this.fields[count] = field;
 				count++;
 			}
+			analyze();
 		}
 	}
 
@@ -136,6 +141,7 @@ public class CommonStructOrUnionType extends CommonType
 				this.fields[count] = field;
 				count++;
 			}
+			analyze();
 		}
 	}
 
@@ -184,11 +190,6 @@ public class CommonStructOrUnionType extends CommonType
 	public boolean isUnionType() {
 		return !isStruct;
 	}
-
-	// @Override
-	// public boolean isHandleObjectType() {
-	// return this.isHandleObject;
-	// }
 
 	@Override
 	public void setHandleObjectType(boolean value) {
@@ -243,5 +244,33 @@ public class CommonStructOrUnionType extends CommonType
 				((CommonType) ((CommonStructOrUnionField) field).type())
 						.addFreeVariables(result, seenTypes);
 			}
+	}
+
+	@Override
+	public boolean hasReferences() {
+		return hasReferences;
+	}
+
+	@Override
+	public boolean analyze() {
+		if (!isAnalyzed && fields != null) {
+			boolean allFieldsAnalyzed = true;
+
+			for (StructOrUnionField field : fields) {
+				CIVLType ft = field.type();
+
+				if (ft != null && !ft.analyze())
+					allFieldsAnalyzed = false;
+			}
+			if (allFieldsAnalyzed) {
+				for (StructOrUnionField field : fields)
+					if (field.type().hasReferences()) {
+						hasReferences = true;
+						break;
+					}
+				isAnalyzed = true;
+			}
+		}
+		return isAnalyzed;
 	}
 }

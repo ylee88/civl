@@ -15,6 +15,7 @@ import edu.udel.cis.vsl.civl.predicate.common.CommonTrivialPredicate;
 import edu.udel.cis.vsl.civl.semantics.IF.Evaluator;
 import edu.udel.cis.vsl.civl.semantics.IF.SymbolicAnalyzer;
 import edu.udel.cis.vsl.civl.state.IF.State;
+import edu.udel.cis.vsl.civl.state.IF.StateFactory;
 import edu.udel.cis.vsl.civl.util.IF.Pair;
 import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.expr.BooleanExpression;
@@ -23,8 +24,10 @@ import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
 public class Predicates {
 
 	public static Deadlock newDeadlock(SymbolicUniverse universe,
-			Enabler enabler, SymbolicAnalyzer symbolicAnalyzer) {
-		return new CommonDeadlock(universe, enabler, symbolicAnalyzer);
+			Enabler enabler, StateFactory stateFactory,
+			SymbolicAnalyzer symbolicAnalyzer) {
+		return new CommonDeadlock(universe, enabler, stateFactory,
+				symbolicAnalyzer);
 	}
 
 	public static PotentialDeadlock newPotentialDeadlock(

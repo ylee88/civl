@@ -124,4 +124,14 @@ public class CommonDomainType extends CommonType implements CIVLDomainType {
 		if (seenTypes.add(this))
 			((CommonType) rangeType).addFreeVariables(result, seenTypes);
 	}
+
+	@Override
+	public boolean hasReferences() {
+		return false;
+	}
+
+	@Override
+	public boolean analyze() {
+		return true;
+	}
 }

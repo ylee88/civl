@@ -541,6 +541,7 @@ public class MPI2CIVLWorker extends BaseWorker {
 				case "collate.cvh" :
 				case "collate.cvl" :
 				case "bundle.cvh" :
+				case "bundle.cvl" : // added by SFS
 				case "comm.cvh" :
 				case "comm.cvl" :
 				case "concurrency.cvh" :

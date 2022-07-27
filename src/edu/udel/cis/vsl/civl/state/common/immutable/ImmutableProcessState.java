@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 import edu.udel.cis.vsl.civl.dynamic.IF.DynamicMemoryLocationSet;
+import edu.udel.cis.vsl.civl.model.IF.CIVLFunction;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.location.Location;
 import edu.udel.cis.vsl.civl.state.IF.ProcessState;
@@ -643,17 +644,19 @@ public class ImmutableProcessState implements ProcessState {
 				StackEntry frame = callStack[i];
 				Location location = frame.location();
 				CIVLSource source = location.getSource();
-				String locationString = source == null
-						? ""
-						: " at " + source.getSummary(false);
-				String frameString = (location.function() == null)
-						? "null "
-						: location.function().name() + locationString;
 
 				if (i != 0)
 					result.append(" called from\n");
 				result.append("  ");
-				result.append(frameString);
+				if (location != null) {
+					CIVLFunction function = location.function();
+
+					if (function != null)
+						result.append(function.name());
+					result.append("@" + location.id());
+				}
+				if (source != null)
+					result.append(" " + source.getSummary(false));
 			}
 		result.append("\n");
 		return result;

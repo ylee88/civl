@@ -202,5 +202,4 @@ public abstract class CommonType implements CIVLType {
 		addFreeVariables(result, seenTypes);
 		return result;
 	}
-
 }

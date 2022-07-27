@@ -7,11 +7,15 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 
 import org.junit.AfterClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class PORTest {
+	@Rule
+	public Timeout globalTimeout = Timeout.seconds(30);
 
 	/* *************************** Static Fields *************************** */
 
@@ -65,7 +69,8 @@ public class PORTest {
 
 	@Test
 	public void trade3() {
-		assertFalse(ui.run("verify", QUIET, filename("trade3.cvl")));
+		assertFalse(ui.run("verify", QUIET, "-deadlock=none",
+				filename("trade3.cvl")));
 	}
 
 	@Test
@@ -106,15 +111,13 @@ public class PORTest {
 
 	@Test
 	public void por_ptr_analysis_node() {
-		assertFalse(ui.run("verify", QUIET, "-checkMemoryLeak=false", //
-				// "-showStates", "-showTransitions", "-showAmpleSetWtStates",
+		assertFalse(ui.run("verify", QUIET, "-checkMemoryLeak=false",
 				filename("por_ptr_analysis_node.cvl")));
 	}
 
 	@Test
 	public void por_ptr_analysis_list() {
-		assertFalse(ui.run("verify", QUIET, "-checkMemoryLeak=false", //
-				// "-showStates", "-showTransitions", "-showAmpleSetWtStates",
+		assertFalse(ui.run("verify", QUIET, "-checkMemoryLeak=false",
 				filename("por_ptr_analysis_list.cvl")));
 	}
 

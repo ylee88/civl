@@ -8,12 +8,16 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 
 import org.junit.AfterClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 import edu.udel.cis.vsl.civl.TestConstants;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class MPICollectivePart1Test {
+	@Rule
+	public Timeout globalTimeout = Timeout.seconds(30);
 
 	/* *************************** Static Fields *************************** */
 
@@ -110,9 +114,13 @@ public class MPICollectivePart1Test {
 				filename("gather.c")));
 	}
 
+	/**
+	 * The following is only correct when called with 2 processes
+	 * (intentionally).
+	 */
 	@Test
 	public void scatter_good() {
-		assertTrue(ui.run("verify -input_mpi_nprocs=2 ", TestConstants.QUIET,
+		assertTrue(ui.run("verify -input_mpi_nprocs=2", TestConstants.QUIET,
 				filename("scatter.c")));
 	}
 
@@ -148,7 +156,7 @@ public class MPICollectivePart1Test {
 
 	@Test
 	public void scatterAllgather() {
-		assertTrue(ui.run("verify -input_mpi_nprocs=6 ", TestConstants.QUIET,
+		assertTrue(ui.run("verify -input_mpi_nprocs=3 ", TestConstants.QUIET,
 				NO_PRINTF, filename("scatterAllgather.c")));
 	}
 

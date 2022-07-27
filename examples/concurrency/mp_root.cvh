@@ -12,8 +12,10 @@ void init() {
 }
 
 void finalize() {
-  for (int i=0; i<NPROCS; i++)
+  for (int i=0; i<NPROCS; i++) {
+    $yield();
     $wait(__procs[i]);
+  }
 }
 
 void main() {

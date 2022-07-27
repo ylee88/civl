@@ -12,11 +12,16 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class FortranLanguageFeatureTest {
+	@Rule
+	public Timeout globalTimeout = Timeout.seconds(30);
+
 	private static File DIR_ROOT = new File("examples/fortran/");
 	private static File DIR_SMACK = new File(DIR_ROOT, "smack");
 	private static File DIR_CIVL = new File(DIR_ROOT, "civl");
@@ -64,7 +69,7 @@ public class FortranLanguageFeatureTest {
 
 	@Test
 	public void civl_modulo() {
-		assertTrue(UI.run(COMPARE, "-showProgram", // QUIET, //
+		assertTrue(UI.run(COMPARE, QUIET, //
 				SPEC, filename(DIR_CIVL, "mod_spec.f90"), //
 				IMPL, filename(DIR_CIVL, "mod_impl.f90")));
 	}

@@ -95,8 +95,47 @@ public class FunctionContractTranslator extends FunctionTranslator {
 	}
 
 	public void translateFunctionContract(SequenceNode<ContractNode> contract) {
+		Scope scope;
+
+		// whatever scope S you choose, it must be the case that whenever this
+		// function is called, the ancestor chain of the current dyscope
+		// will contain a dyscope D whose
+		// static scope is the parent of S. Then you can create a new dyscope D'
+		// whose static scope is S and whose parent is D.
+
+		// In other words, the parent of S must always be an ancestor
+		// of the static scope of any current dyscope..
+		//
+
+		// a system function is different from an ordinary function in that
+		// it doesn't have a definition, and so it could be called from
+		// anywhere.
+		// you must choose S to be some static scope that will always
+
+		if (function.isSystemFunction()) {
+			// make system function contracts get evaluated in the
+			// context of the constant scope. Contract clauses can refer to
+			// formal parameters and constants, and that's it.
+			List<Variable> newParams = new LinkedList<>();
+
+			for (Variable v : function.parameters()) {
+				Variable w = modelFactory.variableAsParameter(v.getSource(),
+						v.type(), v.name(), v.vid());
+
+				newParams.add(w);
+			}
+
+			Scope rootScope = modelBuilder.rootScope; 
+
+			assert rootScope != null;
+			scope = modelFactory.scope(modelFactory.sourceOf(contract),
+					rootScope, newParams, function);
+		} else {
+			scope = function.outerScope();
+		}
+
 		FunctionContract result = contractFactory
-				.newFunctionContract(modelFactory.sourceOf(contract));
+				.newFunctionContract(modelFactory.sourceOf(contract), scope);
 
 		for (ContractNode clause : contract) {
 			this.translateContractNode(clause, result);
@@ -153,7 +192,7 @@ public class FunctionContractTranslator extends FunctionTranslator {
 			MPICollectiveBehavior collectiveBehavior,
 			NamedFunctionBehavior behavior) {
 		CIVLSource source = modelFactory.sourceOf(contractNode);
-		Scope scope = function.outerScope();
+		Scope scope = functionContract.scope();
 		FunctionBehavior targetBehavior = behavior != null
 				? behavior
 				: collectiveBehavior != null

@@ -5,6 +5,7 @@ import java.util.Set;
 
 import edu.udel.cis.vsl.civl.model.IF.CIVLFunction;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
+import edu.udel.cis.vsl.civl.model.IF.Scope;
 import edu.udel.cis.vsl.civl.model.IF.contract.CallEvent;
 import edu.udel.cis.vsl.civl.model.IF.contract.CompositeEvent;
 import edu.udel.cis.vsl.civl.model.IF.contract.CompositeEvent.CompositeEventOperator;
@@ -33,8 +34,8 @@ public class CommonContractFactory implements ContractFactory {
 	}
 
 	@Override
-	public FunctionContract newFunctionContract(CIVLSource source) {
-		return new CommonFunctionContract(source);
+	public FunctionContract newFunctionContract(CIVLSource source, Scope scope) {
+		return new CommonFunctionContract(source, scope);
 	}
 
 	@Override

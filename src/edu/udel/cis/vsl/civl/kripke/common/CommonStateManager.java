@@ -1,22 +1,17 @@
-/**
- * 
- */
 package edu.udel.cis.vsl.civl.kripke.common;
 
 import java.io.PrintStream;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
+import edu.udel.cis.vsl.civl.config.IF.CIVLConstants.DeadlockKind;
 import edu.udel.cis.vsl.civl.kripke.IF.AtomicStep;
 import edu.udel.cis.vsl.civl.kripke.IF.CIVLStateManager;
-import edu.udel.cis.vsl.civl.kripke.IF.Enabler;
 import edu.udel.cis.vsl.civl.kripke.IF.TraceStep;
-import edu.udel.cis.vsl.civl.kripke.common.StateStatus.EnabledStatus;
 import edu.udel.cis.vsl.civl.log.IF.CIVLErrorLogger;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.location.Location;
@@ -35,6 +30,8 @@ import edu.udel.cis.vsl.civl.util.IF.Pair;
 import edu.udel.cis.vsl.civl.util.IF.Printable;
 import edu.udel.cis.vsl.civl.util.IF.Utils;
 import edu.udel.cis.vsl.gmc.TraceStepIF;
+import edu.udel.cis.vsl.sarl.IF.Reasoner;
+import edu.udel.cis.vsl.sarl.IF.SymbolicUniverse;
 import edu.udel.cis.vsl.sarl.IF.expr.BooleanExpression;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
 
@@ -48,10 +45,12 @@ public class CommonStateManager extends CIVLStateManager {
 
 	/* *************************** Instance Fields ************************* */
 
+	protected SymbolicUniverse universe;
+
 	/**
 	 * The unique enabler instance used by the system
 	 */
-	protected CommonEnabler enabler;
+	protected SimpleEnabler enabler;
 
 	/**
 	 * The unique executor instance used by the system
@@ -93,6 +92,8 @@ public class CommonStateManager extends CIVLStateManager {
 
 	protected BooleanExpression falseExpr;
 
+	protected BooleanExpression trueExpr;
+
 	protected AtomicInteger numStatesExplored = new AtomicInteger(1);
 
 	private AtomicInteger MaxNormalizedId = new AtomicInteger(0);;
@@ -126,147 +127,102 @@ public class CommonStateManager extends CIVLStateManager {
 	 * @param config
 	 *            The configuration of the civl model.
 	 */
-	public CommonStateManager(Enabler enabler, Executor executor,
+	public CommonStateManager(SimpleEnabler enabler, Executor executor,
 			SymbolicAnalyzer symbolicAnalyzer, CIVLErrorLogger errorLogger,
 			CIVLConfiguration config) {
 		this.executor = executor;
-		this.enabler = (CommonEnabler) enabler;
+		this.enabler = enabler;
+		this.universe = enabler.universe;
 		this.stateFactory = executor.stateFactory();
 		this.config = config;
-		printTransitions = this.config.printTransitions()
+		this.printTransitions = config.printTransitions()
 				|| config.debugOrVerbose();
-		printAllStates = this.config.debugOrVerbose()
+		this.printAllStates = config.debugOrVerbose()
 				|| this.config.showStates();
-		printSavedStates = this.config.debugOrVerbose()
+		this.printSavedStates = config.debugOrVerbose()
 				|| this.config.showSavedStates();
 		this.errorLogger = errorLogger;
 		this.symbolicAnalyzer = symbolicAnalyzer;
-		this.falseExpr = symbolicAnalyzer.getUniverse().falseExpression();
+		this.falseExpr = universe.falseExpression();
+		this.trueExpr = universe.trueExpression();
 		if (config.collectOutputs())
 			this.outputCollector = new OutputCollector(
 					this.enabler.modelFactory.model(), this.enabler.universe);
-		ignoredHeapErrors = new HashSet<>(0);
+		this.ignoredHeapErrors = new HashSet<>(0);
 	}
 
 	/* *************************** Private Methods ************************* */
-	/**
-	 * Execute a transition (obtained by the enabler) from a state. When the
-	 * corresponding process is in atomic execution, continues to execute more
-	 * statements---as many as possible. Also executes more statements if
-	 * possible.
-	 * 
-	 * @param state
-	 *            the current state
-	 * @param transition
-	 *            the transition to be executed from that state
-	 * @param traceStep
-	 *            the trace step that will be modified by appending the result
-	 *            of execution
-	 * @throws UnsatisfiablePathConditionException
-	 */
+
 	protected void nextStateWork(State state, Transition transition,
 			TraceStep traceStep) throws UnsatisfiablePathConditionException {
-		int pid;
-		int numProcs;
-		Transition firstTransition;
-		StateStatus stateStatus;
-		String process;
+		int pid = transition.pid();
 
-		pid = transition.pid();
-		process = "p" + pid;
-		firstTransition = (Transition) transition;
-		state = executor.execute(state, pid, firstTransition);
-		traceStep.addAtomicStep(new CommonAtomicStep(state, firstTransition));
-		for (stateStatus = singleEnabled(state, pid,
-				process); stateStatus.canExecuteMore; stateStatus = singleEnabled(
-						state, pid, process)) {
-			assert stateStatus.enabledTransition != null;
-			assert stateStatus.enabledStatus == EnabledStatus.DETERMINISTIC;
-			state = executor.execute(state, stateStatus.enabledTransition.pid(),
-					stateStatus.enabledTransition);
-			numStatesExplored.getAndIncrement();
-			traceStep.addAtomicStep(
-					new CommonAtomicStep(state, stateStatus.enabledTransition));
+		while (true) {
+			state = executor.execute(state, pid, transition);
+			traceStep.addAtomicStep(new CommonAtomicStep(state, transition));
+
+			
+			// if the statement just executed was a yield-enter, return:
+			if (enabler.isYield(transition.statement())
+					&& !stateFactory.lockedByAtomic(state))
+				return;
+
+			ProcessState procState = state.getProcessState(pid);
+
+			if (procState == null) // process terminated and was reclaimed
+				return;
+
+			Location location = state.getProcessState(pid).getLocation();
+
+			// if the next statement is a yield-enter, do it, assuming
+			// all other conditions hold
+			// if the previous statement was a yield-return whatever
+			// if the next statement is a yield return: impossible.
+			// that would mean the previous statement was a yield-enter
+
+			if (location == null)
+				return; // process terminated
+
+			int numIncoming = location.getNumIncoming(),
+					numOutgoing = location.getNumOutgoing();
+
+			if (numOutgoing == 0)
+				return;
+			if (numIncoming > 1
+					&& !(location.isInLoop() && location.isSafeLoop()))
+				return;
+			if (!stateFactory.lockedByAtomic(state)
+					&& !location.isPurelyLocal())
+				return;
+
+			Reasoner reasoner = universe
+					.reasoner(state.getPathCondition(universe));
+			Statement stmt = null;
+
+			// the only safe situation is where one guard is true
+			// and all others are false...
+			for (int j = 0; j < numOutgoing; j++) {
+				BooleanExpression guard = enabler.computeGuard(state, reasoner,
+						pid, j);
+
+				if (guard.isTrue()) {
+					if (stmt != null)
+						return; // more than one true
+					else
+						stmt = location.getOutgoing(j);
+				} else if (!guard.isFalse())
+					return; // something in between
+			}
+			if (stmt == null)
+				return; // no true guard, possible deadlock
+			if (config.deadlock() == DeadlockKind.POTENTIAL
+					&& enabler.isSend(state, pid, stmt))
+				return;
+			transition = enabler.singleTransitionFromStatement(state, pid,
+					trueExpr, stmt);
+			if (transition == null)
+				return;
 		}
-		assert stateStatus.enabledStatus != EnabledStatus.DETERMINISTIC;
-		if (stateStatus.enabledStatus == EnabledStatus.BLOCKED
-				&& stateFactory.lockedByAtomic(state))
-			state = stateFactory.releaseAtomicLock(state);
-		traceStep.setFinalState(state);
-		numProcs = state.numLiveProcs();
-		Utils.biggerAndSet(maxProcs, numProcs);
-		// if (numProcs > maxProcs)
-		// maxProcs = numProcs;
-		if (config.collectOutputs())
-			this.outputCollector.collectOutputs(state);
-	}
-
-	/**
-	 * Analyzes if the current process has a single (deterministic) enabled
-	 * transition at the given state. The point of this is that a sequence of
-	 * these kind of transitions can be launched together to form a big
-	 * transition. TODO Predicates are not checked for intermediate states.
-	 * Conditions for a process p at a state s to execute more:
-	 * <ul>
-	 * <li>p is currently holding the atomic lock:
-	 * <ol>
-	 * <li>the current location of p has exactly one incoming statement;</li>
-	 * <li>the size of enabled(p, s) should be exactly 1.</li>
-	 * </ol>
-	 * </li> or
-	 * <li>the current location of p is purely local;
-	 * <ul>
-	 * <li>the size of enabled(p, s) is exactly 1.</li>
-	 * </ul>
-	 * </li>
-	 * </ul>
-	 * 
-	 * @param state
-	 *            The current state.
-	 * @param pid
-	 *            The ID of the current process.
-	 * @return
-	 * @throws UnsatisfiablePathConditionException
-	 */
-	protected StateStatus singleEnabled(State state, int pid, String process)
-			throws UnsatisfiablePathConditionException {
-		List<Transition> enabled;
-		ProcessState procState = state.getProcessState(pid);
-		Location pLocation;
-		boolean inAtomic = false;
-
-		if (procState == null || procState.hasEmptyStack())
-			return new StateStatus(false, null, EnabledStatus.TERMINATED);
-		else
-			pLocation = procState.getLocation();
-		assert pLocation != null;
-		if (pLocation.isGuardedLocation())
-			return new StateStatus(false, null, EnabledStatus.BLOCKED);
-		enabled = enabler.enabledTransitionsOfProcess(state, pid);
-
-		// Atomic processing
-		if (stateFactory.processInAtomic(state) == pid) {
-			// the process is in atomic execution
-			// assert pidInAtomic == pid;
-			if ((pLocation.isInLoop() && !pLocation.isSafeLoop())
-					|| (pLocation.isStart() && pLocation.getNumIncoming() > 0))
-				// possible loop, save state
-				return new StateStatus(false, null,
-						EnabledStatus.LOOP_POSSIBLE);
-			inAtomic = true;
-		}
-		if (inAtomic || pLocation.isPurelyLocal()) {
-			if (enabled.size() == 1)
-				return new StateStatus(true, enabled.get(0),
-						EnabledStatus.DETERMINISTIC);
-			else if (enabled.size() > 1) // blocking
-				return new StateStatus(false, null,
-						EnabledStatus.NONDETERMINISTIC);
-			else
-				return new StateStatus(false, null, EnabledStatus.BLOCKED);
-		}
-		return new StateStatus(false, null, EnabledStatus.NONE);
-
 	}
 
 	/**

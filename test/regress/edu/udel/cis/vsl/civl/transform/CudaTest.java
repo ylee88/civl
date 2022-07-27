@@ -5,12 +5,16 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 
 import org.junit.AfterClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 import static edu.udel.cis.vsl.civl.TestConstants.QUIET;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class CudaTest {
+	@Rule
+	public Timeout globalTimeout = Timeout.seconds(30);
 
 	/* *************************** Static Fields *************************** */
 
@@ -33,9 +37,9 @@ public class CudaTest {
 
 	@Test
 	public void matMult1() {
-		assertTrue(
-				ui.run("verify -enablePrintf=false -inputN=2 -inputTILE_WIDTH=1 ",
-						QUIET, filename("matMult1.cu")));
+		assertTrue(ui.run(
+				"verify -enablePrintf=false -inputN=2 -inputTILE_WIDTH=1 ",
+				QUIET, filename("matMult1.cu")));
 	}
 
 	@Test
@@ -43,10 +47,10 @@ public class CudaTest {
 		assertTrue(ui.run("verify -inputN_B=3 -input threadsPerBlock_B=3",
 				QUIET, filename("dot.cu")));
 	}
-	
+
 	@Test
 	public void kernelAfterMain() {
-		assertTrue(ui.run("verify", filename("kernel_after_main.cu")));
+		assertTrue(ui.run("verify", QUIET, filename("kernel_after_main.cu")));
 	}
 
 	@AfterClass

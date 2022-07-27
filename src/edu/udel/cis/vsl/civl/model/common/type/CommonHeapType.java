@@ -113,4 +113,14 @@ public class CommonHeapType extends CommonType implements CIVLHeapType {
 	protected void addFreeVariables(Set<Variable> result,
 			Set<CIVLType> seenTypes) {
 	}
+
+	@Override
+	public boolean hasReferences() {
+		return true;
+	}
+
+	@Override
+	public boolean analyze() {
+		return true;
+	}
 }

@@ -7,13 +7,18 @@ import java.io.File;
 
 import org.junit.AfterClass;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 import edu.udel.cis.vsl.civl.TestConstants;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 import static edu.udel.cis.vsl.civl.TestConstants.MPI_NONBLOCKING_MODEL;
 
 public class MPINonBlockingTests {
+	@Rule
+	public Timeout globalTimeout = Timeout.seconds(30);
+
 	/* *************************** Static Fields *************************** */
 
 	private static File rootDir = new File(

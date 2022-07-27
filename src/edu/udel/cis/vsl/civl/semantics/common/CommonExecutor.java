@@ -65,7 +65,6 @@ import edu.udel.cis.vsl.civl.semantics.IF.LibraryExecutorLoader;
 import edu.udel.cis.vsl.civl.semantics.IF.LibraryLoaderException;
 import edu.udel.cis.vsl.civl.semantics.IF.SymbolicAnalyzer;
 import edu.udel.cis.vsl.civl.semantics.IF.Transition;
-import edu.udel.cis.vsl.civl.semantics.IF.Transition.AtomicLockAction;
 import edu.udel.cis.vsl.civl.semantics.IF.TypeEvaluation;
 import edu.udel.cis.vsl.civl.state.IF.ProcessState;
 import edu.udel.cis.vsl.civl.state.IF.StackEntry;
@@ -166,6 +165,14 @@ public class CommonExecutor implements Executor {
 	@SuppressWarnings("unused")
 	private Int2PointerCaster int2PointerCaster;
 
+	/**
+	 * The system function named {@code $yield}, used by a process in an atomic
+	 * block to release the lock temporarily and allow other processes to
+	 * execute. This may be {@code null} if the model being analyzed does not
+	 * use this function.
+	 */
+	private CIVLFunction yieldFunction;
+
 	/* ***************************** Constructors ************************** */
 
 	/**
@@ -213,9 +220,26 @@ public class CommonExecutor implements Executor {
 			numbers.add(Character.forDigit(i, 10));
 		}
 		this.analyzers = modelFactory.codeAnalyzers();
+		this.yieldFunction = modelFactory.model().function("$yield");
+
 	}
 
 	/* ************************** Private methods ************************** */
+
+	/**
+	 * Is the given {@link Statement} the {@code $yield} statement?
+	 * 
+	 * @param stmt
+	 *            a (non-null) {@link Statement}
+	 * @return {@code true} iff {@code stmt} is the {@code $yield statement}
+	 */
+	private boolean isYield(Statement stmt) {
+		if (yieldFunction == null)
+			return false;
+		return stmt.statementKind() == StatementKind.CALL_OR_SPAWN
+				&& ((CallOrSpawnStatement) stmt).isCall()
+				&& ((CallOrSpawnStatement) stmt).function() == yieldFunction;
+	}
 
 	/**
 	 * Executes an assignment statement. The state will be updated such that the
@@ -731,6 +755,24 @@ public class CommonExecutor implements Executor {
 		StatementKind kind = statement.statementKind();
 
 		numSteps.getAndIncrement();
+		// executing $yield() by proc holding atomic lock releases the lock.
+		// executing $yield() by proc not holding takes the lock and increments
+		// program counter.
+		if (isYield(statement)) {
+			int holder = stateFactory.processInAtomic(state);
+
+			if (holder == pid) {
+				state = stateFactory.releaseAtomicLock(state);
+			} else {
+				assert holder < 0;
+				if (state.getProcessState(pid).inAtomic())
+					state = stateFactory.getAtomicLock(state, pid);
+				state = stateFactory.setLocation(state, pid, statement.target(),
+						false);
+			}
+			return state;
+		}
+
 		switch (kind) {
 			case ASSIGN :
 				return executeAssign(state, pid, process,
@@ -1732,23 +1774,23 @@ public class CommonExecutor implements Executor {
 	@Override
 	public State execute(State state, int pid, Transition transition)
 			throws UnsatisfiablePathConditionException {
-		AtomicLockAction atomicLockAction = transition.atomicLockAction();
+		// AtomicLockAction atomicLockAction = transition.atomicLockAction();
 
-		switch (atomicLockAction) {
-			case GRAB :
-				state = stateFactory.getAtomicLock(state, pid);
-				break;
-			case RELEASE :
-				state = stateFactory.releaseAtomicLock(state);
-				break;
-			case NONE :
-				break;
-			default :
-				throw new CIVLUnimplementedFeatureException(
-						"Executing a transition with the atomic lock action "
-								+ atomicLockAction.toString(),
-						transition.statement().getSource());
-		}
+		// switch (atomicLockAction) {
+		// case GRAB :
+		// state = stateFactory.getAtomicLock(state, pid);
+		// break;
+		// case RELEASE :
+		// state = stateFactory.releaseAtomicLock(state);
+		// break;
+		// case NONE :
+		// break;
+		// default :
+		// throw new CIVLUnimplementedFeatureException(
+		// "Executing a transition with the atomic lock action "
+		// + atomicLockAction.toString(),
+		// transition.statement().getSource());
+		// }
 		// if transition doesn't carry new clause, no need to update the path
 		// condition, neither for simplifying the state
 		if (!transition.clause().isTrue()) {

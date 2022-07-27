@@ -109,4 +109,13 @@ public class CommonEnumType extends CommonType implements CIVLEnumType {
 			Set<CIVLType> seenTypes) {
 	}
 
+	@Override
+	public boolean hasReferences() {
+		return false;
+	}
+
+	@Override
+	public boolean analyze() {
+		return true;
+	}
 }

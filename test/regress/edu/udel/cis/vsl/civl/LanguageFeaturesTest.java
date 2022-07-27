@@ -11,7 +11,9 @@ import java.io.File;
 import java.io.IOException;
 
 import org.junit.AfterClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 import edu.udel.cis.vsl.abc.err.IF.ABCException;
 import edu.udel.cis.vsl.abc.front.IF.ParseException;
@@ -21,6 +23,8 @@ import edu.udel.cis.vsl.civl.model.IF.CIVLSyntaxException;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class LanguageFeaturesTest {
+	@Rule
+	public Timeout globalTimeout = Timeout.seconds(30);
 
 	/* *************************** Static Fields *************************** */
 
@@ -36,8 +40,7 @@ public class LanguageFeaturesTest {
 	}
 
 	private static String yieldTestfilename(String name) {
-		return new File(new File(rootDir, "yieldTest"), name)
-				.getPath();
+		return new File(new File(rootDir, "yieldTest"), name).getPath();
 	}
 
 	/* **************************** Test Methods *************************** */
@@ -704,13 +707,8 @@ public class LanguageFeaturesTest {
 
 	@Test
 	public void pointerAdd1() {
-		// assertTrue(ui.run(VERIFY, QUIET, filename("pointerAdd1.cvl")));
 		assertFalse(ui.run("verify", "-DWRONG -verbose=false", QUIET,
 				filename("pointerAdd1.cvl")));
-		// assertTrue(ui
-		// .run(VERIFY, "-DARRAY", QUIET, filename("pointerAdd1.cvl")));
-		// assertFalse(ui.run(VERIFY, "-DARRAY -DWRONG", QUIET,
-		// filename("pointerAdd1.cvl")));
 	}
 
 	@Test
@@ -829,7 +827,7 @@ public class LanguageFeaturesTest {
 
 	@Test
 	public void quantifiedConditionalExpression() {
-		assertTrue(ui.run(VERIFY, "-showProverQueries", QUIET,
+		assertTrue(ui.run(VERIFY, QUIET,
 				filename("quantifiedConditionalExpression.cvl")));
 	}
 
@@ -856,8 +854,7 @@ public class LanguageFeaturesTest {
 	@Test
 	public void localNoYield() {
 		assertTrue(
-				ui.run(VERIFY, QUIET,
-						yieldTestfilename("local_no_yield.cvl")));
+				ui.run(VERIFY, QUIET, yieldTestfilename("local_no_yield.cvl")));
 	}
 
 	@Test
@@ -877,7 +874,6 @@ public class LanguageFeaturesTest {
 		assertTrue(ui.run(VERIFY, QUIET,
 				yieldTestfilename("yield_purely_local.cvl")));
 	}
-
 
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {

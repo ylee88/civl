@@ -20,7 +20,7 @@ double adderSeq(double *p, int n) {
 double adderPar(double *p, int n) {
   double s = 0.0; // sum shared by workers
   int mutex = 0; // mutex shared by workers
-  $proc workers[n]; // one worker for each element!
+  $proc workers[n]; // one worker for each element! UNUSED
 
   void worker(int i) {
     double t;

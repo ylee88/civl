@@ -19,7 +19,12 @@ import edu.udel.cis.vsl.sarl.IF.type.SymbolicType;
 public class CommonArrayType extends CommonType implements CIVLArrayType {
 
 	private CIVLType elementType;
+
 	private int dimension = 0;
+
+	protected boolean isAnalyzed = false;
+
+	protected boolean hasReferences = false;
 
 	/**
 	 * The type for an array of T.
@@ -29,6 +34,7 @@ public class CommonArrayType extends CommonType implements CIVLArrayType {
 	 */
 	public CommonArrayType(CIVLType elementType) {
 		this.elementType = elementType;
+		analyze();
 	}
 
 	/**
@@ -136,5 +142,19 @@ public class CommonArrayType extends CommonType implements CIVLArrayType {
 			Set<CIVLType> seenTypes) {
 		if (seenTypes.add(this))
 			((CommonType) elementType).addFreeVariables(result, seenTypes);
+	}
+
+	@Override
+	public boolean hasReferences() {
+		return hasReferences;
+	}
+
+	@Override
+	public boolean analyze() {
+		if (!isAnalyzed && elementType.analyze()) {
+			hasReferences = elementType.hasReferences();
+			isAnalyzed = true;
+		}
+		return true;
 	}
 }

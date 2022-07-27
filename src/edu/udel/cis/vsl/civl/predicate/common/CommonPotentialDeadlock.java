@@ -234,10 +234,10 @@ public class CommonPotentialDeadlock extends CommonCIVLStatePredicate
 
 			if (enabled == MAYBE) {
 				certainty = Certainty.MAYBE;
-				message = "Cannot prove that potential or absolute deadlock is impossible:\n";
+				message = "Cannot prove that potential deadlock is impossible:\n";
 			} else {
 				certainty = Certainty.PROVEABLE;
-				message = "A potential or absolute deadlock is possible:\n";
+				message = "A potential deadlock is possible:\n";
 			}
 			message += "  Path condition: " + state.getPathCondition(universe)
 					+ "\n  Enabling predicate: " + predicate + "\n";

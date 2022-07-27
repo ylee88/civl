@@ -26,7 +26,6 @@ import java.util.TreeSet;
  * {(1,2),(1,3,4),(2)} is a {@link SeqSet}.
  * </p>
  * 
- * 
  * @author siegel
  *
  */
@@ -153,6 +152,11 @@ public class SeqSet {
 		 */
 		Iterator<Integer> iterator() {
 			return childrenIndexes.iterator();
+		}
+
+		@Override
+		public String toString() {
+			return Integer.toString(index);
 		}
 	}
 
@@ -364,6 +368,91 @@ public class SeqSet {
 	}
 
 	/**
+	 * Inserts a copy of the tree rooted at source into the target SeqSet. If
+	 * the source node has prefix alpha, then the path alpha is added to the
+	 * target if it is not already there, and the tree rooted at source is
+	 * copied.
+	 * 
+	 * @param target
+	 * @param source
+	 */
+	private static void insertCopy(SeqSet target, Stack<Node> prefix,
+			Node source) {
+		Node targetNode = target.root;
+
+		if (!prefix.isEmpty()) {
+			Iterator<Node> iter = prefix.iterator();
+			Node sourceNode = iter.next(); // must be root
+
+			target.isEmpty = false;
+			while (iter.hasNext()) {
+				sourceNode = iter.next();
+
+				int idx = sourceNode.index;
+
+				targetNode.setChild(idx);
+				targetNode = targetNode.children[idx];
+			}
+		}
+		target.copy(targetNode, source.index, source);
+	}
+
+	public SeqSet intersectionWith(SeqSet that) {
+		SeqSet result = new SeqSet();
+
+		if (isEmpty || that.isEmpty)
+			return result;
+
+		Stack<Iterator<Integer>> dfsStack = new Stack<>(); // DFS stack for that
+		Stack<Node> prefix = new Stack<Node>();
+		Node thisNode = root, thatNode = that.root; // current nodes
+
+		top : while (true) {
+			if (thisNode.isLeaf()) {
+				insertCopy(result, prefix, thatNode);
+				thatNode = thatNode.parent;
+				if (thatNode == null)
+					break; // search is over
+				thisNode = thisNode.parent;
+			} else if (thatNode.isLeaf()) {
+				insertCopy(result, prefix, thisNode);
+				thatNode = thatNode.parent;
+				if (thatNode == null)
+					break; // search is over
+				thisNode = thisNode.parent;
+			} else { // neither is leaf: push
+				prefix.push(thatNode);
+				dfsStack.push(thatNode.iterator());
+			}
+			/*
+			 * At this point, thisNode and thatNode are non-null corresponding
+			 * nodes, and neither is a leaf. The iterator at top of stack
+			 * corresponds to thatNode. The following will push the search
+			 * forward to the next new node pair...
+			 */
+			do {
+				Iterator<Integer> thatIter = dfsStack.peek();
+
+				while (thatIter.hasNext()) {
+					int idx = thatIter.next();
+
+					if (thisNode.hasChild(idx)) { // new pair!
+						thisNode = thisNode.children[idx];
+						thatNode = thatNode.children[idx];
+						continue top;
+					}
+				}
+				dfsStack.pop();
+				prefix.pop();
+				thisNode = thisNode.parent;
+				thatNode = thatNode.parent;
+			} while (!dfsStack.isEmpty());
+			break; // search is complete
+		}
+		return result;
+	}
+
+	/**
 	 * Adds everything in the given set to this set. In the post-state, this
 	 * SeqSet will represent the union of the set represented by this SeqSet in
 	 * the pre-state and the set represented by {@code that}. SeqSet
@@ -390,9 +479,9 @@ public class SeqSet {
 	 *         {@code SeqSet}
 	 */
 	public boolean addAll(SeqSet that) {
+		if (that.isEmpty)
+			return false;
 		if (isEmpty) {
-			if (that.isEmpty)
-				return false;
 			copy(null, -1, that.root);
 			return true;
 		}
@@ -402,11 +491,16 @@ public class SeqSet {
 		Node thisNode = root, thatNode = that.root; // current nodes
 
 		// invariant: stack specifies a path in that starting from root.
-		// for all nodes v in that path: neither v nor the corresponding node
-		// u in this is a leaf.
-		// invariant: thisNode and thatNode correspond and thatNode results
+		// the members of stack are child iterators for the nodes in the
+		// path from the root of that (inclusive) to thatNode (exclusive).
+
+		// invariant: thisNode and thatNode correspond, i.e., the both
+		// represent the same integer sequence.
+
+		// invariant: thatNode results
 		// from following top of stack iterator's last edge (or stack is empty
 		// and thatNode is root).
+
 		top : while (true) {
 			if (thisNode.isLeaf()) {
 				// backtrack and proceed to to next new node pair:
@@ -437,7 +531,7 @@ public class SeqSet {
 				while (thatIter.hasNext()) {
 					int idx = thatIter.next();
 
-					if (thatNode.hasChild(idx)) { // new pair!
+					if (thisNode.hasChild(idx)) { // new pair!
 						thisNode = thisNode.children[idx];
 						thatNode = thatNode.children[idx];
 						continue top;
@@ -446,10 +540,20 @@ public class SeqSet {
 					}
 				}
 				stack.pop();
+				thisNode = thisNode.parent;
+				thatNode = thatNode.parent;
 			} while (!stack.isEmpty());
 			break; // no new node pair: search is complete
 		}
 		return change;
+	}
+
+	@Override
+	public SeqSet clone() {
+		SeqSet result = new SeqSet();
+
+		result.addAll(this);
+		return result;
 	}
 
 	/**
