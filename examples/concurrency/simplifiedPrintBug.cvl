@@ -62,7 +62,7 @@ void simpleKernel(int tid, int* data1) {
 }
 
 int main() {
-  //fprintf(stderr, "wut");
+  //fprintf(stdout, "wut");
   data_t data1 = 0;
   $parfor(int x : 0.. 1) {
     simpleKernel(x, &data1);

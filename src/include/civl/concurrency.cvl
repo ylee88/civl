@@ -56,6 +56,7 @@ $atomic_f void $barrier_enter($barrier barrier, int nprocs){
 /*@ depends_on \access(barrier);
   @ */
 $atomic_f void $barrier_exit($barrier barrier){
+  $yield();
   $when(!barrier->gbarrier->in_barrier[barrier->place]);
 }
 
