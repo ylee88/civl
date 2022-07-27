@@ -2275,6 +2275,45 @@ public class SimpleEnablerWorker {
 	}
 
 	/**
+	 * Auxiliary function used by {@link #computeAmpleSet()} to print out ample
+	 * set information to {@link Enabler#debugOut}.
+	 * 
+	 * @param sc
+	 *            the instance of {@link StrongConnect} already used to find an
+	 *            ample set (or fail to find one)
+	 * @param amplePids
+	 *            the list of process IDs of the ample set, or {@code null} if
+	 *            no ample set was found and therefore the full set should be
+	 *            used
+	 * @throws UnsatisfiablePathConditionException
+	 *             should not be thrown
+	 */
+	private void printAmpleInfo(StrongConnect sc, LinkedList<Integer> amplePids)
+			throws UnsatisfiablePathConditionException {
+		boolean first = true;
+
+		if (amplePids == null) {
+			amplePids = new LinkedList<Integer>();
+			for (int i = 0; i < nprocs; i++)
+				amplePids.add(i);
+		}
+		enabler.debugOut
+				.print("\nample processes at state " + theState + ":\t");
+		for (int i : amplePids) {
+			if (first)
+				first = false;
+			else
+				enabler.debugOut.print(", ");
+			enabler.debugOut.print("p" + i + "("
+					+ enabledTransitionsInProcess(i).length + ")");
+		}
+		enabler.debugOut.println();
+		sc.printData(enabler.debugOut);
+		if (!enabler.debugging && enabler.showAmpleSetWtStates)
+			enabler.debugOut.print(theState.callStackToString());
+	}
+
+	/**
 	 * Computes an ample set for state {@link #theState}. This may be the full
 	 * set (consisting of all enabled transitions). This method may set
 	 * {@link #full} to {@code true}, indicating that the full set was used.
@@ -2321,25 +2360,8 @@ public class SimpleEnablerWorker {
 					ampleSet[c++] = tran;
 				}
 		}
-		if (enabler.debugging || enabler.showAmpleSet) {
-			if (numProcs > 1) {
-				enabler.debugOut.print(
-						"\nample processes at state " + theState + ":\t");
-				if (full) {
-					for (int i = 0; i < nprocs; i++)
-						if (enabledTransitionsInProcess(i).length > 0)
-							enabler.debugOut.print(i + "\t");
-				} else {
-					for (int i : amplePids)
-						if (enabledTransitionsInProcess(i).length > 0)
-							enabler.debugOut.print(i + "\t");
-				}
-				enabler.debugOut.println();
-				sc.printData(enabler.debugOut);
-				if (!enabler.debugging && enabler.showAmpleSetWtStates)
-					enabler.debugOut.print(theState.callStackToString());
-			}
-		}
+		if (numProcs > 1 && (enabler.debugging || enabler.showAmpleSet))
+			printAmpleInfo(sc, amplePids);
 	}
 
 	/**

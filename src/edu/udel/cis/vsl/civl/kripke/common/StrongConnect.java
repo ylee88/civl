@@ -542,6 +542,22 @@ public class StrongConnect {
 					worker.printObjSet(out, node.reachWrite);
 					out.println(" }");
 				}
+				out.print("    successors: ");
+				Iterator<Node> childIter = new ChildIterator(node);
+				if (childIter.hasNext()) {
+					boolean first = true;
+
+					while (childIter.hasNext()) {
+						if (first)
+							first = false;
+						else
+							out.print(", ");
+						out.print("p" + childIter.next().pid);
+					}
+				} else {
+					out.print("none");
+				}
+				out.println();
 			}
 		}
 	}
