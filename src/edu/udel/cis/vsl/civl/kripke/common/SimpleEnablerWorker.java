@@ -2088,7 +2088,7 @@ public class SimpleEnablerWorker {
 				Scope scope = dyscope.lexicalScope();
 				Variable var = scope.variable(vid);
 
-				out.print(var.name().name() + "(" + dyid + ")");
+				out.print(var.name().name() + "#" + dyid);
 				if (vec.length > 2) {
 					out.print("." + vec[2]);
 					if (vec.length > 3)

@@ -88,7 +88,6 @@ public class MPITranslationTest {
 	}
 
 	@Test
-	@Ignore
 	public void mpi_gatherv() throws ABCException {
 		assertTrue(ui.run("verify", "-input_mpi_nprocs=4",
 				"-enablePrintf=false", TestConstants.QUIET,

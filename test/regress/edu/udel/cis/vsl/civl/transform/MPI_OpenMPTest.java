@@ -50,7 +50,9 @@ public class MPI_OpenMPTest {
 	@Test
 	public void helloworld() throws ABCException {
 		assertTrue(ui.run("verify -enablePrintf=false -input_mpi_nprocs=2",
-				TestConstants.QUIET, filename("mpi-omp-hello-world.c")));
+				TestConstants.QUIET,
+				// "-showAmpleSetWtStates",
+				filename("mpi-omp-hello-world.c")));
 	}
 
 	@AfterClass
