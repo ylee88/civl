@@ -35,7 +35,7 @@ struct _barrier {
 /*@ depends_on \access(barrier);
   @ executes_when \true;
   @ */ 
-$atomic_f void $barrier_enter($barrier barrier, int nprocs){
+$atomic_f void $barrier_enter($barrier barrier, int nprocs, void foo(void)){
   $gbarrier gbarrier=barrier->gbarrier;
   int myplace=barrier->place;
 
@@ -47,6 +47,7 @@ $atomic_f void $barrier_enter($barrier barrier, int nprocs){
   	nprocs = gbarrier->nprocs;
   }
   if(++gbarrier->num_in_barrier == nprocs){
+    foo();
     for(int i=0; i<gbarrier->nprocs; i++)
       gbarrier->in_barrier[i]=$false;
     gbarrier->num_in_barrier=0;
@@ -65,10 +66,15 @@ void $barrier_call($barrier barrier) {
 }
 
 void $barrier_call_subset($barrier barrier, int nprocs){
-  $barrier_enter(barrier, nprocs);
+  void empty_func(){}
+  $barrier_enter(barrier, nprocs, empty_func);
   $barrier_exit(barrier);
 }
 
+void $barrier_call_execute($barrier barrier, void foo(void)){
+  $barrier_enter(barrier, barrier->gbarrier->nprocs, foo);
+  $barrier_exit(barrier);
+}
 
 $atomic_f $gbarrier $gbarrier_create($scope scope, int size){
   $gbarrier gbarrier = ($gbarrier)$malloc(scope, sizeof(struct _gbarrier));

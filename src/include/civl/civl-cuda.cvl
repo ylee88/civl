@@ -431,7 +431,10 @@ void $cuda_barrier($cuda_kernel_instance_t *k, int kernel_id, $barrier g) {
   // We have to push a new read and write set before the barrier call to ignore it's reads and writes
   $read_set_push();
   $write_set_push();
-  $barrier_call(g);
+  void captured_clear_mems(){
+    $clear_all_mem_sets(k);
+  }  
+  $barrier_call_execute(g, captured_clear_mems);
   $read_set_pop();
   $write_set_pop();
 }
@@ -489,6 +492,11 @@ void $clear_mem_sets($cuda_kernel_instance_t *k, int cur_tid) {
     k->read_sets[cur_tid] = $mem_empty();
 }
 
+void $clear_all_mem_sets($cuda_kernel_instance_t *k){
+    for(int i = 0; i < k->size; i++)
+      $clear_mem_sets(k, i);
+}
+
 /* Publishes current read a write sets to global arrays. Local sets are not cleared
 */
 void $publish($cuda_kernel_instance_t *k, int cur_tid) {
@@ -510,27 +518,42 @@ int exchange_data(unsigned mask, int var, int srcLane, int tid, $comm comm, $gba
 	$write_set_push();
 	int laneID = tid % 32;
 	int warpID = tid / 32;
+	int currLaneInMask = (mask >> laneID) & 1;
+	int srcLaneInMask = (mask >> srcLane) & 1;
 	int dest;
 	$gbarrier gbarrier = warpBarriers[warpID];
 	int numActiveThreads = 0;
 	for (int i = 0; i < $get_nprocs(gbarrier); i++){
 		numActiveThreads += (mask >> i) & 1;
 	}
-	$barrier barrier = $barrier_create($here, gbarrier, laneID);
-	$message request_message = $message_pack(tid, srcLane, 0, &tid, sizeof(int));
-	$comm_enqueue(comm, request_message);
-	if((mask >> laneID) & 1){
+	if(currLaneInMask){
+		$barrier barrier = $barrier_create($here, gbarrier, laneID);
+		if(srcLaneInMask){
+			$message request_message = $message_pack(tid, srcLane, 0, &tid, sizeof(int));
+			$comm_enqueue(comm, request_message);
+		}
 		$barrier_call_subset(barrier, numActiveThreads);
+		while ($comm_probe(comm, $COMM_ANY_SOURCE, 0)){
+		    $yield();
+			$message recv_request = $comm_dequeue(comm, $COMM_ANY_SOURCE, 0);
+			$message_unpack(recv_request, &dest, sizeof(int));
+			$message send_message = $message_pack(tid, dest, 1, &var, sizeof(int));
+			$comm_enqueue(comm, send_message); 
+		}
+		if(srcLaneInMask){
+		    $yield();
+			$message recv_message = $comm_dequeue(comm, srcLane, 1);
+			$message_unpack(recv_message, &var, sizeof(int));
+		}
+		else{
+			$havoc(&var);
+		}
+		$barrier_destroy(barrier);
 	}
-	while ($comm_probe(comm, $COMM_ANY_SOURCE, 0)){
-		$message recv_request = $comm_dequeue(comm, $COMM_ANY_SOURCE, 0);
-		$message_unpack(recv_request, &dest, sizeof(int));
-		$message send_message = $message_pack(tid, dest, 1, &var, sizeof(int));
-		$comm_enqueue(comm, send_message); 
-	}
-	$message recv_message = $comm_dequeue(comm, srcLane, 1);
-	$message_unpack(recv_message, &var, sizeof(int));
-	$barrier_destroy(barrier);
+	else{
+		if(laneID != srcLane)
+			$havoc(&var);
+	}	
 	$read_set_pop();
 	$write_set_pop();
 	return var;
