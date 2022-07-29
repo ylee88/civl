@@ -654,6 +654,17 @@ public class SimpleEnabler implements Enabler {
 					&& state.numLiveProcs() >= procBound)
 				return falseExpression;
 
+			// if the called function is statically known and is
+			// a system function, the guard is already baked into the
+			// $when of the call statement.
+			// If the called function is not statically known (because
+			// the call happens through a function pointer), see if it
+			// is a system function and if so, get the guard...
+			// Note: for now, we are ignoring contract guards on
+			// non-system atomic functions; these can instead be
+			// expressed as $when statements at the beginning of the
+			// function body
+
 			Expression dynamicGuard = getDynamicGuard(state, pid, call);
 			CIVLFunction function = getFunction(state, pid, call);
 

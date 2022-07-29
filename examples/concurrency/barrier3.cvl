@@ -1,0 +1,34 @@
+/* Using the concurrency.cvh library's barrier.  Usage:
+ *      civl verify -inputB=4 barrier.cvl
+ */
+#include <concurrency.cvh>
+
+$input int B = 4; // upper bound on number of threads
+$input int N;     // number of threads
+$assume(1<=N && N<=B);
+int counter = 0; // shared variable used to test barrier
+$scope root = $here;
+$gbarrier gbarrier;
+
+void run(int tid) {
+  $barrier barrier = $barrier_create(root, gbarrier, tid); 
+  
+  while ($true) {
+    $assert(counter == 0);
+    $barrier_call(barrier);
+    counter++;
+    $barrier_call(barrier);
+    $assert(counter == N);
+    $barrier_call(barrier);
+    counter--;
+    $barrier_call(barrier);
+  }
+  $barrier_destroy(barrier);
+}
+
+void main() {
+  gbarrier = $gbarrier_create(root, N);
+  $parfor(int i: 0 .. N-1)
+    run(i);
+  $gbarrier_destroy(gbarrier);
+}

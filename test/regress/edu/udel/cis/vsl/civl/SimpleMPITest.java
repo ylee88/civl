@@ -7,15 +7,13 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.Timeout;
 
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 
 public class SimpleMPITest {
-	@Rule
-	public Timeout globalTimeout = Timeout.seconds(30);
+	// @Rule
+	// public Timeout globalTimeout = Timeout.seconds(30);
 
 	/* *************************** Static Fields *************************** */
 
@@ -41,8 +39,12 @@ public class SimpleMPITest {
 	@Test
 	public void commDup() {
 		assertTrue(ui.run("verify",
+				// "-showModel",
+				"-input_mpi_nprocs=6",
 				// "-showAmpleSetWtStates",
-				"-input_mpi_nprocs=6", QUIET, filename("commDup.c")));
+				QUIET,
+				// "-showStates",
+				filename("commDup.c")));
 	}
 
 	@Test
