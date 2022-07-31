@@ -6,7 +6,6 @@ import java.util.List;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConstants;
 import edu.udel.cis.vsl.civl.model.IF.statement.CallOrSpawnStatement;
 import edu.udel.cis.vsl.civl.semantics.IF.Transition;
-import edu.udel.cis.vsl.civl.semantics.IF.Transition.AtomicLockAction;
 import edu.udel.cis.vsl.civl.state.IF.MemoryUnitSet;
 import edu.udel.cis.vsl.civl.state.IF.State;
 import edu.udel.cis.vsl.civl.state.IF.UnsatisfiablePathConditionException;
@@ -78,14 +77,10 @@ public interface LibraryEnabler {
 	 *            The current path condition.
 	 * @param pid
 	 *            The ID of the process that the function call belongs to.
-	 * @param atomicLockAction
-	 *            The action for the atomic lock variable, could be NONE, GRAB,
-	 *            or RELEASE. see also {@link AtomicLockAction}.
 	 * @return The set of enabled transitions.
 	 * @throws UnsatisfiablePathConditionException
 	 */
 	List<Transition> enabledTransitions(State state, CallOrSpawnStatement call,
-			BooleanExpression pathCondition, int pid,
-			AtomicLockAction atomicLockAction)
+			BooleanExpression pathCondition, int pid)
 			throws UnsatisfiablePathConditionException;
 }

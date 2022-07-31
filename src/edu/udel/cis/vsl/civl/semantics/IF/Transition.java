@@ -17,15 +17,6 @@ public interface Transition {
 		NORMAL, NOOP
 	}
 
-	public enum AtomicLockAction {
-		/** no action to the atomic lock */
-		NONE,
-		/** attempts to grab the atomic lock */
-		GRAB,
-		/** releases the atomic lock */
-		RELEASE
-	}
-
 	/**
 	 * 
 	 * @return a boolean-value clause. Execution of this transition will start
@@ -48,14 +39,6 @@ public interface Transition {
 	 * @return The PID of the process that this transition belongs to.
 	 */
 	int pid();
-
-	/**
-	 * The atomic lock action associates with this transition. See
-	 * {@link AtomicLockAction} for more details.
-	 * 
-	 * @return the atomic lock action associates with this transition.
-	 */
-	AtomicLockAction atomicLockAction();
 
 	/**
 	 * returns the kind of this transition.

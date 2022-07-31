@@ -41,7 +41,7 @@ public class CommonTransition implements Transition {
 	 */
 	private Statement statement;
 
-	private AtomicLockAction atomicLockAction;
+//	private AtomicLockAction atomicLockAction;
 
 	protected boolean simplifyState;
 
@@ -68,18 +68,23 @@ public class CommonTransition implements Transition {
 	 *            The statement of the transition.
 	 */
 	public CommonTransition(BooleanExpression clause, int pid,
-			Statement statement, boolean symplifyState,
-			AtomicLockAction atomicLockAction) {
+			Statement statement, boolean symplifyState
+//			,AtomicLockAction atomicLockAction
+			) {
 		this.clause = clause;
 		this.pid = pid;
 		this.statement = statement;
-		this.atomicLockAction = atomicLockAction;
+//		this.atomicLockAction = atomicLockAction;
 		this.simplifyState = symplifyState;
 	}
 
 	public CommonTransition(BooleanExpression pathCondition, int pid,
-			Statement statement, AtomicLockAction atomicLockAction) {
-		this(pathCondition, pid, statement, false, atomicLockAction);
+			Statement statement
+//			, AtomicLockAction atomicLockAction
+			) {
+		this(pathCondition, pid, statement, false
+//				, atomicLockAction
+				);
 	}
 
 	/* ************************* Methods from Object *********************** */
@@ -119,10 +124,10 @@ public class CommonTransition implements Transition {
 		return this.clause;
 	}
 
-	@Override
-	public AtomicLockAction atomicLockAction() {
-		return this.atomicLockAction;
-	}
+//	@Override
+//	public AtomicLockAction atomicLockAction() {
+//		return this.atomicLockAction;
+//	}
 
 	@Override
 	public TransitionKind transitionKind() {

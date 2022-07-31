@@ -32,7 +32,6 @@ import edu.udel.cis.vsl.civl.semantics.IF.LibraryLoaderException;
 import edu.udel.cis.vsl.civl.semantics.IF.Semantics;
 import edu.udel.cis.vsl.civl.semantics.IF.SymbolicAnalyzer;
 import edu.udel.cis.vsl.civl.semantics.IF.Transition;
-import edu.udel.cis.vsl.civl.semantics.IF.Transition.AtomicLockAction;
 import edu.udel.cis.vsl.civl.state.IF.State;
 import edu.udel.cis.vsl.civl.state.IF.UnsatisfiablePathConditionException;
 import edu.udel.cis.vsl.civl.util.IF.Pair;
@@ -62,18 +61,16 @@ public class LibdomainEnabler extends BaseLibraryEnabler
 
 	@Override
 	public List<Transition> enabledTransitions(State state,
-			CallOrSpawnStatement call, BooleanExpression clause, int pid,
-			AtomicLockAction atomicLockAction)
+			CallOrSpawnStatement call, BooleanExpression clause, int pid)
 			throws UnsatisfiablePathConditionException {
 		String functionName = call.function().name().name();
 		try {
 			switch (functionName) {
 				case "$domain_partition" :
-					return this.enabledDomainPartition(state, call, clause, pid,
-							atomicLockAction);
+					return this.enabledDomainPartition(state, call, clause,
+							pid);
 				default :
-					return super.enabledTransitions(state, call, clause, pid,
-							atomicLockAction);
+					return super.enabledTransitions(state, call, clause, pid);
 			}
 		} catch (LibraryLoaderException e) {
 			throw new CIVLInternalException("Domain library loader fails",
@@ -84,8 +81,7 @@ public class LibdomainEnabler extends BaseLibraryEnabler
 	/* *************************** Private Methods ************************* */
 
 	private List<Transition> enabledDomainPartition(State state,
-			CallOrSpawnStatement call, BooleanExpression clause, int pid,
-			AtomicLockAction atomicLockAction)
+			CallOrSpawnStatement call, BooleanExpression clause, int pid)
 			throws UnsatisfiablePathConditionException, LibraryLoaderException {
 		List<Statement> statements = new LinkedList<>();
 		List<Transition> transitions = new LinkedList<>();
@@ -134,15 +130,14 @@ public class LibdomainEnabler extends BaseLibraryEnabler
 						arguments[0].getSource()));
 				break;
 			case ModelConfiguration.DECOMP_ROUND_ROBIN :
-				return super.enabledTransitions(state, call, clause, pid,
-						atomicLockAction);
+				return super.enabledTransitions(state, call, clause, pid);
 			case ModelConfiguration.DECOMP_RANDOM :
 			default :
 				throw new CIVLUnimplementedFeatureException("domain strategy");
 		}
 		for (int i = 0; i < statements.size(); i++) {
-			transitions.add(Semantics.newTransition(pid, clause,
-					statements.get(i), atomicLockAction));
+			transitions.add(
+					Semantics.newTransition(pid, clause, statements.get(i)));
 		}
 		return transitions;
 	}

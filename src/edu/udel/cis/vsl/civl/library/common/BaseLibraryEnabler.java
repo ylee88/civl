@@ -18,7 +18,6 @@ import edu.udel.cis.vsl.civl.semantics.IF.LibraryEvaluatorLoader;
 import edu.udel.cis.vsl.civl.semantics.IF.Semantics;
 import edu.udel.cis.vsl.civl.semantics.IF.SymbolicAnalyzer;
 import edu.udel.cis.vsl.civl.semantics.IF.Transition;
-import edu.udel.cis.vsl.civl.semantics.IF.Transition.AtomicLockAction;
 import edu.udel.cis.vsl.civl.state.IF.MemoryUnitFactory;
 import edu.udel.cis.vsl.civl.state.IF.MemoryUnitSet;
 import edu.udel.cis.vsl.civl.state.IF.State;
@@ -93,13 +92,11 @@ public abstract class BaseLibraryEnabler extends LibraryComponent
 
 	@Override
 	public List<Transition> enabledTransitions(State state,
-			CallOrSpawnStatement call, BooleanExpression clause, int pid,
-			AtomicLockAction atomicLockAction)
+			CallOrSpawnStatement call, BooleanExpression clause, int pid)
 			throws UnsatisfiablePathConditionException {
 		List<Transition> localTransitions = new LinkedList<>();
 
-		localTransitions.add(
-				Semantics.newTransition(pid, clause, call, atomicLockAction));
+		localTransitions.add(Semantics.newTransition(pid, clause, call));
 		return localTransitions;
 	}
 
@@ -126,7 +123,6 @@ public abstract class BaseLibraryEnabler extends LibraryComponent
 		MemoryUnitSet handleObjMemUnits = memUnitFactory.newMemoryUnitSet();
 		BitSet ampleSet = new BitSet();
 		int numProcs = state.numProcs();
-		// Evaluation eval = evaluator.evaluate(state, pid, handleObj);
 		CIVLSource source = handleObj.getSource();
 
 		handleObjMemUnits.add(memUnitFactory.newMemoryUnit(
@@ -134,16 +130,6 @@ public abstract class BaseLibraryEnabler extends LibraryComponent
 						symbolicUtil.getScopeValue(handleObjValue)),
 				symbolicUtil.getVariableId(source, handleObjValue),
 				symbolicUtil.getSymRef(handleObjValue)));
-		// try {
-		// handleObjMemUnits = evaluator.memoryUnitsOfExpression(state, pid,
-		// handleObj, handleObjMemUnits);
-		//
-		// dd
-		//
-		// } catch (UnsatisfiablePathConditionException e) {
-		// memUnitFactory.add(handleObjMemUnits, handleObjValue);
-		// // handleObjMemUnits.add(handleObjValue);
-		// }
 		for (int otherPid = 0; otherPid < numProcs; otherPid++) {
 			if (otherPid == pid || ampleSet.get(otherPid))
 				continue;

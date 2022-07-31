@@ -1888,8 +1888,7 @@ public class SimpleEnablerWorker {
 			return;
 		// second half of $yield: re-obtaining lock...
 		if (enabler.isYield(stmt) && !stateFactory.lockedByAtomic(theState)) {
-			result.add(Semantics.newTransition(pid, guardValue, stmt, false,
-					null));
+			result.add(Semantics.newTransition(pid, guardValue, stmt, false));
 		} else if (enabler.isSystemCall(theState, pid, stmt)) {
 			result.addAll(enabler.enabledTransitionsOfSystemCall(theState, pid,
 					guardValue, (CallOrSpawnStatement) stmt));
@@ -1898,9 +1897,8 @@ public class SimpleEnablerWorker {
 			boolean noop = stmt.statementKind() == StatementKind.NOOP;
 			Transition trans = noop
 					? Semantics.newNoopTransition(pid, guardValue, stmt,
-							simplify, null)
-					: Semantics.newTransition(pid, guardValue, stmt, simplify,
-							null);
+							simplify)
+					: Semantics.newTransition(pid, guardValue, stmt, simplify);
 
 			result.add(trans);
 		}

@@ -39,7 +39,6 @@ import edu.udel.cis.vsl.civl.semantics.IF.LibraryLoaderException;
 import edu.udel.cis.vsl.civl.semantics.IF.Semantics;
 import edu.udel.cis.vsl.civl.semantics.IF.SymbolicAnalyzer;
 import edu.udel.cis.vsl.civl.semantics.IF.Transition;
-import edu.udel.cis.vsl.civl.semantics.IF.Transition.AtomicLockAction;
 import edu.udel.cis.vsl.civl.state.IF.MemoryUnitSet;
 import edu.udel.cis.vsl.civl.state.IF.ProcessState;
 import edu.udel.cis.vsl.civl.state.IF.State;
@@ -95,18 +94,16 @@ public class LibcommEnabler extends BaseLibraryEnabler
 
 	@Override
 	public List<Transition> enabledTransitions(State state,
-			CallOrSpawnStatement call, BooleanExpression clause, int pid,
-			AtomicLockAction atomicLockAction)
+			CallOrSpawnStatement call, BooleanExpression clause, int pid)
 			throws UnsatisfiablePathConditionException {
 		String functionName = call.function().name().name();
 
 		switch (functionName) {
 			case "$comm_dequeue" :
 				return this.enabledCommDequeueTransitions(state, call, clause,
-						pid, atomicLockAction);
+						pid);
 			default :
-				return super.enabledTransitions(state, call, clause, pid,
-						atomicLockAction);
+				return super.enabledTransitions(state, call, clause, pid);
 		}
 	}
 
@@ -219,8 +216,7 @@ public class LibcommEnabler extends BaseLibraryEnabler
 	 * @throws UnsatisfiablePathConditionException
 	 */
 	private List<Transition> enabledCommDequeueTransitions(State state,
-			CallOrSpawnStatement call, BooleanExpression clause, int pid,
-			AtomicLockAction atomicLockAction)
+			CallOrSpawnStatement call, BooleanExpression clause, int pid)
 			throws UnsatisfiablePathConditionException {
 		List<Expression> arguments = call.arguments();
 		List<Transition> localTransitions = new LinkedList<>();
@@ -302,10 +298,9 @@ public class LibcommEnabler extends BaseLibraryEnabler
 					call.isInitializer());
 			for (int j = 0; j < callWorkers.size(); j++)
 				localTransitions.add(Semantics.newTransition(pid, clause,
-						callWorkers.get(j), atomicLockAction));
+						callWorkers.get(j)));
 		} else
-			localTransitions.add(Semantics.newTransition(pid, clause, call,
-					atomicLockAction));
+			localTransitions.add(Semantics.newTransition(pid, clause, call));
 		return localTransitions;
 	}
 
@@ -464,7 +459,8 @@ public class LibcommEnabler extends BaseLibraryEnabler
 
 		eval = evaluator.evaluate(state, pid, commHandleExpr);
 		commHandle = eval.value;
-		commHandleIsNull = universe.equals(commHandle, symbolicUtil.nullPointer());
+		commHandleIsNull = universe.equals(commHandle,
+				symbolicUtil.nullPointer());
 		if (commHandleIsNull.isTrue())
 			return universe.falseExpression();
 		assert commHandleIsNull

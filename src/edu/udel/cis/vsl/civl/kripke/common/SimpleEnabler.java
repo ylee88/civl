@@ -788,10 +788,10 @@ public class SimpleEnabler implements Enabler {
 		LibraryEnabler lib = libraryEnabler(call.getSource(), sf.getLibrary());
 
 		if (lib != null) {
-			return lib.enabledTransitions(state, call, guardValue, pid, null);
+			return lib.enabledTransitions(state, call, guardValue, pid);
 		} else {
-			return Arrays.asList(
-					Semantics.newTransition(pid, guardValue, call, null));
+			return Arrays
+					.asList(Semantics.newTransition(pid, guardValue, call));
 		}
 	}
 
@@ -840,7 +840,7 @@ public class SimpleEnabler implements Enabler {
 		} else {
 			boolean simplify = isAssume(stmt);
 			Transition trans = Semantics.newTransition(pid, guardValue, stmt,
-					simplify, null);
+					simplify);
 
 			return trans;
 		}

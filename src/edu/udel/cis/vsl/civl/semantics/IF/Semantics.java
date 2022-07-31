@@ -5,7 +5,6 @@ import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.log.IF.CIVLErrorLogger;
 import edu.udel.cis.vsl.civl.model.IF.ModelFactory;
 import edu.udel.cis.vsl.civl.model.IF.statement.Statement;
-import edu.udel.cis.vsl.civl.semantics.IF.Transition.AtomicLockAction;
 import edu.udel.cis.vsl.civl.semantics.common.CommonEvaluator;
 import edu.udel.cis.vsl.civl.semantics.common.CommonExecutor;
 import edu.udel.cis.vsl.civl.semantics.common.CommonLibraryEvaluatorLoader;
@@ -169,13 +168,11 @@ public class Semantics {
 	 * @param statement
 	 *            The statement associated with this transition, it will be
 	 *            executed by the executor.
-	 * @param atomicLockAction
-	 *            An instance of {@link AtomicLockAction}
 	 * @return A new instance of regular {@link CommonTransition}
 	 */
 	public static Transition newTransition(int pid, BooleanExpression clause,
-			Statement statement, AtomicLockAction atomicLockAction) {
-		return new CommonTransition(clause, pid, statement, atomicLockAction);
+			Statement statement) {
+		return new CommonTransition(clause, pid, statement);
 	}
 
 	/**
@@ -199,10 +196,8 @@ public class Semantics {
 	 * @return A new instance of regular {@link CommonTransition}
 	 */
 	public static Transition newTransition(int pid, BooleanExpression clause,
-			Statement statement, boolean simplifyState,
-			AtomicLockAction atomicLockAction) {
-		return new CommonTransition(clause, pid, statement, simplifyState,
-				atomicLockAction);
+			Statement statement, boolean simplifyState) {
+		return new CommonTransition(clause, pid, statement, simplifyState);
 	}
 
 	/**
@@ -220,15 +215,12 @@ public class Semantics {
 	 * @param simplifyState
 	 *            A flag, set to true if and only if the target state of this
 	 *            transition must be simplified.
-	 * @param atomicLockAction
-	 *            An instance of {@link AtomicLockAction}
 	 * @return A new instance of {@link NoopTransition}
 	 */
 	public static NoopTransition newNoopTransition(int pid,
 			BooleanExpression assumption, Statement statement,
-			boolean symplifyState, AtomicLockAction atomicLockAction) {
-		return new NoopTransition(pid, assumption, statement, symplifyState,
-				atomicLockAction);
+			boolean symplifyState) {
+		return new NoopTransition(pid, assumption, statement, symplifyState);
 	}
 
 	public static MemoryUnitExpressionEvaluator newMemoryUnitEvaluator(
