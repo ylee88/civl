@@ -47,7 +47,7 @@ __global__ void sum(int* in, int* out) {
   }
 }
 
-int main(void) {
+int main() {
 
   int i, *dev_in, *dev_out, host[N];
 #ifdef _CIVL

@@ -80,7 +80,7 @@ __global__ void dot( float *a, float *b, float *c ) {
 }
 
 
-int main( void ) {
+int main() {
 #ifdef _CIVL
     $assume((isPowerOfTwo(threadsPerBlock)));
 #endif

@@ -1,0 +1,26 @@
+#include <stdio.h>
+#include <comm.cvh>
+
+void testStream($gcomm gc){
+  $comm comm = $comm_create($here, gc, 1);
+  $message message = $comm_dequeue(comm, 0, $COMM_ANY_TAG);
+  printf("New kernel message received\n");
+  void (*kernel)();
+  $message_unpack(message, (void*)&kernel, sizeof(kernel));
+  kernel();
+  $comm_destroy(comm); 
+}
+
+void print(){
+  printf("Inside kernel function");
+}
+
+void main(){
+  $gcomm gcomm = $gcomm_create($here, 2);
+  $comm comm = $comm_create($here, gcomm, 0);
+  $spawn testStream(gcomm);
+  $message message = $message_pack(0, 1, 0, (void*)&print, sizeof(&print));
+  $comm_enqueue(comm, message);
+  $comm_destroy(comm);
+  $gcomm_destroy(gcomm, NULL);
+}

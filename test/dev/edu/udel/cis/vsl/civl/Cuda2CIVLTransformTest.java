@@ -1,5 +1,7 @@
 package edu.udel.cis.vsl.civl;
 
+import static org.junit.Assert.assertFalse;
+
 //
 //import java.io.File;
 //import java.io.IOException;
@@ -137,6 +139,17 @@ public class Cuda2CIVLTransformTest {
 				filename("cuda-omp.cu")));
 	}
 	
+	@Test
+	public void deadlockBugTest() {
+		assertFalse(ui.run("verify", filename("deadlockBug.cu")));
+	}
+	
+	@Test
+	public void sendFunctionTest() {
+		assertTrue(ui.run("verify", filename("send_function_test.cvl")));
+	}
+
+	
 	/*
 	@Test
 	public void debug() { //REMOVE before merge
@@ -144,4 +157,5 @@ public class Cuda2CIVLTransformTest {
 		//assertTrue(ui.run("verify", filename("test.cu")));
 	}
 	*/
+	
 }
