@@ -245,13 +245,15 @@ public class LibstringExecutor extends BaseLibraryExecutor
 		Triple<State, StringBuffer, Boolean> strEval2 = null;
 		StringBuffer str1, str2;
 
-		if ((charPointer1.operator() != SymbolicOperator.TUPLE)) {
+		if (civlConfig.checkPointerErr()
+				&& (charPointer1.operator() != SymbolicOperator.TUPLE)) {
 			errorLogger.logSimpleError(source, state, process,
 					symbolicAnalyzer.stateInformation(state), ErrorKind.POINTER,
 					"attempt to read/write from an invalid pointer");
 			throw new UnsatisfiablePathConditionException();
 		}
-		if ((charPointer2.operator() != SymbolicOperator.TUPLE)) {
+		if (civlConfig.checkPointerErr()
+				&& (charPointer2.operator() != SymbolicOperator.TUPLE)) {
 			errorLogger.logSimpleError(source, state, process,
 					symbolicAnalyzer.stateInformation(state), ErrorKind.POINTER,
 					"attempt to read/write from an invalid pointer");
@@ -468,7 +470,8 @@ public class LibstringExecutor extends BaseLibraryExecutor
 		pointer = argumentValues[0];
 		c = argumentValues[1];
 		// check if pointer is valid first
-		if (pointer.operator() != SymbolicOperator.TUPLE) {
+		if (civlConfig.checkPointerErr()
+				&& pointer.operator() != SymbolicOperator.TUPLE) {
 			errorLogger.logSimpleError(source, state, process,
 					symbolicAnalyzer.stateInformation(state), ErrorKind.POINTER,
 					"attempt to read/write from an invalid pointer");

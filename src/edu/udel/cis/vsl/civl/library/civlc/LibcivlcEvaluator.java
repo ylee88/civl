@@ -137,7 +137,7 @@ public class LibcivlcEvaluator extends BaseLibraryEvaluator
 
 		if (numOfProcs_int == 0)
 			return new Evaluation(state, trueValue);
-		if (symbolicUtil.isNullPointer(procsPointer)) {
+		if (symbolicUtil.isNullPointer(procsPointer) && civlConfig.checkPointerErr()) {
 			this.errorLogger.logSimpleError(arguments[0].getSource(), state,
 					process, symbolicAnalyzer.stateInformation(state),
 					ErrorKind.POINTER, "pointer argument to $waitall is NULL");

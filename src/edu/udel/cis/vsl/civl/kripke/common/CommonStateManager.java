@@ -215,7 +215,7 @@ public class CommonStateManager extends CIVLStateManager {
 			}
 			if (stmt == null)
 				return; // no true guard, possible deadlock
-			if (config.deadlock() == DeadlockKind.POTENTIAL
+			if (config.checkDeadlockKind() == DeadlockKind.POTENTIAL
 					&& enabler.isSend(state, pid, stmt))
 				return;
 			transition = enabler.singleTransitionFromStatement(state, pid,

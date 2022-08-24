@@ -4,12 +4,28 @@ import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.analyzeAbsO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.astO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkDivisionByZeroO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkMemoryLeakO;
+import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkDeadlockO;
+import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkAssertionViolationO;
+import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkCommErrO;
+import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkConstWriteO;
+import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkInputWriteO;
+import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkInvalidCastO;
+import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkMallocErrO;
+import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkMpiErrO;
+import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkOutOfBoundsO;
+import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkOutputReadO;
+import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkPointerErrO;
+import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkUndefValO;
+import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkUnionErrO;
+import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkProcLeakO;
+import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkSeqErrO;
+import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkMemManageErrO;
+import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkTerminationO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.collectHeapsO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.collectOutputO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.collectProcessesO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.collectScopesO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.collectSymbolicConstantsO;
-import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.deadlockO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.debugO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.direct0;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.enablePrintfO;
@@ -86,37 +102,47 @@ public class CIVLCommand {
 	static {
 		CIVLCommand.addShowOption(showModelO, verboseO, debugO,
 				userIncludePathO, sysIncludePathO, svcomp16O, svcomp17O,
-				showInputVarsO, showProgramO, ompNoSimplifyO, ompOnlySimplifierO,
-				ompLoopDecompO, macroO, preprocO, astO, showTimeO, CIVLMacroO,
-				quietO, unpreprocO, direct0, intBit, intOperationTransformer,
-				maxProcsO);
+				showInputVarsO, showProgramO, ompNoSimplifyO,
+				ompOnlySimplifierO, ompLoopDecompO, macroO, preprocO, astO,
+				showTimeO, CIVLMacroO, quietO, unpreprocO, direct0, intBit,
+				intOperationTransformer, maxProcsO);
 		CIVLCommand.addVerifyOrCompareOption(errorBoundO, verboseO, debugO,
 				userIncludePathO, sysIncludePathO, showTransitionsO,
 				showStatesO, showSavedStatesO, showQueriesO, showProverQueriesO,
 				inputO, minO, loopO, mpiContractO, maxdepthO, procBoundO,
 				saveStatesO, simplifyO, solveO, enablePrintfO, showAmpleSetO,
-				showAmpleSetWtStatesO, statelessPrintfO, deadlockO, svcomp16O,
-				svcomp17O, showProgramO, showPathConditionO, ompNoSimplifyO,
+				showAmpleSetWtStatesO, statelessPrintfO, svcomp16O, svcomp17O,
+				showProgramO, showPathConditionO, ompNoSimplifyO,
 				ompOnlySimplifierO, ompLoopDecompO, collectProcessesO,
 				collectScopesO, collectSymbolicConstantsO, collectHeapsO,
 				macroO, preprocO, astO, showTimeO, showMemoryUnitsO, CIVLMacroO,
 				showUnreachedCodeO, analyzeAbsO, collectOutputO,
-				checkDivisionByZeroO, checkMemoryLeakO, timeoutO, quietO,
-				unpreprocO, direct0, intBit, intOperationTransformer,
-				maxProcsO);
+				checkDivisionByZeroO, checkMemoryLeakO, checkDeadlockO,
+				checkAssertionViolationO, checkCommErrO, checkConstWriteO,
+				checkInputWriteO, checkInvalidCastO, checkMallocErrO,
+				checkMpiErrO, checkOutOfBoundsO, checkOutputReadO,
+				checkPointerErrO, checkUndefValO, checkUnionErrO,
+				checkProcLeakO, checkSeqErrO, checkMemManageErrO,
+				checkTerminationO, timeoutO, quietO, unpreprocO, direct0,
+				intBit, intOperationTransformer, maxProcsO);
 		CIVLCommand.addCompareOption(errorBoundO, verboseO, debugO,
 				userIncludePathO, sysIncludePathO, showTransitionsO,
 				showStatesO, showSavedStatesO, showQueriesO, showProverQueriesO,
 				inputO, minO, maxdepthO, procBoundO, saveStatesO, simplifyO,
 				solveO, enablePrintfO, showAmpleSetO, showAmpleSetWtStatesO,
-				statelessPrintfO, deadlockO, svcomp16O, svcomp17O, showProgramO,
+				statelessPrintfO, svcomp16O, svcomp17O, showProgramO,
 				showPathConditionO, ompNoSimplifyO, ompOnlySimplifierO,
 				ompLoopDecompO, collectProcessesO, collectScopesO,
 				collectHeapsO, macroO, preprocO, astO, showTimeO,
 				showMemoryUnitsO, CIVLMacroO, showUnreachedCodeO, analyzeAbsO,
 				strictCompareO, checkDivisionByZeroO, checkMemoryLeakO,
-				timeoutO, quietO, unpreprocO, intBit, intOperationTransformer,
-				maxProcsO);
+				checkDeadlockO, checkAssertionViolationO, checkCommErrO,
+				checkConstWriteO, checkInputWriteO, checkInvalidCastO,
+				checkMallocErrO, checkMpiErrO, checkOutOfBoundsO,
+				checkOutputReadO, checkPointerErrO, checkUndefValO,
+				checkUnionErrO, checkProcLeakO, checkSeqErrO,
+				checkMemManageErrO, checkTerminationO, timeoutO, quietO,
+				unpreprocO, intBit, intOperationTransformer, maxProcsO);
 		CIVLCommand.addReplayOption(showModelO, verboseO, debugO,
 				showTransitionsO, showStatesO, showSavedStatesO, showQueriesO,
 				showProverQueriesO, idO, traceO, enablePrintfO, showAmpleSetO,
@@ -130,12 +156,17 @@ public class CIVLCommand {
 				showStatesO, showSavedStatesO, showQueriesO, showProverQueriesO,
 				inputO, maxdepthO, procBoundO, simplifyO, enablePrintfO,
 				showAmpleSetO, showAmpleSetWtStatesO, statelessPrintfO,
-				deadlockO, svcomp16O, svcomp17O, showProgramO,
-				showPathConditionO, ompNoSimplifyO, ompOnlySimplifierO,
-				ompLoopDecompO, collectProcessesO, collectScopesO,
-				collectHeapsO, macroO, preprocO, astO, showMemoryUnitsO,
-				CIVLMacroO, collectOutputO, checkDivisionByZeroO,
-				checkMemoryLeakO, timeoutO, quietO, unpreprocO, intBit,
+				svcomp16O, svcomp17O, showProgramO, showPathConditionO,
+				ompNoSimplifyO, ompOnlySimplifierO, ompLoopDecompO,
+				collectProcessesO, collectScopesO, collectHeapsO, macroO,
+				preprocO, astO, showMemoryUnitsO, CIVLMacroO, collectOutputO,
+				checkDivisionByZeroO, checkMemoryLeakO, checkDeadlockO,
+				checkAssertionViolationO, checkCommErrO, checkConstWriteO,
+				checkInputWriteO, checkInvalidCastO, checkMallocErrO,
+				checkMpiErrO, checkOutOfBoundsO, checkOutputReadO,
+				checkPointerErrO, checkUndefValO, checkUnionErrO,
+				checkProcLeakO, checkSeqErrO, checkMemManageErrO,
+				checkTerminationO, timeoutO, quietO, unpreprocO, intBit,
 				intOperationTransformer, maxProcsO);
 	}
 

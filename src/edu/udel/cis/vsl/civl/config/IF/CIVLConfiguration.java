@@ -25,9 +25,25 @@ public class CIVLConfiguration {
 	/**
 	 * What kind of deadlocks should CIVL search for?
 	 */
-	private DeadlockKind deadlock = DeadlockKind.ABSOLUTE;
-
+	private DeadlockKind checkDeadlockKind = DeadlockKind.ABSOLUTE;
 	private boolean checkDivisionByZero = true;
+	private boolean checkMemoryLeak = true;
+	private boolean checkAssertionViolation = true;
+	private boolean checkCommErr = true;
+	private boolean checkConstWrite = true;
+	private boolean checkInputWrite = true;
+	private boolean checkInvalidCast = true;
+	private boolean checkMallocErr = true;
+	private boolean checkMpiErr = true;
+	private boolean checkOutOfBounds = true;
+	private boolean checkOutputRead = true;
+	private boolean checkPointerErr = true;
+	private boolean checkUndefVal = true;
+	private boolean checkUnionErr = true;
+	private boolean checkProcLeak = true;
+	private boolean checkSeqErr = true;
+	private boolean checkMemManageErr = true;
+	private boolean checkTermination = true;
 
 	/**
 	 * Should CIVL run in "debug" mode, printing lots and lots of output?
@@ -262,13 +278,11 @@ public class CIVLConfiguration {
 	 * If CIVL enables "MPI CONTRACT" mode
 	 */
 	private String mpiContractFunction = null;
-	
+
 	/**
 	 * The MPI implementation model, by default is blocking:
 	 */
 	private MPIModelKind mpiModel = MPIModelKind.BLOCKING;
-
-	private boolean checkMemoryLeak = true;
 
 	private int timeout = -1;
 
@@ -314,14 +328,55 @@ public class CIVLConfiguration {
 	 */
 	public CIVLConfiguration(GMCSection config) {
 		String deadlockString = (String) config
-				.getValue(CIVLConstants.deadlockO);
+				.getValue(CIVLConstants.checkDeadlockO);
+		if (deadlockString != null)
+			switch (deadlockString) {
+				case "absolute" :
+					this.checkDeadlockKind = DeadlockKind.ABSOLUTE;
+					break;
+				case "potential" :
+					this.checkDeadlockKind = DeadlockKind.POTENTIAL;
+					break;
+				case "none" :
+					this.checkDeadlockKind = DeadlockKind.NONE;
+					break;
+				default :
+					throw new CIVLInternalException(
+							"invalid deadlock kind " + deadlockString,
+							(CIVLSource) null);
+			}
+		this.setCheckDivisionByZero(
+				config.isTrue(CIVLConstants.checkDivisionByZeroO));
+		this.setCheckMemoryLeak(config.isTrue(CIVLConstants.checkMemoryLeakO));
+		this.setCheckAssertionViolation(
+				config.isTrue(CIVLConstants.checkAssertionViolationO));
+		this.setCheckCommErr(config.isTrue(CIVLConstants.checkCommErrO));
+		this.setCheckConstWrite(config.isTrue(CIVLConstants.checkConstWriteO));
+		this.setCheckInputWrite(config.isTrue(CIVLConstants.checkInputWriteO));
+		this.setCheckInvalidCast(
+				config.isTrue(CIVLConstants.checkInvalidCastO));
+		this.setCheckMallocErr(config.isTrue(CIVLConstants.checkMallocErrO));
+		this.setCheckMpiErr(config.isTrue(CIVLConstants.checkMpiErrO));
+		this.setCheckOutOfBounds(
+				config.isTrue(CIVLConstants.checkOutOfBoundsO));
+		this.setCheckOutputRead(config.isTrue(CIVLConstants.checkOutputReadO));
+		this.setCheckPointerErr(config.isTrue(CIVLConstants.checkPointerErrO));
+		this.setCheckUndefVal(config.isTrue(CIVLConstants.checkUndefValO));
+		this.setCheckUnionErr(config.isTrue(CIVLConstants.checkUnionErrO));
+		this.setCheckProcLeak(config.isTrue(CIVLConstants.checkProcLeakO));
+		this.setCheckSeqErr(config.isTrue(CIVLConstants.checkSeqErrO));
+		this.setCheckMemManageErr(
+				config.isTrue(CIVLConstants.checkMemManageErrO));
+		this.setCheckTermination(
+				config.isTrue(CIVLConstants.checkTerminationO));
+
 		String ompLoopDecompString = (String) config
 				.getValue(CIVLConstants.ompLoopDecompO);
 		String errorStateEquivString = (String) config
 				.getValue(CIVLConstants.errorStateEquivO);
 
-		this.setMpiModel(MPIModelKind
-				.select((String) config.getValueOrDefault(CIVLConstants.mpiModelO)));
+		this.setMpiModel(MPIModelKind.select(
+				(String) config.getValueOrDefault(CIVLConstants.mpiModelO)));
 		if (ompLoopDecompString != null) {
 			switch (ompLoopDecompString) {
 				case "ALL" :
@@ -337,26 +392,10 @@ public class CIVLConfiguration {
 				default :
 					throw new CIVLInternalException(
 							"invalid OpenMP loop decomposition strategy "
-									+ deadlockString,
+									+ ompLoopDecompString,
 							(CIVLSource) null);
 			}
 		}
-		if (deadlockString != null)
-			switch (deadlockString) {
-				case "absolute" :
-					this.deadlock = DeadlockKind.ABSOLUTE;
-					break;
-				case "potential" :
-					this.deadlock = DeadlockKind.POTENTIAL;
-					break;
-				case "none" :
-					this.deadlock = DeadlockKind.NONE;
-					break;
-				default :
-					throw new CIVLInternalException(
-							"invalid deadlock kind " + deadlockString,
-							(CIVLSource) null);
-			}
 		if (errorStateEquivString != null)
 			switch (errorStateEquivString) {
 				case "LOC" :
@@ -426,9 +465,6 @@ public class CIVLConfiguration {
 		this.collectSymbolicNames = config
 				.isTrue(CIVLConstants.collectSymbolicConstantsO)
 				|| loopInvariantEnabled;
-		this.setCheckDivisionByZero(
-				config.isTrue(CIVLConstants.checkDivisionByZeroO));
-		this.checkMemoryLeak = config.isTrue(CIVLConstants.checkMemoryLeakO);
 		this.setTimeout((int) config.getValueOrDefault(CIVLConstants.timeoutO));
 		this.quiet = config.isTrue(CIVLConstants.quietO);
 		this.sliceAnalysis = config.isTrue(CIVLConstants.sliceAnalysisO);
@@ -448,8 +484,8 @@ public class CIVLConfiguration {
 				this.collectHeaps = false;
 			if (config.getValue(CIVLConstants.simplifyO) == null)
 				this.simplify = false;
-			if (config.getValue(CIVLConstants.deadlockO) == null)
-				this.deadlock = DeadlockKind.NONE;
+			if (config.getValue(CIVLConstants.checkDeadlockO) == null)
+				this.checkDeadlockKind = DeadlockKind.NONE;
 			if (config.getValue(CIVLConstants.procBoundO) == null)
 				this.procBound = 6;
 		}
@@ -460,8 +496,8 @@ public class CIVLConfiguration {
 				this.collectHeaps = false;
 			if (config.getValue(CIVLConstants.simplifyO) == null)
 				this.simplify = false;
-			if (config.getValue(CIVLConstants.deadlockO) == null)
-				this.deadlock = DeadlockKind.NONE;
+			if (config.getValue(CIVLConstants.checkDeadlockO) == null)
+				this.checkDeadlockKind = DeadlockKind.NONE;
 			if (config.getValue(CIVLConstants.procBoundO) == null)
 				this.procBound = 6;
 			this.intBit = 2;
@@ -476,15 +512,31 @@ public class CIVLConfiguration {
 	}
 
 	public CIVLConfiguration(CIVLConfiguration config) {
+		this.checkDeadlockKind = config.checkDeadlockKind;
 		this.checkDivisionByZero = config.checkDivisionByZero;
 		this.checkMemoryLeak = config.checkMemoryLeak;
+		this.checkAssertionViolation = config.checkAssertionViolation;
+		this.checkCommErr = config.checkCommErr;
+		this.checkConstWrite = config.checkConstWrite;
+		this.checkInputWrite = config.checkInputWrite;
+		this.checkInvalidCast = config.checkInvalidCast;
+		this.checkMallocErr = config.checkMallocErr;
+		this.checkMpiErr = config.checkMpiErr;
+		this.checkOutOfBounds = config.checkOutOfBounds;
+		this.checkOutputRead = config.checkOutputRead;
+		this.checkPointerErr = config.checkPointerErr;
+		this.checkUndefVal = config.checkUndefVal;
+		this.checkUnionErr = config.checkUnionErr;
+		this.checkProcLeak = config.checkProcLeak;
+		this.checkSeqErr = config.checkSeqErr;
+		this.checkMemManageErr = config.checkMemManageErr;
+		this.checkTermination = config.checkTermination;
 		this.absAnalysis = config.absAnalysis;
 		this.collectHeaps = config.collectHeaps;
 		this.collectOutputs = config.collectOutputs;
 		this.collectProcesses = config.collectProcesses;
 		this.collectScopes = config.collectScopes;
 		this.collectSymbolicNames = config.collectSymbolicNames;
-		this.deadlock = config.deadlock;
 		this.debug = config.debug;
 		this.err = config.err;
 		this.enablePrintf = config.enablePrintf;
@@ -525,6 +577,139 @@ public class CIVLConfiguration {
 	}
 
 	public CIVLConfiguration() {
+	}
+
+	public DeadlockKind checkDeadlockKind() {
+		return checkDeadlockKind;
+	}
+	public void setCheckDeadlockKind(DeadlockKind checkDeadlockKind) {
+		this.checkDeadlockKind = checkDeadlockKind;
+	}
+
+	public boolean checkDivisionByZero() {
+		return checkDivisionByZero;
+	}
+	public void setCheckDivisionByZero(boolean checkDivisionByZero) {
+		this.checkDivisionByZero = checkDivisionByZero;
+	}
+
+	public boolean checkMemoryLeak() {
+		return this.checkMemoryLeak;
+	}
+	public void setCheckMemoryLeak(boolean value) {
+		this.checkMemoryLeak = value;
+	}
+
+	public boolean checkAssertionViolation() {
+		return checkAssertionViolation;
+	}
+	public void setCheckAssertionViolation(boolean value) {
+		this.checkAssertionViolation = value;
+	}
+
+	public boolean checkCommErr() {
+		return checkCommErr;
+	}
+	public void setCheckCommErr(boolean value) {
+		this.checkCommErr = value;
+	}
+
+	public boolean checkConstWrite() {
+		return checkConstWrite;
+	}
+	public void setCheckConstWrite(boolean value) {
+		this.checkConstWrite = value;
+	}
+
+	public boolean checkInputWrite() {
+		return checkInputWrite;
+	}
+	public void setCheckInputWrite(boolean value) {
+		this.checkInputWrite = value;
+	}
+
+	public boolean checkInvalidCast() {
+		return checkInvalidCast;
+	}
+	public void setCheckInvalidCast(boolean value) {
+		this.checkInvalidCast = value;
+	}
+
+	public boolean checkMallocErr() {
+		return checkMallocErr;
+	}
+	public void setCheckMallocErr(boolean value) {
+		this.checkMallocErr = value;
+	}
+
+	public boolean checkMpiErr() {
+		return checkMpiErr;
+	}
+	public void setCheckMpiErr(boolean value) {
+		this.checkMpiErr = value;
+	}
+
+	public boolean checkOutOfBounds() {
+		return checkOutOfBounds;
+	}
+	public void setCheckOutOfBounds(boolean value) {
+		this.checkOutOfBounds = value;
+	}
+
+	public boolean checkOutputRead() {
+		return checkOutputRead;
+	}
+	public void setCheckOutputRead(boolean value) {
+		this.checkOutputRead = value;
+	}
+
+	public boolean checkPointerErr() {
+		return checkPointerErr;
+	}
+	public void setCheckPointerErr(boolean value) {
+		this.checkPointerErr = value;
+	}
+
+	public boolean checkUndefVal() {
+		return checkUndefVal;
+	}
+	public void setCheckUndefVal(boolean value) {
+		this.checkUndefVal = value;
+	}
+
+	public boolean checkUnionErr() {
+		return checkUnionErr;
+	}
+	public void setCheckUnionErr(boolean value) {
+		this.checkUnionErr = value;
+	}
+
+	public boolean checkProcLeak() {
+		return checkProcLeak;
+	}
+	public void setCheckProcLeak(boolean value) {
+		this.checkProcLeak = value;
+	}
+
+	public boolean checkSeqErr() {
+		return checkSeqErr;
+	}
+	public void setCheckSeqErr(boolean value) {
+		this.checkSeqErr = value;
+	}
+
+	public boolean checkMemManageErr() {
+		return checkMemManageErr;
+	}
+	public void setCheckMemManageErr(boolean value) {
+		this.checkMemManageErr = value;
+	}
+
+	public boolean checkTermination() {
+		return checkTermination;
+	}
+	public void setCheckTermination(boolean value) {
+		this.checkTermination = value;
 	}
 
 	public void setOut(PrintStream out) {
@@ -695,20 +880,12 @@ public class CIVLConfiguration {
 		this.svcomp16 = svcomp;
 	}
 
-	public DeadlockKind deadlock() {
-		return deadlock;
-	}
-
 	public void setCollectProcesses(boolean collectProcesses) {
 		this.collectProcesses = collectProcesses;
 	}
 
 	public void setCollectScopes(boolean collectScopes) {
 		this.collectScopes = collectScopes;
-	}
-
-	public void setDeadlock(DeadlockKind deadlock) {
-		this.deadlock = deadlock;
 	}
 
 	public boolean showProgram() {
@@ -931,28 +1108,12 @@ public class CIVLConfiguration {
 	public void setMpiModel(MPIModelKind modelKind) {
 		mpiModel = modelKind;
 	}
-	
+
 	/**
 	 * @return the MPI implementation model that will be used for this run.
 	 */
 	public MPIModelKind mpiModel() {
 		return mpiModel;
-	}
-	
-	public boolean checkDivisionByZero() {
-		return checkDivisionByZero;
-	}
-
-	public void setCheckDivisionByZero(boolean checkDivisionByZero) {
-		this.checkDivisionByZero = checkDivisionByZero;
-	}
-
-	public boolean checkMemoryLeak() {
-		return this.checkMemoryLeak;
-	}
-
-	public void setCheckMemoryLeak(boolean value) {
-		this.checkMemoryLeak = value;
 	}
 
 	/**

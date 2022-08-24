@@ -264,7 +264,7 @@ public class LibbundleExecutor extends BaseLibraryExecutor
 		baseDivides = universe.divides(baseSize, availableSize);
 		resultType = reasoner.valid(universe.and(baseDivides, inBound))
 				.getResultType();
-		if (resultType != ResultType.YES)
+		if (resultType != ResultType.YES && civlConfig.checkOutOfBounds())
 			eval.state = reportBundlePackError(state, pid, pointer,
 					availableSize, size, universe.and(baseDivides, inBound),
 					resultType, source);
@@ -462,7 +462,7 @@ public class LibbundleExecutor extends BaseLibraryExecutor
 						wrtArray);
 			}
 		}
-		if (errorCheckingResult != ResultType.YES)
+		if (errorCheckingResult != ResultType.YES && civlConfig.checkOutOfBounds())
 			state = reportBundleUnpackError(state, pid, pointer, bundleData,
 					typeFactory.bundleType(), sizeofBundleData, availableSize,
 					inBoundClaim, errorCheckingResult, source);

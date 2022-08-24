@@ -117,19 +117,22 @@ public class CollateExecutor {
 		try {
 			while (searcher.search(initState));
 		} catch (StateSpaceCycleException e) {
-			int stackSize = searcher.stack().size();
-			int stackPos = e.stackPos();
-			Transition lastTran = (stackPos < stackSize - 1)
-					? searcher.stack().get(stackSize - 2).peek()
-					: searcher.stack().peek().peek();
-			State lastState = searcher.stack().peek().getState();
-			String process = lastState.getProcessState(lastTran.pid()).name();
-			StringBuffer stateString = executor.evaluator().symbolicAnalyzer()
-					.stateInformation(lastState);
+			if (config.checkTermination()) {
+				int stackSize = searcher.stack().size();
+				int stackPos = e.stackPos();
+				Transition lastTran = (stackPos < stackSize - 1)
+						? searcher.stack().get(stackSize - 2).peek()
+						: searcher.stack().peek().peek();
+				State lastState = searcher.stack().peek().getState();
+				String process = lastState.getProcessState(lastTran.pid())
+						.name();
+				StringBuffer stateString = executor.evaluator()
+						.symbolicAnalyzer().stateInformation(lastState);
 
-			errorLogger.logSimpleError(lastTran.statement().getSource(),
-					lastState, process, stateString, ErrorKind.TERMINATION,
-					"A cycle in state space detected.  This execution will not terminate.");
+				errorLogger.logSimpleError(lastTran.statement().getSource(),
+						lastState, process, stateString, ErrorKind.TERMINATION,
+						"A cycle in state space detected.  This execution will not terminate.");
+			}
 		}
 		if (this.config.showTransitions() || this.config.showStates()
 				|| config.showSavedStates() || config.debugOrVerbose())

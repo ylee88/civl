@@ -458,7 +458,7 @@ public class CommonExecutor implements Executor {
 			claim = universe.divides(elementSize, mallocSize);
 			validity = universe.reasoner(pathCondition).valid(claim)
 					.getResultType();
-			if (validity != ResultType.YES) {
+			if (validity != ResultType.YES && civlConfig.checkMallocErr()) {
 				String elementType = statement.getStaticElementType()
 						.toString();
 				String message = "For a $malloc returning " + elementType
@@ -576,7 +576,7 @@ public class CommonExecutor implements Executor {
 						continue;
 					if (proc.getPid() == pid)
 						continue;
-					if (!this.civlConfig.svcomp() && !proc.hasEmptyStack()) {
+					if (civlConfig.checkProcLeak() && !this.civlConfig.svcomp() && !proc.hasEmptyStack()) {
 						errorLogger.logSimpleError(statement.getSource(), state,
 								process,
 								symbolicAnalyzer.stateInformation(state),
@@ -1013,7 +1013,7 @@ public class CommonExecutor implements Executor {
 				if (counter == -1)
 					throw new CIVLExecutionException(ErrorKind.OTHER,
 							Certainty.CONCRETE, process,
-							"Loop variables are not belong to the domain",
+							"Loop variables do not belong to the domain",
 							state, source);
 				// it's guaranteed that this iteration will have a
 				// subsequence.
@@ -1051,7 +1051,7 @@ public class CommonExecutor implements Executor {
 			} else
 				throw new CIVLExecutionException(ErrorKind.OTHER,
 						Certainty.CONCRETE, process,
-						"The domian object is neither a literal domain nor a rectangular domain",
+						"The domain object is neither a literal domain nor a rectangular domain",
 						state, source);
 		} catch (SARLException | ClassCastException e) {
 			throw new CIVLInternalException(
@@ -1445,7 +1445,7 @@ public class CommonExecutor implements Executor {
 		}
 		variable = state.getDyscope(sid).lexicalScope().variable(vid);
 		if (!isInitialization) {
-			if (variable.isInput()) {
+			if (variable.isInput() && civlConfig.checkInputWrite()) {
 				String process = state.getProcessState(pid).name();
 
 				errorLogger.logSimpleError(source, state, process,
@@ -1454,7 +1454,7 @@ public class CommonExecutor implements Executor {
 						"Attempt to write to input variable "
 								+ variable.name());
 				throw new UnsatisfiablePathConditionException();
-			} else if (variable.isConst()) {
+			} else if (variable.isConst() && civlConfig.checkConstWrite()) {
 				String process = state.getProcessState(pid).name();
 
 				errorLogger.logSimpleError(source, state, process,

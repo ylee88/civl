@@ -198,7 +198,7 @@ public class MemEvaluator extends CommonEvaluator {
 		ValueSetReference vsref;
 
 		if (!expr.getExpressionType().isSetType()) {
-			if (!symbolicUtil.isConcretePointer(eval.value))
+			if (civlConfig.checkPointerErr() && !symbolicUtil.isConcretePointer(eval.value))
 				errorLogger.logSimpleError(expr.getSource(), state,
 						state.getProcessState(pid).name(),
 						symbolicAnalyzer.stateInformation(state),
@@ -361,7 +361,7 @@ public class MemEvaluator extends CommonEvaluator {
 			SymbolicExpression oftVal)
 			throws UnsatisfiablePathConditionException {
 		if (ptrVal.type() == typeFactory.pointerSymbolicType())
-			if (!symbolicUtil.isConcretePointer(ptrVal)) {
+			if (civlConfig.checkPointerErr() && !symbolicUtil.isConcretePointer(ptrVal)) {
 				errorLogger.logSimpleError(expr.getSource(), state,
 						state.getProcessState(pid).name(),
 						symbolicAnalyzer.stateInformation(state),
@@ -775,9 +775,11 @@ public class MemEvaluator extends CommonEvaluator {
 			vsRef = refOnHeapObject;
 			valueType = heapObjectType;
 		}
-		// error checking ...
-		state = checkValueSetReferenceOutOfBound(state, pid, valueType, vsRef,
-				source);
+		if (civlConfig.checkOutOfBounds()) {
+			// error checking ...
+			state = checkValueSetReferenceOutOfBound(state, pid, valueType, vsRef,
+					source);
+		}
 
 		// make value of dynamic $mem type ...
 		Function<List<SymbolicExpression[]>, SymbolicExpression> memValueCreator = typeFactory

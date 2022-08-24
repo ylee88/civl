@@ -398,25 +398,31 @@ public class Verifier extends Player {
 						if (!workRemains)
 							break;
 					} catch (StateSpaceCycleException e) {
-						// a cycle in state space detected:
-						int stackPos = e.stackPos();
-						int stackSize = searcher.stack().size();
-						Transition lastTran = (stackPos < stackSize - 1)
-								? searcher.stack().get(stackSize - 2).peek()
-								: searcher.stack().peek().peek();
-						State lastState = searcher.stack().peek().getState();
-						String process = lastState
-								.getProcessState(lastTran.pid()).name();
-						CIVLSource source = lastTran.statement().getSource();
-						CIVLExecutionException cycleException = new CIVLExecutionException(
-								ErrorKind.TERMINATION, Certainty.CONCRETE,
-								process,
-								"A cycle in state space detected.  This execution will not terminate.",
-								lastState, source);
-						CIVLLogEntry entry = new CIVLLogEntry(civlConfig,
-								config, cycleException, evaluator.universe());
+						if (civlConfig.checkTermination()) {
+							// a cycle in state space detected:
+							int stackPos = e.stackPos();
+							int stackSize = searcher.stack().size();
+							Transition lastTran = (stackPos < stackSize - 1)
+									? searcher.stack().get(stackSize - 2).peek()
+									: searcher.stack().peek().peek();
+							State lastState = searcher.stack().peek()
+									.getState();
+							String process = lastState
+									.getProcessState(lastTran.pid()).name();
+							CIVLSource source = lastTran.statement()
+									.getSource();
+							CIVLExecutionException cycleException = new CIVLExecutionException(
+									ErrorKind.TERMINATION, Certainty.CONCRETE,
+									process,
+									"A cycle in state space detected.  This execution will not terminate.",
+									lastState, source);
+							CIVLLogEntry entry = new CIVLLogEntry(civlConfig,
+									config, cycleException,
+									evaluator.universe());
 
-						log.report(entry); // may throw ExcessiveErrorException
+							log.report(entry); // may throw
+												// ExcessiveErrorException
+						}
 						continue; // cycle violation logged, continue the search
 					}
 					violationFound = true;

@@ -204,7 +204,8 @@ public class LibpointerExecutor extends BaseLibraryExecutor
 				operandCount, false, false, source);
 		state = eval.state;
 		objs[1] = eval.value;
-		if (!objs[0].type().equals(objs[1].type())) {
+		if (civlConfig.checkPointerErr()
+				&& !objs[0].type().equals(objs[1].type())) {
 			errorLogger.logSimpleError(source, state, process,
 					symbolicAnalyzer.stateInformation(state), ErrorKind.POINTER,
 					"Arguments of the $apply system function have different types: \n"
@@ -446,8 +447,8 @@ public class LibpointerExecutor extends BaseLibraryExecutor
 		CIVLSource sourceLeft = arguments[0].getSource();
 		CIVLSource sourceRight = arguments[1].getSource();
 
-		if (symbolicUtil.isNullPointer(left)
-				|| symbolicUtil.isNullPointer(right)) {
+		if ((symbolicUtil.isNullPointer(left)
+				|| symbolicUtil.isNullPointer(right))) {
 			StringBuffer msg = new StringBuffer();
 
 			msg.append(
@@ -556,14 +557,16 @@ public class LibpointerExecutor extends BaseLibraryExecutor
 		if (invalidArg != -1) {
 			SymbolicExpression invalidValue = invalidArg == 0 ? first : second;
 
-			this.errorLogger.logSimpleError(source, state, process,
-					symbolicAnalyzer.stateInformation(state),
-					ErrorKind.UNDEFINED_VALUE,
-					"the object that " + arguments[invalidArg]
-							+ " points to is undefined, which has the value "
-							+ symbolicAnalyzer.symbolicExpressionToString(
-									arguments[invalidArg].getSource(), state,
-									null, invalidValue));
+			if (civlConfig.checkUndefVal()) {
+				this.errorLogger.logSimpleError(source, state, process,
+						symbolicAnalyzer.stateInformation(state),
+						ErrorKind.UNDEFINED_VALUE,
+						"the object that " + arguments[invalidArg]
+								+ " points to is undefined, which has the value "
+								+ symbolicAnalyzer.symbolicExpressionToString(
+										arguments[invalidArg].getSource(),
+										state, null, invalidValue));
+			}
 			// recovery:
 			rhs = this.falseValue;
 		} else
@@ -610,7 +613,7 @@ public class LibpointerExecutor extends BaseLibraryExecutor
 			firstPtrDefined = false;
 		if (secondPtr.operator() != SymbolicOperator.TUPLE)
 			secPtrDefined = false;
-		if (!firstPtrDefined || !secPtrDefined) {
+		if ((!firstPtrDefined || !secPtrDefined)) {
 			String msg = new String();
 
 			if (!firstPtrDefined)
@@ -671,7 +674,8 @@ public class LibpointerExecutor extends BaseLibraryExecutor
 		}
 		claim = universe.equals(first, second);
 		resultType = reasoner.valid(claim).getResultType();
-		if (resultType != ResultType.YES) {
+		if (resultType != ResultType.YES
+				&& civlConfig.checkAssertionViolation()) {
 			StringBuilder message = new StringBuilder();
 			String firstArg, secondArg;
 
@@ -825,14 +829,15 @@ public class LibpointerExecutor extends BaseLibraryExecutor
 			claim = universe.divides(ptr_primType_size, type_size);
 			reasoner = universe.reasoner(state.getPathCondition(universe));
 			resultType = reasoner.valid(claim).getResultType();
-			if (!resultType.equals(ResultType.YES)) {
+			if (civlConfig.checkPointerErr()
+					&& !resultType.equals(ResultType.YES)) {
 				state = this.errorLogger.logError(source, state, pid,
 						this.symbolicAnalyzer.stateInformation(state), claim,
 						resultType, ErrorKind.POINTER,
 						"the primitive type of the object pointed by input pointer:"
 								+ primitiveTypePointed + " must be"
 								+ " consistent with the size of the"
-								+ " primitive type specified at the forth argument: "
+								+ " primitive type specified at the third argument: "
 								+ type_size);
 			}
 			// e.g. If type_size == 2 * sizeof(T), then the offset = offset * 2:

@@ -127,7 +127,8 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 		Pair<BooleanExpression, ResultType> checkPointer = symbolicAnalyzer
 				.isDefinedPointer(state, firstElementPointer, source);
 
-		if (checkPointer.right != ResultType.YES) {
+		if (civlConfig.checkMemManageErr()
+				&& checkPointer.right != ResultType.YES) {
 			state = this.errorLogger.logError(source, state, pid,
 					symbolicAnalyzer.stateInformation(state), checkPointer.left,
 					checkPointer.right, ErrorKind.MEMORY_MANAGE,
@@ -135,9 +136,11 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 			// dont report unsatisfiable path condition exception
 		} else if (this.symbolicUtil.isNullPointer(firstElementPointer)) {
 			// does nothing for null pointer.
-		} else if (!this.symbolicUtil.isPointerToHeap(firstElementPointer)
-				|| !this.symbolicUtil.isMallocPointer(source,
-						firstElementPointer)) {
+		} else if (civlConfig.checkMemManageErr()
+				&& civlConfig.checkMemManageErr()
+				&& (!this.symbolicUtil.isPointerToHeap(firstElementPointer)
+						|| !this.symbolicUtil.isMallocPointer(source,
+								firstElementPointer))) {
 			this.errorLogger.logSimpleError(source, state, process,
 					symbolicAnalyzer.stateInformation(state),
 					ErrorKind.MEMORY_MANAGE,
@@ -160,7 +163,8 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 				heapObject = eval.value;
 				state = eval.state;
 			}
-			if (heapObject != null && heapObject.isNull()) {
+			if (civlConfig.checkMemManageErr() && heapObject != null
+					&& heapObject.isNull()) {
 				// the heap object has been deallocated
 				this.errorLogger.logSimpleError(source, state, process,
 						symbolicAnalyzer.stateInformation(state),
@@ -179,8 +183,8 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 							pointer2memoryBlk, source);
 					state = eval.state;
 					if (saveWrite)
-						state = stateFactory.addReadWriteRecords(state,
-								pid, eval.value, false);
+						state = stateFactory.addReadWriteRecords(state, pid,
+								eval.value, false);
 				}
 				state = stateFactory.deallocate(state, firstElementPointer,
 						symbolicUtil.getScopeValue(firstElementPointer),

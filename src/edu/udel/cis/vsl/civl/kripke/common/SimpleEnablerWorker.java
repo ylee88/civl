@@ -2177,7 +2177,7 @@ public class SimpleEnablerWorker {
 		// optimization: handle the common cases first.
 		// TODO: perform this computation statically
 
-		DeadlockKind kind = enabler.config.deadlock();
+		DeadlockKind kind = enabler.config.checkDeadlockKind();
 
 		if (kind == DeadlockKind.NONE)
 			return true;

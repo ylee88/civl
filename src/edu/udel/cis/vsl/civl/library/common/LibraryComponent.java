@@ -735,7 +735,7 @@ public abstract class LibraryComponent {
 		if (!this.civlConfig.svcomp()) {
 			claim = universe.lessThan(dataSeqLength, count);
 			resultType = reasoner.valid(claim).getResultType();
-			if (resultType.equals(ResultType.YES))
+			if (resultType.equals(ResultType.YES) && civlConfig.checkOutOfBounds())
 				reportOutOfBoundError(state, pid, claim, resultType, pointer,
 						dataSeqLength, count, source);
 		}
@@ -764,21 +764,23 @@ public abstract class LibraryComponent {
 						new Evaluation(state,
 								universe.arrayRead(dataArray, zero)),
 						symbolicUtil.makePointer(pointer, symref));
-			// report error:
-			CIVLType integerType;
-
-			integerType = typeFactory.integerType();
-			errorLogger.logSimpleError(source, state, process,
-					symbolicAnalyzer.stateInformation(state),
-					ErrorKind.OUT_OF_BOUNDS,
-					"$bundle_unpack out of bound: \nPointer: "
-							+ symbolicAnalyzer.symbolicExpressionToString(
-									source, state, ptrExpr.getExpressionType(),
-									pointer)
-							+ "\nSize: "
-							+ symbolicAnalyzer.symbolicExpressionToString(
-									source, state, integerType, count)
-							+ "\n");
+			if (civlConfig.checkOutOfBounds()) {
+				// report error:
+				CIVLType integerType;
+	
+				integerType = typeFactory.integerType();
+				errorLogger.logSimpleError(source, state, process,
+						symbolicAnalyzer.stateInformation(state),
+						ErrorKind.OUT_OF_BOUNDS,
+						"$bundle_unpack out of bound: \nPointer: "
+								+ symbolicAnalyzer.symbolicExpressionToString(
+										source, state, ptrExpr.getExpressionType(),
+										pointer)
+								+ "\nSize: "
+								+ symbolicAnalyzer.symbolicExpressionToString(
+										source, state, integerType, count)
+								+ "\n");
+			}
 		}
 		eval_and_slices = evaluator.arrayElementReferenceAdd(state, pid,
 				pointer, count, source);
@@ -817,7 +819,7 @@ public abstract class LibraryComponent {
 		if (eval.value.type().typeKind().equals(SymbolicTypeKind.ARRAY)) {
 			eval = setDataBetween(state, pid, eval.value, arraySlicesSizes,
 					startPos, count, pointer, dataArray, source);
-		} else {
+		} else if (civlConfig.checkOutOfBounds()){
 			reportOutOfBoundError(state, pid, null, null, startPtr, one, count,
 					source);
 		}
@@ -865,7 +867,7 @@ public abstract class LibraryComponent {
 		if (reasoner.isValid(universe.equals(count, one))) {
 			eval = evaluator.dereference(source, state, process, pointer, true,
 					true);
-			if (eval.value.isNull())
+			if (civlConfig.checkUndefVal() && eval.value.isNull())
 				reportUndefinedValueError(state, pid,
 						symbolicUtil.getSymRef(pointer).isIdentityReference(),
 						pointerExpr);
@@ -895,7 +897,7 @@ public abstract class LibraryComponent {
 				true);
 		state = eval.state;
 		rootArray = eval.value;
-		if (rootArray.isNull())
+		if (civlConfig.checkUndefVal() && rootArray.isNull())
 			reportUndefinedValueError(state, pid,
 					symbolicUtil.getSymRef(pointer).isIdentityReference(),
 					pointerExpr);

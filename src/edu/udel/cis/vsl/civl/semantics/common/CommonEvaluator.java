@@ -494,7 +494,7 @@ public class CommonEvaluator implements Evaluator {
 			variableValue = variable.constantValue();
 		} else {
 			variable = state.getDyscope(sid).lexicalScope().variable(vid);
-			if (!analysisOnly && checkOutput)
+			if (!analysisOnly && checkOutput && civlConfig.checkOutputRead())
 				if (variable.isOutput()) {
 					errorLogger.logSimpleError(source, state, process,
 							symbolicAnalyzer.stateInformation(state),
@@ -509,7 +509,7 @@ public class CommonEvaluator implements Evaluator {
 		if (variableValue.isNull())
 			if (!strict && symRef.isIdentityReference())
 				return new Evaluation(state, variableValue);
-			else if (!muteErrorSideEffects) {
+			else if (civlConfig.checkUndefVal() && !muteErrorSideEffects) {
 				errorLogger.logSimpleError(source, state, process,
 						symbolicAnalyzer.stateInformation(state),
 						ErrorKind.UNDEFINED_VALUE,
@@ -589,14 +589,14 @@ public class CommonEvaluator implements Evaluator {
 
 		if (pointer == symbolicUtil.undefinedPointer()
 				|| !pointer.type().equals(pointerType)) {
-			if (!muteErrorSideEffects)
+			if (civlConfig.checkUndefVal() && !muteErrorSideEffects)
 				errorLogger.logSimpleError(source, state, process,
 						this.symbolicAnalyzer.stateInformation(state),
 						ErrorKind.UNDEFINED_VALUE,
 						"attempt to deference an invalid pointer");
 			throwPCException = true;
 		} else if (pointer.operator() != SymbolicOperator.TUPLE) {
-			if (!muteErrorSideEffects)
+			if (civlConfig.checkUndefVal() && !muteErrorSideEffects)
 				errorLogger.logSimpleError(source, state, process,
 						symbolicAnalyzer.stateInformation(state),
 						ErrorKind.UNDEFINED_VALUE,
@@ -1181,10 +1181,12 @@ public class CommonEvaluator implements Evaluator {
 		try {
 			eval.value = universe.cast(endType, eval.value);
 		} catch (SARLException e) {
-			errorLogger.logSimpleError(arg.getSource(), state, process,
+			if (civlConfig.checkInvalidCast()) {
+				errorLogger.logSimpleError(arg.getSource(), state, process,
 					this.symbolicAnalyzer.stateInformation(state),
 					ErrorKind.INVALID_CAST, "SARL could not cast: " + e);
-			throw new UnsatisfiablePathConditionException();
+				throw new UnsatisfiablePathConditionException();
+			}
 		}
 		return eval;
 	}
@@ -1516,7 +1518,7 @@ public class CommonEvaluator implements Evaluator {
 			BooleanExpression test = universe
 					.unionTest(universe.intObject(fieldIndex), structValue);
 
-			if (test.isFalse()) {
+			if (civlConfig.checkUnionErr() && test.isFalse()) {
 				errorLogger.logSimpleError(expression.getSource(), eval.state,
 						process, this.symbolicAnalyzer.stateInformation(state),
 						ErrorKind.UNION,
@@ -1571,7 +1573,7 @@ public class CommonEvaluator implements Evaluator {
 		if (function == null) {
 			errorLogger.logSimpleError(expression.getSource(), state, process,
 					symbolicAnalyzer.stateInformation(state), ErrorKind.OTHER,
-					"function body cann't be found");
+					"function body can't be found");
 			throw new UnsatisfiablePathConditionException();
 		}
 		if (function.isSystemFunction()) {
@@ -1885,7 +1887,7 @@ public class CommonEvaluator implements Evaluator {
 	 *            The value of the denominator
 	 * @param muteErrorSideEffects
 	 *            Division by zero error will NOT be reported iff this parameter
-	 *            is set to true.
+	 *            is set to true or civlConfig.checkDivisionByZero() is false.
 	 * @return The evaluation of this operation.
 	 * @throws UnsatisfiablePathConditionException
 	 *             When the denominator equals to zero.
@@ -1897,7 +1899,8 @@ public class CommonEvaluator implements Evaluator {
 		BooleanExpression assumption = state.getPathCondition(universe);
 		SymbolicExpression result = null;
 
-		if (!(civlConfig.svcomp() || muteErrorSideEffects)) {
+		if (!(civlConfig.svcomp() || muteErrorSideEffects)
+				&& civlConfig.checkDivisionByZero()) {
 			BooleanExpression claim = universe
 					.neq(zeroOf(expression.getSource(),
 							expression.getExpressionType()), denominator);
@@ -2450,7 +2453,7 @@ public class CommonEvaluator implements Evaluator {
 
 		eval = evaluate(state, pid, expression.index());
 		index = (NumericExpression) eval.value;
-		if (!muteErrorSideEffect)
+		if (!muteErrorSideEffect && civlConfig.checkOutOfBounds())
 			eval.state = checkArrayIndexInBound(eval.state, pid, expression,
 					arrayType, array, index, false);
 		eval.value = universe.arrayRead(array, index);
@@ -2700,7 +2703,7 @@ public class CommonEvaluator implements Evaluator {
 	protected Evaluation evaluateVariable(State state, int pid, String process,
 			VariableExpression expression, boolean checkUndefinedValue)
 			throws UnsatisfiablePathConditionException {
-		if (expression.variable().isOutput()) {
+		if (expression.variable().isOutput() && civlConfig.checkOutputRead()) {
 			errorLogger.logSimpleError(expression.getSource(), state, process,
 					this.symbolicAnalyzer.stateInformation(state),
 					ErrorKind.OUTPUT_READ,
@@ -2711,7 +2714,7 @@ public class CommonEvaluator implements Evaluator {
 			SymbolicExpression value = state.valueOf(pid,
 					expression.variable());
 
-			if (checkUndefinedValue && value.isNull()) {
+			if (checkUndefinedValue && civlConfig.checkUndefVal() && value.isNull()) {
 				errorLogger.logSimpleError(expression.getSource(), state,
 						process, this.symbolicAnalyzer.stateInformation(state),
 						ErrorKind.UNDEFINED_VALUE,
@@ -3073,7 +3076,7 @@ public class CommonEvaluator implements Evaluator {
 		CIVLType expressionType = expression.getExpressionType();
 
 		if (expressionType.equals(typeFactory.scopeType())) {
-			if (expressionValue.equals(modelFactory
+			if (civlConfig.checkUndefVal() && expressionValue.equals(modelFactory
 					.undefinedValue(typeFactory.scopeSymbolicType()))) {
 				errorLogger.logSimpleError(source, state, process,
 						symbolicAnalyzer.stateInformation(state),
@@ -3082,7 +3085,7 @@ public class CommonEvaluator implements Evaluator {
 				throw new UnsatisfiablePathConditionException();
 			}
 		} else if (expressionType.equals(typeFactory.processType())) {
-			if (expressionValue.equals(modelFactory
+			if (civlConfig.checkUndefVal() && expressionValue.equals(modelFactory
 					.undefinedValue(typeFactory.processSymbolicType()))) {
 				errorLogger.logSimpleError(source, state, process,
 						symbolicAnalyzer.stateInformation(state),
@@ -3236,7 +3239,7 @@ public class CommonEvaluator implements Evaluator {
 					return recomputeArrayIndices(state, pid, vid, scopeId,
 							pointer, offset, reasoner, muteErrorSideEffects,
 							source);
-			} else if (!muteErrorSideEffects) {
+			} else if (!muteErrorSideEffects && civlConfig.checkOutOfBounds()) {
 				// Valid pointer addition condition: inBound || point-to the end
 				// of the array:
 				resultType = reasoner
@@ -3254,7 +3257,7 @@ public class CommonEvaluator implements Evaluator {
 							message.toString());
 				}
 			}
-		} else if (!muteErrorSideEffects)
+		} else if (civlConfig.checkPointerErr() && !muteErrorSideEffects)
 			errorLogger.logSimpleError(source, state, process,
 					symbolicAnalyzer.stateInformation(state), ErrorKind.POINTER,
 					"Pointer addition on incomplete array");
@@ -3359,7 +3362,7 @@ public class CommonEvaluator implements Evaluator {
 		NumericExpression newOffset = universe.add(oldOffset, offset);
 		Evaluation eval;
 
-		if (!civlConfig.svcomp() && !muteErrorSideEffects) {
+		if (!civlConfig.svcomp() && !muteErrorSideEffects && civlConfig.checkOutOfBounds()) {
 			BooleanExpression claim = universe.and(
 					universe.lessThanEquals(zero, newOffset),
 					universe.lessThanEquals(newOffset, one));
@@ -3431,7 +3434,7 @@ public class CommonEvaluator implements Evaluator {
 			return new Evaluation(state, symbolicUtil.makePointer(pointer,
 					universe.offsetReference(symRef, one)));
 		else {
-			if (!muteErrorSideEffects)
+			if (!muteErrorSideEffects && civlConfig.checkOutOfBounds())
 				state = errorLogger.logError(source, state, pid,
 						symbolicAnalyzer.stateInformation(state), claim,
 						resultType, ErrorKind.OUT_OF_BOUNDS,
@@ -4288,7 +4291,7 @@ public class CommonEvaluator implements Evaluator {
 							rightPtr));
 		} else {
 			// Check if the two point to the same object
-			if ((rightVid != leftVid) || (rightSid != leftSid)) {
+			if (civlConfig.checkPointerErr() && (rightVid != leftVid) || (rightSid != leftSid)) {
 				state = errorLogger.logError(expression.getSource(), state, pid,
 						symbolicAnalyzer.stateInformation(state), null,
 						ResultType.NO, ErrorKind.POINTER,
@@ -4307,7 +4310,7 @@ public class CommonEvaluator implements Evaluator {
 			// Thus, any pointer which is not an array element reference is
 			// invalid
 			// for pointer subtraction.
-			if (!(symbolicUtil.getSymRef(leftPtr).isArrayElementReference()
+			if (civlConfig.checkPointerErr() && !(symbolicUtil.getSymRef(leftPtr).isArrayElementReference()
 					&& symbolicUtil.getSymRef(rightPtr)
 							.isArrayElementReference()))
 				state = errorLogger.logError(expression.getSource(), state, pid,
@@ -4320,7 +4323,7 @@ public class CommonEvaluator implements Evaluator {
 			rightPtrIndices = symbolicUtil.extractArrayIndicesFrom(rightPtr);
 			// If the two pointers are pointing to heap, check if they are
 			// pointing to the same memory block:
-			if (leftVid == 0 && !symbolicUtil.arePoint2SameMemoryBlock(leftPtr,
+			if (civlConfig.checkPointerErr() && leftVid == 0 && !symbolicUtil.arePoint2SameMemoryBlock(leftPtr,
 					rightPtr)) {
 				state = errorLogger.logError(expression.getSource(), state, pid,
 						symbolicAnalyzer.stateInformation(state), null,
@@ -4337,8 +4340,8 @@ public class CommonEvaluator implements Evaluator {
 			arraySliceSizes = symbolicUtil
 					.arraySlicesSizes(symbolicUtil.arrayDimensionExtents(
 							(SymbolicCompleteArrayType) arrayType));
-			for (int i = leftPtrIndices.length,
-					j = arraySliceSizes.length - 1; --i >= 0; j--) {
+			for (int i = leftPtrIndices.length, j = arraySliceSizes.length
+					- 1; --i >= 0; j--) {
 				NumericExpression leftIdx, rightIdx;
 				NumericExpression sliceSizes = arraySliceSizes[j];
 
@@ -4387,7 +4390,7 @@ public class CommonEvaluator implements Evaluator {
 			if (array.type() == null)
 				arrayType = (SymbolicArrayType) arrayExpr.getExpressionType()
 						.getDynamicType(universe);
-			if (!operand.isErrorFree())
+			if (!operand.isErrorFree() && civlConfig.checkOutOfBounds())
 				result.state = this.checkArrayIndexInBound(state, pid,
 						(SubscriptExpression) operand, arrayType, array, index,
 						true);
@@ -4742,7 +4745,7 @@ public class CommonEvaluator implements Evaluator {
 			checkClaim = universe.and(
 					universe.lessThanEquals(zero, totalOffset), checkClaim);
 			resultType = reasoner.valid(checkClaim).getResultType();
-			if (resultType != ResultType.YES)
+			if (resultType != ResultType.YES && civlConfig.checkOutOfBounds())
 				state = errorLogger.logError(source, state, pid,
 						symbolicAnalyzer.stateInformation(state), checkClaim,
 						resultType, ErrorKind.OUT_OF_BOUNDS,

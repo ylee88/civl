@@ -821,7 +821,7 @@ public class LibcommExecutor extends BaseLibraryExecutor
 
 		}
 		// Exception
-		else {
+		else if (civlConfig.checkCommErr()){
 			// tag != -2 && tag < 0
 			errorLogger.logSimpleError(civlsource, state, process,
 					symbolicAnalyzer.stateToString(state),
@@ -940,13 +940,13 @@ public class LibcommExecutor extends BaseLibraryExecutor
 		messages = universe.tupleRead(queue, oneObject);
 		msgIdx = this.getMatchedMsgIdx(state, pid, process, messages,
 				queueLength, tag, civlsource);
-		if (msgIdx == -1) {
+		if (msgIdx == -1 && civlConfig.checkCommErr()) {
 			state = errorLogger.logError(civlsource, state, pid,
 					symbolicAnalyzer.stateInformation(state),
 					universe.trueExpression(), ResultType.NO,
 					ErrorKind.COMMUNICATION,
 					"There is no matched message [source:" + source
-							+ ", destication:" + dest + ", tag:" + tag
+							+ ", destination:" + dest + ", tag:" + tag
 							+ " ] in the message buffer.");
 		}
 		message = universe.arrayRead(messages, universe.integer(msgIdx));

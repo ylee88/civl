@@ -425,7 +425,7 @@ public class LibcommEvaluator extends BaseLibraryEvaluator
 
 		claim = universe.lessThan(index, universe.length(procArray));
 		resultType = reasoner.valid(claim).getResultType();
-		if (!resultType.equals(ResultType.YES)) {
+		if (!resultType.equals(ResultType.YES) && civlConfig.checkOutOfBounds()) {
 			state = this.errorLogger.logError(source, state, pid,
 					symbolicAnalyzer.stateInformation(state), claim, resultType,
 					ErrorKind.OUT_OF_BOUNDS, "The place of " + process

@@ -105,12 +105,12 @@ public class LibmpiExecutor extends BaseLibraryExecutor
 						argumentValues, source);
 				break;
 			case "$mpi_root_scope_system" :
-				callEval = executeRootScopeSystem(state, pid, process, arguments,
-						argumentValues, source);
+				callEval = executeRootScopeSystem(state, pid, process,
+						arguments, argumentValues, source);
 				break;
 			case "$mpi_proc_scope_system" :
-				callEval = executeProcScopeSystem(state, pid, process, arguments,
-						argumentValues, source);
+				callEval = executeProcScopeSystem(state, pid, process,
+						arguments, argumentValues, source);
 				break;
 			default :
 				throw new CIVLInternalException(
@@ -255,7 +255,7 @@ public class LibmpiExecutor extends BaseLibraryExecutor
 		if (symbolicUtil.isNullPointer(pointer))
 			return new Evaluation(state, null);
 		// this assertion doesn't need recovery:
-		if (!pointer.operator().equals(SymbolicOperator.TUPLE)) {
+		if (!pointer.operator().equals(SymbolicOperator.TUPLE) && civlConfig.checkPointerErr()) {
 			errorLogger.logSimpleError(arguments[0].getSource(), state, process,
 					this.symbolicAnalyzer.stateInformation(state),
 					ErrorKind.POINTER,
@@ -263,7 +263,7 @@ public class LibmpiExecutor extends BaseLibraryExecutor
 			return new Evaluation(state, null);
 		}
 		checkPointer = symbolicAnalyzer.isDerefablePointer(state, pointer);
-		if (checkPointer.right != ResultType.YES) {
+		if (checkPointer.right != ResultType.YES && civlConfig.checkPointerErr()) {
 			state = errorLogger.logError(arguments[0].getSource(), state, pid,
 					this.symbolicAnalyzer.stateInformation(state),
 					checkPointer.left, checkPointer.right, ErrorKind.POINTER,
@@ -283,7 +283,7 @@ public class LibmpiExecutor extends BaseLibraryExecutor
 		assertedSymType = mpiType2Civl.left.getDynamicType(universe);
 		primitiveTypeCount = mpiType2Civl.right;
 		// assertion doesn't need recovery:
-		if (!assertedSymType.equals(realSymType)) {
+		if (!assertedSymType.equals(realSymType) && civlConfig.checkMpiErr()) {
 			errorLogger.logSimpleError(source, state, process,
 					this.symbolicAnalyzer.stateInformation(state),
 					ErrorKind.MPI_ERROR,
@@ -304,11 +304,13 @@ public class LibmpiExecutor extends BaseLibraryExecutor
 			libEvaluator.getDataFrom(state, pid, process, arguments[0], pointer,
 					count, true, false, ptrSource);
 		} catch (UnsatisfiablePathConditionException e) {
-			errorLogger.logSimpleError(source, state, process,
-					symbolicAnalyzer.stateInformation(state),
-					ErrorKind.MPI_ERROR,
-					"The type of the object pointed by " + arguments[0]
-							+ " is inconsistent with the specified MPI datatype signiture.");
+			if (civlConfig.checkMpiErr()) {
+				errorLogger.logSimpleError(source, state, process,
+						symbolicAnalyzer.stateInformation(state),
+						ErrorKind.MPI_ERROR,
+						"The type of the object pointed by " + arguments[0]
+								+ " is inconsistent with the specified MPI datatype signiture.");
+			}
 		}
 		return new Evaluation(state, null);
 	}
@@ -358,9 +360,10 @@ public class LibmpiExecutor extends BaseLibraryExecutor
 		return new Evaluation(state, gcomm);
 	}
 
-	private Evaluation executeRootScopeSystem(State state, int pid, String process,
-			Expression arguments[], SymbolicExpression argumentValues[],
-			CIVLSource source) throws UnsatisfiablePathConditionException {
+	private Evaluation executeRootScopeSystem(State state, int pid,
+			String process, Expression arguments[],
+			SymbolicExpression argumentValues[], CIVLSource source)
+			throws UnsatisfiablePathConditionException {
 		SymbolicExpression commHandle = argumentValues[0];
 		SymbolicExpression gcommHandle;
 		SymbolicExpression scopeVal;
@@ -377,9 +380,10 @@ public class LibmpiExecutor extends BaseLibraryExecutor
 		return new Evaluation(state, scopeVal);
 	}
 
-	private Evaluation executeProcScopeSystem(State state, int pid, String process,
-			Expression arguments[], SymbolicExpression argumentValues[],
-			CIVLSource source) throws UnsatisfiablePathConditionException {
+	private Evaluation executeProcScopeSystem(State state, int pid,
+			String process, Expression arguments[],
+			SymbolicExpression argumentValues[], CIVLSource source)
+			throws UnsatisfiablePathConditionException {
 		SymbolicExpression commHandle = argumentValues[0];
 		SymbolicExpression scopeVal;
 		int sid;

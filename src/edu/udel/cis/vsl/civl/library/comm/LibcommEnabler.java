@@ -177,7 +177,7 @@ public class LibcommEnabler extends BaseLibraryEnabler
 						arguments[0], argumentValues[0], setsReachableRead,
 						setsReachableWrite);
 
-				if (civlConfig.deadlock().equals(DeadlockKind.POTENTIAL)) {
+				if (civlConfig.checkDeadlockKind().equals(DeadlockKind.POTENTIAL)) {
 					BooleanExpression hasMatchedDequeue;
 
 					hasMatchedDequeue = this.hasMatchedDequeue(state, pid,

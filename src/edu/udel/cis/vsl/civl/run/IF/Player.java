@@ -170,11 +170,11 @@ public abstract class Player {
 		this.minimize = gmcConfig.getAnonymousSection().isTrue(minO);
 		this.maxdepth = (int) gmcConfig.getAnonymousSection()
 				.getValueOrDefault(maxdepthO);
-		if (civlConfig.deadlock() == DeadlockKind.ABSOLUTE) {
+		if (civlConfig.checkDeadlockKind() == DeadlockKind.ABSOLUTE) {
 			this.addPredicate(
 					Predicates.newDeadlock(universe, (Enabler) this.enabler,
 							this.stateFactory, symbolicAnalyzer));
-		} else if (civlConfig.deadlock() == DeadlockKind.POTENTIAL) {
+		} else if (civlConfig.checkDeadlockKind() == DeadlockKind.POTENTIAL) {
 			this.addPredicate(Predicates.newPotentialDeadlock(universe,
 					(Enabler) this.enabler, libraryEnablerLoader,
 					this.evaluator, modelFactory, symbolicUtil,

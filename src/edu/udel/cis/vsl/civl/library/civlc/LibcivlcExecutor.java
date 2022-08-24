@@ -482,7 +482,7 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 		CIVLSource argSource = arguments[0].getSource();
 		String process = state.getProcessState(pid).name();
 
-		if (!symbolicUtil.isConcretePointer(pointer))
+		if (civlConfig.checkPointerErr() && !symbolicUtil.isConcretePointer(pointer))
 			errorLogger.logSimpleError(argSource, state, process,
 					symbolicAnalyzer.stateInformation(state), ErrorKind.POINTER,
 					"Attempt to assign to a non-concrete pointer: "
@@ -490,7 +490,7 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 
 		SymbolicExpression scope = symbolicUtil.getScopeValue(pointer);
 
-		if (stateFactory.undefinedScopeValue() == scope)
+		if (civlConfig.checkPointerErr() && stateFactory.undefinedScopeValue() == scope)
 			errorLogger.logSimpleError(argSource, state, process,
 					symbolicAnalyzer.stateInformation(state), ErrorKind.POINTER,
 					"Attempt to assign to a invalid pointer: " + arguments[0]
@@ -779,7 +779,7 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 		} else
 			resultType = universe.reasoner(context).valid(assertValue)
 					.getResultType();
-		if (resultType != ResultType.YES) {
+		if (resultType != ResultType.YES && civlConfig.checkAssertionViolation()) {
 			StringBuilder message = new StringBuilder();
 			Pair<State, String> messageResult = this.symbolicAnalyzer
 					.expressionEvaluation(state, pid, arguments[0], false);
