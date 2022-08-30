@@ -8,7 +8,7 @@ import java.util.Map;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.model.IF.CIVLException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLException.Certainty;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.state.IF.State;
 import edu.udel.cis.vsl.civl.state.IF.StateFactory;
@@ -133,7 +133,7 @@ public class CIVLErrorLogger extends ErrorLog {
 	 * @param resultType
 	 *            the result of evaluating the validity of the claim (which you
 	 *            did before you called this method).
-	 * @param errorKind
+	 * @param property
 	 *            the kind of error you want to report if it turns out there is
 	 *            an error
 	 * @param message
@@ -149,7 +149,7 @@ public class CIVLErrorLogger extends ErrorLog {
 	 */
 	public State logError(CIVLSource source, State state, int pid,
 			StringBuffer stateString, BooleanExpression claim,
-			ResultType resultType, ErrorKind errorKind, String message)
+			ResultType resultType, CIVLProperty property, String message)
 			throws UnsatisfiablePathConditionException {
 		BooleanExpression pc = state.getPathCondition(universe), newPc;
 		BooleanExpression npc = universe.not(pc);
@@ -192,7 +192,7 @@ public class CIVLErrorLogger extends ErrorLog {
 				certainty = Certainty.MAYBE;
 			}
 		}
-		error = new CIVLExecutionException(errorKind, certainty, process,
+		error = new CIVLExecutionException(property, certainty, process,
 				message, stateString, state, pid, source);
 		reportError(error);
 		newPc = universe.and(pc, claim);
@@ -238,7 +238,7 @@ public class CIVLErrorLogger extends ErrorLog {
 	 *            the process name, i.e, "p"+process identifier
 	 * @param stateString
 	 *            the string representation of state where the error occurs
-	 * @param errorKind
+	 * @param civlProp
 	 *            the kind of error (e.g., DEREFERENCE)
 	 * @param message
 	 *            the message to include in the error report
@@ -246,7 +246,7 @@ public class CIVLErrorLogger extends ErrorLog {
 	 *             if the path condition is definitely unsatisfiable
 	 */
 	public void logSimpleError(CIVLSource source, State state, String process,
-			StringBuffer stateString, ErrorKind errorKind, String message)
+			StringBuffer stateString, CIVLProperty property, String message)
 			throws UnsatisfiablePathConditionException {
 		BooleanExpression pc = state.getPathCondition(universe);
 		BooleanExpression npc = universe.not(pc);
@@ -268,7 +268,7 @@ public class CIVLErrorLogger extends ErrorLog {
 		}
 		// TODO if pc has no symbolic constant
 		// TODO: add pid for exception.
-		error = new CIVLExecutionException(errorKind, certainty, process,
+		error = new CIVLExecutionException(property, certainty, process,
 				message, stateString, state, -1, source);
 		reportError(error);
 	}

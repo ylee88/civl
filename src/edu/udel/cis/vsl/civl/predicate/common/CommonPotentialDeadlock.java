@@ -12,8 +12,8 @@ import edu.udel.cis.vsl.civl.kripke.IF.LibraryEnablerLoader;
 import edu.udel.cis.vsl.civl.library.comm.LibcommEnabler;
 import edu.udel.cis.vsl.civl.log.IF.CIVLExecutionException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLException.Certainty;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.ModelFactory;
 import edu.udel.cis.vsl.civl.model.IF.location.Location;
@@ -242,7 +242,7 @@ public class CommonPotentialDeadlock extends CommonCIVLStatePredicate
 			message += "  Path condition: " + state.getPathCondition(universe)
 					+ "\n  Enabling predicate: " + predicate + "\n";
 			message += explanationWork(state);
-			violation = new CIVLExecutionException(ErrorKind.DEADLOCK,
+			violation = new CIVLExecutionException(CIVLProperty.DEADLOCK,
 					certainty, "", message, state, source);
 			return true;
 		}

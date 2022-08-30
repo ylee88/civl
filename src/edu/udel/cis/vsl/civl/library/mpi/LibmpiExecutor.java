@@ -5,8 +5,8 @@ import java.util.Iterator;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.library.common.BaseLibraryExecutor;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.ModelFactory;
 import edu.udel.cis.vsl.civl.model.IF.contract.FunctionContract.ContractKind;
@@ -255,18 +255,18 @@ public class LibmpiExecutor extends BaseLibraryExecutor
 		if (symbolicUtil.isNullPointer(pointer))
 			return new Evaluation(state, null);
 		// this assertion doesn't need recovery:
-		if (!pointer.operator().equals(SymbolicOperator.TUPLE) && civlConfig.checkPointerErr()) {
+		if (!pointer.operator().equals(SymbolicOperator.TUPLE) && civlConfig.isPropertyToggled(CIVLProperty.POINTER)) {
 			errorLogger.logSimpleError(arguments[0].getSource(), state, process,
 					this.symbolicAnalyzer.stateInformation(state),
-					ErrorKind.POINTER,
+					CIVLProperty.POINTER,
 					"attempt to read/write a non-concrete pointer type variable");
 			return new Evaluation(state, null);
 		}
 		checkPointer = symbolicAnalyzer.isDerefablePointer(state, pointer);
-		if (checkPointer.right != ResultType.YES && civlConfig.checkPointerErr()) {
+		if (checkPointer.right != ResultType.YES && civlConfig.isPropertyToggled(CIVLProperty.POINTER)) {
 			state = errorLogger.logError(arguments[0].getSource(), state, pid,
 					this.symbolicAnalyzer.stateInformation(state),
-					checkPointer.left, checkPointer.right, ErrorKind.POINTER,
+					checkPointer.left, checkPointer.right, CIVLProperty.POINTER,
 					"attempt to read/write a invalid pointer type variable");
 			// return state;
 		}
@@ -283,10 +283,10 @@ public class LibmpiExecutor extends BaseLibraryExecutor
 		assertedSymType = mpiType2Civl.left.getDynamicType(universe);
 		primitiveTypeCount = mpiType2Civl.right;
 		// assertion doesn't need recovery:
-		if (!assertedSymType.equals(realSymType) && civlConfig.checkMpiErr()) {
+		if (!assertedSymType.equals(realSymType) && civlConfig.isPropertyToggled(CIVLProperty.MPI_ERROR)) {
 			errorLogger.logSimpleError(source, state, process,
 					this.symbolicAnalyzer.stateInformation(state),
-					ErrorKind.MPI_ERROR,
+					CIVLProperty.MPI_ERROR,
 					"The primitive type " + realType.toString()
 							+ " of the object pointed by the input pointer argument ["
 							+ ptrSource.getLocation() + ":" + arguments[0]
@@ -304,10 +304,10 @@ public class LibmpiExecutor extends BaseLibraryExecutor
 			libEvaluator.getDataFrom(state, pid, process, arguments[0], pointer,
 					count, true, false, ptrSource);
 		} catch (UnsatisfiablePathConditionException e) {
-			if (civlConfig.checkMpiErr()) {
+			if (civlConfig.isPropertyToggled(CIVLProperty.MPI_ERROR)) {
 				errorLogger.logSimpleError(source, state, process,
 						symbolicAnalyzer.stateInformation(state),
-						ErrorKind.MPI_ERROR,
+						CIVLProperty.MPI_ERROR,
 						"The type of the object pointed by " + arguments[0]
 								+ " is inconsistent with the specified MPI datatype signiture.");
 			}

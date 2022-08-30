@@ -15,7 +15,7 @@ import edu.udel.cis.vsl.civl.kripke.IF.Enabler;
 import edu.udel.cis.vsl.civl.kripke.IF.LibraryEnabler;
 import edu.udel.cis.vsl.civl.kripke.IF.LibraryEnablerLoader;
 import edu.udel.cis.vsl.civl.library.common.BaseLibraryEnabler;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.ModelFactory;
 import edu.udel.cis.vsl.civl.model.IF.expression.BinaryExpression;
@@ -127,7 +127,7 @@ public class LibcivlcEnabler extends BaseLibraryEnabler
 					this.errorLogger.logSimpleError(arguments[0].getSource(),
 							state, process,
 							symbolicAnalyzer.stateInformation(state),
-							ErrorKind.INTERNAL,
+							CIVLProperty.INTERNAL,
 							"argument to $choose_int not concrete: "
 									+ argumentsEval.right[0]);
 					throw new UnsatisfiablePathConditionException();
@@ -277,7 +277,7 @@ public class LibcivlcEnabler extends BaseLibraryEnabler
 		if (number_nprocs == null) {
 			this.evaluator.errorLogger().logSimpleError(
 					arguments[1].getSource(), state, process,
-					symbolicAnalyzer.stateInformation(state), ErrorKind.OTHER,
+					symbolicAnalyzer.stateInformation(state), CIVLProperty.OTHER,
 					"the number of processes for $waitall "
 							+ "needs a concrete value");
 			throw new UnsatisfiablePathConditionException();

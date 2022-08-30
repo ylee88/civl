@@ -6,7 +6,7 @@ import java.util.Set;
 
 import edu.udel.cis.vsl.civl.log.IF.CIVLExecutionException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLException.Certainty;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.predicate.IF.FunctionalEquivalence;
 import edu.udel.cis.vsl.civl.semantics.IF.SymbolicAnalyzer;
 import edu.udel.cis.vsl.civl.state.IF.State;
@@ -109,7 +109,7 @@ public class CommonFunctionalEquivalence extends CommonCIVLStatePredicate
 						null, state, null, implOutputs[i]));
 			}
 			violation = new CIVLExecutionException(
-					ErrorKind.FUNCTIONAL_EQUIVALENCE, Certainty.PROVEABLE, null,
+					CIVLProperty.FUNCTIONAL_EQUIVALENCE, Certainty.PROVEABLE, null,
 					msg.toString(), state, null);
 		}
 		return result;

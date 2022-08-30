@@ -12,7 +12,7 @@ import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.library.common.BaseLibraryExecutor;
 import edu.udel.cis.vsl.civl.log.IF.CIVLExecutionException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLException.Certainty;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSyntaxException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLUnimplementedFeatureException;
@@ -682,7 +682,7 @@ public class LibstdioExecutor extends BaseLibraryExecutor
 					universe.intObject(4));
 
 			if (!isBinary.equals(this.zero)) {
-				throw new CIVLExecutionException(ErrorKind.OTHER,
+				throw new CIVLExecutionException(CIVLProperty.OTHER,
 						Certainty.CONCRETE, process,
 						"The file " + arguments[1].toString()
 								+ " is not a text file.",
@@ -1144,7 +1144,7 @@ public class LibstdioExecutor extends BaseLibraryExecutor
 		if (length <= 0) {
 			errorLogger.logSimpleError(source, state, process,
 					this.symbolicAnalyzer.stateInformation(state),
-					ErrorKind.OTHER, "Invalid format");
+					CIVLProperty.OTHER, "Invalid format");
 			return 0;
 		} else if (length == 1)
 			return 1;

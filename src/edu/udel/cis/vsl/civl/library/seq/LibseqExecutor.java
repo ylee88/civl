@@ -6,7 +6,7 @@ import java.util.List;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.library.common.BaseLibraryExecutor;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSyntaxException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLUnimplementedFeatureException;
@@ -115,7 +115,7 @@ public class LibseqExecutor extends BaseLibraryExecutor
 				|| symbolicUtil.isNullPointer(elePointer))) {
 			errorLogger.logSimpleError(source, state, process,
 					symbolicAnalyzer.stateInformation(state),
-					ErrorKind.DEREFERENCE,
+					CIVLProperty.DEREFERENCE,
 					"both the first and the third argument of $seq_init() "
 							+ "must be non-null pointers.\n"
 							+ "actual value of first argument: "
@@ -126,14 +126,14 @@ public class LibseqExecutor extends BaseLibraryExecutor
 									elePtrSource, state, null, elePointer));
 			throw new UnsatisfiablePathConditionException();
 		} else {
-			if (civlConfig.checkSeqErr() && !arrayType.isIncompleteArrayType()) {
+			if (civlConfig.isPropertyToggled(CIVLProperty.SEQUENCE) && !arrayType.isIncompleteArrayType()) {
 				String arrayPtrString = symbolicAnalyzer
 						.symbolicExpressionToString(arrayPtrSource, state, null,
 								arrayPtr);
 
 				this.errorLogger.logSimpleError(source, state, process,
 						symbolicAnalyzer.stateInformation(state),
-						ErrorKind.SEQUENCE,
+						CIVLProperty.SEQUENCE,
 						"the first argument of $seq_init() must be "
 								+ "a pointer to an incomplete array.\n"
 								+ "actual first argument: " + arrayPtrString
@@ -149,7 +149,7 @@ public class LibseqExecutor extends BaseLibraryExecutor
 				if (!arrayEleType.isSuperTypeOf(eleType)) {
 					this.errorLogger.logSimpleError(elePtrSource, state,
 							process, symbolicAnalyzer.stateInformation(state),
-							ErrorKind.DEREFERENCE,
+							CIVLProperty.DEREFERENCE,
 							"the element type of the array that the first argument "
 									+ "points to of $seq_init() must be a super type"
 									+ " or the same type of the object that the third "
@@ -242,10 +242,10 @@ public class LibseqExecutor extends BaseLibraryExecutor
 		CIVLSource seqSource = arguments[0].getSource();
 		SymbolicExpression result = null;
 
-		if (civlConfig.checkSeqErr() && symbolicUtil.isNullPointer(seqPtr)) {
+		if (civlConfig.isPropertyToggled(CIVLProperty.SEQUENCE) && symbolicUtil.isNullPointer(seqPtr)) {
 			this.errorLogger.logSimpleError(source, state, process,
 					symbolicAnalyzer.stateInformation(state),
-					ErrorKind.SEQUENCE,
+					CIVLProperty.SEQUENCE,
 					"the argument of $seq_length() must be a non-null pointer.\n"
 							+ "actual argument: "
 							+ symbolicAnalyzer.symbolicExpressionToString(
@@ -258,10 +258,10 @@ public class LibseqExecutor extends BaseLibraryExecutor
 
 			state = eval.state;
 			seq = eval.value;
-			if (civlConfig.checkSeqErr() && !(seq.type() instanceof SymbolicArrayType)) {
+			if (civlConfig.isPropertyToggled(CIVLProperty.SEQUENCE) && !(seq.type() instanceof SymbolicArrayType)) {
 				this.errorLogger.logSimpleError(source, state, process,
 						symbolicAnalyzer.stateInformation(state),
-						ErrorKind.SEQUENCE,
+						CIVLProperty.SEQUENCE,
 						"the argument of $seq_length() must be a sequence of "
 								+ "objects of the same type.\n"
 								+ "actual argument: "
@@ -303,7 +303,7 @@ public class LibseqExecutor extends BaseLibraryExecutor
 		if (symbolicUtil.isNullPointer(arrayPtr)) {
 			this.errorLogger.logSimpleError(source, state, process,
 					symbolicAnalyzer.stateInformation(state),
-					ErrorKind.DEREFERENCE,
+					CIVLProperty.DEREFERENCE,
 					"the first argument of " + functionName
 							+ " must be a non-null pointer.\n"
 							+ "actual value of first argument: "
@@ -316,7 +316,7 @@ public class LibseqExecutor extends BaseLibraryExecutor
 		if (isInsert && symbolicUtil.isNullPointer(valuesPtr)) {
 			this.errorLogger.logSimpleError(source, state, process,
 					symbolicAnalyzer.stateInformation(state),
-					ErrorKind.DEREFERENCE,
+					CIVLProperty.DEREFERENCE,
 					"the third argument of " + functionName
 							+ " must be a non-null pointer when the forth "
 							+ "argument is greater than zero.\n"
@@ -327,10 +327,10 @@ public class LibseqExecutor extends BaseLibraryExecutor
 		}
 		arrayType = symbolicAnalyzer.civlTypeOfObjByPointer(arrayPtrSource,
 				state, arrayPtr);
-		if (civlConfig.checkSeqErr() && !arrayType.isIncompleteArrayType()) {
+		if (civlConfig.isPropertyToggled(CIVLProperty.SEQUENCE) && !arrayType.isIncompleteArrayType()) {
 			this.errorLogger.logSimpleError(source, state, process,
 					symbolicAnalyzer.stateInformation(state),
-					ErrorKind.SEQUENCE,
+					CIVLProperty.SEQUENCE,
 					"the first argument of " + functionName
 							+ " must be of a pointer to incomplete array of type T.\n"
 							+ "actual type of the first argument: pointer to "
@@ -342,10 +342,10 @@ public class LibseqExecutor extends BaseLibraryExecutor
 			valueType = symbolicAnalyzer.civlTypeOfObjByPointer(valuesPtrSource,
 					state, valuesPtr);
 
-			if (civlConfig.checkSeqErr() && !arrayEleType.isSuperTypeOf(valueType)) {
+			if (civlConfig.isPropertyToggled(CIVLProperty.SEQUENCE) && !arrayEleType.isSuperTypeOf(valueType)) {
 				this.errorLogger.logSimpleError(source, state, process,
 						symbolicAnalyzer.stateInformation(state),
-						ErrorKind.SEQUENCE,
+						CIVLProperty.SEQUENCE,
 						"the first argument of " + functionName
 								+ " must be a pointer to incomplete array of type T, and"
 								+ " the third argument must be a pointer to type T. \n"
@@ -360,10 +360,10 @@ public class LibseqExecutor extends BaseLibraryExecutor
 				false, true);
 		state = eval.state;
 		arrayValue = eval.value;
-		if (civlConfig.checkSeqErr() && arrayValue.operator() != SymbolicOperator.ARRAY) {
+		if (civlConfig.isPropertyToggled(CIVLProperty.SEQUENCE) && arrayValue.operator() != SymbolicOperator.ARRAY) {
 			this.errorLogger.logSimpleError(source, state, process,
 					symbolicAnalyzer.stateInformation(state),
-					ErrorKind.SEQUENCE,
+					CIVLProperty.SEQUENCE,
 					"the first argument of " + functionName
 							+ " must be a pointer to a concrete array.\n"
 							+ "actual value of the array pointed to by the first argument: "
@@ -376,19 +376,19 @@ public class LibseqExecutor extends BaseLibraryExecutor
 		lengthInt = ((IntegerNumber) universe
 				.extractNumber(universe.length(arrayValue))).intValue();
 		isOldArrayEmpty = indexInt == 0 && lengthInt == 0;
-		if (civlConfig.checkSeqErr() && isInsert && !isOldArrayEmpty
+		if (civlConfig.isPropertyToggled(CIVLProperty.SEQUENCE) && isInsert && !isOldArrayEmpty
 				&& (indexInt < 0 || indexInt > lengthInt)) {
 			this.errorLogger.logSimpleError(source, state, process,
 					symbolicAnalyzer.stateInformation(state),
-					ErrorKind.SEQUENCE,
+					CIVLProperty.SEQUENCE,
 					"the index for $seq_insert() is out of the range of the array index.\n"
 							+ "array length: " + lengthInt + "\n" + "index: "
 							+ indexInt);
 			throw new UnsatisfiablePathConditionException();
-		} else if (civlConfig.checkSeqErr() && !isInsert && (countInt > lengthInt - indexInt)) {
+		} else if (civlConfig.isPropertyToggled(CIVLProperty.SEQUENCE) && !isInsert && (countInt > lengthInt - indexInt)) {
 			this.errorLogger.logSimpleError(source, state, process,
 					symbolicAnalyzer.stateInformation(state),
-					ErrorKind.SEQUENCE,
+					CIVLProperty.SEQUENCE,
 					"insufficient data to be removed for $seq_remove().\n"
 							+ "array length: " + lengthInt + "\n"
 							+ "start index: " + indexInt + "\n"

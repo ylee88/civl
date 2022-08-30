@@ -3,7 +3,7 @@ package edu.udel.cis.vsl.civl.library.civlc;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.library.common.BaseLibraryEvaluator;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.ModelFactory;
 import edu.udel.cis.vsl.civl.model.IF.expression.Expression;
@@ -81,7 +81,7 @@ public class LibcivlcEvaluator extends BaseLibraryEvaluator
 
 			this.errorLogger.logSimpleError(joinProcessExpr.getSource(), state,
 					process, symbolicAnalyzer.stateInformation(state),
-					ErrorKind.OTHER,
+					CIVLProperty.OTHER,
 					"the argument of $wait should be concrete, but the actual value is "
 							+ joinProcess);
 			throw new UnsatisfiablePathConditionException();
@@ -128,7 +128,7 @@ public class LibcivlcEvaluator extends BaseLibraryEvaluator
 		if (number_nprocs == null) {
 			this.errorLogger.logSimpleError(arguments[1].getSource(), state,
 					process, symbolicAnalyzer.stateInformation(state),
-					ErrorKind.OTHER, "the number of processes for $waitall "
+					CIVLProperty.OTHER, "the number of processes for $waitall "
 							+ "needs a concrete value");
 			throw new UnsatisfiablePathConditionException();
 		}
@@ -137,10 +137,10 @@ public class LibcivlcEvaluator extends BaseLibraryEvaluator
 
 		if (numOfProcs_int == 0)
 			return new Evaluation(state, trueValue);
-		if (symbolicUtil.isNullPointer(procsPointer) && civlConfig.checkPointerErr()) {
+		if (symbolicUtil.isNullPointer(procsPointer) && civlConfig.isPropertyToggled(CIVLProperty.POINTER)) {
 			this.errorLogger.logSimpleError(arguments[0].getSource(), state,
 					process, symbolicAnalyzer.stateInformation(state),
-					ErrorKind.POINTER, "pointer argument to $waitall is NULL");
+					CIVLProperty.POINTER, "pointer argument to $waitall is NULL");
 			throw new UnsatisfiablePathConditionException();
 		}
 
@@ -162,7 +162,7 @@ public class LibcivlcEvaluator extends BaseLibraryEvaluator
 				if (startIdxNum == null) {
 					this.errorLogger.logSimpleError(procsSource, state, process,
 							symbolicAnalyzer.stateInformation(state),
-							ErrorKind.OTHER,
+							CIVLProperty.OTHER,
 							"pointer into proc array must have concrete index");
 					throw new UnsatisfiablePathConditionException();
 				}

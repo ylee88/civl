@@ -10,8 +10,8 @@ import java.util.function.Function;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.log.IF.CIVLErrorLogger;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.CIVLTypeFactory;
 import edu.udel.cis.vsl.civl.model.IF.CIVLUnimplementedFeatureException;
@@ -198,11 +198,11 @@ public class MemEvaluator extends CommonEvaluator {
 		ValueSetReference vsref;
 
 		if (!expr.getExpressionType().isSetType()) {
-			if (civlConfig.checkPointerErr() && !symbolicUtil.isConcretePointer(eval.value))
+			if (civlConfig.isPropertyToggled(CIVLProperty.POINTER) && !symbolicUtil.isConcretePointer(eval.value))
 				errorLogger.logSimpleError(expr.getSource(), state,
 						state.getProcessState(pid).name(),
 						symbolicAnalyzer.stateInformation(state),
-						ErrorKind.POINTER,
+						CIVLProperty.POINTER,
 						"Cannot convert a non-concrete pointer value to a value of $mem type.\nPointer: "
 								+ expr + "\nPointer value: " + eval.value);
 
@@ -361,11 +361,11 @@ public class MemEvaluator extends CommonEvaluator {
 			SymbolicExpression oftVal)
 			throws UnsatisfiablePathConditionException {
 		if (ptrVal.type() == typeFactory.pointerSymbolicType())
-			if (civlConfig.checkPointerErr() && !symbolicUtil.isConcretePointer(ptrVal)) {
+			if (civlConfig.isToggleableProperty(CIVLProperty.POINTER) && !symbolicUtil.isConcretePointer(ptrVal)) {
 				errorLogger.logSimpleError(expr.getSource(), state,
 						state.getProcessState(pid).name(),
 						symbolicAnalyzer.stateInformation(state),
-						ErrorKind.POINTER,
+						CIVLProperty.POINTER,
 						"Cannot perform pointer addition on a non-concrete pointer value.\nPointer: "
 								+ expr.left() + "\nPointer value: " + ptrVal);
 				throw new UnsatisfiablePathConditionException();
@@ -666,7 +666,7 @@ public class MemEvaluator extends CommonEvaluator {
 				errorLogger.logSimpleError(source, state,
 						state.getProcessState(pid).name(),
 						symbolicAnalyzer.stateInformation(state),
-						ErrorKind.OTHER,
+						CIVLProperty.OTHER,
 						"Invalid pointer value for pointer addition:s\n"
 								+ "Pointer: " + expr.left() + "\nOffsets: "
 								+ expr.right() + "\nPointer value: " + ptrVal
@@ -740,7 +740,7 @@ public class MemEvaluator extends CommonEvaluator {
 		if (containsOffsetReference(vsRef)) {
 			errorLogger.logSimpleError(source, state,
 					state.getProcessState(pid).name(),
-					symbolicAnalyzer.stateInformation(state), ErrorKind.OTHER,
+					symbolicAnalyzer.stateInformation(state), CIVLProperty.OTHER,
 					"Invalid memory location reference to variable: "
 							+ var.name() + "\nVariable type: " + var.type()
 							+ "\nReference: " + vsRef);
@@ -775,7 +775,7 @@ public class MemEvaluator extends CommonEvaluator {
 			vsRef = refOnHeapObject;
 			valueType = heapObjectType;
 		}
-		if (civlConfig.checkOutOfBounds()) {
+		if (civlConfig.isPropertyToggled(CIVLProperty.OUT_OF_BOUNDS)) {
 			// error checking ...
 			state = checkValueSetReferenceOutOfBound(state, pid, valueType, vsRef,
 					source);
@@ -838,12 +838,12 @@ public class MemEvaluator extends CommonEvaluator {
 		if (resultType != null)
 			return errorLogger.logError(source, state, pid,
 					symbolicAnalyzer.stateInformation(state), claim, resultType,
-					ErrorKind.OUT_OF_BOUNDS, message);
+					CIVLProperty.OUT_OF_BOUNDS, message);
 		else
 			errorLogger.logSimpleError(source, state,
 					state.getProcessState(pid).name(),
 					symbolicAnalyzer.stateInformation(state),
-					ErrorKind.OUT_OF_BOUNDS, message);
+					CIVLProperty.OUT_OF_BOUNDS, message);
 		return state;
 	}
 

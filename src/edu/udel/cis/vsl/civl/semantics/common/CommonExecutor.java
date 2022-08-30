@@ -21,9 +21,9 @@ import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.log.IF.CIVLErrorLogger;
 import edu.udel.cis.vsl.civl.log.IF.CIVLExecutionException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLException.Certainty;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
 import edu.udel.cis.vsl.civl.model.IF.CIVLFunction;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSyntaxException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLTypeFactory;
@@ -406,7 +406,8 @@ public class CommonExecutor implements Executor {
 					+ ")";
 
 			errorLogger.logSimpleError(call.getSource(), state, process,
-					symbolicAnalyzer.stateInformation(state), ErrorKind.LIBRARY,
+					symbolicAnalyzer.stateInformation(state),
+					CIVLProperty.LIBRARY,
 					"unable to load the library executor for the library "
 							+ libraryName + " to execute the function "
 							+ funcName);
@@ -458,7 +459,8 @@ public class CommonExecutor implements Executor {
 			claim = universe.divides(elementSize, mallocSize);
 			validity = universe.reasoner(pathCondition).valid(claim)
 					.getResultType();
-			if (validity != ResultType.YES && civlConfig.checkMallocErr()) {
+			if (validity != ResultType.YES
+					&& civlConfig.isPropertyToggled(CIVLProperty.MALLOC)) {
 				String elementType = statement.getStaticElementType()
 						.toString();
 				String message = "For a $malloc returning " + elementType
@@ -470,7 +472,7 @@ public class CommonExecutor implements Executor {
 
 				state = errorLogger.logError(source, state, pid,
 						symbolicAnalyzer.stateInformation(state), claim,
-						validity, ErrorKind.MALLOC, message);
+						validity, CIVLProperty.MALLOC, message);
 				throw new UnsatisfiablePathConditionException();
 			}
 		}
@@ -576,11 +578,13 @@ public class CommonExecutor implements Executor {
 						continue;
 					if (proc.getPid() == pid)
 						continue;
-					if (civlConfig.checkProcLeak() && !this.civlConfig.svcomp() && !proc.hasEmptyStack()) {
+					if (civlConfig.isPropertyToggled(CIVLProperty.PROCESS_LEAK)
+							&& !this.civlConfig.svcomp()
+							&& !proc.hasEmptyStack()) {
 						errorLogger.logSimpleError(statement.getSource(), state,
 								process,
 								symbolicAnalyzer.stateInformation(state),
-								ErrorKind.PROCESS_LEAK,
+								CIVLProperty.PROCESS_LEAK,
 								"attempt to terminate the main process while process "
 										+ proc.name() + " is still running");
 						throw new UnsatisfiablePathConditionException();
@@ -602,7 +606,7 @@ public class CommonExecutor implements Executor {
 					this.errorLogger.logSimpleError(statement.getSource(),
 							state, process,
 							symbolicAnalyzer.stateInformation(state),
-							ErrorKind.OTHER,
+							CIVLProperty.OTHER,
 							"program exits with error code: " + returnValue);
 				}
 			}
@@ -619,7 +623,7 @@ public class CommonExecutor implements Executor {
 				if (returnValue == null) {
 					errorLogger.logSimpleError(call.getSource(), state, process,
 							symbolicAnalyzer.stateInformation(state),
-							ErrorKind.OTHER,
+							CIVLProperty.OTHER,
 							"attempt to use the return value of function "
 									+ functionName + " when " + functionName
 									+ " has returned without a return value.");
@@ -870,7 +874,7 @@ public class CommonExecutor implements Executor {
 		number_domSize = (IntegerNumber) reasoner.extractNumber(domSizeValue);
 		if (number_domSize == null) {
 			this.errorLogger.logSimpleError(source, state, process,
-					symbolicAnalyzer.stateToString(state), ErrorKind.OTHER,
+					symbolicAnalyzer.stateToString(state), CIVLProperty.OTHER,
 					"The arguments of the domain for $parfor "
 							+ "must be concrete.");
 			// throw new UnsatisfiablePathConditionException();
@@ -1011,10 +1015,10 @@ public class CommonExecutor implements Executor {
 									.intValue();
 
 				if (counter == -1)
-					throw new CIVLExecutionException(ErrorKind.OTHER,
+					throw new CIVLExecutionException(CIVLProperty.OTHER,
 							Certainty.CONCRETE, process,
-							"Loop variables do not belong to the domain",
-							state, source);
+							"Loop variables do not belong to the domain", state,
+							source);
 				// it's guaranteed that this iteration will have a
 				// subsequence.
 				if (counter < ((IntegerNumber) universe.extractNumber(
@@ -1049,7 +1053,7 @@ public class CommonExecutor implements Executor {
 				else
 					nextEleValues = symbolicUtil.getDomainInit(domValue);
 			} else
-				throw new CIVLExecutionException(ErrorKind.OTHER,
+				throw new CIVLExecutionException(CIVLProperty.OTHER,
 						Certainty.CONCRETE, process,
 						"The domain object is neither a literal domain nor a rectangular domain",
 						state, source);
@@ -1416,7 +1420,7 @@ public class CommonExecutor implements Executor {
 		if (checkPointer.right != ResultType.YES) // {
 			state = errorLogger.logError(source, state, pid,
 					symbolicAnalyzer.stateInformation(state), checkPointer.left,
-					checkPointer.right, ErrorKind.DEREFERENCE,
+					checkPointer.right, CIVLProperty.DEREFERENCE,
 					"attempt to write to a memory location through the pointer "
 							+ this.symbolicAnalyzer.symbolicExpressionToString(
 									source, state, null, pointer)
@@ -1439,27 +1443,29 @@ public class CommonExecutor implements Executor {
 
 			errorLogger.logSimpleError(source, state, process,
 					symbolicAnalyzer.stateInformation(state),
-					ErrorKind.DEREFERENCE,
+					CIVLProperty.DEREFERENCE,
 					"Attempt to dereference pointer into scope which has been removed from state");
 			throw new UnsatisfiablePathConditionException();
 		}
 		variable = state.getDyscope(sid).lexicalScope().variable(vid);
 		if (!isInitialization) {
-			if (variable.isInput() && civlConfig.checkInputWrite()) {
+			if (variable.isInput()
+					&& civlConfig.isPropertyToggled(CIVLProperty.INPUT_WRITE)) {
 				String process = state.getProcessState(pid).name();
 
 				errorLogger.logSimpleError(source, state, process,
 						symbolicAnalyzer.stateInformation(state),
-						ErrorKind.INPUT_WRITE,
+						CIVLProperty.INPUT_WRITE,
 						"Attempt to write to input variable "
 								+ variable.name());
 				throw new UnsatisfiablePathConditionException();
-			} else if (variable.isConst() && civlConfig.checkConstWrite()) {
+			} else if (variable.isConst() && civlConfig
+					.isPropertyToggled(CIVLProperty.CONSTANT_WRITE)) {
 				String process = state.getProcessState(pid).name();
 
 				errorLogger.logSimpleError(source, state, process,
 						symbolicAnalyzer.stateInformation(state),
-						ErrorKind.CONSTANT_WRITE,
+						CIVLProperty.CONSTANT_WRITE,
 						"Attempt to write to constant variable "
 								+ variable.name());
 				throw new UnsatisfiablePathConditionException();
@@ -1483,7 +1489,7 @@ public class CommonExecutor implements Executor {
 
 				errorLogger.logSimpleError(source, state, process,
 						symbolicAnalyzer.stateInformation(state),
-						ErrorKind.DEREFERENCE,
+						CIVLProperty.DEREFERENCE,
 						"Invalid assignment: " + e.getMessage());
 				throw new UnsatisfiablePathConditionException();
 			}
@@ -1621,7 +1627,7 @@ public class CommonExecutor implements Executor {
 					rhsType))
 				errorLogger.logSimpleError(lhs.getSource(), state, process,
 						symbolicAnalyzer.stateInformation(state),
-						ErrorKind.OTHER,
+						CIVLProperty.OTHER,
 						"The dynamic types of the left-hand side and "
 								+ "the right-hand side expression of the assignment\n"
 								+ "operation are not compatible.\n"
@@ -1630,10 +1636,11 @@ public class CommonExecutor implements Executor {
 		}
 		return eval;
 	}
-	
+
 	private ReadSetCollectEvaluator getReadSetCollectEvaluator() {
-		if(this.readSetCollectEvaluator == null)
-			this.readSetCollectEvaluator = evaluator.newReadSetCollectEvaluator();
+		if (this.readSetCollectEvaluator == null)
+			this.readSetCollectEvaluator = evaluator
+					.newReadSetCollectEvaluator();
 		return this.readSetCollectEvaluator;
 	}
 

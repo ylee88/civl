@@ -1,6 +1,7 @@
 package edu.udel.cis.vsl.civl.log.IF;
 
 import edu.udel.cis.vsl.civl.model.IF.CIVLException;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.location.Location;
 import edu.udel.cis.vsl.civl.model.common.SystemCIVLSource;
@@ -28,7 +29,7 @@ public class CIVLExecutionException extends CIVLException {
 
 	private Certainty certainty;
 
-	private ErrorKind kind;
+	private CIVLProperty property;
 
 	private String process;
 
@@ -50,22 +51,22 @@ public class CIVLExecutionException extends CIVLException {
 	 * @param source
 	 *            the source code element associated to the error; may be null
 	 */
-	public CIVLExecutionException(ErrorKind kind, Certainty certainty,
+	public CIVLExecutionException(CIVLProperty property, Certainty certainty,
 			String process, String message, State state, CIVLSource source) {
 		super(message, source);
-		assert kind != null;
+		assert property != null;
 		assert certainty != null;
 		this.process = process;
 		this.state = state;
-		this.kind = kind;
+		this.property = property;
 		this.certainty = certainty;
 		this.pid = -1;
 	}
 
-	public CIVLExecutionException(ErrorKind kind, Certainty certainty,
+	public CIVLExecutionException(CIVLProperty property, Certainty certainty,
 			String process, String message, StringBuffer stateString,
 			State state, int pid, CIVLSource source) {
-		this(kind, certainty, process, message, state, source);
+		this(property, certainty, process, message, state, source);
 		this.stateString = stateString;
 		this.pid = pid;
 	}
@@ -80,8 +81,8 @@ public class CIVLExecutionException extends CIVLException {
 	/**
 	 * @return the kind of this error.
 	 */
-	public ErrorKind kind() {
-		return kind;
+	public CIVLProperty civlProperty() {
+		return property;
 	}
 
 	/**
@@ -120,8 +121,8 @@ public class CIVLExecutionException extends CIVLException {
 			result.append(process);
 			result.append(" ");
 		}
-		result.append("(kind: ");
-		result.append(kind);
+		result.append("(property violated: ");
+		result.append(property);
 		result.append(", certainty: ");
 		result.append(certainty);
 		result.append(")");

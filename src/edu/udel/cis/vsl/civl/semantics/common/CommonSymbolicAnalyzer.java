@@ -9,9 +9,9 @@ import edu.udel.cis.vsl.abc.ast.node.IF.acsl.ExtendedQuantifiedExpressionNode.Ex
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.log.IF.CIVLErrorLogger;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
 import edu.udel.cis.vsl.civl.model.IF.CIVLFunction;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.CIVLTypeFactory;
 import edu.udel.cis.vsl.civl.model.IF.CIVLUnimplementedFeatureException;
@@ -222,7 +222,7 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 			if (valid != ResultType.YES) {
 				state = errorLogger.logError(source, state, pid,
 						this.stateInformation(state), claim, valid,
-						ErrorKind.OUT_OF_BOUNDS, "negative start index");
+						CIVLProperty.OUT_OF_BOUNDS, "negative start index");
 				pathCondition = state.getPathCondition(universe);
 				reasoner = universe.reasoner(pathCondition);
 			}
@@ -231,7 +231,7 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 			if (valid != ResultType.YES) {
 				state = errorLogger.logError(source, state, pid,
 						stateInformation(state), claim, valid,
-						ErrorKind.OUT_OF_BOUNDS,
+						CIVLProperty.OUT_OF_BOUNDS,
 						"Index exceeds length of array: " + endIndex
 								+ "\nArray type: " + array.type());
 				pathCondition = state.getPathCondition(universe);
@@ -242,7 +242,7 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 			if (valid != ResultType.YES) {
 				state = errorLogger.logError(source, state, pid,
 						this.stateInformation(state), claim, valid,
-						ErrorKind.OUT_OF_BOUNDS,
+						CIVLProperty.OUT_OF_BOUNDS,
 						"start index greater than end index");
 				pathCondition = state.getPathCondition(universe);
 				reasoner = universe.reasoner(pathCondition);

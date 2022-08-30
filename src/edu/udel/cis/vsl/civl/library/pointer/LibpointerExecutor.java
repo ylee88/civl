@@ -6,7 +6,7 @@ import java.util.List;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.library.common.BaseLibraryExecutor;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.CIVLUnimplementedFeatureException;
 import edu.udel.cis.vsl.civl.model.IF.ModelFactory;
@@ -204,10 +204,10 @@ public class LibpointerExecutor extends BaseLibraryExecutor
 				operandCount, false, false, source);
 		state = eval.state;
 		objs[1] = eval.value;
-		if (civlConfig.checkPointerErr()
+		if (civlConfig.isPropertyToggled(CIVLProperty.POINTER)
 				&& !objs[0].type().equals(objs[1].type())) {
 			errorLogger.logSimpleError(source, state, process,
-					symbolicAnalyzer.stateInformation(state), ErrorKind.POINTER,
+					symbolicAnalyzer.stateInformation(state), CIVLProperty.POINTER,
 					"Arguments of the $apply system function have different types: \n"
 							+ arguments[0] + " points to a " + objs[0].type()
 							+ " object\n" + arguments[2] + " points to a "
@@ -473,7 +473,7 @@ public class LibpointerExecutor extends BaseLibraryExecutor
 					state, arguments[1].getExpressionType(), right));
 			this.errorLogger.logSimpleError(source, state, process,
 					symbolicAnalyzer.stateInformation(state),
-					ErrorKind.DEREFERENCE, msg.toString());
+					CIVLProperty.DEREFERENCE, msg.toString());
 			throw new UnsatisfiablePathConditionException();
 		} else {
 			SymbolicExpression rightValue;
@@ -508,7 +508,7 @@ public class LibpointerExecutor extends BaseLibraryExecutor
 				msg.append(objTypeRight);
 				this.errorLogger.logSimpleError(source, state, process,
 						symbolicAnalyzer.stateInformation(state),
-						ErrorKind.DEREFERENCE, msg.toString());
+						CIVLProperty.DEREFERENCE, msg.toString());
 				throw new UnsatisfiablePathConditionException();
 			}
 			eval = evaluator.dereference(sourceRight, state, process, right,
@@ -557,10 +557,10 @@ public class LibpointerExecutor extends BaseLibraryExecutor
 		if (invalidArg != -1) {
 			SymbolicExpression invalidValue = invalidArg == 0 ? first : second;
 
-			if (civlConfig.checkUndefVal()) {
+			if (civlConfig.isPropertyToggled(CIVLProperty.UNDEFINED_VALUE)) {
 				this.errorLogger.logSimpleError(source, state, process,
 						symbolicAnalyzer.stateInformation(state),
-						ErrorKind.UNDEFINED_VALUE,
+						CIVLProperty.UNDEFINED_VALUE,
 						"the object that " + arguments[invalidArg]
 								+ " points to is undefined, which has the value "
 								+ symbolicAnalyzer.symbolicExpressionToString(
@@ -628,7 +628,7 @@ public class LibpointerExecutor extends BaseLibraryExecutor
 			}
 			errorLogger.logSimpleError(source, state, process,
 					symbolicAnalyzer.stateInformation(state),
-					ErrorKind.DEREFERENCE,
+					CIVLProperty.DEREFERENCE,
 					"Attempt to dereference a invalid pointer:" + msg);
 			return new Evaluation(state, null);
 		}
@@ -666,7 +666,7 @@ public class LibpointerExecutor extends BaseLibraryExecutor
 			}
 			this.errorLogger.logSimpleError(source, state, process,
 					symbolicAnalyzer.stateInformation(state),
-					ErrorKind.UNDEFINED_VALUE,
+					CIVLProperty.UNDEFINED_VALUE,
 					"the object that " + ptrMsg
 							+ " points to is undefined, which has the value "
 							+ objMsg);
@@ -675,7 +675,7 @@ public class LibpointerExecutor extends BaseLibraryExecutor
 		claim = universe.equals(first, second);
 		resultType = reasoner.valid(claim).getResultType();
 		if (resultType != ResultType.YES
-				&& civlConfig.checkAssertionViolation()) {
+				&& civlConfig.isPropertyToggled(CIVLProperty.ASSERTION_VIOLATION)) {
 			StringBuilder message = new StringBuilder();
 			String firstArg, secondArg;
 
@@ -757,7 +757,7 @@ public class LibpointerExecutor extends BaseLibraryExecutor
 			if (!symbolicUtil.isValidRefOf(reference, objValue.type())) {
 				this.errorLogger.logSimpleError(source, state, process,
 						symbolicAnalyzer.stateInformation(state),
-						ErrorKind.OTHER,
+						CIVLProperty.OTHER,
 						"the second argument of $translate_ptr() "
 								+ symbolicAnalyzer.symbolicExpressionToString(
 										objSource, state, null, objPtr)
@@ -814,7 +814,7 @@ public class LibpointerExecutor extends BaseLibraryExecutor
 		if (!ptr.operator().equals(SymbolicOperator.TUPLE)) {
 			errorLogger.logSimpleError(source, state, process,
 					symbolicAnalyzer.stateInformation(state),
-					ErrorKind.DEREFERENCE,
+					CIVLProperty.DEREFERENCE,
 					"$pointer_add() doesn't accept an invalid pointer:"
 							+ symbolicAnalyzer.symbolicExpressionToString(
 									source, state, null, ptr));
@@ -829,11 +829,11 @@ public class LibpointerExecutor extends BaseLibraryExecutor
 			claim = universe.divides(ptr_primType_size, type_size);
 			reasoner = universe.reasoner(state.getPathCondition(universe));
 			resultType = reasoner.valid(claim).getResultType();
-			if (civlConfig.checkPointerErr()
+			if (civlConfig.isPropertyToggled(CIVLProperty.POINTER)
 					&& !resultType.equals(ResultType.YES)) {
 				state = this.errorLogger.logError(source, state, pid,
 						this.symbolicAnalyzer.stateInformation(state), claim,
-						resultType, ErrorKind.POINTER,
+						resultType, CIVLProperty.POINTER,
 						"the primitive type of the object pointed by input pointer:"
 								+ primitiveTypePointed + " must be"
 								+ " consistent with the size of the"

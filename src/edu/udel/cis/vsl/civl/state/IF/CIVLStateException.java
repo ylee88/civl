@@ -5,7 +5,7 @@ import java.io.PrintStream;
 
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.CIVLException.Certainty;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 
 /**
  * Extends an execution exception with a state at which error occurred.
@@ -22,7 +22,7 @@ public class CIVLStateException extends Exception {
 
 	protected State state;
 
-	protected ErrorKind kind;
+	protected CIVLProperty property;
 
 	protected Certainty certainty;
 
@@ -30,9 +30,9 @@ public class CIVLStateException extends Exception {
 
 	protected CIVLSource source;
 
-	public CIVLStateException(ErrorKind kind, Certainty certainty,
+	public CIVLStateException(CIVLProperty property, Certainty certainty,
 			String message, State state, CIVLSource source) {
-		this.kind = kind;
+		this.property = property;
 		this.certainty = certainty;
 		this.message = message;
 		assert state != null;
@@ -48,8 +48,8 @@ public class CIVLStateException extends Exception {
 		return this.state;
 	}
 
-	public ErrorKind kind() {
-		return this.kind;
+	public CIVLProperty civlProperty() {
+		return this.property;
 	}
 
 	public Certainty certainty() {

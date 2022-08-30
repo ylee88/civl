@@ -33,13 +33,13 @@ public class ExperimentalTest {
 				"verify -enablePrintf=false -input_mpi_nprocs=3 -mpiContract",
 				filename("contracts/wildcard_coassert_bad.c")));
 		assertFalse(ui.run(
-				"verify -enablePrintf=false -input_mpi_nprocs=4 -deadlock=potential -mpiContract",
+				"verify -enablePrintf=false -input_mpi_nprocs=4 -checkDeadlock=potential -mpiContract",
 				filename("contracts/wildcard_coassert_bad.c")));
 		assertTrue(ui.run(
-				"verify -enablePrintf=false -input_mpi_nprocs=4 -deadlock=potential -mpiContract",
+				"verify -enablePrintf=false -input_mpi_nprocs=4 -checkDeadlock=potential -mpiContract",
 				filename("contracts/wildcard_coassert_barrier.c")));
 		assertTrue(ui.run(
-				"verify -enablePrintf=false -input_mpi_nprocs=4 -deadlock=potential -mpiContract",
+				"verify -enablePrintf=false -input_mpi_nprocs=4 -checkDeadlock=potential -mpiContract",
 				filename("contracts/reduce_coassert.c")));
 	}
 

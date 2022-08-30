@@ -52,7 +52,7 @@ public class TestConstants {
 
 	public static String NO_SHOW_TRANSITIONS = "-showTransitions=false";
 
-	public static String POTENTIAL_DEADLOCK = "-deadlock=potential";
+	public static String POTENTIAL_DEADLOCK = "-checkDeadlock=potential";
 
 	public static String MPI_CONTRACT = "-mpiContract"; 
 	

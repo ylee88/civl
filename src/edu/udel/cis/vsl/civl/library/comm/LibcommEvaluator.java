@@ -6,8 +6,8 @@ import java.util.List;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.library.common.BaseLibraryEvaluator;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.ModelConfiguration;
 import edu.udel.cis.vsl.civl.model.IF.ModelFactory;
@@ -425,10 +425,10 @@ public class LibcommEvaluator extends BaseLibraryEvaluator
 
 		claim = universe.lessThan(index, universe.length(procArray));
 		resultType = reasoner.valid(claim).getResultType();
-		if (!resultType.equals(ResultType.YES) && civlConfig.checkOutOfBounds()) {
+		if (!resultType.equals(ResultType.YES) && civlConfig.isPropertyToggled(CIVLProperty.OUT_OF_BOUNDS)) {
 			state = this.errorLogger.logError(source, state, pid,
 					symbolicAnalyzer.stateInformation(state), claim, resultType,
-					ErrorKind.OUT_OF_BOUNDS, "The place of " + process
+					CIVLProperty.OUT_OF_BOUNDS, "The place of " + process
 							+ " in a communicator is out of the bound of the total number of processes");
 			throw new UnsatisfiablePathConditionException();
 		}

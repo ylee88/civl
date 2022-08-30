@@ -4,7 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 
 import edu.udel.cis.vsl.civl.model.IF.CIVLException.Certainty;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.sarl.IF.expr.SymbolicExpression;
 
@@ -31,21 +31,21 @@ public class CIVLHeapException extends CIVLStateException {
 		NONEMPTY, UNREACHABLE
 	}
 
-	public CIVLHeapException(ErrorKind kind, Certainty certainty, State state,
+	public CIVLHeapException(CIVLProperty property, Certainty certainty, State state,
 			String dyscopeName, int dyscopeID, SymbolicExpression heapValue,
 			HeapErrorKind heapError, CIVLSource source) {
-		super(kind, certainty, "", state, source);
+		super(property, certainty, "", state, source);
 		this.dyscopeName = dyscopeName;
 		this.dyscopeID = dyscopeID;
 		this.heapValue = heapValue;
 		this.heapErrorKind = heapError;
 	}
 
-	public CIVLHeapException(ErrorKind kind, Certainty certainty, State state,
+	public CIVLHeapException(CIVLProperty property, Certainty certainty, State state,
 			String dyscopeName, int dyscopeID, SymbolicExpression heapValue,
 			int fieldID, int objectID, HeapErrorKind heapError,
 			CIVLSource source) {
-		super(kind, certainty, "", state, source);
+		super(property, certainty, "", state, source);
 		this.dyscopeName = dyscopeName;
 		this.dyscopeID = dyscopeID;
 		this.heapValue = heapValue;
@@ -62,8 +62,8 @@ public class CIVLHeapException extends CIVLStateException {
 		return this.state;
 	}
 
-	public ErrorKind kind() {
-		return this.kind;
+	public CIVLProperty civlProperty() {
+		return this.property;
 	}
 
 	public Certainty certainty() {

@@ -10,8 +10,8 @@ import java.util.List;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.library.common.BaseLibraryExecutor;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.CIVLUnimplementedFeatureException;
 import edu.udel.cis.vsl.civl.model.IF.ModelFactory;
@@ -245,17 +245,17 @@ public class LibstringExecutor extends BaseLibraryExecutor
 		Triple<State, StringBuffer, Boolean> strEval2 = null;
 		StringBuffer str1, str2;
 
-		if (civlConfig.checkPointerErr()
+		if (civlConfig.isPropertyToggled(CIVLProperty.POINTER)
 				&& (charPointer1.operator() != SymbolicOperator.TUPLE)) {
 			errorLogger.logSimpleError(source, state, process,
-					symbolicAnalyzer.stateInformation(state), ErrorKind.POINTER,
+					symbolicAnalyzer.stateInformation(state), CIVLProperty.POINTER,
 					"attempt to read/write from an invalid pointer");
 			throw new UnsatisfiablePathConditionException();
 		}
-		if (civlConfig.checkPointerErr()
+		if (civlConfig.isPropertyToggled(CIVLProperty.POINTER)
 				&& (charPointer2.operator() != SymbolicOperator.TUPLE)) {
 			errorLogger.logSimpleError(source, state, process,
-					symbolicAnalyzer.stateInformation(state), ErrorKind.POINTER,
+					symbolicAnalyzer.stateInformation(state), CIVLProperty.POINTER,
 					"attempt to read/write from an invalid pointer");
 			throw new UnsatisfiablePathConditionException();
 		}
@@ -470,10 +470,10 @@ public class LibstringExecutor extends BaseLibraryExecutor
 		pointer = argumentValues[0];
 		c = argumentValues[1];
 		// check if pointer is valid first
-		if (civlConfig.checkPointerErr()
+		if (civlConfig.isPropertyToggled(CIVLProperty.POINTER)
 				&& pointer.operator() != SymbolicOperator.TUPLE) {
 			errorLogger.logSimpleError(source, state, process,
-					symbolicAnalyzer.stateInformation(state), ErrorKind.POINTER,
+					symbolicAnalyzer.stateInformation(state), CIVLProperty.POINTER,
 					"attempt to read/write from an invalid pointer");
 			throw new UnsatisfiablePathConditionException();
 		}

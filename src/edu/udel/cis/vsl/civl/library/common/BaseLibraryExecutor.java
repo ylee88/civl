@@ -6,7 +6,7 @@ import java.util.Set;
 
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.ModelFactory;
 import edu.udel.cis.vsl.civl.model.IF.expression.Expression;
@@ -127,23 +127,22 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 		Pair<BooleanExpression, ResultType> checkPointer = symbolicAnalyzer
 				.isDefinedPointer(state, firstElementPointer, source);
 
-		if (civlConfig.checkMemManageErr()
+		if (civlConfig.isPropertyToggled(CIVLProperty.MEMORY_MANAGE)
 				&& checkPointer.right != ResultType.YES) {
 			state = this.errorLogger.logError(source, state, pid,
 					symbolicAnalyzer.stateInformation(state), checkPointer.left,
-					checkPointer.right, ErrorKind.MEMORY_MANAGE,
+					checkPointer.right, CIVLProperty.MEMORY_MANAGE,
 					"attempt to deallocate memory space through an undefined pointer");
 			// dont report unsatisfiable path condition exception
 		} else if (this.symbolicUtil.isNullPointer(firstElementPointer)) {
 			// does nothing for null pointer.
-		} else if (civlConfig.checkMemManageErr()
-				&& civlConfig.checkMemManageErr()
+		} else if (civlConfig.isPropertyToggled(CIVLProperty.MEMORY_MANAGE)
 				&& (!this.symbolicUtil.isPointerToHeap(firstElementPointer)
 						|| !this.symbolicUtil.isMallocPointer(source,
 								firstElementPointer))) {
 			this.errorLogger.logSimpleError(source, state, process,
 					symbolicAnalyzer.stateInformation(state),
-					ErrorKind.MEMORY_MANAGE,
+					CIVLProperty.MEMORY_MANAGE,
 					"the argument of free "
 							+ symbolicAnalyzer.symbolicExpressionToString(
 									source, state,
@@ -163,12 +162,12 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 				heapObject = eval.value;
 				state = eval.state;
 			}
-			if (civlConfig.checkMemManageErr() && heapObject != null
+			if (civlConfig.isPropertyToggled(CIVLProperty.MEMORY_MANAGE) && heapObject != null
 					&& heapObject.isNull()) {
 				// the heap object has been deallocated
 				this.errorLogger.logSimpleError(source, state, process,
 						symbolicAnalyzer.stateInformation(state),
-						ErrorKind.MEMORY_MANAGE,
+						CIVLProperty.MEMORY_MANAGE,
 						"attempt to deallocate an object that has been deallocated previously");
 			} else {
 				Pair<Integer, Integer> indexes;
@@ -239,9 +238,15 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 					this.civlConfig.svcomp()).state;
 			civlConfig.out().println();
 		}
+		/*boolean isInLibraryFunction = false;
+		for (StackEntry se : state.getProcessState(pid).getStackEntries()) {
+			if (se.location().function().isLibrary()) {
+				isInLibraryFunction = true;
+			}
+		}*/
 		state = errorLogger.logError(source, state, pid,
 				this.symbolicAnalyzer.stateInformation(state), claim,
-				resultType, ErrorKind.ASSERTION_VIOLATION, message);
+				resultType, CIVLProperty.ASSERTION_VIOLATION, message);
 		return state;
 	}
 

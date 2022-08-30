@@ -40,15 +40,15 @@ public class MPIFeatureTest {
 
 	@Test
 	public void dynamicBuffer() {
-		assertTrue(ui.run("verify -input_mpi_nprocs=3", "-deadlock=potential",
+		assertTrue(ui.run("verify -input_mpi_nprocs=3", "-checkDeadlock=potential",
 				TestConstants.QUIET, filename("dy_buf_good.c")));
 	}
 
 	@Test
 	public void dynamicBufferBad() {
-		assertFalse(ui.run("verify -input_mpi_nprocs=3", "-deadlock=potential",
+		assertFalse(ui.run("verify -input_mpi_nprocs=3", "-checkDeadlock=potential",
 				TestConstants.QUIET, filename("dy_buf_bad.c")));
-		assertFalse(ui.run("replay ", "-deadlock=potential",
+		assertFalse(ui.run("replay ", "-checkDeadlock=potential",
 				TestConstants.QUIET, filename("dy_buf_bad.c")));
 	}
 

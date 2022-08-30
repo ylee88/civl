@@ -6,8 +6,8 @@ import java.util.LinkedList;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.library.common.BaseLibraryExecutor;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.Model;
 import edu.udel.cis.vsl.civl.model.IF.ModelFactory;
@@ -247,7 +247,7 @@ public class LibcommExecutor extends BaseLibraryExecutor
 		if (result.right != ResultType.YES)
 			state = this.errorLogger.logError(arguments[0].getSource(), state,
 					pid, this.symbolicAnalyzer.stateInformation(state),
-					result.left, result.right, ErrorKind.DEREFERENCE,
+					result.left, result.right, CIVLProperty.DEREFERENCE,
 					"attempt to access a memory location that can't be dereferenced: "
 							+ symbolicAnalyzer.symbolicExpressionToString(
 									arguments[0].getSource(), state,
@@ -821,11 +821,11 @@ public class LibcommExecutor extends BaseLibraryExecutor
 
 		}
 		// Exception
-		else if (civlConfig.checkCommErr()){
+		else if (civlConfig.isPropertyToggled(CIVLProperty.COMMUNICATION)){
 			// tag != -2 && tag < 0
 			errorLogger.logSimpleError(civlsource, state, process,
 					symbolicAnalyzer.stateToString(state),
-					ErrorKind.COMMUNICATION, "Illegal message tag:" + tag);
+					CIVLProperty.COMMUNICATION, "Illegal message tag:" + tag);
 			throw new UnsatisfiablePathConditionException();
 		}
 		return msgIndex;
@@ -940,11 +940,11 @@ public class LibcommExecutor extends BaseLibraryExecutor
 		messages = universe.tupleRead(queue, oneObject);
 		msgIdx = this.getMatchedMsgIdx(state, pid, process, messages,
 				queueLength, tag, civlsource);
-		if (msgIdx == -1 && civlConfig.checkCommErr()) {
+		if (msgIdx == -1 && civlConfig.isPropertyToggled(CIVLProperty.COMMUNICATION)) {
 			state = errorLogger.logError(civlsource, state, pid,
 					symbolicAnalyzer.stateInformation(state),
 					universe.trueExpression(), ResultType.NO,
-					ErrorKind.COMMUNICATION,
+					CIVLProperty.COMMUNICATION,
 					"There is no matched message [source:" + source
 							+ ", destination:" + dest + ", tag:" + tag
 							+ " ] in the message buffer.");

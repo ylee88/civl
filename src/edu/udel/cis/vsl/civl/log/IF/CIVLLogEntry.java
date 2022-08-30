@@ -67,7 +67,7 @@ public class CIVLLogEntry extends LogEntry {
 			// The "kind" of error detected must match.
 			if (result != 0)
 				return result;
-			result = problem.kind().compareTo(thatProblem.kind());
+			result = problem.civlProperty().compareTo(thatProblem.civlProperty());
 			if (result != 0) {
 				return result;
 			} else {
@@ -123,7 +123,7 @@ public class CIVLLogEntry extends LogEntry {
 
 			if (!problem.certainty().equals(thatProblem.certainty()))
 				return false;
-			if (!problem.kind().equals(thatProblem.kind()))
+			if (!problem.civlProperty().equals(thatProblem.civlProperty()))
 				return false;
 			else {
 				CIVLSource source1 = problem.getSource();

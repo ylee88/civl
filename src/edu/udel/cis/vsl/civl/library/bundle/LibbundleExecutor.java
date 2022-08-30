@@ -5,7 +5,7 @@ import java.util.Arrays;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.library.common.BaseLibraryExecutor;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.ModelFactory;
 import edu.udel.cis.vsl.civl.model.IF.expression.Expression;
@@ -264,7 +264,7 @@ public class LibbundleExecutor extends BaseLibraryExecutor
 		baseDivides = universe.divides(baseSize, availableSize);
 		resultType = reasoner.valid(universe.and(baseDivides, inBound))
 				.getResultType();
-		if (resultType != ResultType.YES && civlConfig.checkOutOfBounds())
+		if (resultType != ResultType.YES && civlConfig.isPropertyToggled(CIVLProperty.OUT_OF_BOUNDS))
 			eval.state = reportBundlePackError(state, pid, pointer,
 					availableSize, size, universe.and(baseDivides, inBound),
 					resultType, source);
@@ -462,7 +462,7 @@ public class LibbundleExecutor extends BaseLibraryExecutor
 						wrtArray);
 			}
 		}
-		if (errorCheckingResult != ResultType.YES && civlConfig.checkOutOfBounds())
+		if (errorCheckingResult != ResultType.YES && civlConfig.isPropertyToggled(CIVLProperty.OUT_OF_BOUNDS))
 			state = reportBundleUnpackError(state, pid, pointer, bundleData,
 					typeFactory.bundleType(), sizeofBundleData, availableSize,
 					inBoundClaim, errorCheckingResult, source);
@@ -939,7 +939,7 @@ public class LibbundleExecutor extends BaseLibraryExecutor
 						typeFactory.integerType(), memSize));
 		state = errorLogger.logError(source, state, pid,
 				symbolicAnalyzer.stateInformation(state), claim, resultType,
-				ErrorKind.OUT_OF_BOUNDS, message.toString());
+				CIVLProperty.OUT_OF_BOUNDS, message.toString());
 		state = stateFactory.addToPathcondition(state, pid, claim);
 		return state;
 	}
@@ -968,7 +968,7 @@ public class LibbundleExecutor extends BaseLibraryExecutor
 						typeFactory.integerType(), memSize));
 		state = errorLogger.logError(source, state, pid,
 				symbolicAnalyzer.stateInformation(state), claim, resultType,
-				ErrorKind.OUT_OF_BOUNDS, message.toString());
+				CIVLProperty.OUT_OF_BOUNDS, message.toString());
 		state = stateFactory.addToPathcondition(state, pid, claim);
 		return state;
 	}

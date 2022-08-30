@@ -24,9 +24,9 @@ import edu.udel.cis.vsl.civl.dynamic.IF.Dynamics;
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.model.IF.CIVLException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLException.Certainty;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
 import edu.udel.cis.vsl.civl.model.IF.CIVLFunction;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.CIVLTypeFactory;
 import edu.udel.cis.vsl.civl.model.IF.Model;
@@ -466,13 +466,13 @@ public class ImmutableStateFactory implements StateFactory {
 								SymbolicExpression heapObj = universe.arrayRead(
 										heapField, universe.integer(objectId));
 
-								if (config.checkMemoryLeak()
+								if (config.isPropertyToggled(CIVLProperty.MEMORY_LEAK)
 										&& !symbolicUtil
 												.isInvalidHeapObject(heapObj)
 										&& !toBeIgnored.contains(
 												HeapErrorKind.UNREACHABLE)) {
 									throw new CIVLHeapException(
-											ErrorKind.MEMORY_LEAK,
+											CIVLProperty.MEMORY_LEAK,
 											Certainty.CONCRETE, theState,
 											"d" + dyscopeId, dyscopeId, heap,
 											mallocId, objectId,
@@ -603,7 +603,7 @@ public class ImmutableStateFactory implements StateFactory {
 				newNumScopes++;
 			if (!change && id != i)
 				change = true;
-			if (id < 0 && config.checkMemoryLeak()
+			if (id < 0 && config.isPropertyToggled(CIVLProperty.MEMORY_LEAK)
 					&& !toBeIgnored.contains(HeapErrorKind.NONEMPTY)) {
 				ImmutableDynamicScope scopeToBeRemoved = theState.getDyscope(i);
 				Variable heapVariable = scopeToBeRemoved.lexicalScope()
@@ -613,7 +613,7 @@ public class ImmutableStateFactory implements StateFactory {
 
 				if (!(heapValue.isNull()
 						|| symbolicUtil.isEmptyHeap(heapValue))) {
-					throw new CIVLHeapException(ErrorKind.MEMORY_LEAK,
+					throw new CIVLHeapException(CIVLProperty.MEMORY_LEAK,
 							Certainty.CONCRETE, state, "d" + i, i, heapValue,
 							HeapErrorKind.NONEMPTY, heapVariable.getSource());
 				}
@@ -664,8 +664,8 @@ public class ImmutableStateFactory implements StateFactory {
 			DynamicScope dyscope = state.getDyscope(0);
 			SymbolicExpression heap = dyscope.getValue(0);
 
-			if (config.checkMemoryLeak() && !symbolicUtil.isEmptyHeap(heap))
-				throw new CIVLHeapException(ErrorKind.MEMORY_LEAK,
+			if (config.isPropertyToggled(CIVLProperty.MEMORY_LEAK) && !symbolicUtil.isEmptyHeap(heap))
+				throw new CIVLHeapException(CIVLProperty.MEMORY_LEAK,
 						Certainty.CONCRETE, state, "d0", 0, heap,
 						HeapErrorKind.NONEMPTY,
 						dyscope.lexicalScope().getSource());

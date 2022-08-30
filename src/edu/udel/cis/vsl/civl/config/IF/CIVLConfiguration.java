@@ -1,15 +1,18 @@
 package edu.udel.cis.vsl.civl.config.IF;
 
 import java.io.PrintStream;
+import java.util.HashMap;
 import java.util.Map;
 
 import edu.udel.cis.vsl.civl.config.IF.CIVLConstants.DeadlockKind;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConstants.ErrorStateEquivalence;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConstants.MPIModelKind;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.ModelConfiguration;
 import edu.udel.cis.vsl.gmc.GMCSection;
+import edu.udel.cis.vsl.gmc.Option.OptionType;
 
 /**
  * A CIVLConfiguration object encompasses all the parameters used to configure
@@ -26,24 +29,21 @@ public class CIVLConfiguration {
 	 * What kind of deadlocks should CIVL search for?
 	 */
 	private DeadlockKind checkDeadlockKind = DeadlockKind.ABSOLUTE;
-	private boolean checkDivisionByZero = true;
-	private boolean checkMemoryLeak = true;
-	private boolean checkAssertionViolation = true;
-	private boolean checkCommErr = true;
-	private boolean checkConstWrite = true;
-	private boolean checkInputWrite = true;
-	private boolean checkInvalidCast = true;
-	private boolean checkMallocErr = true;
-	private boolean checkMpiErr = true;
-	private boolean checkOutOfBounds = true;
-	private boolean checkOutputRead = true;
-	private boolean checkPointerErr = true;
-	private boolean checkUndefVal = true;
-	private boolean checkUnionErr = true;
-	private boolean checkProcLeak = true;
-	private boolean checkSeqErr = true;
-	private boolean checkMemManageErr = true;
-	private boolean checkTermination = true;
+	/*
+	 * private boolean checkDivisionByZero = true; private boolean
+	 * checkMemoryLeak = true; private boolean checkAssertionViolation = true;
+	 * private boolean checkCommErr = true; private boolean checkConstWrite =
+	 * true; private boolean checkInputWrite = true; private boolean
+	 * checkInvalidCast = true; private boolean checkMallocErr = true; private
+	 * boolean checkMpiErr = true; private boolean checkOutOfBounds = true;
+	 * private boolean checkOutputRead = true; private boolean checkPointerErr =
+	 * true; private boolean checkUndefVal = true; private boolean checkUnionErr
+	 * = true; private boolean checkProcLeak = true; private boolean checkSeqErr
+	 * = true; private boolean checkMemManageErr = true; private boolean
+	 * checkTermination = true;
+	 */
+
+	Map<CIVLProperty, Boolean> toggleableCivlProps;
 
 	/**
 	 * Should CIVL run in "debug" mode, printing lots and lots of output?
@@ -327,48 +327,38 @@ public class CIVLConfiguration {
 	 *            The command line configuration.
 	 */
 	public CIVLConfiguration(GMCSection config) {
-		String deadlockString = (String) config
-				.getValue(CIVLConstants.checkDeadlockO);
-		if (deadlockString != null)
-			switch (deadlockString) {
-				case "absolute" :
-					this.checkDeadlockKind = DeadlockKind.ABSOLUTE;
-					break;
-				case "potential" :
-					this.checkDeadlockKind = DeadlockKind.POTENTIAL;
-					break;
-				case "none" :
-					this.checkDeadlockKind = DeadlockKind.NONE;
-					break;
-				default :
-					throw new CIVLInternalException(
-							"invalid deadlock kind " + deadlockString,
-							(CIVLSource) null);
+		this.toggleableCivlProps = new HashMap<CIVLProperty, Boolean>();
+		// Fill out CIVLProperty config info
+		for (CIVLProperty prop : CIVLProperty.getAllConfigurableProperties()) {
+			if (prop.getOption().type() == OptionType.BOOLEAN) {
+				this.toggleableCivlProps.put(prop,
+						config.isTrue(prop.getOption()));
+			} else if (prop == CIVLProperty.DEADLOCK) {
+				String deadlockString = (String) config
+						.getValue(CIVLProperty.DEADLOCK.getOption());
+				if (deadlockString != null) {
+					switch (deadlockString) {
+						case "absolute" :
+							this.checkDeadlockKind = DeadlockKind.ABSOLUTE;
+							break;
+						case "potential" :
+							this.checkDeadlockKind = DeadlockKind.POTENTIAL;
+							break;
+						case "none" :
+							this.checkDeadlockKind = DeadlockKind.NONE;
+							break;
+						default :
+							throw new CIVLInternalException(
+									"invalid deadlock kind " + deadlockString,
+									(CIVLSource) null);
+					}
+				}
+			} else {
+				throw new CIVLInternalException(
+						"Configurable CIVLProperty declared but not recorded in CIVLConfiguration",
+						(CIVLSource) null);
 			}
-		this.setCheckDivisionByZero(
-				config.isTrue(CIVLConstants.checkDivisionByZeroO));
-		this.setCheckMemoryLeak(config.isTrue(CIVLConstants.checkMemoryLeakO));
-		this.setCheckAssertionViolation(
-				config.isTrue(CIVLConstants.checkAssertionViolationO));
-		this.setCheckCommErr(config.isTrue(CIVLConstants.checkCommErrO));
-		this.setCheckConstWrite(config.isTrue(CIVLConstants.checkConstWriteO));
-		this.setCheckInputWrite(config.isTrue(CIVLConstants.checkInputWriteO));
-		this.setCheckInvalidCast(
-				config.isTrue(CIVLConstants.checkInvalidCastO));
-		this.setCheckMallocErr(config.isTrue(CIVLConstants.checkMallocErrO));
-		this.setCheckMpiErr(config.isTrue(CIVLConstants.checkMpiErrO));
-		this.setCheckOutOfBounds(
-				config.isTrue(CIVLConstants.checkOutOfBoundsO));
-		this.setCheckOutputRead(config.isTrue(CIVLConstants.checkOutputReadO));
-		this.setCheckPointerErr(config.isTrue(CIVLConstants.checkPointerErrO));
-		this.setCheckUndefVal(config.isTrue(CIVLConstants.checkUndefValO));
-		this.setCheckUnionErr(config.isTrue(CIVLConstants.checkUnionErrO));
-		this.setCheckProcLeak(config.isTrue(CIVLConstants.checkProcLeakO));
-		this.setCheckSeqErr(config.isTrue(CIVLConstants.checkSeqErrO));
-		this.setCheckMemManageErr(
-				config.isTrue(CIVLConstants.checkMemManageErrO));
-		this.setCheckTermination(
-				config.isTrue(CIVLConstants.checkTerminationO));
+		}
 
 		String ompLoopDecompString = (String) config
 				.getValue(CIVLConstants.ompLoopDecompO);
@@ -478,25 +468,25 @@ public class CIVLConfiguration {
 			this.generateTestsForSARL = (boolean) CIVLConstants.SARLTestGenO
 					.defaultValue();
 		if (this.svcomp16) {
-			if (config.getValue(CIVLConstants.checkMemoryLeakO) == null)
-				this.checkMemoryLeak = false;
+			if (config.getValue(CIVLProperty.MEMORY_LEAK.getOption()) == null)
+				this.toggleableCivlProps.put(CIVLProperty.MEMORY_LEAK, false);
 			if (config.getValue(CIVLConstants.collectHeapsO) == null)
 				this.collectHeaps = false;
 			if (config.getValue(CIVLConstants.simplifyO) == null)
 				this.simplify = false;
-			if (config.getValue(CIVLConstants.checkDeadlockO) == null)
+			if (config.getValue(CIVLProperty.DEADLOCK.getOption()) == null)
 				this.checkDeadlockKind = DeadlockKind.NONE;
 			if (config.getValue(CIVLConstants.procBoundO) == null)
 				this.procBound = 6;
 		}
 		if (this.svcomp17) {
-			if (config.getValue(CIVLConstants.checkMemoryLeakO) == null)
-				this.checkMemoryLeak = false;
+			if (config.getValue(CIVLProperty.MEMORY_LEAK.getOption()) == null)
+				this.toggleableCivlProps.put(CIVLProperty.MEMORY_LEAK, false);
 			if (config.getValue(CIVLConstants.collectHeapsO) == null)
 				this.collectHeaps = false;
 			if (config.getValue(CIVLConstants.simplifyO) == null)
 				this.simplify = false;
-			if (config.getValue(CIVLConstants.checkDeadlockO) == null)
+			if (config.getValue(CIVLProperty.DEADLOCK.getOption()) == null)
 				this.checkDeadlockKind = DeadlockKind.NONE;
 			if (config.getValue(CIVLConstants.procBoundO) == null)
 				this.procBound = 6;
@@ -513,24 +503,8 @@ public class CIVLConfiguration {
 
 	public CIVLConfiguration(CIVLConfiguration config) {
 		this.checkDeadlockKind = config.checkDeadlockKind;
-		this.checkDivisionByZero = config.checkDivisionByZero;
-		this.checkMemoryLeak = config.checkMemoryLeak;
-		this.checkAssertionViolation = config.checkAssertionViolation;
-		this.checkCommErr = config.checkCommErr;
-		this.checkConstWrite = config.checkConstWrite;
-		this.checkInputWrite = config.checkInputWrite;
-		this.checkInvalidCast = config.checkInvalidCast;
-		this.checkMallocErr = config.checkMallocErr;
-		this.checkMpiErr = config.checkMpiErr;
-		this.checkOutOfBounds = config.checkOutOfBounds;
-		this.checkOutputRead = config.checkOutputRead;
-		this.checkPointerErr = config.checkPointerErr;
-		this.checkUndefVal = config.checkUndefVal;
-		this.checkUnionErr = config.checkUnionErr;
-		this.checkProcLeak = config.checkProcLeak;
-		this.checkSeqErr = config.checkSeqErr;
-		this.checkMemManageErr = config.checkMemManageErr;
-		this.checkTermination = config.checkTermination;
+		this.toggleableCivlProps = new HashMap<CIVLProperty, Boolean>(
+				config.toggleableCivlProps);
 		this.absAnalysis = config.absAnalysis;
 		this.collectHeaps = config.collectHeaps;
 		this.collectOutputs = config.collectOutputs;
@@ -586,130 +560,62 @@ public class CIVLConfiguration {
 		this.checkDeadlockKind = checkDeadlockKind;
 	}
 
-	public boolean checkDivisionByZero() {
-		return checkDivisionByZero;
-	}
-	public void setCheckDivisionByZero(boolean checkDivisionByZero) {
-		this.checkDivisionByZero = checkDivisionByZero;
+	public boolean isToggleableProperty(CIVLProperty prop) {
+		return toggleableCivlProps.containsKey(prop);
 	}
 
-	public boolean checkMemoryLeak() {
-		return this.checkMemoryLeak;
-	}
-	public void setCheckMemoryLeak(boolean value) {
-		this.checkMemoryLeak = value;
-	}
-
-	public boolean checkAssertionViolation() {
-		return checkAssertionViolation;
-	}
-	public void setCheckAssertionViolation(boolean value) {
-		this.checkAssertionViolation = value;
+	public boolean isPropertyToggled(CIVLProperty prop) {
+		Boolean b = this.toggleableCivlProps.get(prop);
+		assert (b != null);
+		return b.booleanValue();
 	}
 
-	public boolean checkCommErr() {
-		return checkCommErr;
-	}
-	public void setCheckCommErr(boolean value) {
-		this.checkCommErr = value;
+	public void setToggleableProperty(CIVLProperty prop, boolean value) {
+		this.toggleableCivlProps.put(prop, value);
 	}
 
-	public boolean checkConstWrite() {
-		return checkConstWrite;
-	}
-	public void setCheckConstWrite(boolean value) {
-		this.checkConstWrite = value;
+	public String getCheckedPropertiesSummary() {
+		String summary = "";
+		String yes = " +  ";
+		String no = " -  ";
+		// Print unconfigurable properties as having been checked.
+		for (CIVLProperty prop : CIVLProperty
+				.getAllUnconfigurableProperties()) {
+			summary += yes + getSummaryTitle(prop);
+		}
+
+		for (CIVLProperty prop : CIVLProperty.getAllConfigurableProperties()) {
+			if (isToggleableProperty(prop)) {
+				summary += (isPropertyToggled(prop) ? yes : no)
+						+ getSummaryTitle(prop);
+			} else if (prop == CIVLProperty.DEADLOCK) {
+				// Print deadlock property
+				switch (checkDeadlockKind) {
+					case ABSOLUTE :
+						summary += yes + "Absolute "
+								+ getSummaryTitle(CIVLProperty.DEADLOCK)
+										.toLowerCase();
+						break;
+					case POTENTIAL :
+						summary += yes + "Potential "
+								+ getSummaryTitle(CIVLProperty.DEADLOCK)
+										.toLowerCase();
+						break;
+					case NONE :
+						summary += no + getSummaryTitle(CIVLProperty.DEADLOCK);
+						break;
+				}
+			} else {
+				summary += no + getSummaryTitle(prop);
+			}
+		}
+
+		return summary;
 	}
 
-	public boolean checkInputWrite() {
-		return checkInputWrite;
-	}
-	public void setCheckInputWrite(boolean value) {
-		this.checkInputWrite = value;
-	}
-
-	public boolean checkInvalidCast() {
-		return checkInvalidCast;
-	}
-	public void setCheckInvalidCast(boolean value) {
-		this.checkInvalidCast = value;
-	}
-
-	public boolean checkMallocErr() {
-		return checkMallocErr;
-	}
-	public void setCheckMallocErr(boolean value) {
-		this.checkMallocErr = value;
-	}
-
-	public boolean checkMpiErr() {
-		return checkMpiErr;
-	}
-	public void setCheckMpiErr(boolean value) {
-		this.checkMpiErr = value;
-	}
-
-	public boolean checkOutOfBounds() {
-		return checkOutOfBounds;
-	}
-	public void setCheckOutOfBounds(boolean value) {
-		this.checkOutOfBounds = value;
-	}
-
-	public boolean checkOutputRead() {
-		return checkOutputRead;
-	}
-	public void setCheckOutputRead(boolean value) {
-		this.checkOutputRead = value;
-	}
-
-	public boolean checkPointerErr() {
-		return checkPointerErr;
-	}
-	public void setCheckPointerErr(boolean value) {
-		this.checkPointerErr = value;
-	}
-
-	public boolean checkUndefVal() {
-		return checkUndefVal;
-	}
-	public void setCheckUndefVal(boolean value) {
-		this.checkUndefVal = value;
-	}
-
-	public boolean checkUnionErr() {
-		return checkUnionErr;
-	}
-	public void setCheckUnionErr(boolean value) {
-		this.checkUnionErr = value;
-	}
-
-	public boolean checkProcLeak() {
-		return checkProcLeak;
-	}
-	public void setCheckProcLeak(boolean value) {
-		this.checkProcLeak = value;
-	}
-
-	public boolean checkSeqErr() {
-		return checkSeqErr;
-	}
-	public void setCheckSeqErr(boolean value) {
-		this.checkSeqErr = value;
-	}
-
-	public boolean checkMemManageErr() {
-		return checkMemManageErr;
-	}
-	public void setCheckMemManageErr(boolean value) {
-		this.checkMemManageErr = value;
-	}
-
-	public boolean checkTermination() {
-		return checkTermination;
-	}
-	public void setCheckTermination(boolean value) {
-		this.checkTermination = value;
+	private String getSummaryTitle(CIVLProperty prop) {
+		String title = prop.getPropertyTitle();
+		return title.substring(0, 1).toUpperCase() + title.substring(1) + "\n";
 	}
 
 	public void setOut(PrintStream out) {

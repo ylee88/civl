@@ -69,7 +69,7 @@ public class PORTest {
 
 	@Test
 	public void trade3() {
-		assertFalse(ui.run("verify", QUIET, "-deadlock=none",
+		assertFalse(ui.run("verify", QUIET, "-checkDeadlock=none",
 				filename("trade3.cvl")));
 	}
 

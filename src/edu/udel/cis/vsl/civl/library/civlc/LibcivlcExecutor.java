@@ -4,8 +4,8 @@ import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.library.civlc.Heuristics.Query;
 import edu.udel.cis.vsl.civl.library.common.BaseLibraryExecutor;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.ModelFactory;
 import edu.udel.cis.vsl.civl.model.IF.expression.Expression;
@@ -370,7 +370,7 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 			state = this.errorLogger.logError(source, state, pid,
 					this.symbolicAnalyzer.stateInformation(state),
 					checkPointer.left, checkPointer.right,
-					ErrorKind.MEMORY_MANAGE,
+					CIVLProperty.MEMORY_MANAGE,
 					"can't apply $havoc to a pointer that can't be dereferenced.\npointer: "
 							+ this.symbolicAnalyzer.symbolicExpressionToString(
 									source, state, null, pointer));
@@ -482,17 +482,17 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 		CIVLSource argSource = arguments[0].getSource();
 		String process = state.getProcessState(pid).name();
 
-		if (civlConfig.checkPointerErr() && !symbolicUtil.isConcretePointer(pointer))
+		if (civlConfig.isPropertyToggled(CIVLProperty.POINTER) && !symbolicUtil.isConcretePointer(pointer))
 			errorLogger.logSimpleError(argSource, state, process,
-					symbolicAnalyzer.stateInformation(state), ErrorKind.POINTER,
+					symbolicAnalyzer.stateInformation(state), CIVLProperty.POINTER,
 					"Attempt to assign to a non-concrete pointer: "
 							+ arguments[0] + "\nValue: " + pointer);
 
 		SymbolicExpression scope = symbolicUtil.getScopeValue(pointer);
 
-		if (civlConfig.checkPointerErr() && stateFactory.undefinedScopeValue() == scope)
+		if (civlConfig.isPropertyToggled(CIVLProperty.POINTER) && stateFactory.undefinedScopeValue() == scope)
 			errorLogger.logSimpleError(argSource, state, process,
-					symbolicAnalyzer.stateInformation(state), ErrorKind.POINTER,
+					symbolicAnalyzer.stateInformation(state), CIVLProperty.POINTER,
 					"Attempt to assign to a invalid pointer: " + arguments[0]
 							+ "\nValue: " + pointer);
 
@@ -659,7 +659,7 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 
 		if (number_nprocs == null) {
 			this.errorLogger.logSimpleError(source, state, process,
-					symbolicAnalyzer.stateInformation(state), ErrorKind.OTHER,
+					symbolicAnalyzer.stateInformation(state), CIVLProperty.OTHER,
 					"the number of processes for $waitall "
 							+ "shoud be a concrete value");
 			throw new UnsatisfiablePathConditionException();
@@ -779,7 +779,7 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 		} else
 			resultType = universe.reasoner(context).valid(assertValue)
 					.getResultType();
-		if (resultType != ResultType.YES && civlConfig.checkAssertionViolation()) {
+		if (resultType != ResultType.YES && civlConfig.isPropertyToggled(CIVLProperty.ASSERTION_VIOLATION)) {
 			StringBuilder message = new StringBuilder();
 			Pair<State, String> messageResult = this.symbolicAnalyzer
 					.expressionEvaluation(state, pid, arguments[0], false);

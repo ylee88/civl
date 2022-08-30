@@ -8,8 +8,8 @@ import java.util.Queue;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.log.IF.CIVLErrorLogger;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.CIVLTypeFactory;
 import edu.udel.cis.vsl.civl.model.IF.CIVLUnimplementedFeatureException;
@@ -518,7 +518,7 @@ public abstract class LibraryComponent {
 			return result;
 		} catch (ClassCastException e) {
 			errorLogger.logSimpleError(civlsource, state, process,
-					symbolicAnalyzer.stateToString(state), ErrorKind.OTHER,
+					symbolicAnalyzer.stateToString(state), CIVLProperty.OTHER,
 					"Invalid operands type for CIVL Operation: " + op.name());
 			throw new UnsatisfiablePathConditionException();
 		}
@@ -735,7 +735,7 @@ public abstract class LibraryComponent {
 		if (!this.civlConfig.svcomp()) {
 			claim = universe.lessThan(dataSeqLength, count);
 			resultType = reasoner.valid(claim).getResultType();
-			if (resultType.equals(ResultType.YES) && civlConfig.checkOutOfBounds())
+			if (resultType.equals(ResultType.YES) && civlConfig.isPropertyToggled(CIVLProperty.OUT_OF_BOUNDS))
 				reportOutOfBoundError(state, pid, claim, resultType, pointer,
 						dataSeqLength, count, source);
 		}
@@ -764,14 +764,14 @@ public abstract class LibraryComponent {
 						new Evaluation(state,
 								universe.arrayRead(dataArray, zero)),
 						symbolicUtil.makePointer(pointer, symref));
-			if (civlConfig.checkOutOfBounds()) {
+			if (civlConfig.isPropertyToggled(CIVLProperty.OUT_OF_BOUNDS)) {
 				// report error:
 				CIVLType integerType;
 	
 				integerType = typeFactory.integerType();
 				errorLogger.logSimpleError(source, state, process,
 						symbolicAnalyzer.stateInformation(state),
-						ErrorKind.OUT_OF_BOUNDS,
+						CIVLProperty.OUT_OF_BOUNDS,
 						"$bundle_unpack out of bound: \nPointer: "
 								+ symbolicAnalyzer.symbolicExpressionToString(
 										source, state, ptrExpr.getExpressionType(),
@@ -819,7 +819,7 @@ public abstract class LibraryComponent {
 		if (eval.value.type().typeKind().equals(SymbolicTypeKind.ARRAY)) {
 			eval = setDataBetween(state, pid, eval.value, arraySlicesSizes,
 					startPos, count, pointer, dataArray, source);
-		} else if (civlConfig.checkOutOfBounds()){
+		} else if (civlConfig.isPropertyToggled(CIVLProperty.UNDEFINED_VALUE)){
 			reportOutOfBoundError(state, pid, null, null, startPtr, one, count,
 					source);
 		}
@@ -867,7 +867,7 @@ public abstract class LibraryComponent {
 		if (reasoner.isValid(universe.equals(count, one))) {
 			eval = evaluator.dereference(source, state, process, pointer, true,
 					true);
-			if (civlConfig.checkUndefVal() && eval.value.isNull())
+			if (civlConfig.isPropertyToggled(CIVLProperty.UNDEFINED_VALUE) && eval.value.isNull())
 				reportUndefinedValueError(state, pid,
 						symbolicUtil.getSymRef(pointer).isIdentityReference(),
 						pointerExpr);
@@ -897,7 +897,7 @@ public abstract class LibraryComponent {
 				true);
 		state = eval.state;
 		rootArray = eval.value;
-		if (civlConfig.checkUndefVal() && rootArray.isNull())
+		if (civlConfig.isPropertyToggled(CIVLProperty.UNDEFINED_VALUE) && rootArray.isNull())
 			reportUndefinedValueError(state, pid,
 					symbolicUtil.getSymRef(pointer).isIdentityReference(),
 					pointerExpr);
@@ -942,7 +942,7 @@ public abstract class LibraryComponent {
 			kind = "uninitialized";
 		errorLogger.logSimpleError(expression.getSource(), state, process,
 				symbolicAnalyzer.stateInformation(state),
-				ErrorKind.UNDEFINED_VALUE,
+				CIVLProperty.UNDEFINED_VALUE,
 				"Attempt to read an object with " + kind + " value");
 	}
 
@@ -1547,12 +1547,12 @@ public abstract class LibraryComponent {
 		if (claim != null && resultType != null)
 			state = errorLogger.logError(source, state, pid,
 					symbolicAnalyzer.stateInformation(state), claim, resultType,
-					ErrorKind.OUT_OF_BOUNDS, message);
+					CIVLProperty.OUT_OF_BOUNDS, message);
 		else
 			errorLogger.logSimpleError(source, state,
 					state.getProcessState(pid).name(),
 					symbolicAnalyzer.stateInformation(state),
-					ErrorKind.OUT_OF_BOUNDS, message);
+					CIVLProperty.OUT_OF_BOUNDS, message);
 		throw new UnsatisfiablePathConditionException();
 	}
 }

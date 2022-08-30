@@ -10,7 +10,7 @@ import java.util.Map;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.library.common.BaseLibraryExecutor;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.ModelConfiguration;
 import edu.udel.cis.vsl.civl.model.IF.ModelFactory;
@@ -190,13 +190,13 @@ public class LibdomainExecutor extends BaseLibraryExecutor
 
 		if (strategy_num == null) {
 			this.errorLogger.logSimpleError(source, state, process,
-					symbolicAnalyzer.stateInformation(state), ErrorKind.OTHER,
+					symbolicAnalyzer.stateInformation(state), CIVLProperty.OTHER,
 					"$domain_partition requires a concrete strategy argument");
 			throw new UnsatisfiablePathConditionException();
 		}
 		if (numParts_num == null) {
 			this.errorLogger.logSimpleError(source, state, process,
-					symbolicAnalyzer.stateInformation(state), ErrorKind.OTHER,
+					symbolicAnalyzer.stateInformation(state), CIVLProperty.OTHER,
 					"$domain_partition requires a concrete number of partitions argument");
 			throw new UnsatisfiablePathConditionException();
 		}

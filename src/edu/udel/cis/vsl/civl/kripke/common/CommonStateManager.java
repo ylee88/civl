@@ -562,7 +562,7 @@ public class CommonStateManager extends CIVLStateManager {
 										hex.heapValue());
 						errorLogger.logSimpleError(hex.source(), state, process,
 								symbolicAnalyzer.stateInformation(hex.state()),
-								hex.kind(), message);
+								hex.civlProperty(), message);
 						ignoredErrorSet.add(hex.heapErrorKind());
 					}
 				} while (!finished);

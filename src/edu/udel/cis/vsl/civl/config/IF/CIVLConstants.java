@@ -8,7 +8,9 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Stream;
 
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.gmc.Option;
 import edu.udel.cis.vsl.gmc.Option.OptionType;
 
@@ -140,26 +142,6 @@ public class CIVLConstants {
 
 	public static String TIMEOUT = "timeout";
 
-	public static String CHECK_DIV_BY_ZERO = "checkDivisionByZero";
-	public static String CHECK_MEM_LEAK = "checkMemoryLeak";
-	public static String CHECK_ASSERTION_VIOLATION = "checkAssertion";
-	public static String CHECK_DEADLOCK = "checkDeadlock";
-	public static String CHECK_COMM_ERR = "checkCommErr";
-	public static String CHECK_CONST_WRITE = "checkConstWrite";
-	public static String CHECK_INPUT_WRITE = "checkInputWrite";
-	public static String CHECK_INVALID_CAST = "checkInvalidCast";
-	public static String CHECK_MALLOC_ERR = "checkMallocErr";
-	public static String CHECK_MPI_ERR = "checkMpiErr";
-	public static String CHECK_OUT_OF_BOUNDS = "checkOutOfBounds";
-	public static String CHECK_OUTPUT_READ = "checkOutputRead";
-	public static String CHECK_POINTER_ERR = "checkPointerErr";
-	public static String CHECK_UNDEF_VAL = "checkUndefVal";
-	public static String CHECK_UNION_ERR = "checkUnionErr";
-	public static String CHECK_PROC_LEAK = "checkProcLeak";
-	public static String CHECK_SEQ_ERR = "checkSeqErr";
-	public static String CHECK_MEM_MANAGE_ERR = "checkMemManageErr";
-	public static String CHECK_TERMINATION = "checkTermination";
-
 	public static String ENABLE_PRINTF = "enablePrintf";
 
 	public static String ERROR_BOUND = "errorBound";
@@ -262,133 +244,6 @@ public class CIVLConstants {
 			OptionType.INTEGER,
 			"time out in seconds, default is never time out", -1);
 
-	/**
-	 * Standard property option, true by default.
-	 */
-	public final static Option checkDivisionByZeroO = Option.newScalarOption(
-			CHECK_DIV_BY_ZERO, BOOLEAN, "check division-by-zero?", true);
-
-	/**
-	 * Standard property option, true by default.
-	 */
-	public final static Option checkMemoryLeakO = Option.newScalarOption(
-			CHECK_MEM_LEAK, BOOLEAN, "check memory-leak errors?", true);
-
-	/**
-	 * Standard property option, true by default.
-	 */
-	public final static Option checkAssertionViolationO = Option
-			.newScalarOption(CHECK_ASSERTION_VIOLATION, BOOLEAN,
-					"check assertion violations?", true);
-
-	/**
-	 * Standard property option, true by default.
-	 */
-	public final static Option checkCommErrO = Option.newScalarOption(
-			CHECK_COMM_ERR, BOOLEAN, "check assertion violations?", true);
-
-	/**
-	 * What kind of deadlock is to be checked, potential, absolute or none?
-	 * absolute by default.
-	 */
-	public final static Option checkDeadlockO = Option.newScalarOption(
-			CHECK_DEADLOCK, STRING,
-			"check for potential or absolute deadlocks? (potential|absolute|none)",
-			"absolute");
-
-	/**
-	 * Standard property option, true by default.
-	 */
-	public final static Option checkConstWriteO = Option.newScalarOption(
-			CHECK_CONST_WRITE, BOOLEAN, "check constant writes?", true);
-
-	/**
-	 * Standard property option, true by default.
-	 */
-	public final static Option checkInputWriteO = Option.newScalarOption(
-			CHECK_INPUT_WRITE, BOOLEAN, "check writes to $input variables?",
-			true);
-
-	/**
-	 * Standard property option, true by default.
-	 */
-	public final static Option checkInvalidCastO = Option.newScalarOption(
-			CHECK_INVALID_CAST, BOOLEAN, "check invalid casts?", true);
-
-	/**
-	 * Standard property option, true by default.
-	 */
-	public final static Option checkMallocErrO = Option.newScalarOption(
-			CHECK_MALLOC_ERR, BOOLEAN, "check malloc errors?", true);
-
-	/**
-	 * Standard property option, true by default.
-	 */
-	public final static Option checkMpiErrO = Option
-			.newScalarOption(CHECK_MPI_ERR, BOOLEAN, "check MPI errors?", true);
-
-	/**
-	 * Standard property option, true by default.
-	 */
-	public final static Option checkOutOfBoundsO = Option.newScalarOption(
-			CHECK_OUT_OF_BOUNDS, BOOLEAN,
-			"check for out of bounds reads and writes?", true);
-	/**
-	 * Standard property option, true by default.
-	 */
-	public final static Option checkOutputReadO = Option
-			.newScalarOption(CHECK_OUTPUT_READ, BOOLEAN,
-					"check reads from $output variables?", true);
-	
-	/**
-	 * Standard property option, true by default.
-	 */
-	public final static Option checkPointerErrO = Option
-			.newScalarOption(CHECK_POINTER_ERR, BOOLEAN,
-					"check pointer errors?", true);
-
-	/**
-	 * Standard property option, true by default.
-	 */
-	public final static Option checkUndefValO = Option
-			.newScalarOption(CHECK_UNDEF_VAL, BOOLEAN,
-					"check for undefined values?", true);
-	
-	/**
-	 * Standard property option, true by default.
-	 */
-	public final static Option checkUnionErrO = Option
-			.newScalarOption(CHECK_UNION_ERR, BOOLEAN,
-					"check union errors?", true);
-	
-	/**
-	 * Standard property option, true by default.
-	 */
-	public final static Option checkProcLeakO = Option
-			.newScalarOption(CHECK_PROC_LEAK, BOOLEAN,
-					"check process leaks?", true);
-	
-	/**
-	 * Standard property option, true by default.
-	 */
-	public final static Option checkSeqErrO = Option
-			.newScalarOption(CHECK_SEQ_ERR, BOOLEAN,
-					"check sequence errors?", true);
-	
-	/**
-	 * Standard property option, true by default.
-	 */
-	public final static Option checkMemManageErrO = Option
-			.newScalarOption(CHECK_MEM_MANAGE_ERR, BOOLEAN,
-					"check memory management errors?", true);
-
-	/**
-	 * Standard property option, true by default.
-	 */
-	public final static Option checkTerminationO = Option
-			.newScalarOption(CHECK_TERMINATION, BOOLEAN,
-					"check termination?", true);
-	
 	/**
 	 * Enables printf? true by default. When false, nothing is printed for
 	 * printf function.
@@ -859,7 +714,7 @@ public class CIVLConstants {
 	 * @return all options defined for CIVL in alphabetic order.
 	 */
 	public final static Option[] getAllOptions() {
-		return new Option[]{astO, collectHeapsO, collectProcessesO,
+		return Stream.concat(Stream.of(astO, collectHeapsO, collectProcessesO,
 				collectScopesO, collectSymbolicConstantsO, debugO,
 				enablePrintfO, errorBoundO, errorStateEquivO, guidedO, idO,
 				inputO, linkO, loopO, macroO, maxdepthO, minO, mpiContractO,
@@ -872,18 +727,13 @@ public class CIVLConstants {
 				showTransitionsO, showUnreachedCodeO, simplifyO, solveO,
 				statelessPrintfO, svcomp16O, svcomp17O, quietO, sysIncludePathO,
 				traceO, userIncludePathO, verboseO, webO, CIVLMacroO,
-				analyzeAbsO, strictCompareO, collectOutputO,
-				checkDivisionByZeroO, checkMemoryLeakO, checkCommErrO,
-				checkAssertionViolationO, checkDeadlockO,
-				checkConstWriteO, checkInputWriteO,
-				checkMallocErrO, checkMpiErrO,
-				checkOutOfBoundsO, checkOutputReadO, checkPointerErrO,
-				checkUndefValO, checkUnionErrO, checkProcLeakO,
-				checkSeqErrO, checkMemManageErrO,
-				checkTerminationO, timeoutO, unpreprocO,
-				sliceAnalysisO, witnessO, direct0, intBit,
+				analyzeAbsO, strictCompareO, collectOutputO, timeoutO,
+				unpreprocO, sliceAnalysisO, witnessO, direct0, intBit,
 				intOperationTransformer, maxProcsO, SARLTestGenO,
-				cyclesViolateO, preemptionBoundO};
+				cyclesViolateO, preemptionBoundO),
+				Stream.of(CIVLProperty.getAllConfigurableProperties())
+						.map(e -> e.getOption()))
+				.toArray(Option[]::new);
 	}
 
 	// headers...

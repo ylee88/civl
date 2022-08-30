@@ -23,8 +23,8 @@ import edu.udel.cis.vsl.civl.config.IF.CIVLConstants;
 import edu.udel.cis.vsl.civl.log.IF.CIVLExecutionException;
 import edu.udel.cis.vsl.civl.log.IF.CIVLLogEntry;
 import edu.udel.cis.vsl.civl.model.IF.CIVLException.Certainty;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.model.IF.Model;
 import edu.udel.cis.vsl.civl.predicate.IF.Predicates;
@@ -398,7 +398,7 @@ public class Verifier extends Player {
 						if (!workRemains)
 							break;
 					} catch (StateSpaceCycleException e) {
-						if (civlConfig.checkTermination()) {
+						if (civlConfig.isPropertyToggled(CIVLProperty.TERMINATION)) {
 							// a cycle in state space detected:
 							int stackPos = e.stackPos();
 							int stackSize = searcher.stack().size();
@@ -412,7 +412,7 @@ public class Verifier extends Player {
 							CIVLSource source = lastTran.statement()
 									.getSource();
 							CIVLExecutionException cycleException = new CIVLExecutionException(
-									ErrorKind.TERMINATION, Certainty.CONCRETE,
+									CIVLProperty.TERMINATION, Certainty.CONCRETE,
 									process,
 									"A cycle in state space detected.  This execution will not terminate.",
 									lastState, source);
@@ -450,7 +450,8 @@ public class Verifier extends Player {
 							"Failed to print log file " + log.getLogFile());
 				}
 			} else {
-				result = "The standard properties hold for all executions.";
+				result = "The standard properties hold for all executions. Standard properties checked:\n";
+				result += civlConfig.getCheckedPropertiesSummary();
 			}
 			this.verificationStatus = new VerificationStatus(
 					stateManager.maxProcs(), stateManager.numStatesExplored(),
@@ -459,7 +460,7 @@ public class Verifier extends Player {
 					searcher.numTransitions());
 			return !violationFound && log.numEntries() == 0;
 		} catch (CIVLStateException stateException) {
-			throw new CIVLExecutionException(stateException.kind(),
+			throw new CIVLExecutionException(stateException.civlProperty(),
 					stateException.certainty(), "", stateException.getMessage(),
 					stateException.state(), stateException.source());
 		}

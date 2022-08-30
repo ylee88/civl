@@ -77,7 +77,7 @@ public interface ProcessState {
 
 	/**
 	 * Returns an iterable object over the entries in this stack. Order is fixed
-	 * (will be the same each time this method is called), but not specified.
+	 * from top to bottom.
 	 * 
 	 * @return the entries in the stack
 	 */

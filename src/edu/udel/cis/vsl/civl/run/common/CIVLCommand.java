@@ -2,25 +2,6 @@ package edu.udel.cis.vsl.civl.run.common;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.CIVLMacroO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.analyzeAbsO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.astO;
-import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkDivisionByZeroO;
-import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkMemoryLeakO;
-import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkDeadlockO;
-import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkAssertionViolationO;
-import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkCommErrO;
-import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkConstWriteO;
-import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkInputWriteO;
-import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkInvalidCastO;
-import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkMallocErrO;
-import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkMpiErrO;
-import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkOutOfBoundsO;
-import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkOutputReadO;
-import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkPointerErrO;
-import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkUndefValO;
-import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkUnionErrO;
-import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkProcLeakO;
-import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkSeqErrO;
-import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkMemManageErrO;
-import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.checkTerminationO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.collectHeapsO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.collectOutputO;
 import static edu.udel.cis.vsl.civl.config.IF.CIVLConstants.collectProcessesO;
@@ -83,8 +64,10 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.stream.Stream;
 
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
 import edu.udel.cis.vsl.civl.run.IF.CommandLine;
 import edu.udel.cis.vsl.civl.run.IF.CommandLine.CommandLineKind;
@@ -116,15 +99,12 @@ public class CIVLCommand {
 				ompOnlySimplifierO, ompLoopDecompO, collectProcessesO,
 				collectScopesO, collectSymbolicConstantsO, collectHeapsO,
 				macroO, preprocO, astO, showTimeO, showMemoryUnitsO, CIVLMacroO,
-				showUnreachedCodeO, analyzeAbsO, collectOutputO,
-				checkDivisionByZeroO, checkMemoryLeakO, checkDeadlockO,
-				checkAssertionViolationO, checkCommErrO, checkConstWriteO,
-				checkInputWriteO, checkInvalidCastO, checkMallocErrO,
-				checkMpiErrO, checkOutOfBoundsO, checkOutputReadO,
-				checkPointerErrO, checkUndefValO, checkUnionErrO,
-				checkProcLeakO, checkSeqErrO, checkMemManageErrO,
-				checkTerminationO, timeoutO, quietO, unpreprocO, direct0,
-				intBit, intOperationTransformer, maxProcsO);
+				showUnreachedCodeO, analyzeAbsO, collectOutputO, timeoutO,
+				quietO, unpreprocO, direct0, intBit, intOperationTransformer,
+				maxProcsO);
+		CIVLCommand.addVerifyOrCompareOption(
+				Stream.of(CIVLProperty.getAllConfigurableProperties())
+						.map(e -> e.getOption()).toArray(Option[]::new));
 		CIVLCommand.addCompareOption(errorBoundO, verboseO, debugO,
 				userIncludePathO, sysIncludePathO, showTransitionsO,
 				showStatesO, showSavedStatesO, showQueriesO, showProverQueriesO,
@@ -135,22 +115,20 @@ public class CIVLCommand {
 				ompLoopDecompO, collectProcessesO, collectScopesO,
 				collectHeapsO, macroO, preprocO, astO, showTimeO,
 				showMemoryUnitsO, CIVLMacroO, showUnreachedCodeO, analyzeAbsO,
-				strictCompareO, checkDivisionByZeroO, checkMemoryLeakO,
-				checkDeadlockO, checkAssertionViolationO, checkCommErrO,
-				checkConstWriteO, checkInputWriteO, checkInvalidCastO,
-				checkMallocErrO, checkMpiErrO, checkOutOfBoundsO,
-				checkOutputReadO, checkPointerErrO, checkUndefValO,
-				checkUnionErrO, checkProcLeakO, checkSeqErrO,
-				checkMemManageErrO, checkTerminationO, timeoutO, quietO,
-				unpreprocO, intBit, intOperationTransformer, maxProcsO);
+				strictCompareO, timeoutO, quietO, unpreprocO, intBit,
+				intOperationTransformer, maxProcsO);
+		CIVLCommand.addCompareOption(
+				Stream.of(CIVLProperty.getAllConfigurableProperties())
+						.map(e -> e.getOption()).toArray(Option[]::new));
 		CIVLCommand.addReplayOption(showModelO, verboseO, debugO,
 				showTransitionsO, showStatesO, showSavedStatesO, showQueriesO,
 				showProverQueriesO, idO, traceO, enablePrintfO, showAmpleSetO,
 				showAmpleSetWtStatesO, statelessPrintfO, showProgramO,
 				showPathConditionO, preprocO, astO, showMemoryUnitsO,
-				collectOutputO, checkDivisionByZeroO, checkMemoryLeakO, quietO,
-				unpreprocO, svcomp16O, svcomp17O, sliceAnalysisO, witnessO,
-				intBit, intOperationTransformer, maxProcsO);
+				collectOutputO, CIVLProperty.DIVISION_BY_ZERO.getOption(),
+				CIVLProperty.MEMORY_LEAK.getOption(), quietO, unpreprocO,
+				svcomp16O, svcomp17O, sliceAnalysisO, witnessO, intBit,
+				intOperationTransformer, maxProcsO);
 		CIVLCommand.addRunOption(errorBoundO, verboseO, randomO, guidedO, seedO,
 				debugO, userIncludePathO, sysIncludePathO, showTransitionsO,
 				showStatesO, showSavedStatesO, showQueriesO, showProverQueriesO,
@@ -160,14 +138,11 @@ public class CIVLCommand {
 				ompNoSimplifyO, ompOnlySimplifierO, ompLoopDecompO,
 				collectProcessesO, collectScopesO, collectHeapsO, macroO,
 				preprocO, astO, showMemoryUnitsO, CIVLMacroO, collectOutputO,
-				checkDivisionByZeroO, checkMemoryLeakO, checkDeadlockO,
-				checkAssertionViolationO, checkCommErrO, checkConstWriteO,
-				checkInputWriteO, checkInvalidCastO, checkMallocErrO,
-				checkMpiErrO, checkOutOfBoundsO, checkOutputReadO,
-				checkPointerErrO, checkUndefValO, checkUnionErrO,
-				checkProcLeakO, checkSeqErrO, checkMemManageErrO,
-				checkTerminationO, timeoutO, quietO, unpreprocO, intBit,
-				intOperationTransformer, maxProcsO);
+				timeoutO, quietO, unpreprocO, intBit, intOperationTransformer,
+				maxProcsO);
+		CIVLCommand.addRunOption(
+				Stream.of(CIVLProperty.getAllConfigurableProperties())
+						.map(e -> e.getOption()).toArray(Option[]::new));
 	}
 
 	private static void addShowOption(Option... options) {

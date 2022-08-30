@@ -6,7 +6,7 @@ import java.util.HashSet;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.kripke.IF.Enabler;
 import edu.udel.cis.vsl.civl.log.IF.CIVLErrorLogger;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.ErrorKind;
+import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.predicate.IF.CIVLStatePredicate;
 import edu.udel.cis.vsl.civl.predicate.IF.Predicates;
 import edu.udel.cis.vsl.civl.semantics.IF.Executor;
@@ -37,7 +37,7 @@ public class CollateExecutor {
 		this.config.setCollectHeaps(true);
 		this.config.setCollectScopes(true);
 		this.config.setCollectProcesses(true);
-		this.config.setCheckMemoryLeak(false);
+		this.config.setToggleableProperty(CIVLProperty.MEMORY_LEAK, false);
 		this.config.setCheckExpressionError(false);
 		// this.config.setSimplify(false);
 		this.config.setInSubprogram(true);
@@ -117,7 +117,7 @@ public class CollateExecutor {
 		try {
 			while (searcher.search(initState));
 		} catch (StateSpaceCycleException e) {
-			if (config.checkTermination()) {
+			if (config.isPropertyToggled(CIVLProperty.TERMINATION)) {
 				int stackSize = searcher.stack().size();
 				int stackPos = e.stackPos();
 				Transition lastTran = (stackPos < stackSize - 1)
@@ -130,7 +130,7 @@ public class CollateExecutor {
 						.symbolicAnalyzer().stateInformation(lastState);
 
 				errorLogger.logSimpleError(lastTran.statement().getSource(),
-						lastState, process, stateString, ErrorKind.TERMINATION,
+						lastState, process, stateString, CIVLProperty.TERMINATION,
 						"A cycle in state space detected.  This execution will not terminate.");
 			}
 		}
