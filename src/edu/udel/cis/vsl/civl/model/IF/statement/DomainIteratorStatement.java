@@ -30,7 +30,6 @@ public interface DomainIteratorStatement extends Statement {
 	List<Variable> loopVariables();
 
 	/**
-	 * TODO: can it returns Variable instead?<br>
 	 * Returns a counter variable used for iterating on a literal domain step by
 	 * step.
 	 * 
