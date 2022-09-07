@@ -398,7 +398,8 @@ public class Verifier extends Player {
 						if (!workRemains)
 							break;
 					} catch (StateSpaceCycleException e) {
-						if (civlConfig.isPropertyToggled(CIVLProperty.TERMINATION)) {
+						if (civlConfig
+								.isPropertyToggled(CIVLProperty.TERMINATION)) {
 							// a cycle in state space detected:
 							int stackPos = e.stackPos();
 							int stackSize = searcher.stack().size();
@@ -407,15 +408,16 @@ public class Verifier extends Player {
 									: searcher.stack().peek().peek();
 							State lastState = searcher.stack().peek()
 									.getState();
-							String process = lastState
-									.getProcessState(lastTran.pid()).name();
+							int pid = lastTran.pid();
+							String process = lastState.getProcessState(pid)
+									.name();
 							CIVLSource source = lastTran.statement()
 									.getSource();
 							CIVLExecutionException cycleException = new CIVLExecutionException(
-									CIVLProperty.TERMINATION, Certainty.CONCRETE,
-									process,
+									CIVLProperty.TERMINATION,
+									Certainty.CONCRETE, process,
 									"A cycle in state space detected.  This execution will not terminate.",
-									lastState, source);
+									lastState, pid, source);
 							CIVLLogEntry entry = new CIVLLogEntry(civlConfig,
 									config, cycleException,
 									evaluator.universe());
@@ -450,7 +452,7 @@ public class Verifier extends Player {
 							"Failed to print log file " + log.getLogFile());
 				}
 			} else {
-				result = "The standard properties hold for all executions. Standard properties checked:\n";
+				result = "All properties marked with '+' hold on all executions.\n";
 				result += civlConfig.getCheckedPropertiesSummary();
 			}
 			this.verificationStatus = new VerificationStatus(
@@ -461,7 +463,7 @@ public class Verifier extends Player {
 			return !violationFound && log.numEntries() == 0;
 		} catch (CIVLStateException stateException) {
 			throw new CIVLExecutionException(stateException.civlProperty(),
-					stateException.certainty(), "", stateException.getMessage(),
+					stateException.certainty(), stateException.getMessage(),
 					stateException.state(), stateException.source());
 		}
 

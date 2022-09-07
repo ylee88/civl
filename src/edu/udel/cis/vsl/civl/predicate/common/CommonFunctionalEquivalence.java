@@ -109,8 +109,8 @@ public class CommonFunctionalEquivalence extends CommonCIVLStatePredicate
 						null, state, null, implOutputs[i]));
 			}
 			violation = new CIVLExecutionException(
-					CIVLProperty.FUNCTIONAL_EQUIVALENCE, Certainty.PROVEABLE, null,
-					msg.toString(), state, null);
+					CIVLProperty.FUNCTIONAL_EQUIVALENCE, Certainty.PROVEABLE,
+					msg.toString(), state);
 		}
 		return result;
 	}

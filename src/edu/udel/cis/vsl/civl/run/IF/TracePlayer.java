@@ -125,7 +125,7 @@ public class TracePlayer extends Player {
 			return trace;
 		} catch (CIVLStateException stateException) {
 			throw new CIVLExecutionException(stateException.civlProperty(),
-					stateException.certainty(), "", stateException.getMessage(),
+					stateException.certainty(), stateException.getMessage(),
 					stateException.state(), stateException.source());
 		}
 	}

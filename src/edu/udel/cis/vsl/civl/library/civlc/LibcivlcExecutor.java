@@ -232,25 +232,26 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 				callEval = executeArrayBaseAddressof(state, pid, process,
 						arguments, argumentValues);
 				break;
-			case "$yield":
-				/* $yield was implemented in a extremely easy way. In this
-				 * executor, it is just a no-op.  At the same time, this
-				 * function has a POR contract which states that 1) this system
-				 * function has a "non-trivial guard" (by simply leaving the
-				 * guard unspecified in the POR contract); and 2) this function
-				 * writes nothing.
+			case "$yield" :
+				/*
+				 * $yield was implemented in a extremely easy way. In this
+				 * executor, it is just a no-op. At the same time, this function
+				 * has a POR contract which states that 1) this system function
+				 * has a "non-trivial guard" (by simply leaving the guard
+				 * unspecified in the POR contract); and 2) this function writes
+				 * nothing.
 				 *
 				 * For such a system function, since the guard is non-trivial,
 				 * the verifier will always assume that it can block an atomic
-				 * process.  So it will force an atomic process to release the
-				 * lock.  Then at enabler, the actual guard of this function
-				 * will be evaluated (which is trivially true), hence a call to
-				 * this function can be enabled and the enabled transition will
-				 * grab the atomic lock back.  Note that due to the fact that
-				 * the lock was released when enabler is enabling a transition
-				 * for a call to this function, other processes can
-				 * interrupt as long as the POR algorithm allows it.
-				 * */
+				 * process. So it will force an atomic process to release the
+				 * lock. Then at enabler, the actual guard of this function will
+				 * be evaluated (which is trivially true), hence a call to this
+				 * function can be enabled and the enabled transition will grab
+				 * the atomic lock back. Note that due to the fact that the lock
+				 * was released when enabler is enabling a transition for a call
+				 * to this function, other processes can interrupt as long as
+				 * the POR algorithm allows it.
+				 */
 				callEval = new Evaluation(state, universe.nullExpression());
 				break;
 			default :
@@ -482,17 +483,21 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 		CIVLSource argSource = arguments[0].getSource();
 		String process = state.getProcessState(pid).name();
 
-		if (civlConfig.isPropertyToggled(CIVLProperty.POINTER) && !symbolicUtil.isConcretePointer(pointer))
-			errorLogger.logSimpleError(argSource, state, process,
-					symbolicAnalyzer.stateInformation(state), CIVLProperty.POINTER,
+		if (civlConfig.isPropertyToggled(CIVLProperty.POINTER)
+				&& !symbolicUtil.isConcretePointer(pointer))
+			errorLogger.logSimpleError(argSource, state, pid, process,
+					symbolicAnalyzer.stateInformation(state),
+					CIVLProperty.POINTER,
 					"Attempt to assign to a non-concrete pointer: "
 							+ arguments[0] + "\nValue: " + pointer);
 
 		SymbolicExpression scope = symbolicUtil.getScopeValue(pointer);
 
-		if (civlConfig.isPropertyToggled(CIVLProperty.POINTER) && stateFactory.undefinedScopeValue() == scope)
-			errorLogger.logSimpleError(argSource, state, process,
-					symbolicAnalyzer.stateInformation(state), CIVLProperty.POINTER,
+		if (civlConfig.isPropertyToggled(CIVLProperty.POINTER)
+				&& stateFactory.undefinedScopeValue() == scope)
+			errorLogger.logSimpleError(argSource, state, pid, process,
+					symbolicAnalyzer.stateInformation(state),
+					CIVLProperty.POINTER,
 					"Attempt to assign to a invalid pointer: " + arguments[0]
 							+ "\nValue: " + pointer);
 
@@ -658,9 +663,9 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 		String process = state.getProcessState(pid).name() + "(id=" + pid + ")";
 
 		if (number_nprocs == null) {
-			this.errorLogger.logSimpleError(source, state, process,
-					symbolicAnalyzer.stateInformation(state), CIVLProperty.OTHER,
-					"the number of processes for $waitall "
+			this.errorLogger.logSimpleError(source, state, pid, process,
+					symbolicAnalyzer.stateInformation(state),
+					CIVLProperty.OTHER, "the number of processes for $waitall "
 							+ "shoud be a concrete value");
 			throw new UnsatisfiablePathConditionException();
 		} else {
@@ -677,7 +682,7 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 						procsPointer, offSetV, procsSource).left;
 				procPointer = eval.value;
 				state = eval.state;
-				eval = evaluator.dereference(procsSource, state, process,
+				eval = evaluator.dereference(procsSource, state, pid, process,
 						procPointer, false, true);
 				proc = eval.value;
 				state = eval.state;
@@ -779,7 +784,8 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 		} else
 			resultType = universe.reasoner(context).valid(assertValue)
 					.getResultType();
-		if (resultType != ResultType.YES && civlConfig.isPropertyToggled(CIVLProperty.ASSERTION_VIOLATION)) {
+		if (resultType != ResultType.YES && civlConfig
+				.isPropertyToggled(CIVLProperty.ASSERTION_VIOLATION)) {
 			StringBuilder message = new StringBuilder();
 			Pair<State, String> messageResult = this.symbolicAnalyzer
 					.expressionEvaluation(state, pid, arguments[0], false);

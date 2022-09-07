@@ -65,7 +65,7 @@ public interface Evaluator {
 	 * @return the value pointed to
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	Evaluation dereference(CIVLSource source, State state, String process,
+	Evaluation dereference(CIVLSource source, State state, int pid, String process,
 			SymbolicExpression pointer, boolean checkedOutput, boolean strict)
 			throws UnsatisfiablePathConditionException;
 
@@ -177,7 +177,7 @@ public interface Evaluator {
 	 * @throws CIVLUnimplementedFeatureException
 	 *             if it is not possible to extract the string expression.
 	 */
-	Evaluation getStringExpression(State state, String process,
+	Evaluation getStringExpression(State state, int pid, String process,
 			CIVLSource source, SymbolicExpression charPointer)
 			throws UnsatisfiablePathConditionException;
 
@@ -332,7 +332,7 @@ public interface Evaluator {
 	 * @throws UnsatisfiablePathConditionException
 	 */
 	Triple<State, StringBuffer, Boolean> getString(CIVLSource source,
-			State state, String process, Expression charPointerExpr,
+			State state, int pid, String process, Expression charPointerExpr,
 			SymbolicExpression charPointer)
 			throws UnsatisfiablePathConditionException;
 

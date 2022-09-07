@@ -186,7 +186,8 @@ public class CommonPotentialDeadlock extends CommonCIVLStatePredicate
 
 		BooleanExpression predicate = falseExpr;
 		Reasoner reasoner = universe.reasoner(state.getPathCondition(universe));
-		CIVLSource source = null; // location of first non-term proc
+		int firstPid = -1;
+		CIVLSource firstSource = null; // location of first non-term proc
 
 		for (ProcessState p : state.getProcessStates()) {
 			if (p == null || p.hasEmptyStack()) // p has terminated
@@ -195,8 +196,10 @@ public class CommonPotentialDeadlock extends CommonCIVLStatePredicate
 			int pid = p.getPid();
 			Location location = p.getLocation();
 
-			if (source == null)
-				source = location.getSource();
+			if (firstPid == -1) {
+				firstPid = pid;
+				firstSource = location.getSource();
+			}
 			for (Statement s : location.outgoing()) {
 				BooleanExpression guard = enabler.getGuard(s, pid, state);
 
@@ -224,6 +227,9 @@ public class CommonPotentialDeadlock extends CommonCIVLStatePredicate
 					return false;
 			} // end loop over all outgoing statements
 		} // end loop over all processes
+		if (firstPid == -1)
+			throw new CIVLInternalException("unreachable", firstSource);
+
 		ResultType enabled = reasoner.valid(predicate).getResultType();
 
 		if (enabled == YES)
@@ -243,7 +249,8 @@ public class CommonPotentialDeadlock extends CommonCIVLStatePredicate
 					+ "\n  Enabling predicate: " + predicate + "\n";
 			message += explanationWork(state);
 			violation = new CIVLExecutionException(CIVLProperty.DEADLOCK,
-					certainty, "", message, state, source);
+					certainty, state.getProcessState(firstPid).name(), message,
+					state, firstPid, firstSource);
 			return true;
 		}
 	}

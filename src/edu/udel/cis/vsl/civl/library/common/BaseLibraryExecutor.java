@@ -140,7 +140,7 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 				&& (!this.symbolicUtil.isPointerToHeap(firstElementPointer)
 						|| !this.symbolicUtil.isMallocPointer(source,
 								firstElementPointer))) {
-			this.errorLogger.logSimpleError(source, state, process,
+			this.errorLogger.logSimpleError(source, state, pid, process,
 					symbolicAnalyzer.stateInformation(state),
 					CIVLProperty.MEMORY_MANAGE,
 					"the argument of free "
@@ -157,15 +157,15 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 					.isDerefablePointer(state, firstElementPointer);
 
 			if (checkDerefable.right == ResultType.YES) {
-				eval = evaluator.dereference(source, state, process,
+				eval = evaluator.dereference(source, state, pid, process,
 						firstElementPointer, false, true);
 				heapObject = eval.value;
 				state = eval.state;
 			}
-			if (civlConfig.isPropertyToggled(CIVLProperty.MEMORY_MANAGE) && heapObject != null
-					&& heapObject.isNull()) {
+			if (civlConfig.isPropertyToggled(CIVLProperty.MEMORY_MANAGE)
+					&& heapObject != null && heapObject.isNull()) {
 				// the heap object has been deallocated
-				this.errorLogger.logSimpleError(source, state, process,
+				this.errorLogger.logSimpleError(source, state, pid, process,
 						symbolicAnalyzer.stateInformation(state),
 						CIVLProperty.MEMORY_MANAGE,
 						"attempt to deallocate an object that has been deallocated previously");
@@ -238,12 +238,6 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 					this.civlConfig.svcomp()).state;
 			civlConfig.out().println();
 		}
-		/*boolean isInLibraryFunction = false;
-		for (StackEntry se : state.getProcessState(pid).getStackEntries()) {
-			if (se.location().function().isLibrary()) {
-				isInLibraryFunction = true;
-			}
-		}*/
 		state = errorLogger.logError(source, state, pid,
 				this.symbolicAnalyzer.stateInformation(state), claim,
 				resultType, CIVLProperty.ASSERTION_VIOLATION, message);

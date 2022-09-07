@@ -19,8 +19,6 @@ import edu.udel.cis.vsl.civl.config.IF.CIVLConfiguration;
 import edu.udel.cis.vsl.civl.config.IF.CIVLConstants;
 import edu.udel.cis.vsl.civl.dynamic.IF.SymbolicUtility;
 import edu.udel.cis.vsl.civl.log.IF.CIVLErrorLogger;
-import edu.udel.cis.vsl.civl.log.IF.CIVLExecutionException;
-import edu.udel.cis.vsl.civl.model.IF.CIVLException.Certainty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLFunction;
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
@@ -405,7 +403,7 @@ public class CommonExecutor implements Executor {
 			String process = state.getProcessState(pid).name() + "(id=" + pid
 					+ ")";
 
-			errorLogger.logSimpleError(call.getSource(), state, process,
+			errorLogger.logSimpleError(call.getSource(), state, pid, process,
 					symbolicAnalyzer.stateInformation(state),
 					CIVLProperty.LIBRARY,
 					"unable to load the library executor for the library "
@@ -582,7 +580,7 @@ public class CommonExecutor implements Executor {
 							&& !this.civlConfig.svcomp()
 							&& !proc.hasEmptyStack()) {
 						errorLogger.logSimpleError(statement.getSource(), state,
-								process,
+								pid, process,
 								symbolicAnalyzer.stateInformation(state),
 								CIVLProperty.PROCESS_LEAK,
 								"attempt to terminate the main process while process "
@@ -604,7 +602,7 @@ public class CommonExecutor implements Executor {
 				if (universe.equals(returnValue, universe.integer(0))
 						.isFalse()) {
 					this.errorLogger.logSimpleError(statement.getSource(),
-							state, process,
+							state, pid, process,
 							symbolicAnalyzer.stateInformation(state),
 							CIVLProperty.OTHER,
 							"program exits with error code: " + returnValue);
@@ -621,7 +619,7 @@ public class CommonExecutor implements Executor {
 
 			if (call.lhs() != null) {
 				if (returnValue == null) {
-					errorLogger.logSimpleError(call.getSource(), state, process,
+					errorLogger.logSimpleError(call.getSource(), state, pid, process,
 							symbolicAnalyzer.stateInformation(state),
 							CIVLProperty.OTHER,
 							"attempt to use the return value of function "
@@ -873,7 +871,7 @@ public class CommonExecutor implements Executor {
 		state = assign(state, pid, process, domSize, domSizeValue, false);
 		number_domSize = (IntegerNumber) reasoner.extractNumber(domSizeValue);
 		if (number_domSize == null) {
-			this.errorLogger.logSimpleError(source, state, process,
+			this.errorLogger.logSimpleError(source, state, pid, process,
 					symbolicAnalyzer.stateToString(state), CIVLProperty.OTHER,
 					"The arguments of the domain for $parfor "
 							+ "must be concrete.");
@@ -947,7 +945,7 @@ public class CommonExecutor implements Executor {
 	/**
 	 * Giving a domain and a element of the domain, returns the subsequence of
 	 * the element in domain. <br>
-	 * Pre-condition: it's guaranteed by a nextInDomain condition checking sthat
+	 * Pre-condition: it's guaranteed by a nextInDomain condition checking that
 	 * the element has a subsequence in the domain.
 	 * 
 	 * @param state
@@ -968,7 +966,6 @@ public class CommonExecutor implements Executor {
 		SymbolicExpression domValue;
 		Evaluation eval = evaluator.evaluate(state, pid, domain);
 		int dim = loopVars.size();
-		String process = state.getProcessState(pid).name() + "(id=" + pid + ")";
 		List<SymbolicExpression> varValues = new LinkedList<>();
 		List<SymbolicExpression> nextEleValues = new LinkedList<>();
 		boolean isAllNull = true;
@@ -983,7 +980,7 @@ public class CommonExecutor implements Executor {
 				isAllNull = false;
 			varValues.add(varValue);
 		}
-		// Check if it's literal domain or rectangular domain
+		// Check if it's a literal domain or rectangular domain
 		try {
 			if (symbolicUtil.isLiteralDomain(domValue)) {
 				SymbolicExpression literalDomain;
@@ -1002,27 +999,32 @@ public class CommonExecutor implements Executor {
 				// does initialization already, read the value from this
 				// variable.
 				// TODO why counterValue can be null (not SARL NULL)?
-				if (counterValue.isNull() || counterValue == null) {
+				if (counterValue == null || counterValue.isNull()) {
 					// If the counter is not initialized
 					if (isAllNull)// this is the first iteration
 						counter = 0;
-					else
+					else {
+						// TODO: Should we even attempt to do this? Seems like
+						// an error if we have to do this
 						counter = symbolicUtil.literalDomainSearcher(
 								literalDomain, varValues, dim);
+					}
 				} else
 					counter = ((IntegerNumber) universe
 							.extractNumber((NumericExpression) counterValue))
 									.intValue();
 
-				if (counter == -1)
-					throw new CIVLExecutionException(CIVLProperty.OTHER,
-							Certainty.CONCRETE, process,
-							"Loop variables do not belong to the domain", state,
+				if (counter == -1) {
+					throw new CIVLInternalException(
+							"Lost track of next domain element to iterate to and "
+									+ "we are unable to recover using the loop "
+									+ "variables because they are outside of the domain",
 							source);
+				}
 				// it's guaranteed that this iteration will have a
 				// subsequence.
-				if (counter < ((IntegerNumber) universe.extractNumber(
-						(NumericExpression) universe.length(literalDomain)))
+				if (counter < ((IntegerNumber) universe
+						.extractNumber(universe.length(literalDomain)))
 								.intValue())
 					nextElement = universe.arrayRead(literalDomain,
 							universe.integer(counter));
@@ -1052,14 +1054,15 @@ public class CommonExecutor implements Executor {
 							.getNextInRectangularDomain(recDom, varValues, dim);
 				else
 					nextEleValues = symbolicUtil.getDomainInit(domValue);
-			} else
-				throw new CIVLExecutionException(CIVLProperty.OTHER,
-						Certainty.CONCRETE, process,
-						"The domain object is neither a literal domain nor a rectangular domain",
-						state, source);
-		} catch (SARLException | ClassCastException e) {
+			} else {
+				throw new CIVLInternalException(
+						"Domain object is neither a literal domain nor a "
+								+ "rectangular domain",
+						source);
+			}
+		} catch (ClassCastException e) {
 			throw new CIVLInternalException(
-					"Interanl errors happened in executeNextInDomain()",
+					"Casting error in executeNextInDomain(): " + e.toString(),
 					source);
 		}
 		// Set domain element components one by one.(Domain element is an array
@@ -1085,7 +1088,7 @@ public class CommonExecutor implements Executor {
 		List<Format> nonVoidFormats = new ArrayList<>();
 
 		concreteString = this.evaluator.getString(arguments[0].getSource(),
-				state, process, arguments[0], argumentValues[0]);
+				state, pid, process, arguments[0], argumentValues[0]);
 		formatBuffer = concreteString.second;
 		state = concreteString.first;
 		formats = this.splitFormat(arguments[0].getSource(), formatBuffer);
@@ -1105,7 +1108,7 @@ public class CommonExecutor implements Executor {
 
 				if (myFormat.type == ConversionType.STRING) {
 					concreteString = this.evaluator.getString(
-							arguments[i].getSource(), state, process,
+							arguments[i].getSource(), state, pid, process,
 							arguments[i], argumentValue);
 					stringOfSymbolicExpression = concreteString.second;
 					state = concreteString.first;
@@ -1441,7 +1444,7 @@ public class CommonExecutor implements Executor {
 		if (sid < 0) {
 			String process = state.getProcessState(pid).name();
 
-			errorLogger.logSimpleError(source, state, process,
+			errorLogger.logSimpleError(source, state, pid, process,
 					symbolicAnalyzer.stateInformation(state),
 					CIVLProperty.DEREFERENCE,
 					"Attempt to dereference pointer into scope which has been removed from state");
@@ -1453,7 +1456,7 @@ public class CommonExecutor implements Executor {
 					&& civlConfig.isPropertyToggled(CIVLProperty.INPUT_WRITE)) {
 				String process = state.getProcessState(pid).name();
 
-				errorLogger.logSimpleError(source, state, process,
+				errorLogger.logSimpleError(source, state, pid, process,
 						symbolicAnalyzer.stateInformation(state),
 						CIVLProperty.INPUT_WRITE,
 						"Attempt to write to input variable "
@@ -1463,7 +1466,7 @@ public class CommonExecutor implements Executor {
 					.isPropertyToggled(CIVLProperty.CONSTANT_WRITE)) {
 				String process = state.getProcessState(pid).name();
 
-				errorLogger.logSimpleError(source, state, process,
+				errorLogger.logSimpleError(source, state, pid, process,
 						symbolicAnalyzer.stateInformation(state),
 						CIVLProperty.CONSTANT_WRITE,
 						"Attempt to write to constant variable "
@@ -1487,7 +1490,7 @@ public class CommonExecutor implements Executor {
 			} catch (SARLException e) {
 				String process = state.getProcessState(pid).name();
 
-				errorLogger.logSimpleError(source, state, process,
+				errorLogger.logSimpleError(source, state, pid, process,
 						symbolicAnalyzer.stateInformation(state),
 						CIVLProperty.DEREFERENCE,
 						"Invalid assignment: " + e.getMessage());
@@ -1625,7 +1628,7 @@ public class CommonExecutor implements Executor {
 			rhsType = eval.value.type();
 			if (!symbolicAnalyzer.areDynamicTypesCompatiableForAssign(lhsType,
 					rhsType))
-				errorLogger.logSimpleError(lhs.getSource(), state, process,
+				errorLogger.logSimpleError(lhs.getSource(), state, pid, process,
 						symbolicAnalyzer.stateInformation(state),
 						CIVLProperty.OTHER,
 						"The dynamic types of the left-hand side and "
@@ -1679,7 +1682,7 @@ public class CommonExecutor implements Executor {
 
 		String process = state.getProcessState(pid).name();
 		SymbolicExpression oldValue;
-		Evaluation eval = evaluator.dereference(source, state, process,
+		Evaluation eval = evaluator.dereference(source, state, pid, process,
 				pointerToVarOrHeapObj, true, false);
 		int sid = stateFactory.getDyscopeId(
 				symbolicUtil.getScopeValue(pointerToVarOrHeapObj));

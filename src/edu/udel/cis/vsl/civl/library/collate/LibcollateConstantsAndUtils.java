@@ -76,7 +76,7 @@ public class LibcollateConstantsAndUtils {
 		SymbolicExpression gcollateStateHandle = universe.tupleRead(
 				collateState, universe.intObject(COLLATE_STATE_GSTATE));
 
-		return evaluator.dereference(collateSource, state, process,
+		return evaluator.dereference(collateSource, state, pid, process,
 				gcollateStateHandle, false, true);
 	}
 

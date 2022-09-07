@@ -130,7 +130,7 @@ public class CollateExecutor {
 						.symbolicAnalyzer().stateInformation(lastState);
 
 				errorLogger.logSimpleError(lastTran.statement().getSource(),
-						lastState, process, stateString, CIVLProperty.TERMINATION,
+						lastState, pid, process, stateString, CIVLProperty.TERMINATION,
 						"A cycle in state space detected.  This execution will not terminate.");
 			}
 		}

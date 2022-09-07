@@ -333,8 +333,9 @@ public abstract class LibraryComponent {
 				singleOperand1[w] = universe.arrayRead(operand1,
 						universe.add(identifier, universe.integer(w)));
 			}
-			result = singleApplyCIVLOperation(state, process, singleOperand0,
-					singleOperand1, CIVLOp, countStep, civlsource);
+			result = singleApplyCIVLOperation(state, pid, process,
+					singleOperand0, singleOperand1, CIVLOp, countStep,
+					civlsource);
 			if (countStep == 1) {
 				// optimization
 				return universe.arrayLambda(
@@ -397,7 +398,7 @@ public abstract class LibraryComponent {
 							universe.integer(i + w));
 				}
 
-				singleResult = singleApplyCIVLOperation(state, process,
+				singleResult = singleApplyCIVLOperation(state, pid, process,
 						singleOperand0, singleOperand1, CIVLOp, countStep,
 						civlsource);
 				System.arraycopy(singleResult, 0, result, i, countStep);
@@ -419,7 +420,7 @@ public abstract class LibraryComponent {
 	 * @return
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	private SymbolicExpression[] singleApplyCIVLOperation(State state,
+	private SymbolicExpression[] singleApplyCIVLOperation(State state, int pid,
 			String process, SymbolicExpression op0[], SymbolicExpression op1[],
 			CIVLOperator op, int numElementsInOperand, CIVLSource civlsource)
 			throws UnsatisfiablePathConditionException {
@@ -517,7 +518,7 @@ public abstract class LibraryComponent {
 			}
 			return result;
 		} catch (ClassCastException e) {
-			errorLogger.logSimpleError(civlsource, state, process,
+			errorLogger.logSimpleError(civlsource, state, pid, process,
 					symbolicAnalyzer.stateToString(state), CIVLProperty.OTHER,
 					"Invalid operands type for CIVL Operation: " + op.name());
 			throw new UnsatisfiablePathConditionException();
@@ -735,7 +736,8 @@ public abstract class LibraryComponent {
 		if (!this.civlConfig.svcomp()) {
 			claim = universe.lessThan(dataSeqLength, count);
 			resultType = reasoner.valid(claim).getResultType();
-			if (resultType.equals(ResultType.YES) && civlConfig.isPropertyToggled(CIVLProperty.OUT_OF_BOUNDS))
+			if (resultType.equals(ResultType.YES)
+					&& civlConfig.isPropertyToggled(CIVLProperty.OUT_OF_BOUNDS))
 				reportOutOfBoundError(state, pid, claim, resultType, pointer,
 						dataSeqLength, count, source);
 		}
@@ -767,15 +769,15 @@ public abstract class LibraryComponent {
 			if (civlConfig.isPropertyToggled(CIVLProperty.OUT_OF_BOUNDS)) {
 				// report error:
 				CIVLType integerType;
-	
+
 				integerType = typeFactory.integerType();
-				errorLogger.logSimpleError(source, state, process,
+				errorLogger.logSimpleError(source, state, pid, process,
 						symbolicAnalyzer.stateInformation(state),
 						CIVLProperty.OUT_OF_BOUNDS,
 						"$bundle_unpack out of bound: \nPointer: "
 								+ symbolicAnalyzer.symbolicExpressionToString(
-										source, state, ptrExpr.getExpressionType(),
-										pointer)
+										source, state,
+										ptrExpr.getExpressionType(), pointer)
 								+ "\nSize: "
 								+ symbolicAnalyzer.symbolicExpressionToString(
 										source, state, integerType, count)
@@ -813,13 +815,13 @@ public abstract class LibraryComponent {
 								arraySlicesSizes[dim - i]));
 			}
 		}
-		eval = evaluator.dereference(source, state, process, startPtr, false,
-				true);
+		eval = evaluator.dereference(source, state, pid, process, startPtr,
+				false, true);
 		state = eval.state;
 		if (eval.value.type().typeKind().equals(SymbolicTypeKind.ARRAY)) {
 			eval = setDataBetween(state, pid, eval.value, arraySlicesSizes,
 					startPos, count, pointer, dataArray, source);
-		} else if (civlConfig.isPropertyToggled(CIVLProperty.UNDEFINED_VALUE)){
+		} else if (civlConfig.isPropertyToggled(CIVLProperty.UNDEFINED_VALUE)) {
 			reportOutOfBoundError(state, pid, null, null, startPtr, one, count,
 					source);
 		}
@@ -865,9 +867,10 @@ public abstract class LibraryComponent {
 
 		// If "count" == 1:
 		if (reasoner.isValid(universe.equals(count, one))) {
-			eval = evaluator.dereference(source, state, process, pointer, true,
-					true);
-			if (civlConfig.isPropertyToggled(CIVLProperty.UNDEFINED_VALUE) && eval.value.isNull())
+			eval = evaluator.dereference(source, state, pid, process, pointer,
+					true, true);
+			if (civlConfig.isPropertyToggled(CIVLProperty.UNDEFINED_VALUE)
+					&& eval.value.isNull())
 				reportUndefinedValueError(state, pid,
 						symbolicUtil.getSymRef(pointer).isIdentityReference(),
 						pointerExpr);
@@ -893,11 +896,12 @@ public abstract class LibraryComponent {
 				break;
 		}
 		rootPointer = symbolicUtil.makePointer(pointer, symref);
-		eval = evaluator.dereference(source, state, process, rootPointer, false,
-				true);
+		eval = evaluator.dereference(source, state, pid, process, rootPointer,
+				false, true);
 		state = eval.state;
 		rootArray = eval.value;
-		if (civlConfig.isPropertyToggled(CIVLProperty.UNDEFINED_VALUE) && rootArray.isNull())
+		if (civlConfig.isPropertyToggled(CIVLProperty.UNDEFINED_VALUE)
+				&& rootArray.isNull())
 			reportUndefinedValueError(state, pid,
 					symbolicUtil.getSymRef(pointer).isIdentityReference(),
 					pointerExpr);
@@ -940,7 +944,7 @@ public abstract class LibraryComponent {
 
 		if (isVariable)
 			kind = "uninitialized";
-		errorLogger.logSimpleError(expression.getSource(), state, process,
+		errorLogger.logSimpleError(expression.getSource(), state, pid, process,
 				symbolicAnalyzer.stateInformation(state),
 				CIVLProperty.UNDEFINED_VALUE,
 				"Attempt to read an object with " + kind + " value");
@@ -1549,7 +1553,7 @@ public abstract class LibraryComponent {
 					symbolicAnalyzer.stateInformation(state), claim, resultType,
 					CIVLProperty.OUT_OF_BOUNDS, message);
 		else
-			errorLogger.logSimpleError(source, state,
+			errorLogger.logSimpleError(source, state, pid,
 					state.getProcessState(pid).name(),
 					symbolicAnalyzer.stateInformation(state),
 					CIVLProperty.OUT_OF_BOUNDS, message);

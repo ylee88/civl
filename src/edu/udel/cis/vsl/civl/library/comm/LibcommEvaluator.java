@@ -135,13 +135,13 @@ public class LibcommEvaluator extends BaseLibraryEvaluator
 		Number srcNum, destNum;
 		int srcInt, destInt;
 
-		eval = evaluator.dereference(civlsource, state, process, commHandle,
-				false, true);
+		eval = evaluator.dereference(civlsource, state, pid, process,
+				commHandle, false, true);
 		state = eval.state;
 		comm = eval.value;
 		gcommHandle = universe.tupleRead(comm, oneObject);
-		eval = evaluator.dereference(civlsource, state, process, gcommHandle,
-				false, true);
+		eval = evaluator.dereference(civlsource, state, pid, process,
+				gcommHandle, false, true);
 		state = eval.state;
 		gcomm = eval.value;
 		dest = (NumericExpression) universe.tupleRead(comm, zeroObject);
@@ -362,8 +362,8 @@ public class LibcommEvaluator extends BaseLibraryEvaluator
 		Evaluation eval;
 
 		gcommHandle = universe.tupleRead(comm, oneObject);
-		eval = evaluator.dereference(civlsource, state, process, gcommHandle,
-				false, true);
+		eval = evaluator.dereference(civlsource, state, pid, process,
+				gcommHandle, false, true);
 		return eval;
 	}
 
@@ -391,7 +391,7 @@ public class LibcommEvaluator extends BaseLibraryEvaluator
 		eval = evaluator.evaluate(state, pid, commHandleExpr);
 		commHandle = eval.value;
 		eval = evaluator.dereference(commHandleExpr.getSource(), eval.state,
-				process, commHandle, false, true);
+				pid, process, commHandle, false, true);
 		return eval;
 	}
 
@@ -425,7 +425,8 @@ public class LibcommEvaluator extends BaseLibraryEvaluator
 
 		claim = universe.lessThan(index, universe.length(procArray));
 		resultType = reasoner.valid(claim).getResultType();
-		if (!resultType.equals(ResultType.YES) && civlConfig.isPropertyToggled(CIVLProperty.OUT_OF_BOUNDS)) {
+		if (!resultType.equals(ResultType.YES)
+				&& civlConfig.isPropertyToggled(CIVLProperty.OUT_OF_BOUNDS)) {
 			state = this.errorLogger.logError(source, state, pid,
 					symbolicAnalyzer.stateInformation(state), claim, resultType,
 					CIVLProperty.OUT_OF_BOUNDS, "The place of " + process

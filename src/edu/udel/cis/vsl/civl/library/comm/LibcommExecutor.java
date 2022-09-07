@@ -303,13 +303,13 @@ public class LibcommExecutor extends BaseLibraryExecutor
 		assert commHandleIsNull
 				.isFalse() : "expecting concrete boolean value for "
 						+ commHandleIsNull;
-		eval = evaluator.dereference(civlsource, state, process, commHandle,
-				false, true);
+		eval = evaluator.dereference(civlsource, state, pid, process,
+				commHandle, false, true);
 		state = eval.state;
 		comm = eval.value;
 		gcommHandle = universe.tupleRead(comm, oneObject);
-		eval = evaluator.dereference(civlsource, state, process, gcommHandle,
-				false, true);
+		eval = evaluator.dereference(civlsource, state, pid, process,
+				gcommHandle, false, true);
 		state = eval.state;
 		gcomm = eval.value;
 		buf = universe.tupleRead(gcomm, threeObject);
@@ -363,13 +363,13 @@ public class LibcommExecutor extends BaseLibraryExecutor
 		assert commHandleIsNull
 				.isFalse() : "expecting concrete boolean value for "
 						+ commHandleIsNull;
-		eval = evaluator.dereference(civlsource, state, process, commHandle,
-				false, true);
+		eval = evaluator.dereference(civlsource, state, pid, process,
+				commHandle, false, true);
 		state = eval.state;
 		comm = eval.value;
 		gcommHandle = universe.tupleRead(comm, oneObject);
-		eval = evaluator.dereference(civlsource, state, process, gcommHandle,
-				false, true);
+		eval = evaluator.dereference(civlsource, state, pid, process,
+				gcommHandle, false, true);
 		state = eval.state;
 		gcomm = eval.value;
 		buf = universe.tupleRead(gcomm, threeObject);
@@ -420,13 +420,13 @@ public class LibcommExecutor extends BaseLibraryExecutor
 		Reasoner reasoner;
 		Number number;
 
-		eval = evaluator.dereference(civlsource, state, process, commHandle,
-				false, true);
+		eval = evaluator.dereference(civlsource, state, pid, process,
+				commHandle, false, true);
 		state = eval.state;
 		comm = eval.value;
 		gcommHandle = universe.tupleRead(comm, oneObject);
-		eval = evaluator.dereference(civlsource, state, process, gcommHandle,
-				false, true);
+		eval = evaluator.dereference(civlsource, state, pid, process,
+				gcommHandle, false, true);
 		state = eval.state;
 		gcomm = eval.value;
 		dest = (NumericExpression) universe.tupleRead(comm, zeroObject);
@@ -492,13 +492,13 @@ public class LibcommExecutor extends BaseLibraryExecutor
 		Evaluation eval;
 		int msgIdx = -1;
 
-		eval = evaluator.dereference(civlsource, state, process, commHandle,
-				false, true);
+		eval = evaluator.dereference(civlsource, state, pid, process,
+				commHandle, false, true);
 		state = eval.state;
 		comm = eval.value;
 		gcommHandle = universe.tupleRead(comm, oneObject);
-		eval = evaluator.dereference(civlsource, state, process, gcommHandle,
-				false, true);
+		eval = evaluator.dereference(civlsource, state, pid, process,
+				gcommHandle, false, true);
 		state = eval.state;
 		gcomm = eval.value;
 		dest = (NumericExpression) universe.tupleRead(comm, zeroObject);
@@ -549,13 +549,13 @@ public class LibcommExecutor extends BaseLibraryExecutor
 		CIVLSource civlsource = arguments[0].getSource();
 		Evaluation eval;
 
-		eval = evaluator.dereference(civlsource, state, process, commHandle,
-				false, true);
+		eval = evaluator.dereference(civlsource, state, pid, process,
+				commHandle, false, true);
 		state = eval.state;
 		comm = eval.value;
 		gcommHandle = universe.tupleRead(comm, oneObject);
-		eval = evaluator.dereference(civlsource, state, process, gcommHandle,
-				false, true);
+		eval = evaluator.dereference(civlsource, state, pid, process,
+				gcommHandle, false, true);
 		state = eval.state;
 		gcomm = eval.value;
 		nprocs = universe.tupleRead(gcomm, zeroObject);
@@ -697,8 +697,8 @@ public class LibcommExecutor extends BaseLibraryExecutor
 		LinkedList<SymbolicExpression> remainMsgs = new LinkedList<>();
 
 		gcommHandle = argumentValues[0];
-		eval = evaluator.dereference(arguments[0].getSource(), state, process,
-				gcommHandle, false, true);
+		eval = evaluator.dereference(arguments[0].getSource(), state, pid,
+				process, gcommHandle, false, true);
 		state = eval.state;
 		gcomm = eval.value;
 		nprocs = (NumericExpression) universe.tupleRead(gcomm, zeroObject);
@@ -821,9 +821,9 @@ public class LibcommExecutor extends BaseLibraryExecutor
 
 		}
 		// Exception
-		else if (civlConfig.isPropertyToggled(CIVLProperty.COMMUNICATION)){
+		else if (civlConfig.isPropertyToggled(CIVLProperty.COMMUNICATION)) {
 			// tag != -2 && tag < 0
-			errorLogger.logSimpleError(civlsource, state, process,
+			errorLogger.logSimpleError(civlsource, state, pid, process,
 					symbolicAnalyzer.stateToString(state),
 					CIVLProperty.COMMUNICATION, "Illegal message tag:" + tag);
 			throw new UnsatisfiablePathConditionException();
@@ -940,7 +940,8 @@ public class LibcommExecutor extends BaseLibraryExecutor
 		messages = universe.tupleRead(queue, oneObject);
 		msgIdx = this.getMatchedMsgIdx(state, pid, process, messages,
 				queueLength, tag, civlsource);
-		if (msgIdx == -1 && civlConfig.isPropertyToggled(CIVLProperty.COMMUNICATION)) {
+		if (msgIdx == -1
+				&& civlConfig.isPropertyToggled(CIVLProperty.COMMUNICATION)) {
 			state = errorLogger.logError(civlsource, state, pid,
 					symbolicAnalyzer.stateInformation(state),
 					universe.trueExpression(), ResultType.NO,
@@ -994,13 +995,13 @@ public class LibcommExecutor extends BaseLibraryExecutor
 		NumericExpression place, nprocs;
 		Evaluation eval;
 
-		eval = evaluator.dereference(arguments[0].getSource(), state, process,
-				commHandle, false, true);
+		eval = evaluator.dereference(arguments[0].getSource(), state, pid,
+				process, commHandle, false, true);
 		state = eval.state;
 		gcommHandle = universe.tupleRead(eval.value, oneObject);
 		place = (NumericExpression) universe.tupleRead(eval.value, zeroObject);
-		eval = evaluator.dereference(arguments[0].getSource(), state, process,
-				gcommHandle, false, true);
+		eval = evaluator.dereference(arguments[0].getSource(), state, pid,
+				process, gcommHandle, false, true);
 		state = eval.state;
 		messageBuffer = universe.tupleRead(eval.value, threeObject);
 		nprocs = (NumericExpression) universe.tupleRead(eval.value, zeroObject);

@@ -80,7 +80,7 @@ public class LibcivlcEvaluator extends BaseLibraryEvaluator
 					+ ")";
 
 			this.errorLogger.logSimpleError(joinProcessExpr.getSource(), state,
-					process, symbolicAnalyzer.stateInformation(state),
+					pid, process, symbolicAnalyzer.stateInformation(state),
 					CIVLProperty.OTHER,
 					"the argument of $wait should be concrete, but the actual value is "
 							+ joinProcess);
@@ -127,7 +127,7 @@ public class LibcivlcEvaluator extends BaseLibraryEvaluator
 
 		if (number_nprocs == null) {
 			this.errorLogger.logSimpleError(arguments[1].getSource(), state,
-					process, symbolicAnalyzer.stateInformation(state),
+					pid, process, symbolicAnalyzer.stateInformation(state),
 					CIVLProperty.OTHER, "the number of processes for $waitall "
 							+ "needs a concrete value");
 			throw new UnsatisfiablePathConditionException();
@@ -137,10 +137,12 @@ public class LibcivlcEvaluator extends BaseLibraryEvaluator
 
 		if (numOfProcs_int == 0)
 			return new Evaluation(state, trueValue);
-		if (symbolicUtil.isNullPointer(procsPointer) && civlConfig.isPropertyToggled(CIVLProperty.POINTER)) {
+		if (symbolicUtil.isNullPointer(procsPointer)
+				&& civlConfig.isPropertyToggled(CIVLProperty.POINTER)) {
 			this.errorLogger.logSimpleError(arguments[0].getSource(), state,
-					process, symbolicAnalyzer.stateInformation(state),
-					CIVLProperty.POINTER, "pointer argument to $waitall is NULL");
+					pid, process, symbolicAnalyzer.stateInformation(state),
+					CIVLProperty.POINTER,
+					"pointer argument to $waitall is NULL");
 			throw new UnsatisfiablePathConditionException();
 		}
 
@@ -160,8 +162,8 @@ public class LibcivlcEvaluator extends BaseLibraryEvaluator
 				Number startIdxNum = reasoner.extractNumber(startIdxExpr);
 
 				if (startIdxNum == null) {
-					this.errorLogger.logSimpleError(procsSource, state, process,
-							symbolicAnalyzer.stateInformation(state),
+					this.errorLogger.logSimpleError(procsSource, state, pid,
+							process, symbolicAnalyzer.stateInformation(state),
 							CIVLProperty.OTHER,
 							"pointer into proc array must have concrete index");
 					throw new UnsatisfiablePathConditionException();
@@ -169,7 +171,7 @@ public class LibcivlcEvaluator extends BaseLibraryEvaluator
 				startIndex = ((IntegerNumber) startIdxNum).intValue();
 			}
 			parentPtr = symbolicUtil.parentPointer(procsPointer);
-			eval = evaluator.dereference(procsSource, state, process, parentPtr,
+			eval = evaluator.dereference(procsSource, state, pid, process, parentPtr,
 					false, true);
 			state = eval.state;
 			procArray = eval.value;
@@ -196,7 +198,7 @@ public class LibcivlcEvaluator extends BaseLibraryEvaluator
 						procsPointer, offSetV, procsSource).left;
 				procPointer = eval.value;
 				state = eval.state;
-				eval = evaluator.dereference(procsSource, state, process,
+				eval = evaluator.dereference(procsSource, state, pid, process,
 						procPointer, false, true);
 				proc = eval.value;
 				state = eval.state;

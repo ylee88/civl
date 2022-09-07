@@ -96,7 +96,7 @@ public class ParseSystemLibrary implements DynamicTask {
 				if (this.hasOmpPragma(ast.getRootNode())) {
 					result.add(newUnitTask(
 							new File(CIVLConstants.CIVL_INCLUDE_PATH,
-									CIVLConstants.CIVL_OMP_IMP)));
+									CIVLConstants.CIVL_OMP_SRC)));
 					this.civlOmpAdded = true;
 				}
 			}
@@ -146,12 +146,15 @@ public class ParseSystemLibrary implements DynamicTask {
 
 		String name = file.getName();
 
-		if (CIVLConstants.getAllCivlLibs().contains(name))
-			return new File(CIVLConstants.CIVL_INCLUDE_PATH,
-					name.substring(0, name.length() - 1) + "l");
-		else if (CIVLConstants.getCinterfaces().contains(name))
-			return new File(CIVLConstants.CIVL_INCLUDE_PATH,
-					name.substring(0, name.length() - 1) + "cvl");
+		if (CIVLConstants.getCivlLibHeaders().contains(name)) {
+			String srcName = name.substring(0, name.length() - 1) + "l";
+			if (CIVLConstants.getCivlLibSrcs().contains(srcName))
+				return new File(CIVLConstants.CIVL_INCLUDE_PATH, srcName);
+		} else if (CIVLConstants.getCStdLibHeaders().contains(name)) {
+			String srcName = name.substring(0, name.length() - 1) + "cvl";
+			if (CIVLConstants.getCStdLibSrcs().contains(srcName))
+				return new File(CIVLConstants.CIVL_INCLUDE_PATH, srcName);
+		}
 		return null;
 	}
 

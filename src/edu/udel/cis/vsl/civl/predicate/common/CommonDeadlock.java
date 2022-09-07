@@ -6,6 +6,9 @@ package edu.udel.cis.vsl.civl.predicate.common;
 import static edu.udel.cis.vsl.sarl.IF.ValidityResult.ResultType.MAYBE;
 import static edu.udel.cis.vsl.sarl.IF.ValidityResult.ResultType.YES;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import edu.udel.cis.vsl.civl.kripke.IF.Enabler;
 import edu.udel.cis.vsl.civl.log.IF.CIVLExecutionException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLException.Certainty;
@@ -181,23 +184,24 @@ public class CommonDeadlock extends CommonCIVLStatePredicate
 		return predicate;
 	}
 
-	private CIVLSource getSource(State state) {
+	private List<Integer> getPotentialProcessIds(State state) {
+		int nprocs = state.numProcs();
+		ArrayList<Integer> potentialProcIds = new ArrayList<Integer>(nprocs);
 		int apid = stateFactory.processInAtomic(state);
 
 		if (apid >= 0) {
-			return state.getProcessState(apid).getLocation().getSource();
+			potentialProcIds.add(apid);
 		} else {
-			int nprocs = state.numProcs();
-
 			for (int i = 0; i < nprocs; i++) {
 				ProcessState procState = state.getProcessState(i);
-
-				if (procState == null || procState.hasEmptyStack())
-					continue;
-				return procState.getLocation().getSource();
+				if (procState != null && !procState.hasEmptyStack())
+					potentialProcIds.add(i);
 			}
 		}
-		throw new CIVLInternalException("unreachable", (CIVLSource) null);
+		if (potentialProcIds.isEmpty())
+			throw new CIVLInternalException("unreachable", (CIVLSource) null);
+
+		return potentialProcIds;
 	}
 
 	private boolean holdsAtWork(State state)
@@ -205,30 +209,18 @@ public class CommonDeadlock extends CommonCIVLStatePredicate
 		if (allTerminated(state)) // all processes terminated: no deadlock.
 			return false;
 
-		BooleanExpression predicate;
+		BooleanExpression predicate = falseExpr;
 		Reasoner reasoner = universe.reasoner(state.getPathCondition(universe));
-		int apid = stateFactory.processInAtomic(state);
+		List<Integer> potentialProcIds = getPotentialProcessIds(state);
 
-		if (apid >= 0) {
-			predicate = enabledPredicateForProc(state, apid);
-		} else {
-			int nprocs = state.numProcs();
+		for (int pid : potentialProcIds) {
+			BooleanExpression clause = enabledPredicateForProc(state, pid);
 
-			predicate = falseExpr;
-			for (int i = 0; i < nprocs; i++) {
-				ProcessState procState = state.getProcessState(i);
-
-				if (procState == null || procState.hasEmptyStack())
-					continue;
-
-				BooleanExpression clause = enabledPredicateForProc(state, i);
-
-				if (clause.isTrue())
-					return false; // optimization
-				predicate = universe.or(predicate, clause);
-				if (predicate.isTrue())
-					return false; // optimization
-			}
+			if (clause.isTrue())
+				return false; // optimization
+			predicate = universe.or(predicate, clause);
+			if (predicate.isTrue())
+				return false; // optimization
 		}
 
 		ResultType enabled = reasoner.valid(predicate).getResultType();
@@ -249,8 +241,10 @@ public class CommonDeadlock extends CommonCIVLStatePredicate
 			message += "  Path condition: " + state.getPathCondition(universe)
 					+ "\n  Enabling predicate: " + predicate + "\n";
 			message += explanationWork(state);
+			int pid = potentialProcIds.get(0); // Just pick the first process
 			violation = new CIVLExecutionException(CIVLProperty.DEADLOCK,
-					certainty, null, message, state, getSource(state));
+					certainty, null, message, state, pid,
+					state.getProcessState(pid).getLocation().getSource());
 			return true;
 		}
 	}

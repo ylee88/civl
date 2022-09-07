@@ -172,8 +172,8 @@ public class LibpthreadExecutor extends BaseLibraryExecutor
 		SymbolicExpression gpoolObj, threads;
 		int numThreads;
 
-		eval = this.evaluator.dereference(source, state, process, gpool, false,
-				true);
+		eval = this.evaluator.dereference(source, state, pid, process, gpool,
+				false, true);
 		gpoolObj = eval.value;
 		state = eval.state;
 		threads = this.universe.tupleRead(gpoolObj, zeroObject);
@@ -203,13 +203,13 @@ public class LibpthreadExecutor extends BaseLibraryExecutor
 		Evaluation eval;
 		SymbolicExpression threadPointer;
 
-		eval = this.evaluator.dereference(source, state, process, pool, false,
-				true);
+		eval = this.evaluator.dereference(source, state, pid, process, pool,
+				false, true);
 		poolObj = eval.value;
 		state = eval.state;
 		threadPointer = universe.tupleRead(poolObj, this.twoObject);
-		eval = this.evaluator.dereference(source, state, process, threadPointer,
-				false, true);
+		eval = this.evaluator.dereference(source, state, pid, process,
+				threadPointer, false, true);
 		state = eval.state;
 		return new Evaluation(eval.state, eval.value);
 	}
@@ -241,13 +241,13 @@ public class LibpthreadExecutor extends BaseLibraryExecutor
 		if (modelFactory.isProcNull(proc)) {
 			result = universe.falseExpression();
 		} else {
-			eval = evaluator.dereference(source, state, process, pool, false,
-					true);
+			eval = evaluator.dereference(source, state, pid, process, pool,
+					false, true);
 			poolObject = eval.value;
 			state = eval.state;
 			gpool = universe.tupleRead(poolObject, zeroObject);
-			eval = evaluator.dereference(source, state, process, gpool, false,
-					true);
+			eval = evaluator.dereference(source, state, pid, process, gpool,
+					false, true);
 			state = eval.state;
 			gpoolObject = eval.value;
 			threads = universe.tupleRead(gpoolObject, zeroObject);
@@ -258,7 +258,7 @@ public class LibpthreadExecutor extends BaseLibraryExecutor
 						universe.integer(i));
 				SymbolicExpression threadObj, threadId;
 
-				eval = evaluator.dereference(source, state, process,
+				eval = evaluator.dereference(source, state, pid, process,
 						threadPointer, false, true);
 				threadObj = eval.value;
 				state = eval.state;
@@ -281,7 +281,7 @@ public class LibpthreadExecutor extends BaseLibraryExecutor
 		SymbolicExpression gpoolObject, threadPointer, threadObj, result;
 		Evaluation eval;
 
-		eval = evaluator.dereference(source, state, process, gpool, false,
+		eval = evaluator.dereference(source, state, pid, process, gpool, false,
 				true);
 		gpoolObject = eval.value;
 		state = eval.state;
@@ -291,7 +291,7 @@ public class LibpthreadExecutor extends BaseLibraryExecutor
 				threadPointer).right != ResultType.YES)
 			result = modelFactory.nullProcessValue();
 		else {
-			eval = this.evaluator.dereference(source, state, process,
+			eval = this.evaluator.dereference(source, state, pid, process,
 					threadPointer, false, true);
 			threadObj = eval.value;
 			state = eval.state;
@@ -323,8 +323,8 @@ public class LibpthreadExecutor extends BaseLibraryExecutor
 
 		if (symbolicAnalyzer.isDerefablePointer(state,
 				gpool).right == ResultType.YES) {
-			eval = evaluator.dereference(source, state, process, gpool, false,
-					true);
+			eval = evaluator.dereference(source, state, pid, process, gpool,
+					false, true);
 			gpoolObject = eval.value;
 			state = eval.state;
 			result = universe
@@ -356,7 +356,8 @@ public class LibpthreadExecutor extends BaseLibraryExecutor
 		SymbolicExpression threadPointer;
 		SymbolicExpression threadTermPointer, threadExitValuePointer;
 
-		eval = evaluator.dereference(source, state, process, pool, false, true);
+		eval = evaluator.dereference(source, state, pid, process, pool, false,
+				true);
 		poolObj = eval.value;
 		state = eval.state;
 		threadPointer = universe.tupleRead(poolObj, this.twoObject);
@@ -387,7 +388,7 @@ public class LibpthreadExecutor extends BaseLibraryExecutor
 			throws UnsatisfiablePathConditionException {
 		SymbolicExpression threadPointer = universe.tupleRead(argumentValues[0],
 				this.twoObject);
-		Evaluation eval = evaluator.dereference(source, state, process,
+		Evaluation eval = evaluator.dereference(source, state, pid, process,
 				threadPointer, false, true);
 		SymbolicExpression thread = eval.value;
 
@@ -402,7 +403,7 @@ public class LibpthreadExecutor extends BaseLibraryExecutor
 			throws UnsatisfiablePathConditionException {
 		SymbolicExpression threadPointer = universe.tupleRead(argumentValues[0],
 				this.twoObject);
-		Evaluation eval = evaluator.dereference(source, state, process,
+		Evaluation eval = evaluator.dereference(source, state, pid, process,
 				threadPointer, false, true);
 		SymbolicExpression thread = eval.value;
 
@@ -432,11 +433,11 @@ public class LibpthreadExecutor extends BaseLibraryExecutor
 		Evaluation eval;
 		SymbolicExpression gpoolObj, threads;
 
-		eval = evaluator.dereference(source, state, process, gpool, false,
+		eval = evaluator.dereference(source, state, pid, process, gpool, false,
 				true);
 		gpoolObj = eval.value;
 		state = eval.state;
-		eval = evaluator.dereference(source, state, process, threadPointer,
+		eval = evaluator.dereference(source, state, pid, process, threadPointer,
 				false, true);
 		state = eval.state;
 		threadObj = eval.value;
@@ -476,11 +477,11 @@ public class LibpthreadExecutor extends BaseLibraryExecutor
 		Evaluation eval;
 		SymbolicExpression threadPointer, pool;
 
-		eval = evaluator.dereference(source, state, process, gpool, false,
+		eval = evaluator.dereference(source, state, pid, process, gpool, false,
 				true);
 		gpoolObject = eval.value;
 		state = eval.state;
-		eval = this.findThreadFromPool(source, state, process, gpoolObject,
+		eval = this.findThreadFromPool(source, state, pid, process, gpoolObject,
 				pid);
 		state = eval.state;
 		threadPointer = eval.value;
@@ -500,7 +501,7 @@ public class LibpthreadExecutor extends BaseLibraryExecutor
 	 * @return
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	Evaluation findThreadFromPool(CIVLSource source, State state,
+	Evaluation findThreadFromPool(CIVLSource source, State state, int pid,
 			String process, SymbolicExpression gpool, int tid)
 			throws UnsatisfiablePathConditionException {
 		SymbolicExpression threads = universe.tupleRead(gpool, zeroObject);
@@ -514,8 +515,8 @@ public class LibpthreadExecutor extends BaseLibraryExecutor
 			SymbolicExpression thread, threadId;
 			int threadId_int;
 
-			eval = evaluator.dereference(source, state, process, threadPointer,
-					false, true);
+			eval = evaluator.dereference(source, state, pid, process,
+					threadPointer, false, true);
 			thread = eval.value;
 			state = eval.state;
 			threadId = universe.tupleRead(thread, zeroObject);
@@ -534,7 +535,7 @@ public class LibpthreadExecutor extends BaseLibraryExecutor
 		SymbolicExpression threadPointer = argumentValues[1];
 		CIVLSource poolPointerSource = arguments[0].getSource();
 		SymbolicExpression pool;
-		Evaluation eval = evaluator.dereference(poolPointerSource, state,
+		Evaluation eval = evaluator.dereference(poolPointerSource, state, pid,
 				process, poolPointer, false, true);
 		NumericExpression len;
 		SymbolicExpression threads;

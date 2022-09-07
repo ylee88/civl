@@ -177,7 +177,8 @@ public class LibcommEnabler extends BaseLibraryEnabler
 						arguments[0], argumentValues[0], setsReachableRead,
 						setsReachableWrite);
 
-				if (civlConfig.checkDeadlockKind().equals(DeadlockKind.POTENTIAL)) {
+				if (civlConfig.checkDeadlockKind()
+						.equals(DeadlockKind.POTENTIAL)) {
 					BooleanExpression hasMatchedDequeue;
 
 					hasMatchedDequeue = this.hasMatchedDequeue(state, pid,
@@ -260,11 +261,11 @@ public class LibcommEnabler extends BaseLibraryEnabler
 		sourceExpr = arguments.get(1);
 		tagExpr = arguments.get(2);
 		commHandle = evaluator.evaluate(state, pid, commHandleExpr).value;
-		comm = evaluator.dereference(commHandleExpr.getSource(), state, process,
-				commHandle, false, true).value;
+		comm = evaluator.dereference(commHandleExpr.getSource(), state, pid,
+				process, commHandle, false, true).value;
 		dest = this.universe.tupleRead(comm, zeroObject);
 		gcommHandle = this.universe.tupleRead(comm, oneObject);
-		gcomm = evaluator.dereference(commHandleExpr.getSource(), state,
+		gcomm = evaluator.dereference(commHandleExpr.getSource(), state, pid,
 				process, gcommHandle, false, true).value;
 		assert (dest instanceof NumericExpression) : "Argument of destination of $comm_dequeue() should be a numeric type.\n";
 		intDest = ((IntegerNumber) reasoner
@@ -467,7 +468,7 @@ public class LibcommEnabler extends BaseLibraryEnabler
 				.isFalse() : "expecting concrete boolean value for "
 						+ commHandleIsNull;
 		eval = evaluator.dereference(commHandleExpr.getSource(), eval.state,
-				process, commHandle, false, true);
+				pid, process, commHandle, false, true);
 		comm = eval.value;
 		eval = libevaluator.getGcommByComm(eval.state, pid, process, eval.value,
 				commHandleExpr.getSource());

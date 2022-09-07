@@ -2680,7 +2680,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		assert super.astFactory == oldAst.getASTFactory();
 		assert super.nodeFactory == astFactory.getNodeFactory();
 		// Check the inclusion of CIVL's OpenMP Implementation file.
-		if (!super.hasHeader(oldAst, CIVLConstants.CIVL_OMP_IMP))
+		if (!super.hasHeader(oldAst, CIVLConstants.CIVL_OMP_SRC))
 			return oldAst;
 		root = oldAst.getRootNode();
 		oldAst.release();

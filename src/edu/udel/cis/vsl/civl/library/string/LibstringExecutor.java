@@ -181,8 +181,8 @@ public class LibstringExecutor extends BaseLibraryExecutor
 					.getSymRef(charPointer);
 			NumericExpression arrayIndex = arrayRef.getIndex();
 
-			eval = evaluator.dereference(source, state, process, arrayPointer,
-					false, true);
+			eval = evaluator.dereference(source, state, pid, process,
+					arrayPointer, false, true);
 			state = eval.state;
 			// TODO: implement getStringConcrete() as an underneath
 			// implementation of getString()
@@ -247,15 +247,17 @@ public class LibstringExecutor extends BaseLibraryExecutor
 
 		if (civlConfig.isPropertyToggled(CIVLProperty.POINTER)
 				&& (charPointer1.operator() != SymbolicOperator.TUPLE)) {
-			errorLogger.logSimpleError(source, state, process,
-					symbolicAnalyzer.stateInformation(state), CIVLProperty.POINTER,
+			errorLogger.logSimpleError(source, state, pid, process,
+					symbolicAnalyzer.stateInformation(state),
+					CIVLProperty.POINTER,
 					"attempt to read/write from an invalid pointer");
 			throw new UnsatisfiablePathConditionException();
 		}
 		if (civlConfig.isPropertyToggled(CIVLProperty.POINTER)
 				&& (charPointer2.operator() != SymbolicOperator.TUPLE)) {
-			errorLogger.logSimpleError(source, state, process,
-					symbolicAnalyzer.stateInformation(state), CIVLProperty.POINTER,
+			errorLogger.logSimpleError(source, state, pid, process,
+					symbolicAnalyzer.stateInformation(state),
+					CIVLProperty.POINTER,
 					"attempt to read/write from an invalid pointer");
 			throw new UnsatisfiablePathConditionException();
 		}
@@ -263,11 +265,11 @@ public class LibstringExecutor extends BaseLibraryExecutor
 		if (charPointer1.equals(charPointer2))
 			result = zero;
 		else {
-			strEval1 = evaluator.getString(source, state, process, arguments[0],
-					charPointer1);
+			strEval1 = evaluator.getString(source, state, pid, process,
+					arguments[0], charPointer1);
 			state = strEval1.first;
-			strEval2 = evaluator.getString(source, state, process, arguments[1],
-					charPointer2);
+			strEval2 = evaluator.getString(source, state, pid, process,
+					arguments[1], charPointer2);
 			state = strEval2.first;
 			if (!strEval1.third || !strEval2.third) {
 				// catch (CIVLUnimplementedFeatureException e) {
@@ -279,11 +281,11 @@ public class LibstringExecutor extends BaseLibraryExecutor
 				Evaluation eval;
 
 				eval = evaluator.dereference(arguments[0].getSource(), state,
-						process, charPointer1, true, true);
+						pid, process, charPointer1, true, true);
 				state = eval.state;
 				strObj1 = eval.value;
 				eval = evaluator.dereference(arguments[1].getSource(), state,
-						process, charPointer2, true, true);
+						pid, process, charPointer2, true, true);
 				state = eval.state;
 				strObj2 = eval.value;
 				if (strObj1.equals(strObj2))
@@ -362,10 +364,10 @@ public class LibstringExecutor extends BaseLibraryExecutor
 					.getSymRef(charPointer);
 			NumericExpression arrayIndex = arrayRef.getIndex();
 
-			eval = evaluator.dereference(source, state, process, arrayPointer,
-					false, true);
-			eval = evaluator.dereference(source, state, process, arrayPointer,
-					false, true);
+			eval = evaluator.dereference(source, state, pid, process,
+					arrayPointer, false, true);
+			eval = evaluator.dereference(source, state, pid, process,
+					arrayPointer, false, true);
 			state = eval.state;
 			originalArray = eval.value;
 			startIndex = symbolicUtil.extractInt(source, arrayIndex);
@@ -390,8 +392,8 @@ public class LibstringExecutor extends BaseLibraryExecutor
 			SymbolicExpression rootPointer = symbolicUtil
 					.makePointer(charPointer, universe.identityReference());
 			Evaluation evalRootPointer = evaluator.dereference(
-					arguments[0].getSource(), state, process, rootPointer, true,
-					true);
+					arguments[0].getSource(), state, pid, process, rootPointer,
+					true, true);
 			SymbolicExpression rawRootVar = evalRootPointer.value;
 			// 2. Cast the root variable to the type of array-of-char
 			SymbolicType rawRootVarType = rawRootVar.type();
@@ -472,8 +474,9 @@ public class LibstringExecutor extends BaseLibraryExecutor
 		// check if pointer is valid first
 		if (civlConfig.isPropertyToggled(CIVLProperty.POINTER)
 				&& pointer.operator() != SymbolicOperator.TUPLE) {
-			errorLogger.logSimpleError(source, state, process,
-					symbolicAnalyzer.stateInformation(state), CIVLProperty.POINTER,
+			errorLogger.logSimpleError(source, state, pid, process,
+					symbolicAnalyzer.stateInformation(state),
+					CIVLProperty.POINTER,
 					"attempt to read/write from an invalid pointer");
 			throw new UnsatisfiablePathConditionException();
 		}

@@ -236,8 +236,8 @@ public class LibbundleExecutor extends BaseLibraryExecutor
 		Evaluation eval;
 
 		rootPointer = symbolicUtil.arrayRootPtr(pointer);
-		eval = evaluator.dereference(ptrSource, state, process, rootPointer,
-				true, true);
+		eval = evaluator.dereference(ptrSource, state, pid, process,
+				rootPointer, true, true);
 		state = eval.state;
 		rootArray = eval.value;
 
@@ -264,7 +264,8 @@ public class LibbundleExecutor extends BaseLibraryExecutor
 		baseDivides = universe.divides(baseSize, availableSize);
 		resultType = reasoner.valid(universe.and(baseDivides, inBound))
 				.getResultType();
-		if (resultType != ResultType.YES && civlConfig.isPropertyToggled(CIVLProperty.OUT_OF_BOUNDS))
+		if (resultType != ResultType.YES
+				&& civlConfig.isPropertyToggled(CIVLProperty.OUT_OF_BOUNDS))
 			eval.state = reportBundlePackError(state, pid, pointer,
 					availableSize, size, universe.and(baseDivides, inBound),
 					resultType, source);
@@ -410,7 +411,7 @@ public class LibbundleExecutor extends BaseLibraryExecutor
 		SymbolicExpression pointer = argumentValues[1];
 		SymbolicExpression bundleData = (SymbolicExpression) bundle.argument(1);
 		SymbolicExpression rootPointer = symbolicUtil.arrayRootPtr(pointer);
-		Evaluation eval = evaluator.dereference(ptrSource, state, process,
+		Evaluation eval = evaluator.dereference(ptrSource, state, pid, process,
 				rootPointer, false, false);
 		SymbolicExpression wrtArray = eval.value;
 
@@ -462,7 +463,8 @@ public class LibbundleExecutor extends BaseLibraryExecutor
 						wrtArray);
 			}
 		}
-		if (errorCheckingResult != ResultType.YES && civlConfig.isPropertyToggled(CIVLProperty.OUT_OF_BOUNDS))
+		if (errorCheckingResult != ResultType.YES
+				&& civlConfig.isPropertyToggled(CIVLProperty.OUT_OF_BOUNDS))
 			state = reportBundleUnpackError(state, pid, pointer, bundleData,
 					typeFactory.bundleType(), sizeofBundleData, availableSize,
 					inBoundClaim, errorCheckingResult, source);

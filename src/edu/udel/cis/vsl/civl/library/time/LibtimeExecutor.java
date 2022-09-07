@@ -49,33 +49,26 @@ public class LibtimeExecutor extends BaseLibraryExecutor
 			this.tmSymbolicType = tmType.getDynamicType(universe);
 		this.stringSymbolicType = universe.arrayType(universe.characterType());
 		if (tmType != null)
-			this.localtimeFunc = universe
-					.symbolicConstant(universe.stringObject("localtime"),
-							universe.functionType(
-									Arrays.asList(universe.realType()),
-									this.tmSymbolicType));
+			this.localtimeFunc = universe.symbolicConstant(
+					universe.stringObject("localtime"),
+					universe.functionType(Arrays.asList(universe.realType()),
+							this.tmSymbolicType));
 		if (tmType != null)
-			this.tmToStrFunc = universe
-					.symbolicConstant(
-							universe.stringObject("strftime"), universe
-									.functionType(
-											Arrays.asList(
-													universe.integerType(),
-													typeFactory
-															.pointerSymbolicType(),
-													this.tmSymbolicType),
-											this.stringSymbolicType));
+			this.tmToStrFunc = universe.symbolicConstant(
+					universe.stringObject("strftime"),
+					universe.functionType(
+							Arrays.asList(universe.integerType(),
+									typeFactory.pointerSymbolicType(),
+									this.tmSymbolicType),
+							this.stringSymbolicType));
 		if (tmType != null)
-			this.tmToStrSizeFunc = universe
-					.symbolicConstant(
-							universe.stringObject("strftimeSize"), universe
-									.functionType(
-											Arrays.asList(
-													universe.integerType(),
-													typeFactory
-															.pointerSymbolicType(),
-													this.tmSymbolicType),
-											universe.integerType()));
+			this.tmToStrSizeFunc = universe.symbolicConstant(
+					universe.stringObject("strftimeSize"),
+					universe.functionType(
+							Arrays.asList(universe.integerType(),
+									typeFactory.pointerSymbolicType(),
+									this.tmSymbolicType),
+							universe.integerType()));
 	}
 
 	@Override
@@ -123,7 +116,7 @@ public class LibtimeExecutor extends BaseLibraryExecutor
 		SymbolicExpression resultPointer = argumentValues[0];
 		String process = state.getProcessState(pid).name();
 		Evaluation eval = this.evaluator.dereference(arguments[3].getSource(),
-				state, process, argumentValues[3], false, true);
+				state, pid, process, argumentValues[3], false, true);
 		SymbolicExpression tmValue, sizeValue, tmStr;
 
 		resultPointer = this.symbolicUtil.parentPointer(resultPointer);
@@ -166,7 +159,7 @@ public class LibtimeExecutor extends BaseLibraryExecutor
 			throws UnsatisfiablePathConditionException {
 		String process = state.getProcessState(pid).name();
 		Evaluation eval = evaluator.dereference(arguments[0].getSource(), state,
-				process, argumentValues[0], false, true);
+				pid, process, argumentValues[0], false, true);
 		SymbolicExpression result;
 		Variable brokenTimeVar = this.modelFactory.brokenTimeVariable();
 		SymbolicExpression brokenTimePointer;

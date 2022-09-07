@@ -1,5 +1,6 @@
 package edu.udel.cis.vsl.civl.log.IF;
 
+import edu.udel.cis.vsl.civl.config.IF.CIVLConstants;
 import edu.udel.cis.vsl.civl.model.IF.CIVLException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
 import edu.udel.cis.vsl.civl.model.IF.CIVLSource;
@@ -36,8 +37,10 @@ public class CIVLExecutionException extends CIVLException {
 	private boolean reported = false;
 
 	/**
-	 * @param kind
-	 *            the kind of error
+	 * Constructs a new CIVLExecutionException with an associated process.
+	 * 
+	 * @param property
+	 *            the CIVLProperty that has been violated
 	 * @param certainty
 	 *            the certainty with which this is known to be an error in the
 	 *            program being verified
@@ -45,30 +48,105 @@ public class CIVLExecutionException extends CIVLException {
 	 *            process name, i.e., "p"+process identifier
 	 * @param message
 	 *            a message explaining the error
-	 * @param stateString
-	 *            the string representation of the state where the error occurs;
-	 *            may be null
+	 * @param state
+	 *            the state the exception appears in
+	 * @param pid
+	 *            the process id of the process which triggered the exception
 	 * @param source
 	 *            the source code element associated to the error; may be null
 	 */
 	public CIVLExecutionException(CIVLProperty property, Certainty certainty,
-			String process, String message, State state, CIVLSource source) {
+			String process, String message, State state, int pid,
+			CIVLSource source) {
+		this(true, property, certainty, process, message, state, pid, source,
+				null);
+	}
+
+	/**
+	 * Constructs a new CIVLExecutionException with an associated process and
+	 * stateString.
+	 * 
+	 * @param property
+	 *            the CIVLProperty that has been violated
+	 * @param certainty
+	 *            the certainty with which this is known to be an error in the
+	 *            program being verified
+	 * @param process
+	 *            process name, i.e., "p"+process identifier
+	 * @param message
+	 *            a message explaining the error
+	 * @param state
+	 *            the state the exception appears in
+	 * @param pid
+	 *            the process id of the process which triggered the exception
+	 * @param source
+	 *            the source code element associated to the error; may be null
+	 * @param stateString
+	 *            the string representation of the state where the error occurs;
+	 *            may be null
+	 */
+	public CIVLExecutionException(CIVLProperty property, Certainty certainty,
+			String process, String message, State state, int pid,
+			CIVLSource source, StringBuffer stateString) {
+		this(true, property, certainty, process, message, state, pid, source,
+				stateString);
+	}
+
+	/**
+	 * Constructs new CIVLExecutionException with no associated process.
+	 * 
+	 * @param property
+	 *            the CIVLProperty that has been violated
+	 * @param certainty
+	 *            the certainty with which this is known to be an error in the
+	 *            program being verified
+	 * @param message
+	 *            a message explaining the error
+	 * @param state
+	 *            the state the exception appears in
+	 */
+	public CIVLExecutionException(CIVLProperty property, Certainty certainty,
+			String message, State state) {
+
+		this(false, property, certainty, null, message, state, -1, null, null);
+	}
+
+	/**
+	 * Constructs new CIVLExecutionException with no associated process.
+	 * 
+	 * @param property
+	 *            the CIVLProperty that has been violated
+	 * @param certainty
+	 *            the certainty with which this is known to be an error in the
+	 *            program being verified
+	 * @param message
+	 *            a message explaining the error
+	 * @param state
+	 *            the state the exception appears in
+	 * @param source
+	 *            the source code element associated to the error; may be null
+	 */
+	public CIVLExecutionException(CIVLProperty property, Certainty certainty,
+			String message, State state, CIVLSource source) {
+		this(false, property, certainty, null, message, state, -1, source,
+				null);
+	}
+
+	private CIVLExecutionException(boolean assocToProc, CIVLProperty property,
+			Certainty certainty, String process, String message, State state,
+			int pid, CIVLSource source, StringBuffer stateString) {
 		super(message, source);
 		assert property != null;
 		assert certainty != null;
+		assert state != null;
+		if (assocToProc)
+			assert pid >= 0;
 		this.process = process;
 		this.state = state;
 		this.property = property;
 		this.certainty = certainty;
-		this.pid = -1;
-	}
-
-	public CIVLExecutionException(CIVLProperty property, Certainty certainty,
-			String process, String message, StringBuffer stateString,
-			State state, int pid, CIVLSource source) {
-		this(property, certainty, process, message, state, source);
-		this.stateString = stateString;
 		this.pid = pid;
+		this.stateString = stateString;
 	}
 
 	/**
@@ -121,6 +199,21 @@ public class CIVLExecutionException extends CIVLException {
 			result.append(process);
 			result.append(" ");
 		}
+
+		if (pid >= 0) {
+			String libraryString = "";
+			for (StackEntry se : state.getProcessState(pid).getStackEntries()) {
+				String fileName = se.location().function().getSource()
+						.getFileName();
+				if (CIVLConstants.getAllLibFilenames().contains(fileName)) {
+					libraryString = "Library: " + fileName + ", Function: "
+							+ se.location().function().name();
+				}
+			}
+			if (libraryString != "")
+				result.append("[" + libraryString + "] ");
+		}
+
 		result.append("(property violated: ");
 		result.append(property);
 		result.append(", certainty: ");
@@ -147,7 +240,8 @@ public class CIVLExecutionException extends CIVLException {
 
 					if (tempSource != null
 							&& !(tempSource instanceof SystemCIVLSource)
-							&& !tempSourceAbsPath.startsWith(sysResourcePrefix)) {
+							&& !tempSourceAbsPath
+									.startsWith(sysResourcePrefix)) {
 						result.append("\nat ");
 						if (tempSourceAbsPath.endsWith(transformersuffix)) {
 							result.append(tempSource.getSummary(false));

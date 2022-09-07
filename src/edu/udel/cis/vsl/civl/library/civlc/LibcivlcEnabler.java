@@ -125,7 +125,7 @@ public class LibcivlcEnabler extends BaseLibraryEnabler
 
 				if (upperNumber == null) {
 					this.errorLogger.logSimpleError(arguments[0].getSource(),
-							state, process,
+							state, pid, process,
 							symbolicAnalyzer.stateInformation(state),
 							CIVLProperty.INTERNAL,
 							"argument to $choose_int not concrete: "
@@ -276,9 +276,9 @@ public class LibcivlcEnabler extends BaseLibraryEnabler
 
 		if (number_nprocs == null) {
 			this.evaluator.errorLogger().logSimpleError(
-					arguments[1].getSource(), state, process,
-					symbolicAnalyzer.stateInformation(state), CIVLProperty.OTHER,
-					"the number of processes for $waitall "
+					arguments[1].getSource(), state, pid, process,
+					symbolicAnalyzer.stateInformation(state),
+					CIVLProperty.OTHER, "the number of processes for $waitall "
 							+ "needs a concrete value");
 			throw new UnsatisfiablePathConditionException();
 		} else {
@@ -300,7 +300,7 @@ public class LibcivlcEnabler extends BaseLibraryEnabler
 						procsPointer, offSetV);
 				procPointer = eval.value;
 				state = eval.state;
-				eval = evaluator.dereference(procsSource, state, process,
+				eval = evaluator.dereference(procsSource, state, pid, process,
 						procPointer, false, true);
 				proc = eval.value;
 				state = eval.state;

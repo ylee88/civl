@@ -199,7 +199,7 @@ public class MemEvaluator extends CommonEvaluator {
 
 		if (!expr.getExpressionType().isSetType()) {
 			if (civlConfig.isPropertyToggled(CIVLProperty.POINTER) && !symbolicUtil.isConcretePointer(eval.value))
-				errorLogger.logSimpleError(expr.getSource(), state,
+				errorLogger.logSimpleError(expr.getSource(), state, pid,
 						state.getProcessState(pid).name(),
 						symbolicAnalyzer.stateInformation(state),
 						CIVLProperty.POINTER,
@@ -362,7 +362,7 @@ public class MemEvaluator extends CommonEvaluator {
 			throws UnsatisfiablePathConditionException {
 		if (ptrVal.type() == typeFactory.pointerSymbolicType())
 			if (civlConfig.isToggleableProperty(CIVLProperty.POINTER) && !symbolicUtil.isConcretePointer(ptrVal)) {
-				errorLogger.logSimpleError(expr.getSource(), state,
+				errorLogger.logSimpleError(expr.getSource(), state, pid,
 						state.getProcessState(pid).name(),
 						symbolicAnalyzer.stateInformation(state),
 						CIVLProperty.POINTER,
@@ -663,7 +663,7 @@ public class MemEvaluator extends CommonEvaluator {
 				range[1] = universe.add(index, range[1]);
 				range[1] = universe.add(range[1], one); // to be exclusive
 			} else {
-				errorLogger.logSimpleError(source, state,
+				errorLogger.logSimpleError(source, state, pid,
 						state.getProcessState(pid).name(),
 						symbolicAnalyzer.stateInformation(state),
 						CIVLProperty.OTHER,
@@ -738,7 +738,7 @@ public class MemEvaluator extends CommonEvaluator {
 							+ source);
 		// currently, no offset reference is allowed ...
 		if (containsOffsetReference(vsRef)) {
-			errorLogger.logSimpleError(source, state,
+			errorLogger.logSimpleError(source, state, pid,
 					state.getProcessState(pid).name(),
 					symbolicAnalyzer.stateInformation(state), CIVLProperty.OTHER,
 					"Invalid memory location reference to variable: "
@@ -840,7 +840,7 @@ public class MemEvaluator extends CommonEvaluator {
 					symbolicAnalyzer.stateInformation(state), claim, resultType,
 					CIVLProperty.OUT_OF_BOUNDS, message);
 		else
-			errorLogger.logSimpleError(source, state,
+			errorLogger.logSimpleError(source, state, pid,
 					state.getProcessState(pid).name(),
 					symbolicAnalyzer.stateInformation(state),
 					CIVLProperty.OUT_OF_BOUNDS, message);

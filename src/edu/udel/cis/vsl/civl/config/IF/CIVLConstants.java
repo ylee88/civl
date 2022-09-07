@@ -1,9 +1,5 @@
 package edu.udel.cis.vsl.civl.config.IF;
 
-import static edu.udel.cis.vsl.gmc.Option.OptionType.BOOLEAN;
-import static edu.udel.cis.vsl.gmc.Option.OptionType.INTEGER;
-import static edu.udel.cis.vsl.gmc.Option.OptionType.STRING;
-
 import java.io.File;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -119,6 +115,11 @@ public class CIVLConstants {
 	public final static String bar = "===================";
 
 	public final static String statsBar = "===";
+
+	/**
+	 * The int value of the char '\0', which represents the end of string.
+	 */
+	public final static int EOS = 0;
 
 	/**
 	 * The name of the directory into which CIVL will store the artifacts it
@@ -237,8 +238,9 @@ public class CIVLConstants {
 	/**
 	 * Debug option, false by default.
 	 */
-	public final static Option debugO = Option.newScalarOption(DEBUG, BOOLEAN,
-			"debug mode: print very detailed information", false);
+	public final static Option debugO = Option.newScalarOption(DEBUG,
+			OptionType.BOOLEAN, "debug mode: print very detailed information",
+			false);
 
 	public final static Option timeoutO = Option.newScalarOption(TIMEOUT,
 			OptionType.INTEGER,
@@ -249,17 +251,17 @@ public class CIVLConstants {
 	 * printf function.
 	 */
 	public final static Option enablePrintfO = Option.newScalarOption(
-			ENABLE_PRINTF, BOOLEAN, "enable printf function", true);
+			ENABLE_PRINTF, OptionType.BOOLEAN, "enable printf function", true);
 
 	/**
 	 * The maximal number of errors allowed before terminating CIVL. 1 by
 	 * default.
 	 */
 	public final static Option errorBoundO = Option.newScalarOption(ERROR_BOUND,
-			INTEGER, "stop after finding this many errors", 1);
+			OptionType.INTEGER, "stop after finding this many errors", 1);
 
 	public final static Option maxProcsO = Option.newScalarOption(MAX_PROCS,
-			INTEGER, "the maximum number of processes", 1000);
+			OptionType.INTEGER, "the maximum number of processes", 1000);
 
 	/**
 	 * The semantics for used to determine when error states are equivalent;
@@ -270,14 +272,15 @@ public class CIVLConstants {
 	 * default.
 	 */
 	public final static Option errorStateEquivO = Option.newScalarOption(
-			ERROR_STATE_EQUIV, STRING,
+			ERROR_STATE_EQUIV, OptionType.STRING,
 			"semantics for equivalent error states: (LOC|CALLSTACK|FULL)",
 			"LOC");
 
 	/**
 	 * User guided simulation?
 	 */
-	public final static Option guidedO = Option.newScalarOption(GUIDED, BOOLEAN,
+	public final static Option guidedO = Option.newScalarOption(GUIDED,
+			OptionType.BOOLEAN,
 			"user guided simulation; applies only to run, ignored\n"
 					+ "    for all other commands",
 			null);
@@ -285,7 +288,8 @@ public class CIVLConstants {
 	/**
 	 * The id of the trace for replay, 0 by default.
 	 */
-	public final static Option idO = Option.newScalarOption(ID, INTEGER,
+	public final static Option idO = Option.newScalarOption(ID,
+			OptionType.INTEGER,
 			"ID number of trace to replay; applies only to replay command", 0);
 
 	/**
@@ -298,19 +302,19 @@ public class CIVLConstants {
 	 * The maximal depth for search. Infinite by default.
 	 */
 	public final static Option maxdepthO = Option.newScalarOption(MAX_DEPTH,
-			INTEGER, "bound on search depth", Integer.MAX_VALUE);
+			OptionType.INTEGER, "bound on search depth", Integer.MAX_VALUE);
 
 	/**
 	 * Search for the minimum counterexample? false by default.
 	 */
-	public final static Option minO = Option.newScalarOption(MIN, BOOLEAN,
-			"search for minimal counterexample", false);
+	public final static Option minO = Option.newScalarOption(MIN,
+			OptionType.BOOLEAN, "search for minimal counterexample", false);
 
 	/**
 	 * MPI contract mode? Disable by default.
 	 */
 	public final static Option mpiContractO = Option.newScalarOption(
-			MPI_CONTRACT, STRING,
+			MPI_CONTRACT, OptionType.STRING,
 			"MPI contract mode, specify the name of the function to be verified, "
 					+ "or specify \"" + CONTRACT_CHECK_ALL
 					+ "\" for checking all annotated functions."
@@ -323,7 +327,7 @@ public class CIVLConstants {
 	 * {@link MPIModelKind#BLOCKING} is the default setting.
 	 */
 	public final static Option mpiModelO = Option.newScalarOption(MPI_MODEL,
-			STRING,
+			OptionType.STRING,
 			"select the MPI implementation model. Available values are blocking (default), nonblocking, contract.",
 			"blocking");
 
@@ -331,7 +335,8 @@ public class CIVLConstants {
 	 * Enable all settings that are required for verifying with loop invariants.
 	 * Disable by default.
 	 */
-	public final static Option loopO = Option.newScalarOption(LOOP_INV, BOOLEAN,
+	public final static Option loopO = Option.newScalarOption(LOOP_INV,
+			OptionType.BOOLEAN,
 			"Enable all settings that are required for verifying with loop invariants. "
 					+ "(e.g. collect symbolic constants will be enabled)",
 			false);
@@ -341,18 +346,20 @@ public class CIVLConstants {
 	 * default.
 	 */
 	public final static Option procBoundO = Option.newScalarOption(PROC_BOUND,
-			INTEGER, "bound on number of live processes (no bound if negative)",
-			-1);
+			OptionType.INTEGER,
+			"bound on number of live processes (no bound if negative)", -1);
 
 	/**
 	 * Use probabilistic techniques for verifying numeric identifies. False by
 	 * default.
 	 */
-	public final static Option probO = Option.newScalarOption(PROB, BOOLEAN,
+	public final static Option probO = Option.newScalarOption(PROB,
+			OptionType.BOOLEAN,
 			"use probabilistic techniques for verifying numeric identifies",
 			false);
 
-	public final static Option randomO = Option.newScalarOption(RANDOM, BOOLEAN,
+	public final static Option randomO = Option.newScalarOption(RANDOM,
+			OptionType.BOOLEAN,
 			"select enabled transitions randomly; default for run,\n"
 					+ "    ignored for all other commands",
 			null);
@@ -362,7 +369,7 @@ public class CIVLConstants {
 	 * The default value is <code>true</code>
 	 */
 	public final static Option runtimeUpdateO = Option.newScalarOption(
-			RUNTIME_UPDATE, BOOLEAN,
+			RUNTIME_UPDATE, OptionType.BOOLEAN,
 			"set as `false` to disable CIVL updater thread, \n"
 					+ "which printing update-info periodically",
 			true);
@@ -371,38 +378,39 @@ public class CIVLConstants {
 	 * Save states during depth-first search? true by default.
 	 */
 	public final static Option saveStatesO = Option.newScalarOption(SAVE_STATES,
-			BOOLEAN, "save states during depth-first search", true);
+			OptionType.BOOLEAN, "save states during depth-first search", true);
 
 	/**
 	 * Set the random seed for run mode.
 	 */
-	public final static Option seedO = Option.newScalarOption(SEED, INTEGER,
-			"set the random seed; applies only to run", null);
+	public final static Option seedO = Option.newScalarOption(SEED,
+			OptionType.INTEGER, "set the random seed; applies only to run",
+			null);
 
 	/**
 	 * Set the upper bound of integers.
 	 */
-	public final static Option intBit = Option.newScalarOption(INTBIT, INTEGER,
-			"set the number of bits of integer", 32);
+	public final static Option intBit = Option.newScalarOption(INTBIT,
+			OptionType.INTEGER, "set the number of bits of integer", 32);
 
 	/**
 	 * Analyze abs calls? false by default.
 	 */
 	public final static Option analyzeAbsO = Option.newScalarOption(ANALYZE_ABS,
-			BOOLEAN, "analyze abs calls? false by default", false);
+			OptionType.BOOLEAN, "analyze abs calls? false by default", false);
 
 	/**
 	 * Show the AST of the program? false by default.
 	 */
-	public final static Option astO = Option.newScalarOption(AST, BOOLEAN,
-			"print the AST of the program", false);
+	public final static Option astO = Option.newScalarOption(AST,
+			OptionType.BOOLEAN, "print the AST of the program", false);
 
 	/**
 	 * Print the ample set when it contains more than one processes? false by
 	 * default.
 	 */
 	public final static Option showAmpleSetO = Option.newScalarOption(
-			SHOW_AMPLE_SET, BOOLEAN,
+			SHOW_AMPLE_SET, OptionType.BOOLEAN,
 			"print the ample set when it contains more than one processes",
 			false);
 
@@ -411,7 +419,7 @@ public class CIVLConstants {
 	 * processes? false by default.
 	 */
 	public final static Option showAmpleSetWtStatesO = Option.newScalarOption(
-			SHOW_AMPLE_SET_STATES, BOOLEAN,
+			SHOW_AMPLE_SET_STATES, OptionType.BOOLEAN,
 			"print ample set and state when ample set contains >1 processes",
 			false);
 
@@ -420,7 +428,7 @@ public class CIVLConstants {
 	 * one processes? false by default.
 	 */
 	public final static Option showMemoryUnitsO = Option.newScalarOption(
-			SHOW_MEM_UNITS, BOOLEAN,
+			SHOW_MEM_UNITS, OptionType.BOOLEAN,
 			"print the impact/reachable memory units when the state contains more than one processes",
 			false);
 
@@ -428,68 +436,71 @@ public class CIVLConstants {
 	 * Show the CIVL model of the program? false by default.
 	 */
 	public final static Option showModelO = Option.newScalarOption(SHOW_MODEL,
-			BOOLEAN, "print the model", false);
+			OptionType.BOOLEAN, "print the model", false);
 
 	/**
 	 * Show theorem prover queries? false by default.
 	 */
 	public final static Option showProverQueriesO = Option.newScalarOption(
-			SHOW_PROVER_QUERIES, BOOLEAN, "print theorem prover queries only",
-			false);
+			SHOW_PROVER_QUERIES, OptionType.BOOLEAN,
+			"print theorem prover queries only", false);
 
 	/**
 	 * Show all SARL queries? false by default.
 	 */
-	public final static Option showQueriesO = Option
-			.newScalarOption(SHOW_QUERIES, BOOLEAN, "print all queries", false);
+	public final static Option showQueriesO = Option.newScalarOption(
+			SHOW_QUERIES, OptionType.BOOLEAN, "print all queries", false);
 
 	/**
 	 * Show all states that are saved? false by default.
 	 */
 	public final static Option showSavedStatesO = Option.newScalarOption(
-			SHOW_SAVED_STATES, BOOLEAN, "print saved states only", false);
+			SHOW_SAVED_STATES, OptionType.BOOLEAN, "print saved states only",
+			false);
 
 	/**
 	 * Show all states? false by default.
 	 */
 	public final static Option showStatesO = Option.newScalarOption(SHOW_STATES,
-			BOOLEAN, "print all states", false);
+			OptionType.BOOLEAN, "print all states", false);
 
 	/**
 	 * Show the time used by each translation phase? false by default.
 	 */
 	public final static Option showTimeO = Option.newScalarOption(SHOW_TIME,
-			BOOLEAN, "print timings", false);
+			OptionType.BOOLEAN, "print timings", false);
 
 	/**
 	 * Show all transitions? false by default;
 	 */
 	public final static Option showTransitionsO = Option.newScalarOption(
-			SHOW_TRANSITIONS, BOOLEAN, "print transitions", false);
+			SHOW_TRANSITIONS, OptionType.BOOLEAN, "print transitions", false);
 
 	/**
 	 * Show unreachable code? false by default;
 	 */
 	public final static Option showUnreachedCodeO = Option.newScalarOption(
-			SHOW_UNREACHED, BOOLEAN, "print the unreachable code", false);
+			SHOW_UNREACHED, OptionType.BOOLEAN, "print the unreachable code",
+			false);
 
 	/**
 	 * Simplify states using path conditions? true by default.
 	 */
 	public final static Option simplifyO = Option.newScalarOption(SIMPLIFY,
-			BOOLEAN, "simplify states?", true);
+			OptionType.BOOLEAN, "simplify states?", true);
 
 	/**
 	 * Try to solve for concrete counterexample? false by default.
 	 */
-	public final static Option solveO = Option.newScalarOption(SOLVE, BOOLEAN,
-			"try to solve for concrete counterexample", false);
+	public final static Option solveO = Option.newScalarOption(SOLVE,
+			OptionType.BOOLEAN, "try to solve for concrete counterexample",
+			false);
 
 	/**
 	 * Don't modify file system when running printf? true by default.
 	 */
 	public final static Option statelessPrintfO = Option.newScalarOption(
-			STATELESS_PRINTF, BOOLEAN,
+			STATELESS_PRINTF, OptionType.BOOLEAN,
 			"prevent printf function modifying the file system", true);
 
 	/**
@@ -497,13 +508,13 @@ public class CIVLConstants {
 	 * one processes? false by default.
 	 */
 	public final static Option strictCompareO = Option.newScalarOption(STRICT,
-			BOOLEAN, "check strict functional equivalence?", true);
+			OptionType.BOOLEAN, "check strict functional equivalence?", true);
 
 	/**
 	 * Set the system include path.
 	 */
 	public final static Option sysIncludePathO = Option.newScalarOption(
-			SYS_INCLUDE_PATH, STRING,
+			SYS_INCLUDE_PATH, OptionType.STRING,
 			"set the system include path, using : to separate multiple paths",
 			null);
 
@@ -511,19 +522,19 @@ public class CIVLConstants {
 	 * Unpreprocess the source? false by default.
 	 */
 	public final static Option unpreprocO = Option.newScalarOption(UNPREPROC,
-			BOOLEAN, "unpreprocess the source?", false);
+			OptionType.BOOLEAN, "unpreprocess the source?", false);
 
 	/**
 	 * File name of trace to replay
 	 */
-	public final static Option traceO = Option.newScalarOption(TRACE, STRING,
-			"filename of trace to replay", null);
+	public final static Option traceO = Option.newScalarOption(TRACE,
+			OptionType.STRING, "filename of trace to replay", null);
 
 	/**
 	 * Sets user include path.
 	 */
 	public final static Option userIncludePathO = Option.newScalarOption(
-			USER_INCLUDE_PATH, STRING,
+			USER_INCLUDE_PATH, OptionType.STRING,
 			"set the user include path, using : to separate multiple paths",
 			null);
 
@@ -531,44 +542,45 @@ public class CIVLConstants {
 	 * Verbose mode? false by default
 	 */
 	public final static Option verboseO = Option.newScalarOption(VERBOSE,
-			BOOLEAN, "verbose mode", false);
+			OptionType.BOOLEAN, "verbose mode", false);
 
 	/**
 	 * Perform svcomp16 transformation? false by default.
 	 */
 	public final static Option svcomp16O = Option.newScalarOption(SVCOMP16,
-			BOOLEAN, "translate program for sv-comp 2016?", false);
+			OptionType.BOOLEAN, "translate program for sv-comp 2016?", false);
 
 	/**
 	 * Perform svcomp transformation? false by default.
 	 */
 	public final static Option svcomp17O = Option.newScalarOption(SVCOMP17,
-			BOOLEAN, "translate program for sv-comp 2017?", false);
+			OptionType.BOOLEAN, "translate program for sv-comp 2017?", false);
 
 	/**
 	 * Show the input variables of this model? false by default.
 	 */
 	public final static Option showInputVarsO = Option.newScalarOption(
-			SHOW_INPUTS, BOOLEAN, "show input variables of my program?", false);
+			SHOW_INPUTS, OptionType.BOOLEAN,
+			"show input variables of my program?", false);
 
 	/**
 	 * Show the preprocessing result? false by default.
 	 */
 	public final static Option preprocO = Option.newScalarOption(PREPROC,
-			BOOLEAN, "show the preprocessing result?", false);
+			OptionType.BOOLEAN, "show the preprocessing result?", false);
 
 	/**
 	 * Show the program after all applicable transformations? false by default.
 	 */
 	public final static Option showProgramO = Option.newScalarOption(
-			SHOW_PROGRAM, BOOLEAN, "show my program after transformations?",
-			false);
+			SHOW_PROGRAM, OptionType.BOOLEAN,
+			"show my program after transformations?", false);
 
 	/**
 	 * Show the path condition of each state? false by default.
 	 */
 	public final static Option showPathConditionO = Option.newScalarOption(
-			SHOW_PATH_CONDITION, STRING,
+			SHOW_PATH_CONDITION, OptionType.STRING,
 			"show the path condition of each state? "
 					+ "(LINE (display as one line) | BLOCK (display as multiple lines))",
 			"LINE");
@@ -577,14 +589,15 @@ public class CIVLConstants {
 	 * Don't simplify OpenMP pragmas? false by default.
 	 */
 	public final static Option ompNoSimplifyO = Option.newScalarOption(
-			OMP_NO_SIMPLIFY, BOOLEAN, "don't simplify omp pragmas", false);
+			OMP_NO_SIMPLIFY, OptionType.BOOLEAN, "don't simplify omp pragmas",
+			false);
 
 	/**
 	 * Only relies on the OpenMP simplifier ? i.e., either simplify an omp
 	 * program or report possible data-race
 	 */
 	public final static Option ompOnlySimplifierO = Option.newScalarOption(
-			OMP_ONLY_SIMPLIFIER, BOOLEAN,
+			OMP_ONLY_SIMPLIFIER, OptionType.BOOLEAN,
 			"only relies on the OpenMP simplifier, i.e.,"
 					+ "either simplify an omp program or report possible data-race",
 			false);
@@ -592,39 +605,40 @@ public class CIVLConstants {
 	/**
 	 * Collect output? false by default.
 	 */
-	public final static Option collectOutputO = Option
-			.newScalarOption(COLLECT_OUTPUT, BOOLEAN, "collect output?", false);
+	public final static Option collectOutputO = Option.newScalarOption(
+			COLLECT_OUTPUT, OptionType.BOOLEAN, "collect output?", false);
 
 	/**
 	 * Collect processes? true by default.
 	 */
 	public final static Option collectProcessesO = Option.newScalarOption(
-			COLLECT_PROCESSES, BOOLEAN, "collect processes?", true);
+			COLLECT_PROCESSES, OptionType.BOOLEAN, "collect processes?", true);
 
 	/**
 	 * Collect scopes? true by default.
 	 */
 	public final static Option collectScopesO = Option.newScalarOption(
-			COLLECT_SCOPES, BOOLEAN, "collect dyscopes?", true);
+			COLLECT_SCOPES, OptionType.BOOLEAN, "collect dyscopes?", true);
 
 	/**
 	 * Collect symbolic constants ? false by default.
 	 */
 	public final static Option collectSymbolicConstantsO = Option
-			.newScalarOption(COLLECT_SYMBOLIC_CONSTANTS, BOOLEAN,
+			.newScalarOption(COLLECT_SYMBOLIC_CONSTANTS, OptionType.BOOLEAN,
 					"collect symbolic constant?", false);
 
 	/**
 	 * Collect heaps? true by default.
 	 */
-	public final static Option collectHeapsO = Option
-			.newScalarOption(COLLECT_HEAPS, BOOLEAN, "collect heaps?", true);
+	public final static Option collectHeapsO = Option.newScalarOption(
+			COLLECT_HEAPS, OptionType.BOOLEAN, "collect heaps?", true);
 
 	/**
 	 * Link a source file with the target program.
 	 */
-	public final static Option linkO = Option.newScalarOption(LINK, STRING,
-			"link a source file with the target program", null);
+	public final static Option linkO = Option.newScalarOption(LINK,
+			OptionType.STRING, "link a source file with the target program",
+			null);
 
 	/**
 	 * Define macros.
@@ -635,15 +649,15 @@ public class CIVLConstants {
 	/**
 	 * Write output for web app? false by default.
 	 */
-	public final static Option webO = Option.newScalarOption(WEB, BOOLEAN,
-			"write output for web app?", false);
+	public final static Option webO = Option.newScalarOption(WEB,
+			OptionType.BOOLEAN, "write output for web app?", false);
 
 	/**
 	 * Set the loop decomposition strategy for OpenMP transformer. Round robin
 	 * by default.
 	 */
 	public final static Option ompLoopDecompO = Option.newScalarOption(
-			OMP_LOOP_DECOMP, STRING,
+			OMP_LOOP_DECOMP, OptionType.STRING,
 			"loop decomposition strategy? (ALL|ROUND_ROBIN|RANDOM)",
 			"ROUND_ROBIN");
 
@@ -651,43 +665,45 @@ public class CIVLConstants {
 	 * Collect heaps? true by default.
 	 */
 	public final static Option CIVLMacroO = Option.newScalarOption(CIVL_MACRO,
-			BOOLEAN, "Define _CIVL macro?", true);
+			OptionType.BOOLEAN, "Define _CIVL macro?", true);
 
 	/**
 	 * Ignore the output? false by default.
 	 */
-	public final static Option quietO = Option.newScalarOption(QUIET, BOOLEAN,
-			"ignore output?", false);
+	public final static Option quietO = Option.newScalarOption(QUIET,
+			OptionType.BOOLEAN, "ignore output?", false);
 
 	/**
 	 * apply int operation transformer? true by default.
 	 */
 	public final static Option intOperationTransformer = Option.newScalarOption(
-			INT_OPERATION_TRANSFORMER, BOOLEAN,
+			INT_OPERATION_TRANSFORMER, OptionType.BOOLEAN,
 			"apply int operation transformer?", false);
 
 	/**
 	 * Perform slice analysis on trace? false by default.
 	 */
 	public final static Option sliceAnalysisO = Option.newScalarOption(
-			SLICE_ANALYSIS, BOOLEAN, "Perform slice analysis on trace?", false);
+			SLICE_ANALYSIS, OptionType.BOOLEAN,
+			"Perform slice analysis on trace?", false);
 
 	/**
 	 * Generate witness from trace? false by default.
 	 */
 	public final static Option witnessO = Option.newScalarOption(WITNESS,
-			BOOLEAN, "Generate witness from trace?", false);
+			OptionType.BOOLEAN, "Generate witness from trace?", false);
 
 	/**
 	 * Inject instrumentation to direct the branches at the line numbers in
 	 * given file so as to explore a sub-space of execution. Note: currently
 	 * assumes you are given one C file (no linking)
 	 */
-	public final static Option direct0 = Option.newScalarOption(DIRECT, STRING,
+	public final static Option direct0 = Option.newScalarOption(DIRECT,
+			OptionType.STRING,
 			"Direct branching at line numbers in the given file", null);
 
 	public final static Option cyclesViolateO = Option.newScalarOption(
-			CYCLES_VIOLATE, BOOLEAN,
+			CYCLES_VIOLATE, OptionType.BOOLEAN,
 			"Report cycles in the state space as violations", false);
 
 	/**
@@ -695,12 +711,12 @@ public class CIVLConstants {
 	 * for some validity checks that CIVL encounters during a run.
 	 */
 	public final static Option SARLTestGenO = Option.newScalarOption(TEST_GEN,
-			BOOLEAN,
+			OptionType.BOOLEAN,
 			"Generating SARL Junit tests for some validity tests that CIVL encountered",
 			false);
 
-	public final static Option preemptionBoundO = Option
-			.newScalarOption(PREEMPTION_BOUND, INTEGER, "preemption bound", -1);
+	public final static Option preemptionBoundO = Option.newScalarOption(
+			PREEMPTION_BOUND, OptionType.INTEGER, "preemption bound", -1);
 
 	/**
 	 * The name of the CIVL system function, which is the starting point of a
@@ -736,89 +752,186 @@ public class CIVLConstants {
 				.toArray(Option[]::new);
 	}
 
-	// headers...
-	public final static String BUNDLE = "bundle.cvh";
-	public final static String CIVLC = "civlc.cvh";
-	public final static String CIVL_MPI_BLOCKING = "civl-mpi-blocking.cvh";
-	public final static String CIVL_MPI_NONBLOCKING = "civl-mpi-nonblocking.cvh";
-	public final static String CIVL_PTHREAD = "civl-pthread.cvh";
-	public final static String COMM = "comm.cvh";
-	public final static String CONCURRENCY = "concurrency.cvh";
-	public final static String CIVL_OMP = "civl-omp.cvh";
-	public final static String CIVL_OMP_IMP = "civl-omp.cvl";
-	public final static String FORTRAN_ARRAY = "fortran_array.cvh";
-	public final static String FORTRAN_ARRAY_IMP = "fortran_array.cvl";
-	public final static String FORTRAN_SIGP = "fortran_sigp.cvh";
-	public final static String FORTRAN_SIGP_IMP = "fortran_sigp.cvl";
-	public final static String MEM = "mem.cvh";
-	// public final static String CIVL_DOMAIN = "domain.cvh";
-	public final static String MPI = "mpi.h";
-	public final static String MATH = "math.h";
-	public final static String OMP = "omp.h";
-	public final static String PTHREAD = "pthread.h";
-	public final static String SEQ = "seq.cvh";
-	public final static String STRING_LIB = "string.h";
-	public final static String SVCOMP = "svcomp.h";
-	public final static String STDIO = "stdio.h";
-	public final static String STDLIB = "stdlib.h";
+	/*** Library headers ***/
+	// Standard library...
+	public final static String SYS_MMAN = "sys/mman.h";
+	public final static String SYS_RESOURCE = "sys/resource.h";
 	public final static String SYS_TIME = "sys/time.h";
 	public final static String SYS_TIMES = "sys/times.h";
-	public final static String TIME = "time.h";
-	public final static String CUDA = "cuda.h";
-	public final static String CIVL_CUDA = "civl-cuda.cvh";
-	public final static String COLLATE = "collate.cvh";
+	public final static String SYS_TYPES = "sys/types.h";
 
 	public final static String ASSERT = "assert.h";
 	public final static String COMPLEX = "complex.h";
 	public final static String CTYPE = "ctype.h";
+	public final static String CUDA_RUNTIME_API = "cuda_runtime_api.h";
+	public final static String CUDA = "cuda.h";
+	public final static String ERRNO = "errno.h";
+	public final static String FENV = "fenv.h";
 	public final static String FLOAT = "float.h";
+	public final static String GD_IO = "gd_io.h";
 	public final static String GD = "gd.h";
 	public final static String GDFX = "gdfx.h";
+	public final static String GNUC = "gnuc.h";
+	public final static String INTTYPES = "inttypes.h";
+	public final static String ISO646 = "iso646.h";
 	public final static String LIMITS = "limits.h";
+	public final static String LOCALE = "locale.h";
+	public final static String MATH = "math.h";
+	public final static String MPI = "mpi.h";
+	public final static String OMP = "omp.h";
 	public final static String OP = "op.h";
+	public final static String PTHREAD = "pthread.h";
+	public final static String SCHED = "sched.h";
+	public final static String SETJMP = "setjmp.h";
+	public final static String SIGNAL = "signal.h";
+	public final static String STDALIGN = "stdalign.h";
 	public final static String STDARG = "stdarg.h";
+	public final static String STDATOMIC = "stdatomic.h";
 	public final static String STDBOOL = "stdbool.h";
 	public final static String STDDEF = "stddef.h";
 	public final static String STDINT = "stdint.h";
+	public final static String STDIO = "stdio.h";
+	public final static String STDLIB = "stdlib.h";
+	public final static String STDNORETURN = "stdnoreturn.h";
+	public final static String STRING = "string.h";
+	public final static String STRINGS = "strings.h";
+	public final static String TGMATH = "tgmath.h";
+	public final static String THREADS = "threads.h";
+	public final static String TIME = "time.h";
+	public final static String UCHAR = "uchar.h";
 	public final static String UNISTD = "unistd.h";
+	public final static String WCHAR = "wchar.h";
+	public final static String WCTYPE = "wctype.h";
+
+	// CIVL library
+	public final static String BUNDLE = "bundle.cvh";
+	public final static String CIVLC = "civlc.cvh";
+	public final static String CIVL_CUDA = "civl-cuda.cvh";
+	public final static String CIVL_MPI = "civl-mpi.cvh";
+	public final static String CIVL_MPI_BLOCKING = "civl-mpi-blocking.cvh";
+	public final static String CIVL_MPI_NONBLOCKING = "civl-mpi-nonblocking.cvh";
+	public final static String CIVL_OMP = "civl-omp.cvh";
+	public final static String CIVL_PTHREAD = "civl-pthread.cvh";
+	public final static String CIVL_STDIO = "civl-stdio.cvh";
+	public final static String COLLATE = "collate.cvh";
+	public final static String COMM = "comm.cvh";
+	public final static String COMM2 = "comm2.cvh";
+	public final static String CONCURRENCY_CONTRACT = "concurrency_contract.cvh";
+	public final static String CONCURRENCY = "concurrency.cvh";
+	public final static String DOMAIN = "domain.cvh";
+	public final static String FORTRAN_ARRAY = "fortran_array.cvh";
+	public final static String FORTRAN_SIGP = "fortran_sigp.cvh";
+	public final static String LOOP_ASSIGNS_GEN = "loop_assigns_gen.cvh";
+	public final static String MEM = "mem.cvh";
+	public final static String MEMORY = "memory.cvh";
+	public final static String POINTER = "pointer.cvh";
+	public final static String SCOPE = "scope.cvh";
+	public final static String SEQ = "seq.cvh";
+
+	public final static String SVCOMP = "svcomp.h";
+
+	/*** Library source files ***/
+	// Standard library...
+	public final static String ASSERT_SRC = "assert.cvl";
+	public final static String CUDA_SRC = "cuda.cvl";
+	public final static String MATH_SRC = "math.cvl";
+	public final static String MPI_SRC = "mpi.cvl";
+	public final static String OMP_SRC = "omp.cvl";
+	public final static String PTHREAD_SRC = "pthread.cvl";
+	public final static String SCHED_SRC = "sched.cvl";
+	public final static String STDING_SRC = "stding.cvl";
+	public final static String STDIO_SRC = "stdio.cvl";
+	public final static String STDLIB_SRC = "stdlib.cvl";
+	public final static String STRING_SRC = "string.cvl";
+	public final static String SYS_TIME_SRC = "sys-time.cvl";
+	public final static String TIME_SRC = "time.cvl";
+	public final static String TIMES_SRC = "times.cvl";
+	public final static String UNISTD_SRC = "unistd.cvl";
+
+	// CIVL library
+	public final static String BUNDLE_SRC = "bundle.cvl";
+	public final static String CIVLC_SRC = "civlc.cvl";
+	public final static String CIVL_CUDA_SRC = "civl_cuda.cvl";
+	public final static String CIVL_MPI_BLOCKING_SRC = "civl-mpi-blocking.cvl";
+	public final static String CIVL_MPI_NONBLOCKING_SRC = "civl-mpi-nonblocking.cvl";
+	public final static String CIVL_OMP_SRC = "civl-omp.cvl";
+	public final static String CIVL_OMP2_SRC = "civl-omp2.cvl";
+	public final static String CIVL_PTHREAD_SRC = "civl-pthread.cvl";
+	public final static String COLLATE_SRC = "collate.cvl";
+	public final static String COMM_SRC = "comm.cvl";
+	public final static String CONCURRENCY_SRC = "concurrency.cvl";
+	public final static String FORTRAN_ARRAY_SRC = "fortran_array.cvl";
+	public final static String FORTRAN_SIGP_SRC = "fortran_sigp.cvl";
+	public final static String INT_DIV_NO_CHECKING_SRC = "int_div_no_checking.cvl";
+	public final static String INT_DIV_SRC = "int_div.cvl";
+	public final static String LOOP_ASSIGNS_GEN_SRC = "loop_assigns_gen.cvl";
+	public final static String SEQ_SRC = "seq.cvl";
+	public final static String UNSIGNED_ARITH_SRC = "unsigned_arith.cvl";
+
+	public final static String SVCOMP_SRC = "svcomp.cvl";
 
 	/**
-	 * The int value of the char '\0', which represents the end of string.
+	 * @return all standard c library headers.
 	 */
-	public final static int EOS = 0;
-
-	/**
-	 * Returns all CIVL-C libraries.
-	 * 
-	 * @return all CIVL-C libraries.
-	 */
-	public final static Set<String> getAllCivlLibs() {
-		return new HashSet<String>(Arrays.asList(BUNDLE, CIVLC,
-				CIVL_MPI_BLOCKING, CIVL_MPI_NONBLOCKING, CIVL_PTHREAD, COMM,
-				CONCURRENCY, CIVL_OMP, SEQ, CIVL_CUDA, COLLATE, FORTRAN_ARRAY,
-				FORTRAN_SIGP));
+	public final static Set<String> getCStdLibHeaders() {
+		return new HashSet<String>(Arrays.asList(SYS_MMAN, SYS_RESOURCE,
+				SYS_TIME, SYS_TIMES, SYS_TYPES, ASSERT, COMPLEX, CTYPE,
+				CUDA_RUNTIME_API, CUDA, ERRNO, FENV, FLOAT, GD_IO, GD, GDFX,
+				GNUC, INTTYPES, ISO646, LIMITS, LOCALE, MATH, MPI, OMP, OP,
+				PTHREAD, SCHED, SETJMP, SIGNAL, STDALIGN, STDARG, STDATOMIC,
+				STDBOOL, STDDEF, STDINT, STDIO, STDLIB, STDNORETURN, STRING,
+				STRINGS, TGMATH, THREADS, TIME, UCHAR, UNISTD, WCHAR, WCTYPE));
 	}
 
 	/**
-	 * Returns all standard c libraries.
-	 * 
-	 * @return all standard c libraries.
+	 * @return all CIVL-C library headers.
 	 */
-	public final static Set<String> getCinterfaces() {
-		return new HashSet<String>(Arrays.asList(ASSERT, MPI, MATH, OMP,
-				PTHREAD, STRING_LIB, SVCOMP, STDIO, STDLIB, TIME, CUDA,
-				SYS_TIME, UNISTD, STDINT));
+	public final static Set<String> getCivlLibHeaders() {
+		return new HashSet<String>(Arrays.asList(BUNDLE, CIVLC, CIVL_CUDA,
+				CIVL_MPI, CIVL_MPI_BLOCKING, CIVL_MPI_NONBLOCKING, CIVL_OMP,
+				CIVL_PTHREAD, CIVL_STDIO, COLLATE, COMM, COMM2,
+				CONCURRENCY_CONTRACT, CONCURRENCY, DOMAIN, FORTRAN_ARRAY,
+				FORTRAN_SIGP, LOOP_ASSIGNS_GEN, MEM, MEMORY, POINTER, SCOPE,
+				SEQ, SVCOMP));
 	}
 
 	/**
-	 * Returns all standard c libraries.
-	 * 
-	 * @return all standard c libraries.
+	 * @return all library headers, both from CIVL-C and the standard library.
 	 */
-	public final static Set<String> getAllCLibraries() {
-		return new HashSet<String>(Arrays.asList(MPI, MATH, OMP, PTHREAD,
-				STRING_LIB, SVCOMP, STDIO, STDLIB, TIME, CUDA, SYS_TIME, ASSERT,
-				COMPLEX, CTYPE, FLOAT, GD, GDFX, LIMITS, OP, STDARG, STDBOOL,
-				STDDEF, STDINT, UNISTD));
+	public final static Set<String> getAllLibHeaders() {
+		Set<String> libs = getCStdLibHeaders();
+		libs.addAll(getCivlLibHeaders());
+		return libs;
+	}
+
+	public final static Set<String> getCStdLibSrcs() {
+		return new HashSet<String>(Arrays.asList(ASSERT_SRC, CUDA_SRC, MATH_SRC,
+				MPI_SRC, OMP_SRC, PTHREAD_SRC, SCHED_SRC, STDING_SRC, STDIO_SRC,
+				STDLIB_SRC, STRING_SRC, SYS_TIME_SRC, TIME_SRC, TIMES_SRC,
+				UNISTD_SRC));
+	}
+
+	public final static Set<String> getCivlLibSrcs() {
+		return new HashSet<String>(Arrays.asList(BUNDLE_SRC, CIVLC_SRC,
+				CIVL_CUDA_SRC, CIVL_MPI_BLOCKING_SRC, CIVL_MPI_NONBLOCKING_SRC,
+				CIVL_OMP_SRC, CIVL_OMP2_SRC, CIVL_PTHREAD_SRC, COLLATE_SRC,
+				COMM_SRC, CONCURRENCY_SRC, FORTRAN_ARRAY_SRC, FORTRAN_SIGP_SRC,
+				INT_DIV_NO_CHECKING_SRC, INT_DIV_SRC, LOOP_ASSIGNS_GEN_SRC,
+				SEQ_SRC, UNSIGNED_ARITH_SRC, SVCOMP_SRC));
+	}
+	
+	/**
+	 * @return all library headers, both from CIVL-C and the standard library.
+	 */
+	public final static Set<String> getAllLibSrcs() {
+		Set<String> libs = getCStdLibSrcs();
+		libs.addAll(getCivlLibSrcs());
+		return libs;
+	}
+	
+	public final static Set<String> getAllLibFilenames() {
+		Set<String> libs = getAllLibHeaders();
+		libs.addAll(getAllLibSrcs());
+		return libs;
 	}
 }

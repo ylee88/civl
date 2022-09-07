@@ -193,7 +193,7 @@ public class CIVLErrorLogger extends ErrorLog {
 			}
 		}
 		error = new CIVLExecutionException(property, certainty, process,
-				message, stateString, state, pid, source);
+				message, state, pid, source, stateString);
 		reportError(error);
 		newPc = universe.and(pc, claim);
 		// need to check satisfiability again because failure to do so
@@ -245,9 +245,9 @@ public class CIVLErrorLogger extends ErrorLog {
 	 * @throws UnsatisfiablePathConditionException
 	 *             if the path condition is definitely unsatisfiable
 	 */
-	public void logSimpleError(CIVLSource source, State state, String process,
-			StringBuffer stateString, CIVLProperty property, String message)
-			throws UnsatisfiablePathConditionException {
+	public void logSimpleError(CIVLSource source, State state, int pid,
+			String process, StringBuffer stateString, CIVLProperty property,
+			String message) throws UnsatisfiablePathConditionException {
 		BooleanExpression pc = state.getPathCondition(universe);
 		BooleanExpression npc = universe.not(pc);
 		ValidityResult validityResult = trueReasoner.valid(npc);
@@ -267,9 +267,8 @@ public class CIVLErrorLogger extends ErrorLog {
 			certainty = Certainty.PROVEABLE;
 		}
 		// TODO if pc has no symbolic constant
-		// TODO: add pid for exception.
 		error = new CIVLExecutionException(property, certainty, process,
-				message, stateString, state, -1, source);
+				message, state, pid, source, stateString);
 		reportError(error);
 	}
 }

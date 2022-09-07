@@ -401,7 +401,7 @@ public class LibstdioExecutor extends BaseLibraryExecutor
 			throws UnsatisfiablePathConditionException {
 		SymbolicExpression filesystemPointer = argumentValues[0];
 		Evaluation eval = evaluator.dereference(expressions[0].getSource(),
-				state, process, filesystemPointer, false, true);
+				state, pid, process, filesystemPointer, false, true);
 		CIVLSource modeSource = expressions[2].getSource();
 		int mode = symbolicUtil.extractInt(modeSource,
 				(NumericExpression) argumentValues[2]);
@@ -425,7 +425,7 @@ public class LibstdioExecutor extends BaseLibraryExecutor
 		state = eval.state;
 		fileSystemStructure = eval.value;
 		fileArray = universe.tupleRead(fileSystemStructure, oneObject);
-		eval = evaluator.getStringExpression(state, process,
+		eval = evaluator.getStringExpression(state, pid, process,
 				expressions[1].getSource(), argumentValues[1]);
 		state = eval.state;
 		filename = eval.value;
@@ -634,11 +634,11 @@ public class LibstdioExecutor extends BaseLibraryExecutor
 
 		filesystemPointer = argumentValues[0];
 		eval = evaluator.dereference(fileSystemExpression.getSource(), state,
-				process, filesystemPointer, false, true);
+				pid, process, filesystemPointer, false, true);
 		state = eval.state;
 		fileSystemStructure = eval.value;
 		fileArray = universe.tupleRead(fileSystemStructure, oneObject);
-		eval = evaluator.getStringExpression(state, process,
+		eval = evaluator.getStringExpression(state, pid, process,
 				arguments[1].getSource(), argumentValues[1]);
 		state = eval.state;
 		filename = eval.value;
@@ -686,7 +686,7 @@ public class LibstdioExecutor extends BaseLibraryExecutor
 						Certainty.CONCRETE, process,
 						"The file " + arguments[1].toString()
 								+ " is not a text file.",
-						state, source);
+						state, pid, source);
 			}
 			length = universe.tupleRead(theFile, universe.intObject(6));
 		}
@@ -710,8 +710,8 @@ public class LibstdioExecutor extends BaseLibraryExecutor
 		List<SymbolicExpression> files;
 		SymbolicExpression outputArray;
 
-		eval = evaluator.dereference(arguments[0].getSource(), state, process,
-				civlFileSystemPointer, false, true);
+		eval = evaluator.dereference(arguments[0].getSource(), state, pid,
+				process, civlFileSystemPointer, false, true);
 		state = eval.state;
 		fileArray = universe.tupleRead(eval.value, oneObject);
 		length = universe.length(fileArray);
@@ -768,15 +768,15 @@ public class LibstdioExecutor extends BaseLibraryExecutor
 
 		// TODO: position is never cleared if another process open and read the
 		// file.
-		eval = evaluator.dereference(arguments[0].getSource(), state, process,
-				argumentValues[0], false, true);
+		eval = evaluator.dereference(arguments[0].getSource(), state, pid,
+				process, argumentValues[0], false, true);
 		fileStream = eval.value;
 		state = eval.state;
 		filePointer = universe.tupleRead(fileStream, zeroObject);
 		position = (NumericExpression) universe.tupleRead(fileStream,
 				twoObject);
-		eval = evaluator.dereference(arguments[0].getSource(), state, process,
-				filePointer, false, true);
+		eval = evaluator.dereference(arguments[0].getSource(), state, pid,
+				process, filePointer, false, true);
 		state = eval.state;
 		fileObject = eval.value;
 		{// checks file length
@@ -796,7 +796,7 @@ public class LibstdioExecutor extends BaseLibraryExecutor
 			}
 		}
 		formatString = this.evaluator.getString(arguments[1].getSource(), state,
-				process, arguments[1], argumentValues[1]);
+				pid, process, arguments[1], argumentValues[1]);
 		formatBuffer = formatString.second;
 		state = formatString.first;
 		{ // reads the file
@@ -857,7 +857,7 @@ public class LibstdioExecutor extends BaseLibraryExecutor
 					// TODO: what about %[ ?
 					if (conversion == ConversionType.CHAR
 							|| conversion == ConversionType.STRING) {
-						dataLength = this.getCharsLengthFromFormat(state,
+						dataLength = this.getCharsLengthFromFormat(state, pid,
 								process, formatValue, conversion,
 								arguments[1].getSource());
 						if (dataLength > 1) {
@@ -973,18 +973,18 @@ public class LibstdioExecutor extends BaseLibraryExecutor
 		Triple<State, StringBuffer, Boolean> concreteString;
 		List<Format> formats;
 
-		eval = evaluator.dereference(arguments[0].getSource(), state, process,
-				argumentValues[0], false, true);
+		eval = evaluator.dereference(arguments[0].getSource(), state, pid,
+				process, argumentValues[0], false, true);
 		fileStream = eval.value;
 		state = eval.state;
 		filePointer = universe.tupleRead(fileStream, zeroObject);
-		eval = evaluator.dereference(arguments[0].getSource(), state, process,
-				filePointer, false, true);
+		eval = evaluator.dereference(arguments[0].getSource(), state, pid,
+				process, filePointer, false, true);
 		fileObject = eval.value;
 		state = eval.state;
 		fileName = universe.tupleRead(fileObject, zeroObject);
-		stringResult = this.evaluator.getString(source, state, process, null,
-				fileName);
+		stringResult = this.evaluator.getString(source, state, pid, process,
+				null, fileName);
 		state = stringResult.first;
 		fileNameString = stringResult.second.toString();
 		// Eliminate the char representing 'EOS'
@@ -992,7 +992,7 @@ public class LibstdioExecutor extends BaseLibraryExecutor
 		fileNameString = fileNameString.substring(0,
 				fileNameString.length() - 1);
 		concreteString = this.evaluator.getString(arguments[1].getSource(),
-				state, process, arguments[1], argumentValues[1]);
+				state, pid, process, arguments[1], argumentValues[1]);
 		formatBuffer = concreteString.second;
 		state = concreteString.first;
 		formats = this.primaryExecutor.splitFormat(arguments[1].getSource(),
@@ -1016,8 +1016,8 @@ public class LibstdioExecutor extends BaseLibraryExecutor
 							arguments[i].getSource());
 				}
 				concreteString = this.evaluator.getString(
-						arguments[i].getSource(), state, process, arguments[i],
-						argumentValue);
+						arguments[i].getSource(), state, pid, process,
+						arguments[i], argumentValue);
 				stringOfSymbolicExpression = concreteString.second;
 				state = concreteString.first;
 				printedContents.add(stringOfSymbolicExpression);
@@ -1110,9 +1110,9 @@ public class LibstdioExecutor extends BaseLibraryExecutor
 	 * @throws UnsatisfiablePathConditionException
 	 */
 	// "%s" will include an extra termination sign while "%c" excludes it.
-	private Integer getCharsLengthFromFormat(State state, String process,
-			String formatValue, ConversionType conversion, CIVLSource source)
-			throws UnsatisfiablePathConditionException {
+	private Integer getCharsLengthFromFormat(State state, int pid,
+			String process, String formatValue, ConversionType conversion,
+			CIVLSource source) throws UnsatisfiablePathConditionException {
 		assert (conversion != ConversionType.STRING
 				|| conversion != ConversionType.CHAR) : "Cannot return characters when the format isn't expecting a string or char";
 		// TODO: what about "%[" ?
@@ -1142,7 +1142,7 @@ public class LibstdioExecutor extends BaseLibraryExecutor
 		if (conversion == ConversionType.STRING)
 			length++;
 		if (length <= 0) {
-			errorLogger.logSimpleError(source, state, process,
+			errorLogger.logSimpleError(source, state, pid, process,
 					this.symbolicAnalyzer.stateInformation(state),
 					CIVLProperty.OTHER, "Invalid format");
 			return 0;

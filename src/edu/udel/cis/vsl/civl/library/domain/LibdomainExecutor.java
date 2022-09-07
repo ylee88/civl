@@ -189,13 +189,13 @@ public class LibdomainExecutor extends BaseLibraryExecutor
 		SymbolicExpression result;
 
 		if (strategy_num == null) {
-			this.errorLogger.logSimpleError(source, state, process,
+			this.errorLogger.logSimpleError(source, state, pid, process,
 					symbolicAnalyzer.stateInformation(state), CIVLProperty.OTHER,
 					"$domain_partition requires a concrete strategy argument");
 			throw new UnsatisfiablePathConditionException();
 		}
 		if (numParts_num == null) {
-			this.errorLogger.logSimpleError(source, state, process,
+			this.errorLogger.logSimpleError(source, state, pid, process,
 					symbolicAnalyzer.stateInformation(state), CIVLProperty.OTHER,
 					"$domain_partition requires a concrete number of partitions argument");
 			throw new UnsatisfiablePathConditionException();

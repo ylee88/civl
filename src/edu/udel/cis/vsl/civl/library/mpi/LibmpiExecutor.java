@@ -255,15 +255,17 @@ public class LibmpiExecutor extends BaseLibraryExecutor
 		if (symbolicUtil.isNullPointer(pointer))
 			return new Evaluation(state, null);
 		// this assertion doesn't need recovery:
-		if (!pointer.operator().equals(SymbolicOperator.TUPLE) && civlConfig.isPropertyToggled(CIVLProperty.POINTER)) {
-			errorLogger.logSimpleError(arguments[0].getSource(), state, process,
-					this.symbolicAnalyzer.stateInformation(state),
+		if (!pointer.operator().equals(SymbolicOperator.TUPLE)
+				&& civlConfig.isPropertyToggled(CIVLProperty.POINTER)) {
+			errorLogger.logSimpleError(arguments[0].getSource(), state, pid,
+					process, this.symbolicAnalyzer.stateInformation(state),
 					CIVLProperty.POINTER,
 					"attempt to read/write a non-concrete pointer type variable");
 			return new Evaluation(state, null);
 		}
 		checkPointer = symbolicAnalyzer.isDerefablePointer(state, pointer);
-		if (checkPointer.right != ResultType.YES && civlConfig.isPropertyToggled(CIVLProperty.POINTER)) {
+		if (checkPointer.right != ResultType.YES
+				&& civlConfig.isPropertyToggled(CIVLProperty.POINTER)) {
 			state = errorLogger.logError(arguments[0].getSource(), state, pid,
 					this.symbolicAnalyzer.stateInformation(state),
 					checkPointer.left, checkPointer.right, CIVLProperty.POINTER,
@@ -283,8 +285,9 @@ public class LibmpiExecutor extends BaseLibraryExecutor
 		assertedSymType = mpiType2Civl.left.getDynamicType(universe);
 		primitiveTypeCount = mpiType2Civl.right;
 		// assertion doesn't need recovery:
-		if (!assertedSymType.equals(realSymType) && civlConfig.isPropertyToggled(CIVLProperty.MPI_ERROR)) {
-			errorLogger.logSimpleError(source, state, process,
+		if (!assertedSymType.equals(realSymType)
+				&& civlConfig.isPropertyToggled(CIVLProperty.MPI_ERROR)) {
+			errorLogger.logSimpleError(source, state, pid, process,
 					this.symbolicAnalyzer.stateInformation(state),
 					CIVLProperty.MPI_ERROR,
 					"The primitive type " + realType.toString()
@@ -293,7 +296,7 @@ public class LibmpiExecutor extends BaseLibraryExecutor
 							+ "] of"
 							+ " MPI routines is not consistent with the specified MPI_Datatype.");
 		}
-		eval = evaluator.dereference(source, state, process, pointer, false,
+		eval = evaluator.dereference(source, state, pid, process, pointer, false,
 				true);
 		state = eval.state;
 		count = universe.multiply(primitiveTypeCount, count);
@@ -305,7 +308,7 @@ public class LibmpiExecutor extends BaseLibraryExecutor
 					count, true, false, ptrSource);
 		} catch (UnsatisfiablePathConditionException e) {
 			if (civlConfig.isPropertyToggled(CIVLProperty.MPI_ERROR)) {
-				errorLogger.logSimpleError(source, state, process,
+				errorLogger.logSimpleError(source, state, pid, process,
 						symbolicAnalyzer.stateInformation(state),
 						CIVLProperty.MPI_ERROR,
 						"The type of the object pointed by " + arguments[0]
@@ -370,7 +373,8 @@ public class LibmpiExecutor extends BaseLibraryExecutor
 		Evaluation eval;
 		int sid;
 
-		eval = evaluator.dereference(source, state, process, commHandle, false,
+		eval = evaluator
+				.dereference(source, state, pid, process, commHandle, false,
 				true);
 		state = eval.state;
 		gcommHandle = universe.tupleRead(eval.value, oneObject);

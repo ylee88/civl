@@ -537,7 +537,8 @@ public class CommonStateManager extends CIVLStateManager {
 						// can't
 						// figure out if it has been seen before.
 						String message = "";
-						String process = "p" + traceStep.processIdentifier();
+						int pid = traceStep.processIdentifier();
+						String process = "p" + pid;
 
 						state = hex.state();
 						switch (hex.heapErrorKind()) {
@@ -560,7 +561,7 @@ public class CommonStateManager extends CIVLStateManager {
 								+ symbolicAnalyzer.symbolicExpressionToString(
 										hex.source(), hex.state(), null,
 										hex.heapValue());
-						errorLogger.logSimpleError(hex.source(), state, process,
+						errorLogger.logSimpleError(hex.source(), state, pid, process,
 								symbolicAnalyzer.stateInformation(hex.state()),
 								hex.civlProperty(), message);
 						ignoredErrorSet.add(hex.heapErrorKind());
