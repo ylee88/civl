@@ -553,27 +553,65 @@ public class CIVLConfiguration {
 	public CIVLConfiguration() {
 	}
 
+	/**
+	 * @return returns the kind of deadlocks we are checking for
+	 */
 	public DeadlockKind checkDeadlockKind() {
 		return checkDeadlockKind;
 	}
+	/**
+	 * Sets the kind of deadlocks we want to check for
+	 * 
+	 * @param checkDeadlockKind
+	 *            The new kind of deadlock we want to check for
+	 */
 	public void setCheckDeadlockKind(DeadlockKind checkDeadlockKind) {
 		this.checkDeadlockKind = checkDeadlockKind;
 	}
 
+	/**
+	 * Determines whether a CIVLProperty is toggleable. A CIVLProperty is
+	 * toggleable if it is controlled by a boolean command line option.
+	 * 
+	 * @param prop
+	 *            The CIVLProperty that we want to check is toggleable
+	 * @return whether prop is toggleable
+	 */
 	public boolean isToggleableProperty(CIVLProperty prop) {
 		return toggleableCivlProps.containsKey(prop);
 	}
 
+	/**
+	 * Determines if a toggleable property is toggled, i.e. is turned on.
+	 * 
+	 * @param prop
+	 *            The property we want to query. The property must be
+	 *            toggleable. Otherwise it is an error.
+	 * @return returns whether prop is toggled.
+	 */
 	public boolean isPropertyToggled(CIVLProperty prop) {
 		Boolean b = this.toggleableCivlProps.get(prop);
 		assert (b != null);
 		return b.booleanValue();
 	}
 
+	/**
+	 * Sets a CIVLProperty to be toggleable and to be either turned on or off
+	 * 
+	 * @param prop
+	 *            The CIVLProperty we want to control
+	 * @param value
+	 *            The value of the CIVLProperty
+	 */
 	public void setToggleableProperty(CIVLProperty prop, boolean value) {
 		this.toggleableCivlProps.put(prop, value);
 	}
 
+	/**
+	 * Generates a summary of all CIVLProperty's that are enabled
+	 * 
+	 * @return summary of enabled CIVLProperty's
+	 */
 	public String getCheckedPropertiesSummary() {
 		String summary = "";
 		String yes = " +  ";

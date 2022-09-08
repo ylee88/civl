@@ -1,14 +1,19 @@
 package edu.udel.cis.vsl.civl.model.IF;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import edu.udel.cis.vsl.gmc.Option;
 import edu.udel.cis.vsl.gmc.Option.OptionType;
 
 /**
  * Enum class for representing different properties that CIVL checks for. Each
  * CIVLProperty specifies its title which is displayed in the list of standard
- * properties checked after an error free run of civl verify. Most
- * CIVLProperties are configurable by a command line option. This is also
- * specified here.
+ * properties checked after an error free run of civl verify.
+ * 
+ * Most CIVLProperties are configurable by a command line option which is part
+ * of their specification. CIVLProperties which do not have an associated
+ * command line option are called unconfigurable.
  * 
  * @author awilton
  *
@@ -41,17 +46,61 @@ public enum CIVLProperty {
 	UNDEFINED_VALUE ("use of undefined values", "checkUndefVal", OptionType.BOOLEAN, true),
 	UNION ("union errors", "checkUnionErr", OptionType.BOOLEAN, true);
 
-	public final static CIVLProperty[] getAllUnconfigurableProperties() {
-		return new CIVLProperty[]{DEREFERENCE, FUNCTIONAL_EQUIVALENCE, INTERNAL,
-				LIBRARY, OTHER};
+	/**
+	 * Creates an unconfigurable property.
+	 * 
+	 * @param propTitle
+	 *            The title of the property
+	 */
+	private CIVLProperty(String propTitle) {
+		this.propTitle = propTitle;
+		this.controllingOption = null;
 	}
 
-	public final static CIVLProperty[] getAllConfigurableProperties() {
-		return new CIVLProperty[]{ASSERTION_VIOLATION, COMMUNICATION,
-				CONSTANT_WRITE, DEADLOCK, DIVISION_BY_ZERO, INPUT_WRITE,
-				INVALID_CAST, MALLOC, MEMORY_LEAK, MEMORY_MANAGE, MPI_ERROR,
-				OUT_OF_BOUNDS, OUTPUT_READ, POINTER, PROCESS_LEAK, SEQUENCE,
-				TERMINATION, UNDEFINED_VALUE, UNION};
+	/**
+	 * Creates a configurable property.
+	 * 
+	 * @param propTitle
+	 *            The title of the property
+	 * @param optionStr
+	 *            The name of the command line option which controls this
+	 *            property
+	 * @param optionType
+	 *            The type of the command line option
+	 * @param defaultValue
+	 *            The default value of the command line option
+	 */
+	private CIVLProperty(String propTitle, String optionStr,
+			OptionType optionType, Object defaultValue) {
+		this.propTitle = propTitle;
+		this.controllingOption = Option.newScalarOption(optionStr, optionType,
+				"check " + propTitle, defaultValue);
+	}
+	
+	private static ArrayList<CIVLProperty> unconfigurableProperties = new ArrayList<>(CIVLProperty.values().length);
+	private static ArrayList<CIVLProperty> configurableProperties = new ArrayList<>(CIVLProperty.values().length);
+	
+	static {
+		for (CIVLProperty prop : CIVLProperty.values()) {
+			if (prop.controllingOption == null)
+				unconfigurableProperties.add(prop);
+			else
+				configurableProperties.add(prop);
+		}
+	}
+	
+	/**
+	 * @return returns all of the CIVLProperty's which are unconfigurable
+	 */
+	public final static List<CIVLProperty> getAllUnconfigurableProperties() {
+		return unconfigurableProperties;
+	}
+	
+	/**
+	 * @return returns all of the CIVLProperty's which are configurable
+	 */
+	public final static List<CIVLProperty> getAllConfigurableProperties() {
+		return configurableProperties;
 	}
 	
 	/**
@@ -63,22 +112,17 @@ public enum CIVLProperty {
 	 */
 	private Option controllingOption;
 
-	private CIVLProperty(String propTitle) {
-		this.propTitle = propTitle;
-		this.controllingOption = null;
-	}
-
-	private CIVLProperty(String propTitle, String optionStr,
-			OptionType optionType, Object defaultValue) {
-		this.propTitle = propTitle;
-		this.controllingOption = Option.newScalarOption(optionStr, optionType,
-				"check " + propTitle, defaultValue);
-	}
-
+	/**
+	 * @return returns the option which controls this property if it is
+	 *         configurable. Returns null if it is unconfigurable,
+	 */
 	public Option getOption() {
 		return controllingOption;
 	}
 
+	/**
+	 * @return returns the property's title.
+	 */
 	public String getPropertyTitle() {
 		return propTitle;
 	}

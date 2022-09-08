@@ -747,7 +747,7 @@ public class CIVLConstants {
 				unpreprocO, sliceAnalysisO, witnessO, direct0, intBit,
 				intOperationTransformer, maxProcsO, SARLTestGenO,
 				cyclesViolateO, preemptionBoundO),
-				Stream.of(CIVLProperty.getAllConfigurableProperties())
+				CIVLProperty.getAllConfigurableProperties().stream()
 						.map(e -> e.getOption()))
 				.toArray(Option[]::new);
 	}
@@ -919,7 +919,7 @@ public class CIVLConstants {
 				INT_DIV_NO_CHECKING_SRC, INT_DIV_SRC, LOOP_ASSIGNS_GEN_SRC,
 				SEQ_SRC, UNSIGNED_ARITH_SRC, SVCOMP_SRC));
 	}
-	
+
 	/**
 	 * @return all library headers, both from CIVL-C and the standard library.
 	 */
@@ -928,7 +928,7 @@ public class CIVLConstants {
 		libs.addAll(getCivlLibSrcs());
 		return libs;
 	}
-	
+
 	public final static Set<String> getAllLibFilenames() {
 		Set<String> libs = getAllLibHeaders();
 		libs.addAll(getAllLibSrcs());

@@ -64,7 +64,6 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.stream.Stream;
 
 import edu.udel.cis.vsl.civl.model.IF.CIVLInternalException;
 import edu.udel.cis.vsl.civl.model.IF.CIVLProperty;
@@ -103,7 +102,7 @@ public class CIVLCommand {
 				quietO, unpreprocO, direct0, intBit, intOperationTransformer,
 				maxProcsO);
 		CIVLCommand.addVerifyOrCompareOption(
-				Stream.of(CIVLProperty.getAllConfigurableProperties())
+				CIVLProperty.getAllConfigurableProperties().stream()
 						.map(e -> e.getOption()).toArray(Option[]::new));
 		CIVLCommand.addCompareOption(errorBoundO, verboseO, debugO,
 				userIncludePathO, sysIncludePathO, showTransitionsO,
@@ -117,9 +116,8 @@ public class CIVLCommand {
 				showMemoryUnitsO, CIVLMacroO, showUnreachedCodeO, analyzeAbsO,
 				strictCompareO, timeoutO, quietO, unpreprocO, intBit,
 				intOperationTransformer, maxProcsO);
-		CIVLCommand.addCompareOption(
-				Stream.of(CIVLProperty.getAllConfigurableProperties())
-						.map(e -> e.getOption()).toArray(Option[]::new));
+		CIVLCommand.addCompareOption(CIVLProperty.getAllConfigurableProperties()
+				.stream().map(e -> e.getOption()).toArray(Option[]::new));
 		CIVLCommand.addReplayOption(showModelO, verboseO, debugO,
 				showTransitionsO, showStatesO, showSavedStatesO, showQueriesO,
 				showProverQueriesO, idO, traceO, enablePrintfO, showAmpleSetO,
@@ -140,9 +138,8 @@ public class CIVLCommand {
 				preprocO, astO, showMemoryUnitsO, CIVLMacroO, collectOutputO,
 				timeoutO, quietO, unpreprocO, intBit, intOperationTransformer,
 				maxProcsO);
-		CIVLCommand.addRunOption(
-				Stream.of(CIVLProperty.getAllConfigurableProperties())
-						.map(e -> e.getOption()).toArray(Option[]::new));
+		CIVLCommand.addRunOption(CIVLProperty.getAllConfigurableProperties()
+				.stream().map(e -> e.getOption()).toArray(Option[]::new));
 	}
 
 	private static void addShowOption(Option... options) {
