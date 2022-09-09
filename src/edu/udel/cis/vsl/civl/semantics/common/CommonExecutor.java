@@ -619,8 +619,8 @@ public class CommonExecutor implements Executor {
 
 			if (call.lhs() != null) {
 				if (returnValue == null) {
-					errorLogger.logSimpleError(call.getSource(), state, pid, process,
-							symbolicAnalyzer.stateInformation(state),
+					errorLogger.logSimpleError(call.getSource(), state, pid,
+							process, symbolicAnalyzer.stateInformation(state),
 							CIVLProperty.OTHER,
 							"attempt to use the return value of function "
 									+ functionName + " when " + functionName
@@ -998,32 +998,20 @@ public class CommonExecutor implements Executor {
 				// given domain element if the variable is uninitialized.If it
 				// does initialization already, read the value from this
 				// variable.
-				// TODO why counterValue can be null (not SARL NULL)?
-				if (counterValue == null || counterValue.isNull()) {
-					// If the counter is not initialized
-					if (isAllNull)// this is the first iteration
-						counter = 0;
-					else {
-						// TODO: Should we even attempt to do this? Seems like
-						// an error if we have to do this
-						counter = symbolicUtil.literalDomainSearcher(
-								literalDomain, varValues, dim);
-					}
-				} else
-					counter = ((IntegerNumber) universe
-							.extractNumber((NumericExpression) counterValue))
-									.intValue();
-
-				if (counter == -1) {
-					throw new CIVLInternalException(
-							"Lost track of next domain element to iterate to and "
-									+ "we are unable to recover using the loop "
-									+ "variables because they are outside of the domain",
-							source);
+				if (counterValue.isNull() && isAllNull) {
+					counter = 0;
+				} else {
+					IntegerNumber counterNum = (IntegerNumber) universe
+							.extractNumber((NumericExpression) counterValue);
+					if (counterNum == null)
+						throw new CIVLInternalException(
+								"Domain counter is not a concrete integer",
+								source);
+					counter = counterNum.intValue();
 				}
 				// it's guaranteed that this iteration will have a
 				// subsequence.
-				if (counter < ((IntegerNumber) universe
+				if (counter >= 0 && counter < ((IntegerNumber) universe
 						.extractNumber(universe.length(literalDomain)))
 								.intValue())
 					nextElement = universe.arrayRead(literalDomain,
