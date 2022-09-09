@@ -851,7 +851,7 @@ public class CIVLConstants {
 	// CIVL library
 	public final static String BUNDLE_SRC = "bundle.cvl";
 	public final static String CIVLC_SRC = "civlc.cvl";
-	public final static String CIVL_CUDA_SRC = "civl_cuda.cvl";
+	public final static String CIVL_CUDA_SRC = "civl-cuda.cvl";
 	public final static String CIVL_MPI_BLOCKING_SRC = "civl-mpi-blocking.cvl";
 	public final static String CIVL_MPI_NONBLOCKING_SRC = "civl-mpi-nonblocking.cvl";
 	public final static String CIVL_OMP_SRC = "civl-omp.cvl";
