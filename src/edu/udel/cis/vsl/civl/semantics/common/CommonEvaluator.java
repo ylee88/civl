@@ -66,13 +66,10 @@ import edu.udel.cis.vsl.civl.model.IF.expression.UnaryExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.ValueAtExpression;
 import edu.udel.cis.vsl.civl.model.IF.expression.VariableExpression;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLArrayType;
-import edu.udel.cis.vsl.civl.model.IF.type.CIVLBundleType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLCompleteArrayType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLCompleteDomainType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLDomainType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLEnumType;
-import edu.udel.cis.vsl.civl.model.IF.type.CIVLFunctionType;
-import edu.udel.cis.vsl.civl.model.IF.type.CIVLHeapType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPointerType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType;
 import edu.udel.cis.vsl.civl.model.IF.type.CIVLPrimitiveType.PrimitiveTypeKind;
@@ -199,17 +196,6 @@ public class CommonEvaluator implements Evaluator {
 	 * <code>real $O(real x)</code>.
 	 */
 	private SymbolicExpression bigOFunction;
-
-	/**
-	 * The dynamic heap type. This is the symbolic type of a symbolic expression
-	 * which represents the value of an entire heap. It is a tuple in which
-	 * there is one component for each <code>malloc</code> statement in a CIVL
-	 * model. A component of such a tuple is used to represent all the object
-	 * allocated by the corresponding <code>malloc</code> statement. Such a
-	 * component has type "array of array of T", where T is the type that occurs
-	 * as in an expression of the form <code>(T*)malloc(n*sizeof(T))</code>.
-	 */
-	private SymbolicTupleType heapType;
 
 	/**
 	 * The identity reference expression. A symbolic reference expression can be
@@ -395,7 +381,6 @@ public class CommonEvaluator implements Evaluator {
 		this.derefOperator = new CIVLDereferenceOperator(universe);
 		pointerType = typeFactory.pointerSymbolicType();
 		functionPointerType = typeFactory.functionPointerSymbolicType();
-		heapType = typeFactory.heapSymbolicType();
 		zeroObj = universe.intObject(0);
 		twoObj = universe.intObject(2);
 		identityReference = universe.identityReference();
@@ -2800,14 +2785,8 @@ public class CommonEvaluator implements Evaluator {
 			CIVLSource source, boolean isDefinition)
 			throws UnsatisfiablePathConditionException {
 		TypeEvaluation result;
-
-		// if type has a state variable and computeStructs is false, use
-		// variable else compute
-		if (type instanceof CIVLPrimitiveType) {
-			result = new TypeEvaluation(state, type.getDynamicType(universe));
-		} else if (type instanceof CIVLPointerType) {
-			result = new TypeEvaluation(state, pointerType);
-		} else if (type.getStateVariable() != null && !isDefinition) {
+		
+		if (type.getStateVariable() != null && !isDefinition) {
 			SymbolicExpression value = state.valueOf(pid,
 					type.getStateVariable());
 
@@ -2849,20 +2828,9 @@ public class CommonEvaluator implements Evaluator {
 				symbolicType = universe.unionType(
 						structType.name().stringObject(), componentTypes);
 			result = new TypeEvaluation(state, symbolicType);
-		} else if (type instanceof CIVLBundleType) {
+		} else {
 			result = new TypeEvaluation(state, type.getDynamicType(universe));
-		} else if (type instanceof CIVLHeapType) {
-			result = new TypeEvaluation(state, this.heapType);
-		} else if (type instanceof CIVLEnumType) {
-			result = new TypeEvaluation(state, type.getDynamicType(universe));
-		} else if (type instanceof CIVLDomainType) {
-			result = new TypeEvaluation(state, type.getDynamicType(universe));
-		} else if (type instanceof CIVLFunctionType) {
-			result = new TypeEvaluation(state, type.getDynamicType(universe));
-		} else if (type.typeKind() == TypeKind.MEM)
-			result = new TypeEvaluation(state, type.getDynamicType(universe));
-		else
-			throw new CIVLInternalException("Unreachable", source);
+		}
 		return result;
 	}
 
