@@ -22,8 +22,18 @@ public class ConcurrencyDevTest {
 
 	@Test
 	public void dataRaceBug() {
-		assertTrue(!ui.run("verify",
-				filename("simplifiedPrintBug.cvl")));
+		assertTrue(!ui.run("verify", filename("simplifiedPrintBug.cvl")));
+	}
+
+	/**
+	 * TODO: This test fails because we don't explore the execution in which the
+	 * spawned process executes the closure before the main process gives x a
+	 * value. This is a buggy execution (namely because we try to use an
+	 * uninitialized variable) which CIVL should ostensibly catch.
+	 */
+	@Test
+	public void sendClosure() {
+		assertTrue(!ui.run("verify", filename("sendClosure.cvl")));
 	}
 
 	@AfterClass

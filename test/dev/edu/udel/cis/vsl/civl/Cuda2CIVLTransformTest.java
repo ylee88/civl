@@ -143,19 +143,4 @@ public class Cuda2CIVLTransformTest {
 	public void deadlockBugTest() {
 		assertFalse(ui.run("verify", filename("deadlockBug.cu")));
 	}
-	
-	@Test
-	public void sendFunctionTest() {
-		assertTrue(ui.run("verify", filename("send_function_test.cvl")));
-	}
-
-	
-	/*
-	@Test
-	public void debug() { //REMOVE before merge
-		assertTrue(ui.run("verify", filename("test.cu")));
-		//assertTrue(ui.run("verify", filename("test.cu")));
-	}
-	*/
-	
 }

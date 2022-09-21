@@ -8,19 +8,21 @@ void testStream($gcomm gc){
   void (*kernel)();
   $message_unpack(message, (void*)&kernel, sizeof(kernel));
   kernel();
-  $comm_destroy(comm); 
+  $comm_destroy(comm);
 }
 
 void print(){
-  printf("Inside kernel function");
+  printf("Inside kernel function!\n");
 }
 
 void main(){
   $gcomm gcomm = $gcomm_create($here, 2);
   $comm comm = $comm_create($here, gcomm, 0);
-  $spawn testStream(gcomm);
-  $message message = $message_pack(0, 1, 0, (void*)&print, sizeof(&print));
+  $proc otherProc = $spawn testStream(gcomm);
+  void (*printFunc)() = &print;
+  $message message = $message_pack(0, 1, 0, &printFunc, sizeof(printFunc));
   $comm_enqueue(comm, message);
+  $wait(otherProc);
   $comm_destroy(comm);
   $gcomm_destroy(gcomm, NULL);
 }

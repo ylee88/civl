@@ -146,6 +146,11 @@ public class ConcurrencyTest {
 	}
 
 	@Test
+	public void simpleSendFunction() {
+		assertTrue(ui.run(VERIFY, QUIET, filename("simpleSendFunction.cvl")));
+	}
+	
+	@Test
 	public void spawn() {
 		assertTrue(ui.run(VERIFY, "-inputN=10", QUIET, filename("spawn.cvl")));
 	}
