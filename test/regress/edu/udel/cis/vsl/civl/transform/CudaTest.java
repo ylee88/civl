@@ -29,6 +29,11 @@ public class CudaTest {
 	/* *************************** Test Methods **************************** */
 
 	@Test
+	public void simple() {
+		assertTrue(ui.run("verify", filename("simple.cu")));
+	}
+	
+	@Test
 	public void sum() {
 		assertTrue(
 				ui.run("verify -enablePrintf=false -inputN=8 -inputNBLOCKS=4",

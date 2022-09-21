@@ -390,7 +390,8 @@ public class Cuda2CIVLWorker extends BaseWorker {
 						this.identifier("cudaStream_t"), null)));
 		for (VariableDeclarationNode decl : oldDefinition.getTypeNode()
 				.getParameters()) {
-			newKernelFormalsList.add(decl.copy());
+			if (decl.getTypeNode().kind() != TypeNodeKind.VOID)
+				newKernelFormalsList.add(decl.copy());
 		}
 		SequenceNode<VariableDeclarationNode> newKernelFormals = nodeFactory
 				.newSequenceNode(source, "kernel formals",
@@ -437,7 +438,8 @@ public class Cuda2CIVLWorker extends BaseWorker {
 				.getTypeNode());
 		for (VariableDeclarationNode decl : oldDeclarationTypeNode
 				.getParameters()) {
-			newKernelFormalsList.add(decl.copy());
+			if (decl.getTypeNode().kind() != TypeNodeKind.VOID)
+				newKernelFormalsList.add(decl.copy());
 		}
 		SequenceNode<VariableDeclarationNode> newKernelFormals = nodeFactory
 				.newSequenceNode(source, "kernel formals",
