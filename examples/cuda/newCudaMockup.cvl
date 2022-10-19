@@ -1,3 +1,15 @@
+/**
+ * TODO:
+ * - implement cudaMemset and cudaMemsetAsync
+ * - flesh out basic structure of cuda kernel:
+ *   - spawn gridDim blocks
+ *   - spawn blockDim threads
+ *     Alternatively, spawn blockDim warps and then spawn warp's threads
+ *   - wait for blocks to finish
+ * - Add in block-level barriers and a __syncthreads() nested function that uses the barrier.
+ * - Add in data race checking support and implement atomicAdd for integers
+ */
+
 enum cudaError {
   cudaSuccess
 };
@@ -31,8 +43,6 @@ typedef struct cudaStream {
 	_Bool alive;
 }* cudaStream_t;
 cudaStream_t $cuda_default_stream;
-
-$input int $CUDA_HEAP_OFFSET;
 
 typedef struct $cuda_stream_node {
 	$cuda_stream_t stream;
@@ -167,46 +177,6 @@ void $stream_dequeue(cudaStream_t stream) {
 	stream->numOps--;
 }
 
-/* Need to do this in transform to get type cast right
-cudaError_t cudaMalloc(void** devPtr, size_t size) {
-	*devPtr = malloc(size) - $CUDA_HEAP_OFFSET;
-	return cudaSuccess;
-}
-*/
-
-cudaError_t cudaFree(void* devPtr) {
-	free(devPtr + $CUDA_HEAP_OFFSET);
-	return cudaSuccess;
-}
-
-void $get_true_memcpy_params(void** dst, (const void*)* src, cudaMemcpyKind* kind) {
-	cudaMemcpyKind origKind = *kind;
-	if (origKind == cudaMemcpyDeviceToDevice || origKind == cudaMemcpyDeviceToHost) {
-		*src += $CUDA_HEAP_OFFSET;
-	}
-	if (origKind == cudaMemcpyDeviceToDevice || origKind == cudaMemcpyHostToDevice) {
-		*dst += $CUDA_HEAP_OFFSET;
-	}
-	if (origKind == cudaMemcpyDefault) {
-		_Bool srcIsHost = true, dstIsHost = true;
-		
-		if ($is_derefable_pointer(*src + $CUDA_HEAP_OFFSET)) {
-			*src = false;
-			trueSrc += $CUDA_HEAP_OFFSET;
-		}
-		if ($is_derefable_pointer(*dst + $CUDA_HEAP_OFFSET)) {
-			dstIsHost = false;
-			*dst += $CUDA_HEAP_OFFSET;
-		}
-		
-		if(srcIsHost) {
-			*kind = dstIsHost ? cudaMemcpyHostToHost : cudaMemcpyHostToDevice;
-		} else {
-			*kind = dstIsHost ? cudaMemcpyDeviceToHost : cudaMemcpyDeviceToDevice;
-		}
-	}
-}
-
 void $cuda_memcpy_proc(void* dst, const void* src, size_t count,
                        $cuda_op_t op, cudaStream_t stream) {
 	$cuda_op_wait_start(op);
@@ -215,15 +185,12 @@ void $cuda_memcpy_proc(void* dst, const void* src, size_t count,
 }
 
 cudaError_t cudaMemcpy(void* dst, const void* src, size_t count, cudaMemcpyKind kind) {
-	void* trueSrc = src, trueDst = dst;
-	$get_true_memcpy_params(&trueSrc, &trueDst, &kind);
-	
 	if (kind == cudaHostToHost) {
-		memcpy(trueDst, trueSrc, count);
+		memcpy(dst, src, count);
 	} else {
 		_Bool waitForOp = kind != cudaMemcpyDeviceToDevice;
 		$cuda_op_t op = $stream_enqueue(!waitForOp, $cuda_default_stream);
-		$proc memcpyProc = $spawn $cuda_memcpy_proc(trueDst, trueSrc, count, op, $cuda_default_stream);
+		$proc memcpyProc = $spawn $cuda_memcpy_proc(dst, src, count, op, $cuda_default_stream);
 		if (waitForOp) {
 			$wait(memcpyProc);
 		}
@@ -234,14 +201,11 @@ cudaError_t cudaMemcpy(void* dst, const void* src, size_t count, cudaMemcpyKind 
 
 cudaError_t cudaMemcpyAsync(void* dst, const void* src, size_t count,
                             cudaMemcpyKind kind, cudaStream_t stream) {
-	void* trueSrc = src, trueDst = dst;
-	$get_true_memcpy_params(&trueSrc, &trueDst, &kind);
-	
 	if (kind = cudaMemcpyHostToHost) {
-		memcpy(trueDst, trueSrc, count);
+		memcpy(dst, src, count);
 	} else {
 		$cuda_op_t op = $stream_enqueue(true, stream);
-		$spawn $cuda_memcpy_proc(trueDst, trueSrc, count, op, stream);
+		$spawn $cuda_memcpy_proc(dst, src, count, op, stream);
 	}
 	
 	return cudaSuccess;
