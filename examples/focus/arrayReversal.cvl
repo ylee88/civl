@@ -1,0 +1,22 @@
+#include<assert.h>
+
+#pragma CIVL ACSL
+$input int N;
+$assume(0 < N);
+$input int a[N];
+
+int main() {
+  int revA[N];
+
+  int half = N/2 - 1;
+  //@ focus I;
+  for (int i = 0; i <= half; i++) {
+    revA[i] = a[N-1-i];
+    revA[N-1-i] = a[i];
+  }
+  if (N%2 == 1)
+    revA[half+1] = a[half+1];
+
+  //@ focus I;
+  $assert($forall(int i:0..N-1) revA[i] == a[N-1-i]);
+}

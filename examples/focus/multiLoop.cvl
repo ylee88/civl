@@ -1,0 +1,32 @@
+#include<assert.h>
+
+#pragma CIVL ACSL
+$input int N;
+$assume(0 < N);
+int a[N];
+int b[N];
+
+int main() {
+
+  int x = 1;
+  //@ focus I;
+  /*@ loop invariant x == i+1;
+    @*/
+  for (int i = 0; i < N; i++) {
+    a[i] = i + x;
+    x = x+1;
+  }
+
+  //@ focus I;
+  for (int i = 0; i < N; i++) {
+    b[i] = i;
+  }
+
+  //@ focus I;
+  for (int i = 0; i < N; i++) {
+    a[i] = a[i] * b[i];
+  }
+  
+  //@ focus I;
+  $assert($forall(int i:0..N-1) a[i] == (2*i+1)*i);
+}

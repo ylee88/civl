@@ -1,0 +1,33 @@
+#include<assert.h>
+
+#pragma CIVL ACSL
+
+$input int N;
+$assume(N > 0);
+$input double a[N];
+$input double b[N];
+
+/*@ requires n > 0;
+  @ requires \valid(a+(0..n)) && \valid(b+(0..n));
+  @ assigns \nothing;
+  @ ensures (\result == \true) ==> (\forall int i; 0 <= i && i < n ==> a[i] == b[i]);
+  @*/
+_Bool arrayEquals(double * a, double * b, int n) {
+  _Bool equal = $true;
+
+  //@ focus F;
+  for (int i = 0; i < n; i++) 
+    if (a[i] != b[i])
+      equal = $false;
+  //@ focus F;
+  assert($forall (int i: 0 .. n-1) equal => a[i] == b[i]);
+  return equal;
+}
+
+int main() {
+  _Bool ret = arrayEquals(a, b, N);
+  
+  if (ret) {
+    assert($forall (int i: 0 .. N-1) a[i] == b[i]);
+  }
+}

@@ -1,0 +1,39 @@
+#include<assert.h>
+
+#pragma CIVL ACSL
+$input int N;
+$assume(0 < N);
+
+int nondet(int a, int b) {
+  int x;
+  $havoc(&x);
+  $assume(a <= x && x < b);
+  return x;
+}
+
+int main() {
+  int A[N];
+  //@ focus F;
+  for (int i = 0; i < N; i++) {
+    A[i] = nondet(0,100);
+  }
+  
+  int x = 0;
+  /*@ loop invariant 0 <= i && i <= N;
+    @ loop invariant \forall int j; 0 <= j && j < i ==>
+    @                  x >= A[j];
+    @*/
+  for (int i = 0; i < N; i++) {
+    if (x < A[i]) {
+      x = A[i];
+    }
+  }
+
+  //@ focus F;
+  for (int i = 0; i < N; i++) {
+    A[i] -= x;
+  }
+
+  //@ focus F;
+  $assert($forall(int i:0..N-1) A[i] <= 0);
+}

@@ -1,0 +1,20 @@
+#include<assert.h>
+
+#pragma CIVL ACSL
+$input int N;
+$assume(0 < N);
+
+int main() {
+  int A[N], B[N];
+  //@ focus a;
+  for (int i = 0; i < N; i++) {
+    A[i] = i;
+  }
+  //@ focus b;
+  for (int i = 0; i < N; i++) {
+    B[i] = i + N;
+  }
+
+  //@ focus a b;
+  $assert($forall(int i:0..N-1; int j:0..N-1)A[i] < B[j]);
+}

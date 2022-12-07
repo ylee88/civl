@@ -1,0 +1,21 @@
+#include<assert.h>
+
+#pragma CIVL ACSL
+$input int M;
+$assume(0 < M);
+$input int N = 1;
+$input float A[M][N], B[M][N];
+
+int main() {
+  double C[M][N];
+  //@ focus I;
+  for (int i = 0; i < M; i++) {
+    //@ focus J;
+    for (int j = 0; j < N; j++) {
+      C[i][j] = A[i][j]+B[i][j];
+    }
+  }
+  
+  //@ focus I J;
+  $assert($forall(int i:0..M-1;int j:0..N-1) C[i][j] == A[i][j]+B[i][j]);
+}
