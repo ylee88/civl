@@ -15,7 +15,7 @@ import edu.udel.cis.vsl.civl.TestConstants;
 import edu.udel.cis.vsl.civl.run.IF.UserInterface;
 import static edu.udel.cis.vsl.civl.TestConstants.MPI_NONBLOCKING_MODEL;
 
-public class MPINonBlockingTests {
+public class MPINonBlockingTest {
 	@Rule
 	public Timeout globalTimeout = Timeout.seconds(30);
 
