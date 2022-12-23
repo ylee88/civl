@@ -161,7 +161,12 @@ public class CommonStateManager extends CIVLStateManager {
 			state = executor.execute(state, pid, transition);
 			traceStep.addAtomicStep(new CommonAtomicStep(state, transition));
 
-			
+			int numProcs = state.numLiveProcs();
+			Utils.biggerAndSet(maxProcs, numProcs);
+			// if (numProcs > maxProcs) maxProcs = numProcs;
+			if (config.collectOutputs())
+				this.outputCollector.collectOutputs(state);
+
 			// if the statement just executed was a yield-enter, return:
 			if (enabler.isYield(transition.statement())
 					&& !stateFactory.lockedByAtomic(state))
@@ -561,7 +566,8 @@ public class CommonStateManager extends CIVLStateManager {
 								+ symbolicAnalyzer.symbolicExpressionToString(
 										hex.source(), hex.state(), null,
 										hex.heapValue());
-						errorLogger.logSimpleError(hex.source(), state, pid, process,
+						errorLogger.logSimpleError(hex.source(), state, pid,
+								process,
 								symbolicAnalyzer.stateInformation(hex.state()),
 								hex.civlProperty(), message);
 						ignoredErrorSet.add(hex.heapErrorKind());
