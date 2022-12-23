@@ -408,8 +408,11 @@ public class StrongConnect {
 
 	private LinkedList<Integer> strong_connect(Node v)
 			throws UnsatisfiablePathConditionException {
+		int vid = v.pid;
+
 		v.lowlink = v.index = max_num++;
-		if (!worker.allInvisible(v.pid) || worker.unsafeAtomic(v.pid)) {
+		if (worker.enabledTransitionsInProcess(vid).length > 0
+				&& (!worker.allInvisible(vid) || worker.unsafeAtomic(vid))) {
 			v.spoiled = true;
 			spoil_tstack();
 		}
