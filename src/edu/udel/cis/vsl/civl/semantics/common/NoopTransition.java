@@ -15,12 +15,8 @@ import edu.udel.cis.vsl.sarl.IF.expr.BooleanExpression;
 public class NoopTransition extends CommonTransition implements Transition {
 
 	public NoopTransition(int pid, BooleanExpression assumption,
-			Statement statement, boolean symplifyState
-//			,AtomicLockAction atomicLockAction
-			) {
-		super(assumption, pid, statement, symplifyState
-//				, atomicLockAction
-				);
+			Statement statement, boolean symplifyState) {
+		super(assumption, pid, statement, symplifyState);
 	}
 
 	@Override

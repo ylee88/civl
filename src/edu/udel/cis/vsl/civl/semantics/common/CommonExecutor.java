@@ -418,13 +418,20 @@ public class CommonExecutor implements Executor {
 	}
 
 	/**
-	 * execute malloc statement. TODO complete javadocs
+	 * Executes a {@code $malloc} statement.
 	 * 
 	 * @param state
+	 *            the state from which the statement is executed
 	 * @param pid
+	 *            ID of the process executing the statement
 	 * @param statement
-	 * @return
+	 *            the {@code $malloc} statement being executed
+	 * @return the new state after the statement is executed
 	 * @throws UnsatisfiablePathConditionException
+	 *             if it is determined that the path condition of the new state
+	 *             is unsatisfiable, e.g., if the statement is erroneous because
+	 *             the number of bytes being allocated is not a multiple of the
+	 *             size of the element type
 	 */
 	private State executeMalloc(State state, int pid, String process,
 			MallocStatement statement)
@@ -511,25 +518,9 @@ public class CommonExecutor implements Executor {
 		mallocResult = stateFactory.malloc(state, pid, dyScopeID,
 				statement.getMallocId(), dynamicElementType, elementCount);
 		state = mallocResult.left;
-
-		/*
-		 * Comment out the following code for the reason that malloc shall not
-		 * be recorded as a write footprint.
-		 * 
-		 * 
-		 * boolean saveWrite = state.isMonitoringWrites(pid);
-		 * 
-		 * if (saveWrite) { SymbolicExpression pointer2memoryBlk = symbolicUtil
-		 * .parentPointer(mallocResult.right);
-		 * 
-		 * eval = evaluator.memEvaluator().pointer2memValue(state, pid,
-		 * pointer2memoryBlk, source); state = eval.state; // write is also a
-		 * read state = stateFactory.addReadWriteRecords(state, pid, eval.value,
-		 * false); }
-		 */
 		if (lhs != null)
 			// note that malloc only assigns pointers which have scalar type, so
-			// weather they are initialized by the malloc statement is not
+			// whether they are initialized by the malloc statement is not
 			// important because initialization flag is used to help checking
 			// dynamic types compatible of assignments for non-scalar types.
 			state = assign(state, pid, process, lhs, mallocResult.right, false);
@@ -539,7 +530,7 @@ public class CommonExecutor implements Executor {
 	}
 
 	/**
-	 * Execute a return statement.
+	 * Executes a return statement.
 	 * 
 	 * @param state
 	 *            The state of the program.
@@ -1772,30 +1763,13 @@ public class CommonExecutor implements Executor {
 	@Override
 	public State execute(State state, int pid, Transition transition)
 			throws UnsatisfiablePathConditionException {
-		// AtomicLockAction atomicLockAction = transition.atomicLockAction();
-
-		// switch (atomicLockAction) {
-		// case GRAB :
-		// state = stateFactory.getAtomicLock(state, pid);
-		// break;
-		// case RELEASE :
-		// state = stateFactory.releaseAtomicLock(state);
-		// break;
-		// case NONE :
-		// break;
-		// default :
-		// throw new CIVLUnimplementedFeatureException(
-		// "Executing a transition with the atomic lock action "
-		// + atomicLockAction.toString(),
-		// transition.statement().getSource());
-		// }
 		// if transition doesn't carry new clause, no need to update the path
 		// condition, neither for simplifying the state
 		if (!transition.clause().isTrue()) {
 			state = stateFactory.addToPathcondition(state, pid,
 					transition.clause());
 			if (transition.simpifyState()
-					&& (civlConfig.svcomp() || this.civlConfig.simplify()))
+					&& (civlConfig.svcomp() || civlConfig.simplify()))
 				state = this.stateFactory.simplify(state);
 		}
 		switch (transition.transitionKind()) {
