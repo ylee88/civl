@@ -9,13 +9,13 @@ import java.util.Stack;
 import java.util.TreeSet;
 
 /**
- * A {@link SeqSet} represents a set of sequences of integers. By sequence, we
- * mean finite sequence of integers. Only certain sets are representable. If p
- * and q are sequences, write p<=q if p is a prefix of q. (This includes the
- * case p=q.) If p is a sequence, let [p] = {q|p<=q}. A {@link SeqSet}
- * represents a finite union of sets of the form [p]. If p<=q then [p] contains
- * [q], so any SeqSet S can be represented as a finite union of sets of the form
- * [p] where p is a minimal element of S.
+ * A {@link SeqSet} represents a set of sequences of nonnegative integers. By
+ * sequence, we mean finite sequence of integers. Only certain sets are
+ * representable. If p and q are sequences, write p<=q if p is a prefix of q.
+ * (This includes the case p=q.) If p is a sequence, let [p] = {q|p<=q}. A
+ * {@link SeqSet} represents a finite union of sets of the form [p]. If p<=q
+ * then [p] contains [q], so any SeqSet S can be represented as a finite union
+ * of sets of the form [p] where p is a minimal element of S.
  * 
  * <p>
  * If () is the empty sequence then [()] consists of all sequences. It is

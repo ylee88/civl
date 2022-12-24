@@ -125,18 +125,16 @@ import edu.udel.cis.vsl.sarl.IF.type.SymbolicUnionType;
  * 
  * <p>
  * This class makes extensive use of {@link SeqSet}s to represent sets of
- * objects present in the state. A leave in the SeqSet in an {@code int} array
- * of length 2, 3, or 4. The first two components are always a dynamic scope ID
- * and a static variable ID. These specify a unique variable instance in the
- * state. If the length is two, then the leaf represents the object which is
- * that entire variable. If the variable is a heap, then the third integer
- * represents a row in the heap table, which corresponds to a specific
- * {@code $malloc} statement. Hence a length-3 leaf represents all objects
- * created in a specific heap by a single {@code $malloc} statement. If the
- * length is 4, the fourth integer specifies one object created by that
- * {@code $malloc} statement.
+ * objects present in the state. A leaf in the SeqSet is an {@code int} array of
+ * length 2, 3, or 4. The first two components are always a dynamic scope ID and
+ * a static variable ID. These specify a unique variable instance in the state.
+ * If the length is two, then the leaf represents the object which is that
+ * entire variable. If the variable is a heap, then the third integer represents
+ * a row in the heap table, which corresponds to a specific {@code $malloc}
+ * statement. Hence a length-3 leaf represents all objects created in a specific
+ * heap by a single {@code $malloc} statement. If the length is 4, the fourth
+ * integer specifies one object created by that {@code $malloc} statement.
  * </p>
- * 
  * <p>
  * In the future, we might consider getting even more precise and specifying
  * sub-components of objects, such as array slices, or particular fields of
@@ -148,6 +146,22 @@ import edu.udel.cis.vsl.sarl.IF.type.SymbolicUnionType;
 public class SimpleEnablerWorker {
 
 	// Constants ...
+
+	// /**
+	// * An integer which will be used to insert a pair (terminationCode, pid)
+	// * into a SeqSet to represent an imaginary "termination" variable for a
+	// * process. Every process p will have (terminationCode,p) in its
+	// reachWrite
+	// * set, as long as that process has not terminated. A process p that is at
+	// a
+	// * blocked wait statement in which the argument evaluates to q will have
+	// * (terminationCode,q) in its depends set. This implies that any ample set
+	// * including p must also include q. Otherwise, it would be possible for a
+	// * statement (wait on q) dependent on a statement in the ample set (any
+	// * enabled statement in p) to occur before anything in the ample set
+	// occurs.
+	// */
+	// public final static int terminationCode = Integer.MAX_VALUE;
 
 	/**
 	 * This is the string used as prefix for symbolic constants that result from
@@ -1948,7 +1962,8 @@ public class SimpleEnablerWorker {
 	 * process's current location at state {@link #theState}. These are: (1) any
 	 * object that could be read or modified by a currently enabled statement,
 	 * and (2) all objects that are read by any guard of an (enabled or
-	 * disabled) statement emanating from that location.
+	 * disabled) statement emanating from that location. Additionally, computes
+	 * set of processes on which the given process depends, due to waiting.
 	 * </p>
 	 * 
 	 * <p>
@@ -1966,14 +1981,18 @@ public class SimpleEnablerWorker {
 	 * @param dependWrite
 	 *            the set of objects of the depend set that may be modified
 	 *            (out)
+	 * @return set of PIDs of processes on which this process is waiting with
+	 *         blocked wait statements, or {@code null} if there are no such
+	 *         waitees
 	 * @throws UnsatisfiablePathConditionException
 	 *             if it is determined that the path condition of
 	 *             {@link #theState} is unsatisfiable
 	 */
-	void computeDepends(int pid, SeqSet depend, SeqSet dependWrite)
+	Set<Integer> computeDepends(int pid, SeqSet depend, SeqSet dependWrite)
 			throws UnsatisfiablePathConditionException {
 		Location location = theState.getProcessState(pid).getLocation();
 		int numOutgoing = location.getNumOutgoing();
+		Set<Integer> result = null;
 
 		try {
 			for (int i = 0; i < numOutgoing; i++) {
@@ -1983,13 +2002,28 @@ public class SimpleEnablerWorker {
 
 				findObjects(depend, theState, pid, guard);
 				if (reasoner.unsat(guardValue)
-						.getResultType() != ResultType.YES)
+						.getResultType() == ResultType.YES) {
+					if (enabler.isWait(statement)) {
+						// this is a blocked wait, get the "waitee"...
+						Expression arg = ((CallOrSpawnStatement) statement)
+								.arguments().get(0);
+						SymbolicExpression val = enabler.evaluator
+								.evaluate(theState, pid, arg).value;
+						int pidValue = enabler.modelFactory.getProcessId(val);
+
+						if (result == null)
+							result = new HashSet<>(2);
+						result.add(pidValue);
+					}
+				} else {
 					computeMem(depend, dependWrite, theState, pid, statement);
+				}
 			}
 		} catch (NoReductionException e) {
 			depend.makeFull();
 			dependWrite.makeFull();
 		}
+		return result;
 	}
 
 	/**
@@ -2025,6 +2059,8 @@ public class SimpleEnablerWorker {
 		Set<Integer> dyscopeIDs = new HashSet<>();
 		Set<Variable> writeableVars = new HashSet<>();
 
+		if (ps == null || ps.hasEmptyStack())
+			return;
 		for (StackEntry se : ps.getStackEntries()) {
 			int dyscopeID = se.scope();
 			Location loc = se.location();

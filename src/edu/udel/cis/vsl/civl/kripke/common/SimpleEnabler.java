@@ -168,6 +168,11 @@ public class SimpleEnabler implements Enabler {
 	protected CollateExecutor collateExecutor;
 
 	/**
+	 * The system function named {@code $wait}, specified in civlc.cvh.
+	 */
+	protected CIVLFunction waitFunction;
+
+	/**
 	 * The system function named {@code $yield}, used by a process in an atomic
 	 * block to release the lock temporarily and allow other processes to
 	 * execute. This may be {@code null} if the model being analyzed does not
@@ -269,6 +274,8 @@ public class SimpleEnabler implements Enabler {
 
 		// the following will be null iff the model does not use $yield:
 		this.yieldFunction = model.function("$yield");
+		// ditto:
+		this.waitFunction = model.function("$wait");
 		this.assumeFunction = model.function("$assume");
 		this.commEnqueueFunction = model.function("$comm_enqueue");
 		this.emptySet = new EmptySet<Transition>();
@@ -406,6 +413,21 @@ public class SimpleEnabler implements Enabler {
 		return stmt.statementKind() == StatementKind.CALL_OR_SPAWN
 				&& ((CallOrSpawnStatement) stmt).isCall()
 				&& ((CallOrSpawnStatement) stmt).function() == yieldFunction;
+	}
+
+	/**
+	 * Is the given {@link Statement} a {@code $wait} statement?
+	 * 
+	 * @param stmt
+	 *            a (non-null) {@link Statement}
+	 * @return {@code true} iff {@code stmt} is a {@code $wait statement}
+	 */
+	protected boolean isWait(Statement stmt) {
+		if (waitFunction == null)
+			return false;
+		return stmt.statementKind() == StatementKind.CALL_OR_SPAWN
+				&& ((CallOrSpawnStatement) stmt).isCall()
+				&& ((CallOrSpawnStatement) stmt).function() == waitFunction;
 	}
 
 	/**

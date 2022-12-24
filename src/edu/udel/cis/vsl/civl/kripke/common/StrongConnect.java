@@ -6,6 +6,7 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
+import java.util.Set;
 
 import edu.udel.cis.vsl.civl.state.IF.ProcessState;
 import edu.udel.cis.vsl.civl.state.IF.UnsatisfiablePathConditionException;
@@ -142,6 +143,12 @@ public class StrongConnect {
 		SeqSet dependWrite = null;
 
 		/**
+		 * The set of PIDs of processes on which this process is waiting, or
+		 * {@code null} if there are no such waitees.
+		 */
+		Set<Integer> waitees = null;
+
+		/**
 		 * The reach set: the set of objects which this process can reach
 		 * through its stack using pointer operations.
 		 */
@@ -189,9 +196,14 @@ public class StrongConnect {
 			if (depend == null) {
 				depend = new SeqSet();
 				dependWrite = new SeqSet();
-				worker.computeDepends(pid, depend, dependWrite);
+				waitees = worker.computeDepends(pid, depend, dependWrite);
 			}
 			return depend;
+		}
+
+		Set<Integer> getWaitees() throws UnsatisfiablePathConditionException {
+			getDependSet();
+			return waitees;
 		}
 
 		/**
@@ -289,19 +301,21 @@ public class StrongConnect {
 				if (childPid == theNode.pid)
 					continue;
 				Node child = getNode(childPid);
+				if (child.terminated)
+					continue;
+				try {
+					Set<Integer> waitees = theNode.getWaitees();
 
-				if (!child.terminated) {
-					try {
-						if (!theNode.getDependSet()
-								.disjoint(child.getReachWriteSet())
-								|| !theNode.getDependWriteSet()
-										.disjoint(child.getReachSet())) {
-							current = true;
-							return true;
-						}
-					} catch (UnsatisfiablePathConditionException e) {
-						// don't do anything, there is no edge here
+					if ((waitees != null && waitees.contains(childPid))
+							|| !theNode.getDependSet()
+									.disjoint(child.getReachWriteSet())
+							|| !theNode.getDependWriteSet()
+									.disjoint(child.getReachSet())) {
+						current = true;
+						return true;
 					}
+				} catch (UnsatisfiablePathConditionException e) {
+					// don't do anything, there is no edge here
 				}
 			}
 			current = true;
@@ -525,6 +539,10 @@ public class StrongConnect {
 					out.print("(not enabled)  ");
 				}
 				out.println();
+				if (node.waitees != null) {
+					out.print("    waitees = " + node.waitees);
+					out.println();
+				}
 				if (node.depend != null) {
 					out.print("    depend = { ");
 					worker.printObjSet(out, node.depend);
