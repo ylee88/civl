@@ -720,6 +720,7 @@ public class CommonExecutor implements Executor {
 			if (monitorReads) {
 				this.evaluatorOnTheBench = this.evaluator;
 				this.evaluator = getReadSetCollectEvaluator();
+				state = evaluator.evaluate(state, pid, statement.guard()).state;
 			}
 			state = executeWork(state, pid, statement);
 			if (monitorReads)
