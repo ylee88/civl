@@ -1,0 +1,3 @@
+#define f(X) hello X
+#define g(X) X ## world
+g(f(there) little)

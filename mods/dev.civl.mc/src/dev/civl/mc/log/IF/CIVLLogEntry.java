@@ -1,0 +1,174 @@
+/**
+ * 
+ */
+package dev.civl.mc.log.IF;
+
+import java.io.PrintStream;
+
+import dev.civl.mc.config.IF.CIVLConfiguration;
+import dev.civl.mc.config.IF.CIVLConstants.ErrorStateEquivalence;
+import dev.civl.mc.model.IF.CIVLSource;
+import dev.civl.mc.state.IF.State;
+import dev.civl.gmc.GMCConfiguration;
+import dev.civl.gmc.LogEntry;
+import dev.civl.sarl.IF.SymbolicUniverse;
+
+/**
+ * This represents an entry in the error log of CIVL. LogEntry's are stored in a
+ * collection that is ordered by the compareTo method and where the equals
+ * method determines redundancy in terms of error reports.
+ * 
+ * Currently these two methods consult the CIVLConfiguration to determine what
+ * equivalence should be applied to error states. States that do not share the
+ * same problem kind are always inequivalent. There are three alternative
+ * criteria that are applied: LOC : require error locations in each proc to be
+ * the same for equivalence CALLSTACK : require call stacks in each proc to be
+ * the same for equivalence FULL : require the full trace, as expressed by the
+ * path condition, to be the same for equivalence
+ * 
+ * Additional equivalences are easy to implement by accessing components of the
+ * state.
+ * 
+ * @author zirkel
+ * @author dwyer
+ * 
+ */
+public class CIVLLogEntry extends LogEntry {
+
+	private CIVLExecutionException problem;
+	private CIVLConfiguration civlConfig;
+	private SymbolicUniverse universe;
+
+	public CIVLLogEntry(CIVLConfiguration civlConfig,
+			GMCConfiguration gmcConfig, CIVLExecutionException problem,
+			SymbolicUniverse universe) {
+		super(gmcConfig);
+		this.civlConfig = civlConfig;
+		this.problem = problem;
+		this.universe = universe;
+		problem.setReported();
+	}
+
+	public CIVLExecutionException problem() {
+		return problem;
+	}
+
+	@Override
+	public void printBody(PrintStream out) {
+		out.println(problem.toString());
+	}
+
+	@Override
+	public int compareTo(LogEntry that) {
+		if (that instanceof CIVLLogEntry) {
+			CIVLExecutionException thatProblem = ((CIVLLogEntry) that).problem;
+			int result = problem.certainty().compareTo(thatProblem.certainty());
+
+			// The "kind" of error detected must match.
+			if (result != 0)
+				return result;
+			result = problem.civlProperty().compareTo(thatProblem.civlProperty());
+			if (result != 0) {
+				return result;
+			} else {
+				CIVLSource source1 = problem.getSource();
+				CIVLSource source2 = thatProblem.getSource();
+				State errorState1 = problem.state();
+				State errorState2 = thatProblem.state();
+
+				if (source1 == null && source2 != null) {
+					return -1;
+				} else if (source1 != null & source2 == null) {
+					return 1;
+				} else {
+					if (civlConfig
+							.errorStateEquiv() == ErrorStateEquivalence.LOC) {
+						if (source1.equals(source2))
+							return 0;
+						else
+							return source1.toString()
+									.compareTo(source2.toString());
+
+					} else if (civlConfig
+							.errorStateEquiv() == ErrorStateEquivalence.CALLSTACK) {
+						// compare based on the call stack
+						String callString1 = errorState1.callStackToString()
+								.toString();
+						String callString2 = errorState2.callStackToString()
+								.toString();
+
+						return callString1.compareTo(callString2);
+
+					} else if (civlConfig
+							.errorStateEquiv() == ErrorStateEquivalence.FULL) {
+						String stateString1 = errorState1
+								.getPathCondition(universe).toString();
+						String stateString2 = errorState2
+								.getPathCondition(universe).toString();
+
+						return stateString1.compareTo(stateString2);
+					} else {
+						assert false : "Invalid error state equivalence";
+					}
+				}
+			}
+		}
+		return -1;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj instanceof CIVLLogEntry) {
+			CIVLExecutionException thatProblem = ((CIVLLogEntry) obj).problem;
+
+			if (!problem.certainty().equals(thatProblem.certainty()))
+				return false;
+			if (!problem.civlProperty().equals(thatProblem.civlProperty()))
+				return false;
+			else {
+				CIVLSource source1 = problem.getSource();
+				CIVLSource source2 = thatProblem.getSource();
+				State errorState1 = problem.state();
+				State errorState2 = thatProblem.state();
+
+				if (source1 == null && source2 != null) {
+					return false;
+				} else if (source1 != null & source2 == null) {
+					return false;
+				} else {
+					if (civlConfig
+							.errorStateEquiv() == ErrorStateEquivalence.LOC) {
+						if (source1.equals(source2))
+							return true;
+						else
+							return source1.toString()
+									.equals(source2.toString());
+
+					} else if (civlConfig
+							.errorStateEquiv() == ErrorStateEquivalence.CALLSTACK) {
+						// compare based on the call stack
+						String callString1 = errorState1.callStackToString()
+								.toString();
+						String callString2 = errorState2.callStackToString()
+								.toString();
+
+						return callString1.equals(callString2);
+
+					} else if (civlConfig
+							.errorStateEquiv() == ErrorStateEquivalence.FULL) {
+						String stateString1 = errorState1
+								.getPathCondition(universe).toString();
+						String stateString2 = errorState2
+								.getPathCondition(universe).toString();
+
+						return stateString1.equals(stateString2);
+					} else {
+						assert false : "Invalid error state equivalence";
+					}
+				}
+			}
+		}
+		return false;
+	}
+
+}

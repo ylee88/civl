@@ -1,0 +1,131 @@
+package dev.civl.mc.model.common.expression;
+
+import java.util.List;
+import java.util.Set;
+
+import dev.civl.mc.model.IF.CIVLFunction;
+import dev.civl.mc.model.IF.CIVLSource;
+import dev.civl.mc.model.IF.Scope;
+import dev.civl.mc.model.IF.expression.Expression;
+import dev.civl.mc.model.IF.expression.SystemGuardExpression;
+import dev.civl.mc.model.IF.type.CIVLType;
+import dev.civl.mc.model.IF.variable.Variable;
+
+/**
+ * A system guard expression stores the necessary information (library, function
+ * name and arguments of the function call) for calculating the guard of a
+ * system function call.
+ * 
+ * @author Manchun Zheng (zmanchun)
+ * 
+ */
+public class CommonSystemGuardExpression extends CommonExpression
+		implements
+			SystemGuardExpression {
+
+	/* *************************** Instance Fields ************************* */
+
+	/**
+	 * The library that the invoked function belongs to.
+	 */
+	private String library;
+
+	/**
+	 * The invoked function.
+	 */
+	private CIVLFunction function;
+
+	/**
+	 * The list of arguments that the function call uses.
+	 */
+	private List<Expression> arguments;
+
+	/* **************************** Constructors *************************** */
+
+	/**
+	 * Create a new instance of system guard expression.
+	 * 
+	 * @param source
+	 *            The source code element to be used for error report.
+	 * @param library
+	 *            The name of the library that the invoked function belongs to.
+	 * @param function
+	 *            The name of the invoked function.
+	 * @param args
+	 *            The list of arguments used in the function call.
+	 * @param type
+	 *            The type of this expression (should be always boolean type).
+	 */
+	public CommonSystemGuardExpression(CIVLSource source, Scope scope,
+			String library, CIVLFunction function, List<Expression> args,
+			CIVLType type) {
+		super(source, scope, scope, type);
+		this.library = library;
+		this.function = function;
+		this.arguments = args;
+	}
+
+	/* *********************** Methods from Expression ********************* */
+
+	@Override
+	public ExpressionKind expressionKind() {
+		return ExpressionKind.SYSTEM_GUARD;
+	}
+
+	@Override
+	public Set<Variable> variableAddressedOf(Scope scope) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Set<Variable> variableAddressedOf() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	/* ***************** Methods from SystemGuardExpression *************** */
+
+	@Override
+	public String library() {
+		return this.library;
+	}
+
+	@Override
+	public CIVLFunction function() {
+		return this.function;
+	}
+
+	@Override
+	public List<Expression> arguments() {
+		return this.arguments;
+	}
+
+	/* *********************** Methods from Object ********************* */
+	@Override
+	public String toString() {
+		return "guard[" + this.library + "." + this.function + "()]";
+	}
+
+	@Override
+	protected boolean expressionEquals(Expression expression) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean containsHere() {
+		for (Expression arg : arguments) {
+			if (arg.containsHere())
+				return true;
+		}
+		return false;
+	}
+
+	@Override
+	protected void addFreeVariables(Set<Variable> result) {
+		for (Expression arg : arguments)
+			((CommonExpression) arg).addFreeVariables(result);
+	}
+
+}

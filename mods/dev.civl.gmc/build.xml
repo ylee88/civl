@@ -1,0 +1,143 @@
+<!--
+    build.xml : Ant build file for GMC
+    Author: Stephen F. Siegel, University of Delaware
+    Last modified:
+    
+    The following can be defined on command line with -Dprop=val:
+    revision.  This is for the use of our SVN commit hook, which 
+    runs the test suite and performs other tasks every time a commit
+    is made.  The SVN revision number is just used here to insert
+    into reports.
+-->
+
+<project name="GMC" basedir="." default="compile"
+	 xmlns:jacoco="antlib:org.jacoco.ant">
+  <import file="../dev.civl.com/common.xml" />
+
+  <!-- Properties -->
+  <property name="src.dir" value="${gmc.src.dir}" />
+  <property name="bin.dir" value="${gmc.bin.dir}" />
+  <property name="main-class" value="civl.dev.gmc.simplemc.UserInterface"/>
+  <property name="test.src.dir" location="${gmc.test.dir}" />
+  <property name="test.bin.dir" location="${gmc.test.dir}/bin-test" />
+  <property name="junit.dir" location="${gmc.junit.dir}" />
+  <property name="junit.data.dir" location="${junit.dir}/data" />
+  <property name="junit.reports.dir" location="${junit.dir}/reports" />
+  <property name="coverage.dir" location="${gmc.coverage.dir}" />
+  <property name="javadoc.dir" value="${gmc.javadoc.dir}" />
+  
+  <!-- Source compilation -->
+
+  <target name="compile" description="Compile all java source files.">
+    <mkdir dir="${bin.dir}" />
+    <javac release="${javaversion}" debug="true"
+	   srcdir="${src.dir}" destdir="${bin.dir}"
+	   encoding="UTF-8" includeantruntime="false">
+    </javac>
+  </target>
+
+  <!-- JUnit tests and Jacoco coverage analysis -->
+
+  <path id="test.compile.classpath">
+    <pathelement location="${test.src.dir}" />
+    <pathelement location="${bin.dir}" />
+    <pathelement location="${junit.jar}" />
+    <pathelement location="${hamcrest.jar}" />
+  </path>
+
+  <path id="test.execute.classpath">
+    <pathelement location="${test.bin.dir}" />
+    <pathelement location="${bin.dir}" />
+    <pathelement location="${junit.jar}" />
+    <pathelement location="${hamcrest.jar}" />
+  </path>
+
+  <target name="test-init">
+    <delete dir="${junit.dir}" quiet="true" />
+    <delete dir="${test.bin.dir}" quiet="true" />
+    <mkdir dir="${junit.dir}" />
+    <mkdir dir="${junit.data.dir}" />
+    <mkdir dir="${junit.reports.dir}" />
+    <mkdir dir="${test.bin.dir}" />
+  </target>
+
+  <target name="test-compile" depends="compile,test-init">
+    <javac release="${javaversion}" destdir="${test.bin.dir}"
+	   debug="true" failonerror="false"
+	   classpathref="test.compile.classpath"
+	   encoding="UTF-8" includeantruntime="true">
+      <src path="${test.src.dir}" />
+    </javac>
+  </target>
+
+  <target name="test-run" depends="test-compile">
+    <jacoco:coverage>
+      <junit fork="true" forkmode="once" timeout="300000">
+	<jvmarg value="-ea" />
+	<classpath refid="test.execute.classpath" />
+	<formatter type="brief" usefile="false" />
+	<formatter type="xml" />
+	<batchtest todir="${junit.data.dir}">
+	  <fileset dir="${test.bin.dir}" includes="**/*Test.class" />
+	</batchtest>
+      </junit>
+    </jacoco:coverage>
+    <junitreport todir="${junit.data.dir}">
+      <fileset dir="${junit.data.dir}">
+	<include name="TEST-*.xml" />
+      </fileset>
+      <report format="frames" todir="${junit.reports.dir}">
+	<param name="TITLE" expression="JUnit Report for GMC ${revision}" />
+      </report>
+    </junitreport>
+  </target>
+
+  <target name="test" depends="test-run">
+    <jacoco:report>
+      <executiondata>
+	<file file="jacoco.exec" />
+      </executiondata>
+      <structure name="Test Coverage Report for GMC ${revision}">
+	<classfiles>
+	  <fileset dir="${bin.dir}" />
+	</classfiles>
+	<sourcefiles encoding="UTF-8">
+	  <fileset dir="${src.dir}" />
+	</sourcefiles>
+      </structure>
+      <html destdir="coverage" />
+    </jacoco:report>
+  </target>
+  
+  <!-- Javadoc Tasks -->
+
+  <target name="javadoc">
+    <delete dir="${javadoc.dir}" quiet="true" />
+    <mkdir dir="${javadoc.dir}" />
+    <javadoc destdir="${javadoc.dir}"
+	     Overview="${src.dir}/overview.html"
+	     author="false" version="true" use="true"
+	     windowtitle="API for GMC ${revision}"
+	     access="public"
+	     classpathref="test.execute.classpath"
+	     sourcepath="${src.dir}"
+	     failonerror="false">
+    </javadoc>
+  </target>
+
+  <!-- Clean -->
+
+  <target name="clean" description="Delete all generated files.">
+    <delete dir="${bin.dir}" />
+    <delete dir="${test.bin.dir}" />
+    <delete dir="${junit.dir}" />
+    <delete dir="${javadoc.dir}" />
+    <delete dir="${coverage.dir}" />
+    <delete file="${gmc.dir}/jacoco.exec" />
+  </target>
+
+  <!-- Do everything -->
+  
+  <target name="all" depends="test,javadoc" />
+
+</project>

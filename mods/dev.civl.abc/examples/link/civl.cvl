@@ -1,0 +1,16 @@
+void g() {
+  $proc p = $spawn f();
+  $wait(p);
+}
+
+void f() {
+  int x;
+  $havoc(&x);
+}
+
+int main() {
+  $proc p = $spawn f();
+  $wait(p);
+  f();
+  g();
+}

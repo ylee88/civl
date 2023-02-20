@@ -1,0 +1,19 @@
+
+$input int N=3;
+int a[N];//array a is shared by all threads but each thread writes to different elements of a
+
+void thread1(int tid){
+  a[tid]=tid;
+}
+
+void thread2(int tid, int* p){
+  *p=*p+tid;
+}
+
+int main(void){
+  $parfor(int i: 0 .. N-1)
+    thread1(i);
+  $parfor(int i: 0 .. N-1)
+    thread2(i, &a[i]);
+}
+

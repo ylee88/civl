@@ -1,0 +1,10 @@
+int main() {
+  int a[5] = {1,2,3,4,5};
+  int * b = &a[0];
+
+  // pointer set can only be constructed recursively using two ways:
+  // 1. &LHS
+  // 2. pointer (set) + integer/range
+  $mem m = b + a[0 .. 5];
+  return 0;
+}

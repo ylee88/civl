@@ -1,0 +1,2 @@
+#define f(...) Bring __VA_ARGS__.  Repeat: bring __VA_ARGS__.
+f(wine, cheese, and bread)

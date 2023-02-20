@@ -1,0 +1,10 @@
+#include <mem.cvh>
+int main() {
+  int a[10];
+  int * p = &a[0];
+  
+  $mem m0 = p + (0 .. 9);
+  $mem m1 = m0;
+  
+  m1 = $mem_union(m0, a[0 .. 9]);
+}

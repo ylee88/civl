@@ -1,0 +1,9 @@
+1. Loop File: FLASH4.4/source/physics/sourceTerms/Heat/HeatMain/Neutrino/Heat.F90
+2. Grid Files: FLASH4.4/source/Grid/GridMain/UG/
+3. EOS Files: FLASH4.4/source/physics/Eos/EosMain
+
+1. an orphan "  !$omp end parallel" in Eos_wrapped.F90
+2. alised argument usage in Heat.F90 
+   i.e., call Eos_nucOneZone(xDens,xTemp,xYe,xEner,xPres,xEntr,&
+                   tmp,tmp,tmp,tmp,tmp,tmp,xXp,16,MODE_DENS_TEMP)
+3. 

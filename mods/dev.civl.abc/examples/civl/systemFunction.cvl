@@ -1,0 +1,7 @@
+$system[mylib] $state_f int k(int);
+
+int main(){
+  int a;
+
+  a=k(0);
+}

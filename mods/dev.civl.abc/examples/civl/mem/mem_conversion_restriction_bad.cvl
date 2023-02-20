@@ -1,0 +1,12 @@
+
+int **a;
+int main() {
+  int x[10] = {0};
+  int * z[10];
+  $mem m;
+  
+  for (int i = 0; i < 10; i++)
+    z[i] = &x[i];
+  a = &z[0];
+  m = *(a + (0 .. 9));  // dereferencing a pointer set is not allowed
+}

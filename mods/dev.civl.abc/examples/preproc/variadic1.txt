@@ -1,0 +1,2 @@
+#define f(X,Y,...) First X, then Y, then __VA_ARGS__.
+f(the wine, the cheese, the beer, the bread, and the fun begins)

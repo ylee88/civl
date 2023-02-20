@@ -1,0 +1,8 @@
+#include<assert.h>
+$abstract int f(int);
+
+int main(){
+  int k;
+
+  assert($forall(int i | i>0)f(i));
+}

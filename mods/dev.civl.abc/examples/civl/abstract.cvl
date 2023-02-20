@@ -1,0 +1,4 @@
+double a, b;
+$abstract $real f1($real x);
+$abstract $differentiable(3, [a,b]) $real f2($real x);
+$abstract $differentiable(17, [a,b][a,b]) $real f3($real x, $real y);

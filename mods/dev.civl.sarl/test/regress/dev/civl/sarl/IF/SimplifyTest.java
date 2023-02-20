@@ -1,0 +1,151 @@
+package dev.civl.sarl.IF;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.io.PrintStream;
+import java.util.Arrays;
+
+import org.junit.Test;
+
+import dev.civl.sarl.SARL;
+import dev.civl.sarl.IF.expr.BooleanExpression;
+import dev.civl.sarl.IF.expr.NumericExpression;
+import dev.civl.sarl.IF.expr.NumericSymbolicConstant;
+import dev.civl.sarl.IF.expr.SymbolicConstant;
+import dev.civl.sarl.IF.expr.SymbolicExpression;
+import dev.civl.sarl.IF.number.Interval;
+import dev.civl.sarl.IF.type.SymbolicCompleteArrayType;
+import dev.civl.sarl.IF.type.SymbolicIntegerType;
+
+public class SimplifyTest {
+
+	static PrintStream out = System.out;
+
+	static SymbolicUniverse universe = SARL.newStandardUniverse();
+
+	static SymbolicIntegerType intType = universe.integerType();
+
+	static NumericExpression zero = universe.integer(0);
+
+	static NumericExpression one = universe.integer(1);
+
+	static NumericExpression two = universe.integer(2);
+
+	static NumericExpression three = universe.integer(3);
+
+	@Test
+	public void invalidInterval() {
+		SymbolicUniverse universe = SARL.newStandardUniverse();
+		SymbolicConstant X = universe.symbolicConstant(
+				universe.stringObject("X"), universe.integerType());
+		// context: X<1 && 1<X
+		BooleanExpression context = (BooleanExpression) universe.and(
+				universe.lessThan((NumericExpression) X, universe.oneInt()),
+				universe.lessThan(universe.oneInt(), (NumericExpression) X));
+		Reasoner reasoner = universe.reasoner(context);
+		// SARL crashes here
+		Interval interval = reasoner.assumptionAsInterval(X);
+
+		assertTrue(interval == null);
+	}
+
+	@Test
+	public void simplify() {
+		SymbolicUniverse univ = SARL.newStandardUniverse();
+		SymbolicConstant X1 = univ.symbolicConstant(univ.stringObject("X1"),
+				univ.integerType());
+		SymbolicConstant X2 = univ.symbolicConstant(univ.stringObject("X2"),
+				univ.integerType());
+		BooleanExpression contex = univ.equals(univ.integer(4),
+				univ.multiply((NumericExpression) X1, (NumericExpression) X2));
+		Reasoner reasoner;
+
+		contex = univ.and(contex,
+				(BooleanExpression) univ.equals(X1, univ.integer(1)));
+		reasoner = univ.reasoner(contex);
+		System.out.println(contex.toString());
+		contex = reasoner.getReducedContext();
+		System.out.println(contex.toString());
+	}
+
+	@Test
+	public void test() {
+		NumericExpression x = (NumericExpression) universe
+				.symbolicConstant(universe.stringObject("x"), intType);
+		SymbolicCompleteArrayType arrayType = universe.arrayType(intType, x);
+		NumericSymbolicConstant index = (NumericSymbolicConstant) universe
+				.symbolicConstant(universe.stringObject("i"), intType);
+		SymbolicExpression arrayLambda = universe.arrayLambda(arrayType,
+				universe.lambda(index, index));
+
+		// out.println(arrayLambda);
+		out.println(universe);
+
+		BooleanExpression context = universe.equals(x, three);
+		Reasoner reasoner = universe.reasoner(context);
+		SymbolicExpression simplifiedArrayLambda = reasoner
+				.simplify(arrayLambda);
+		SymbolicExpression concreteArray = universe.array(intType,
+				Arrays.asList(zero, one, two));
+
+		out.println(simplifiedArrayLambda);
+		out.flush();
+
+		assertEquals(concreteArray, simplifiedArrayLambda);
+	}
+
+	@Test
+	public void divideTest() {
+		NumericExpression a = (NumericExpression) universe
+				.symbolicConstant(universe.stringObject("a"), intType);
+		NumericExpression b = (NumericExpression) universe
+				.symbolicConstant(universe.stringObject("a"), intType);
+		BooleanExpression precon = universe.equals(universe.integer(3),
+				universe.divide(a, b));
+		BooleanExpression predicate = universe.equals(a,
+				universe.multiply(b, universe.integer(3)));
+		BooleanExpression e = universe.forall((SymbolicConstant) a,
+				universe.implies(precon, predicate));
+		Reasoner r = universe.reasoner(universe.bool(true));
+		r.isValid(e);
+	}
+
+	@Test
+	public void simplifyNumericOr() {
+		NumericSymbolicConstant x = (NumericSymbolicConstant) universe
+				.symbolicConstant(universe.stringObject("X"), intType);
+		NumericSymbolicConstant y0 = (NumericSymbolicConstant) universe
+				.symbolicConstant(universe.stringObject("Y0"), intType);
+		NumericSymbolicConstant y1 = (NumericSymbolicConstant) universe
+				.symbolicConstant(universe.stringObject("Y1"), intType);
+
+		BooleanExpression e = universe.equals(y0, one);
+		NumericExpression t = universe.subtract(x, y1);
+		BooleanExpression p0 = universe.or(e, universe.lessThanEquals(t, two));
+		BooleanExpression p1 = universe.or(e, universe.lessThanEquals(one, t));
+		BooleanExpression p2 = universe.neq(t, two);
+
+		BooleanExpression p = universe.and(Arrays.asList(p0, p1, p2));
+
+		out.println("p: " + p);
+
+		Reasoner reasoner = universe.reasoner(p);
+		BooleanExpression r = reasoner.getFullContext();
+
+		out.println("r: " + r);
+	}
+
+	@Test
+	public void simplifyRange() {
+		NumericSymbolicConstant x = (NumericSymbolicConstant) universe
+				.symbolicConstant(universe.stringObject("X"), intType);
+
+		BooleanExpression p = universe.equals(x, one);
+		Reasoner reasoner = universe.reasoner(universe.not(p));
+		out.println(reasoner.getFullContext());
+		BooleanExpression q = reasoner.simplify(p);
+		out.println(q);
+	}
+
+}

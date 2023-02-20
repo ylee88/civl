@@ -1,0 +1,16 @@
+/* If an expression representing a set of pointers involves any kind
+ *  of dereferencing pointer set, the expression is invalid.
+ *   
+ * Except that the expression has the form: &(*e) or &(a[e']) where e
+ * has pointer-set type and a is a pointer/pointer-set
+ */
+int **a;
+int main() {
+  int x[10] = {0};
+  int *y = &x[0];
+  int * b;
+
+  a  = &y;
+  $mem m = a;
+  m = (*a) + (0 .. 9);  // allowed, dereferencing a single pointer
+}

@@ -1,0 +1,10 @@
+int **a;
+int main() {
+  int x[10] = {0};
+  int *y = &x[0];
+  
+  a  = &y;
+  $mem m = &((*a)[0 .. 9]); // allowed, special case I
+
+  m = &(*(*a + (0 .. 9)));  // allowed, special case II
+}

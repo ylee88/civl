@@ -1,0 +1,8 @@
+struct T {
+  int x[10];
+};
+
+int main() {
+  struct T * t[10];
+  $mem m = &(t[0 .. 9]->x[0]); // not allowed, dereference a pointer set
+}

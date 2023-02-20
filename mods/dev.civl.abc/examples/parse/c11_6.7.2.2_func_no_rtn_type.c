@@ -1,0 +1,1 @@
+func(int arg0) {}

@@ -1,0 +1,193 @@
+/**
+ * 
+ */
+package dev.civl.mc.model.common.statement;
+
+import java.util.Set;
+
+import dev.civl.mc.model.IF.CIVLFunction;
+import dev.civl.mc.model.IF.CIVLSource;
+import dev.civl.mc.model.IF.Scope;
+import dev.civl.mc.model.IF.expression.ConditionalExpression;
+import dev.civl.mc.model.IF.expression.Expression;
+import dev.civl.mc.model.IF.expression.VariableExpression;
+import dev.civl.mc.model.IF.location.Location;
+import dev.civl.mc.model.IF.statement.ReturnStatement;
+import dev.civl.mc.model.IF.statement.Statement;
+import dev.civl.mc.model.IF.variable.Variable;
+import dev.civl.sarl.IF.SymbolicUniverse;
+
+/**
+ * A return statement.
+ * 
+ * @author Timothy K. Zirkel (zirkel)
+ * 
+ */
+public class CommonReturnStatement extends CommonStatement
+		implements
+			ReturnStatement {
+
+	private Expression expression;
+
+	private CIVLFunction function;
+
+	/**
+	 * A return statement.
+	 * 
+	 * @param source
+	 *            The source location for this return statement.
+	 * @param expression
+	 *            The expression being returned. Null if non-existent.
+	 */
+	public CommonReturnStatement(CIVLSource civlSource, Location source,
+			Expression guard, Expression expression, CIVLFunction function) {
+		super(civlSource,
+				expression != null ? expression.expressionScope() : null,
+				expression != null ? expression.lowestScope() : null, source,
+				guard);
+		this.expression = expression;
+		this.function = function;
+	}
+
+	/**
+	 * @return The expression being returned. Null if non-existent.
+	 */
+	@Override
+	public Expression expression() {
+		return expression;
+	}
+
+	/**
+	 * @param expression
+	 *            The expression being returned. Null if non-existent.
+	 */
+	@Override
+	public void setExpression(Expression expression) {
+		this.expression = expression;
+	}
+
+	@Override
+	public String toString() {
+		if (expression == null) {
+			return "return (" + this.function.name().name() + ")";
+		}
+		return "return " + expression + " (" + this.function.name().name()
+				+ ")";
+	}
+
+	@Override
+	public void calculateDerefs() {
+		if (this.expression != null) {
+			this.expression.calculateDerefs();
+			this.hasDerefs = this.expression.hasDerefs();
+		} else
+			this.hasDerefs = false;
+
+	}
+
+	@Override
+	public void purelyLocalAnalysisOfVariables(Scope funcScope) {
+		super.purelyLocalAnalysisOfVariables(funcScope);
+		if (this.expression != null)
+			this.expression.purelyLocalAnalysisOfVariables(funcScope);
+	}
+
+	@Override
+	public void purelyLocalAnalysis() {
+		this.guard().purelyLocalAnalysis();
+		if (this.expression != null) {
+			this.expression.purelyLocalAnalysis();
+			this.purelyLocal = this.expression.isPurelyLocal()
+					&& this.guard().isPurelyLocal();
+		} else
+			this.purelyLocal = this.guard().isPurelyLocal();
+	}
+
+	@Override
+	public void replaceWith(ConditionalExpression oldExpression,
+			VariableExpression newExpression) {
+		super.replaceWith(oldExpression, newExpression);
+
+		if (expression != null) {
+			if (expression == oldExpression) {
+				expression = newExpression;
+				return;
+			}
+			expression.replaceWith(oldExpression, newExpression);
+		}
+	}
+
+	@Override
+	public Statement replaceWith(ConditionalExpression oldExpression,
+			Expression newExpression) {
+		Expression newGuard = guardReplaceWith(oldExpression, newExpression);
+		CommonReturnStatement newStatement = null;
+
+		if (newGuard != null) {
+			newStatement = new CommonReturnStatement(this.getSource(),
+					this.source(), newGuard, this.expression, this.function);
+		} else if (expression != null) {
+			Expression newExpressionField = expression
+					.replaceWith(oldExpression, newExpression);
+
+			if (newExpressionField != null) {
+				newStatement = new CommonReturnStatement(this.getSource(),
+						this.source(), this.guard(), newExpressionField,
+						this.function);
+			}
+		}
+		return newStatement;
+	}
+
+	@Override
+	public Set<Variable> variableAddressedOf(Scope scope) {
+		if (expression != null)
+			return expression.variableAddressedOf(scope);
+		return null;
+	}
+
+	@Override
+	public Set<Variable> variableAddressedOf() {
+		if (expression != null)
+			return expression.variableAddressedOf();
+		return null;
+	}
+
+	@Override
+	public StatementKind statementKind() {
+		return StatementKind.RETURN;
+	}
+
+	@Override
+	protected void calculateConstantValueWork(SymbolicUniverse universe) {
+		if (expression != null)
+			this.expression.calculateConstantValue(universe);
+	}
+
+	@Override
+	protected boolean containsHereWork() {
+		if (expression != null)
+			return expression.containsHere();
+		return false;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (super.equals(obj))
+			if (obj instanceof CommonReturnStatement) {
+				CommonReturnStatement ret = (CommonReturnStatement) obj;
+
+				return this.nullableObjectEquals(expression, ret.expression);
+			}
+		return false;
+	}
+
+	@Override
+	public Set<Variable> freeVariables() {
+		Set<Variable> result = super.freeVariables();
+
+		if (expression != null)
+			result.addAll(expression.freeVariables());
+		return result;
+	}
+}

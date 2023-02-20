@@ -1,0 +1,2 @@
+// macro expands to f(hello )world before second expansion.
+// Should result in error since )world is not a token

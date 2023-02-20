@@ -1,0 +1,87 @@
+package dev.civl.sarl;
+
+import dev.civl.sarl.IF.SymbolicUniverse;
+import dev.civl.sarl.IF.expr.BooleanExpression;
+import dev.civl.sarl.IF.expr.NumericExpression;
+import dev.civl.sarl.IF.expr.NumericSymbolicConstant;
+import dev.civl.sarl.IF.expr.SymbolicConstant;
+import dev.civl.sarl.IF.type.SymbolicArrayType;
+import dev.civl.sarl.IF.type.SymbolicFunctionType;
+import dev.civl.sarl.IF.type.SymbolicType;
+
+import java.util.Arrays;
+
+public class TestConstants {
+
+    static public BooleanExpression slowNegationFormula(boolean unsat,
+            SymbolicUniverse u) {
+        // types:
+        SymbolicType intType = u.integerType();
+        SymbolicArrayType arrayType = u.arrayType(intType);
+        SymbolicFunctionType funcType = u.functionType(
+                Arrays.asList(arrayType, intType, intType, intType, intType),
+                u.booleanType());
+        // constants:
+        NumericSymbolicConstant X_N = (NumericSymbolicConstant) u
+                .symbolicConstant(u.stringObject("X_N"), u.integerType());
+        NumericSymbolicConstant Y0 = (NumericSymbolicConstant) u
+                .symbolicConstant(u.stringObject("Y0"), intType);
+        NumericSymbolicConstant Y1 = (NumericSymbolicConstant) u
+                .symbolicConstant(u.stringObject("Y1"), intType);
+        NumericSymbolicConstant Y2 = (NumericSymbolicConstant) u
+                .symbolicConstant(u.stringObject("Y2"), intType);
+        NumericSymbolicConstant Y3 = (NumericSymbolicConstant) u
+                .symbolicConstant(u.stringObject("Y3"), intType);
+        BooleanExpression Y4 = (BooleanExpression) u
+                .symbolicConstant(u.stringObject("Y4"), u.booleanType());
+        BooleanExpression Y5 = (BooleanExpression) u
+                .symbolicConstant(u.stringObject("Y5"), u.booleanType());
+        NumericSymbolicConstant Y6 = (NumericSymbolicConstant) u
+                .symbolicConstant(u.stringObject("Y6"), intType);
+        NumericSymbolicConstant Y7 = (NumericSymbolicConstant) u
+                .symbolicConstant(u.stringObject("Y7"), intType);
+        SymbolicConstant array = u.symbolicConstant(u.stringObject("X_a"),
+                arrayType);
+        SymbolicConstant isDuplet = u
+                .symbolicConstant(u.stringObject("is_duplet"), funcType);
+        // clauses:
+        BooleanExpression clauses[] = new BooleanExpression[17];
+
+        clauses[0] = u.lessThan(u.oneInt(), X_N);
+        clauses[1] = u.or(u.equals(u.oneInt(), u.subtract(X_N, Y7)), Y5);
+        clauses[2] = u.or(u.equals(Y6, u.add(Y0, u.oneInt())), u.not(Y4));
+        clauses[3] = u.or(u.equals(Y7, u.add(Y2, u.oneInt())), u.not(Y5));
+        clauses[4] = u.or(u.equals(Y0, u.zeroInt()), Y4);
+        clauses[5] = u.or(u.equals(Y2, u.zeroInt()), Y5);
+        clauses[6] = u.or(u.lessThanEquals(u.add(Y0, u.oneInt()), Y1),
+                u.not(Y4));
+        clauses[7] = u.or(u.lessThanEquals(u.add(Y2, u.oneInt()), Y3),
+                u.not(Y5));
+        clauses[8] = u.or(u.lessThanEquals(Y1, u.subtract(X_N, u.oneInt())),
+                u.not(Y4));
+        clauses[9] = u.or(u.lessThanEquals(Y3, u.subtract(X_N, u.oneInt())),
+                u.not(Y5));
+        clauses[10] = u.or(u.lessThanEquals(u.oneInt(), Y6), u.not(Y4));
+        clauses[11] = u.or(u.lessThanEquals(u.oneInt(), Y7), u.not(Y5));
+        clauses[12] = u.or(
+                u.neq(u.zeroInt(),
+                        u.subtract((NumericExpression) u.arrayRead(array, Y0),
+                                (NumericExpression) u.arrayRead(array, Y2))),
+                u.not(Y5));
+        clauses[13] = u.or(
+                (BooleanExpression) u.apply(isDuplet,
+                        Arrays.asList(array, u.zeroInt(), X_N, Y0, Y1)),
+                u.not(Y4));
+        clauses[14] = u.or(
+                (BooleanExpression) u.apply(isDuplet,
+                        Arrays.asList(array, u.zeroInt(), X_N, Y2, Y3)),
+                u.not(Y5));
+        clauses[15] = u.or(u.equals(u.oneInt(), u.subtract(X_N, Y6)), Y4);
+        if (unsat)
+            clauses[16] = u.lessThan(X_N, u.zeroInt());
+        else
+            clauses[16] = u.trueExpression();
+        // ret:
+        return u.and(Arrays.asList(clauses));
+    }
+}

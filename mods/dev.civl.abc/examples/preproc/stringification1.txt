@@ -1,0 +1,2 @@
+#define f(X) here is a string: # X
+f(pi   is             3.14159)

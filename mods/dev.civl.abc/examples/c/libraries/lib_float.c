@@ -1,0 +1,5 @@
+#include <float.h>
+
+int main () {
+    return 0;
+}

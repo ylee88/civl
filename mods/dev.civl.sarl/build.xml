@@ -1,0 +1,169 @@
+<!--
+    build.xml : Ant build file for SARL module
+    Author: Stephen F. Siegel, University of Delaware
+    Last modified:
+    
+    The following can be defined on command line with -Dprop=val:
+    revision.  This is for the use of our SVN commit hook, which 
+    runs the test suite and performs other tasks every time a commit
+    is made.  The SVN revision number is just used here to insert
+    into reports.
+-->
+
+<project name="SARL" basedir="." default="compile"
+	 xmlns:jacoco="antlib:org.jacoco.ant">
+  <import file="../dev.civl.com/common.xml" />
+
+  <!-- Properties -->
+  <property name="src.dir" value="${sarl.src.dir}" />
+  <property name="bin.dir" value="${sarl.bin.dir}" />
+  <property name="real.src.dir" value="${src.dir}/dev/civl/sarl" />
+  <property name="test.src.dir" location="${sarl.test.dir}/regress" />
+  <property name="test.bin.root.dir" location="${sarl.test.dir}/bin-test" />
+  <property name="test.bin.dir"
+	    location="${test.bin.root.dir}/regress" />
+  <property name="junit.dir" location="${sarl.junit.dir}" />
+  <property name="junit.data.dir" location="${junit.dir}/data" />
+  <property name="junit.reports.dir" location="${junit.dir}/reports" />
+  <property name="coverage.dir" location="${sarl.coverage.dir}" />
+  <property name="bench.src.dir" location="${sarl.bench.dir}" />
+  <property name="javadoc.dir" location="${sarl.javadoc.dir}" />
+
+  <!-- Source compilation -->
+
+  <target name="compile"
+	  description="Compile all Java source files for SARL.">
+    <mkdir dir="${bin.dir}" />
+    <javac release="${javaversion}" debug="true"
+	   srcdir="${src.dir}" destdir="${bin.dir}"
+	   encoding="UTF-8" includeantruntime="false">
+    </javac>
+  </target>
+
+  <!-- JUnit tests and Jacoco coverage analysis -->
+
+  <path id="test.compile.classpath">
+    <pathelement location="${test.src.dir}" />
+    <pathelement location="${bin.dir}" />
+    <pathelement location="${junit.jar}" />
+    <pathelement location="${hamcrest.jar}" />
+  </path>
+
+  <path id="test.execute.classpath">
+    <pathelement location="${test.bin.dir}" />
+    <pathelement location="${bin.dir}" />
+    <pathelement location="${junit.jar}" />
+    <pathelement location="${hamcrest.jar}" />
+  </path>
+
+  <target name="test-init">
+    <delete dir="${junit.dir}" quiet="true" />
+    <delete dir="${test.bin.dir}" quiet="true" />
+    <mkdir dir="${junit.dir}" />
+    <mkdir dir="${junit.data.dir}" />
+    <mkdir dir="${junit.reports.dir}" />
+    <mkdir dir="${test.bin.dir}" />
+  </target>
+  
+  <target name="test-compile" depends="compile,test-init">
+    <javac release="${javaversion}" destdir="${test.bin.dir}"
+	   debug="true" failonerror="false"
+	   classpathref="test.compile.classpath"
+	   encoding="UTF-8" includeantruntime="true">
+      <src path="${test.src.dir}" />
+    </javac>
+  </target>
+
+  <target name="test-run" depends="test-compile">
+    <jacoco:coverage
+	includes="dev/civl/sarl/*">
+      <junit fork="true" forkmode="perTest" threads="${nthreads}" timeout="900000">
+	<jvmarg value="-ea" />
+	<classpath refid="test.execute.classpath" />
+	<formatter type="brief" usefile="false" />
+	<formatter type="xml" />
+	<batchtest todir="${junit.data.dir}">
+	  <fileset dir="${test.bin.dir}" includes="**/*Test.class" />
+	</batchtest>
+      </junit>
+    </jacoco:coverage>
+    <junitreport todir="${junit.data.dir}">
+      <fileset dir="${junit.data.dir}">
+	<include name="TEST-*.xml" />
+      </fileset>
+      <report format="frames" todir="${junit.reports.dir}">
+	<param name="TITLE"
+	       expression="JUnit Report for SARL ${revision} Regression Suite" />
+      </report>
+    </junitreport>
+  </target>
+  
+  <target name="test" depends="test-run">
+    <jacoco:report>
+      <executiondata>
+	<file file="jacoco.exec" />
+      </executiondata>
+      <structure name="Test Coverage Report for SARL ${revision} Regression Suite">
+	<classfiles>
+	  <fileset dir="${bin.dir}" />
+	</classfiles>
+	<sourcefiles encoding="UTF-8">
+	  <fileset dir="${src.dir}" />
+	</sourcefiles>
+      </structure>
+      <html destdir="coverage" />
+    </jacoco:report>
+  </target>
+  
+  <!-- Benchmark Tasks -->
+
+  <!-- TODO: just make this part of regular SARL source? -->
+  
+  <target name="bench-compile" depends="compile"
+	  description="Compile benchmark java source files.">
+    <javac release="${javaversion}"
+	   debug="true" srcdir="${bench.src.dir}" destdir="${bin.dir}"
+	   encoding="UTF-8" includeantruntime="false"
+	   includes="dev/civl/sarl/**/*Benchmark*.java">
+      <modulepath>
+	<pathelement path="${bin.dir}" />
+      </modulepath>
+    </javac>
+  </target>
+
+  <!-- Javadoc Tasks -->
+
+  <target name="javadoc">
+    <delete dir="${javadoc.dir}" quiet="true" />
+    <mkdir dir="${javadoc.dir}" />
+    <javadoc destdir="${javadoc.dir}"
+	     Overview="${src.dir}/overview.html"
+	     author="false" version="true" use="true"
+	     windowtitle="API for SARL ${revision}"
+	     access="public"
+	     classpathref="test.execute.classpath"
+	     failonerror="false">
+      <packageset dir="${src.dir}" defaultexcludes="yes">
+	<include name="**/IF" />
+	<include name="**/IF/**" />
+	<include name="dev/civl/sarl" />
+      </packageset>
+    </javadoc>
+  </target>
+
+  <!-- Clean -->
+
+  <target name="clean" description="Delete all generated files.">
+    <delete dir="${bin.dir}" />
+    <delete dir="${test.bin.root.dir}" />
+    <delete dir="${junit.dir}" />
+    <delete dir="${javadoc.dir}" />
+    <delete dir="${coverage.dir}" />
+    <delete file="${sarl.dir}/jacoco.exec" />
+  </target>
+
+  <!-- Do everything -->
+
+  <target name="all" depends="test,javadoc,bench-compile" />
+
+</project>

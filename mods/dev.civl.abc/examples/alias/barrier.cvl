@@ -1,0 +1,67 @@
+#include<civlc.cvh>
+
+$input int N=2;
+
+typedef struct gbarrier{
+  int nprocs;
+  int num_in_barrier;
+  _Bool in_barrier[N];
+}* gbarrier_t;
+
+typedef struct barrier{
+  gbarrier_t gbarrier;
+  int id;
+}* barrier_t;
+
+gbarrier_t gbarrierA=(gbarrier_t)$malloc($here, sizeof(struct gbarrier)),
+  gbarrierB=(gbarrier_t)$malloc($here, sizeof(struct gbarrier));
+
+void initialize(gbarrier_t gbarrier){
+  gbarrier->nprocs=N;
+  for(int i=0; i<N; i++)
+    gbarrier->in_barrier[i]=$false;
+  gbarrier->num_in_barrier=0;
+}
+
+void barrier_call(barrier_t barrier){
+  gbarrier_t gbarrier=barrier->gbarrier;
+  int num=gbarrier->nprocs;
+
+  $atomic{
+    gbarrier->in_barrier[barrier->id]=$true;
+    gbarrier->num_in_barrier++;
+  }
+  $when(gbarrier->num_in_barrier==num);
+  $atomic{
+    gbarrier->in_barrier[barrier->id]=$false;
+    if($forall{int i | 0 <= i && i<num}(!gbarrier->in_barrier[i]))
+      gbarrier->num_in_barrier=0;
+  }
+}
+
+void thread(int tid, gbarrier_t mygbarrier){
+  barrier_t barrier=(barrier_t)$malloc($here, sizeof(struct barrier));
+
+  barrier->gbarrier=mygbarrier;
+  barrier->id=tid;
+  barrier_call(barrier);
+  $free(barrier);
+}
+
+int main(void){
+  initialize(gbarrierA);
+  initialize(gbarrierB);
+  $atomic{
+    $proc grpA[N], grpB[N];
+
+    //two groups of threads are accessing two different gbarrier objects
+    $for(int i: 0 .. N-1)
+      grpA[i] = $spawn thread(i, gbarrierA);
+    $for(int i: 0 .. N-1)
+      grpB[i] = $spawn thread(i, gbarrierB);
+    $waitall(grpA, N);
+    $waitall(grpB, N);
+  }
+  $free(gbarrierA);
+  $free(gbarrierB);
+}

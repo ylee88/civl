@@ -1,0 +1,48 @@
+/* This header file contains the function prototypes for 
+ * Fortran standard generic intrinsic procedures (SGIPs).
+ */
+
+#ifndef __FORTRAN_SGIP_H__
+#define __FORTRAN_SGIP_H__
+
+#define FORTRAN_COMMAND_LINE_ARG_LENGTH_MAX 100
+#define F_ARGC __fortran__command_line_arg_count
+#define F_ARGL __fortran__command_line_arg_lengths
+#define F_ARGV __fortran__command_line_arg_chars
+#define F_PENL __fortran__program_entry_name_length
+#define F_PENV __fortran__program_entry_name_chars
+
+#define ERRSTAT_ARGUMENT_INVALID 1
+#define ERRSTAT_ARGUMENT_OUT_OF_RANGE 2
+#define ERRSTAT_NUMBER_OUT_OF_RANGE 3
+
+$input int 	F_ARGC;
+$assume(F_ARGC >= 0);
+$input int	F_PENL;
+#assume(F_PENL > 0);
+$input int 	F_ARGL[F_ARGC];
+$input char F_ARGV[F_ARGC][FORTRAN_COMMAND_LINE_ARG_LENGTH_MAX];
+$input char F_PENV[F_PENL];
+
+/* F2018: Sec. 16.9.51 COMMAND_ARGUMENT_COUNT()
+ * Returns the number of command arguments, 
+ * which can be configured as following: 
+ * <code>$assume(F_ARGC == 1)</code>
+ */
+int 	__fortran__command_argument_count();
+
+/* F2018: Sec. 16.9.83 GET_COMMAND_ARGUMENT(NUMNER [, VALUE, LENGTH, STATUS, ERRMSG])
+ * Gets program invocation argument
+ */
+void 	__fortran__get_command_argument(
+  int  *number,	/* the nth argument, 0 for program entry name*/
+  char *value,	/* the variable pointing to the nth argument */
+                /* if no such argument exists, blanks are assigend*/
+  int  *length, /* the length of the value assigned to 'value' */
+  int  *status, /* -1, if 'value' has insufficient length for assigned actual arg */
+  				/*  0, if 'value' is correctly assigned */
+  				/* >0, if the actual argument is invalid */
+  char *errmsg	/* Processor-dependent error messages if 'status' is positive */
+);
+
+#endif

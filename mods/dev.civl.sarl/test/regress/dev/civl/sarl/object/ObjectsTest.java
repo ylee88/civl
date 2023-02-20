@@ -1,0 +1,41 @@
+package dev.civl.sarl.object;
+
+import static org.junit.Assert.assertTrue;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import dev.civl.sarl.number.IF.Numbers;
+import dev.civl.sarl.object.IF.ObjectFactory;
+import dev.civl.sarl.object.IF.Objects;
+
+/**
+ * Test class for Objects class
+ * @author jtirrell
+ *
+ */
+public class ObjectsTest {
+
+	/**
+	 * ObjectFactory used for testing
+	 */
+	private ObjectFactory objectFactory;
+
+	/**
+	 * Instantiates this.objectFactory
+	 * @throws Exception
+	 */
+	@Before
+	public void setUp() throws Exception {
+		this.objectFactory = Objects.newObjectFactory(	Numbers.REAL_FACTORY );
+	}
+
+	/**
+	 * Test for creating a new ObjectFactory
+	 */
+	@Test
+	public void testNewObjectFactory() {
+		assertTrue(objectFactory instanceof ObjectFactory);
+	}
+	
+}

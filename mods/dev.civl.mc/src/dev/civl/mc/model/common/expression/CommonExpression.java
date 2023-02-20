@@ -1,0 +1,201 @@
+/**
+ * 
+ */
+package dev.civl.mc.model.common.expression;
+
+import java.util.HashSet;
+import java.util.Set;
+
+import dev.civl.mc.model.IF.CIVLSource;
+import dev.civl.mc.model.IF.Scope;
+import dev.civl.mc.model.IF.expression.ConditionalExpression;
+import dev.civl.mc.model.IF.expression.Expression;
+import dev.civl.mc.model.IF.expression.VariableExpression;
+import dev.civl.mc.model.IF.type.CIVLType;
+import dev.civl.mc.model.IF.variable.Variable;
+import dev.civl.mc.model.common.CommonSourceable;
+import dev.civl.sarl.IF.SymbolicUniverse;
+import dev.civl.sarl.IF.expr.SymbolicExpression;
+
+/**
+ * A partial implementation of interface {@link Expression}. This is the root of
+ * the expression implementation hierarchy. All expression classes are
+ * sub-classes of this class.
+ * 
+ * @author Timothy K. Zirkel (zirkel)
+ * 
+ */
+public abstract class CommonExpression extends CommonSourceable
+		implements
+			Expression {
+
+	// TODO: add field private SymbolicExpression constantValue
+	// with setters and getters. Initially null, this is
+	// used by expressions which have a constant value.
+	// it is an optimization.
+
+	private boolean isErrorFree = false;
+
+	/**
+	 * The highest scope accessed by this expression. NULL if no variable is
+	 * accessed.
+	 */
+	private Scope expressionScope = null;
+
+	/**
+	 * The lowest scope accessed by this expression. NULL if no variable is
+	 * accessed.
+	 */
+	private Scope lowestScope = null;
+
+	/**
+	 * The type of this expression.
+	 * 
+	 */
+	protected CIVLType expressionType = null;
+
+	/**
+	 * Does this expression contains any dereference operation?
+	 */
+	protected boolean hasDerefs;
+
+	/**
+	 * Is this expression purely local? An expression is purely local if ...
+	 */
+	protected boolean purelyLocal = false;
+
+	/**
+	 * The constant value of this expression. null by default.
+	 */
+	protected SymbolicExpression constantValue = null;
+
+	/**
+	 * The parent of all expressions.
+	 */
+	public CommonExpression(CIVLSource source, Scope hscope, Scope lscope,
+			CIVLType type) {
+		super(source);
+		this.lowestScope = lscope;
+		this.expressionScope = hscope;
+		this.expressionType = type;
+	}
+
+	/**
+	 * checks if the given expression is equivalent with this expression
+	 * 
+	 * @param expression
+	 *            the given expression, which should have the same expression
+	 *            kind as this expression
+	 * @return true iff the given expression is equivalent with this expression
+	 */
+	protected abstract boolean expressionEquals(Expression expression);
+
+	@Override
+	public boolean hasDerefs() {
+		return hasDerefs;
+	}
+
+	@Override
+	public Scope expressionScope() {
+		return expressionScope;
+	}
+
+	@Override
+	public CIVLType getExpressionType() {
+		return expressionType;
+	}
+
+	@Override
+	public void calculateDerefs() {
+		this.hasDerefs = false;
+	}
+
+	@Override
+	public void purelyLocalAnalysisOfVariables(Scope funcScope) {
+	}
+
+	@Override
+	public boolean isPurelyLocal() {
+		return this.purelyLocal;
+	}
+
+	@Override
+	public void purelyLocalAnalysis() {
+		this.purelyLocal = !this.hasDerefs;
+	}
+
+	@Override
+	public void replaceWith(ConditionalExpression oldExpression,
+			VariableExpression newExpression) {
+
+	}
+
+	@Override
+	public Expression replaceWith(ConditionalExpression oldExpression,
+			Expression newExpression) {
+		return null;
+	}
+
+	@Override
+	public SymbolicExpression constantValue() {
+		return this.constantValue;
+	}
+
+	@Override
+	public boolean hasConstantValue() {
+		return this.constantValue != null;
+	}
+
+	@Override
+	public void calculateConstantValue(SymbolicUniverse universe) {
+		if (this.constantValue == null)
+			this.calculateConstantValueWork(universe);
+	}
+
+	protected void calculateConstantValueWork(SymbolicUniverse universe) {
+		return;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj instanceof Expression) {
+			Expression that = (Expression) obj;
+
+			if (this.expressionKind() == that.expressionKind())
+				return this.expressionEquals(that);
+		}
+		return false;
+	}
+
+	@Override
+	public Scope lowestScope() {
+		return this.lowestScope;
+	}
+
+	@Override
+	public boolean containsHere() {
+		return false;
+	}
+
+	@Override
+	public void setErrorFree(boolean value) {
+		this.isErrorFree = value;
+	}
+
+	@Override
+	public boolean isErrorFree() {
+		return this.isErrorFree;
+	}
+
+	protected abstract void addFreeVariables(Set<Variable> result);
+
+	@Override
+	public Set<Variable> freeVariables() {
+		HashSet<Variable> result = new HashSet<>();
+
+		if (expressionType != null)
+			result.addAll(expressionType.freeVariables());
+		addFreeVariables(result);
+		return result;
+	}
+}

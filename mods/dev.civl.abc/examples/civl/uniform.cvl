@@ -1,0 +1,11 @@
+
+double a, b;
+$abstract $real f($real x);
+int n;
+
+int main() {
+  $real h;
+  $assert($uniform [a,b] (int i:0..n-1) f(i*h)==$O(h*h));
+  $assert($uniform [a,b][a,b] (int i:0..n-1; int j:0..n-1) f(i*j*h)==$O(h));
+  $assert($uniform [a,b][a,b] (int i,j:($domain){0..n-1, 0..n-1}) f(i*j*h)==$O(h));
+}

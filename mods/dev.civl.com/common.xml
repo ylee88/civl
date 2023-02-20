@@ -1,0 +1,98 @@
+<project name="common" basedir=".">
+
+  <!-- This file contains definitions that are shared by all ant scripts
+       in this repository -->
+
+  <!-- Get name of directory containing this file and store in
+       common.dir.  The mod dir is the parent of common.dir: in the
+       repo this is named "mods"; in Eclipse it will be the Eclipse
+       workspace.  root.dir is the parent of mod.dir which corresponds
+       to the complete trunk (or branch) in the repo, but which does
+       not exist in Eclipse workspace. -->
+  
+  <dirname property="common.dir" file="${ant.file.common}"/>
+  <dirname property="mod.dir" file="${common.dir}" />
+  <dirname property="root.dir" file="${mod.dir}" />
+
+  <!-- If there is a file named build.properties in this directory,
+       read it.  Else, read build_default.properties. -->
+  
+  <condition property="properties.file"
+	     value="${common.dir}/build.properties"
+	     else="${common.dir}/build_default.properties">
+    <available file="${common.dir}/build.properties" />
+  </condition>
+  <property file="${properties.file}"/>
+
+
+  <!-- Taskdefs -->
+  
+  <taskdef uri="antlib:org.jacoco.ant" resource="org/jacoco/ant/antlib.xml">
+    <classpath path="${jacoco.jar}" />
+  </taskdef>
+
+
+  <!-- Names of modules and main class -->
+
+  <property name="mod.abc" value="dev.civl.abc" />
+  <property name="mod.sarl" value="dev.civl.sarl" />
+  <property name="mod.gmc" value="dev.civl.gmc" />
+  <property name="mod.mc" value="dev.civl.mc" />
+  <property name="mod.antlr" value="antlr.runtime" />
+  <property name="main.class" value="${mod.mc}.IF.CIVL" />
+  
+  <!-- Paths and Directories -->
+
+  <path id="antlr3.class.path">
+    <pathelement location="${antlr3.jar}" />
+  </path>
+
+  <path id="antlr4.class.path">
+    <pathelement location="${antlr4.jar}" />
+  </path>
+
+  <property name="lib.dir" value="${root.dir}/lib" />
+  <property name="app.dir" value="${root.dir}/civl.app" />
+
+  <property name="gmc.dir" value="${mod.dir}/${mod.gmc}" />
+  <property name="gmc.src.dir" value="${gmc.dir}/src" />
+  <property name="gmc.bin.dir" value="${gmc.dir}/bin" />
+  <property name="gmc.lib.dir" value="${gmc.dir}/lib" />
+  <property name="gmc.test.dir" value="${gmc.dir}/test" />
+  <property name="gmc.javadoc.dir" value="${gmc.dir}/javadoc" />
+  <property name="gmc.junit.dir" value="${gmc.dir}/junit" />
+  <property name="gmc.coverage.dir" value="${gmc.dir}/coverage" />
+
+  <property name="sarl.dir" value="${mod.dir}/${mod.sarl}" />
+  <property name="sarl.src.dir" value="${sarl.dir}/src" />
+  <property name="sarl.bin.dir" value="${sarl.dir}/bin" />
+  <property name="sarl.lib.dir" value="${sarl.dir}/lib" />
+  <property name="sarl.test.dir" value="${sarl.dir}/test" />
+  <property name="sarl.javadoc.dir" value="${sarl.dir}/javadoc" />
+  <property name="sarl.junit.dir" value="${sarl.dir}/junit" />
+  <property name="sarl.coverage.dir" value="${sarl.dir}/coverage" />
+  <property name="sarl.bench.dir" value="${sarl.dir}/bench" />
+
+  <property name="abc.dir" value="${mod.dir}/${mod.abc}" />
+  <property name="abc.grammar.dir" value="${abc.dir}/grammar" />
+  <property name="abc.src.dir" value="${abc.dir}/src" />
+  <property name="abc.bin.dir" value="${abc.dir}/bin" />
+  <property name="abc.lib.dir" value="${abc.dir}/lib" />
+  <property name="abc.test.dir" value="${abc.dir}/test" />
+  <property name="abc.javadoc.dir" value="${abc.dir}/javadoc" />
+  <property name="abc.junit.dir" value="${abc.dir}/junit" />
+  <property name="abc.coverage.dir" value="${abc.dir}/coverage" />
+
+  <property name="mc.dir" value="${mod.dir}/${mod.mc}" />
+  <property name="mc.src.dir" value="${mc.dir}/src" />
+  <property name="mc.bin.dir" value="${mc.dir}/bin" />
+  <property name="mc.lib.dir" value="${mc.dir}/lib" />
+  <property name="mc.test.dir" value="${mc.dir}/test" />
+  <property name="mc.javadoc.dir" value="${mc.dir}/javadoc" />
+  <property name="mc.junit.dir" value="${mc.dir}/junit" />
+  <property name="mc.coverage.dir" value="${mc.dir}/coverage" />
+  <property name="mc.bench.dir" value="${mc.dir}/bench" />
+
+  <!-- Files -->
+
+</project>

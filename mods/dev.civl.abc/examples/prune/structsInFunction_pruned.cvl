@@ -1,0 +1,13 @@
+//======================== civlc.cvh =======================
+typedef struct $proc $proc;
+$system[civlc] void $wait($proc p);
+//================== structsInFunction.cvl =================
+void process() {
+  int a;
+  int b;
+  a = b = 10;
+}
+int main() {
+  $proc p = $spawn process();
+  $wait(p);
+}

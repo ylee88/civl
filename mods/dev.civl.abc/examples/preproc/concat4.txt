@@ -1,0 +1,2 @@
+#define f(X) this is the concatenation of X and blah: X ## blah
+f(hello)

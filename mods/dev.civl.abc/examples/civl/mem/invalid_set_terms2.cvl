@@ -1,0 +1,7 @@
+int main() {
+  int a[10];
+  int *p = &a[0];	
+  int *q = &a[1];
+
+  $mem m = q - (0 .. 1);
+}

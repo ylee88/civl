@@ -1,0 +1,9 @@
+$system[hello] int fun();
+
+$system[hello1] int fun(int);
+
+int main(){
+  int a;
+
+  a=fun(0);
+}

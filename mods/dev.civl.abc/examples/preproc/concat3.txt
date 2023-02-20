@@ -1,0 +1,2 @@
+#define f(X,Y) this is the concatenation of X and Y: X ## Y.
+f(hello, world)

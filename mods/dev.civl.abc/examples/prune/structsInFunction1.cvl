@@ -1,0 +1,18 @@
+#include<civlc.cvh>
+
+void process(){
+  typedef struct Node* Node_t;
+  struct Node{
+    int x;
+    int y;
+  };
+
+  int a,b;
+  a=b=10;
+}
+
+int main(){
+  $proc p=$spawn process();
+
+  $wait(p);
+}

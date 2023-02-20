@@ -1,0 +1,281 @@
+<!--
+    build.xml : Ant build file for CIVL
+    Author: Stephen F. Siegel, University of Delaware
+    Last modified:
+    
+    The following can be defined on command line with -Dprop=val:
+    revision.  This is for the use of our SVN commit hook, which 
+    runs the test suite and performs other tasks every time a commit
+    is made.  The SVN revision number is just used here to insert
+    into reports.
+-->
+
+<project name="CIVL" basedir="." default="compile"
+	 xmlns:jacoco="antlib:org.jacoco.ant">
+  <import file="../dev.civl.com/common.xml" />
+
+  <!-- Properties -->
+  <property name="src.dir" value="${mc.src.dir}" />
+  <property name="bin.dir" value="${mc.bin.dir}" />
+  <property name="real.src.dir" value="${src.dir}/dev/civl/mc" />
+  <property name="main-class" value="dev.civl.mc.CIVL" />
+  <property name="grammar.dir" value="${mc.dir}/grammar" />
+  <property name="test.src.dir" location="${mc.test.dir}/regress" />
+  <property name="test.bin.root.dir" location="${mc.dir}/bin-test" />
+  <property name="test.bin.dir"
+	    location="${test.bin.root.dir}/regress" />
+  <property name="junit.dir" location="${mc.junit.dir}" />
+  <property name="junit.data.dir" location="${junit.dir}/data" />
+  <property name="junit.reports.dir" location="${junit.dir}/reports" />
+  <property name="coverage.dir" location="${mc.coverage.dir}" />
+  <property name="bench.src.dir" location="${mc.bench.dir}" />
+  <property name="javacdoc.dir" value="${mc.javadoc.dir}" />
+
+  <!-- Running ANTLR -->
+
+  <target name="checkCommandParserChanges">
+    <uptodate property="noCommandParserChanges">
+      <srcfiles file="${grammar.dir}/Command.g4" />
+      <srcfiles file="${grammar.dir}/Command.tokens" />
+      <srcfiles file="${grammar.dir}/CommandLexer.tokens" />
+      <compositemapper>
+	<mapper type="merge"
+		to="${real.src.dir}/run/common/CommandLexer.java" />
+	<mapper type="merge"
+		to="${real.src.dir}/run/common/CommandParser.java" />
+	<mapper type="merge"
+		to="${real.src.dir}/run/common/CommandListener.java" />
+	<mapper type="merge"
+		to="${real.src.dir}/run/common/CommandBaseListener.java" />
+      </compositemapper>
+    </uptodate>
+  </target>
+
+  <target name="CommandParser" depends="checkCommandParserChanges"
+	  unless="noCommandParserChanges">
+    <java classname="org.antlr.v4.Tool"
+	  classpathref="antlr4.class.path"
+	  fork="true" failonerror="true" dir="${grammar.dir}">
+      <arg value="-package" />
+      <arg value="dev.civl.mc.run.common" />
+      <arg value="Command.g4" />
+    </java>
+    <move file="${grammar.dir}/CommandLexer.java"
+	  todir="${real.src.dir}/run/common" />
+    <move file="${grammar.dir}/CommandParser.java"
+	  todir="${real.src.dir}/run/common" />
+    <move file="${grammar.dir}/CommandListener.java"
+	  todir="${real.src.dir}/run/common" />
+    <move file="${grammar.dir}/CommandBaseListener.java"
+	  todir="${real.src.dir}/run/common" />
+  </target>
+
+  <!-- Source compilation -->
+
+  <!-- note that ABC builds SARL -->
+  <target name="dependencies"
+	  description="Compile SARL, ABC, GMC modules.">
+    <ant dir="${abc.dir}" target="compile" inheritAll="false" />
+    <ant dir="${gmc.dir}" target="compile" inheritAll="false" />
+  </target>
+  
+  <target name="compile" depends="CommandParser,dependencies"
+	  description="Compile all Java source files for CIVL.">
+    <mkdir dir="${bin.dir}" />
+    <javac release="${javaversion}" debug="true"
+	   srcdir="${src.dir}" destdir="${bin.dir}"
+	   encoding="UTF-8" includeantruntime="false">
+      <modulepath>
+	<pathelement path="${sarl.bin.dir}" />
+	<pathelement path="${abc.bin.dir}" />
+	<pathelement path="${gmc.bin.dir}" />
+	<pathelement location="${antlr4.runtime.mod.jar.path}" />
+	<pathelement location="${antlr3.runtime.mod.jar.path}" />
+      </modulepath>
+    </javac>
+    <copy todir="${bin.dir}/include">
+      <fileset dir="${src.dir}/include" />
+    </copy>
+  </target>
+
+  <!-- JUnit tests and Jacoco coverage analysis -->
+
+  <path id="test.compile.classpath">
+    <pathelement location="${test.src.dir}" />
+    <pathelement location="${bin.dir}" />
+    <pathelement location="${sarl.bin.dir}" />
+    <pathelement location="${abc.bin.dir}" />
+    <pathelement location="${gmc.bin.dir}" />
+    <pathelement location="${junit.jar}" />
+    <pathelement location="${hamcrest.jar}" />
+    <pathelement location="${antlr4.runtime.jar}" />
+    <pathelement location="${antlr3.runtime.jar}" />
+  </path>
+
+  <path id="test.execute.classpath">
+    <pathelement location="${test.bin.dir}" />
+    <pathelement location="${bin.dir}" />
+    <pathelement location="${sarl.bin.dir}" />
+    <pathelement location="${abc.bin.dir}" />
+    <pathelement location="${gmc.bin.dir}" />
+    <pathelement location="${junit.jar}" />
+    <pathelement location="${hamcrest.jar}" />
+    <pathelement location="${antlr4.runtime.jar}" />
+    <pathelement location="${antlr3.runtime.jar}" />
+  </path>
+
+  <target name="test-init">
+    <delete dir="${junit.dir}" quiet="true" />
+    <delete dir="${test.bin.dir}" quiet="true" />
+    <mkdir dir="${junit.dir}" />
+    <mkdir dir="${junit.data.dir}" />
+    <mkdir dir="${junit.reports.dir}" />
+    <mkdir dir="${test.bin.dir}" />
+  </target>
+  
+  <target name="test-compile" depends="compile,test-init">
+    <javac release="${javaversion}" destdir="${test.bin.dir}"
+	   debug="true" failonerror="false"
+	   classpathref="test.compile.classpath"
+	   encoding="UTF-8" includeantruntime="true">
+      <src path="${test.src.dir}" />
+    </javac>
+  </target>
+  
+  <target name="test-run-hold" depends="test-compile">
+    <jacoco:coverage
+	excludes="*Listener*:*Lexer*:*Parser*"
+	includes="dev/civl/mc/*">
+      <junit fork="true" forkmode="perTest" threads="${nthreads}" timeout="900000">
+	<jvmarg value="-ea" />
+	<classpath refid="test.execute.classpath" />
+	<formatter type="brief" usefile="false" />
+	<formatter type="xml" />
+	<batchtest todir="${junit.data.dir}">
+	  <fileset dir="${test.bin.dir}" includes="**/*Test.class" />
+	</batchtest>
+      </junit>
+    </jacoco:coverage>
+    <junitreport todir="${junit.data.dir}">
+      <fileset dir="${junit.data.dir}">
+	<include name="TEST-*.xml" />
+      </fileset>
+      <report format="frames" todir="${junit.reports.dir}">
+	<param name="TITLE"
+	       expression="JUnit Report for CIVL ${revision} Regression Suite" />
+      </report>
+    </junitreport>
+  </target>
+
+
+  <!-- need to put examples where they will be found -->
+  
+  <target name="test-run" depends="test-compile">
+    <junit dir="${common.dir}" fork="true" forkmode="perTest" threads="1" timeout="900000">
+      <jvmarg value="-ea" />
+      <classpath refid="test.execute.classpath" />
+      <formatter type="brief" usefile="false" />
+      <formatter type="xml" />
+      <batchtest todir="${junit.data.dir}">
+	<fileset dir="${test.bin.dir}" includes="**/*Test.class" />
+      </batchtest>
+    </junit>
+  </target>
+
+  <target name="test" depends="test-run">
+    <jacoco:report>
+      <executiondata>
+	<file file="jacoco.exec" />
+      </executiondata>
+      <structure name="Test Coverage Report for CIVL ${revision} Regression Suite">
+	<classfiles>
+	  <fileset dir="${bin.dir}" />
+	</classfiles>
+	<sourcefiles encoding="UTF-8">
+	  <fileset dir="${src.dir}" />
+	</sourcefiles>
+      </structure>
+      <html destdir="coverage" />
+    </jacoco:report>
+  </target>
+  
+  <!-- Benchmark Tasks -->
+
+  <!-- TODO: just make this part of regular CIVL source? -->
+  
+  <target name="bench-compile" depends="compile"
+	  description="Compile benchmark java source files.">
+    <javac release="${javaversion}"
+	   debug="true" srcdir="${bench.src.dir}" destdir="${bin.dir}"
+	   encoding="UTF-8" includeantruntime="false"
+	   includes="dev/civl/mc/**/*Benchmark.java">
+      <modulepath>
+	<pathelement path="${sarl.bin.dir}" />
+	<pathelement path="${abc.bin.dir}" />
+	<pathelement path="${gmc.bin.dir}" />
+	<pathelement path="${bin.dir}" />
+	<pathelement location="${antlr4.runtime.mod.jar.path}" />
+	<pathelement location="${antlr3.runtime.mod.jar.path}" />
+      </modulepath>
+    </javac>
+  </target>
+
+  <target name="bench-scale-compile" depends="compile"
+	  description="Compile scale benchmark java source files.">
+    <javac release="${javaversion}"
+	   debug="true" srcdir="${bench.src.dir}" destdir="${bin.dir}"
+	   encoding="UTF-8" includeantruntime="false"
+	   includes="dev/civl/mc/**/**/*BenchmarkScale.java">
+      <modulepath>
+	<pathelement path="${sarl.bin.dir}" />
+	<pathelement path="${abc.bin.dir}" />
+	<pathelement path="${gmc.bin.dir}" />
+	<pathelement path="${bin.dir}" />
+	<pathelement location="${antlr4.runtime.mod.jar.path}" />
+	<pathelement location="${antlr3.runtime.mod.jar.path}" />
+      </modulepath>
+    </javac>
+  </target>
+  
+  <!-- Javadoc Tasks -->
+
+  <target name="javadoc">
+    <delete dir="${javadoc.dir}" quiet="true" />
+    <mkdir dir="${javadoc.dir}" />
+    <javadoc destdir="${javadoc.dir}"
+	     Overview="${src.dir}/overview.html"
+	     author="false" version="true" use="true"
+	     windowtitle="API for CIVL ${revision}"
+	     access="public"
+	     classpathref="test.execute.classpath"
+	     failonerror="false">
+      <packageset dir="${src.dir}" defaultexcludes="yes">
+	<include name="**/IF" />
+	<include name="**/IF/**" />
+	<include name="dev/civl/mc" />
+      </packageset>
+    </javadoc>
+  </target>
+
+  <!-- Clean -->
+
+  <target name="clean" description="Delete all generated files.">
+    <delete dir="${bin.dir}" />
+    <delete dir="${test.bin.root.dir}" />
+    <delete dir="${junit.dir}" />
+    <delete dir="${javadoc.dir}" />
+    <delete dir="${coverage.dir}" />
+    <delete file="${mc.dir}/jacoco.exec" />
+    <delete file="${grammar.dir}/Command.tokens" />
+    <delete file="${grammar.dir}/CommandLexer.tokens" />
+    <delete file="${real.src.dir}/run/common/CommandLexer.java" />
+    <delete file="${real.src.dir}/run/common/CommandParser.java" />
+    <delete file="${real.src.dir}/run/common/CommandListener.java" />
+    <delete file="${real.src.dir}/run/common/CommandBaseListener.java" />
+  </target>
+
+  <!-- Do everything -->
+
+  <target name="all" depends="test,javadoc,bench-compile,bench-scale-compile" />
+
+</project>

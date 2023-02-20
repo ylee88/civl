@@ -1,0 +1,7 @@
+/* Do not manually include this header in your program.  This is a
+   placeholder header for the client of ABC to load the implementation
+   "civl-mpi-blocking.cvl", which is one of the implementations of
+   "civl-mpi.cvh".  "civl-mpi.cvh" chooses its own implementation by
+   including different placeholder headers, including this one.  
+ */
+

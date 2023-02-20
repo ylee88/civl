@@ -1,0 +1,6 @@
+extern void f();
+
+void g() {
+  $proc p = $spawn f();
+  $wait(p);
+}

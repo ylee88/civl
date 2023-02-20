@@ -1,0 +1,56 @@
+package dev.civl.mc;
+
+import static org.junit.Assert.assertTrue;
+import static dev.civl.mc.TestConstants.ANALYZE_ABS;
+import static dev.civl.mc.TestConstants.VERIFY;
+import static dev.civl.mc.TestConstants.QUIET;
+import static dev.civl.mc.TestConstants.NO_PRINTF;
+
+import java.io.File;
+
+import org.junit.AfterClass;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.Timeout;
+
+import dev.civl.mc.run.IF.UserInterface;
+
+public class AnalysisTest {
+	@Rule
+	public Timeout globalTimeout = Timeout.seconds(30);
+
+	/* *************************** Static Fields *************************** */
+
+	private static File rootDir = new File(new File("examples"), "analysis");
+
+	private static UserInterface ui = new UserInterface();
+
+	/* *************************** Helper Methods ************************** */
+
+	private static String filename(String name) {
+		return new File(rootDir, name).getPath();
+	}
+
+	/* **************************** Test Methods *************************** */
+
+	@Test
+	public void unreached() {
+		assertTrue(ui.run(VERIFY, QUIET, NO_PRINTF, filename("unreached.c")));
+	}
+
+	@Test
+	public void abs() {
+		assertTrue(ui.run(VERIFY, ANALYZE_ABS, QUIET, filename("abs.c")));
+	}
+
+	@Test
+	public void abs2() {
+		assertTrue(ui.run(VERIFY, ANALYZE_ABS, QUIET, filename("abs2.c")));
+	}
+
+	@AfterClass
+	public static void tearDownAfterClass() throws Exception {
+		ui = null;
+		rootDir = null;
+	}
+}

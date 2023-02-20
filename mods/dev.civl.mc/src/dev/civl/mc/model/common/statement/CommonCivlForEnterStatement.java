@@ -1,0 +1,141 @@
+package dev.civl.mc.model.common.statement;
+
+import java.util.List;
+import java.util.Set;
+
+import dev.civl.mc.model.IF.CIVLSource;
+import dev.civl.mc.model.IF.Scope;
+import dev.civl.mc.model.IF.expression.ConditionalExpression;
+import dev.civl.mc.model.IF.expression.Expression;
+import dev.civl.mc.model.IF.location.Location;
+import dev.civl.mc.model.IF.statement.DomainIteratorStatement;
+import dev.civl.mc.model.IF.statement.Statement;
+import dev.civl.mc.model.IF.variable.Variable;
+import dev.civl.sarl.IF.SymbolicUniverse;
+
+public class CommonCivlForEnterStatement extends CommonStatement
+		implements
+			DomainIteratorStatement {
+
+	private Expression domain;
+
+	private List<Variable> loopVariables;
+
+	private Variable literalDomCounter;
+
+	public CommonCivlForEnterStatement(CIVLSource civlSource, Location source,
+			Expression guard, Expression dom, List<Variable> variables,
+			Variable counter) {
+		super(civlSource, dom.expressionScope(), dom.lowestScope(), source,
+				guard);
+		this.domain = dom;
+		this.setLoopVariables(variables);
+		this.literalDomCounter = counter;
+	}
+
+	@Override
+	public Statement replaceWith(ConditionalExpression oldExpression,
+			Expression newExpression) {
+		Expression newGuard = guardReplaceWith(oldExpression, newExpression);
+		DomainIteratorStatement newStatement = null;
+
+		if (newGuard != null) {
+			newStatement = new CommonCivlForEnterStatement(this.getSource(),
+					this.source(), newGuard, this.domain, this.loopVariables,
+					this.literalDomCounter);
+		} else {
+			Expression newDomain = domain.replaceWith(oldExpression,
+					newExpression);
+
+			if (newDomain != null) {
+				newStatement = new CommonCivlForEnterStatement(this.getSource(),
+						this.source(), this.guard(), newDomain,
+						this.loopVariables, this.literalDomCounter);
+			}
+		}
+		return newStatement;
+	}
+
+	@Override
+	public Set<Variable> variableAddressedOf(Scope scope) {
+		return domain.variableAddressedOf(scope);
+	}
+
+	@Override
+	public Set<Variable> variableAddressedOf() {
+		return domain.variableAddressedOf();
+	}
+
+	@Override
+	public StatementKind statementKind() {
+		return StatementKind.DOMAIN_ITERATOR;
+	}
+
+	@Override
+	public Expression domain() {
+		return this.domain;
+	}
+
+	@Override
+	public List<Variable> loopVariables() {
+		return this.loopVariables;
+	}
+
+	public void setLoopVariables(List<Variable> loopVariables) {
+		this.loopVariables = loopVariables;
+	}
+
+	@Override
+	public String toString() {
+		StringBuffer string = new StringBuffer();
+		int dim = this.loopVariables.size();
+		boolean first = true;
+
+		string.append("NEXT ");
+		string.append("(");
+		for (int i = 0; i < dim; i++) {
+			if (first)
+				first = false;
+			else
+				string.append(", ");
+			string.append(this.loopVariables.get(i));
+		}
+		string.append(") in ");
+		string.append(domain);
+		return string.toString();
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (super.equals(obj)) {
+			if (obj instanceof CommonCivlForEnterStatement) {
+				CommonCivlForEnterStatement other = (CommonCivlForEnterStatement) obj;
+
+				if (other.domain.equals(domain))
+					if (other.loopVariables.equals(loopVariables))
+						return other.literalDomCounter == literalDomCounter;
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public Variable getLiteralDomCounter() {
+		return this.literalDomCounter;
+	}
+
+	@Override
+	protected void calculateConstantValueWork(SymbolicUniverse universe) {
+		this.domain.calculateConstantValue(universe);
+	}
+
+	@Override
+	public Set<Variable> freeVariables() {
+		Set<Variable> result = super.freeVariables();
+
+		result.addAll(domain.freeVariables());
+		result.add(literalDomCounter);
+		result.addAll(loopVariables);
+		return result;
+	}
+}

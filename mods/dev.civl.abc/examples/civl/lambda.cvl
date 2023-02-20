@@ -1,0 +1,12 @@
+$input int n;
+
+int f(int *p){
+  return p[0];
+}
+
+int main(){
+  int a[n]=(int[n])$lambda(int i) i;
+
+  a=(int[n])$lambda(int i) i*3;  
+  f((int[n])$lambda(int i) i*5);
+}

@@ -1,0 +1,3 @@
+#define f(X) here is a string: # X
+#define g(X) blah blah blah
+f(g(pi=3))

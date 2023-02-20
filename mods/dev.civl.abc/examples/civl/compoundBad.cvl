@@ -1,0 +1,11 @@
+int main() {
+  $scope s = $here;
+
+  struct T {
+    int x;
+  };
+
+  struct T t = {s};
+
+  return t.x;
+}

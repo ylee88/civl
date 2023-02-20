@@ -1,0 +1,9 @@
+int main() {
+  int a[10];
+  int * p = &a[0];
+  
+  $mem m0 = p + (0 .. 9);
+  $mem m1 = p;
+
+  $assert(m0 == m1);
+}

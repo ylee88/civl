@@ -1,0 +1,177 @@
+package dev.civl.sarl.object.common;
+
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import dev.civl.sarl.IF.expr.SymbolicExpression;
+import dev.civl.sarl.IF.number.Number;
+import dev.civl.sarl.IF.number.NumberFactory;
+import dev.civl.sarl.IF.object.BooleanObject;
+import dev.civl.sarl.IF.object.CharObject;
+import dev.civl.sarl.IF.object.IntObject;
+import dev.civl.sarl.IF.object.NumberObject;
+import dev.civl.sarl.IF.object.StringObject;
+import dev.civl.sarl.IF.object.SymbolicObject;
+import dev.civl.sarl.IF.object.SymbolicSequence;
+import dev.civl.sarl.IF.type.SymbolicType;
+import dev.civl.sarl.IF.type.SymbolicTypeSequence;
+import dev.civl.sarl.object.IF.ObjectFactory;
+
+/**
+ * Simple stub object factory. Implements only those methods related to
+ * {@link #canonic}.
+ * 
+ * @author siegel
+ * 
+ */
+public class ObjectFactoryStub implements ObjectFactory {
+
+	private Map<SymbolicObject, SymbolicObject> objectMap = new LinkedHashMap<SymbolicObject, SymbolicObject>();
+
+	@Override
+	public void setExpressionComparator(Comparator<SymbolicExpression> c) {
+	}
+
+	@Override
+	public void setTypeComparator(Comparator<SymbolicType> c) {
+	}
+
+	@Override
+	public void setTypeSequenceComparator(Comparator<SymbolicTypeSequence> c) {
+	}
+
+	@Override
+	public void init() {
+	}
+
+	@Override
+	public ObjectComparator comparator() {
+		return null;
+	}
+
+	@Override
+	public <T extends SymbolicObject> T canonic(T object) {
+		@SuppressWarnings("unchecked")
+		T result = (T) objectMap.get(object);
+
+		if (result == null) {
+			result = object;
+			((CommonSymbolicObject) result).setId(objectMap.size());
+			objectMap.put(result, result);
+		}
+		return result;
+	}
+
+	@Override
+	public BooleanObject trueObj() {
+		return null;
+	}
+
+	@Override
+	public BooleanObject falseObj() {
+		return null;
+	}
+
+	@Override
+	public IntObject zeroIntObj() {
+		return null;
+	}
+
+	@Override
+	public IntObject oneIntObj() {
+		return null;
+	}
+
+	@Override
+	public NumberObject zeroIntegerObj() {
+		return null;
+	}
+
+	@Override
+	public NumberObject oneIntegerObj() {
+		return null;
+	}
+
+	@Override
+	public NumberObject zeroRealObj() {
+		return null;
+	}
+
+	@Override
+	public NumberObject oneRealObj() {
+		return null;
+	}
+
+	@Override
+	public NumberObject numberObject(Number value) {
+		return null;
+	}
+
+	@Override
+	public CharObject charObject(char value) {
+		return null;
+	}
+
+	@Override
+	public StringObject stringObject(String string) {
+		return null;
+	}
+
+	@Override
+	public IntObject intObject(int value) {
+		return null;
+	}
+
+	@Override
+	public BooleanObject booleanObject(boolean value) {
+		return null;
+	}
+
+	@Override
+	public SymbolicObject objectWithId(int index) {
+		return null;
+	}
+
+	@Override
+	public int numObjects() {
+		return objectMap.size();
+	}
+
+	@Override
+	public NumberFactory numberFactory() {
+		return null;
+	}
+
+	@Override
+	public <T extends SymbolicObject> void canonize(T[] objectArray) {
+	}
+
+	@Override
+	public <T extends SymbolicExpression> SymbolicSequence<T> sequence(
+			Iterable<? extends T> elements) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public <T extends SymbolicExpression> SymbolicSequence<T> sequence(
+			T[] elements) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public <T extends SymbolicExpression> SymbolicSequence<T> singletonSequence(
+			T element) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public <T extends SymbolicExpression> SymbolicSequence<T> emptySequence() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+}

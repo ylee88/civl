@@ -1,0 +1,11 @@
+int a[10][10];
+int b[10];
+
+#pragma CIVL ACSL
+
+/*@ logic int f(int[10] *a) = a[0][0];
+  @
+  @ logic int g(int *a) = a[0];
+  @*/
+
+//@ assert a[0][0] == b[1] ==> f(a) == g(b+1);

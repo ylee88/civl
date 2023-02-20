@@ -1,0 +1,21 @@
+All Fortran grammar files are imported from the project 'Open Fortran Parser'
+(http://fortran-parser.sourceforge.net/)
+
+Open Fortran Parser (OFP)
+The Open Fortran Parser (OFP) project provides ANTLR-based parsing tools that support the Fortran 2008 standard. 
+The intent is to provide compiler front-end level tool with a standard-compliant Fortran parser. 
+The final draft of the ISO Fortran 2003 specification originally used to develop OFP can be found at this location. 
+Information on additions and changes to Fortran introduced in the 2008 language specification can be found here.
+
+If you are a user looking for a tool to perform transformations or analysis tasks on Fortran code, 
+you should look at the ROSE project. ROSE uses OFP to parse Fortran files. 
+Most users will find ROSE to be the right solution to their problem. 
+If you require direct access to the parser-level information, then OFP can be used on its own.
+
+As of NetBeans version 6.9, OFP is listed as a dependency to provide basic Fortran support to the IDE.
+
+The OFP project is currently available under the Eclipse Public License and the BSD License.
+
+Participants: Craig Rasmussen, Matthew Sottile, Dan Quinlan.
+Alumni: Chris Rickett, Bryan Rasmussen.
+Institutions: Los Alamos National Laboratory; Galois, Inc.; Lawrence Livermore National Laboratory; Rice University.
