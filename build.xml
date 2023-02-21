@@ -1,0 +1,124 @@
+<project name="CIVL" basedir="." default="all"
+	 xmlns:jacoco="antlib:org.jacoco.ant"> 
+
+  <import file="mods/dev.civl.com/common.xml" />
+
+  <!-- Compile -->
+  <target name="compile">
+    <ant dir="${mc.dir}" target="compile" inheritAll="false" />
+  </target>
+
+  <!-- Test -->
+  <target name="test">
+    <ant dir="${sarl.dir}" target="test" inheritAll="false" />
+    <ant dir="${abc.dir}" target="test" inheritAll="false" />
+    <ant dir="${gmc.dir}" target="test" inheritAll="false" />
+    <ant dir="${mc.dir}" target="test" inheritAll="false" />
+  </target>
+
+  <!-- Javadocs -->
+  <target name="javadoc">
+    <ant dir="${sarl.dir}" target="javadoc" inheritAll="false" />
+    <ant dir="${abc.dir}" target="javadoc" inheritAll="false" />
+    <ant dir="${gmc.dir}" target="javadoc" inheritAll="false" />
+    <ant dir="${mc.dir}" target="javadoc" inheritAll="false" />
+  </target>
+
+  <!-- Clean -->
+  <target name="clean">
+    <ant dir="${sarl.dir}" target="clean" inheritAll="false" />
+    <ant dir="${abc.dir}" target="clean" inheritAll="false" />
+    <ant dir="${gmc.dir}" target="clean" inheritAll="false" />
+    <ant dir="${mc.dir}" target="clean" inheritAll="false" />
+    <delete dir="${lib.dir}" />
+    <delete dir="${app.dir}" />
+  </target>
+
+
+  <!-- Single non-modular JAR creation -->
+
+  <!-- everything in one JAR, including all dependencies -->
+
+  <target name="check.uptodate.complete.jar">
+    <uptodate property="uptodate.complete.jar"
+	      targetfile="${civl.complete.jar}" >
+      <srcfiles dir="${sarl.bin.dir}" />
+      <srcfiles dir="${gmc.bin.dir}" />
+      <srcfiles dir="${abc.bin.dir}" />
+      <srcfiles dir="${mc.bin.dir}" />
+      <srcfiles file="${antlr3.runtime.jar}" />
+      <srcfiles file="${antlr4.runtime.jar}" />
+    </uptodate>
+  </target>
+
+  <target name="civl.complete.jar"
+	  depends="compile,check.uptodate.complete.jar"
+	  unless="uptodate.complete.jar"
+	  description="Create single non-modular JAR" >
+    <jar destfile="${civl.complete.jar}">
+      <fileset dir="${sarl.bin.dir}" excludes="module-info.class" />
+      <fileset dir="${gmc.bin.dir}" excludes="module-info.class" />
+      <fileset dir="${abc.bin.dir}" excludes="module-info.class" />
+      <fileset dir="${mc.bin.dir}" excludes="module-info.class" />
+      <zipfileset includes="**/*.class" excludes="module-info.class"
+		  src="${antlr3.runtime.jar}" />
+      <zipfileset includes="**/*.class" excludes="module-info.class"
+		  src="${antlr4.runtime.jar}" />
+      <manifest>
+	<attribute name="Build-By" value="${user.name}" />
+	<attribute name="Main-Class" value="${main.class}" />
+      </manifest>
+    </jar>
+  </target>
+
+
+  <!-- Modular JAR creation -->
+  
+  <!-- These modular jars contain only the code in the module, not
+       code used by that code. So, e.g., ANTLR runtime code is not
+       included. -->
+
+  <target name="jar.sarl" depends="compile">
+    <mkdir dir="${lib.dir}" />
+    <jar destfile="${lib.dir}/${mod.sarl}.jar"
+	 basedir="${sarl.bin.dir}" />
+  </target>
+  
+  <target name="jar.gmc" depends="compile">
+    <mkdir dir="${lib.dir}" />
+    <jar destfile="${lib.dir}/${mod.gmc}.jar"
+	 basedir="${gmc.bin.dir}" />
+  </target>
+
+  <target name="jar.abc" depends="compile">
+    <mkdir dir="${lib.dir}" />
+    <jar destfile="${lib.dir}/${mod.abc}.jar"
+	 basedir="${abc.bin.dir}" />
+  </target>
+
+  <target name="jar.mc" depends="compile">
+    <mkdir dir="${lib.dir}" />
+    <jar destfile="${lib.dir}/${mod.mc}.jar"
+	 basedir="${mc.bin.dir}" />
+  </target>
+
+  <target name="lib" depends="jar.sarl,jar.gmc,jar.abc,jar.mc">
+    <copy file="${antlr3.runtime.mod.jar.path}" todir="${lib.dir}" />
+    <copy file="${antlr4.runtime.mod.jar.path}" todir="${lib.dir}" />
+  </target>
+
+   <!-- Stand-alone app with custom JVM -->
+  
+  <target name="app" depends="lib">
+    <link destdir="${app.dir}" modulepath="${lib.dir}"
+	  modules="${mod.sarl},${mod.gmc},${mod.abc},${mod.mc},${mod.antlr3},${mod.antlr4},java.base"
+	  launchers="civl=${mod.mc}/${main.class}" />
+  </target>
+
+  <target name="run" depends="app" description="Run the civl app">
+    <exec executable="${app.dir}/bin/civl" />
+  </target>
+
+  <target name="all" depends="civl.complete.jar,app" />
+
+</project>

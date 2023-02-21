@@ -87,7 +87,7 @@
 	<include name="TEST-*.xml" />
       </fileset>
       <report format="frames" todir="${junit.reports.dir}">
-	<param name="TITLE" expression="JUnit Report for GMC ${revision}" />
+	<param name="TITLE" expression="JUnit Report for GMC ${civlversion}.${revision}" />
       </report>
     </junitreport>
   </target>
@@ -97,7 +97,7 @@
       <executiondata>
 	<file file="jacoco.exec" />
       </executiondata>
-      <structure name="Test Coverage Report for GMC ${revision}">
+      <structure name="Test Coverage Report for GMC ${civlversion}.${revision}">
 	<classfiles>
 	  <fileset dir="${bin.dir}" />
 	</classfiles>
@@ -117,7 +117,7 @@
     <javadoc destdir="${javadoc.dir}"
 	     Overview="${src.dir}/overview.html"
 	     author="false" version="true" use="true"
-	     windowtitle="API for GMC ${revision}"
+	     windowtitle="GMC ${civlversion}.${revision}"
 	     access="public"
 	     classpathref="test.execute.classpath"
 	     sourcepath="${src.dir}"
@@ -127,19 +127,14 @@
 
   <!-- Clean -->
 
-  <target name="clean" description="Delete all generated files.">
+  <target name="clean" description="Delete all generated files."
+	  depends="clean-default">
     <delete dir="${bin.dir}" />
     <delete dir="${test.bin.dir}" />
     <delete dir="${junit.dir}" />
     <delete dir="${javadoc.dir}" />
     <delete dir="${coverage.dir}" />
     <delete file="${gmc.dir}/jacoco.exec" />
-    <delete>
-      <fileset dir="." defaultexcludes="false" includes="**/*~" />
-    </delete>
-    <delete>
-      <fileset dir="." defaultexcludes="false" includes="**/*.tmp" />
-    </delete>
   </target>
 
   <!-- Do everything -->

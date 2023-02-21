@@ -93,7 +93,7 @@
       </fileset>
       <report format="frames" todir="${junit.reports.dir}">
 	<param name="TITLE"
-	       expression="JUnit Report for SARL ${revision} Regression Suite" />
+	       expression="JUnit Report for SARL ${civlversion}.${revision} Regression Suite" />
       </report>
     </junitreport>
   </target>
@@ -103,7 +103,7 @@
       <executiondata>
 	<file file="jacoco.exec" />
       </executiondata>
-      <structure name="Test Coverage Report for SARL ${revision} Regression Suite">
+      <structure name="Test Coverage Report for SARL ${civlversion}.${revision} Regression Suite">
 	<classfiles>
 	  <fileset dir="${bin.dir}" />
 	</classfiles>
@@ -139,7 +139,7 @@
     <javadoc destdir="${javadoc.dir}"
 	     Overview="${src.dir}/overview.html"
 	     author="false" version="true" use="true"
-	     windowtitle="API for SARL ${revision}"
+	     windowtitle="SARL ${civlversion}.${revision}"
 	     access="public"
 	     classpathref="test.execute.classpath"
 	     failonerror="false">
@@ -153,19 +153,14 @@
 
   <!-- Clean -->
 
-  <target name="clean" description="Delete all generated files.">
+  <target name="clean" description="Delete all generated files."
+	  depends="clean-default">
     <delete dir="${bin.dir}" />
     <delete dir="${test.bin.root.dir}" />
     <delete dir="${junit.dir}" />
     <delete dir="${javadoc.dir}" />
     <delete dir="${coverage.dir}" />
     <delete file="${sarl.dir}/jacoco.exec" />
-    <delete>
-      <fileset dir="." defaultexcludes="false" includes="**/*~" />
-    </delete>
-    <delete>
-      <fileset dir="." defaultexcludes="false" includes="**/*.tmp" />
-    </delete>
   </target>
 
   <!-- Do everything -->

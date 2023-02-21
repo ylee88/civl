@@ -482,12 +482,6 @@
     <ant dir="${sarl.dir}" target="compile" inheritAll="false" />
   </target>
 
-  <path id="src.compile.classpath">
-    <pathelement location="${src.dir}" />
-    <pathelement location="${antlr3.runtime.jar}" />
-    <pathelement location="${sarl.bin.dir}" />
-  </path>
-
   <target name="compile" depends="cParsers,fParsers,dependencies"
 	  description="Compile all Java source files for ABC.">
     <mkdir dir="${bin.dir}" />
@@ -561,7 +555,7 @@
       </fileset>
       <report format="frames" todir="${junit.reports.dir}">
 	<param name="TITLE"
-	       expression="JUnit Report for ABC ${revision}" />
+	       expression="JUnit Report for ABC ${civlversion}.${revision}" />
       </report>
     </junitreport>
   </target>
@@ -571,7 +565,7 @@
       <executiondata>
 	<file file="jacoco.exec" />
       </executiondata>
-      <structure name="Test Coverage Report for ABC ${revision}">
+      <structure name="Test Coverage Report for ABC ${civlversion}.${revision}">
 	<classfiles>
 	  <fileset dir="${bin.dir}" />
 	</classfiles>
@@ -591,7 +585,7 @@
     <javadoc destdir="${javadoc.dir}"
 	     Overview="${src.dir}/overview.html"
 	     author="false" version="true" use="true"
-	     windowtitle="API for ABC ${revision}"
+	     windowtitle="ABC ${civlversion}.${revision}"
 	     access="public" failonerror="false">
       <modulepath>
 	<pathelement path="${bin.dir}" />
@@ -666,19 +660,12 @@
   </target>
 
   <target name="clean" description="Delete all generated files."
-	  depends="cleanFortran, cleanCivlC">
+	  depends="clean-default, cleanFortran, cleanCivlC">
     <delete dir="${bin.dir}" />
     <delete dir="${test.bin.dir}" />
     <delete dir="${junit.dir}" />
     <delete dir="${javadoc.dir}" />
     <delete dir="${coverage.dir}" />
-    <delete file="${abc.dir}/jacoco.exec" />
-    <delete>
-      <fileset dir="." defaultexcludes="false" includes="**/*~" />
-    </delete>
-    <delete>
-      <fileset dir="." defaultexcludes="false" includes="**/*.tmp" />
-    </delete>
   </target>
 	
   <!-- Do everything -->

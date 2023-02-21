@@ -23,7 +23,7 @@
     <available file="${common.dir}/build.properties" />
   </condition>
   <property file="${properties.file}"/>
-
+  <property name="revision" value="" />  <!-- override on the command line -->
 
   <!-- Taskdefs -->
   
@@ -38,8 +38,9 @@
   <property name="mod.sarl" value="dev.civl.sarl" />
   <property name="mod.gmc" value="dev.civl.gmc" />
   <property name="mod.mc" value="dev.civl.mc" />
-  <property name="mod.antlr" value="antlr.runtime" />
-  <property name="main.class" value="${mod.mc}.IF.CIVL" />
+  <property name="mod.antlr3" value="antlr3runtime" />
+  <property name="mod.antlr4" value="antlr4runtime" />
+  <property name="main.class" value="${mod.mc}.CIVL" />
   
   <!-- Paths and Directories -->
 
@@ -53,6 +54,8 @@
 
   <property name="lib.dir" value="${root.dir}/lib" />
   <property name="app.dir" value="${root.dir}/civl.app" />
+  <property name="civl.complete.jar"
+	    value="${lib.dir}/civl-complete.jar" />
 
   <property name="gmc.dir" value="${mod.dir}/${mod.gmc}" />
   <property name="gmc.src.dir" value="${gmc.dir}/src" />
@@ -93,6 +96,13 @@
   <property name="mc.coverage.dir" value="${mc.dir}/coverage" />
   <property name="mc.bench.dir" value="${mc.dir}/bench" />
 
-  <!-- Files -->
-
+  <target name="clean-default" description="Delete default files.">
+    <delete>
+      <fileset dir="." defaultexcludes="false" includes="**/*~" />
+      <fileset dir="." defaultexcludes="false" includes="**/*.tmp" />
+      <fileset dir="." includes="junitvm*" />
+      <fileset dir="." includes="jacoco*" />
+    </delete>
+  </target>
+  
 </project>

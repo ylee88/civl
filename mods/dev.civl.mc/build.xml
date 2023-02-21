@@ -29,7 +29,7 @@
   <property name="junit.reports.dir" location="${junit.dir}/reports" />
   <property name="coverage.dir" location="${mc.coverage.dir}" />
   <property name="bench.src.dir" location="${mc.bench.dir}" />
-  <property name="javacdoc.dir" value="${mc.javadoc.dir}" />
+  <property name="javadoc.dir" value="${mc.javadoc.dir}" />
 
   <!-- Running ANTLR -->
 
@@ -72,6 +72,15 @@
 
   <!-- Source compilation -->
 
+  <path id="module.path">
+    <pathelement path="${sarl.bin.dir}" />
+    <pathelement path="${abc.bin.dir}" />
+    <pathelement path="${gmc.bin.dir}" />
+    <pathelement path="${mc.bin.dir}" />
+    <pathelement location="${antlr4.runtime.mod.jar.path}" />
+    <pathelement location="${antlr3.runtime.mod.jar.path}" />
+  </path>
+
   <!-- note that ABC builds SARL -->
   <target name="dependencies"
 	  description="Compile SARL, ABC, GMC modules.">
@@ -84,15 +93,8 @@
     <mkdir dir="${bin.dir}" />
     <javac release="${javaversion}" debug="true"
 	   srcdir="${src.dir}" destdir="${bin.dir}"
-	   encoding="UTF-8" includeantruntime="false">
-      <modulepath>
-	<pathelement path="${sarl.bin.dir}" />
-	<pathelement path="${abc.bin.dir}" />
-	<pathelement path="${gmc.bin.dir}" />
-	<pathelement location="${antlr4.runtime.mod.jar.path}" />
-	<pathelement location="${antlr3.runtime.mod.jar.path}" />
-      </modulepath>
-    </javac>
+	   modulepathref="module.path"
+	   encoding="UTF-8" includeantruntime="false" />
     <copy todir="${bin.dir}/include">
       <fileset dir="${src.dir}/include" />
     </copy>
@@ -142,11 +144,12 @@
     </javac>
   </target>
   
-  <target name="test-run-hold" depends="test-compile">
+  <target name="test-run" depends="test-compile">
     <jacoco:coverage
 	excludes="*Listener*:*Lexer*:*Parser*"
 	includes="dev/civl/mc/*">
-      <junit fork="true" forkmode="perTest" threads="${nthreads}" timeout="900000">
+      <junit dir="${common.dir}" fork="true" forkmode="perTest"
+	     threads="${nthreads}" timeout="900000">
 	<jvmarg value="-ea" />
 	<classpath refid="test.execute.classpath" />
 	<formatter type="brief" usefile="false" />
@@ -162,24 +165,9 @@
       </fileset>
       <report format="frames" todir="${junit.reports.dir}">
 	<param name="TITLE"
-	       expression="JUnit Report for CIVL ${revision} Regression Suite" />
+	       expression="JUnit Report for CIVL ${civlversion}.${revision} Regression Suite" />
       </report>
     </junitreport>
-  </target>
-
-
-  <!-- need to put examples where they will be found -->
-  
-  <target name="test-run" depends="test-compile">
-    <junit dir="${common.dir}" fork="true" forkmode="perTest" threads="1" timeout="900000">
-      <jvmarg value="-ea" />
-      <classpath refid="test.execute.classpath" />
-      <formatter type="brief" usefile="false" />
-      <formatter type="xml" />
-      <batchtest todir="${junit.data.dir}">
-	<fileset dir="${test.bin.dir}" includes="**/*Test.class" />
-      </batchtest>
-    </junit>
   </target>
 
   <target name="test" depends="test-run">
@@ -187,7 +175,7 @@
       <executiondata>
 	<file file="jacoco.exec" />
       </executiondata>
-      <structure name="Test Coverage Report for CIVL ${revision} Regression Suite">
+      <structure name="Test Coverage Report for CIVL ${civlversion}.${revision} Regression Suite">
 	<classfiles>
 	  <fileset dir="${bin.dir}" />
 	</classfiles>
@@ -207,48 +195,43 @@
 	  description="Compile benchmark java source files.">
     <javac release="${javaversion}"
 	   debug="true" srcdir="${bench.src.dir}" destdir="${bin.dir}"
+	   modulepathref="module.path"
 	   encoding="UTF-8" includeantruntime="false"
-	   includes="dev/civl/mc/**/*Benchmark.java">
-      <modulepath>
-	<pathelement path="${sarl.bin.dir}" />
-	<pathelement path="${abc.bin.dir}" />
-	<pathelement path="${gmc.bin.dir}" />
-	<pathelement path="${bin.dir}" />
-	<pathelement location="${antlr4.runtime.mod.jar.path}" />
-	<pathelement location="${antlr3.runtime.mod.jar.path}" />
-      </modulepath>
-    </javac>
+	   includes="dev/civl/mc/**/*Benchmark.java" />
   </target>
 
   <target name="bench-scale-compile" depends="compile"
 	  description="Compile scale benchmark java source files.">
     <javac release="${javaversion}"
 	   debug="true" srcdir="${bench.src.dir}" destdir="${bin.dir}"
+	   modulepathref="module.path"
 	   encoding="UTF-8" includeantruntime="false"
-	   includes="dev/civl/mc/**/**/*BenchmarkScale.java">
-      <modulepath>
-	<pathelement path="${sarl.bin.dir}" />
-	<pathelement path="${abc.bin.dir}" />
-	<pathelement path="${gmc.bin.dir}" />
-	<pathelement path="${bin.dir}" />
-	<pathelement location="${antlr4.runtime.mod.jar.path}" />
-	<pathelement location="${antlr3.runtime.mod.jar.path}" />
-      </modulepath>
-    </javac>
+	   includes="dev/civl/mc/**/**/*BenchmarkScale.java" />
   </target>
   
   <!-- Javadoc Tasks -->
 
-  <target name="javadoc">
+  <target name="javadoc" depends="dependencies">
     <delete dir="${javadoc.dir}" quiet="true" />
     <mkdir dir="${javadoc.dir}" />
     <javadoc destdir="${javadoc.dir}"
 	     Overview="${src.dir}/overview.html"
 	     author="false" version="true" use="true"
-	     windowtitle="API for CIVL ${revision}"
-	     access="public"
-	     classpathref="test.execute.classpath"
-	     failonerror="false">
+	     windowtitle="CIVL ${civlversion}.${revision}"
+	     access="package"
+	     failonerror="false" failonwarning="false">
+      <arg value="-Xmaxwarns"/>
+      <arg value="10000"/>
+      <arg value="-Xmaxerrs"/>
+      <arg value="10000"/>
+      <modulepath>
+	<pathelement path="${bin.dir}" />
+	<pathelement path="${sarl.bin.dir}" />
+	<pathelement path="${abc.bin.dir}" />
+	<pathelement path="${gmc.bin.dir}" />
+	<pathelement location="${antlr4.runtime.mod.jar.path}" />
+	<pathelement location="${antlr3.runtime.mod.jar.path}" />
+      </modulepath>
       <packageset dir="${src.dir}" defaultexcludes="yes">
 	<include name="**/IF" />
 	<include name="**/IF/**" />
@@ -259,7 +242,8 @@
 
   <!-- Clean -->
 
-  <target name="clean" description="Delete all generated files.">
+  <target name="clean" description="Delete all generated files."
+	  depends="clean-default">
     <delete dir="${bin.dir}" />
     <delete dir="${test.bin.root.dir}" />
     <delete dir="${junit.dir}" />
@@ -272,12 +256,6 @@
     <delete file="${real.src.dir}/run/common/CommandParser.java" />
     <delete file="${real.src.dir}/run/common/CommandListener.java" />
     <delete file="${real.src.dir}/run/common/CommandBaseListener.java" />
-    <delete>
-      <fileset dir="." defaultexcludes="false" includes="**/*~" />
-    </delete>
-    <delete>
-      <fileset dir="." defaultexcludes="false" includes="**/*.tmp" />
-    </delete>
   </target>
 
   <!-- Do everything -->
