@@ -25,7 +25,7 @@
   </target>
 
   <!-- Clean -->
-  <target name="clean">
+  <target name="clean" depends="clean-default">
     <ant dir="${sarl.dir}" target="clean" inheritAll="false" />
     <ant dir="${abc.dir}" target="clean" inheritAll="false" />
     <ant dir="${gmc.dir}" target="clean" inheritAll="false" />
@@ -108,13 +108,25 @@
   </target>
 
    <!-- Stand-alone app with custom JVM -->
-  
-  <target name="app" depends="lib">
-    <link destdir="${app.dir}" modulepath="${lib.dir}"
-	  modules="${mod.sarl},${mod.gmc},${mod.abc},${mod.mc},${mod.antlr3},${mod.antlr4},java.base"
-	  launchers="civl=${mod.mc}/${main.class}" />
-  </target>
 
+   <!-- for reasons I don't understand, the app doesn't get updated
+        even after it and the lib are deleted and ant app is re-run.
+        Where is it getting the old code from? Is it cached somewhere?
+   -->
+   
+   <target name="app" depends="lib">
+     <link destdir="${app.dir}" modulepath="${lib.dir}"
+	   launchers="civl=${mod.mc}/${main.class}" >
+       <module name="${mod.sarl}" />
+       <module name="${mod.gmc}" />
+       <module name="${mod.abc}" />
+       <module name="${mod.mc}" />
+       <module name="${mod.antlr3}" />
+       <module name="${mod.antlr4}" />
+       <module name="java.base" />
+     </link>
+   </target>
+   
   <target name="run" depends="app" description="Run the civl app">
     <exec executable="${app.dir}/bin/civl" />
   </target>
