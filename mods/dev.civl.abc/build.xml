@@ -673,6 +673,12 @@
     <delete dir="${javadoc.dir}" />
     <delete dir="${coverage.dir}" />
     <delete file="${abc.dir}/jacoco.exec" />
+    <delete>
+      <fileset dir="." defaultexcludes="false" includes="**/*~" />
+    </delete>
+    <delete>
+      <fileset dir="." defaultexcludes="false" includes="**/*.tmp" />
+    </delete>
   </target>
 	
   <!-- Do everything -->

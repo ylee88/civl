@@ -19,7 +19,7 @@
   <property name="bin.dir" value="${gmc.bin.dir}" />
   <property name="main-class" value="civl.dev.gmc.simplemc.UserInterface"/>
   <property name="test.src.dir" location="${gmc.test.dir}" />
-  <property name="test.bin.dir" location="${gmc.test.dir}/bin-test" />
+  <property name="test.bin.dir" location="${gmc.dir}/bin-test" />
   <property name="junit.dir" location="${gmc.junit.dir}" />
   <property name="junit.data.dir" location="${junit.dir}/data" />
   <property name="junit.reports.dir" location="${junit.dir}/reports" />
@@ -134,6 +134,12 @@
     <delete dir="${javadoc.dir}" />
     <delete dir="${coverage.dir}" />
     <delete file="${gmc.dir}/jacoco.exec" />
+    <delete>
+      <fileset dir="." defaultexcludes="false" includes="**/*~" />
+    </delete>
+    <delete>
+      <fileset dir="." defaultexcludes="false" includes="**/*.tmp" />
+    </delete>
   </target>
 
   <!-- Do everything -->

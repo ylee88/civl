@@ -272,6 +272,12 @@
     <delete file="${real.src.dir}/run/common/CommandParser.java" />
     <delete file="${real.src.dir}/run/common/CommandListener.java" />
     <delete file="${real.src.dir}/run/common/CommandBaseListener.java" />
+    <delete>
+      <fileset dir="." defaultexcludes="false" includes="**/*~" />
+    </delete>
+    <delete>
+      <fileset dir="." defaultexcludes="false" includes="**/*.tmp" />
+    </delete>
   </target>
 
   <!-- Do everything -->

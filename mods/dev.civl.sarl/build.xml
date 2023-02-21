@@ -19,7 +19,7 @@
   <property name="bin.dir" value="${sarl.bin.dir}" />
   <property name="real.src.dir" value="${src.dir}/dev/civl/sarl" />
   <property name="test.src.dir" location="${sarl.test.dir}/regress" />
-  <property name="test.bin.root.dir" location="${sarl.test.dir}/bin-test" />
+  <property name="test.bin.root.dir" location="${sarl.dir}/bin-test" />
   <property name="test.bin.dir"
 	    location="${test.bin.root.dir}/regress" />
   <property name="junit.dir" location="${sarl.junit.dir}" />
@@ -160,6 +160,12 @@
     <delete dir="${javadoc.dir}" />
     <delete dir="${coverage.dir}" />
     <delete file="${sarl.dir}/jacoco.exec" />
+    <delete>
+      <fileset dir="." defaultexcludes="false" includes="**/*~" />
+    </delete>
+    <delete>
+      <fileset dir="." defaultexcludes="false" includes="**/*.tmp" />
+    </delete>
   </target>
 
   <!-- Do everything -->
