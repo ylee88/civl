@@ -131,6 +131,6 @@
     <exec executable="${app.dir}/bin/civl" />
   </target>
 
-  <target name="all" depends="civl.complete.jar,app" />
+  <target name="all" depends="civl.complete.jar,app,test,javadoc" />
 
 </project>
