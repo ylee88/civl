@@ -10,7 +10,7 @@
     into reports.
 -->
 
-<project name="SARL" basedir="." default="compile"
+<project name="SARL" default="compile"
 	 xmlns:jacoco="antlib:org.jacoco.ant">
   <import file="../dev.civl.com/common.xml" />
 
@@ -75,9 +75,10 @@
   </target>
 
   <target name="test-run" depends="test-compile">
-    <jacoco:coverage
-	includes="dev/civl/sarl/*">
-      <junit fork="true" forkmode="perTest" threads="${nthreads}" timeout="900000">
+    <jacoco:coverage 
+		     destfile="${sarl.dir}/jacoco.exec">
+      <junit fork="true" forkmode="perTest"
+	     threads="${nthreads}" timeout="900000">
 	<jvmarg value="-ea" />
 	<classpath refid="test.execute.classpath" />
 	<formatter type="brief" usefile="false" />
