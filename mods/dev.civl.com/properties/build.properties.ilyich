@@ -1,12 +1,22 @@
-root=/opt/vsl
-workspace=/usa/svn/work
-hamcrest.jar=${root}/lib/hamcrest-core.jar
+# Configuration constants for CIVL's ant build system.  This
+# properties file will work fine for most users.  If you need to
+# change anything, create your own file called build.properties in
+# this directory.  It will be read automatically in place of this one.
+civlversion=1.22
+javaversion=17
+nthreads=4
+root=/opt/vsl-${civlversion}
+
+hamcrest.jar=${root}/lib/hamcrest-2.2.jar
 jacoco.jar=${root}/src/jacoco/lib/jacocoant.jar
-junit.jar=${root}/lib/junit.jar
-antlr.jar=${root}/lib/antlr-4.4-complete.jar
-antlr.runtime.jar=${root}/lib/antlr-runtime-4.4.jar
-abc.jar=${workspace}/abc/trunk/latest/abc.jar
-gmc.jar=${workspace}/gmc/trunk/latest/gmc.jar
-sarl.jar=${workspace}/sarl/trunk/latest/sarl.jar
-javaversion=11
-nthreads=8
+junit.jar=${root}/lib/junit-4.13.2.jar
+
+antlr3.jar=${root}/lib/antlr-3.5.2-complete.jar
+antlr3.runtime.jar=${root}/lib/antlr-runtime-3.5.2.jar
+antlr3.runtime.mod.jar=antlr3runtime.jar
+antlr3.runtime.mod.jar.path=${root}/mods/antlr3/${antlr3.runtime.mod.jar}
+
+antlr4.jar=${root}/lib/antlr-4.4-complete.jar
+antlr4.runtime.jar=${root}/lib/antlr-runtime-4.4.jar
+antlr4.runtime.mod.jar=antlr4runtime.jar
+antlr4.runtime.mod.jar.path=${root}/mods/antlr4/${antlr4.runtime.mod.jar}
