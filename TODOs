@@ -1,7 +1,0 @@
-[02/21/2023]
-
-1. Creating 5 Eclipse projects, one for each module, saving the Eclipse meta-data into the repo
-
-2. Update the perl scripts which do the auto test and build.
-
-3. remake the antlr modules using Java 17
