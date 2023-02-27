@@ -31,10 +31,9 @@ public interface Preprocessor {
 	 * The path containing the ABC header files. This is internal to the
 	 * project. The path is interpreted relative to the directories in the class
 	 * path. The directory "/include" is in the class path. Therefore "abc" will
-	 * be found in "/include/abc".
+	 * be found in "/include/headers".
 	 */
-	final static File ABC_INCLUDE_PATH = new File(
-			new File(File.separator + "include"), "abc");
+	final static File ABC_INCLUDE_PATH = new File("include/headers");
 
 	/**
 	 * The name of the CIVL-C header file, which is included automatically at

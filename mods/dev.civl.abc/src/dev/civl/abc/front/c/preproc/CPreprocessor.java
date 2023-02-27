@@ -106,7 +106,7 @@ public class CPreprocessor implements Preprocessor {
 		File file = new File(Preprocessor.ABC_INCLUDE_PATH, libraryFilename);
 		SourceFile sourceFile = indexer.getOrAdd(file);
 		Formation formation = tokenFactory.newInclusion(sourceFile);
-		String resource = file.getAbsolutePath();
+		String resource = file.getPath();
 
 		try {
 			CharStream stream = PreprocessorUtils
@@ -214,8 +214,8 @@ public class CPreprocessor implements Preprocessor {
 				try {
 					stream = PreprocessorUtils
 							.newFilteredCharStreamFromResource(
-									file.getAbsolutePath(),
-									file.getAbsolutePath());
+									file.getPath(),
+									file.getPath());
 				} catch (IOException e) {
 					throw new PreprocessorException(
 							"Error in opening " + file + ": " + e.getMessage());

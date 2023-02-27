@@ -68,6 +68,7 @@ import dev.civl.abc.token.IF.SyntaxException;
 import dev.civl.abc.token.IF.TokenFactory;
 import dev.civl.abc.token.IF.TransformFormation;
 import dev.civl.abc.transform.IF.Transformer;
+import dev.civl.mc.config.IF.CIVLConstants;
 import dev.civl.mc.model.IF.CIVLInternalException;
 import dev.civl.mc.model.IF.CIVLSyntaxException;
 import dev.civl.mc.transform.IF.GeneralTransformer;
@@ -1143,7 +1144,7 @@ public abstract class BaseWorker {
 			File file = sourceFile.getFile();
 			String name = sourceFile.getName();
 
-			if (file.getPath().startsWith("/include") && name.equals(header))
+			if (file.getPath().startsWith(CIVLConstants.ROOT_INCLUDE_PATH_STR) && name.equals(header))
 				return true;
 		}
 		return false;

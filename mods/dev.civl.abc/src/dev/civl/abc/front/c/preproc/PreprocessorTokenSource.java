@@ -289,7 +289,7 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	 */
 	private Pair<File, CharStream> findInternalSystemFile(File path, String filename) {
 		File file = new File(path, filename);
-		String resource = file.getAbsolutePath();
+		String resource = file.getPath();
 
 		try {
 			CharStream stream = PreprocessorUtils.newFilteredCharStreamFromResource(resource, resource);

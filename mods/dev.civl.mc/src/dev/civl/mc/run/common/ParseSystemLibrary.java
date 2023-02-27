@@ -139,7 +139,7 @@ public class ParseSystemLibrary implements DynamicTask {
 		// paths. Because a user could create their own "pthread.h"
 		// (for example), in which case we don't want to link in the
 		// system implementation.
-		if (!file.getPath().startsWith("/include"))
+		if (!file.getPath().startsWith(CIVLConstants.ROOT_INCLUDE_PATH_STR))
 			return null;
 		// for debugging...
 		// System.out.println("Including system file: "+file.getPath());

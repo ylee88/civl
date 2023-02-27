@@ -388,8 +388,7 @@ public class PreprocessorUtils {
 	 */
 	public static CharStream newFilteredCharStreamFromResource(String name,
 			String resource) throws IOException {
-		InputStream inputStream = PreprocessorUtils.class
-				.getResourceAsStream(resource);
+		InputStream inputStream = ClassLoader.getSystemResourceAsStream(resource);
 
 		if (inputStream == null)
 			return null;
