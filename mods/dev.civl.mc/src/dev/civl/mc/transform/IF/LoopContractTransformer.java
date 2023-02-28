@@ -10,11 +10,11 @@ import dev.civl.mc.transform.common.LoopContractTransformerWorker;
 
 public class LoopContractTransformer extends BaseTransformer {
 
-	private final static String MEM_HEADER = "/include/abc/mem.cvh";
+	private final static String MEM_HEADER = "include/headers/mem.cvh";
 
-	private final static String STRING_HEADER = "/include/abc/string.h";
+	private final static String STRING_HEADER = "include/headers/string.h";
 
-	private final static String STRING_IMPL = "/include/civl/string.cvl";
+	private final static String STRING_IMPL = "include/impls/string.cvl";
 
 	public final static File[] additionalLibraries = {new File(MEM_HEADER),
 			new File(STRING_HEADER), new File(STRING_IMPL)};
