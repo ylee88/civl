@@ -117,6 +117,7 @@
   <path id="test.execute.classpath">
     <pathelement location="${test.bin.dir}" />
     <pathelement location="${bin.dir}" />
+  	<pathelement location="${common.dir}" />
     <pathelement location="${sarl.bin.dir}" />
     <pathelement location="${abc.bin.dir}" />
     <pathelement location="${gmc.bin.dir}" />
