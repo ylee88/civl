@@ -90,7 +90,7 @@ public class SideEffectsTest {
 	@Test
 	public void errSideEffectInGuard() {
 		assertFalse(ui.run("verify", TestConstants.QUIET,
-				filename("errSideEffectsInGuard.cvl")));
+				filename("errSideEffectsInGuards.cvl")));
 	}
 
 	// The following two tests require SARL's support of free of error
