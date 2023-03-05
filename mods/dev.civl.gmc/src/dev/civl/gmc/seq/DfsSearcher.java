@@ -300,12 +300,14 @@ public class DfsSearcher<STATE, TRANSITION> {
 		if (minimize)
 			initialNode.setDepth(0);
 
+		Collection<TRANSITION> ampleSet = enabler.ampleSet(initialState);
 		StackEntry<STATE, TRANSITION> stackEntry = sequentialNodeFactory
-				.newStackEntry(initialNode, enabler.ampleSet(initialState), 0);
+				.newStackEntry(initialNode, ampleSet, 0);
 
 		stack.push(stackEntry);
 		initialNode.setSeen(true);
 		initialNode.setStackPosition(stack.size() - 1);
+		initialNode.setExpand(!ampleSet.isEmpty());
 		if (debugging) {
 			debugOut.println("Pushed initial state onto stack " + name + ":\n");
 			manager.printStateLong(debugOut, initialState);
