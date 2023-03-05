@@ -1173,6 +1173,7 @@ public class Z3Translator {
 		FastList<String> result = new FastList<>("(",
 				unionSelector(unionType, index), " ");
 
+		translateType(unionType); // create the decls if they aren't there
 		result.append(translate(arg));
 		result.add(")");
 		return result;
@@ -1210,6 +1211,7 @@ public class Z3Translator {
 		FastList<String> result = new FastList<>("(",
 				unionConstructor(unionType, index), " ");
 
+		translateType(unionType); // create the decls if they aren't there
 		result.append(translate(arg));
 		result.add(")");
 		return result;
@@ -1246,6 +1248,7 @@ public class Z3Translator {
 		FastList<String> result = new FastList<>("(",
 				unionTester(unionType, index), " ");
 
+		translateType(unionType); // create the decls if they aren't there
 		result.append(translate(arg));
 		result.add(")");
 		return result;

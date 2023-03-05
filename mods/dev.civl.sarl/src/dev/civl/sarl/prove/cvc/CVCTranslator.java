@@ -314,7 +314,7 @@ public class CVCTranslator {
 	 * </p>
 	 * 
 	 * @param sc
-	 *            a symbolic consant
+	 *               a symbolic consant
 	 * @return the normalized name for the pass-in symbolic constant
 	 */
 	private String normalizeSymbolicConstantName(SymbolicConstant sc) {
@@ -332,10 +332,10 @@ public class CVCTranslator {
 	 * element of the index-th member type.
 	 * 
 	 * @param unionType
-	 *            a union type
+	 *                      a union type
 	 * @param index
-	 *            integer in [0,n), where n is the number of member types of the
-	 *            union type
+	 *                      integer in [0,n), where n is the number of member
+	 *                      types of the union type
 	 * @return the name of the index-th selector function
 	 */
 	private String selector(SymbolicUnionType unionType, int index) {
@@ -348,10 +348,10 @@ public class CVCTranslator {
 	 * member type and returns an element of the union type.
 	 * 
 	 * @param unionType
-	 *            a union type
+	 *                      a union type
 	 * @param index
-	 *            an integer in [0,n), where n is the number of member types of
-	 *            the union type
+	 *                      an integer in [0,n), where n is the number of member
+	 *                      types of the union type
 	 * @return the name of the index-th constructor function
 	 */
 	private String constructor(SymbolicUnionType unionType, int index) {
@@ -365,8 +365,8 @@ public class CVCTranslator {
 	 * TODO: type is not used. Figure out why and correct this method.
 	 * 
 	 * @param type
-	 *            a CVC type; it is consumed, so cannot be used after invoking
-	 *            this method
+	 *                 a CVC type; it is consumed, so cannot be used after
+	 *                 invoking this method
 	 * @return the new CVC variable
 	 */
 	private String newCvcAuxVar(FastList<String> type) {
@@ -397,11 +397,11 @@ public class CVCTranslator {
 	 * type which is the contents.
 	 * 
 	 * @param length
-	 *            CVC expression yielding length of array; it is consumed (so
-	 *            cannot be used after invoking this method)
+	 *                   CVC expression yielding length of array; it is consumed
+	 *                   (so cannot be used after invoking this method)
 	 * @param value
-	 *            CVC expression of type "array-of-T"; it is consumed (so cannot
-	 *            be used after invoking this method)
+	 *                   CVC expression of type "array-of-T"; it is consumed (so
+	 *                   cannot be used after invoking this method)
 	 * @return ordered pair (tuple), consisting of length and value
 	 */
 	private FastList<String> bigArray(FastList<String> length,
@@ -447,7 +447,7 @@ public class CVCTranslator {
 	 * </p>
 	 * 
 	 * @param array
-	 *            a SARL expression of array type
+	 *                  a SARL expression of array type
 	 * @return translation into CVC of length of that array
 	 */
 	private Translation lengthOfArray(SymbolicExpression array) {
@@ -465,19 +465,19 @@ public class CVCTranslator {
 		// ARRAY_WRITE, DENSE_ARRAY_WRITE. A concrete (SEQUENCE) array always
 		// has complete type.
 		switch (array.operator()) {
-		case ARRAY:
-			throw new SARLInternalException(
-					"Unreachable because the array would have a complete array type");
-		case ARRAY_WRITE:
-		case DENSE_ARRAY_WRITE:
-			return lengthOfArray((SymbolicExpression) array.argument(0));
-		default:
-			FastList<String> result = new FastList<>("(");
+			case ARRAY :
+				throw new SARLInternalException(
+						"Unreachable because the array would have a complete array type");
+			case ARRAY_WRITE :
+			case DENSE_ARRAY_WRITE :
+				return lengthOfArray((SymbolicExpression) array.argument(0));
+			default :
+				FastList<String> result = new FastList<>("(");
 
-			result.append(translate(array).getResult());
-			result.add(").0");
-			Translation res = new Translation(result);
-			return res;
+				result.append(translate(array).getResult());
+				result.add(").0");
+				Translation res = new Translation(result);
+				return res;
 		}
 	}
 
@@ -644,28 +644,28 @@ public class CVCTranslator {
 		Boolean involveDivOrModulo = false;
 
 		switch (array.operator()) {
-		case ARRAY:
-			return pretranslateConcreteArray(array);
-		case ARRAY_WRITE:
-			return pretranslateArrayWrite(array);
-		case DENSE_ARRAY_WRITE:
-			return pretranslateDenseArrayWrite(array);
-		default: {
-			FastList<String> result = new FastList<>("(");
-			tempTranslation = translate(array);
-			if (tempTranslation.getIsDivOrModulo()) {
-				translations.add(tempTranslation);
-				involveDivOrModulo = true;
+			case ARRAY :
+				return pretranslateConcreteArray(array);
+			case ARRAY_WRITE :
+				return pretranslateArrayWrite(array);
+			case DENSE_ARRAY_WRITE :
+				return pretranslateDenseArrayWrite(array);
+			default : {
+				FastList<String> result = new FastList<>("(");
+				tempTranslation = translate(array);
+				if (tempTranslation.getIsDivOrModulo()) {
+					translations.add(tempTranslation);
+					involveDivOrModulo = true;
 
+				}
+				result.append(tempTranslation.getResult());
+				result.add(").1");
+				res = new Translation(result);
+				if (involveDivOrModulo) {
+					combineTranslations(res, translations);
+				}
+				return res;
 			}
-			result.append(tempTranslation.getResult());
-			result.add(").1");
-			res = new Translation(result);
-			if (involveDivOrModulo) {
-				combineTranslations(res, translations);
-			}
-			return res;
-		}
 		}
 	}
 
@@ -673,10 +673,10 @@ public class CVCTranslator {
 	 * Translates a concrete SARL array into language of CVC.
 	 * 
 	 * @param arrayType
-	 *            a SARL complete array type
+	 *                      a SARL complete array type
 	 * @param elements
-	 *            a sequence of elements whose types are all the element type of
-	 *            the arrayType
+	 *                      a sequence of elements whose types are all the
+	 *                      element type of the arrayType
 	 * @return CVC translation of the concrete array
 	 */
 	private Translation translateConcreteArray(SymbolicExpression array) {
@@ -730,30 +730,34 @@ public class CVCTranslator {
 		SymbolicObject object = expr.argument(0);
 		FastList<String> result;
 		switch (kind) {
-		case BOOLEAN:
-			result = new FastList<>(
-					((BooleanObject) object).getBoolean() ? "TRUE" : "FALSE");
-			break;
-		case CHAR:
-			result = new FastList<>(
-					Integer.toString((int) ((CharObject) object).getChar()));
-			break;
-		case INTEGER:
-		case REAL:
-			result = new FastList<>(object.toString());
-			break;
-		case UNINTERPRETED: {
-			SymbolicUninterpretedType unintType = (SymbolicUninterpretedType) expr
-					.type();
-			String constructor = this.uninterpretedTypeConstructor(unintType);
-			int key = unintType.soleSelector().apply(expr).getInt();
+			case BOOLEAN :
+				result = new FastList<>(((BooleanObject) object).getBoolean()
+						? "TRUE"
+						: "FALSE");
+				break;
+			case CHAR :
+				result = new FastList<>(Integer
+						.toString((int) ((CharObject) object).getChar()));
+				break;
+			case INTEGER :
+			case REAL :
+				result = new FastList<>(object.toString());
+				break;
+			case UNINTERPRETED : {
+				SymbolicUninterpretedType unintType = (SymbolicUninterpretedType) expr
+						.type();
+				String constructor = this
+						.uninterpretedTypeConstructor(unintType);
+				int key = unintType.soleSelector().apply(expr).getInt();
 
-			translateType(unintType);
-			result = new FastList<>(constructor, "(", String.valueOf(key), ")");
-			break;
-		}
-		default:
-			throw new SARLInternalException("Unknown concrete object: " + expr);
+				translateType(unintType);
+				result = new FastList<>(constructor, "(", String.valueOf(key),
+						")");
+				break;
+			}
+			default :
+				throw new SARLInternalException(
+						"Unknown concrete object: " + expr);
 		}
 		translation = new Translation(result);
 		return translation;
@@ -773,35 +777,39 @@ public class CVCTranslator {
 		SymbolicObject object = expr.argument(0);
 		FastList<String> result;
 		switch (kind) {
-		case BOOLEAN:
-			result = new FastList<>(
-					((BooleanObject) object).getBoolean() ? "TRUE" : "FALSE");
-			break;
-		case CHAR:
-			result = new FastList<>(
-					Integer.toString((int) ((CharObject) object).getChar()));
-			break;
-		case INTEGER:
-			String intStr = object.toString();
-			long rawVal = Long.valueOf(intStr);
+			case BOOLEAN :
+				result = new FastList<>(((BooleanObject) object).getBoolean()
+						? "TRUE"
+						: "FALSE");
+				break;
+			case CHAR :
+				result = new FastList<>(Integer
+						.toString((int) ((CharObject) object).getChar()));
+				break;
+			case INTEGER :
+				String intStr = object.toString();
+				long rawVal = Long.valueOf(intStr);
 
-			result = new FastList<>(getBVString(rawVal));
-			break;
-		case REAL:
-			result = new FastList<>(object.toString());
-			break;
-		case UNINTERPRETED: {
-			SymbolicUninterpretedType unintType = (SymbolicUninterpretedType) expr
-					.type();
-			String constructor = this.uninterpretedTypeConstructor(unintType);
-			int key = unintType.soleSelector().apply(expr).getInt();
+				result = new FastList<>(getBVString(rawVal));
+				break;
+			case REAL :
+				result = new FastList<>(object.toString());
+				break;
+			case UNINTERPRETED : {
+				SymbolicUninterpretedType unintType = (SymbolicUninterpretedType) expr
+						.type();
+				String constructor = this
+						.uninterpretedTypeConstructor(unintType);
+				int key = unintType.soleSelector().apply(expr).getInt();
 
-			translateType(unintType);
-			result = new FastList<>(constructor, "(", String.valueOf(key), ")");
-			break;
-		}
-		default:
-			throw new SARLInternalException("Unknown concrete object: " + expr);
+				translateType(unintType);
+				result = new FastList<>(constructor, "(", String.valueOf(key),
+						")");
+				break;
+			}
+			default :
+				throw new SARLInternalException(
+						"Unknown concrete object: " + expr);
 		}
 		translation = new Translation(result);
 		return translation;
@@ -816,9 +824,9 @@ public class CVCTranslator {
 	 * constant.
 	 * 
 	 * @param symbolicConstant
-	 *            a SARL symbolic constant
+	 *                             a SARL symbolic constant
 	 * @param isBoundVariable
-	 *            is this a bound variable?
+	 *                             is this a bound variable?
 	 * @return the name of the symbolic constant as a fast string list
 	 */
 	private Translation translateSymbolicConstant(
@@ -848,9 +856,9 @@ public class CVCTranslator {
 	 * declaration of the symbolic constant.
 	 * 
 	 * @param symbolicConstant
-	 *            a SARL symbolic constant
+	 *                             a SARL symbolic constant
 	 * @param isBoundVariable
-	 *            is this a bound variable?
+	 *                             is this a bound variable?
 	 * @return the name of the symbolic constant as a fast string list
 	 */
 	private Translation translateSymbolicConstant_BV(
@@ -883,7 +891,7 @@ public class CVCTranslator {
 	 * </pre>
 	 * 
 	 * @param expr
-	 *            The lambda expression that is being translated.
+	 *                 The lambda expression that is being translated.
 	 * @return The translation result.
 	 */
 	private Translation translateLambda(SymbolicExpression expr) {
@@ -913,7 +921,7 @@ public class CVCTranslator {
 	 * Translates an array-read expression a[i] into equivalent CVC expression
 	 * 
 	 * @param expr
-	 *            a SARL symbolic expression of form a[i]
+	 *                 a SARL symbolic expression of form a[i]
 	 * @return an equivalent CVC expression
 	 */
 	private Translation translateArrayRead(SymbolicExpression expr) {
@@ -952,7 +960,7 @@ public class CVCTranslator {
 	 * IntObject giving the index in the tuple.
 	 * 
 	 * @param expr
-	 *            a SARL symbolic expression of form t.i
+	 *                 a SARL symbolic expression of form t.i
 	 * @return an equivalent CVC expression
 	 */
 	private Translation translateTupleRead(SymbolicExpression expr) {
@@ -992,7 +1000,7 @@ public class CVCTranslator {
 	 * equivalent CVC expression.
 	 * 
 	 * @param expr
-	 *            a SARL array update expression "a WITH [i] := v"
+	 *                 a SARL array update expression "a WITH [i] := v"
 	 * @return the result of translating to CVC
 	 */
 	private Translation translateArrayWrite(SymbolicExpression expr) {
@@ -1013,7 +1021,7 @@ public class CVCTranslator {
 	 * into the tuple.
 	 * 
 	 * @param expr
-	 *            a SARL tuple update expression
+	 *                 a SARL tuple update expression
 	 * @return the result of translating to CVC
 	 */
 	private Translation translateTupleWrite(SymbolicExpression expr) {
@@ -1062,7 +1070,7 @@ public class CVCTranslator {
 	 * expression to equivalent CVC expression.
 	 * 
 	 * @param expr
-	 *            a SARL expression of kind DENSE_ARRAY_WRITE
+	 *                 a SARL expression of kind DENSE_ARRAY_WRITE
 	 * @return the result of translating expr to CVC
 	 */
 	private Translation translateDenseArrayWrite(SymbolicExpression expr) {
@@ -1079,8 +1087,8 @@ public class CVCTranslator {
 	 * expression to equivalent CVC expression.
 	 * 
 	 * @param expr
-	 *            a SARL expression of kind
-	 *            {@link SymbolicOperator#DENSE_TUPLE_WRITE}
+	 *                 a SARL expression of kind
+	 *                 {@link SymbolicOperator#DENSE_TUPLE_WRITE}
 	 * @return result of translating to CVC
 	 */
 	private Translation translateDenseTupleWrite(SymbolicExpression expr) {
@@ -1167,7 +1175,7 @@ public class CVCTranslator {
 	 * CVC equivalent.
 	 * 
 	 * @param expr
-	 *            a SARL "exists" or "forall" expression
+	 *                 a SARL "exists" or "forall" expression
 	 * @return result of translating to CVC
 	 */
 	private Translation translateQuantifier(SymbolicExpression expr) {
@@ -1200,10 +1208,10 @@ public class CVCTranslator {
 	 * </pre>
 	 * 
 	 * @param expr1
-	 *            a SARL symbolic expression
+	 *                  a SARL symbolic expression
 	 * @param expr2
-	 *            a SARL symbolic expression of type compatible with that of
-	 *            <code>expr1</code>
+	 *                  a SARL symbolic expression of type compatible with that
+	 *                  of <code>expr1</code>
 	 * @return result of translating into CVC the assertion "expr1=expr2"
 	 */
 	private Translation processEquality(SymbolicExpression expr1,
@@ -1263,7 +1271,8 @@ public class CVCTranslator {
 	 * 
 	 * @param currentResult
 	 * @param translations
-	 *            list of {@link Translation}s coming from division or modulo
+	 *                          list of {@link Translation}s coming from
+	 *                          division or modulo
 	 * @return
 	 */
 	private FastList<String> postProcessForSideEffectsOfDivideOrModule(
@@ -1302,8 +1311,8 @@ public class CVCTranslator {
 	 * equivalent.
 	 * 
 	 * @param expr
-	 *            SARL symbolic expression with kind
-	 *            {@link SymbolicOperator.EQUALS}
+	 *                 SARL symbolic expression with kind
+	 *                 {@link SymbolicOperator.EQUALS}
 	 * @return the equivalent CVC
 	 */
 	private Translation translateEquality(SymbolicExpression expr) {
@@ -1358,7 +1367,7 @@ public class CVCTranslator {
 	 * </p>
 	 * 
 	 * @param expr
-	 *            a "union extract" expression
+	 *                 a "union extract" expression
 	 * @return result of translating to CVC
 	 */
 	private Translation translateUnionExtract(SymbolicExpression expr) {
@@ -1368,6 +1377,8 @@ public class CVCTranslator {
 		SymbolicUnionType unionType = (SymbolicUnionType) arg.type();
 		FastList<String> result = new FastList<>(selector(unionType, index));
 
+		// get decl added to cvcDeclarations if not already there...
+		translateType(unionType);
 		result.add("(");
 		result.append(translate(arg).getResult());
 		result.add(")");
@@ -1397,7 +1408,7 @@ public class CVCTranslator {
 	 * </p>
 	 * 
 	 * @param expr
-	 *            a "union inject" expression
+	 *                 a "union inject" expression
 	 * @return the CVC translation of that expression
 	 */
 	private Translation translateUnionInject(SymbolicExpression expr) {
@@ -1407,6 +1418,8 @@ public class CVCTranslator {
 		SymbolicUnionType unionType = (SymbolicUnionType) expr.type();
 		FastList<String> result = new FastList<>(constructor(unionType, index));
 
+		// get decl added to cvcDeclarations if not already there...
+		translateType(unionType);
 		result.add("(");
 		result.append(translate(arg).getResult());
 		result.add(")");
@@ -1435,7 +1448,7 @@ public class CVCTranslator {
 	 * </p>
 	 * 
 	 * @param expr
-	 *            a "union test" expression
+	 *                 a "union test" expression
 	 * @return the CVC translation of that expression
 	 */
 	private Translation translateUnionTest(SymbolicExpression expr) {
@@ -1446,6 +1459,8 @@ public class CVCTranslator {
 		FastList<String> result = new FastList<>(
 				"is_" + constructor(unionType, index));
 
+		// get decl added to cvcDeclarations if not already there...
+		translateType(unionType);
 		result.add("(");
 		result.append(translate(arg).getResult());
 		result.add(")");
@@ -1549,7 +1564,7 @@ public class CVCTranslator {
 		result.append(
 				processEquality((SymbolicExpression) expression.argument(0),
 						(SymbolicExpression) expression.argument(1))
-								.getResult());
+						.getResult());
 		result.add(")");
 		translation = new Translation(result);
 		return translation;
@@ -1587,7 +1602,7 @@ public class CVCTranslator {
 	 * Translating power operation where exponent is real type
 	 * 
 	 * @param expression
-	 *            a power operation
+	 *                       a power operation
 	 * @return the {@link Translation} of the given power operation
 	 */
 	private Translation translatePowerRealExp(SymbolicExpression expression) {
@@ -1628,7 +1643,7 @@ public class CVCTranslator {
 	 * Translating power operation where exponent is integer type
 	 * 
 	 * @param expression
-	 *            a power operation
+	 *                       a power operation
 	 * @return the {@link Translation} of the given power operation
 	 */
 	private Translation translatePowerIntExp(SymbolicExpression expression) {
@@ -1721,12 +1736,12 @@ public class CVCTranslator {
 	 * </p>
 	 * 
 	 * @param arg1
-	 *            numerator
+	 *                     numerator
 	 * @param arg2
-	 *            denominator
+	 *                     denominator
 	 * @param operator
-	 *            either {@link SymbolicOperator.#INT_DIVIDE} or
-	 *            {@link SymbolicOperator.#MODULO}
+	 *                     either {@link SymbolicOperator.#INT_DIVIDE} or
+	 *                     {@link SymbolicOperator.#MODULO}
 	 * 
 	 * @return A struct {@link Translation} encapsules 1. the value of the
 	 *         division or modulo 2. the generated auxiliary variables 3. the
@@ -1808,10 +1823,10 @@ public class CVCTranslator {
 
 	/**
 	 * @param operator
-	 *            the operator can be {@link SymbolicOperator.#DIVIDE} or
-	 *            {@link SymbolicOperator.#SUBTRACT} or
-	 *            {@link SymbolicOperator.#LESS_THAN} or
-	 *            {@link SymbolicOperator.#LESS_THAN_EQUALS}
+	 *                     the operator can be {@link SymbolicOperator.#DIVIDE}
+	 *                     or {@link SymbolicOperator.#SUBTRACT} or
+	 *                     {@link SymbolicOperator.#LESS_THAN} or
+	 *                     {@link SymbolicOperator.#LESS_THAN_EQUALS}
 	 * @param arg0
 	 * @param arg1
 	 * @return
@@ -1872,10 +1887,10 @@ public class CVCTranslator {
 
 	/**
 	 * @param operator
-	 *            the operator can be {@link SymbolicOperator.#DIVIDE} or
-	 *            {@link SymbolicOperator.#SUBTRACT} or
-	 *            {@link SymbolicOperator.#LESS_THAN} or
-	 *            {@link SymbolicOperator.#LESS_THAN_EQUALS}
+	 *                     the operator can be {@link SymbolicOperator.#DIVIDE}
+	 *                     or {@link SymbolicOperator.#SUBTRACT} or
+	 *                     {@link SymbolicOperator.#LESS_THAN} or
+	 *                     {@link SymbolicOperator.#LESS_THAN_EQUALS}
 	 * @param arg0
 	 * @param arg1
 	 * @return
@@ -1938,9 +1953,11 @@ public class CVCTranslator {
 
 	/**
 	 * @param operator
-	 *            The operator can be {@link SymbolicOperator.#MULTIPLY} or
-	 *            {@link SymbolicOperator.#ADD} or {@link SymbolicOperator.#AND}
-	 *            {@link SymbolicOperator.#OR}
+	 *                         The operator can be
+	 *                         {@link SymbolicOperator.#MULTIPLY} or
+	 *                         {@link SymbolicOperator.#ADD} or
+	 *                         {@link SymbolicOperator.#AND}
+	 *                         {@link SymbolicOperator.#OR}
 	 * @param defaultValue
 	 * @param expression
 	 * @return
@@ -2010,7 +2027,7 @@ public class CVCTranslator {
 	 * Translates a SARL symbolic expression to the language of CVC.
 	 * 
 	 * @param expression
-	 *            a non-null SymbolicExpression
+	 *                       a non-null SymbolicExpression
 	 * @return translation to CVC as a fast list of strings
 	 */
 	private Translation translateWork(SymbolicExpression expression)
@@ -2019,198 +2036,199 @@ public class CVCTranslator {
 		Translation result;
 
 		switch (operator) {
-		case ADD:
-			result = translateKeySet(" + ", "0", expression);
-			break;
-		case AND:
-			result = translateKeySet(" AND ", "TRUE", expression);
-			break;
-		case APPLY:
-			result = translateApply(expression);
-			break;
-		case ARRAY:
-			result = translateConcreteArray(expression);
-			break;
-		case ARRAY_LAMBDA:
-			// TODO: are they supported in CVC3?
-			throw new TheoremProverException(
-					"Array lambdas are not supported by CVC");
-		case ARRAY_READ:
-			result = translateArrayRead(expression);
-			break;
-		case ARRAY_WRITE:
-			result = translateArrayWrite(expression);
-			break;
-		case BIT_AND:
-			result = translateBitOperation(" & ",
-					(SymbolicExpression) expression.argument(0),
-					(SymbolicExpression) expression.argument(1));
-			break;
-		case BIT_NOT:
-			result = translateBitOperation(" ~ ",
-					(SymbolicExpression) expression.argument(0), null);
-			break;
-		case BIT_OR:
-			result = translateBitOperation(" BVNOR ",
-					(SymbolicExpression) expression.argument(0),
-					(SymbolicExpression) expression.argument(1));
-			break;
-		case BIT_XOR:
-			result = translateBitOperation(" BVXOR ",
-					(SymbolicExpression) expression.argument(0),
-					(SymbolicExpression) expression.argument(1));
-			break;
-		case BIT_SHIFT_LEFT:
-			result = translateBitShift("bvshl",
-					(SymbolicExpression) expression.argument(0),
-					(SymbolicExpression) expression.argument(1));
-			break;
-		case BIT_SHIFT_RIGHT:
-			result = translateBitShift("bvlshr",
-					(SymbolicExpression) expression.argument(0),
-					(SymbolicExpression) expression.argument(1));
-			break;
-		case CAST:
-			result = translateCast(expression);
-			break;
-		case CONCRETE:
-			result = translateConcrete(expression);
-			break;
-		case COND:
-			result = translateCond(expression);
-			break;
-		case DENSE_ARRAY_WRITE:
-			result = translateDenseArrayWrite(expression);
-			break;
-		case DENSE_TUPLE_WRITE:
-			result = translateDenseTupleWrite(expression);
-			break;
-		case DIVIDE: // real division
-			result = translateBinary(" / ",
-					(SymbolicExpression) expression.argument(0),
-					(SymbolicExpression) expression.argument(1));
-			break;
-		case EQUALS:
-			result = translateEquality(expression);
-			break;
-		case EXISTS:
-		case FORALL:
-			result = translateQuantifier(expression);
-			break;
-		case INT_DIVIDE:
-			if (simplifyIntDivision) {
-				result = getIntDivInfo(
-						(NumericExpression) expression.argument(0),
-						(NumericExpression) expression.argument(1),
-						SymbolicOperator.INT_DIVIDE);
-			} else {
-				result = translateBinary(" DIV ",
+			case ADD :
+				result = translateKeySet(" + ", "0", expression);
+				break;
+			case AND :
+				result = translateKeySet(" AND ", "TRUE", expression);
+				break;
+			case APPLY :
+				result = translateApply(expression);
+				break;
+			case ARRAY :
+				result = translateConcreteArray(expression);
+				break;
+			case ARRAY_LAMBDA :
+				// TODO: are they supported in CVC3?
+				throw new TheoremProverException(
+						"Array lambdas are not supported by CVC");
+			case ARRAY_READ :
+				result = translateArrayRead(expression);
+				break;
+			case ARRAY_WRITE :
+				result = translateArrayWrite(expression);
+				break;
+			case BIT_AND :
+				result = translateBitOperation(" & ",
 						(SymbolicExpression) expression.argument(0),
 						(SymbolicExpression) expression.argument(1));
+				break;
+			case BIT_NOT :
+				result = translateBitOperation(" ~ ",
+						(SymbolicExpression) expression.argument(0), null);
+				break;
+			case BIT_OR :
+				result = translateBitOperation(" BVNOR ",
+						(SymbolicExpression) expression.argument(0),
+						(SymbolicExpression) expression.argument(1));
+				break;
+			case BIT_XOR :
+				result = translateBitOperation(" BVXOR ",
+						(SymbolicExpression) expression.argument(0),
+						(SymbolicExpression) expression.argument(1));
+				break;
+			case BIT_SHIFT_LEFT :
+				result = translateBitShift("bvshl",
+						(SymbolicExpression) expression.argument(0),
+						(SymbolicExpression) expression.argument(1));
+				break;
+			case BIT_SHIFT_RIGHT :
+				result = translateBitShift("bvlshr",
+						(SymbolicExpression) expression.argument(0),
+						(SymbolicExpression) expression.argument(1));
+				break;
+			case CAST :
+				result = translateCast(expression);
+				break;
+			case CONCRETE :
+				result = translateConcrete(expression);
+				break;
+			case COND :
+				result = translateCond(expression);
+				break;
+			case DENSE_ARRAY_WRITE :
+				result = translateDenseArrayWrite(expression);
+				break;
+			case DENSE_TUPLE_WRITE :
+				result = translateDenseTupleWrite(expression);
+				break;
+			case DIVIDE : // real division
+				result = translateBinary(" / ",
+						(SymbolicExpression) expression.argument(0),
+						(SymbolicExpression) expression.argument(1));
+				break;
+			case EQUALS :
+				result = translateEquality(expression);
+				break;
+			case EXISTS :
+			case FORALL :
+				result = translateQuantifier(expression);
+				break;
+			case INT_DIVIDE :
+				if (simplifyIntDivision) {
+					result = getIntDivInfo(
+							(NumericExpression) expression.argument(0),
+							(NumericExpression) expression.argument(1),
+							SymbolicOperator.INT_DIVIDE);
+				} else {
+					result = translateBinary(" DIV ",
+							(SymbolicExpression) expression.argument(0),
+							(SymbolicExpression) expression.argument(1));
+				}
+				break;
+			case LENGTH :
+				result = lengthOfArray(
+						(SymbolicExpression) expression.argument(0));
+				break;
+			case LESS_THAN :
+				result = translateBinary(" < ",
+						(SymbolicExpression) expression.argument(0),
+						(SymbolicExpression) expression.argument(1));
+				break;
+			case LESS_THAN_EQUALS :
+				result = translateBinary(" <= ",
+						(SymbolicExpression) expression.argument(0),
+						(SymbolicExpression) expression.argument(1));
+				break;
+			case MODULO :
+				if (simplifyIntDivision) {
+					result = getIntDivInfo(
+							(NumericExpression) expression.argument(0),
+							(NumericExpression) expression.argument(1),
+							SymbolicOperator.MODULO);
+				} else
+					result = translateBinary(" MOD ",
+							(SymbolicExpression) expression.argument(0),
+							(SymbolicExpression) expression.argument(1));
+				break;
+			case MULTIPLY :
+				result = translateKeySet(" * ", "1", expression);
+				break;
+			case NEGATIVE :
+				result = translateNegative(expression);
+				break;
+			case NEQ :
+				result = translateNEQ(expression);
+				break;
+			case NOT :
+				result = translateNot(expression);
+				break;
+			case OR :
+				result = translateKeySet(" OR ", "FALSE", expression);
+				break;
+			case POWER :
+				result = translatePower(expression);
+				break;
+			case SUBTRACT :
+				result = translateBinary(" - ",
+						(SymbolicExpression) expression.argument(0),
+						(SymbolicExpression) expression.argument(1));
+				break;
+			case SYMBOLIC_CONSTANT :
+				result = translateSymbolicConstant(
+						(SymbolicConstant) expression, false);
+				break;
+			case TUPLE :
+				result = translateConcreteTuple(expression);
+				break;
+			case TUPLE_READ :
+				result = translateTupleRead(expression);
+				break;
+			case TUPLE_WRITE :
+				result = translateTupleWrite(expression);
+				break;
+			case UNION_EXTRACT :
+				result = translateUnionExtract(expression);
+				break;
+			case UNION_INJECT :
+				result = translateUnionInject(expression);
+				break;
+			case UNION_TEST :
+				result = translateUnionTest(expression);
+				break;
+			case LAMBDA :
+				result = translateLambda(expression);
+				break;
+			case NULL :
+				result = null;
+				break;
+			case DERIV : {
+				FastList<String> cvcType = translateType(expression.type());
+				String name = newCvcAuxVar(cvcType.clone());
+
+				cvcDeclarations.addAll(name, " : ");
+				cvcDeclarations.append(cvcType);
+				cvcDeclarations.add(";\n");
+				result = new Translation(new FastList<String>(name));
+				break;
 			}
-			break;
-		case LENGTH:
-			result = lengthOfArray((SymbolicExpression) expression.argument(0));
-			break;
-		case LESS_THAN:
-			result = translateBinary(" < ",
-					(SymbolicExpression) expression.argument(0),
-					(SymbolicExpression) expression.argument(1));
-			break;
-		case LESS_THAN_EQUALS:
-			result = translateBinary(" <= ",
-					(SymbolicExpression) expression.argument(0),
-					(SymbolicExpression) expression.argument(1));
-			break;
-		case MODULO:
-			if (simplifyIntDivision) {
-				result = getIntDivInfo(
-						(NumericExpression) expression.argument(0),
-						(NumericExpression) expression.argument(1),
-						SymbolicOperator.MODULO);
-			} else
-				result = translateBinary(" MOD ",
-						(SymbolicExpression) expression.argument(0),
-						(SymbolicExpression) expression.argument(1));
-			break;
-		case MULTIPLY:
-			result = translateKeySet(" * ", "1", expression);
-			break;
-		case NEGATIVE:
-			result = translateNegative(expression);
-			break;
-		case NEQ:
-			result = translateNEQ(expression);
-			break;
-		case NOT:
-			result = translateNot(expression);
-			break;
-		case OR:
-			result = translateKeySet(" OR ", "FALSE", expression);
-			break;
-		case POWER:
-			result = translatePower(expression);
-			break;
-		case SUBTRACT:
-			result = translateBinary(" - ",
-					(SymbolicExpression) expression.argument(0),
-					(SymbolicExpression) expression.argument(1));
-			break;
-		case SYMBOLIC_CONSTANT:
-			result = translateSymbolicConstant((SymbolicConstant) expression,
-					false);
-			break;
-		case TUPLE:
-			result = translateConcreteTuple(expression);
-			break;
-		case TUPLE_READ:
-			result = translateTupleRead(expression);
-			break;
-		case TUPLE_WRITE:
-			result = translateTupleWrite(expression);
-			break;
-		case UNION_EXTRACT:
-			result = translateUnionExtract(expression);
-			break;
-		case UNION_INJECT:
-			result = translateUnionInject(expression);
-			break;
-		case UNION_TEST:
-			result = translateUnionTest(expression);
-			break;
-		case LAMBDA:
-			result = translateLambda(expression);
-			break;
-		case NULL:
-			result = null;
-			break;
-		case DERIV: {
-			FastList<String> cvcType = translateType(expression.type());
-			String name = newCvcAuxVar(cvcType.clone());
+			case DIFFERENTIABLE : {
+				// TODO: introduce uninterpreted functions
+				// Need a different one for each n (dimension of domain)
+				// DIFFERENTIABLE_0, DIFFERENTIABLE_1, ...
+				// for now, just introduce a boolean variable
+				FastList<String> cvcType = translateType(expression.type());
+				String name = newCvcAuxVar(cvcType.clone());
 
-			cvcDeclarations.addAll(name, " : ");
-			cvcDeclarations.append(cvcType);
-			cvcDeclarations.add(";\n");
-			result = new Translation(new FastList<String>(name));
-			break;
-		}
-		case DIFFERENTIABLE: {
-			// TODO: introduce uninterpreted functions
-			// Need a different one for each n (dimension of domain)
-			// DIFFERENTIABLE_0, DIFFERENTIABLE_1, ...
-			// for now, just introduce a boolean variable
-			FastList<String> cvcType = translateType(expression.type());
-			String name = newCvcAuxVar(cvcType.clone());
-
-			cvcDeclarations.addAll(name, " : ");
-			cvcDeclarations.append(cvcType);
-			cvcDeclarations.add(";\n");
-			result = new Translation(new FastList<String>(name));
-			break;
-		}
-		default:
-			throw new SARLInternalException(
-					"unreachable: unknown operator: " + operator);
+				cvcDeclarations.addAll(name, " : ");
+				cvcDeclarations.append(cvcType);
+				cvcDeclarations.add(";\n");
+				result = new Translation(new FastList<String>(name));
+				break;
+			}
+			default :
+				throw new SARLInternalException(
+						"unreachable: unknown operator: " + operator);
 		}
 		return result;
 	}
@@ -2495,119 +2513,121 @@ public class CVCTranslator {
 		SymbolicTypeKind kind = type.typeKind();
 
 		switch (kind) {
-		case BOOLEAN:
-			result = new FastList<>("BOOLEAN");
-			break;
-		case INTEGER:
-		case CHAR:
-			result = new FastList<>("INT");
-			break;
-		case REAL:
-			result = new FastList<>("REAL");
-			break;
-		case ARRAY: {
-			SymbolicArrayType arrayType = (SymbolicArrayType) type;
+			case BOOLEAN :
+				result = new FastList<>("BOOLEAN");
+				break;
+			case INTEGER :
+			case CHAR :
+				result = new FastList<>("INT");
+				break;
+			case REAL :
+				result = new FastList<>("REAL");
+				break;
+			case ARRAY : {
+				SymbolicArrayType arrayType = (SymbolicArrayType) type;
 
-			result = new FastList<>("ARRAY INT OF (");
-			result.append(translateType(arrayType.elementType()));
-			result.add(")");
-			result.addFront("[INT, ");
-			result.add("]");
-			break;
-		}
-		case TUPLE: {
-			SymbolicTupleType tupleType = (SymbolicTupleType) type;
-			SymbolicTypeSequence sequence = tupleType.sequence();
-			int numTypes = sequence.numTypes();
+				result = new FastList<>("ARRAY INT OF (");
+				result.append(translateType(arrayType.elementType()));
+				result.add(")");
+				result.addFront("[INT, ");
+				result.add("]");
+				break;
+			}
+			case TUPLE : {
+				SymbolicTupleType tupleType = (SymbolicTupleType) type;
+				SymbolicTypeSequence sequence = tupleType.sequence();
+				int numTypes = sequence.numTypes();
 
-			if (numTypes == 1) {
-				result = translateType(sequence.getType(0));
-			} else {
+				if (numTypes == 1) {
+					result = translateType(sequence.getType(0));
+				} else {
+					boolean first = true;
+
+					result = new FastList<>("[");
+					for (SymbolicType memberType : sequence) {
+						if (first)
+							first = false;
+						else
+							result.add(", ");
+						result.append(translateType(memberType));
+					}
+					result.add("]");
+				}
+				break;
+			}
+			case FUNCTION : {
+				SymbolicFunctionType funcType = (SymbolicFunctionType) type;
+				SymbolicTypeSequence inputs = funcType.inputTypes();
+				int numInputs = inputs.numTypes();
 				boolean first = true;
 
-				result = new FastList<>("[");
-				for (SymbolicType memberType : sequence) {
+				if (numInputs == 0)
+					throw new SARLException(
+							"CVC* requires a function type to have at least one input");
+				result = new FastList<>("(");
+				for (SymbolicType inputType : inputs) {
 					if (first)
 						first = false;
 					else
 						result.add(", ");
-					result.append(translateType(memberType));
+					result.append(translateType(inputType));
 				}
-				result.add("]");
+				result.add(") -> (");
+				result.append(translateType(funcType.outputType()));
+				result.add(")");
+				break;
 			}
-			break;
-		}
-		case FUNCTION: {
-			SymbolicFunctionType funcType = (SymbolicFunctionType) type;
-			SymbolicTypeSequence inputs = funcType.inputTypes();
-			int numInputs = inputs.numTypes();
-			boolean first = true;
+			case UNION : {
+				// this is the first time this type has been encountered, so
+				// it must be declared...
+				//
+				// Declaration of a union type UT, with member types T0, T1,
+				// ...:
+				//
+				// DATATYPE
+				// UT = UT_inject_0(UT_extract_0 : T0) |
+				// UT_inject_1(UT_extract_1 :
+				// T1) | ...
+				// END;
+				//
+				// Usage:
+				//
+				// UT_inject_i(x)
+				// UT_extract_i(y)
+				SymbolicUnionType unionType = (SymbolicUnionType) type;
+				SymbolicTypeSequence sequence = unionType.sequence();
+				String name = unionType.name().getString();
+				int n = sequence.numTypes();
 
-			if (numInputs == 0)
-				throw new SARLException(
-						"CVC* requires a function type to have at least one input");
-			result = new FastList<>("(");
-			for (SymbolicType inputType : inputs) {
-				if (first)
-					first = false;
-				else
-					result.add(", ");
-				result.append(translateType(inputType));
+				cvcDeclarations.addAll("DATATYPE\n", name, " = ");
+				for (int i = 0; i < n; i++) {
+					SymbolicType memberType = sequence.getType(i);
+
+					if (i > 0)
+						cvcDeclarations.add(" | ");
+					cvcDeclarations.addAll(constructor(unionType, i), "(",
+							selector(unionType, i), " : ");
+					cvcDeclarations.append(translateType(memberType));
+					cvcDeclarations.add(")");
+				}
+				cvcDeclarations.add("END;\n");
+				result = new FastList<>(name);
+				break;
 			}
-			result.add(") -> (");
-			result.append(translateType(funcType.outputType()));
-			result.add(")");
-			break;
-		}
-		case UNION: {
-			// this is the first time this type has been encountered, so
-			// it must be declared...
-			//
-			// Declaration of a union type UT, with member types T0, T1, ...:
-			//
-			// DATATYPE
-			// UT = UT_inject_0(UT_extract_0 : T0) | UT_inject_1(UT_extract_1 :
-			// T1) | ...
-			// END;
-			//
-			// Usage:
-			//
-			// UT_inject_i(x)
-			// UT_extract_i(y)
-			SymbolicUnionType unionType = (SymbolicUnionType) type;
-			SymbolicTypeSequence sequence = unionType.sequence();
-			String name = unionType.name().getString();
-			int n = sequence.numTypes();
+			case UNINTERPRETED : {
+				SymbolicUninterpretedType unitType = (SymbolicUninterpretedType) type;
+				String typeName = uninterpretedTypeName(unitType);
+				String consName = uninterpretedTypeConstructor(unitType);
 
-			cvcDeclarations.addAll("DATATYPE\n", name, " = ");
-			for (int i = 0; i < n; i++) {
-				SymbolicType memberType = sequence.getType(i);
-
-				if (i > 0)
-					cvcDeclarations.add(" | ");
-				cvcDeclarations.addAll(constructor(unionType, i), "(",
-						selector(unionType, i), " : ");
-				cvcDeclarations.append(translateType(memberType));
-				cvcDeclarations.add(")");
+				cvcDeclarations.addAll("DATATYPE\n");
+				cvcDeclarations.addAll(typeName, " = ", consName, "(selector_",
+						unitType.name().getString(), " : INT)", "\n");
+				cvcDeclarations.addAll("END;\n");
+				result = new FastList<>(typeName);
+				break;
 			}
-			cvcDeclarations.add("END;\n");
-			result = new FastList<>(name);
-			break;
-		}
-		case UNINTERPRETED: {
-			SymbolicUninterpretedType unitType = (SymbolicUninterpretedType) type;
-			String typeName = uninterpretedTypeName(unitType);
-			String consName = uninterpretedTypeConstructor(unitType);
-
-			cvcDeclarations.addAll("DATATYPE\n");
-			cvcDeclarations.addAll(typeName, " = ", consName, "(selector_",
-					unitType.name().getString(), " : INT)", "\n");
-			cvcDeclarations.addAll("END;\n");
-			result = new FastList<>(typeName);
-			break;
-		}
-		default:
-			throw new SARLInternalException("Unknown SARL type: " + type);
+			default :
+				throw new SARLInternalException("Unknown SARL type: " + type);
 		}
 		typeMap.put(type, result);
 		return result.clone();
@@ -2647,174 +2667,176 @@ public class CVCTranslator {
 
 		// TODO: Implement all operators
 		switch (operator) {
-		case ADD:
-			result = translateKeySet_BV(" BVPLUS ", getBVString(0), expression);
-			break;
-		case AND:
-			result = translateKeySet(" AND ", "TRUE", expression);
-			break;
-		case APPLY:
-			result = translateApply(expression);
-			break;
-		case ARRAY:
-			// result = translateConcreteArray(expression);
-			break;
-		case ARRAY_LAMBDA:
-			throw new TheoremProverException(
-					"Array lambdas are not supported by CVC");
-		case ARRAY_READ:
-			result = translateArrayRead(expression);
-			break;
-		case ARRAY_WRITE:
-			// result = translateArrayWrite(expression);
-			break;
-		case BIT_AND:
-			result = translateBitOperation_BV(" & ",
-					(SymbolicExpression) expression.argument(0),
-					(SymbolicExpression) expression.argument(1));
-			break;
-		case BIT_NOT:
-			result = translateBitOperation_BV(" ~ ",
-					(SymbolicExpression) expression.argument(0), null);
-			break;
-		case BIT_OR:
-			result = translateBitOperation_BV(" BVNOR ",
-					(SymbolicExpression) expression.argument(0),
-					(SymbolicExpression) expression.argument(1));
-			break;
-		case BIT_XOR:
-			// result = translateBitOperation(" BVXOR ",
-			// (SymbolicExpression) expression.argument(0),
-			// (SymbolicExpression) expression.argument(1));
-			break;
-		case BIT_SHIFT_LEFT:
-			result = translateBitShift_BV(" BVSHL ",
-					(SymbolicExpression) expression.argument(0),
-					(SymbolicExpression) expression.argument(1));
-			break;
-		case BIT_SHIFT_RIGHT:
-			result = translateBitShift_BV(" BVLSHR ",
-					(SymbolicExpression) expression.argument(0),
-					(SymbolicExpression) expression.argument(1));
-			break;
-		case CAST:
-			result = translateCast(expression);
-			break;
-		case CONCRETE:
-			result = translateConcrete_BV(expression);
-			break;
-		case COND:
-			// result = translateCond(expression);
-			break;
-		case DENSE_ARRAY_WRITE:
-			// result = translateDenseArrayWrite(expression);
-			break;
-		case DENSE_TUPLE_WRITE:
-			// result = translateDenseTupleWrite(expression);
-			break;
-		case DIVIDE: // real division
-			// result = translateBinary(" / ",
-			// (SymbolicExpression) expression.argument(0),
-			// (SymbolicExpression) expression.argument(1));
-			break;
-		case EQUALS:
-			// result = translateEquality(expression);
-			break;
-		case EXISTS:
-		case FORALL:
-			// result = translateQuantifier(expression);
-			break;
-		case INT_DIVIDE:
-			// if (simplifyIntDivision) {
-			// result = getIntDivInfo(
-			// (NumericExpression) expression.argument(0),
-			// (NumericExpression) expression.argument(1),
-			// SymbolicOperator.INT_DIVIDE);
-			// } else {
-			// result = translateBinary(" DIV ",
-			// (SymbolicExpression) expression.argument(0),
-			// (SymbolicExpression) expression.argument(1));
-			// }
-			break;
-		case LENGTH:
-			// result = lengthOfArray((SymbolicExpression)
-			// expression.argument(0));
-			break;
-		case LESS_THAN:
-			result = translateBinary_BV(" BVLT ",
-					(SymbolicExpression) expression.argument(0),
-					(SymbolicExpression) expression.argument(1));
-			break;
-		case LESS_THAN_EQUALS:
-			result = translateBinary_BV(" BVLE ",
-					(SymbolicExpression) expression.argument(0),
-					(SymbolicExpression) expression.argument(1));
-			break;
-		case MODULO:
-			// if (simplifyIntDivision) {
-			// result = getIntDivInfo(
-			// (NumericExpression) expression.argument(0),
-			// (NumericExpression) expression.argument(1),
-			// SymbolicOperator.MODULO);
-			// } else
-			// result = translateBinary(" MOD ",
-			// (SymbolicExpression) expression.argument(0),
-			// (SymbolicExpression) expression.argument(1));
-			break;
-		case MULTIPLY:
-			result = translateKeySet(" BVMULT ", getBVString(1), expression);
-			break;
-		case NEGATIVE:
-			// result = translateNegative(expression);
-			break;
-		case NEQ:
-			// result = translateNEQ(expression);
-			break;
-		case NOT:
-			result = translateNot(expression);
-			break;
-		case OR:
-			result = translateKeySet(" OR ", "FALSE", expression);
-			break;
-		case POWER:
-			// result = translatePower(expression);
-			break;
-		case SUBTRACT:
-			// result = translateBinary(" - ",
-			// (SymbolicExpression) expression.argument(0),
-			// (SymbolicExpression) expression.argument(1));
-			break;
-		case SYMBOLIC_CONSTANT:
-			result = translateSymbolicConstant_BV((SymbolicConstant) expression,
-					false);
-			break;
-		case TUPLE:
-			// result = translateConcreteTuple(expression);
-			break;
-		case TUPLE_READ:
-			// result = translateTupleRead(expression);
-			break;
-		case TUPLE_WRITE:
-			// result = translateTupleWrite(expression);
-			break;
-		case UNION_EXTRACT:
-			// result = translateUnionExtract(expression);
-			break;
-		case UNION_INJECT:
-			// result = translateUnionInject(expression);
-			break;
-		case UNION_TEST:
-			// result = translateUnionTest(expression);
-			break;
-		case LAMBDA:
-			// result = translateLambda(expression);
-			break;
-		case NULL:
-			result = null;
-			break;
-		default:
-			throw new SARLInternalException(
-					"unreachable: unknown operator: " + operator);
+			case ADD :
+				result = translateKeySet_BV(" BVPLUS ", getBVString(0),
+						expression);
+				break;
+			case AND :
+				result = translateKeySet(" AND ", "TRUE", expression);
+				break;
+			case APPLY :
+				result = translateApply(expression);
+				break;
+			case ARRAY :
+				// result = translateConcreteArray(expression);
+				break;
+			case ARRAY_LAMBDA :
+				throw new TheoremProverException(
+						"Array lambdas are not supported by CVC");
+			case ARRAY_READ :
+				result = translateArrayRead(expression);
+				break;
+			case ARRAY_WRITE :
+				// result = translateArrayWrite(expression);
+				break;
+			case BIT_AND :
+				result = translateBitOperation_BV(" & ",
+						(SymbolicExpression) expression.argument(0),
+						(SymbolicExpression) expression.argument(1));
+				break;
+			case BIT_NOT :
+				result = translateBitOperation_BV(" ~ ",
+						(SymbolicExpression) expression.argument(0), null);
+				break;
+			case BIT_OR :
+				result = translateBitOperation_BV(" BVNOR ",
+						(SymbolicExpression) expression.argument(0),
+						(SymbolicExpression) expression.argument(1));
+				break;
+			case BIT_XOR :
+				// result = translateBitOperation(" BVXOR ",
+				// (SymbolicExpression) expression.argument(0),
+				// (SymbolicExpression) expression.argument(1));
+				break;
+			case BIT_SHIFT_LEFT :
+				result = translateBitShift_BV(" BVSHL ",
+						(SymbolicExpression) expression.argument(0),
+						(SymbolicExpression) expression.argument(1));
+				break;
+			case BIT_SHIFT_RIGHT :
+				result = translateBitShift_BV(" BVLSHR ",
+						(SymbolicExpression) expression.argument(0),
+						(SymbolicExpression) expression.argument(1));
+				break;
+			case CAST :
+				result = translateCast(expression);
+				break;
+			case CONCRETE :
+				result = translateConcrete_BV(expression);
+				break;
+			case COND :
+				// result = translateCond(expression);
+				break;
+			case DENSE_ARRAY_WRITE :
+				// result = translateDenseArrayWrite(expression);
+				break;
+			case DENSE_TUPLE_WRITE :
+				// result = translateDenseTupleWrite(expression);
+				break;
+			case DIVIDE : // real division
+				// result = translateBinary(" / ",
+				// (SymbolicExpression) expression.argument(0),
+				// (SymbolicExpression) expression.argument(1));
+				break;
+			case EQUALS :
+				// result = translateEquality(expression);
+				break;
+			case EXISTS :
+			case FORALL :
+				// result = translateQuantifier(expression);
+				break;
+			case INT_DIVIDE :
+				// if (simplifyIntDivision) {
+				// result = getIntDivInfo(
+				// (NumericExpression) expression.argument(0),
+				// (NumericExpression) expression.argument(1),
+				// SymbolicOperator.INT_DIVIDE);
+				// } else {
+				// result = translateBinary(" DIV ",
+				// (SymbolicExpression) expression.argument(0),
+				// (SymbolicExpression) expression.argument(1));
+				// }
+				break;
+			case LENGTH :
+				// result = lengthOfArray((SymbolicExpression)
+				// expression.argument(0));
+				break;
+			case LESS_THAN :
+				result = translateBinary_BV(" BVLT ",
+						(SymbolicExpression) expression.argument(0),
+						(SymbolicExpression) expression.argument(1));
+				break;
+			case LESS_THAN_EQUALS :
+				result = translateBinary_BV(" BVLE ",
+						(SymbolicExpression) expression.argument(0),
+						(SymbolicExpression) expression.argument(1));
+				break;
+			case MODULO :
+				// if (simplifyIntDivision) {
+				// result = getIntDivInfo(
+				// (NumericExpression) expression.argument(0),
+				// (NumericExpression) expression.argument(1),
+				// SymbolicOperator.MODULO);
+				// } else
+				// result = translateBinary(" MOD ",
+				// (SymbolicExpression) expression.argument(0),
+				// (SymbolicExpression) expression.argument(1));
+				break;
+			case MULTIPLY :
+				result = translateKeySet(" BVMULT ", getBVString(1),
+						expression);
+				break;
+			case NEGATIVE :
+				// result = translateNegative(expression);
+				break;
+			case NEQ :
+				// result = translateNEQ(expression);
+				break;
+			case NOT :
+				result = translateNot(expression);
+				break;
+			case OR :
+				result = translateKeySet(" OR ", "FALSE", expression);
+				break;
+			case POWER :
+				// result = translatePower(expression);
+				break;
+			case SUBTRACT :
+				// result = translateBinary(" - ",
+				// (SymbolicExpression) expression.argument(0),
+				// (SymbolicExpression) expression.argument(1));
+				break;
+			case SYMBOLIC_CONSTANT :
+				result = translateSymbolicConstant_BV(
+						(SymbolicConstant) expression, false);
+				break;
+			case TUPLE :
+				// result = translateConcreteTuple(expression);
+				break;
+			case TUPLE_READ :
+				// result = translateTupleRead(expression);
+				break;
+			case TUPLE_WRITE :
+				// result = translateTupleWrite(expression);
+				break;
+			case UNION_EXTRACT :
+				// result = translateUnionExtract(expression);
+				break;
+			case UNION_INJECT :
+				// result = translateUnionInject(expression);
+				break;
+			case UNION_TEST :
+				// result = translateUnionTest(expression);
+				break;
+			case LAMBDA :
+				// result = translateLambda(expression);
+				break;
+			case NULL :
+				result = null;
+				break;
+			default :
+				throw new SARLInternalException(
+						"unreachable: unknown operator: " + operator);
 		}
 		if (result == null)
 			System.out.println(expression.toString());
@@ -2823,8 +2845,9 @@ public class CVCTranslator {
 
 	/**
 	 * @param operator
-	 *            The operator can be {@link SymbolicOperator.#MULTIPLY} or
-	 *            {@link SymbolicOperator.#ADD}
+	 *                         The operator can be
+	 *                         {@link SymbolicOperator.#MULTIPLY} or
+	 *                         {@link SymbolicOperator.#ADD}
 	 * @param defaultValue
 	 * @param expression
 	 * @return
@@ -2961,8 +2984,8 @@ public class CVCTranslator {
 
 		assert !bodyTranslation.getIsDivOrModulo()
 				&& bodyTranslation.getAuxConstraints().isEmpty();
-		assert bodyTranslation.getAuxVars()
-				.isEmpty() : "logic function is not pure function";
+		assert bodyTranslation.getAuxVars().isEmpty()
+				: "logic function is not pure function";
 		result.append(bodyTranslation.getResult());
 		result.add(";\n");
 		this.cvcDeclarations.append(result);

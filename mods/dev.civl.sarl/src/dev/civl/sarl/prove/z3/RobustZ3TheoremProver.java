@@ -115,15 +115,17 @@ public class RobustZ3TheoremProver implements TheoremProver {
 	 * Constructs new Z3 theorem prover for the given context.
 	 * 
 	 * @param universe
-	 *            the controlling symbolic universe
+	 *                           the controlling symbolic universe
 	 * @param context
-	 *            the assumption(s) the prover will use for queries
+	 *                           the assumption(s) the prover will use for
+	 *                           queries
 	 * @param ProverInfo
-	 *            information object on the underlying theorem prover, which
-	 *            must have {@link ProverKind} {@link ProverKind#Z3}
+	 *                           information object on the underlying theorem
+	 *                           prover, which must have {@link ProverKind}
+	 *                           {@link ProverKind#Z3}
 	 * @param logicFunctions
-	 *            a list of {@link ProverFunctionInterpretation}s which are the
-	 *            logic function definitions
+	 *                           a list of {@link ProverFunctionInterpretation}s
+	 *                           which are the logic function definitions
 	 */
 	RobustZ3TheoremProver(PreUniverse universe, BooleanExpression context,
 			ProverInfo info, ProverFunctionInterpretation logicFunctions[])
@@ -215,17 +217,18 @@ public class RobustZ3TheoremProver implements TheoremProver {
 	 * </p>
 	 * 
 	 * @param predicate
-	 *            the boolean expression representing the predicate
+	 *                       the boolean expression representing the predicate
 	 * @param checkUNSAT
-	 *            a flag setting to true indicates testing unsatisfiability of
-	 *            the given predicate; setting to false indicates testing if the
-	 *            context entails the predicate.
+	 *                       a flag setting to true indicates testing
+	 *                       unsatisfiability of the given predicate; setting to
+	 *                       false indicates testing if the context entails the
+	 *                       predicate.
 	 * @param id
-	 *            the ID number of this prover call
+	 *                       the ID number of this prover call
 	 * @param show
-	 *            a flag indicating whether printing the z3 script
+	 *                       a flag indicating whether printing the z3 script
 	 * @param out
-	 *            the output stream
+	 *                       the output stream
 	 * @return a {@link ValidityResult}
 	 * @throws TheoremProverException
 	 */
