@@ -1,5 +1,8 @@
+#pragma CIVL ACSL
 //======================== civlc.cvh =======================
 typedef struct $proc $proc;
+/*@ depends_on \nothing;
+  @*/
 $system[civlc] void $wait($proc p);
 //================== structsInFunction.cvl =================
 void process() {
