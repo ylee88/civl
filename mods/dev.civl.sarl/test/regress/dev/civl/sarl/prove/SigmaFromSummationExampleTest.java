@@ -14,7 +14,7 @@ import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.IF.type.SymbolicCompleteArrayType;
 import dev.civl.sarl.IF.type.SymbolicFunctionType;
 
-public class sigmaTestsFromSummationExample {
+public class SigmaFromSummationExampleTest {
 	private static SymbolicUniverse universe = SARL.newStandardUniverse();
 
 	/*

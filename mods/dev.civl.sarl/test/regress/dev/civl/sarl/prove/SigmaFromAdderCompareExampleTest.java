@@ -14,7 +14,7 @@ import dev.civl.sarl.IF.type.SymbolicCompleteArrayType;
 import dev.civl.sarl.IF.type.SymbolicFunctionType;
 import dev.civl.sarl.IF.type.SymbolicTupleType;
 
-public class SigmaTestsFromAdderCompareExample {
+public class SigmaFromAdderCompareExampleTest {
 
 	private static SymbolicUniverse universe = SARL.newStandardUniverse();
 

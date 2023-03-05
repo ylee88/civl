@@ -16,7 +16,7 @@ import dev.civl.sarl.preuniverse.IF.FactorySystem;
 import dev.civl.sarl.preuniverse.IF.PreUniverse;
 import dev.civl.sarl.preuniverse.IF.PreUniverses;
 
-public class ArrayTest2 {
+public class Array2Test {
 
 	public static PrintStream out = System.out;
 
