@@ -8,6 +8,7 @@ module dev.civl.sarl {
     exports dev.civl.sarl.IF.object;
     exports dev.civl.sarl.IF.type;
     exports dev.civl.sarl.number.IF;
+    exports dev.civl.sarl.object.IF;
     exports dev.civl.sarl.object.common;
     exports dev.civl.sarl.prove.IF;
     exports dev.civl.sarl.util;
