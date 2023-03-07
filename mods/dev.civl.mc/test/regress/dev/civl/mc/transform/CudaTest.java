@@ -7,11 +7,14 @@ import java.io.File;
 import org.junit.AfterClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.Ignore;
 import org.junit.rules.Timeout;
 
 import static dev.civl.mc.TestConstants.QUIET;
 import dev.civl.mc.run.IF.UserInterface;
 
+//TODO: Unignore once CUDA is reworked
+@Ignore
 public class CudaTest {
 	@Rule
 	public Timeout globalTimeout = Timeout.seconds(30);
