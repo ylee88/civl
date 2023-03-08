@@ -311,7 +311,7 @@ void $cuda_run_and_wait_on_procs(dim3 dim, void spawningFunction(uint3)) {
 }
 
 void _cuda_kernel_1(dim3 gridDim, dim3 blockDim, size_t _cuda_mem_size,
-                    int x) {
+                    const float *A, const float *B, float *C, int numElements) {
   void _cuda_block(uint3 blockIdx) {
     int numThreads = (blockDim.x * blockDim.y) * blockDim.z;
     $scope _block_root = $here;
@@ -320,7 +320,18 @@ void _cuda_kernel_1(dim3 gridDim, dim3 blockDim, size_t _cuda_mem_size,
       int _cuda_tid = $dim3_index(blockDim, threadIdx);
       int _cuda_kid = $cuda_kernel_index(gridDim, blockDim, blockIdx, threadIdx);
       $barrier _cuda_thread_barrier = $barrier_create($here, _cuda_block_barrier, _cuda_tid);
-      //Kernel definition
+      $local_start();
+      // Kernel definition start
+      
+      int i = blockDim.x * blockIdx.x + threadIdx.x;
+
+      if (i < numElements)
+      {
+        C[i] = A[i] + B[i];
+      }
+      
+      // Kernel definition end
+      $local_end();
       $barrier_destroy(_cuda_thread_barrier);
     }
     $cuda_run_and_wait_on_procs(blockDim, _cuda_thread);
@@ -330,19 +341,45 @@ void _cuda_kernel_1(dim3 gridDim, dim3 blockDim, size_t _cuda_mem_size,
 }
 
 void $proc_kernel_1(dim3 gridDim, dim3 blockDim, size_t _cudaMemSize,
-                    _Bool* enqueuedFlag, cudaStream_t _cudaStream, int x) {
+                    _Bool* enqueuedFlag, cudaStream_t _cudaStream,
+                    const float *A, const float *B, float *C, int numElements) {
   $cuda_op_state_t opState = $stream_enqueue(enqueuedFlag, _cudaStream);
   $when(opState->start);
-  _cuda_kernel_1(gridDim, blockDim, _cudaMemSize, x);
+  _cuda_kernel_1(gridDim, blockDim, _cudaMemSize, A, B, C, numElements);
   $stream_dequeue(_cudaStream);
 }
 
+$input int N;
+$assume (N > 0);
+$input float A[N];
+$input float B[N];
+
 void _civl_main() {
+  int size = N * sizeof(float);
+
+  float* cuda_A = NULL;
+  // cudaMalloc((void **)&cuda_A, size);
   {
-    dim3 gridDim = {3, 2, 1};
-    dim3 blockDim = {3, 2, 1};
+    cuda_A = (float *) malloc(size);
+  }
+
+  float* cuda_B = NULL;
+  // cudaMalloc((void **)&cuda_B, size);
+  {
+    cuda_B = (float *) malloc(size);
+  }
+
+  float* cuda_C = NULL;
+  // cudaMalloc((void **)&cuda_C, size);
+  {
+    cuda_C = (float *) malloc(size);
+  }
+
+  { // kernel_1<<<gridDim, blockDim>>>(5);
+    dim3 gridDim = {2, 1, 1};
+    dim3 blockDim = {2, 1, 1};
     _Bool enqueuedFlag = false;
-    $spawn $proc_kernel_1(gridDim, blockDim, 0, &enqueuedFlag, NULL, 5);
+    $spawn $proc_kernel_1(gridDim, blockDim, 0, &enqueuedFlag, NULL, cuda_A, cuda_B, cuda_C, N);
     $when(enqueuedFlag);
   }
 }
