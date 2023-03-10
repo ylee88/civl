@@ -3,6 +3,7 @@
 	<name>dev.civl.gmc</name>
 	<comment></comment>
 	<projects>
+		<project>CIVL</project>
 		<project>dev.civl.com</project>
 	</projects>
 	<buildSpec>

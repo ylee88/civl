@@ -3,6 +3,7 @@
 	<name>dev.civl.com</name>
 	<comment></comment>
 	<projects>
+		<project>CIVL</project>
 	</projects>
 	<buildSpec>
 	</buildSpec>

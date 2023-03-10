@@ -3,24 +3,18 @@
   <!-- This file contains definitions that are shared by all ant scripts
        in this repository -->
 
-  <!-- Get name of directory containing this file and store in
-       common.dir.  The mod dir is the parent of common.dir: in the
-       repo this is named "mods"; in Eclipse it will be the Eclipse
-       workspace.  root.dir is the parent of mod.dir which corresponds
-       to the complete trunk (or branch) in the repo, but which does
-       not exist in Eclipse workspace. -->
-  
-  <dirname property="common.dir" file="${ant.file.common}"/>
-  <dirname property="mod.dir" file="${common.dir}" />
-  <dirname property="root.dir" file="${mod.dir}" />
+  <!-- Get name of directory containing this file and store in root.dir -->
+  <dirname property="root.dir" file="${ant.file.common}"/>
+  <property name="mod.dir" location="${root.dir}/mods" />
+  <property name="com.dir" location="${mod.dir}/dev.civl.com" />
 
   <!-- If there is a file named build.properties in this directory,
        read it.  Else, read build_default.properties. -->
   
   <condition property="properties.file"
-	     value="${common.dir}/build.properties"
-	     else="${common.dir}/build_default.properties">
-    <available file="${common.dir}/build.properties" />
+	     value="${root.dir}/build.properties"
+	     else="${root.dir}/build_default.properties">
+    <available file="${root.dir}/build.properties" />
   </condition>
   <property file="${properties.file}"/>
   <property name="revision" value="" />  <!-- override on the command line -->

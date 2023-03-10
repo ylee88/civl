@@ -12,7 +12,7 @@
 
 <project name="CIVL" default="compile"
 	 xmlns:jacoco="antlib:org.jacoco.ant">
-  <import file="../dev.civl.com/common.xml" />
+  <import file="../../common.xml" />
 
   <!-- Properties -->
   <property name="src.dir" value="${mc.src.dir}" />
@@ -117,7 +117,7 @@
   <path id="test.execute.classpath">
     <pathelement location="${test.bin.dir}" />
     <pathelement location="${bin.dir}" />
-  	<pathelement location="${common.dir}" />
+  	<pathelement location="${root.dir}" />
     <pathelement location="${sarl.bin.dir}" />
     <pathelement location="${abc.bin.dir}" />
     <pathelement location="${gmc.bin.dir}" />
@@ -150,7 +150,7 @@
 	excludes="*Listener*:*Lexer*:*Parser*"
 	includes="dev/civl/mc/*"
 	destfile="${mc.dir}/jacoco.exec">
-      <junit dir="${common.dir}" fork="true" forkmode="perTest"
+      <junit dir="${root.dir}" fork="true" forkmode="perTest"
 	     threads="${nthreads}" timeout="900000">
 	<jvmarg value="-ea" />
 	<classpath refid="test.execute.classpath" />

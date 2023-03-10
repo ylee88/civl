@@ -12,7 +12,7 @@
 
 <project name="ABC" default="compile"
 	 xmlns:jacoco="antlib:org.jacoco.ant">
-  <import file="../dev.civl.com/common.xml" />
+  <import file="../../common.xml" />
 
   <!-- Properties -->
   <property name="src.dir" value="${abc.src.dir}" />
@@ -512,7 +512,7 @@
   <path id="test.execute.classpath">
     <pathelement location="${test.bin.dir}" />
     <pathelement location="${bin.dir}" />
-  	<pathelement location="${common.dir}" />
+  	<pathelement location="${root.dir}" />
     <pathelement location="${sarl.bin.dir}" />
     <pathelement location="${junit.jar}" />
     <pathelement location="${hamcrest.jar}" />

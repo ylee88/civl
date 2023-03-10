@@ -1,7 +1,7 @@
 <project name="CIVL" basedir="." default="all"
 	 xmlns:jacoco="antlib:org.jacoco.ant"> 
 
-  <import file="mods/dev.civl.com/common.xml" />
+  <import file="common.xml" />
 
   <!-- Compile -->
   <target name="compile">

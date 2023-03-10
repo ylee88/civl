@@ -12,7 +12,7 @@
 
 <project name="SARL" default="compile"
 	 xmlns:jacoco="antlib:org.jacoco.ant">
-  <import file="../dev.civl.com/common.xml" />
+  <import file="../../common.xml" />
 
   <!-- Properties -->
   <property name="src.dir" value="${sarl.src.dir}" />
