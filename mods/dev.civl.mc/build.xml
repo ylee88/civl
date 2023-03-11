@@ -144,6 +144,32 @@
       <src path="${test.src.dir}" />
     </javac>
   </target>
+
+  
+
+  <target name="test-only" depends="test-compile">
+    <junit dir="${root.dir}" fork="true" forkmode="perTest"
+	   threads="${nthreads}" timeout="900000">
+      <jvmarg value="-ea" />
+      <classpath refid="test.execute.classpath" />
+      <formatter type="brief" usefile="false" />
+      <formatter type="xml" />
+      <batchtest todir="${junit.data.dir}">
+	<fileset dir="${test.bin.dir}" includes="**/*Test.class" />
+      </batchtest>
+    </junit>
+    <junitreport todir="${junit.data.dir}">
+      <fileset dir="${junit.data.dir}">
+	<include name="TEST-*.xml" />
+      </fileset>
+      <report format="frames" todir="${junit.reports.dir}">
+	<param name="TITLE"
+	       expression="JUnit Report for CIVL-MC ${civlversion}.${revision} Regression Suite" />
+      </report>
+    </junitreport>
+  </target>
+
+  
   
   <target name="test-run" depends="test-compile">
     <jacoco:coverage
