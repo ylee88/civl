@@ -145,9 +145,7 @@
     </javac>
   </target>
 
-  
-
-  <target name="test-only" depends="test-compile">
+  <target name="test" depends="test-compile">
     <junit dir="${root.dir}" fork="true" forkmode="perTest"
 	   threads="${nthreads}" timeout="900000">
       <jvmarg value="-ea" />
@@ -168,10 +166,8 @@
       </report>
     </junitreport>
   </target>
-
   
-  
-  <target name="test-run" depends="test-compile">
+  <target name="test-cov-run" depends="test-compile">
     <jacoco:coverage
 	excludes="*Listener*:*Lexer*:*Parser*"
 	includes="dev/civl/mc/*"
@@ -198,7 +194,7 @@
     </junitreport>
   </target>
 
-  <target name="test" depends="test-run">
+  <target name="test-cov" depends="test-cov-run">
     <jacoco:report>
       <executiondata>
 	<file file="jacoco.exec" />
