@@ -4,7 +4,7 @@
 # this directory.  It will be read automatically in place of this one.
 civlversion=1.22
 javaversion=17
-nthreads=12
+nthreads=4
 root=/opt/vsl-${civlversion}
 
 hamcrest.jar=${root}/lib/hamcrest-2.2.jar
