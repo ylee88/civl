@@ -145,7 +145,7 @@
     </javac>
   </target>
 
-  <target name="test" depends="test-compile">
+  <target name="test-only" depends="test-compile">
     <junit dir="${root.dir}" fork="true" forkmode="perTest"
 	   threads="${nthreads}" timeout="900000">
       <jvmarg value="-ea" />
@@ -194,7 +194,7 @@
     </junitreport>
   </target>
 
-  <target name="test-cov" depends="test-cov-run">
+  <target name="test" depends="test-cov-run">
     <jacoco:report>
       <executiondata>
 	<file file="jacoco.exec" />
