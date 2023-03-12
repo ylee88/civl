@@ -189,7 +189,7 @@
       </fileset>
       <report format="frames" todir="${junit.reports.dir}">
 	<param name="TITLE"
-	       expression="JUnit Report for CIVL ${civlversion}.${revision} Regression Suite" />
+	       expression="JUnit Report for CIVL-MC ${civlversion}.${revision} Regression Suite" />
       </report>
     </junitreport>
   </target>
@@ -199,7 +199,7 @@
       <executiondata>
 	<file file="jacoco.exec" />
       </executiondata>
-      <structure name="Test Coverage Report for CIVL ${civlversion}.${revision} Regression Suite">
+      <structure name="Test Coverage Report for CIVL-MC ${civlversion}.${revision} Regression Suite">
 	<classfiles>
 	  <fileset dir="${bin.dir}" />
 	</classfiles>

@@ -95,10 +95,10 @@ public class ContextExtractor {
 	 * anything.
 	 * 
 	 * @param context
-	 *            the context that will be modified by this extractor
+	 *                     the context that will be modified by this extractor
 	 * @param dirtySet
-	 *            the variables involved in entries created by this extractor
-	 *            will be added to this set
+	 *                     the variables involved in entries created by this
+	 *                     extractor will be added to this set
 	 */
 	public ContextExtractor(Context context, Set<SymbolicConstant> dirtySet) {
 		this.context = context;
@@ -153,9 +153,10 @@ public class ContextExtractor {
 	 * being simplified to strictly decrease?
 	 * 
 	 * @param expr
-	 *            the boolean expression to process
+	 *                 the boolean expression to process
 	 * @throws InconsistentContextException
-	 *             if this context is determined to be inconsistent
+	 *                                          if this context is determined to
+	 *                                          be inconsistent
 	 */
 	private void extractOr(BooleanExpression expr)
 			throws InconsistentContextException {
@@ -198,11 +199,12 @@ public class ContextExtractor {
 	 * the state of this context appropriately.
 	 * 
 	 * @param pred
-	 *            a non-<code>null</code> boolean expression, asserted to be
-	 *            equivalent to <i>false</i> in this context
+	 *                 a non-<code>null</code> boolean expression, asserted to
+	 *                 be equivalent to <i>false</i> in this context
 	 * @throws InconsistentContextException
-	 *             if an inconsistency is detected in the context in the process
-	 *             of consuming this assumption
+	 *                                          if an inconsistency is detected
+	 *                                          in the context in the process of
+	 *                                          consuming this assumption
 	 * 
 	 */
 	private void extractNot(BooleanExpression pred)
@@ -215,10 +217,11 @@ public class ContextExtractor {
 	 * accordingly.
 	 * 
 	 * @param eqExpr
-	 *            a symbolic expression in which the operator is
-	 *            {@link SymbolicOperator#EQUALS}
+	 *                   a symbolic expression in which the operator is
+	 *                   {@link SymbolicOperator#EQUALS}
 	 * @throws InconsistentContextException
-	 *             if this context is determined to be inconsistent
+	 *                                          if this context is determined to
+	 *                                          be inconsistent
 	 */
 	private void extractEquals(SymbolicExpression eqExpr)
 			throws InconsistentContextException {
@@ -249,16 +252,18 @@ public class ContextExtractor {
 	 * probabilistic technique (the Schwartz-Zippel lemma).
 	 * 
 	 * @param poly
-	 *            the polynomial, non-{@code null}, of integer or real type
+	 *                        the polynomial, non-{@code null}, of integer or
+	 *                        real type
 	 * @param totalDegree
-	 *            an upper bound on the total degree of the polynomial
+	 *                        an upper bound on the total degree of the
+	 *                        polynomial
 	 * @param vars
-	 *            the "variables" occurring in the polynomial; the polynomial
-	 *            must be an expression in these variables using only power
-	 *            operators to natural number exponents, +, -, and *, and
-	 *            constants.
+	 *                        the "variables" occurring in the polynomial; the
+	 *                        polynomial must be an expression in these
+	 *                        variables using only power operators to natural
+	 *                        number exponents, +, -, and *, and constants.
 	 * @param epsilon
-	 *            an upper bound on the probability of error
+	 *                        an upper bound on the probability of error
 	 * @return if {@code true}, the given polynomial is probably zero, with the
 	 *         probability of error at most {@code epsilon}; if {@code false},
 	 *         the polynomial is not identically zero
@@ -281,16 +286,17 @@ public class ContextExtractor {
 	 * {@link PreUniverse#getProbabilisticBound()} is non-0.
 	 * 
 	 * @param poly
-	 *            a non-{@code null} {@link Polynomial} asserted to be 0
+	 *                  a non-{@code null} {@link Polynomial} asserted to be 0
 	 * @param monic
-	 *            if all else fails, use this as the key to the new entry in the
-	 *            subMap
+	 *                  if all else fails, use this as the key to the new entry
+	 *                  in the subMap
 	 * @param value
-	 *            if all else fails, use this as the value to the new entry in
-	 *            the subMap
+	 *                  if all else fails, use this as the value to the new
+	 *                  entry in the subMap
 	 * @throws InconsistentContextException
-	 *             if an inconsistency is detected in this context upon adding
-	 *             this new assumption
+	 *                                          if an inconsistency is detected
+	 *                                          in this context upon adding this
+	 *                                          new assumption
 	 */
 	private void extractEQ0Poly(Polynomial poly, Monic monic, Number value)
 			throws InconsistentContextException {
@@ -342,7 +348,8 @@ public class ContextExtractor {
 				return; // poly is 0 after all
 
 			Monomial newMonomial = idf.factorTermMap(termMap);
-			Number zero = newMonomial.type().isInteger() ? nf.zeroInteger()
+			Number zero = newMonomial.type().isInteger()
+					? nf.zeroInteger()
 					: nf.zeroRational();
 			Pair<Monic, Number> pair = util.normalize(newMonomial, zero);
 
@@ -363,9 +370,10 @@ public class ContextExtractor {
 	 * updating the state of this context based on that fact.
 	 * 
 	 * @param primitive
-	 *            a non-<code>null</code> numeric {@link Primitive}
+	 *                      a non-<code>null</code> numeric {@link Primitive}
 	 * @throws InconsistentContextException
-	 *             if this context is determined to be inconsistent
+	 *                                          if this context is determined to
+	 *                                          be inconsistent
 	 */
 	private void extractEQ0(Primitive primitive)
 			throws InconsistentContextException {
@@ -396,14 +404,15 @@ public class ContextExtractor {
 	 * {@link #subMap} and/or {@link #rangeMap} to reflect this claim.
 	 * 
 	 * @param arg0
-	 *            one side of the inequality, any non-{@code null} symbolic
-	 *            expression
+	 *                 one side of the inequality, any non-{@code null} symbolic
+	 *                 expression
 	 * @param arg1
-	 *            the other side of the inequality, a symbolic expression of the
-	 *            same type as {@code arg0}
+	 *                 the other side of the inequality, a symbolic expression
+	 *                 of the same type as {@code arg0}
 	 * @throws InconsistentContextException
-	 *             if an inconsistency in this context is detected in the
-	 *             process of processing this claim
+	 *                                          if an inconsistency in this
+	 *                                          context is detected in the
+	 *                                          process of processing this claim
 	 */
 	private void extractNEQ(SymbolicExpression arg0, SymbolicExpression arg1)
 			throws InconsistentContextException {
@@ -412,7 +421,8 @@ public class ContextExtractor {
 		if (type.isIdeal()) { // 0!=x, for a Primitive x
 			Primitive primitive = (Primitive) arg1;
 			RangeFactory rf = util.rangeFactory;
-			Number zero = type.isInteger() ? util.numberFactory.zeroInteger()
+			Number zero = type.isInteger()
+					? util.numberFactory.zeroInteger()
 					: util.numberFactory.zeroRational();
 			Pair<Monic, Number> pair = util.normalize(primitive, zero);
 
@@ -451,15 +461,17 @@ public class ContextExtractor {
 	 * on the monic accordingly.
 	 * 
 	 * @param monic
-	 *            a non-<code>null</code> {@link Monic}
+	 *                   a non-<code>null</code> {@link Monic}
 	 * @param gt
-	 *            is the condition one of x&gt;0 or x&ge;0 (i.e., not x&lt;0 or
-	 *            x&le;0)
+	 *                   is the condition one of x&gt;0 or x&ge;0 (i.e., not
+	 *                   x&lt;0 or x&le;0)
 	 * @param strict
-	 *            is the form one of x&gt;0 or x&lt;0 (strict inequality)
+	 *                   is the form one of x&gt;0 or x&lt;0 (strict inequality)
 	 * @throws InconsistentContextException
-	 *             if, in the course of processing this inequality, an
-	 *             inconsistency in this {@link Context} is detected
+	 *                                          if, in the course of processing
+	 *                                          this inequality, an
+	 *                                          inconsistency in this
+	 *                                          {@link Context} is detected
 	 */
 	private void extractIneqMonic(Monic monic, boolean gt, boolean strict)
 			throws InconsistentContextException {
@@ -491,10 +503,10 @@ public class ContextExtractor {
 	 * to solve that equation for <code>p</code>.
 	 * 
 	 * @param terms
-	 *            the expressions whose sum is asserted to be equal to
-	 *            <code>p</code>
+	 *                  the expressions whose sum is asserted to be equal to
+	 *                  <code>p</code>
 	 * @param p
-	 *            a numeric {@link Primitive}
+	 *                  a numeric {@link Primitive}
 	 * @return an expression which must be equal to <code>p</code> and does not
 	 *         involve <code>p</code>, or <code>null</code> if it could not be
 	 *         solved
@@ -574,9 +586,9 @@ public class ContextExtractor {
 	 * all terms. These are the array-read expressions that can be solved for.
 	 * 
 	 * @param terms
-	 *            the set of terms, as an array
+	 *                     the set of terms, as an array
 	 * @param indexVar
-	 *            the index variable
+	 *                     the index variable
 	 * @return the set of array read expressions, as an iterable object. Each
 	 *         array read expression occurs exactly once
 	 */
@@ -613,11 +625,11 @@ public class ContextExtractor {
 	 * <code>rhs</code> field f.
 	 * 
 	 * @param arg0
-	 *            a, one side of the equation
+	 *                  a, one side of the equation
 	 * @param arg1
-	 *            b, the other side of the equation
+	 *                  b, the other side of the equation
 	 * @param index
-	 *            i, the index variable
+	 *                  i, the index variable
 	 * @return a structure as specified above if the equation can be solved, or
 	 *         <code>null</code> if <code>equation</code> is not an equality or
 	 *         could not be put into that form
@@ -677,8 +689,8 @@ public class ContextExtractor {
 	 * expression <code>arraylambda i . f</code>.
 	 * 
 	 * @param forallExpr
-	 *            a boolean expression with operator
-	 *            {@link SymbolicOperator#FORALL}
+	 *                       a boolean expression with operator
+	 *                       {@link SymbolicOperator#FORALL}
 	 * @return if the given boolean expression is a forall expression in the
 	 *         form described above, the structure containing the array and the
 	 *         array-lambda expression, else <code>null</code>
@@ -709,7 +721,19 @@ public class ContextExtractor {
 		if (solution == null)
 			return null;
 
-		SymbolicArrayType arrayType = (SymbolicArrayType) solution.array.type();
+		// We know e = lambda(i) f. But the substitution is only safe
+		// if e is a symbolic constant not occurring in f.
+
+		if (!(solution.array instanceof SymbolicConstant))
+			return null;
+
+		SymbolicConstant a = (SymbolicConstant) solution.array;
+
+		if (util.getUniverse().getFreeSymbolicConstants(solution.rhs)
+				.contains(a))
+			return null;
+
+		SymbolicArrayType arrayType = (SymbolicArrayType) a.type();
 
 		if (!arrayType.isComplete())
 			return null;
@@ -724,7 +748,7 @@ public class ContextExtractor {
 					util.universe.lambda(var, solution.rhs));
 			ArrayDefinition result = new ArrayDefinition();
 
-			result.array = solution.array;
+			result.array = a;
 			result.lambda = lambda;
 			return result;
 		}
@@ -738,10 +762,11 @@ public class ContextExtractor {
 	 * substitution mapping <code>forallExpr</code> to <code>true</code>.
 	 * 
 	 * @param forallExpr
-	 *            an expression in which the operator is
-	 *            {@link SymbolicOperator#FORALL}.
+	 *                       an expression in which the operator is
+	 *                       {@link SymbolicOperator#FORALL}.
 	 * @throws InconsistentContextException
-	 *             this context is determined to be inconsistent
+	 *                                          this context is determined to be
+	 *                                          inconsistent
 	 */
 	private void extractForall(BooleanExpression forallExpr)
 			throws InconsistentContextException {
@@ -760,9 +785,9 @@ public class ContextExtractor {
 	 * appropriately. For now, a trivial implementation.
 	 * 
 	 * @param existsExpr
-	 *            the exists expression
+	 *                       the exists expression
 	 * @throws InconsistentContextException
-	 *             if an inconsistency is detected
+	 *                                          if an inconsistency is detected
 	 */
 	private void extractExists(SymbolicExpression existsExpr)
 			throws InconsistentContextException {
@@ -777,9 +802,10 @@ public class ContextExtractor {
 	 * form).
 	 * 
 	 * @param assumption
-	 *            the boolean expression to process
+	 *                       the boolean expression to process
 	 * @throws InconsistentContextException
-	 *             if the context is determined to be inconsistent
+	 *                                          if the context is determined to
+	 *                                          be inconsistent
 	 */
 	public void extractCNF(BooleanExpression assumption)
 			throws InconsistentContextException {
@@ -807,15 +833,17 @@ public class ContextExtractor {
 	 * </pre>
 	 * 
 	 * @param clause
-	 *            a boolean expression which is not an "and" expression, i.e.,
-	 *            it should be clause in the CNF form
+	 *                   a boolean expression which is not an "and" expression,
+	 *                   i.e., it should be clause in the CNF form
 	 * @return <code>true</code> if the expression was reduced to a single range
 	 *         restriction and the information was added to the context;
 	 *         otherwise returns <code>false</code> and the state of the context
 	 *         was not changed
 	 * @throws InconsistentContextException
-	 *             if the expression involves a numeric constraint that implies
-	 *             some {@link Monic} has an empty range
+	 *                                          if the expression involves a
+	 *                                          numeric constraint that implies
+	 *                                          some {@link Monic} has an empty
+	 *                                          range
 	 */
 	public boolean extractNumericOr(BooleanExpression clause)
 			throws InconsistentContextException {
@@ -832,50 +860,53 @@ public class ContextExtractor {
 	 * and updates the context accordingly.
 	 * 
 	 * @param clause
-	 *            the expression which is not an "and" or "or" expression
+	 *                   the expression which is not an "and" or "or" expression
 	 * @throws InconsistentContextException
-	 *             if this context is determined to be inconsistent in the
-	 *             process of updating it based on the given clause
+	 *                                          if this context is determined to
+	 *                                          be inconsistent in the process
+	 *                                          of updating it based on the
+	 *                                          given clause
 	 */
 	public void extractClause(BooleanExpression clause)
 			throws InconsistentContextException {
 		SymbolicOperator op = clause.operator();
 
 		switch (op) {
-		case CONCRETE:
-			if (!((BooleanObject) clause.argument(0)).getBoolean())
-				throw new InconsistentContextException();
-			break;
-		case NOT:
-			extractNot((BooleanExpression) clause.argument(0));
-			break;
-		case FORALL:
-			extractForall(clause);
-			break;
-		case EXISTS:
-			extractExists(clause);
-			break;
-		case EQUALS:
-			extractEquals(clause);
-			break;
-		case NEQ:
-			extractNEQ((SymbolicExpression) clause.argument(0),
-					(SymbolicExpression) clause.argument(1));
-			break;
-		case LESS_THAN: // 0<x or x<0
-		case LESS_THAN_EQUALS: {// 0<=x or x<=0
-			SymbolicExpression arg0 = (SymbolicExpression) clause.argument(0),
-					arg1 = (SymbolicExpression) clause.argument(1);
+			case CONCRETE :
+				if (!((BooleanObject) clause.argument(0)).getBoolean())
+					throw new InconsistentContextException();
+				break;
+			case NOT :
+				extractNot((BooleanExpression) clause.argument(0));
+				break;
+			case FORALL :
+				extractForall(clause);
+				break;
+			case EXISTS :
+				extractExists(clause);
+				break;
+			case EQUALS :
+				extractEquals(clause);
+				break;
+			case NEQ :
+				extractNEQ((SymbolicExpression) clause.argument(0),
+						(SymbolicExpression) clause.argument(1));
+				break;
+			case LESS_THAN : // 0<x or x<0
+			case LESS_THAN_EQUALS : {// 0<=x or x<=0
+				SymbolicExpression arg0 = (SymbolicExpression) clause
+						.argument(0),
+						arg1 = (SymbolicExpression) clause.argument(1);
 
-			if (arg0.isZero()) {
-				extractIneqMonic((Monic) arg1, true, op == LESS_THAN);
-			} else {
-				extractIneqMonic((Monic) arg0, false, op == LESS_THAN);
+				if (arg0.isZero()) {
+					extractIneqMonic((Monic) arg1, true, op == LESS_THAN);
+				} else {
+					extractIneqMonic((Monic) arg0, false, op == LESS_THAN);
+				}
+				break;
 			}
-			break;
-		}
-		default:
-			context.addSub(clause, util.trueExpr, dirtySet);
+			default :
+				context.addSub(clause, util.trueExpr, dirtySet);
 		}
 	}
 }
