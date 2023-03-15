@@ -8,10 +8,13 @@
  *   - wait for blocks to finish
  * - Add in block-level barriers and a __syncthreads() nested function that uses the barrier.
  * - Add in data race checking support and implement atomicAdd for integers
+ * - Handle dependencies at atomic blocks (replace some with local blocks if possible)
+ * - Create device scope for cudaMallocs
  */
 
 #include <concurrency.cvh>
 #include <stdlib.h>
+#include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
 
@@ -124,10 +127,10 @@ cudaError_t cudaStreamSynchronize(cudaStream_t stream) {
 }
 
 $proc $destroy_stream_node($cuda_stream_node_t node) {
-  $proc lastOpProc = $proc_null;
-  cudaStream_t stream = node->stream;
+    $proc lastOpProc = $proc_null;
+    cudaStream_t stream = node->stream;
   
-  $atomic {
+    $local_start();
     if (node->prev != NULL) {
       node->prev->next = node->next;
     }
@@ -139,7 +142,7 @@ $proc $destroy_stream_node($cuda_stream_node_t node) {
     stream->alive = false;
     if(stream->tail != NULL)
       lastOpProc = stream->tail->opState->op;
-  }
+    $local_end();
 	
 	void $destroy_stream_when_complete($proc lastOpProc, cudaStream_t stream) {
 		$wait(lastOpProc);
@@ -169,21 +172,21 @@ $cuda_op_state_t $stream_enqueue(_Bool* enqueuedFlag, cudaStream_t stream) {
   newOpStateNode->opState = newOpState;
   newOpStateNode->next = NULL;
     
-  $atomic {
-    stream = $default_stream_if_null(stream);
-    $assert(stream->alive, "Attempt to enqueue a CUDA operation onto a destroyed stream");
+  $local_start();
+  stream = $default_stream_if_null(stream);
+  $assert(stream->alive, "Attempt to enqueue a CUDA operation onto a destroyed stream");
 	
-    if (stream->tail == NULL) {
-      stream->head = newOpStateNode;
-      stream->tail = newOpStateNode;
-      newOpState->start = true;
-    } else {
-      stream->tail->next = newOpStateNode;
-      stream->tail = newOpStateNode;
-    }
-    stream->numOps++;
-    *enqueuedFlag = true;
+  if (stream->tail == NULL) {
+    stream->head = newOpStateNode;
+    stream->tail = newOpStateNode;
+    newOpState->start = true;
+  } else {
+    stream->tail->next = newOpStateNode;
+    stream->tail = newOpStateNode;
   }
+  stream->numOps++;
+  *enqueuedFlag = true;
+  $local_end();
 
   return newOpState;
 }
@@ -192,7 +195,7 @@ void $stream_dequeue(cudaStream_t stream) {
 	stream = $default_stream_if_null(stream);
 	$assert(stream->head != NULL, "Attempt to dequeue an empty stream");
 
-  $atomic {
+  	$local_start();
     if (stream->head == stream->tail) {
       stream->tail = NULL;
     }
@@ -206,7 +209,7 @@ void $stream_dequeue(cudaStream_t stream) {
     stream->numOps--;
     free(oldHead->opState);
     free(oldHead);
-  }
+    $local_end();
 }
 
 void $cuda_memcpy_proc(void* dst, const void* src, size_t count, _Bool* enqueuedFlag, cudaStream_t stream) {
@@ -296,17 +299,20 @@ int $cuda_kernel_index (dim3 gDim, dim3 bDim, uint3 bIdx, uint3 tIdx) {
 
 void $cuda_run_and_wait_on_procs(dim3 dim, void spawningFunction(uint3)) {
   //TODO: calculate length and index, replace this function in the kernel
+  //$local_start();
   int length = dim.x * dim.y * dim.z;
   $proc proc_array[length];
   $range rx = 0 .. dim.x - 1;
   $range ry = 0 .. dim.y - 1;
   $range rz = 0 .. dim.z - 1;
   $domain(3) dom = ($domain){rx, ry, rz};
+  #For some reason there is depends on all here
   $for(int x,y,z : dom){
     uint3 id = { x, y, z };
     int index = $dim3_index(dim, id);
     proc_array[index] = $spawn spawningFunction(id);
   }
+  //$local_end();
   $waitall(proc_array,length);
 }
 
@@ -356,32 +362,51 @@ $input float B[N];
 
 void _civl_main() {
   int size = N * sizeof(float);
+  int numBlocks = 2;
+  int numThreads = N%2 == 0? N/2 : (N+1)/2;
 
-  float* cuda_A = NULL;
+  float* cuda_A;
   // cudaMalloc((void **)&cuda_A, size);
   {
     cuda_A = (float *) malloc(size);
   }
+  cudaMemcpy(cuda_A, A, size, cudaMemcpyHostToDevice);
 
-  float* cuda_B = NULL;
+  float* cuda_B;
   // cudaMalloc((void **)&cuda_B, size);
   {
     cuda_B = (float *) malloc(size);
   }
+  cudaMemcpy(cuda_B, B, size, cudaMemcpyHostToDevice);
 
-  float* cuda_C = NULL;
+  float* cuda_C;
   // cudaMalloc((void **)&cuda_C, size);
   {
     cuda_C = (float *) malloc(size);
   }
 
-  { // kernel_1<<<gridDim, blockDim>>>(5);
-    dim3 gridDim = {2, 1, 1};
-    dim3 blockDim = {2, 1, 1};
+  { // kernel_1<<<gridDim, blockDim>>>(cuda_A, cuda_B, cuda_C, N);
+    dim3 gridDim = {numBlocks, 1, 1};
+    dim3 blockDim = {numThreads, 1, 1};
     _Bool enqueuedFlag = false;
     $spawn $proc_kernel_1(gridDim, blockDim, 0, &enqueuedFlag, NULL, cuda_A, cuda_B, cuda_C, N);
     $when(enqueuedFlag);
   }
+  
+  //Checking correctness
+  float* C = (float *)malloc(size);
+  
+  cudaMemcpy(C, cuda_C, size, cudaMemcpyDeviceToHost);
+  
+  for(int i = 0; i < N; i++)
+  	$assert(C[i] == A[i] + B[i]);
+  
+  free(C);
+  
+  //cudaFree(cuda_A);...
+  free(cuda_A);
+  free(cuda_B);
+  free(cuda_C);
 }
 
 int main() {
