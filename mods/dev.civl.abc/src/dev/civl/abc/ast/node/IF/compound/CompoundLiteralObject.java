@@ -18,7 +18,6 @@ import dev.civl.abc.ast.node.IF.ASTNode;
  * </p>
  * 
  * @author siegel
- * 
  */
 public interface CompoundLiteralObject extends LiteralObject {
 

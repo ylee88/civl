@@ -348,17 +348,17 @@ public class CommonEvaluator implements Evaluator {
 	 * Create a new instance of evaluator for evaluating expressions.
 	 * 
 	 * @param modelFactory
-	 *            The model factory of the system.
+	 *                             The model factory of the system.
 	 * @param stateFactory
-	 *            The state factory of the system.
+	 *                             The state factory of the system.
 	 * @param loader
-	 *            The loader for library evaluators.
+	 *                             The loader for library evaluators.
 	 * @param symbolicUtil
-	 *            The symbolic utility.
+	 *                             The symbolic utility.
 	 * @param symbolicAnalyzer
-	 *            The symbolic analyzer used in the system.
+	 *                             The symbolic analyzer used in the system.
 	 * @param errorLogger
-	 *            The error logger for logging errors.
+	 *                             The error logger for logging errors.
 	 */
 	public CommonEvaluator(ModelFactory modelFactory, StateFactory stateFactory,
 			LibraryEvaluatorLoader loader, LibraryExecutorLoader loaderExec,
@@ -422,30 +422,38 @@ public class CommonEvaluator implements Evaluator {
 	 * the pointer is null.
 	 * 
 	 * @param source
-	 *            Source code information for error report.
+	 *                                 Source code information for error report.
 	 * @param state
-	 *            The state where the dereference happens.
+	 *                                 The state where the dereference happens.
 	 * @param process
-	 *            The process name for error report.
+	 *                                 The process name for error report.
 	 * @param referredType
-	 *            The {@link CIVLType} of the dereference operation.
+	 *                                 The {@link CIVLType} of the dereference
+	 *                                 operation.
 	 * @param pointer
-	 *            The pointer to be dereferenced.
+	 *                                 The pointer to be dereferenced.
 	 * @param checkOutput
-	 *            Is reading of output variable to be checked?
+	 *                                 Is reading of output variable to be
+	 *                                 checked?
 	 * @param analysisOnly
-	 *            Is this called from pointer reachability analysis?
+	 *                                 Is this called from pointer reachability
+	 *                                 analysis?
 	 * @param strict
-	 *            Should the method report undefined value error when the value
-	 *            pointed by the pointer is undefined ? Currently, this filed is
-	 *            false only when executing $copy function.
+	 *                                 Should the method report undefined value
+	 *                                 error when the value pointed by the
+	 *                                 pointer is undefined ? Currently, this
+	 *                                 filed is false only when executing $copy
+	 *                                 function.
 	 * @param muteErrorSideEffects
-	 *            Should this method mute error side-effects ? i.e.
-	 *            Dereferencing a pointer with error side-effects <strong>
-	 *            results an undefined value of the same type as the dereference
-	 *            expression </strong> iff this parameter set to true.
-	 *            Otherwise, an error will be reported and
-	 *            UnsatisfiablePathConditionException will be thrown.
+	 *                                 Should this method mute error
+	 *                                 side-effects ? i.e. Dereferencing a
+	 *                                 pointer with error side-effects <strong>
+	 *                                 results an undefined value of the same
+	 *                                 type as the dereference expression
+	 *                                 </strong> iff this parameter set to true.
+	 *                                 Otherwise, an error will be reported and
+	 *                                 UnsatisfiablePathConditionException will
+	 *                                 be thrown.
 	 * @return A possibly new state and the value of memory space pointed by the
 	 *         pointer.
 	 * @throws UnsatisfiablePathConditionException
@@ -552,24 +560,29 @@ public class CommonEvaluator implements Evaluator {
 	 * </p>
 	 * 
 	 * @param state
-	 *            The current state
+	 *                                 The current state
 	 * @param process
-	 *            The String identifier of the process
+	 *                                 The String identifier of the process
 	 * @param pointer
-	 *            The pointer to be dereferenced.
+	 *                                 The pointer to be dereferenced.
 	 * @param muteErrorSideEffects
-	 *            Should this method mute error side-effects ? i.e.
-	 *            Dereferencing a pointer with error side-effects <strong>
-	 *            results an undefined value of the same type as the dereference
-	 *            expression </strong> iff this parameter set to true.
-	 *            Otherwise, an error will be reported and
-	 *            UnsatisfiablePathConditionException will be thrown.
+	 *                                 Should this method mute error
+	 *                                 side-effects ? i.e. Dereferencing a
+	 *                                 pointer with error side-effects <strong>
+	 *                                 results an undefined value of the same
+	 *                                 type as the dereference expression
+	 *                                 </strong> iff this parameter set to true.
+	 *                                 Otherwise, an error will be reported and
+	 *                                 UnsatisfiablePathConditionException will
+	 *                                 be thrown.
 	 * @param source
-	 *            The {@link CIVLSource} associates with the dereference
-	 *            operation.
+	 *                                 The {@link CIVLSource} associates with
+	 *                                 the dereference operation.
 	 * @throws UnsatisfiablePathConditionException
-	 *             When muteErrorSideEffects is false and the pointer falls into
-	 *             one of the error cases.
+	 *                                                 When muteErrorSideEffects
+	 *                                                 is false and the pointer
+	 *                                                 falls into one of the
+	 *                                                 error cases.
 	 */
 	private void dereferenceWorkerErrorChecking(State state, int pid,
 			String process, SymbolicExpression pointer,
@@ -632,16 +645,18 @@ public class CommonEvaluator implements Evaluator {
 	 * extent, the type needs to be evaluated.
 	 * 
 	 * @param state
-	 *            The current state.
+	 *                          The current state.
 	 * @param pid
-	 *            The ID of the process where the computation happens.
+	 *                          The ID of the process where the computation
+	 *                          happens.
 	 * @param type
-	 *            The CIVL type to be evaluated for the dynamic type.
+	 *                          The CIVL type to be evaluated for the dynamic
+	 *                          type.
 	 * @param source
-	 *            The source code element for error report.
+	 *                          The source code element for error report.
 	 * @param isDeclaration
-	 *            The flag denoting if the type is part of a variable/function
-	 *            declaration.
+	 *                          The flag denoting if the type is part of a
+	 *                          variable/function declaration.
 	 * @return The dynamic type of the given type.
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -660,11 +675,13 @@ public class CommonEvaluator implements Evaluator {
 	 * Evaluates an abstract function call.
 	 * 
 	 * @param state
-	 *            The current state.
+	 *                       The current state.
 	 * @param pid
-	 *            The ID of the process that the expression belongs to.
+	 *                       The ID of the process that the expression belongs
+	 *                       to.
 	 * @param expression
-	 *            The abstract function call expression to be evaluated.
+	 *                       The abstract function call expression to be
+	 *                       evaluated.
 	 * @return The value of the expression and the new state.
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -704,11 +721,11 @@ public class CommonEvaluator implements Evaluator {
 	 * Evaluates an address-of expression <code>&e</code>.
 	 * 
 	 * @param state
-	 *            the pre-state
+	 *                       the pre-state
 	 * @param pid
-	 *            PID of the process performing the evaluation
+	 *                       PID of the process performing the evaluation
 	 * @param expression
-	 *            the address-of expression
+	 *                       the address-of expression
 	 * @return the symbolic expression of pointer type resulting from evaluating
 	 *         the address of the argument and a new state (if there is
 	 *         side-effect, otherwise just return the original state)
@@ -733,11 +750,11 @@ public class CommonEvaluator implements Evaluator {
 	 * Evaluates a short-circuit "and" expression <code>p && q</code>.
 	 * 
 	 * @param state
-	 *            the pre-state
+	 *                       the pre-state
 	 * @param pid
-	 *            PID of the process evaluating this expression
+	 *                       PID of the process evaluating this expression
 	 * @param expression
-	 *            the and expression
+	 *                       the and expression
 	 * @return the result of applying the AND operator to the two arguments
 	 *         together with the post-state whose path condition may contain the
 	 *         side-effects resulting from evaluation
@@ -770,11 +787,13 @@ public class CommonEvaluator implements Evaluator {
 	 * trueBranch : falseBranch.
 	 * 
 	 * @param state
-	 *            The pre-state.
+	 *                                   The pre-state.
 	 * @param pid
-	 *            PID of the process evaluating this expression
+	 *                                   PID of the process evaluating this
+	 *                                   expression
 	 * @param conditionalExpression.
-	 *            The conditional expression to be evaluated.
+	 *                                   The conditional expression to be
+	 *                                   evaluated.
 	 * @return The evaluation result of the conditional expression.
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -805,11 +824,11 @@ public class CommonEvaluator implements Evaluator {
 	 * <code>{[1] = a, [2] = 3, [6]=9}</code>;
 	 * 
 	 * @param state
-	 *            The state of the program.
+	 *                       The state of the program.
 	 * @param pid
-	 *            The pid of the currently executing process.
+	 *                       The pid of the currently executing process.
 	 * @param expression
-	 *            The array literal expression.
+	 *                       The array literal expression.
 	 * @return The symbolic representation of the array literal expression and
 	 *         the new state if there is side effect.
 	 * @throws UnsatisfiablePathConditionException
@@ -871,13 +890,13 @@ public class CommonEvaluator implements Evaluator {
 	 * if there is no error during the evaluation.
 	 * 
 	 * @param state
-	 *            The state of the program.
+	 *                       The state of the program.
 	 * @param pid
-	 *            The PID of the currently executing process.
+	 *                       The PID of the currently executing process.
 	 * @param process
-	 *            The name of the process for error report.
+	 *                       The name of the process for error report.
 	 * @param expression
-	 *            The binary expression.
+	 *                       The binary expression.
 	 * @return A symbolic expression for the binary operation and a new state if
 	 *         there is side-effect.
 	 * @throws UnsatisfiablePathConditionException
@@ -940,11 +959,12 @@ public class CommonEvaluator implements Evaluator {
 	 * Evaluates a bit and expression.
 	 * 
 	 * @param state
-	 *            The state where the evaluation happens.
+	 *                       The state where the evaluation happens.
 	 * @param pid
-	 *            The PID of the process that triggers the evaluation.
+	 *                       The PID of the process that triggers the
+	 *                       evaluation.
 	 * @param expression
-	 *            The bit and expression to be evaluated.
+	 *                       The bit and expression to be evaluated.
 	 * @return A possibly new state resulted from side effects during the
 	 *         evaluation and the value of the bit and expression.
 	 * @throws UnsatisfiablePathConditionException
@@ -967,11 +987,12 @@ public class CommonEvaluator implements Evaluator {
 	 * Evaluates a bit complement expression.
 	 * 
 	 * @param state
-	 *            The state where the evaluation happens.
+	 *                       The state where the evaluation happens.
 	 * @param pid
-	 *            The PID of the process that triggers the evaluation.
+	 *                       The PID of the process that triggers the
+	 *                       evaluation.
 	 * @param expression
-	 *            The bit complement expression to be evaluated.
+	 *                       The bit complement expression to be evaluated.
 	 * @return A possibly new state resulted from side effects during the
 	 *         evaluation and the value of the bit complement expression.
 	 * @throws UnsatisfiablePathConditionException
@@ -991,11 +1012,12 @@ public class CommonEvaluator implements Evaluator {
 	 * Evaluates a bit or expression.
 	 * 
 	 * @param state
-	 *            The state where the evaluation happens.
+	 *                       The state where the evaluation happens.
 	 * @param pid
-	 *            The PID of the process that triggers the evaluation.
+	 *                       The PID of the process that triggers the
+	 *                       evaluation.
 	 * @param expression
-	 *            The bit or expression to be evaluated.
+	 *                       The bit or expression to be evaluated.
 	 * @return A possibly new state resulted from side effects during the
 	 *         evaluation and the value of the bit or expression.
 	 * @throws UnsatisfiablePathConditionException
@@ -1018,11 +1040,12 @@ public class CommonEvaluator implements Evaluator {
 	 * Evaluates a bit xor expression.
 	 * 
 	 * @param state
-	 *            The state where the evaluation happens.
+	 *                       The state where the evaluation happens.
 	 * @param pid
-	 *            The PID of the process that triggers the evaluation.
+	 *                       The PID of the process that triggers the
+	 *                       evaluation.
 	 * @param expression
-	 *            The bit xor expression to be evaluated.
+	 *                       The bit xor expression to be evaluated.
 	 * @return A possibly new state resulted from side effects during the
 	 *         evaluation and the value of the bit xor expression.
 	 * @throws UnsatisfiablePathConditionException
@@ -1045,11 +1068,11 @@ public class CommonEvaluator implements Evaluator {
 	 * Evaluate a boolean literal expression.
 	 * 
 	 * @param state
-	 *            The state of the program.
+	 *                       The state of the program.
 	 * @param pid
-	 *            The pid of the currently executing process.
+	 *                       The pid of the currently executing process.
 	 * @param expression
-	 *            The boolean literal expression.
+	 *                       The boolean literal expression.
 	 * @return The symbolic representation of the boolean literal expression and
 	 *         the new state if there is side effect during the evaluation.
 	 */
@@ -1062,13 +1085,13 @@ public class CommonEvaluator implements Evaluator {
 	 * Evaluates a cast expression.
 	 * 
 	 * @param state
-	 *            The state of the program.
+	 *                       The state of the program.
 	 * @param pid
-	 *            The pid of the currently executing process.
+	 *                       The pid of the currently executing process.
 	 * @param process
-	 *            The process name for error report.
+	 *                       The process name for error report.
 	 * @param expression
-	 *            The cast expression.
+	 *                       The cast expression.
 	 * @return A possibly new state resulted from side effects during the
 	 *         evaluation and the value of the cast expression.
 	 * @throws UnsatisfiablePathConditionException
@@ -1133,16 +1156,16 @@ public class CommonEvaluator implements Evaluator {
 
 			assert type.isInteger();
 			eval.value = (new Int2PointerCaster(universe, symbolicUtil,
-					this.pointerType)).apply(state.getPathCondition(universe),
-							value, castType);
+					this.pointerType))
+					.apply(state.getPathCondition(universe), value, castType);
 			return eval;
 		} else if (argType.isPointerType() && castType.isIntegerType()) {
 			SymbolicType type = value.type();
 
 			assert type == pointerType;
 			eval.value = (new Pointer2IntCaster(universe, symbolicUtil,
-					this.pointerType)).apply(state.getPathCondition(universe),
-							value, castType);
+					this.pointerType))
+					.apply(state.getPathCondition(universe), value, castType);
 			return eval;
 		} else if (argType.isPointerType() && castType.isPointerType()) {
 			// pointer to pointer: for now...no change.
@@ -1188,13 +1211,14 @@ public class CommonEvaluator implements Evaluator {
 	 * that (pointer + offsets) represents a set of dereferable pointers.
 	 * 
 	 * @param state
-	 *            The current state
+	 *                    The current state
 	 * @param pid
-	 *            The PID of the calling process
+	 *                    The PID of the calling process
 	 * @param pointer
-	 *            The expression representing the pointer (base address).
+	 *                    The expression representing the pointer (base
+	 *                    address).
 	 * @param offsets
-	 *            A set of integers which represents a set of offsets.
+	 *                    A set of integers which represents a set of offsets.
 	 * @return The evaluation of the expression.
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -1203,8 +1227,8 @@ public class CommonEvaluator implements Evaluator {
 			throws UnsatisfiablePathConditionException {
 		return new QuantifiedExpressionEvaluator(modelFactory, stateFactory,
 				libLoader, libExeLoader, symbolicUtil, symbolicAnalyzer,
-				memUnitFactory, errorLogger, civlConfig).evaluateValid(state,
-						pid, pointer, offsets, source);
+				memUnitFactory, errorLogger, civlConfig)
+				.evaluateValid(state, pid, pointer, offsets, source);
 	}
 
 	/**
@@ -1213,11 +1237,11 @@ public class CommonEvaluator implements Evaluator {
 	 * else, {@link SymbolicUniverse#cast(integerType, e)}.
 	 * 
 	 * @param state
-	 *            The current state
+	 *                      The current state
 	 * @param pid
-	 *            The PID of the calling process
+	 *                      The PID of the calling process
 	 * @param realValue
-	 *            a numeric expression of real type
+	 *                      a numeric expression of real type
 	 * @return a numeric expression of integer type casted from the 'realValue'.
 	 */
 	private NumericExpression realToIntegerCastWorker(State state, int pid,
@@ -1241,11 +1265,11 @@ public class CommonEvaluator implements Evaluator {
 	 * Evaluates a char literal expression.
 	 * 
 	 * @param state
-	 *            The state of the program.
+	 *                       The state of the program.
 	 * @param pid
-	 *            The pid of the currently executing process.
+	 *                       The pid of the currently executing process.
 	 * @param expression
-	 *            The char literal expression.
+	 *                       The char literal expression.
 	 * @return A possibly new state resulted from side effects during the
 	 *         evaluation and the value of the char literal expression.
 	 */
@@ -1258,13 +1282,13 @@ public class CommonEvaluator implements Evaluator {
 	 * Evaluates a dereference expression <code>*e</code>.
 	 * 
 	 * @param state
-	 *            the pre-state
+	 *                       the pre-state
 	 * @param pid
-	 *            PID of the process performing the evaluation
+	 *                       PID of the process performing the evaluation
 	 * @param process
-	 *            The process name for error report.
+	 *                       The process name for error report.
 	 * @param expression
-	 *            the dereference expression
+	 *                       the dereference expression
 	 * @return the evaluation with the properly updated state and the value
 	 *         after the dereference.
 	 * @throws UnsatisfiablePathConditionException
@@ -1282,11 +1306,11 @@ public class CommonEvaluator implements Evaluator {
 	 * Evaluates a derivative call expression.
 	 * 
 	 * @param state
-	 *            the pre-state
+	 *                       the pre-state
 	 * @param pid
-	 *            the PID of the process running this call
+	 *                       the PID of the process running this call
 	 * @param expression
-	 *            the derivative call expression to be evaluated
+	 *                       the derivative call expression to be evaluated
 	 * @return the evaluation with the properly updated state and the value of
 	 *         the derivative call expression.
 	 * @throws UnsatisfiablePathConditionException
@@ -1338,13 +1362,13 @@ public class CommonEvaluator implements Evaluator {
 	 * also {@link DomainGuardExpression}.
 	 * 
 	 * @param state
-	 *            The current state
+	 *                        The current state
 	 * @param pid
-	 *            The PID of the process
+	 *                        The PID of the process
 	 * @param domainGuard
-	 *            The domain guard expression to be evaluated, which contains
-	 *            the information of the current domain element and the domain
-	 *            object.
+	 *                        The domain guard expression to be evaluated, which
+	 *                        contains the information of the current domain
+	 *                        element and the domain object.
 	 * @return the evaluation with the properly updated state and the value of
 	 *         the domain guard expression.
 	 * @throws UnsatisfiablePathConditionException
@@ -1429,11 +1453,11 @@ public class CommonEvaluator implements Evaluator {
 	 * Evaluates the value of a rectangular domain literal expression.
 	 * 
 	 * @param state
-	 *            The current state
+	 *                      The current state
 	 * @param pid
-	 *            The PID of the process
+	 *                      The PID of the process
 	 * @param recDomain
-	 *            The expression of the rectangular domain
+	 *                      The expression of the rectangular domain
 	 * @return The evaluation with the properly updated state and the value of
 	 *         the rectangular domain literal expression.
 	 * @throws UnsatisfiablePathConditionException
@@ -1464,8 +1488,10 @@ public class CommonEvaluator implements Evaluator {
 		civlRangeType = typeFactory.rangeType();
 		civlDomType = typeFactory.domainType(civlRangeType);
 		domainType = civlDomType.getDynamicType(universe);
-		assert domainType instanceof SymbolicTupleType : "Dynamic $domain type is not a tuple type";
-		assert rangeType instanceof SymbolicTupleType : "Dynamic $range type is not a tuple type";
+		assert domainType instanceof SymbolicTupleType
+				: "Dynamic $domain type is not a tuple type";
+		assert rangeType instanceof SymbolicTupleType
+				: "Dynamic $range type is not a tuple type";
 		// Adding components
 		domValueComponents.add(universe.integer(dim));
 		// Union field index which indicates it's a rectangular domain.
@@ -1486,11 +1512,11 @@ public class CommonEvaluator implements Evaluator {
 	 * <code>e.f</code>.
 	 * 
 	 * @param state
-	 *            The state of the model
+	 *                       The state of the model
 	 * @param pid
-	 *            The PID of the process evaluating this expression
+	 *                       The PID of the process evaluating this expression
 	 * @param expression
-	 *            The dot expression to evaluated
+	 *                       The dot expression to evaluated
 	 * @return The evaluation which contains the result of evaluating the
 	 *         expression together with the post-state which may incorporate
 	 *         side-effects resulting from the evaluation
@@ -1507,16 +1533,25 @@ public class CommonEvaluator implements Evaluator {
 			eval.value = universe.tupleRead(structValue,
 					universe.intObject(fieldIndex));
 		} else {
+			Expression unionExpr = expression.structOrUnion();
+			CIVLStructOrUnionType unionType = (CIVLStructOrUnionType) unionExpr
+					.getExpressionType();
+			StructOrUnionField field = unionType.getField(fieldIndex);
 			BooleanExpression test = universe
 					.unionTest(universe.intObject(fieldIndex), structValue);
 
 			if (civlConfig.isPropertyToggled(CIVLProperty.UNION)
 					&& test.isFalse()) {
+				String msg = "Attempt to access an invalid member of union object of type "
+						+ unionType + ":\n";
+
+				msg += "Union object: " + structValue + "\n";
+				msg += "Attempt to access via field " + fieldIndex + " ("
+						+ field + ")";
 				errorLogger.logSimpleError(expression.getSource(), eval.state,
 						pid, process,
 						this.symbolicAnalyzer.stateInformation(state),
-						CIVLProperty.UNION,
-						"Attempt to access an invalid union member");
+						CIVLProperty.UNION, msg);
 				throw new UnsatisfiablePathConditionException();
 			}
 			eval.value = universe.unionExtract(universe.intObject(fieldIndex),
@@ -1605,11 +1640,11 @@ public class CommonEvaluator implements Evaluator {
 	 * Evaluates a short-circuit "implies" expression "p=?q".
 	 * 
 	 * @param state
-	 *            the pre-state
+	 *                       the pre-state
 	 * @param pid
-	 *            PID of the process evaluating this expression
+	 *                       PID of the process evaluating this expression
 	 * @param expression
-	 *            the and expression
+	 *                       the and expression
 	 * @return the result of applying the IMPLIES operator to the two arguments
 	 *         together with the post-state whose path condition may contain the
 	 *         side-effects resulting from evaluation
@@ -1642,11 +1677,12 @@ public class CommonEvaluator implements Evaluator {
 	 * </p>
 	 * 
 	 * @param state
-	 *            The current state
+	 *                       The current state
 	 * @param pid
-	 *            The PID of the current process
+	 *                       The PID of the current process
 	 * @param expression
-	 *            The {@link InitialValueExpression} that will be evaluated
+	 *                       The {@link InitialValueExpression} that will be
+	 *                       evaluated
 	 * @return The {@link Evaluation} of the {@link InitialValueExpression}
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -1667,15 +1703,16 @@ public class CommonEvaluator implements Evaluator {
 	 * Computes the symbolic initial value of a variable.
 	 * 
 	 * @param state
-	 *            The state where the computation happens.
+	 *                        The state where the computation happens.
 	 * @param pid
-	 *            The PID of the process that triggers the computation.
+	 *                        The PID of the process that triggers the
+	 *                        computation.
 	 * @param variable
-	 *            The variable to be evaluated.
+	 *                        The variable to be evaluated.
 	 * @param dynamicType
-	 *            The symbolic type of the variable.
+	 *                        The symbolic type of the variable.
 	 * @param dyscopeId
-	 *            The dynamic scope ID of the current state.
+	 *                        The dynamic scope ID of the current state.
 	 * @return The symbolic initial value of the given variable
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -1725,11 +1762,11 @@ public class CommonEvaluator implements Evaluator {
 	 * Evaluates an integer literal expression.
 	 * 
 	 * @param state
-	 *            The state of the program.
+	 *                       The state of the program.
 	 * @param pid
-	 *            The pid of the currently executing process.
+	 *                       The pid of the currently executing process.
 	 * @param expression
-	 *            The integer literal expression.
+	 *                       The integer literal expression.
 	 * @return The symbolic representation of the integer literal expression.
 	 */
 	protected Evaluation evaluateIntegerLiteral(State state, int pid,
@@ -1841,19 +1878,20 @@ public class CommonEvaluator implements Evaluator {
 	 * </p>
 	 * 
 	 * @param state
-	 *            The current state
+	 *                        The current state
 	 * @param pid
-	 *            The PID of the calling process
+	 *                        The PID of the calling process
 	 * @param expression
-	 *            A {@link BinaryExpression} which represents a division
-	 *            operation.
+	 *                        A {@link BinaryExpression} which represents a
+	 *                        division operation.
 	 * @param numerator
-	 *            The value of the numerator
+	 *                        The value of the numerator
 	 * @param denominator
-	 *            The value of the denominator
+	 *                        The value of the denominator
 	 * @return The evaluation of this operation.
 	 * @throws UnsatisfiablePathConditionException
-	 *             When the denominator equals to zero.
+	 *                                                 When the denominator
+	 *                                                 equals to zero.
 	 */
 	protected Evaluation evaluateModulo(State state, int pid,
 			BinaryExpression expression, NumericExpression numerator,
@@ -1869,22 +1907,25 @@ public class CommonEvaluator implements Evaluator {
 	 * </p>
 	 * 
 	 * @param state
-	 *            The current state
+	 *                                 The current state
 	 * @param pid
-	 *            The PID of the calling process
+	 *                                 The PID of the calling process
 	 * @param expression
-	 *            A {@link BinaryExpression} which represents a division
-	 *            operation.
+	 *                                 A {@link BinaryExpression} which
+	 *                                 represents a division operation.
 	 * @param numerator
-	 *            The value of the numerator
+	 *                                 The value of the numerator
 	 * @param denominator
-	 *            The value of the denominator
+	 *                                 The value of the denominator
 	 * @param muteErrorSideEffects
-	 *            Division by zero error will NOT be reported iff this parameter
-	 *            is set to true or civlConfig.checkDivisionByZero() is false.
+	 *                                 Division by zero error will NOT be
+	 *                                 reported iff this parameter is set to
+	 *                                 true or civlConfig.checkDivisionByZero()
+	 *                                 is false.
 	 * @return The evaluation of this operation.
 	 * @throws UnsatisfiablePathConditionException
-	 *             When the denominator equals to zero.
+	 *                                                 When the denominator
+	 *                                                 equals to zero.
 	 */
 	protected Evaluation evaluateModuloWorker(State state, int pid,
 			BinaryExpression expression, NumericExpression numerator,
@@ -1922,19 +1963,20 @@ public class CommonEvaluator implements Evaluator {
 	 * </p>
 	 * 
 	 * @param state
-	 *            The current state
+	 *                        The current state
 	 * @param pid
-	 *            The PID of the calling process
+	 *                        The PID of the calling process
 	 * @param expression
-	 *            A {@link BinaryExpression} which represents a division
-	 *            operation.
+	 *                        A {@link BinaryExpression} which represents a
+	 *                        division operation.
 	 * @param numerator
-	 *            The value of the numerator
+	 *                        The value of the numerator
 	 * @param denominator
-	 *            The value of the denominator
+	 *                        The value of the denominator
 	 * @return The evaluation of this operation.
 	 * @throws UnsatisfiablePathConditionException
-	 *             When the denominator equals to zero.
+	 *                                                 When the denominator
+	 *                                                 equals to zero.
 	 */
 	protected Evaluation evaluateDivide(State state, int pid,
 			BinaryExpression expression, NumericExpression numerator,
@@ -1950,22 +1992,24 @@ public class CommonEvaluator implements Evaluator {
 	 * </p>
 	 * 
 	 * @param state
-	 *            The current state
+	 *                                 The current state
 	 * @param pid
-	 *            The PID of the calling process
+	 *                                 The PID of the calling process
 	 * @param expression
-	 *            A {@link BinaryExpression} which represents a division
-	 *            operation.
+	 *                                 A {@link BinaryExpression} which
+	 *                                 represents a division operation.
 	 * @param numerator
-	 *            The value of the numerator
+	 *                                 The value of the numerator
 	 * @param denominator
-	 *            The value of the denominator
+	 *                                 The value of the denominator
 	 * @param muteErrorSideEffects
-	 *            Division by zero error will NOT be reported iff this parameter
-	 *            is set to true
+	 *                                 Division by zero error will NOT be
+	 *                                 reported iff this parameter is set to
+	 *                                 true
 	 * @return The evaluation of this operation.
 	 * @throws UnsatisfiablePathConditionException
-	 *             When the denominator equals to zero.
+	 *                                                 When the denominator
+	 *                                                 equals to zero.
 	 */
 	protected Evaluation evaluateDivideWorker(State state, int pid,
 			BinaryExpression expression, NumericExpression numerator,
@@ -2012,11 +2056,11 @@ public class CommonEvaluator implements Evaluator {
 	 * Evaluates a short-circuit "or" expression "p||q".
 	 * 
 	 * @param state
-	 *            the pre-state
+	 *                       the pre-state
 	 * @param pid
-	 *            PID of the process evaluating this expression
+	 *                       PID of the process evaluating this expression
 	 * @param expression
-	 *            the OR expression
+	 *                       the OR expression
 	 * @return the result of applying the OR operator to the two arguments
 	 *         together with the post-state whose path condition may contain the
 	 *         side-effects resulting from evaluation
@@ -2069,21 +2113,23 @@ public class CommonEvaluator implements Evaluator {
 	 * 
 	 * 
 	 * @param state
-	 *            The state where the array lambda expression body will evaluate
+	 *                           The state where the array lambda expression
+	 *                           body will evaluate
 	 * @param pid
-	 *            The PID of the process who invokes the creation of array
-	 *            lambda expressions.
+	 *                           The PID of the process who invokes the creation
+	 *                           of array lambda expressions.
 	 * @param boundVariables
-	 *            An array of bound variables specified by the array lambda
-	 *            expression
+	 *                           An array of bound variables specified by the
+	 *                           array lambda expression
 	 * @param boundIndex
-	 *            The index of the bound variable in the array which belongs to
-	 *            the current sub-array-lambda expression.
+	 *                           The index of the bound variable in the array
+	 *                           which belongs to the current sub-array-lambda
+	 *                           expression.
 	 * @param arrayType
-	 *            The symbolic type of a array lambda expression, which must be
-	 *            a complete array type
+	 *                           The symbolic type of a array lambda expression,
+	 *                           which must be a complete array type
 	 * @param body
-	 *            The lambda expression body of the array lambda
+	 *                           The lambda expression body of the array lambda
 	 * @return
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -2407,11 +2453,11 @@ public class CommonEvaluator implements Evaluator {
 	 * </p>
 	 * 
 	 * @param state
-	 *            The state of the program.
+	 *                       The state of the program.
 	 * @param pid
-	 *            The pid of the currently executing process.
+	 *                       The pid of the currently executing process.
 	 * @param expression
-	 *            The array index expression.
+	 *                       The array index expression.
 	 * @return A symbolic expression for an array read.
 	 */
 	protected Evaluation evaluateSubscript(State state, int pid, String process,
@@ -2427,14 +2473,15 @@ public class CommonEvaluator implements Evaluator {
 	 * </p>
 	 * 
 	 * @param state
-	 *            The state of the program.
+	 *                                The state of the program.
 	 * @param pid
-	 *            The pid of the currently executing process.
+	 *                                The pid of the currently executing
+	 *                                process.
 	 * @param expression
-	 *            The array subscript expression.
+	 *                                The array subscript expression.
 	 * @param muteErrorSideEffect
-	 *            Array index out-of bound error will NOT be reported iff this
-	 *            parameter sets to true.
+	 *                                Array index out-of bound error will NOT be
+	 *                                reported iff this parameter sets to true.
 	 * @return A symbolic expression for an array read.
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -2519,11 +2566,11 @@ public class CommonEvaluator implements Evaluator {
 	 * Evaluate a real literal expression.
 	 * 
 	 * @param state
-	 *            The state of the program.
+	 *                       The state of the program.
 	 * @param pid
-	 *            The pid of the currently executing process.
+	 *                       The pid of the currently executing process.
 	 * @param expression
-	 *            The real literal expression.
+	 *                       The real literal expression.
 	 * @return The symbolic representation of the real literal expression.
 	 */
 	protected Evaluation evaluateRealLiteral(State state, int pid,
@@ -2592,6 +2639,10 @@ public class CommonEvaluator implements Evaluator {
 		eval = evaluate(eval.state, pid, expression.right());
 		right = eval.value;
 		state = eval.state;
+
+		// TODO: this shouldn't happen. The model should enforce
+		// that bit-shift operands have type int, int.
+
 		if (left instanceof BooleanPrimitive)
 			left = left.isTrue() ? universe.integer(1) : universe.integer(0);
 		result = universe.bitshiftLeft((NumericExpression) left,
@@ -2619,11 +2670,11 @@ public class CommonEvaluator implements Evaluator {
 	 * Evaluate a struct literal expression.
 	 * 
 	 * @param state
-	 *            The state of the program.
+	 *                       The state of the program.
 	 * @param pid
-	 *            The pid of the currently executing process.
+	 *                       The pid of the currently executing process.
 	 * @param expression
-	 *            The struct literal expression.
+	 *                       The struct literal expression.
 	 * @return The symbolic representation of the struct literal expression.
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -2651,11 +2702,11 @@ public class CommonEvaluator implements Evaluator {
 	 * Evaluate a unary expression.
 	 * 
 	 * @param state
-	 *            The state of the program.
+	 *                       The state of the program.
 	 * @param pid
-	 *            The pid of the currently executing process.
+	 *                       The pid of the currently executing process.
 	 * @param expression
-	 *            The unary expression.
+	 *                       The unary expression.
 	 * @return The symbolic representation of the unary expression.
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -2689,11 +2740,11 @@ public class CommonEvaluator implements Evaluator {
 	 * Evaluate a variable expression.
 	 * 
 	 * @param state
-	 *            The state of the program.
+	 *                       The state of the program.
 	 * @param pid
-	 *            The pid of the currently executing process.
+	 *                       The pid of the currently executing process.
 	 * @param expression
-	 *            The variable expression.
+	 *                       The variable expression.
 	 * @return
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -2729,22 +2780,25 @@ public class CommonEvaluator implements Evaluator {
 	 * of arguments
 	 * 
 	 * @param source
-	 *            the source information for error report
+	 *                      the source information for error report
 	 * @param state
-	 *            The state where the computation happens.
+	 *                      The state where the computation happens.
 	 * @param pid
-	 *            The ID of the process that wants to evaluate the guard.
+	 *                      The ID of the process that wants to evaluate the
+	 *                      guard.
 	 * @param library
-	 *            the library that the system function belongs to
+	 *                      the library that the system function belongs to
 	 * @param function
-	 *            the system function
+	 *                      the system function
 	 * @param arguments
-	 *            the list of arguments
+	 *                      the list of arguments
 	 * @return The result of the evaluation, including the state and the
 	 *         symbolic expression of the value.
 	 * @throws UnsatisfiablePathConditionException
-	 *             if there is no contract specifying the guard and the library
-	 *             evaluator is missing
+	 *                                                 if there is no contract
+	 *                                                 specifying the guard and
+	 *                                                 the library evaluator is
+	 *                                                 missing
 	 */
 	protected Evaluation evaluateGuardofSystemFunction(CIVLSource source,
 			State state, int pid, String library, CIVLFunction function,
@@ -2785,7 +2839,7 @@ public class CommonEvaluator implements Evaluator {
 			CIVLSource source, boolean isDefinition)
 			throws UnsatisfiablePathConditionException {
 		TypeEvaluation result;
-		
+
 		if (type.getStateVariable() != null && !isDefinition) {
 			SymbolicExpression value = state.valueOf(pid,
 					type.getStateVariable());
@@ -3044,11 +3098,12 @@ public class CommonEvaluator implements Evaluator {
 	 * pointer<-1, ..., ...>), an error should be reported.
 	 * 
 	 * @param state
-	 *            The state where the checking happens.
+	 *                            The state where the checking happens.
 	 * @param expression
-	 *            The static representation of the value.
+	 *                            The static representation of the value.
 	 * @param expressionValue
-	 *            The symbolic value to be checked if it is defined.
+	 *                            The symbolic value to be checked if it is
+	 *                            defined.
 	 * @throws UnsatisfiablePathConditionException
 	 */
 	private void isValueDefined(State state, int pid, String process,
@@ -3152,23 +3207,26 @@ public class CommonEvaluator implements Evaluator {
 	 * </p>
 	 * 
 	 * @param state
-	 *            The current state
+	 *                                 The current state
 	 * @param process
-	 *            The String identifier of the process
+	 *                                 The String identifier of the process
 	 * @param pointer
-	 *            The {@link SymbolicExpression} of the original pointer before
-	 *            addition
+	 *                                 The {@link SymbolicExpression} of the
+	 *                                 original pointer before addition
 	 * @param offset
-	 *            The {@link NumericExpression} of the offset will be added on
-	 *            the pointer
+	 *                                 The {@link NumericExpression} of the
+	 *                                 offset will be added on the pointer
 	 * @param checkOutput
-	 *            Dereferencing operation has to check if the object pointed by
-	 *            input pointer is an output variable if this flag is set TRUE
+	 *                                 Dereferencing operation has to check if
+	 *                                 the object pointed by input pointer is an
+	 *                                 output variable if this flag is set TRUE
 	 * @param muteErrorSideEffects
-	 *            This method will NOT report error side-effects iff this
-	 *            parameter set to true.
+	 *                                 This method will NOT report error
+	 *                                 side-effects iff this parameter set to
+	 *                                 true.
 	 * @param source
-	 *            {@link CIVLSource} of the pointer addition statement
+	 *                                 {@link CIVLSource} of the pointer
+	 *                                 addition statement
 	 * @return
 	 * @throws UnsatisfiablePathConditionException
 	 * 
@@ -3322,22 +3380,25 @@ public class CommonEvaluator implements Evaluator {
 	 * </p>
 	 * 
 	 * @param state
-	 *            The current state
+	 *                                 The current state
 	 * @param pid
-	 *            The PID of the calling process
+	 *                                 The PID of the calling process
 	 * @param pointer
-	 *            The pointer operand in pointer-addition
+	 *                                 The pointer operand in pointer-addition
 	 * @param offset
-	 *            The numeric operand in pointer-addition
+	 *                                 The numeric operand in pointer-addition
 	 * @param muteErrorSideEffects
-	 *            This method will NOT report error side-effects iff this
-	 *            parameter set to true.
+	 *                                 This method will NOT report error
+	 *                                 side-effects iff this parameter set to
+	 *                                 true.
 	 * @param source
-	 *            The {@link CIVLSource} associates to the pointer addition.
+	 *                                 The {@link CIVLSource} associates to the
+	 *                                 pointer addition.
 	 * @return The evaluation of the pointer addition operation
 	 * @throws UnsatisfiablePathConditionException
-	 *             Iff error side-effects unmutes and offset is neither one or
-	 *             zero.
+	 *                                                 Iff error side-effects
+	 *                                                 unmutes and offset is
+	 *                                                 neither one or zero.
 	 */
 	protected Evaluation offsetReferenceAddition(State state, int pid,
 			SymbolicExpression pointer, NumericExpression offset,
@@ -3384,22 +3445,25 @@ public class CommonEvaluator implements Evaluator {
 	 * </p>
 	 * 
 	 * @param state
-	 *            The current state
+	 *                                 The current state
 	 * @param pid
-	 *            The PID of the calling process
+	 *                                 The PID of the calling process
 	 * @param pointer
-	 *            The pointer operand in pointer-addition
+	 *                                 The pointer operand in pointer-addition
 	 * @param offset
-	 *            The numeric operand in pointer-addition
+	 *                                 The numeric operand in pointer-addition
 	 * @param muteErrorSideEffects
-	 *            This method will NOT report error side-effects iff this
-	 *            parameter set to true.
+	 *                                 This method will NOT report error
+	 *                                 side-effects iff this parameter set to
+	 *                                 true.
 	 * @param source
-	 *            The {@link CIVLSource} associates to the pointer addition.
+	 *                                 The {@link CIVLSource} associates to the
+	 *                                 pointer addition.
 	 * @return The evaluation of the pointer addition operation
 	 * @throws UnsatisfiablePathConditionException
-	 *             Iff error side-effects unmutes and offset is neither one or
-	 *             zero.
+	 *                                                 Iff error side-effects
+	 *                                                 unmutes and offset is
+	 *                                                 neither one or zero.
 	 */
 	protected Evaluation identityReferenceAddition(State state, int pid,
 			SymbolicExpression pointer, NumericExpression offset,
@@ -3640,8 +3704,8 @@ public class CommonEvaluator implements Evaluator {
 		return new QuantifiedExpressionEvaluator(modelFactory, stateFactory,
 				libLoader, libExeLoader, symbolicUtil, symbolicAnalyzer,
 				memUnitFactory, errorLogger, civlConfig)
-						.evaluateQuantifiedExpression(state, pid,
-								(QuantifiedExpression) expression);
+				.evaluateQuantifiedExpression(state, pid,
+						(QuantifiedExpression) expression);
 	}
 
 	/**
@@ -3671,12 +3735,13 @@ public class CommonEvaluator implements Evaluator {
 	 * </p>
 	 * 
 	 * @param currentState
-	 *            The current state on which the current process reaches a
-	 *            ValueAtExpression.
+	 *                         The current state on which the current process
+	 *                         reaches a ValueAtExpression.
 	 * @param pid
-	 *            The current process who reaches a ValueAtExpression.
+	 *                         The current process who reaches a
+	 *                         ValueAtExpression.
 	 * @param valueAt
-	 *            The ValueAtExpression which will evaluate
+	 *                         The ValueAtExpression which will evaluate
 	 * @return The evaluation of the ValueAtExpression.
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -3763,7 +3828,7 @@ public class CommonEvaluator implements Evaluator {
 		return new QuantifiedExpressionEvaluator(modelFactory, stateFactory,
 				libLoader, libExeLoader, symbolicUtil, symbolicAnalyzer,
 				memUnitFactory, errorLogger, civlConfig)
-						.evaluateArrayLambda(state, pid, arrayLambda);
+				.evaluateArrayLambda(state, pid, arrayLambda);
 	}
 
 	protected Evaluation evaluateLambda(State state, int pid,
@@ -3771,8 +3836,8 @@ public class CommonEvaluator implements Evaluator {
 			throws UnsatisfiablePathConditionException {
 		return new QuantifiedExpressionEvaluator(modelFactory, stateFactory,
 				libLoader, libExeLoader, symbolicUtil, symbolicAnalyzer,
-				memUnitFactory, errorLogger, civlConfig).evaluateLambda(state,
-						pid, arrayLambda);
+				memUnitFactory, errorLogger, civlConfig)
+				.evaluateLambda(state, pid, arrayLambda);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -3810,8 +3875,7 @@ public class CommonEvaluator implements Evaluator {
 		return new QuantifiedExpressionEvaluator(modelFactory, stateFactory,
 				libLoader, libExeLoader, symbolicUtil, symbolicAnalyzer,
 				memUnitFactory, errorLogger, civlConfig)
-						.evaluateExtendedQuantifiedExpression(state, pid,
-								extQuant);
+				.evaluateExtendedQuantifiedExpression(state, pid, extQuant);
 	}
 
 	protected Evaluation evaluateFunctionCallExpression(State state, int pid,
@@ -3845,7 +3909,9 @@ public class CommonEvaluator implements Evaluator {
 	 * </p>
 	 * 
 	 * @throws UnsatisfiablePathConditionException
-	 *             if any error side-effect happens during evaluation.
+	 *                                                 if any error side-effect
+	 *                                                 happens during
+	 *                                                 evaluation.
 	 */
 	private Evaluation evaluateLogicFunctionCall(State state, int pid,
 			FunctionCallExpression logicCall)
@@ -3862,7 +3928,8 @@ public class CommonEvaluator implements Evaluator {
 			if (eval.value.type().equals(symbolicPointerType))
 				eval = evaluatePointerTypeLogicFunctionArgument(state, pid,
 						actualArg);
-			assert state == eval.state : "Logic function call argument has side-effects.";
+			assert state == eval.state
+					: "Logic function call argument has side-effects.";
 			argumentValues.add(eval.value);
 		}
 		// check if the predicate is a reserved predicate:
@@ -4018,13 +4085,13 @@ public class CommonEvaluator implements Evaluator {
 	 * A complete char array
 	 * 
 	 * @param source
-	 *            The CIVL source of the pointer to char expression
+	 *                        The CIVL source of the pointer to char expression
 	 * @param state
-	 *            The current state
+	 *                        The current state
 	 * @param process
-	 *            The identifier of the process
+	 *                        The identifier of the process
 	 * @param charPointer
-	 *            The pointer to char
+	 *                        The pointer to char
 	 * @return
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -4333,8 +4400,8 @@ public class CommonEvaluator implements Evaluator {
 			arraySliceSizes = symbolicUtil
 					.arraySlicesSizes(symbolicUtil.arrayDimensionExtents(
 							(SymbolicCompleteArrayType) arrayType));
-			for (int i = leftPtrIndices.length, j = arraySliceSizes.length
-					- 1; --i >= 0; j--) {
+			for (int i = leftPtrIndices.length,
+					j = arraySliceSizes.length - 1; --i >= 0; j--) {
 				NumericExpression leftIdx, rightIdx;
 				NumericExpression sliceSizes = arraySliceSizes[j];
 
@@ -4612,21 +4679,21 @@ public class CommonEvaluator implements Evaluator {
 	 * </p>
 	 * 
 	 * @param state
-	 *            The current state
+	 *                       The current state
 	 * @param process
-	 *            The String identifier of the process
+	 *                       The String identifier of the process
 	 * @param pointedVid
-	 *            The variable id of the pointed array object
+	 *                       The variable id of the pointed array object
 	 * @param pointedSid
-	 *            The variable id of the pointed array object
+	 *                       The variable id of the pointed array object
 	 * @param pointer
-	 *            The pointer points to the array object
+	 *                       The pointer points to the array object
 	 * @param offset
-	 *            The offset added to the pointer
+	 *                       The offset added to the pointer
 	 * @param reasoner
-	 *            An instance reference of a {@link Reasoner} object
+	 *                       An instance reference of a {@link Reasoner} object
 	 * @param source
-	 *            The CIVLSource of the statement
+	 *                       The CIVLSource of the statement
 	 * @return A pair of an evaluation, which is the evaluation of the array
 	 *         element-reference addition, and an array of sizes of each
 	 *         dimensional slice of the referred array object, the order of
@@ -4696,26 +4763,30 @@ public class CommonEvaluator implements Evaluator {
 	 * </p>
 	 * 
 	 * @param state
-	 *            The current state
+	 *                                 The current state
 	 * @param pid
-	 *            The PID of the calling process
+	 *                                 The PID of the calling process
 	 * @param dimensions
-	 *            The number of dimensions of the array object whose element was
-	 *            referred by the old indices.
+	 *                                 The number of dimensions of the array
+	 *                                 object whose element was referred by the
+	 *                                 old indices.
 	 * @param totalOffset
-	 *            The total offset from the base address of the referred array
-	 *            object to the element, which will be referred by the new
-	 *            indices.
+	 *                                 The total offset from the base address of
+	 *                                 the referred array object to the element,
+	 *                                 which will be referred by the new
+	 *                                 indices.
 	 * @param arraySliceSizes
-	 *            The size of each dimensional slice of the referred array
-	 *            object.
+	 *                                 The size of each dimensional slice of the
+	 *                                 referred array object.
 	 * @param arrayExtents
-	 *            The extent of each dimension of the referred array object.
+	 *                                 The extent of each dimension of the
+	 *                                 referred array object.
 	 * @param muteErrorSideEffects
-	 *            This method will not report out-of-bound error iff this
-	 *            parameter set to true.
+	 *                                 This method will not report out-of-bound
+	 *                                 error iff this parameter set to true.
 	 * @param source
-	 *            The {@link CIVLSource} associates to the pointer addition.
+	 *                                 The {@link CIVLSource} associates to the
+	 *                                 pointer addition.
 	 * @return A pair of an updated state and an array of new indices, the order
 	 *         of the indices is same as the order of subscript.
 	 * @throws UnsatisfiablePathConditionException
@@ -4793,14 +4864,15 @@ public class CommonEvaluator implements Evaluator {
 	 * </p>
 	 * 
 	 * @param state
-	 *            The state on where evaluation happens, the state must be a
-	 *            collate state.
+	 *                       The state on where evaluation happens, the state
+	 *                       must be a collate state.
 	 * @param pid
-	 *            The pid of the process in the collate state
+	 *                       The pid of the process in the collate state
 	 * @param process
-	 *            The String identifier of the process
+	 *                       The String identifier of the process
 	 * @param expression
-	 *            The {@link MPIContractExpression} that will evaluates
+	 *                       The {@link MPIContractExpression} that will
+	 *                       evaluates
 	 * @return An {@link Evaluation} of the expression
 	 * @throws UnsatisfiablePathConditionException
 	 */

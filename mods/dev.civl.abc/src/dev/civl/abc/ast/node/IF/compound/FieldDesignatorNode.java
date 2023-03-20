@@ -1,6 +1,7 @@
 package dev.civl.abc.ast.node.IF.compound;
 
 import dev.civl.abc.ast.node.IF.IdentifierNode;
+import dev.civl.abc.ast.type.IF.Field;
 
 /**
  * A field designator is used in an initializer for a struct or union. It is a
@@ -27,6 +28,10 @@ public interface FieldDesignatorNode extends DesignatorNode {
 	 * @see #getField()
 	 */
 	void setField(IdentifierNode name);
+	
+	Field[] getNavigationSequence();
+
+	void setNavigationSequence(Field[] sequence);
 
 	@Override
 	FieldDesignatorNode copy();

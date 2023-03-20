@@ -74,7 +74,7 @@ public interface StructureOrUnionType
 	 * Returns the number of fields (members) of this structure or union type.
 	 * 
 	 * @exception RuntimeException
-	 *                if this type is not yet complete
+	 *                                 if this type is not yet complete
 	 * @return the number of fields in this type
 	 */
 	int getNumFields();
@@ -83,11 +83,11 @@ public interface StructureOrUnionType
 	 * Returns the index-th field in this structure or union type.
 	 * 
 	 * @param index
-	 *            an integer between 0 and the number of fields minus 1,
-	 *            inclusive
+	 *                  an integer between 0 and the number of fields minus 1,
+	 *                  inclusive
 	 * @return the index-th field
 	 * @exception RuntimeException
-	 *                if this type is not yet complete
+	 *                                 if this type is not yet complete
 	 */
 	Field getField(int index);
 
@@ -106,10 +106,10 @@ public interface StructureOrUnionType
 	 * the list of fields.
 	 * 
 	 * @exception RuntimeException
-	 *                if this type is already complete
+	 *                                 if this type is already complete
 	 * 
 	 * @param fields
-	 *            an ordered list of fields
+	 *                   an ordered list of fields
 	 */
 	void complete(Iterable<Field> fields);
 
@@ -126,7 +126,7 @@ public interface StructureOrUnionType
 	 * union.
 	 * 
 	 * @param fieldName
-	 *            the name of the field to search for
+	 *                      the name of the field to search for
 	 * @return the sequence of fields that navigate to the deep field named
 	 *         <code>fieldName</code>, or <code>null</code> if no such such
 	 *         field exists. The first elements of this sequence will be an

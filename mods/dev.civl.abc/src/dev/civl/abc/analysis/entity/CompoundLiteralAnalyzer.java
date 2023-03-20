@@ -19,6 +19,7 @@ import dev.civl.abc.ast.type.IF.ObjectType;
 import dev.civl.abc.ast.type.IF.QualifiedObjectType;
 import dev.civl.abc.ast.type.IF.StandardBasicType.BasicTypeKind;
 import dev.civl.abc.ast.type.IF.StructureOrUnionType;
+import dev.civl.abc.ast.type.IF.Type.TypeKind;
 import dev.civl.abc.ast.type.IF.TypeFactory;
 import dev.civl.abc.ast.value.IF.IntegerValue;
 import dev.civl.abc.ast.value.IF.ValueFactory;
@@ -28,7 +29,7 @@ import dev.civl.abc.token.IF.SyntaxException;
 import dev.civl.abc.token.IF.UnsourcedException;
 
 /**
- * An instance of this class is used to analyzer compound literals.
+ * An instance of this class is used to analyze compound literals.
  * 
  * Initialization, including of compound objects, is specified in C11 6.7.9.
  * Note in particular the following:
@@ -89,6 +90,20 @@ public class CompoundLiteralAnalyzer {
 
 	// ************************* Exported Methods *************************
 
+	/**
+	 * Analyzes a compound initializer node, which is used to represent either a
+	 * compound initializer or a compound literal expression. After performing
+	 * the analysis, certain fields are set in the compound initializer node.
+	 * 
+	 * @param compoundInitNode
+	 *                             the compound initializer node to analyze
+	 * @param type
+	 *                             the type of the expression represented by the
+	 *                             compound initializer node, which was obtained
+	 *                             by analyzing the type node associated to the
+	 *                             compound initializer node
+	 * @throws SyntaxException
+	 */
 	void processCompoundInitializer(CompoundInitializerNode compoundInitNode,
 			ObjectType type) throws SyntaxException {
 		LiteralTypeNode ltNode = makeTypeTree(type);
@@ -157,8 +172,8 @@ public class CompoundLiteralAnalyzer {
 	 * member", but that can't be initialized.
 	 * 
 	 * @param ltNode
-	 *            the literal type node, which has been updated after processing
-	 *            the compound literal
+	 *                   the literal type node, which has been updated after
+	 *                   processing the compound literal
 	 * @return the complete Type specified by that node
 	 */
 	private ObjectType extractType(LiteralTypeNode ltNode) {
@@ -178,8 +193,16 @@ public class CompoundLiteralAnalyzer {
 	 * Constructs an abstract Designation from an AST designation node.
 	 * 
 	 * @param desNode
+	 *                    the designation node we are trying to analyze. This
+	 *                    node wraps a sequence of DesignatorNode. Each node in
+	 *                    the sequence is either an array designator node or a
+	 *                    field designator node.
 	 * @param ltNode
-	 * @return
+	 *                    abstract representation of the type of the fixed
+	 *                    compound literal node of which the designation is a
+	 *                    part. This information is needed to inform the
+	 *                    analysis of the designation node.
+	 * @return the abstract representation of the given designation node
 	 * @throws SyntaxException
 	 */
 	private Designation processDesignation(DesignationNode desNode,
@@ -187,37 +210,39 @@ public class CompoundLiteralAnalyzer {
 		Designation result = new Designation(ltNode);
 
 		for (DesignatorNode designatorNode : desNode) {
-			int index;
-
 			if (designatorNode instanceof FieldDesignatorNode) {
-				IdentifierNode fieldId = ((FieldDesignatorNode) designatorNode)
-						.getField();
+				FieldDesignatorNode fdn = (FieldDesignatorNode) designatorNode;
+				IdentifierNode fieldId = fdn.getField();
 				String fieldName = fieldId.name();
 				StructureOrUnionType suType = (StructureOrUnionType) ltNode
 						.getType();
-				Field field = suType.getField(fieldName);
+				Field[] navseq = suType.findDeepField(fieldName);
 
-				if (field == null)
+				if (navseq == null)
 					throw error(
 							"Structure or union type " + suType.getTag()
 									+ " contains no field named " + fieldName,
 							fieldId);
-				fieldId.setEntity(field);
-				index = field.getMemberIndex();
+				fdn.setNavigationSequence(navseq);
+				fieldId.setEntity(navseq[navseq.length - 1]);
+				for (Field field : navseq)
+					result.add(new Navigator(field.getMemberIndex(),
+							designatorNode.getSource()));
 			} else if (designatorNode instanceof ArrayDesignatorNode) {
 				ExpressionNode indexExpr = ((ArrayDesignatorNode) designatorNode)
 						.getIndex();
-				IntegerValue indexValue;
 
 				entityAnalyzer.expressionAnalyzer.processExpression(indexExpr);
-				indexValue = (IntegerValue) nodeFactory
+
+				IntegerValue indexValue = (IntegerValue) nodeFactory
 						.getConstantValue(indexExpr);
-				index = indexValue.getIntegerValue().intValue();
+				int index = indexValue.getIntegerValue().intValue();
+
+				result.add(new Navigator(index, designatorNode.getSource()));
 			} else
 				throw new ABCRuntimeException(
 						"Unreachable: unknown kind of designator node: "
 								+ designatorNode);
-			result.add(new Navigator(index, designatorNode.getSource()));
 		}
 		return result;
 	}
@@ -288,7 +313,7 @@ public class CompoundLiteralAnalyzer {
 	 * initializer.
 	 * 
 	 * @param object
-	 *            compound literal object that has already been processed
+	 *                   compound literal object that has already been processed
 	 * @throws SyntaxException
 	 */
 	private void fill(CommonCompoundLiteralObject object)
@@ -299,11 +324,20 @@ public class CompoundLiteralAnalyzer {
 		int length = ltNode.length();
 		ASTNode sourceNode = object.getSourceNode();
 		Source source = sourceNode.getSource();
+		ObjectType type = ltNode.getType();
+		boolean isUnion = type.kind() == TypeKind.STRUCTURE_OR_UNION
+				&& ((StructureOrUnionType) type).isUnion();
+		boolean hasNonNullMember = false;
 
+		for (int i = 0; (!hasNonNullMember) && i < length; i++)
+			if (object.get(i) != null)
+				hasNonNullMember = true;
 		for (int i = 0; i < length; i++) {
 			LiteralObject member = object.get(i);
 
-			if (member == null) {
+			// if all members of a union are null then the first
+			// member should be 0ed and filled
+			if (member == null && (!isUnion || (i == 0 && !hasNonNullMember))) {
 				// what is the type of this member supposed to be?
 				LiteralTypeNode child = ltNode.getChild(i);
 
@@ -323,7 +357,8 @@ public class CompoundLiteralAnalyzer {
 				}
 				object.setElement(source, i, member);
 			}
-			if (member instanceof CommonCompoundLiteralObject) {
+			if (member != null
+					&& member instanceof CommonCompoundLiteralObject) {
 				fill((CommonCompoundLiteralObject) member);
 			}
 		}

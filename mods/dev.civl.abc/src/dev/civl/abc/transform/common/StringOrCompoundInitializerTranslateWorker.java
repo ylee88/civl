@@ -103,10 +103,10 @@ class StringOrCompoundInitializerTranslateWorker {
 	 * </p>
 	 * 
 	 * @param compound
-	 *            a compound initializer
+	 *                     a compound initializer
 	 * @param objExpr
-	 *            an expression that represents the object that will be
-	 *            initialized by the compound initializer
+	 *                     an expression that represents the object that will be
+	 *                     initialized by the compound initializer
 	 * @return a list of assignments which deliver the same functionality as the
 	 *         compound initializer
 	 */
@@ -129,9 +129,9 @@ class StringOrCompoundInitializerTranslateWorker {
 	 * </p>
 	 * 
 	 * @param stringLit
-	 *            a string literal node
+	 *                      a string literal node
 	 * @param lhs
-	 *            an expression node of array of char type
+	 *                      an expression node of array of char type
 	 * @return a list of assignment expressions
 	 */
 	List<BlockItemNode> translateStringLiteralInitializer(
@@ -143,6 +143,13 @@ class StringOrCompoundInitializerTranslateWorker {
 				stringLitNode.getType(), strLit, stringLitNode.getSource());
 	}
 
+	/**
+	 * Returns a list of assignment statements.
+	 * 
+	 * @param obj
+	 * @param litObj
+	 * @return
+	 */
 	private List<BlockItemNode> translateInitializerWorker(ExpressionNode obj,
 			LiteralObject litObj) {
 		List<BlockItemNode> results = new LinkedList<>();
@@ -171,17 +178,22 @@ class StringOrCompoundInitializerTranslateWorker {
 			else if (dequalifiedType.kind() == TypeKind.STRUCTURE_OR_UNION) {
 				StructureOrUnionType type = (StructureOrUnionType) litObj
 						.getType();
-				int i = 0;
 
-				if (type.isUnion())
-					i = size - 1;
-				for (; i < size; i++) {
-					ExpressionNode subObj = nodeFactory.newDotNode(source,
-							obj.copy(), nodeFactory.newIdentifierNode(source,
-									type.getField(i).getName()));
+				for (int i = 0; i < size; i++) {
+					LiteralObject val = compoundLitObj.get(i);
 
-					results.addAll(translateInitializerWorker(subObj,
-							compoundLitObj.get(i)));
+					if (val != null) {
+						String fieldName = type.getField(i).getName();
+						ExpressionNode subObj;
+
+						if (fieldName == null)
+							subObj = obj;
+						else
+							subObj = nodeFactory.newDotNode(source, obj.copy(),
+									nodeFactory.newIdentifierNode(source,
+											fieldName));
+						results.addAll(translateInitializerWorker(subObj, val));
+					}
 				}
 			}
 		} else {
@@ -195,9 +207,9 @@ class StringOrCompoundInitializerTranslateWorker {
 			if (init.expressionKind() == ExpressionKind.CONSTANT) {
 				Value val = ((ConstantNode) init).getConstantValue();
 
-				if (val != null && val.getType().kind() == TypeKind.BASIC)
-					if (val.isZero() == Answer.YES)
-						return results;
+//				if (val != null && val.getType().kind() == TypeKind.BASIC)
+//					if (val.isZero() == Answer.YES)
+//						return results;
 				if (val instanceof StringValue)
 					return translateStringLiteralInitializerWorker(obj,
 							litObj.getType(), ((StringValue) val).getLiteral(),
@@ -235,18 +247,21 @@ class StringOrCompoundInitializerTranslateWorker {
 	 * </p>
 	 * 
 	 * @param obj
-	 *            the object that will be initialized, suppose to either have
-	 *            array-of-char type or pointer-to-char type but this node may
-	 *            not have been assigned type
+	 *                              the object that will be initialized, suppose
+	 *                              to either have array-of-char type or
+	 *                              pointer-to-char type but this node may not
+	 *                              have been assigned type
 	 * @param stringLiteralType
-	 *            the type of the string literal expression node. The type of
-	 *            this expression after applying all conversions reflects the
-	 *            type of the "obj"
+	 *                              the type of the string literal expression
+	 *                              node. The type of this expression after
+	 *                              applying all conversions reflects the type
+	 *                              of the "obj"
 	 * @param strlit
-	 *            the {@link StringLiteral} value of the string literal
-	 *            expression
+	 *                              the {@link StringLiteral} value of the
+	 *                              string literal expression
 	 * @param strLitSource
-	 *            the {@link Source} of the string literal expression
+	 *                              the {@link Source} of the string literal
+	 *                              expression
 	 * @return a list of translated statements
 	 */
 	private List<BlockItemNode> translateStringLiteralInitializerWorker(
@@ -304,9 +319,9 @@ class StringOrCompoundInitializerTranslateWorker {
 	 * </p>
 	 * 
 	 * @param obj
-	 *            the object that will be assigned
+	 *                    the object that will be assigned
 	 * @param objType
-	 *            the type of the object
+	 *                    the type of the object
 	 * @return a triple that either 1) only contains "after" statements (i.e. no
 	 *         expression, no before statements); 2) before statements,
 	 *         translated initializer and after statements.
@@ -373,9 +388,9 @@ class StringOrCompoundInitializerTranslateWorker {
 	 * </p>
 	 *
 	 * @param array
-	 *            an array object
+	 *                    an array object
 	 * @param arrType
-	 *            the array type of the object
+	 *                    the array type of the object
 	 * @return triple that contains an array lambda expression that is
 	 *         representing the default value with a sequence of "before"
 	 *         statements; no "after" statement.
@@ -442,8 +457,8 @@ class StringOrCompoundInitializerTranslateWorker {
 	 */
 	private ExprTriple defaultValuesToArrayStrict(ExpressionNode arr,
 			ArrayType arrType, Source source) {
-		assert !arrType
-				.isVariableLengthArrayType() : "Initializer cannot be used to initialize variable "
+		assert !arrType.isVariableLengthArrayType()
+				: "Initializer cannot be used to initialize variable "
 						+ "length array in C language.\nNote that CIVL-C programs, "
 						+ "whose source files end with suffix \".cvl\", support such feature.";
 		assert arrType.isComplete();
@@ -511,9 +526,9 @@ class StringOrCompoundInitializerTranslateWorker {
 	 * </p>
 	 * 
 	 * @param obj
-	 *            a struct or union object
+	 *                    a struct or union object
 	 * @param objType
-	 *            the type of the struct or union object
+	 *                    the type of the struct or union object
 	 * @return a list of assignment statements that goes "after" the first
 	 *         appearance of the given object
 	 */
@@ -564,10 +579,10 @@ class StringOrCompoundInitializerTranslateWorker {
 	 * </p>
 	 * 
 	 * @param scalarType
-	 *            the scalar type
+	 *                       the scalar type
 	 * @param source
-	 *            the {@link Source} that is associated to the returned
-	 *            expression
+	 *                       the {@link Source} that is associated to the
+	 *                       returned expression
 	 * @return an expression that represents default value of a scalar type
 	 *         object as if the object has static storage
 	 */

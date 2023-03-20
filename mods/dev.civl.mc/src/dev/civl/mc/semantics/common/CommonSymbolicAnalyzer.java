@@ -392,11 +392,12 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 	 * format opString = " " + opString + " ";
 	 * 
 	 * @param buffer
-	 *            string buffer to which computed result should be appended
+	 *                     string buffer to which computed result should be
+	 *                     appended
 	 * @param opString
-	 *            the string representation of the operator, e.g. "+"
+	 *                     the string representation of the operator, e.g. "+"
 	 * @param operands
-	 *            collection of Symbolic Objects
+	 *                     collection of Symbolic Objects
 	 */
 	private void accumulate(CIVLSource source, State state, StringBuffer buffer,
 			String opString, SymbolicSequence<?> operands) {
@@ -416,7 +417,7 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 	 * Place parentheses around the string buffer.
 	 * 
 	 * @param buffer
-	 *            a string buffer
+	 *                   a string buffer
 	 */
 	private void atomize(StringBuffer buffer) {
 		buffer.insert(0, '(');
@@ -427,15 +428,15 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 	 * Prints a dyscope to a given print stream.
 	 * 
 	 * @param out
-	 *            The print stream to be used for printing.
+	 *                    The print stream to be used for printing.
 	 * @param state
-	 *            The state that the dyscope belongs to.
+	 *                    The state that the dyscope belongs to.
 	 * @param dyscope
-	 *            The dyscope to be printed.
+	 *                    The dyscope to be printed.
 	 * @param id
-	 *            The ID of the dyscope.
+	 *                    The ID of the dyscope.
 	 * @param prefix
-	 *            The prefix for printing.
+	 *                    The prefix for printing.
 	 */
 	private StringBuffer dynamicScopeToString(State state, DynamicScope dyscope,
 			String id, String prefix) {
@@ -485,11 +486,12 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 	 * pointer.
 	 * 
 	 * @param source
-	 *            The source code element of the symbolic expression
+	 *                    The source code element of the symbolic expression
 	 * @param state
-	 *            The state that the given symbolic expression belongs to
+	 *                    The state that the given symbolic expression belongs
+	 *                    to
 	 * @param pointer
-	 *            The symbolic expression that is to be evaluated
+	 *                    The symbolic expression that is to be evaluated
 	 * @return the string representation of a symbolic expression which is a
 	 *         pointer
 	 */
@@ -527,19 +529,19 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 	 * of a heap object.
 	 * 
 	 * @param source
-	 *            The source code element of the reference expression.
+	 *                      The source code element of the reference expression.
 	 * @param dyscopeId
-	 *            The dynamic scope ID that the heap belongs to.
+	 *                      The dynamic scope ID that the heap belongs to.
 	 * @param type
-	 *            The static type of the expression being referenced.
+	 *                      The static type of the expression being referenced.
 	 * @param reference
-	 *            The reference expression, could be:
-	 *            <ol>
-	 *            <li>identity reference</li>
-	 *            <li>array element reference</li>
-	 *            <li>tuple component reference</li>
-	 *            <li>union member reference</li>
-	 *            </ol>
+	 *                      The reference expression, could be:
+	 *                      <ol>
+	 *                      <li>identity reference</li>
+	 *                      <li>array element reference</li>
+	 *                      <li>tuple component reference</li>
+	 *                      <li>union member reference</li>
+	 *                      </ol>
 	 * @return the string representation of a reference to a heap object or part
 	 *         of a heap object.
 	 */
@@ -637,14 +639,16 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 	 * take either one argument (a list of expressions) or two arguments.
 	 * 
 	 * @param buffer
-	 *            string buffer to which computed result should be appended
+	 *                          string buffer to which computed result should be
+	 *                          appended
 	 * @param opString
-	 *            the string representation of the operator, e.g. "+"
+	 *                          the string representation of the operator, e.g.
+	 *                          "+"
 	 * @param atomizeArgs
-	 *            should each argument be atomized (surrounded by parens if
-	 *            necessary)?
+	 *                          should each argument be atomized (surrounded by
+	 *                          parens if necessary)?
 	 * @param atomizeResult
-	 *            should the final result be atomized?
+	 *                          should the final result be atomized?
 	 */
 	private void processFlexibleBinaryNew(CIVLSource source, State state,
 			SymbolicExpression symbolicExpression, StringBuffer buffer,
@@ -682,16 +686,18 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 	 * Computes string representation of a binary operator expression
 	 * 
 	 * @param buffer
-	 *            string buffer to which computed result should be appended
+	 *                        string buffer to which computed result should be
+	 *                        appended
 	 * @param opString
-	 *            the string representation of the operator, e.g. "+"
+	 *                        the string representation of the operator, e.g.
+	 *                        "+"
 	 * @param arg0
-	 *            object to be represented
+	 *                        object to be represented
 	 * @param arg1
-	 *            object to be represented
+	 *                        object to be represented
 	 * @param atomizeArgs
-	 *            should each argument be atomized (surrounded by parens if
-	 *            necessary)?
+	 *                        should each argument be atomized (surrounded by
+	 *                        parens if necessary)?
 	 */
 	private void processBinary(StringBuffer buffer, String opString,
 			SymbolicObject arg0, SymbolicObject arg1, boolean atomizeArgs) {
@@ -705,14 +711,16 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 	 * take either one argument (a list of expressions) or two arguments.
 	 * 
 	 * @param buffer
-	 *            string buffer to which computed result should be appended
+	 *                          string buffer to which computed result should be
+	 *                          appended
 	 * @param opString
-	 *            the string representation of the operator, e.g. "+"
+	 *                          the string representation of the operator, e.g.
+	 *                          "+"
 	 * @param atomizeArgs
-	 *            should each argument be atomized (surrounded by parens if
-	 *            necessary)?
+	 *                          should each argument be atomized (surrounded by
+	 *                          parens if necessary)?
 	 * @param atomizeResult
-	 *            should the final result be atomized?
+	 *                          should the final result be atomized?
 	 */
 	private void processFlexibleBinary(CIVLSource source, State state,
 			SymbolicExpression symbolicExpression, StringBuffer buffer,
@@ -735,12 +743,12 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 	 * Obtains the string representation from a reference expression.
 	 * 
 	 * @param source
-	 *            The source code element of the reference expression.
+	 *                      The source code element of the reference expression.
 	 * @param type
-	 *            The type of the expression being referenced.
+	 *                      The type of the expression being referenced.
 	 * @param reference
-	 *            The reference expression whose string representation is to be
-	 *            obtained.
+	 *                      The reference expression whose string representation
+	 *                      is to be obtained.
 	 * @return The type of the remaining part, and the string representation of
 	 *         the given reference expression.
 	 */
@@ -822,11 +830,12 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 	 * pointer.
 	 * 
 	 * @param source
-	 *            The source code element of the symbolic expression
+	 *                    The source code element of the symbolic expression
 	 * @param state
-	 *            The state that the given symbolic expression belongs to
+	 *                    The state that the given symbolic expression belongs
+	 *                    to
 	 * @param pointer
-	 *            The symbolic expression that is to be evaluated
+	 *                    The symbolic expression that is to be evaluated
 	 * @return the string representation of a symbolic expression which is a
 	 *         pointer
 	 */
@@ -966,15 +975,17 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 	 * </ul>
 	 * 
 	 * @param source
-	 *            The source code element of the symbolic expression.
+	 *                               The source code element of the symbolic
+	 *                               expression.
 	 * @param state
-	 *            The state where the given symbolic expression is evaluated
-	 *            from.
+	 *                               The state where the given symbolic
+	 *                               expression is evaluated from.
 	 * @param symbolicExpression
-	 *            The symbolic expression whose string representation is to be
-	 *            obtained.
+	 *                               The symbolic expression whose string
+	 *                               representation is to be obtained.
 	 * @param atomize
-	 *            True iff this is an atomic symbolic expression.
+	 *                               True iff this is an atomic symbolic
+	 *                               expression.
 	 * @return The string representation of the given symbolic expression
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -1565,8 +1576,14 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 						result.append(")");
 						break;
 					case UNION_INJECT : {
+						int fieldIndex = ((IntObject) symbolicExpression
+								.argument(0)).getInt();
+						CIVLStructOrUnionType unionType = (CIVLStructOrUnionType) civlType;
+						CIVLType fieldType = unionType.getField(fieldIndex)
+								.type();
+
 						result.append(this.symbolicExpressionToString(source,
-								state, civlType,
+								state, fieldType,
 								(SymbolicExpression) symbolicExpression
 										.argument(1),
 								false, prefix, separator));
@@ -1747,15 +1764,15 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 	 * </pre>
 	 * 
 	 * @param source
-	 *            The source code element for error report.
+	 *                      The source code element for error report.
 	 * @param state
-	 *            The current state.
+	 *                      The current state.
 	 * @param heapValue
-	 *            The value of the heap to be printed.
+	 *                      The value of the heap to be printed.
 	 * @param prefix
-	 *            The prefix of the heap value in printing.
+	 *                      The prefix of the heap value in printing.
 	 * @param separate
-	 *            The separate string for sub-components of the heap.
+	 *                      The separate string for sub-components of the heap.
 	 * @return The pretty presentation of a heap for printing.
 	 */
 	private StringBuffer heapValueToString(CIVLSource source, State state,
@@ -1803,7 +1820,7 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 				if (heapObjLenNumber != null) {
 					int heapObjSize = ((IntegerNumber) reasoner
 							.extractNumber(universe.length(heapObject)))
-									.intValue();
+							.intValue();
 
 					heapObjType = this.typeFactory.completeArrayType(
 							fieldTypeElement,
@@ -1925,7 +1942,7 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 						.getExpressionType() instanceof CIVLStructOrUnionType;
 				result.append(((CIVLStructOrUnionType) structOrUnion
 						.getExpressionType()).getField(dot.fieldIndex()).name()
-								.name());
+						.name());
 				break;
 			}
 			case SUBSCRIPT : {
@@ -2298,8 +2315,8 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 			if (expression.getExpressionType().typeKind() == TypeKind.MEM) {
 				Evaluation eval = evaluator.evaluate(state, pid, expression);
 
-				return new Pair<>(eval.state, prettyMemValue(eval.state, eval.value,
-						expression.getSource()));
+				return new Pair<>(eval.state, prettyMemValue(eval.state,
+						eval.value, expression.getSource()));
 			}
 			switch (kind) {
 				case ABSTRACT_FUNCTION_CALL : {
@@ -2759,9 +2776,9 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 	 * Is the given reference applicable to the specified symbolic expression?
 	 * 
 	 * @param ref
-	 *            The reference expression to be checked.
+	 *                  The reference expression to be checked.
 	 * @param value
-	 *            The symbolic expression specified.
+	 *                  The symbolic expression specified.
 	 * @return True iff the given reference is applicable to the specified
 	 *         symbolic expression
 	 */
@@ -2858,8 +2875,8 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 	/**
 	 * 
 	 * @param derefable
-	 *            true iff to check derefableness; otherwise, only check
-	 *            definedness.
+	 *                      true iff to check derefableness; otherwise, only
+	 *                      check definedness.
 	 * @param reasoner
 	 * @param reference
 	 * @param object

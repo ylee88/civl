@@ -6,6 +6,8 @@ import java.util.NoSuchElementException;
 import dev.civl.abc.ast.node.IF.ASTNode;
 import dev.civl.abc.ast.node.IF.compound.CompoundLiteralObject;
 import dev.civl.abc.ast.node.IF.compound.LiteralObject;
+import dev.civl.abc.ast.type.IF.ObjectType;
+import dev.civl.abc.ast.type.IF.StructureOrUnionType;
 import dev.civl.abc.err.IF.ABCRuntimeException;
 import dev.civl.abc.token.IF.Source;
 import dev.civl.abc.token.IF.SyntaxException;
@@ -17,7 +19,7 @@ import dev.civl.abc.token.IF.SyntaxException;
  * While reads that go beyond the bounds of the inferred type will throw an
  * exception (as specified in CompoundLiteral), write that go beyond the bounds
  * of the inferred type will either throw an exception (if the write violates a
- * bound in the declared type) or succeed and extend the bounds of the inffered
+ * bound in the declared type) or succeed and extend the bounds of the inferred
  * type (otherwise).
  * 
  * In any case, the inferred type will be kept in sync with the writes.
@@ -32,11 +34,12 @@ import dev.civl.abc.token.IF.SyntaxException;
  * @author siegel
  * 
  */
-public class CommonCompoundLiteralObject extends CommonLiteralObject implements
-		CompoundLiteralObject {
+public class CommonCompoundLiteralObject extends CommonLiteralObject
+		implements
+			CompoundLiteralObject {
 
 	/**
-	 * The members of this compound object. Entires may be null.
+	 * The members of this compound object. Entries may be null.
 	 */
 	private ArrayList<LiteralObject> elements = new ArrayList<>();
 
@@ -93,14 +96,26 @@ public class CommonCompoundLiteralObject extends CommonLiteralObject implements
 		if (typeNode.hasFixedLength() && index >= length)
 			throw new SyntaxException("Exceeded object bound: index=" + index
 					+ ", length=" + length, source);
+		
+		// if this is a union, then setting a field annihilates an early
+		// field setting:
+		ObjectType type = (ObjectType) this.getType();
+		boolean isUnion = type instanceof StructureOrUnionType
+				&& ((StructureOrUnionType) type).isUnion();
+		int size = elements.size();
+
+		if (isUnion)
+			for (int i = 0; i < size; i++)
+				elements.set(i, null);
 		while (index >= elements.size())
 			elements.add(null);
+		size = elements.size();
 		elements.set(index, value);
 		// the literal value was created using the same type nodes
 		// as those in this literal, therefore those nodes are already
 		// up to date. so it is only this length that has to be updated
-		if (elements.size() > length)
-			((LiteralArrayTypeNode) typeNode).setLength(elements.size());
+		if (size > length)
+			((LiteralArrayTypeNode) typeNode).setLength(size);
 	}
 
 	private void set(Source source, Designation designation, int desStart,
@@ -112,11 +127,12 @@ public class CommonCompoundLiteralObject extends CommonLiteralObject implements
 		if (deslen == 1) {
 			setElement(source, index0, value);
 		} else {
-			CommonCompoundLiteralObject r = (CommonCompoundLiteralObject) get(index0);
+			CommonCompoundLiteralObject r = (CommonCompoundLiteralObject) get(
+					index0);
 
 			if (r == null) {
-				r = new CommonCompoundLiteralObject(getTypeNode().getChild(
-						index0), getSourceNode());
+				r = new CommonCompoundLiteralObject(
+						getTypeNode().getChild(index0), getSourceNode());
 				setElement(source, index0, r);
 			}
 			r.set(source, designation, desStart + 1, value);

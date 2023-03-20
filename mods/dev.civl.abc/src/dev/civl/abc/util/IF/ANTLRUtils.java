@@ -24,9 +24,9 @@ public class ANTLRUtils {
 	 * Pretty-prints a parse tree.
 	 * 
 	 * @param out
-	 *            the stream to which output should be sent
+	 *                 the stream to which output should be sent
 	 * @param tree
-	 *            the tree to print. May be null.
+	 *                 the tree to print. May be null.
 	 */
 	public static void printTree(PrintStream out, Tree tree) {
 		if (tree == null) {
@@ -40,11 +40,11 @@ public class ANTLRUtils {
 	 * Pretty-prints tree using one line per node and nice indentation.
 	 * 
 	 * @param out
-	 *            stream to which output should be sent
+	 *                   stream to which output should be sent
 	 * @param node
-	 *            a non-null instance of CommonTree
+	 *                   a non-null instance of CommonTree
 	 * @param prefix
-	 *            any text you wish to precede output
+	 *                   any text you wish to precede output
 	 */
 	private static void printNode(PrintStream out, Tree node, String prefix) {
 		int numChildren;
@@ -70,9 +70,9 @@ public class ANTLRUtils {
 	 * Applies method source to the file with the given filename.
 	 * 
 	 * @param out
-	 *            a PrintStream to which the output is sent
+	 *                     a PrintStream to which the output is sent
 	 * @param filename
-	 *            name of a file
+	 *                     name of a file
 	 * @throws IOException
 	 */
 	public static void source(PrintStream out, String filename)
@@ -86,7 +86,7 @@ public class ANTLRUtils {
 	 * cannot be found in either location.
 	 * 
 	 * @param file
-	 *            the file which could be name of resource
+	 *                 the file which could be name of resource
 	 * @return buffered reader or <code>null</code> i
 	 */
 	private static BufferedReader readFileOrResource(File file) {
@@ -98,8 +98,9 @@ public class ANTLRUtils {
 			reader = null;
 		}
 		if (reader == null) {
-			InputStream stream = ANTLRUtils.class
-					.getResourceAsStream(file.getAbsolutePath());
+			String resource = file.getPath();
+			InputStream stream = ClassLoader
+					.getSystemResourceAsStream(resource);
 
 			if (stream == null)
 				reader = null;
@@ -116,11 +117,11 @@ public class ANTLRUtils {
 	 * Prints the original text file to the give output stream, unaltered.
 	 * 
 	 * @param out
-	 *            a PrintStream to which the output is sent
+	 *                 a PrintStream to which the output is sent
 	 * @param file
-	 *            the file to read
+	 *                 the file to read
 	 * @throws IOException
-	 *             if an I/O exception occurs while reading the file
+	 *                         if an I/O exception occurs while reading the file
 	 */
 	public static void source(PrintStream out, File file) throws IOException {
 		out.println("Contents of file " + file + ":\n");
@@ -146,9 +147,9 @@ public class ANTLRUtils {
 	 * Prints all tokens from the token source.
 	 * 
 	 * @param out
-	 *            where to print
+	 *                where to print
 	 * @param ts
-	 *            token source
+	 *                token source
 	 */
 	public static void print(PrintStream out, TokenSource ts) {
 		while (true) {

@@ -263,17 +263,18 @@ public class FunctionTranslator {
 	 * .
 	 *
 	 * @param modelBuilder
-	 *            The model builder worker where this function translator is
-	 *            created.
+	 *                         The model builder worker where this function
+	 *                         translator is created.
 	 * @param modelFactory
-	 *            The unique model factory used by the system to create new
-	 *            instances of CIVL expressions, statements, etc.
+	 *                         The unique model factory used by the system to
+	 *                         create new instances of CIVL expressions,
+	 *                         statements, etc.
 	 * @param bodyNode
-	 *            The AST node of the function body that this function
-	 *            translator is going to translate.
+	 *                         The AST node of the function body that this
+	 *                         function translator is going to translate.
 	 * @param function
-	 *            The CIVL function that will be the result of this function
-	 *            translator.
+	 *                         The CIVL function that will be the result of this
+	 *                         function translator.
 	 */
 	FunctionTranslator(ModelBuilderWorker modelBuilder,
 			ModelFactory modelFactory, StatementNode bodyNode,
@@ -298,17 +299,18 @@ public class FunctionTranslator {
 	 * {@link #translateRootFunction(Scope, ASTNode)}.
 	 * 
 	 * @param modelBuilder
-	 *            The model builder worker where this function translator is
-	 *            created.
+	 *                         The model builder worker where this function
+	 *                         translator is created.
 	 * @param modelFactory
-	 *            The unique model factory used by the system to create new
-	 *            instances of CIVL expressions, statements, etc.
+	 *                         The unique model factory used by the system to
+	 *                         create new instances of CIVL expressions,
+	 *                         statements, etc.
 	 * @param bodyNode
-	 *            The AST node of the function body that this function
-	 *            translator is going to translate.
+	 *                         The AST node of the function body that this
+	 *                         function translator is going to translate.
 	 * @param function
-	 *            The CIVL function that will be the result of this function
-	 *            translator.
+	 *                         The CIVL function that will be the result of this
+	 *                         function translator.
 	 */
 	FunctionTranslator(ModelBuilderWorker modelBuilder,
 			ModelFactory modelFactory, CIVLFunction function,
@@ -349,12 +351,12 @@ public class FunctionTranslator {
 	 * and the AST node of the main function.
 	 * 
 	 * @param systemScope
-	 *            The root scope of the model.
+	 *                        The root scope of the model.
 	 * @param rootNode
-	 *            The root node of the AST for translation.
+	 *                        The root node of the AST for translation.
 	 * @throws CIVLSyntaxException
-	 *             if no main function node could be found in the rootNode's
-	 *             children.
+	 *                                 if no main function node could be found
+	 *                                 in the rootNode's children.
 	 */
 	public void translateRootFunction(Scope systemScope, ASTNode rootNode) {
 		Fragment initialization = new CommonFragment();
@@ -470,9 +472,9 @@ public class FunctionTranslator {
 	 * elsewhere and returns the appropriate model statement.
 	 * 
 	 * @param scope
-	 *            The scope containing this statement.
+	 *                          The scope containing this statement.
 	 * @param statementNode
-	 *            The statement node.
+	 *                          The statement node.
 	 * @return The fragment representation of this statement.
 	 */
 	private Fragment translateStatementNode(Scope scope,
@@ -799,17 +801,18 @@ public class FunctionTranslator {
 	 * </p>
 	 * 
 	 * @param domSize
-	 *            The {@link Expression} represents the size of the domain in a
-	 *            <code>$parfor</code> statement.
+	 *                         The {@link Expression} represents the size of the
+	 *                         domain in a <code>$parfor</code> statement.
 	 * @param processArray
-	 *            The {@link Expression} represents an array of processes which
-	 *            are spawned by a <code>$parfor</code> statement
+	 *                         The {@link Expression} represents an array of
+	 *                         processes which are spawned by a
+	 *                         <code>$parfor</code> statement
 	 * @param scope
-	 *            The {@link Scope} in where the corresponding
-	 *            <code>$parfor</code> statement locates.
+	 *                         The {@link Scope} in where the corresponding
+	 *                         <code>$parfor</code> statement locates.
 	 * @param source
-	 *            The {@link CIVLSource} associates to a <code>$parfor</code>
-	 *            statement.
+	 *                         The {@link CIVLSource} associates to a
+	 *                         <code>$parfor</code> statement.
 	 * @return a {@link Fragment} which contains the generated statements of
 	 *         terminating the processes spawned by a <code>$parfor</code>
 	 *         statement.
@@ -962,7 +965,7 @@ public class FunctionTranslator {
 	 * note: argument to & should never have array type.
 	 * 
 	 * @param array
-	 *            any CIVL expression e
+	 *                  any CIVL expression e
 	 * @return either the original expression or &e[0]
 	 */
 	protected Expression arrayToPointer(Expression array) {
@@ -987,17 +990,20 @@ public class FunctionTranslator {
 	 * with an optional left hand side argument. Catch these cases.
 	 * 
 	 * @param source
-	 *            the CIVL source information of the assign node
+	 *                          the CIVL source information of the assign node
 	 * @param location
-	 *            The start location for this assign.
+	 *                          The start location for this assign.
 	 * @param lhs
-	 *            Model expression for the left hand side of the assignment.
+	 *                          Model expression for the left hand side of the
+	 *                          assignment.
 	 * @param rhsNode
-	 *            AST expression for the right hand side of the assignment.
+	 *                          AST expression for the right hand side of the
+	 *                          assignment.
 	 * @param isInitializer
-	 *            is this assignment part of a variable initializer?
+	 *                          is this assignment part of a variable
+	 *                          initializer?
 	 * @param scope
-	 *            The scope containing this assignment.
+	 *                          The scope containing this assignment.
 	 * @return The model representation of the assignment, which might also be a
 	 *         fork statement or function call.
 	 */
@@ -1081,22 +1087,26 @@ public class FunctionTranslator {
 	 * Translate a FunctionCall node into a call or spawn statement
 	 * 
 	 * @param location
-	 *            The origin location for this statement. Must be non-null.
+	 *                             The origin location for this statement. Must
+	 *                             be non-null.
 	 * @param scope
-	 *            The scope containing this statement. Must be non-null.
+	 *                             The scope containing this statement. Must be
+	 *                             non-null.
 	 * @param callNode
-	 *            The ABC node representing the function called or spawned. Must
-	 *            be non-null.
+	 *                             The ABC node representing the function called
+	 *                             or spawned. Must be non-null.
 	 * @param lhs
-	 *            The left-hand-side expression, where the value of the function
-	 *            call or process ID resulting from the spawn is stored. May be
-	 *            null.
+	 *                             The left-hand-side expression, where the
+	 *                             value of the function call or process ID
+	 *                             resulting from the spawn is stored. May be
+	 *                             null.
 	 * @param isCall
-	 *            True when the node is a call node, otherwise the node is a
-	 *            spawn node
+	 *                             True when the node is a call node, otherwise
+	 *                             the node is a spawn node
 	 * @param isInitialization
-	 *            a boolean value indicating if the return value of this call
-	 *            statement will initialize a left-hand side expression
+	 *                             a boolean value indicating if the return
+	 *                             value of this call statement will initialize
+	 *                             a left-hand side expression
 	 * @return the CallOrSpawnStatement
 	 */
 	private CallOrSpawnStatement callOrSpawnStatement(Scope scope,
@@ -1171,21 +1181,21 @@ public class FunctionTranslator {
 	 * Composes a loop fragment.
 	 * 
 	 * @param loopScope
-	 *            The scope of the loop
+	 *                            The scope of the loop
 	 * @param condStartSource
-	 *            The beginning source of the loop condition
+	 *                            The beginning source of the loop condition
 	 * @param condEndSource
-	 *            The ending source of the loop condition
+	 *                            The ending source of the loop condition
 	 * @param condition
-	 *            The loop condition
+	 *                            The loop condition
 	 * @param bodyPrefix
-	 *            The fragment before entering the loop
+	 *                            The fragment before entering the loop
 	 * @param loopBodyNode
-	 *            The body statement node of the loop
+	 *                            The body statement node of the loop
 	 * @param incrementer
-	 *            The incrementer fragment of the loop
+	 *                            The incrementer fragment of the loop
 	 * @param isDoWhile
-	 *            If this is a do-while loop
+	 *                            If this is a do-while loop
 	 * @return
 	 */
 	private Fragment composeLoopFragmentWorker(Scope loopScope,
@@ -1260,17 +1270,17 @@ public class FunctionTranslator {
 	 * Translate a loop structure into a fragment of CIVL statements
 	 * 
 	 * @param loopScope
-	 *            The scope containing the loop body.
+	 *                            The scope containing the loop body.
 	 * @param conditionNode
-	 *            The loop condition which is an expression node
+	 *                            The loop condition which is an expression node
 	 * @param loopBodyNode
-	 *            The body of the loop which is a statement node
+	 *                            The body of the loop which is a statement node
 	 * @param incrementerNode
-	 *            The incrementer which is an expression node, null for while
-	 *            loop
+	 *                            The incrementer which is an expression node,
+	 *                            null for while loop
 	 * @param isDoWhile
-	 *            True iff the loop is a do-while loop. Always false for for
-	 *            loop and while loop.
+	 *                            True iff the loop is a do-while loop. Always
+	 *                            false for for loop and while loop.
 	 * @return the fragment of the loop structure
 	 */
 	private Fragment composeLoopFragment(Scope loopScope,
@@ -1310,9 +1320,9 @@ public class FunctionTranslator {
 	 * Translate command line constants into CIVL literal expression
 	 * 
 	 * @param variable
-	 *            The variable
+	 *                     The variable
 	 * @param constant
-	 *            The constant value object
+	 *                     The constant value object
 	 * @return the literal expression of the constant
 	 * @throws CommandLineException
 	 */
@@ -1388,7 +1398,7 @@ public class FunctionTranslator {
 	 * possible executions have return statements.
 	 * 
 	 * @param functionBody
-	 *            The fragment to be checked.
+	 *                         The fragment to be checked.
 	 * @return True iff a return statement can be reached back from the last
 	 *         statement.
 	 */
@@ -1430,7 +1440,7 @@ public class FunctionTranslator {
 
 	/**
 	 * @param fileName
-	 *            The name of a certain file
+	 *                     The name of a certain file
 	 * @return File name without extension
 	 */
 	private String fileNameWithoutExtension(String fileName) {
@@ -1447,7 +1457,7 @@ public class FunctionTranslator {
 	 * argument is a malloc call?
 	 * 
 	 * @param node
-	 *            an expression node
+	 *                 an expression node
 	 * @return true iff this is a cast of a malloc call
 	 */
 	private boolean isCompleteMallocExpression(ExpressionNode node) {
@@ -1463,7 +1473,7 @@ public class FunctionTranslator {
 	 * Is the ABC expression node a call to the function "$malloc"?
 	 * 
 	 * @param node
-	 *            The expression node to be checked.
+	 *                 The expression node to be checked.
 	 * @return true iff node is a function call to node to a function named
 	 *         "$malloc"
 	 */
@@ -1488,15 +1498,15 @@ public class FunctionTranslator {
 	 * Translate a cast node into a malloc statement
 	 * 
 	 * @param source
-	 *            The CIVL source
+	 *                     The CIVL source
 	 * @param location
-	 *            The location
+	 *                     The location
 	 * @param lhs
-	 *            The left-hand-side expression
+	 *                     The left-hand-side expression
 	 * @param castNode
-	 *            The node of the malloc statement
+	 *                     The node of the malloc statement
 	 * @param scope
-	 *            The scope
+	 *                     The scope
 	 * @return the malloc statement
 	 */
 	private MallocStatement mallocStatement(CIVLSource source,
@@ -1562,9 +1572,9 @@ public class FunctionTranslator {
 	 * Precondition: assignNode.getOperator() == ASSIGN;
 	 * 
 	 * @param assignNode
-	 *            The assign node to be translated.
+	 *                       The assign node to be translated.
 	 * @param scope
-	 *            The scope containing this assignment.
+	 *                       The scope containing this assignment.
 	 * @return The model representation of the assignment, which might also be a
 	 *         fork statement or function call.
 	 */
@@ -1680,11 +1690,11 @@ public class FunctionTranslator {
 
 	/**
 	 * @param node
-	 *            The AST node
+	 *                     The AST node
 	 * @param scope
-	 *            The scope
+	 *                     The scope
 	 * @param location
-	 *            The location
+	 *                     The location
 	 * @return The fragment of statements translated from the AST node
 	 */
 	private Fragment translateASTNode(ASTNode node, Scope scope,
@@ -1865,7 +1875,7 @@ public class FunctionTranslator {
 	 * </p>
 	 *
 	 * @param func
-	 *            an instance of {@link CIVLFunction}
+	 *                 an instance of {@link CIVLFunction}
 	 * @return true iff the given function is either <code>$local_start()</code>
 	 *         and <code>$local_end()</code>
 	 */
@@ -1895,11 +1905,12 @@ public class FunctionTranslator {
 	 * </p>
 	 *
 	 * @param scope
-	 *            the scope where the given call node is in
+	 *                     the scope where the given call node is in
 	 * @param function
-	 *            the {@link CIVLFunction} called by the call node
+	 *                     the {@link CIVLFunction} called by the call node
 	 * @param callNode
-	 *            a {@link FunctionCallNode} to the specific system function
+	 *                     a {@link FunctionCallNode} to the specific system
+	 *                     function
 	 * @return the translated {@link Fragment} which contains either an
 	 *         ATOMIC_ENTER or ATOMIC_EXIT action.
 	 */
@@ -1921,9 +1932,9 @@ public class FunctionTranslator {
 	 * statements from its start location
 	 * 
 	 * @param scope
-	 *            The scope
+	 *                                The scope
 	 * @param chooseStatementNode
-	 *            The choose statement node
+	 *                                The choose statement node
 	 * @return the fragment of the choose statements
 	 */
 	private Fragment translateChooseNode(Scope scope,
@@ -2080,9 +2091,9 @@ public class FunctionTranslator {
 	 * present.
 	 * 
 	 * @param scope
-	 *            The scope that contains this compound node
+	 *                          The scope that contains this compound node
 	 * @param statementNode
-	 *            The compound statement node
+	 *                          The compound statement node
 	 * @return the fragment of the compound statement node
 	 */
 	private Fragment translateCompoundStatementNode(Scope scope,
@@ -2132,9 +2143,9 @@ public class FunctionTranslator {
 	 * newScope as usual. Otherwise, let newScope = scope.
 	 * 
 	 * @param scope
-	 *            The scope to be checked.
+	 *                     The scope to be checked.
 	 * @param compound
-	 *            The AST node to be checked.
+	 *                     The AST node to be checked.
 	 * @return True iff a $here node exists in the AST node and is in the given
 	 *         scope.
 	 */
@@ -2226,9 +2237,9 @@ public class FunctionTranslator {
 	 * zero, etc.
 	 * 
 	 * @param scope
-	 *            The scope containing this statement.
+	 *                           The scope containing this statement.
 	 * @param expressionNode
-	 *            The expression node to be translated.
+	 *                           The expression node to be translated.
 	 * @return the fragment representing the expression node.
 	 */
 	private Fragment translateExpressionStatementNode(Scope scope,
@@ -2345,9 +2356,9 @@ public class FunctionTranslator {
 	 * effects except assignments should have been removed already.
 	 * 
 	 * @param scope
-	 *            The scope
+	 *                        The scope
 	 * @param forLoopNode
-	 *            The for loop node
+	 *                        The for loop node
 	 * @return the fragment representing the for loop
 	 */
 	private Fragment translateForLoopNode(Scope scope, ForLoopNode forLoopNode,
@@ -2436,12 +2447,13 @@ public class FunctionTranslator {
 	 * statement.
 	 * 
 	 * @param scope
-	 *            The scope
+	 *                             The scope
 	 * @param functionCallNode
-	 *            The function call node
+	 *                             The function call node
 	 * @param isInitialization
-	 *            a boolean value indicating if the returned value of this call
-	 *            statement will initialize a left-hand side expression
+	 *                             a boolean value indicating if the returned
+	 *                             value of this call statement will initialize
+	 *                             a left-hand side expression
 	 * @return the translated statement
 	 */
 	private Statement translateFunctionCall(Scope scope, LHSExpression lhs,
@@ -2549,9 +2561,9 @@ public class FunctionTranslator {
 	 * statement
 	 * 
 	 * @param scope
-	 *            The scope
+	 *                             The scope
 	 * @param functionCallNode
-	 *            The function call node
+	 *                             The function call node
 	 * @return the fragment containing the function call statement
 	 */
 	private Fragment translateFunctionCallNodeAsExpressionWithnoLHS(Scope scope,
@@ -2582,9 +2594,9 @@ public class FunctionTranslator {
 	 * scope);. Function bodies will be processed at a later pass.
 	 * 
 	 * @param node
-	 *            any ABC function declaration node
+	 *                  any ABC function declaration node
 	 * @param scope
-	 *            the scope in which the function declaration occurs
+	 *                  the scope in which the function declaration occurs
 	 */
 	private Fragment translateFunctionDeclarationNode(
 			FunctionDeclarationNode node, Scope scope) {
@@ -2683,8 +2695,9 @@ public class FunctionTranslator {
 		if (contract != null) {
 			if (result.functionContract() != null) {
 				// TODO: eventually, find a way to combine contracts
-				System.err.println("Warning: ignoring new contract for function "
-						+ function.name());
+				System.err
+						.println("Warning: ignoring new contract for function "
+								+ function.name());
 			} else {
 				FunctionContractTranslator contractTranslator = new FunctionContractTranslator(
 						modelBuilder, modelFactory, typeFactory, result,
@@ -2815,25 +2828,28 @@ public class FunctionTranslator {
 	 * </p>
 	 * 
 	 * @param entity
-	 *            An entity associates to a regular function.
+	 *                               An entity associates to a regular function.
 	 * @param node
-	 *            An instance of a {@link FunctionDeclarationNode}
+	 *                               An instance of a
+	 *                               {@link FunctionDeclarationNode}
 	 * @param scope
-	 *            The {@link Scope} where the function is located
+	 *                               The {@link Scope} where the function is
+	 *                               located
 	 * @param parameterScope
-	 *            The {@link Scope} where the function parameters are located
+	 *                               The {@link Scope} where the function
+	 *                               parameters are located
 	 * @param parameters
-	 *            An {@link ArrayList} of {@link Variable}s which are formal
-	 *            parameters
+	 *                               An {@link ArrayList} of {@link Variable}s
+	 *                               which are formal parameters
 	 * @param functionIdentifier
-	 *            The {@link Identifier} of the function
+	 *                               The {@link Identifier} of the function
 	 * @param functionType
-	 *            The {@link FunctionType} of the function
+	 *                               The {@link FunctionType} of the function
 	 * @param returnType
-	 *            The function return type
+	 *                               The function return type
 	 * @param functionSource
-	 *            The {@link CIVLSource} associated to the function declaration
-	 *            (or definition).
+	 *                               The {@link CIVLSource} associated to the
+	 *                               function declaration (or definition).
 	 * @return The created (or updated) CIVLFunction object.
 	 */
 	private CIVLFunction buildRegularCIVLFunction(Function entity,
@@ -2871,24 +2887,28 @@ public class FunctionTranslator {
 	 * <p>
 	 * 
 	 * @param entity
-	 *            An entity associates to a regular function.
+	 *                               An entity associates to a regular function.
 	 * @param node
-	 *            An instance of a {@link FunctionDeclarationNode}
+	 *                               An instance of a
+	 *                               {@link FunctionDeclarationNode}
 	 * @param scope
-	 *            The {@link Scope} where the function is located
+	 *                               The {@link Scope} where the function is
+	 *                               located
 	 * @param parameterScope
-	 *            The {@link Scope} where the function parameters are located
+	 *                               The {@link Scope} where the function
+	 *                               parameters are located
 	 * @param parameters
-	 *            An {@link ArrayList} of {@link Variable}s which are formal
-	 *            parameters
+	 *                               An {@link ArrayList} of {@link Variable}s
+	 *                               which are formal parameters
 	 * @param functionIdentifier
-	 *            The {@link Identifier} of the function
+	 *                               The {@link Identifier} of the function
 	 * @param functionType
-	 *            The {@link FunctionType} of the function
+	 *                               The {@link FunctionType} of the function
 	 * @param returnType
-	 *            The function return type
+	 *                               The function return type
 	 * @param functionSource
-	 *            The {@link CIVLSource} associated to the function declaration
+	 *                               The {@link CIVLSource} associated to the
+	 *                               function declaration
 	 * @return The created CIVLFunction object.
 	 */
 	private CIVLFunction buildSystemCIVLFunction(Function entity,
@@ -2941,24 +2961,28 @@ public class FunctionTranslator {
 	 * </p>
 	 * 
 	 * @param entity
-	 *            An entity associates to a regular function.
+	 *                               An entity associates to a regular function.
 	 * @param node
-	 *            An instance of a {@link FunctionDeclarationNode}
+	 *                               An instance of a
+	 *                               {@link FunctionDeclarationNode}
 	 * @param scope
-	 *            The {@link Scope} where the function is located
+	 *                               The {@link Scope} where the function is
+	 *                               located
 	 * @param parameterScope
-	 *            The {@link Scope} where the function parameters are located
+	 *                               The {@link Scope} where the function
+	 *                               parameters are located
 	 * @param parameters
-	 *            An {@link ArrayList} of {@link Variable}s which are formal
-	 *            parameters
+	 *                               An {@link ArrayList} of {@link Variable}s
+	 *                               which are formal parameters
 	 * @param functionIdentifier
-	 *            The {@link Identifier} of the function
+	 *                               The {@link Identifier} of the function
 	 * @param functionType
-	 *            The {@link FunctionType} of the function
+	 *                               The {@link FunctionType} of the function
 	 * @param returnType
-	 *            The function return type
+	 *                               The function return type
 	 * @param functionSource
-	 *            The {@link CIVLSource} associated to the function declaration
+	 *                               The {@link CIVLSource} associated to the
+	 *                               function declaration
 	 * @return The created CIVLFunction object.
 	 */
 	private CIVLFunction buildAbstractCIVLFunction(Function entity,
@@ -3000,9 +3024,9 @@ public class FunctionTranslator {
 	 * processed, record the no-op statement and the label to be complete later
 	 * 
 	 * @param scope
-	 *            The scope
+	 *                     The scope
 	 * @param gotoNode
-	 *            The goto node
+	 *                     The goto node
 	 * @return The fragment of the goto statement
 	 */
 	private Fragment translateGotoNode(Scope scope, GotoNode gotoNode) {
@@ -3027,9 +3051,10 @@ public class FunctionTranslator {
 	 * Translate an IfNode (i.e., an if-else statement) into a fragment.
 	 * 
 	 * @param scope
-	 *            The scope of the start location of the resulting fragment.
+	 *                   The scope of the start location of the resulting
+	 *                   fragment.
 	 * @param ifNode
-	 *            The if node to be translated.
+	 *                   The if node to be translated.
 	 * @return The fragment of the if-else statements.
 	 */
 	private Fragment translateIfNode(Scope scope, IfNode ifNode) {
@@ -3082,9 +3107,9 @@ public class FunctionTranslator {
 	 * fragment.
 	 * 
 	 * @param scope
-	 *            The scope of the source location of jump statement.
+	 *                     The scope of the source location of jump statement.
 	 * @param jumpNode
-	 *            The jump node to be translated.
+	 *                     The jump node to be translated.
 	 * @return The fragment of the break or continue statement
 	 */
 	private Fragment translateJumpNode(Scope scope, JumpNode jumpNode) {
@@ -3123,9 +3148,9 @@ public class FunctionTranslator {
 	 * Translate labeled statements
 	 * 
 	 * @param scope
-	 *            The scope
+	 *                               The scope
 	 * @param labelStatementNode
-	 *            The label statement node
+	 *                               The label statement node
 	 * @return The fragment of the label statement
 	 */
 	private Fragment translateLabelStatementNode(Scope scope,
@@ -3143,9 +3168,9 @@ public class FunctionTranslator {
 	 * fragment of CIVL statements
 	 * 
 	 * @param scope
-	 *            The scope
+	 *                     The scope
 	 * @param loopNode
-	 *            The while loop node
+	 *                     The while loop node
 	 * @return the fragment of the while loop
 	 */
 	private Fragment translateLoopNode(Scope scope, LoopNode loopNode) {
@@ -3223,9 +3248,9 @@ public class FunctionTranslator {
 	 * Translate a null statement node into a fragment of a no-op statement
 	 * 
 	 * @param scope
-	 *            The scope
+	 *                              The scope
 	 * @param nullStatementNode
-	 *            The null statement node
+	 *                              The null statement node
 	 * @return the fragment of the null statement (i.e. no-op statement)
 	 */
 	private Fragment translateNullStatementNode(Scope scope,
@@ -3241,9 +3266,9 @@ public class FunctionTranslator {
 	 * Translate return statements
 	 * 
 	 * @param scope
-	 *            The scope
+	 *                       The scope
 	 * @param returnNode
-	 *            The return node
+	 *                       The return node
 	 * @return The fragment of the return statement
 	 */
 	private Fragment translateReturnNode(Scope scope, ReturnNode returnNode) {
@@ -3313,10 +3338,10 @@ public class FunctionTranslator {
 	 * {@link FunctionContractTranslator}.
 	 * 
 	 * @param resultNode
-	 *            The {@link ResultNode} appears in a contract clause
+	 *                       The {@link ResultNode} appears in a contract clause
 	 * @param scope
-	 *            The scope of the contract clause, same as the scope of
-	 *            function arguments
+	 *                       The scope of the contract clause, same as the scope
+	 *                       of function arguments
 	 * @return
 	 */
 	protected Expression translateResultNode(ResultNode resultNode,
@@ -3329,10 +3354,12 @@ public class FunctionTranslator {
 	 * Translate a spawn node into a fragment containing the spawn statement
 	 * 
 	 * @param scope
-	 *            The scope in which this statement occurs. Must be non-null.
+	 *                      The scope in which this statement occurs. Must be
+	 *                      non-null.
 	 * @param spawnNode
-	 *            The ABC representation of the spawn, which will be translated
-	 *            to yield a new {@link Fragment}. Must be non-null.
+	 *                      The ABC representation of the spawn, which will be
+	 *                      translated to yield a new {@link Fragment}. Must be
+	 *                      non-null.
 	 * @return The fragment of the spawn statement
 	 */
 	private Fragment translateSpawnNode(Scope scope, SpawnNode spawnNode) {
@@ -3345,9 +3372,9 @@ public class FunctionTranslator {
 	 * Translate switch block into a fragment
 	 * 
 	 * @param scope
-	 *            The scope
+	 *                       The scope
 	 * @param switchNode
-	 *            The switch node
+	 *                       The switch node
 	 * @return The fragment of the switch statements
 	 */
 	private Fragment translateSwitchNode(Scope scope, SwitchNode switchNode) {
@@ -3454,19 +3481,20 @@ public class FunctionTranslator {
 	 * declaration.
 	 * 
 	 * @param sourceLocation
-	 *            location to use as origin of new statements or null
+	 *                           location to use as origin of new statements or
+	 *                           null
 	 * @param scope
-	 *            CIVL scope in which this declaration appears
+	 *                           CIVL scope in which this declaration appears
 	 * @param node
-	 *            the ABC variable declaration node to translate
+	 *                           the ABC variable declaration node to translate
 	 * @return the pair consisting of the (new or given) start location of the
 	 *         generated fragment and the last statement in the sequence of
 	 *         statements generated by translating this declaration node, or
 	 *         null if no statements are generated
 	 * @throws CommandLineException
-	 *             if an initializer for an input variable specified on the
-	 *             command line does not have a type compatible with the
-	 *             variable
+	 *                                  if an initializer for an input variable
+	 *                                  specified on the command line does not
+	 *                                  have a type compatible with the variable
 	 */
 	private Fragment translateVariableDeclarationNode(Location sourceLocation,
 			Scope scope, VariableDeclarationNode node)
@@ -3534,9 +3562,9 @@ public class FunctionTranslator {
 	 * scope.
 	 * 
 	 * @param scope
-	 *            the Model scope in which the variable declaration occurs
+	 *                  the Model scope in which the variable declaration occurs
 	 * @param node
-	 *            the AST variable declaration node.
+	 *                  the AST variable declaration node.
 	 * @return a pair whose left (pair.left) is variable in the declaration node
 	 *         and its right is a boolean value indicates whether the variable
 	 *         already exists in this scope.
@@ -3554,8 +3582,7 @@ public class FunctionTranslator {
 	private Pair<Variable, Boolean> translateVariableDeclarationNodeWork(
 			VariableDeclarationNode node, Scope scope, boolean isBound) {
 		if (!isBound) {
-			dev.civl.abc.ast.entity.IF.Variable varEntity = node
-					.getEntity();
+			dev.civl.abc.ast.entity.IF.Variable varEntity = node.getEntity();
 			// node.prettyPrint(System.out);
 			// System.out.println();
 			if (varEntity.getDefinition() == null)
@@ -3604,14 +3631,14 @@ public class FunctionTranslator {
 	 * one) into a fragment of an assign statement
 	 * 
 	 * @param node
-	 *            The variable declaration node that might contain an
-	 *            initializer node
+	 *                     The variable declaration node that might contain an
+	 *                     initializer node
 	 * @param variable
-	 *            The variable
+	 *                     The variable
 	 * @param location
-	 *            The location
+	 *                     The location
 	 * @param scope
-	 *            The scope containing this variable declaration node
+	 *                     The scope containing this variable declaration node
 	 * @return The fragment
 	 */
 	private Fragment translateVariableInitializationNode(
@@ -3658,8 +3685,8 @@ public class FunctionTranslator {
 			CompoundLiteralNode compoundNode, Scope scope) {
 		// TODO: check this. Make sure that users don't need to specify the
 		// dimension when using compound literal statement for DomainType.
-		assert compoundNode.getType()
-				.kind() == TypeKind.DOMAIN : "Compound literal nodes other than"
+		assert compoundNode.getType().kind() == TypeKind.DOMAIN
+				: "Compound literal nodes other than"
 						+ " $domain literals have been translated away by ABC";
 		CIVLType type = translateABCType(
 				modelFactory.sourceOf(compoundNode.getTypeNode()), scope,
@@ -3675,8 +3702,8 @@ public class FunctionTranslator {
 		int size = compoundInit.numChildren();
 		List<Expression> expressions = new ArrayList<>(size);
 
-		assert type
-				.isDomainType() : "Compound initializer nodes that are not children of"
+		assert type.isDomainType()
+				: "Compound initializer nodes that are not children of"
 						+ " $domain literals have been translated away by ABC";
 		int dimension;
 
@@ -3698,8 +3725,9 @@ public class FunctionTranslator {
 			Scope scope, CIVLType type) {
 		Expression initExpr;
 
-		assert !(initNode instanceof StringLiteralNode) : "StringLiteralNode as "
-				+ "initializer has been translated away by ABC";
+		assert !(initNode instanceof StringLiteralNode)
+				: "StringLiteralNode as "
+						+ "initializer has been translated away by ABC";
 		if (initNode instanceof ExpressionNode)
 			initExpr = translateExpressionNode((ExpressionNode) initNode, scope,
 					true);
@@ -3722,9 +3750,9 @@ public class FunctionTranslator {
 	 * Translate a when node into a fragment of a when statement
 	 * 
 	 * @param scope
-	 *            The scope
+	 *                     The scope
 	 * @param whenNode
-	 *            The when node
+	 *                     The when node
 	 * @return the fragment of the when statement
 	 */
 	private Fragment translateWhenNode(Scope scope, WhenNode whenNode) {
@@ -3761,9 +3789,9 @@ public class FunctionTranslator {
 	 * statement with a $spawn expression on f.
 	 * 
 	 * @param scope
-	 *            The current scope.
+	 *                    The current scope.
 	 * @param runNode
-	 *            The {@link RunNode}
+	 *                    The {@link RunNode}
 	 * @return A {@link Fragment} with a unique {@link CallOrSpawnStatement}
 	 *         that <code>{@link CallOrSpawnStatement#isRun()} == true</code>
 	 */
@@ -3813,21 +3841,22 @@ public class FunctionTranslator {
 	 * model.
 	 * 
 	 * @param arrowNode
-	 *            The arrow expression.
+	 *                      The arrow expression.
 	 * @param scope
-	 *            The (static) scope containing the expression.
+	 *                      The (static) scope containing the expression.
 	 * @return The model representation of the expression.
 	 */
 	private Expression translateArrowNode(ArrowNode arrowNode, Scope scope) {
 		Expression struct = translateExpressionNode(
 				arrowNode.getStructurePointer(), scope, true);
-		Expression result = modelFactory.dotExpression(
-				modelFactory.sourceOf(arrowNode),
-				modelFactory.dereferenceExpression(
-						modelFactory.sourceOf(arrowNode.getStructurePointer()),
-						struct),
-				getFieldIndex(arrowNode.getFieldName()));
+		CIVLSource source = modelFactory.sourceOf(arrowNode);
+		Field[] navseq = arrowNode.getNavigationSequence();
+		Expression result = modelFactory.dereferenceExpression(source, struct);
 
+		// s->f really means ((((*s).f0).f1).f2). ... .fn
+		for (Field field : navseq)
+			result = modelFactory.dotExpression(source, result,
+					field.getMemberIndex());
 		return result;
 	}
 
@@ -3835,9 +3864,9 @@ public class FunctionTranslator {
 	 * Translate a cast expression from the CIVL AST to the CIVL model.
 	 * 
 	 * @param castNode
-	 *            The cast expression.
+	 *                     The cast expression.
 	 * @param scope
-	 *            The (static) scope containing the expression.
+	 *                     The (static) scope containing the expression.
 	 * @return The model representation of the expression.
 	 */
 	private Expression translateCastNode(CastNode castNode, Scope scope) {
@@ -3858,7 +3887,7 @@ public class FunctionTranslator {
 	 * Translate a ConstantNode into a CIVL literal expression
 	 * 
 	 * @param constantNode
-	 *            The constant node
+	 *                         The constant node
 	 * 
 	 * @return a CIVL literal expression representing the constant node
 	 */
@@ -4141,21 +4170,23 @@ public class FunctionTranslator {
 	/**
 	 * Translate a struct field reference from the CIVL AST to the CIVL model.
 	 * 
-	 * TODO: FIX ME in the case of anonymous struct/union members.
-	 * 
 	 * @param dotNode
-	 *            The dot node to be translated.
+	 *                    The dot node to be translated.
 	 * @param scope
-	 *            The (static) scope containing the expression.
+	 *                    The (static) scope containing the expression.
 	 * @return The model representation of the expression.
 	 */
 	private Expression translateDotNode(DotNode dotNode, Scope scope) {
 		Expression struct = translateExpressionNode(dotNode.getStructure(),
 				scope, true);
-		Expression result = modelFactory.dotExpression(
-				modelFactory.sourceOf(dotNode), struct,
-				getFieldIndex(dotNode.getFieldName()));
+		CIVLSource source = modelFactory.sourceOf(dotNode);
+		Field[] navseq = dotNode.getNavigationSequence();
+		Expression result = struct;
 
+		// s.f really means (((s.f0).f1).f2). ... .fn
+		for (Field field : navseq)
+			result = modelFactory.dotExpression(source, result,
+					field.getMemberIndex());
 		return result;
 	}
 
@@ -4164,11 +4195,11 @@ public class FunctionTranslator {
 	 * object
 	 * 
 	 * @param expressionNode
-	 *            The expression node
+	 *                                 The expression node
 	 * @param scope
-	 *            The scope
+	 *                                 The scope
 	 * @param translateConversions
-	 *            The translation conversions
+	 *                                 The translation conversions
 	 * @return the CIVL Expression object
 	 */
 	protected Expression translateExpressionNode(ExpressionNode expressionNode,
@@ -4282,9 +4313,9 @@ public class FunctionTranslator {
 	 * {@link MPIContractExpression}.
 	 * 
 	 * @param node
-	 *            a {@link MPIContractExpressionNode}
+	 *                  a {@link MPIContractExpressionNode}
 	 * @param scope
-	 *            the current scope
+	 *                  the current scope
 	 * @return
 	 */
 	private Expression translateMPIContractExpression(
@@ -4397,10 +4428,10 @@ public class FunctionTranslator {
 	 * CIVL representation.
 	 * 
 	 * @param boundVariableSeqNode
-	 *            the sequence node of bound variable declarations and domains
-	 *            (optional)
+	 *                                 the sequence node of bound variable
+	 *                                 declarations and domains (optional)
 	 * @param scope
-	 *            the scope of this node
+	 *                                 the scope of this node
 	 * @return the list of variables and their (optional) domains
 	 */
 	private List<Pair<List<Variable>, Expression>> translateBoundVaraibleSequence(
@@ -4433,9 +4464,9 @@ public class FunctionTranslator {
 	 * translates an array lambda node into an array lambda expression
 	 * 
 	 * @param lambdaNode
-	 *            the array lambda node to be translated
+	 *                       the array lambda node to be translated
 	 * @param scope
-	 *            the current scope of the array lambda node
+	 *                       the current scope of the array lambda node
 	 * @return the array lambda expression resulting from the translation of the
 	 *         given array lambda node
 	 */
@@ -4469,9 +4500,9 @@ public class FunctionTranslator {
 	 * translates an array lambda node into an array lambda expression
 	 * 
 	 * @param arrayLambdaNode
-	 *            the array lambda node to be translated
+	 *                            the array lambda node to be translated
 	 * @param scope
-	 *            the current scope of the array lambda node
+	 *                            the current scope of the array lambda node
 	 * @return the array lambda expression resulting from the translation of the
 	 *         given array lambda node
 	 */
@@ -4514,7 +4545,7 @@ public class FunctionTranslator {
 	 * literal or array lambda.
 	 * 
 	 * @param arrayConst
-	 *            the array literal or labmda expression
+	 *                       the array literal or labmda expression
 	 * @return a variable expression wrapping the new anonymous variable
 	 */
 	private VariableExpression createAnonymousVariableForArrayConstant(
@@ -4635,8 +4666,8 @@ public class FunctionTranslator {
 					CIVLType oldCIVLType;
 
 					assert (oldCIVLType = translateABCType(source, scope,
-							oldType)).equals(
-									translateABCType(source, scope, oldType))
+							oldType))
+							.equals(translateABCType(source, scope, oldType))
 							&& oldCIVLType
 									.equals(expression.getExpressionType());
 					// The C11 Section 6.2.7 states following about 2 types have
@@ -4893,9 +4924,9 @@ public class FunctionTranslator {
 	 * happen when the function is an abstract function.
 	 * 
 	 * @param callNode
-	 *            The AST representation of the function call.
+	 *                     The AST representation of the function call.
 	 * @param scope
-	 *            The scope containing this expression.
+	 *                     The scope containing this expression.
 	 * @return The model representation of the function call expression.
 	 */
 	protected Expression translateFunctionCallExpression(
@@ -4952,9 +4983,9 @@ public class FunctionTranslator {
 	 * VariableExpression object.
 	 * 
 	 * @param identifierNode
-	 *            The identifier node to be translated.
+	 *                           The identifier node to be translated.
 	 * @param scope
-	 *            The scope of the identifier.
+	 *                           The scope of the identifier.
 	 * @return The CIVL VariableExpression object corresponding to the
 	 *         IdentifierExpressionNode
 	 */
@@ -4988,9 +5019,9 @@ public class FunctionTranslator {
 	 * Translate an operator expression from the CIVL AST to the CIVL model.
 	 * 
 	 * @param operatorNode
-	 *            The operator expression.
+	 *                         The operator expression.
 	 * @param scope
-	 *            The (static) scope containing the expression.
+	 *                         The (static) scope containing the expression.
 	 * @return The model representation of the expression.
 	 */
 	protected Expression translateOperatorNode(OperatorNode operatorNode,
@@ -5345,11 +5376,11 @@ public class FunctionTranslator {
 	 * {@link #translateOperatorNode(OperatorNode, Scope)}.
 	 * 
 	 * @param source
-	 *            The CIVL source of the plus operator.
+	 *                   The CIVL source of the plus operator.
 	 * @param arg0
-	 *            The first argument of the plus operation.
+	 *                   The first argument of the plus operation.
 	 * @param arg1
-	 *            The second argument of the plus operation.
+	 *                   The second argument of the plus operation.
 	 * @return The CIVL expression of the plus operation.
 	 */
 	private Expression translatePlusOperation(CIVLSource source,
@@ -5380,7 +5411,8 @@ public class FunctionTranslator {
 						"Expected at least one numeric argument", source);
 			assert !pointer.getExpressionType().isSetType()
 					|| ((CIVLSetType) pointer.getExpressionType()).elementType()
-							.isPointerType() : "arrays plus integers is not allowed";
+							.isPointerType()
+					: "arrays plus integers is not allowed";
 			return modelFactory.binaryExpression(source,
 					BINARY_OPERATOR.POINTER_ADD, pointer, offset);
 		}
@@ -5391,11 +5423,11 @@ public class FunctionTranslator {
 	 * {@link #translateOperatorNode(OperatorNode, Scope)}.
 	 * 
 	 * @param source
-	 *            The CIVL source of the minus operator.
+	 *                   The CIVL source of the minus operator.
 	 * @param arg0
-	 *            The first argument of the minus operation.
+	 *                   The first argument of the minus operation.
 	 * @param arg1
-	 *            The second argument of the minus operation.
+	 *                   The second argument of the minus operation.
 	 * @return The CIVL expression of the minus operation.
 	 */
 	private Expression translateMinusOperation(CIVLSource source,
@@ -5427,9 +5459,9 @@ public class FunctionTranslator {
 	 * expression
 	 * 
 	 * @param quantifiedNode
-	 *            The quantified expression node
+	 *                           The quantified expression node
 	 * @param scope
-	 *            The scope
+	 *                           The scope
 	 * @return the CIVL QuantifiedExpression
 	 */
 	protected Expression translateQuantifiedExpressionNode(
@@ -5475,9 +5507,9 @@ public class FunctionTranslator {
 	 * Translate a SizeofNode object from AST into a CIVL expression object
 	 * 
 	 * @param sizeofNode
-	 *            The size of node
+	 *                       The size of node
 	 * @param scope
-	 *            The scope
+	 *                       The scope
 	 * @return the CIVL Sizeof expression
 	 */
 	private Expression translateSizeofNode(SizeofNode sizeofNode, Scope scope) {
@@ -5514,9 +5546,9 @@ public class FunctionTranslator {
 	 * CIVL expression of the form *(e1+e2) or *(e2+e1).
 	 * 
 	 * @param subscriptNode
-	 *            an AST node with operator SUBSCRIPT
+	 *                          an AST node with operator SUBSCRIPT
 	 * @param scope
-	 *            scope in which this expression occurs
+	 *                          scope in which this expression occurs
 	 * @return the equivalent CIVL expression
 	 */
 	private Expression translateSubscriptNode(OperatorNode subscriptNode,
@@ -5580,11 +5612,11 @@ public class FunctionTranslator {
 	 * Translate the extent of an array type to an expression
 	 * 
 	 * @param source
-	 *            The CIVL source
+	 *                      The CIVL source
 	 * @param arrayType
-	 *            The array type
+	 *                      The array type
 	 * @param scope
-	 *            The scope
+	 *                      The scope
 	 * @return the expression representing the extent
 	 */
 	private Expression arrayExtent(CIVLSource source, ArrayType arrayType,
@@ -5616,7 +5648,7 @@ public class FunctionTranslator {
 	 * Calculate the index of a field in a struct type
 	 * 
 	 * @param fieldIdentifier
-	 *            The identifier of the field
+	 *                            The identifier of the field
 	 * @return The index of the field
 	 */
 	private int getFieldIndex(IdentifierNode fieldIdentifier) {
@@ -5638,9 +5670,9 @@ public class FunctionTranslator {
 	 * Translate ABC basic types into CIVL types
 	 * 
 	 * @param source
-	 *            The CIVL source
+	 *                      The CIVL source
 	 * @param basicType
-	 *            The basic ABC type
+	 *                      The basic ABC type
 	 * @return CIVL type
 	 */
 	private CIVLType translateABCBasicType(CIVLSource source,
@@ -5680,11 +5712,11 @@ public class FunctionTranslator {
 	 * Translate ABC struct or union type into CIVL type
 	 * 
 	 * @param source
-	 *            The CIVL source
+	 *                        The CIVL source
 	 * @param scope
-	 *            The scope
+	 *                        The scope
 	 * @param dynamicType
-	 *            The ABC struct or union type
+	 *                        The ABC struct or union type
 	 * @return CIVL type of struct or union
 	 */
 	private CIVLType translateABCStructureOrUnionTypeNode(CIVLSource source,
@@ -5713,7 +5745,7 @@ public class FunctionTranslator {
 				CIVLType civlFieldType = translateABCTypeNode(source, scope,
 						fields.getSequenceChild(i).getTypeNode());
 				String name = field.getName() == null
-						? "f" + i
+						? "_f" + i
 						: field.getName();
 				Identifier identifier = modelFactory.identifier(
 						modelFactory.sourceOf(field.getDefinition()), name);
@@ -5854,11 +5886,11 @@ public class FunctionTranslator {
 	 * Translate ABC struct or union type into CIVL type
 	 * 
 	 * @param source
-	 *            The CIVL source
+	 *                   The CIVL source
 	 * @param scope
-	 *            The scope
+	 *                   The scope
 	 * @param type
-	 *            The ABC struct or union type
+	 *                   The ABC struct or union type
 	 * @return CIVL type of struct or union
 	 */
 	private CIVLType translateABCStructureOrUnionType(CIVLSource source,
@@ -5959,11 +5991,11 @@ public class FunctionTranslator {
 	 * Working on replacing process type with this.
 	 * 
 	 * @param source
-	 *            The CIVL source
+	 *                    The CIVL source
 	 * @param scope
-	 *            The scope
+	 *                    The scope
 	 * @param abcType
-	 *            The ABC type
+	 *                    The ABC type
 	 * @return The CIVL type
 	 */
 	protected CIVLType translateABCType(CIVLSource source, Scope scope,
@@ -6068,11 +6100,11 @@ public class FunctionTranslator {
 	 * Translates ABC function type.
 	 * 
 	 * @param source
-	 *            The source code element to be used for error report.
+	 *                    The source code element to be used for error report.
 	 * @param scope
-	 *            The scope of the function type.
+	 *                    The scope of the function type.
 	 * @param abcType
-	 *            The ABC representation of the function type.
+	 *                    The ABC representation of the function type.
 	 * @return The CIVL function type translated from the ABC function type.
 	 */
 	private CIVLType translateABCFunctionType(CIVLSource source, Scope scope,
@@ -6107,11 +6139,11 @@ public class FunctionTranslator {
 	 * <code>__struct_foo__ = DynamicTypeOf(t)</code> (for example).
 	 * 
 	 * @param sourceLocation
-	 *            The location
+	 *                           The location
 	 * @param scope
-	 *            The scope
+	 *                           The scope
 	 * @param typeNode
-	 *            The type node
+	 *                           The type node
 	 * @return the fragment
 	 */
 	private Fragment translateCompoundTypeNode(Location sourceLocation,

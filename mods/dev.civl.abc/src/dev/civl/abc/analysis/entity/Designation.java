@@ -10,20 +10,23 @@ import dev.civl.abc.token.IF.Source;
 import dev.civl.abc.token.IF.SyntaxException;
 
 /**
- * A designation is specifies (or "designates") a point in a compound literal
+ * <p>
+ * A designation specifies (or "designates") a point in a compound literal
  * object. It consists of a sequence of Navigators.
+ * </p>
  * 
+ * <p>
  * The points in a compound literal object form a rooted tree. The root is a
  * reference to the whole object. The children of the root are references to the
  * immediate sub-objects, and so on. The leaves in this are references to simple
  * literals which wrap expressions. The edges in the tree correspond to
  * Navigators. A Designation specifies a path in the tree starting from the
  * root.
+ * </p>
  * 
  * @see {@link Navigator}
  * 
  * @author siegel
- * 
  */
 public class Designation {
 

@@ -8,11 +8,14 @@ import dev.civl.abc.ast.node.IF.IdentifierNode;
 import dev.civl.abc.ast.node.IF.compound.FieldDesignatorNode;
 import dev.civl.abc.ast.node.IF.expression.ExpressionNode;
 import dev.civl.abc.ast.node.common.CommonASTNode;
+import dev.civl.abc.ast.type.IF.Field;
 import dev.civl.abc.token.IF.Source;
 
 public class CommonFieldDesignatorNode extends CommonASTNode
 		implements
 			FieldDesignatorNode {
+
+	private Field[] navigationSequence = null;
 
 	public CommonFieldDesignatorNode(Source source, IdentifierNode field) {
 		super(source, field);
@@ -55,5 +58,15 @@ public class CommonFieldDesignatorNode extends CommonASTNode
 					"Child of CommonFieldDesignatorNode must be an IdentifierNode, but saw "
 							+ child + " with type " + child.nodeKind());
 		return super.setChild(index, child);
+	}
+
+	@Override
+	public Field[] getNavigationSequence() {
+		return navigationSequence;
+	}
+
+	@Override
+	public void setNavigationSequence(Field[] sequence) {
+		this.navigationSequence = sequence;
 	}
 }
