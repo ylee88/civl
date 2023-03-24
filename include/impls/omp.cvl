@@ -40,13 +40,14 @@ void $omp_set_lock(omp_lock_t *lock, int tid) {
   $atomic {
     $assert(lock->state != OMP_LOCK_UNINITIALIZED, 
       "Set a simple lock in 'uninitialized' state.");
+    $read_set_push();
+    $write_set_push();
+    $yield();
     $when(lock->state == OMP_LOCK_UNLOCKED) {
-      $read_set_push();
-      $write_set_push();
       lock->state = tid;
-      $read_set_pop();
-      $write_set_pop();
     }
+    $read_set_pop();
+    $write_set_pop();
   }
 }
 
@@ -112,15 +113,16 @@ void $omp_set_nest_lock(omp_nest_lock_t *lock, int tid) {
   $atomic {
     $assert(lock->state != OMP_LOCK_UNINITIALIZED, 
       "Set a simple lock in 'uninitialized' state.");
+    $read_set_push();
+    $write_set_push();
+    $yield();
     $when( lock->state == OMP_LOCK_UNLOCKED 
         || lock->state == tid) {
-      $read_set_push();
-      $write_set_push();
       lock->state = tid;
       lock->count = lock->count + 1;
-      $read_set_pop();
-      $write_set_pop();
     }
+    $read_set_pop();
+    $write_set_pop();
   }
 }
 

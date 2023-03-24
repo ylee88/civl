@@ -282,11 +282,7 @@ $atomic_f void $omp_apply_assoc($omp_shared shared,
 $atomic_f void $omp_reduction_combine(
   $operation op, void *reduction_final, void *reduction_local
 ) {
-  $read_set_pop();
-  $write_set_pop();
   $apply(reduction_final, op, reduction_local, reduction_final);
-  $read_set_push();
-  $write_set_push();
 }
 
 void $omp_flush($omp_shared shared, void *ref) {
@@ -334,16 +330,14 @@ void $omp_flush_all($omp_team team) {
    }
 }
 
+
 $atomic_f void $check_data_race($omp_team team) {
   int cur_tid = team->tid;
   $mem out_s0 = $mem_empty();
   $mem out_s1 = $mem_empty();
-  $mem cur_mw = $write_set_pop();
-  $mem cur_mr = $read_set_pop();
+  $mem cur_mw = team->gteam->write_sets[cur_tid];
+  $mem cur_mr = team->gteam->read_sets[cur_tid];
   
-  // Update current R/W sets
-  team->gteam->write_sets[cur_tid] = cur_mw;
-  team->gteam->read_sets[cur_tid] = cur_mr;
   // Check data race.
   for (int tmp_tid = 0; tmp_tid < team->gteam->nthreads; tmp_tid++) {
     if (tmp_tid == cur_tid) continue;
@@ -361,24 +355,14 @@ $atomic_f void $check_data_race($omp_team team) {
               "Data-race detected: %p written by thread %d intersects %p written by thread %d\n",
 	          out_s0, cur_tid, out_s1, tmp_tid);
   }
-  // Update current R/W sets
-  team->gteam->write_sets[cur_tid] = $mem_empty();
-  team->gteam->read_sets[cur_tid] = $mem_empty();
-  $read_set_push();
-  $write_set_push();
-}
-
-void $read_and_write_set_update($omp_team team) {
-  team->gteam->write_sets[team->tid] = $write_set_peek();
-  team->gteam->read_sets[team->tid] = $read_set_peek();
 }
 
 void $omp_barrier($omp_team team) {
-  $mem cur_mw = $write_set_pop();
-  $mem cur_mr = $read_set_pop();
+  int cur_tid = team->tid;
   $mem out_s0 = $mem_empty();
   $mem out_s1 = $mem_empty();
-  int cur_tid = team->tid;  
+  $mem cur_mw = $write_set_pop();
+  $mem cur_mr = $read_set_pop();
 
   team->gteam->write_sets[cur_tid] = cur_mw;
   team->gteam->read_sets[cur_tid] = cur_mr;
@@ -398,7 +382,16 @@ void $omp_barrier($omp_team team) {
               "Data-race detected: %p written by thread %d intersects %p written by thread %d\n",
 	          out_s0, cur_tid, out_s1, tmp_tid);
   }
+  $local_end();
   $barrier_call(team->barrier);
+  if (0 == cur_tid) {
+    for (int tmp_tid = 0; tmp_tid < team->gteam->nthreads; tmp_tid++) {
+      team->gteam->read_sets[tmp_tid] = $mem_empty();
+      team->gteam->write_sets[tmp_tid] = $mem_empty();
+    }
+  }
+  $barrier_call(team->barrier);
+  $local_start();
   
   $read_set_push();
   $write_set_push();
@@ -600,6 +593,7 @@ $atomic_f void $omp_helper_signal_wait(
 ){
   $read_set_push();
   $write_set_push();
+  $yield();
   $when(signal->value == waitValue) signal->value = -(signal->value)-1 /* do nothing */;
   $read_set_pop();
   $write_set_pop();
@@ -615,3 +609,64 @@ $atomic_f void $omp_helper_signal_send(
   $write_set_pop();
 }
 
+$atomic_f void $read_and_write_sets_pop($omp_team team) {
+  $mem cur_mr = $read_set_pop();
+  $mem cur_mw = $write_set_pop();
+  team->gteam->read_sets[team->tid] = cur_mr;
+  team->gteam->write_sets[team->tid] = cur_mw;
+}
+
+$atomic_f void $read_and_write_sets_push($omp_team team) {
+  team->gteam->write_sets[team->tid] = $mem_empty();
+  team->gteam->read_sets[team->tid] = $mem_empty();
+  $read_set_push();
+  $write_set_push();
+}
+
+$atomic_f void $omp_atomic_execution_lock_acquire(
+  $omp_team team, $omp_helper_signal *lock) {
+  // pop: memsets
+  $read_and_write_sets_pop(team);
+  // check: data race
+  $check_data_race(team);
+  // yield: to other threads
+  $omp_helper_signal_wait(lock, 0);
+  // acquire: lock
+  $omp_helper_signal_send(lock, 1);
+  // push: memsets
+  $read_and_write_sets_push(team);
+}
+
+$atomic_f void $omp_atomic_execution_lock_release(
+  $omp_team team, $omp_helper_signal *lock) {
+  // pop: memsets
+  $read_and_write_sets_pop(team);
+  // yield: to other threads
+  $yield();
+  // check: data race
+  $check_data_race(team);
+  // release: lock
+  $omp_helper_signal_send(lock, 0);
+  // push: memsets
+  $read_and_write_sets_push(team);
+}
+
+$atomic_f void $omp_loop_operation($omp_team team) {
+  // pop: memsets
+  $read_and_write_sets_pop(team);
+  // yield: to other threads
+  $yield();
+  // check: data race
+  $check_data_race(team);
+  // push: memsets
+  $read_and_write_sets_push(team);
+}
+
+$atomic_f void $omp_thread_termination($omp_team team) {
+  // pop: memsets
+  $read_and_write_sets_pop(team);
+  // check: data race
+  $check_data_race(team);
+  // push: memsets
+  $read_and_write_sets_push(team);
+}

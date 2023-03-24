@@ -141,9 +141,11 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 	 * creates a new instance of symbolic utility.
 	 * 
 	 * @param universe
-	 *            the symbolic universe to be used by the symbolic utility.
+	 *                         the symbolic universe to be used by the symbolic
+	 *                         utility.
 	 * @param modelFactory
-	 *            the model factory to be used by the symbolic utility.
+	 *                         the model factory to be used by the symbolic
+	 *                         utility.
 	 */
 	public CommonSymbolicUtility(SymbolicUniverse universe,
 			ModelFactory modelFactory, StateFactory stateFactory) {
@@ -177,7 +179,8 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 	 * parent of the reference.
 	 * 
 	 * @param ref
-	 *            The reference expression whose ancestors are to be computed.
+	 *                The reference expression whose ancestors are to be
+	 *                computed.
 	 * @return the list ancestor references of the given reference.
 	 */
 	List<ReferenceExpression> ancestorsOfRef(ReferenceExpression ref) {
@@ -197,9 +200,10 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 	 * Get the element in literal domain pointed by the given index.
 	 * 
 	 * @param domValue
-	 *            The symbolic expression of the domain
+	 *                     The symbolic expression of the domain
 	 * @param index
-	 *            The index points to the position of the returned element
+	 *                     The index points to the position of the returned
+	 *                     element
 	 * @return The element in literal domain pointed by the given index
 	 */
 	private SymbolicExpression getEleInLiteralDomain(
@@ -220,7 +224,7 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 	 * Returns the size of a given regular range.
 	 * 
 	 * @param range
-	 *            The regular range whose size is to be computed.
+	 *                  The regular range whose size is to be computed.
 	 * @return the size of the given regular range.
 	 */
 	private NumericExpression getRegRangeSize(SymbolicExpression range) {
@@ -251,9 +255,9 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 	 * Are the two given references disjoint?
 	 * 
 	 * @param ref1
-	 *            The first reference expression.
+	 *                 The first reference expression.
 	 * @param ref2
-	 *            The second reference expression.
+	 *                 The second reference expression.
 	 * @return True iff the two given references do NOT have any intersection.
 	 */
 	private boolean isDisjoint(ReferenceExpression ref1,
@@ -280,9 +284,9 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 	 * Is the given reference applicable to the specified symbolic type?
 	 * 
 	 * @param ref
-	 *            The reference expression to be checked.
+	 *                 The reference expression to be checked.
 	 * @param type
-	 *            The symbolic type specified.
+	 *                 The symbolic type specified.
 	 * @return True iff the given reference is applicable to the specified
 	 *         symbolic type
 	 */
@@ -352,9 +356,9 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 	 * Combines two references by using one as the parent of the other.
 	 * 
 	 * @param parent
-	 *            The reference to be used as the parent.
+	 *                   The reference to be used as the parent.
 	 * @param ref
-	 *            The reference to be used as the base.
+	 *                   The reference to be used as the base.
 	 * @return A new reference which is the combination of the given two
 	 *         references.
 	 */
@@ -382,7 +386,8 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 	 * Computes the components contained by a given reference expression.
 	 * 
 	 * @param ref
-	 *            The reference expression whose components are to be computed.
+	 *                The reference expression whose components are to be
+	 *                computed.
 	 * @return The components of the reference.
 	 */
 	private List<ReferenceExpression> referenceComponents(
@@ -941,11 +946,15 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 				public boolean hasNext() {
 					BooleanExpression hasNext = universe.falseExpression();
 
-					if (this.currentPos == null) {
-						if (startPos == null)
+					for (int i = 0; i < dim; i++) {
+						SymbolicExpression range = universe.arrayRead(recDom,
+								universe.integer(i));
+
+						if (getRegRangeSize(range).isZero())
 							return false;
-						else
-							return true;
+					}
+					if (this.currentPos == null) {
+						return startPos != null;
 					} else {
 						for (int i = 0; i < this.dim; i++) {
 							SymbolicExpression range = universe.arrayRead(
@@ -991,8 +1000,15 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 
 				@Override
 				public boolean hasNext() {
-					return ((literalDomainSize > (currentPos + 1)
-							&& (currentPos + 1) >= 0));
+					NumericExpression domLength = universe.length(literalDom);
+
+					// array length can never be negative and here it also
+					// should always be concrete.
+					if (domLength.isZero())
+						return false;
+					else
+						return ((literalDomainSize > (currentPos + 1)
+								&& (currentPos + 1) >= 0));
 				}
 
 				@Override
@@ -1486,9 +1502,9 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 		IntegerNumber numElementsNumber = (IntegerNumber) universe
 				.extractNumber(numElements);
 
-		assert array.operator() == SymbolicOperator.ARRAY : "A symbolic "
-				+ "expression without ARRAY operator "
-				+ "cannot be converted to a concrete array.";
+		assert array.operator() == SymbolicOperator.ARRAY
+				: "A symbolic " + "expression without ARRAY operator "
+						+ "cannot be converted to a concrete array.";
 
 		int numElementsInt = numElementsNumber.intValue();
 		SymbolicExpression results[] = new SymbolicExpression[numElementsInt];

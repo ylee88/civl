@@ -177,21 +177,23 @@ public class CommonExecutor implements Executor {
 	 * Create a new instance of executor.
 	 * 
 	 * @param modelFactory
-	 *            The model factory of the system.
+	 *                             The model factory of the system.
 	 * @param stateFactory
-	 *            The state factory of the system.
+	 *                             The state factory of the system.
 	 * @param log
-	 *            The error logger of the system.
+	 *                             The error logger of the system.
 	 * @param loader
-	 *            The library executor loader for executing system functions.
+	 *                             The library executor loader for executing
+	 *                             system functions.
 	 * @param evaluator
-	 *            The CIVL evaluator for evaluating expressions.
+	 *                             The CIVL evaluator for evaluating
+	 *                             expressions.
 	 * @param symbolicAnalyzer
-	 *            The symbolic analyzer used in the system.
+	 *                             The symbolic analyzer used in the system.
 	 * @param errorLogger
-	 *            The error logger to log errors
+	 *                             The error logger to log errors
 	 * @param civlConfig
-	 *            The CIVL configuration.
+	 *                             The CIVL configuration.
 	 */
 	public CommonExecutor(ModelFactory modelFactory, StateFactory stateFactory,
 			LibraryExecutorLoader loader, Evaluator evaluator,
@@ -228,7 +230,7 @@ public class CommonExecutor implements Executor {
 	 * Is the given {@link Statement} the {@code $yield} statement?
 	 * 
 	 * @param stmt
-	 *            a (non-null) {@link Statement}
+	 *                 a (non-null) {@link Statement}
 	 * @return {@code true} iff {@code stmt} is the {@code $yield statement}
 	 */
 	private boolean isYield(Statement stmt) {
@@ -246,11 +248,11 @@ public class CommonExecutor implements Executor {
 	 * to the target location of the assignment.
 	 * 
 	 * @param state
-	 *            The state of the program
+	 *                      The state of the program
 	 * @param pid
-	 *            The process id of the currently executing process
+	 *                      The process id of the currently executing process
 	 * @param statement
-	 *            An assignment statement to be executed
+	 *                      An assignment statement to be executed
 	 * @return The updated state of the program
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -311,11 +313,11 @@ public class CommonExecutor implements Executor {
 	 * the values that are passed as arguments.
 	 * 
 	 * @param state
-	 *            The state of the program.
+	 *                      The state of the program.
 	 * @param pid
-	 *            The process id of the currently executing process.
+	 *                      The process id of the currently executing process.
 	 * @param statement
-	 *            A call statement to be executed.
+	 *                      A call statement to be executed.
 	 * @return The updated state of the program.
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -421,17 +423,23 @@ public class CommonExecutor implements Executor {
 	 * Executes a {@code $malloc} statement.
 	 * 
 	 * @param state
-	 *            the state from which the statement is executed
+	 *                      the state from which the statement is executed
 	 * @param pid
-	 *            ID of the process executing the statement
+	 *                      ID of the process executing the statement
 	 * @param statement
-	 *            the {@code $malloc} statement being executed
+	 *                      the {@code $malloc} statement being executed
 	 * @return the new state after the statement is executed
 	 * @throws UnsatisfiablePathConditionException
-	 *             if it is determined that the path condition of the new state
-	 *             is unsatisfiable, e.g., if the statement is erroneous because
-	 *             the number of bytes being allocated is not a multiple of the
-	 *             size of the element type
+	 *                                                 if it is determined that
+	 *                                                 the path condition of the
+	 *                                                 new state is
+	 *                                                 unsatisfiable, e.g., if
+	 *                                                 the statement is
+	 *                                                 erroneous because the
+	 *                                                 number of bytes being
+	 *                                                 allocated is not a
+	 *                                                 multiple of the size of
+	 *                                                 the element type
 	 */
 	private State executeMalloc(State state, int pid, String process,
 			MallocStatement statement)
@@ -533,11 +541,11 @@ public class CommonExecutor implements Executor {
 	 * Executes a return statement.
 	 * 
 	 * @param state
-	 *            The state of the program.
+	 *                      The state of the program.
 	 * @param pid
-	 *            The process id of the currently executing process.
+	 *                      The process id of the currently executing process.
 	 * @param statement
-	 *            The return statement to be executed.
+	 *                      The return statement to be executed.
 	 * @return The updated state of the program.
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -637,11 +645,11 @@ public class CommonExecutor implements Executor {
 	 * whose start location is the beginning of the forked function.
 	 * 
 	 * @param state
-	 *            The state of the program.
+	 *                      The state of the program.
 	 * @param pid
-	 *            The process id of the currently executing process.
+	 *                      The process id of the currently executing process.
 	 * @param statement
-	 *            A spawn statement to be executed.
+	 *                      A spawn statement to be executed.
 	 * @return The updated state of the program.
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -719,8 +727,8 @@ public class CommonExecutor implements Executor {
 
 			if (monitorReads) {
 				this.evaluatorOnTheBench = this.evaluator;
-				this.evaluator = getReadSetCollectEvaluator();
 				state = evaluator.evaluate(state, pid, statement.guard()).state;
+				this.evaluator = getReadSetCollectEvaluator();
 			}
 			state = executeWork(state, pid, statement);
 			if (monitorReads)
@@ -736,11 +744,11 @@ public class CommonExecutor implements Executor {
 	 * handled by this method.
 	 * 
 	 * @param State
-	 *            The state of the program.
+	 *                      The state of the program.
 	 * @param pid
-	 *            The process id of the currently executing process.
+	 *                      The process id of the currently executing process.
 	 * @param statement
-	 *            The statement to be executed.
+	 *                      The statement to be executed.
 	 * @return The updated state of the program.
 	 */
 	private State executeWork(State state, int pid, Statement statement)
@@ -882,21 +890,21 @@ public class CommonExecutor implements Executor {
 	 * ELEMENT in domain, it will spawn a process to execute it.
 	 * 
 	 * @param state
-	 *            The current state
+	 *                            The current state
 	 * @param pid
-	 *            The PID of the process
+	 *                            The PID of the process
 	 * @param parProcs
-	 *            The expression of the pointer to the first element of
-	 *            processes array.
+	 *                            The expression of the pointer to the first
+	 *                            element of processes array.
 	 * @param parProcsPointer
-	 *            The symbolic expression of the pointer to the first element of
-	 *            processes array.
+	 *                            The symbolic expression of the pointer to the
+	 *                            first element of processes array.
 	 * @param function
-	 *            The function will be spawned
+	 *                            The function will be spawned
 	 * @param dim
-	 *            The dimension number of the domain.
+	 *                            The dimension number of the domain.
 	 * @param domainValue
-	 *            The symbolic expression of the domain object.
+	 *                            The symbolic expression of the domain object.
 	 * @return
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -941,11 +949,11 @@ public class CommonExecutor implements Executor {
 	 * the element has a subsequence in the domain.
 	 * 
 	 * @param state
-	 *            The current state
+	 *                         The current state
 	 * @param pid
-	 *            The PID of the process
+	 *                         The PID of the process
 	 * @param nextInDomain
-	 *            The nextInDomain statement.
+	 *                         The nextInDomain statement.
 	 * @return
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -1152,9 +1160,10 @@ public class CommonExecutor implements Executor {
 	 * </ul>
 	 * 
 	 * @param source
-	 *            The source code element of the format argument.
+	 *                         The source code element of the format argument.
 	 * @param formatBuffer
-	 *            The string buffer containing the content of the format string.
+	 *                         The string buffer containing the content of the
+	 *                         format string.
 	 * @return A list of string buffers by splitting the format by conversion
 	 *         specifiers.
 	 */
@@ -1372,26 +1381,30 @@ public class CommonExecutor implements Executor {
 	 * </p>
 	 * 
 	 * @param source
-	 *            the source for error report
+	 *                             the source for error report
 	 * @param state
-	 *            the pre-state
+	 *                             the pre-state
 	 * @param process
-	 *            the process name for error report
+	 *                             the process name for error report
 	 * @param lhs
-	 *            the left hand side expression that represents the memory to be
-	 *            written
+	 *                             the left hand side expression that represents
+	 *                             the memory to be written
 	 * @param value
-	 *            the value to be used for the assignment
+	 *                             the value to be used for the assignment
 	 * @param isInitialization
-	 *            true iff this is an initialization assignment in the model. if
-	 *            this is true, then the checking of write-to-input-variable
-	 *            error is disable.
+	 *                             true iff this is an initialization assignment
+	 *                             in the model. if this is true, then the
+	 *                             checking of write-to-input-variable error is
+	 *                             disable.
 	 * @param tocheckPointer
-	 *            true iff checking of the validness of the pointer is enabled
+	 *                             true iff checking of the validness of the
+	 *                             pointer is enabled
 	 * @return the post state resulting performing the assignment using the
 	 *         given parameters
 	 * @throws UnsatisfiablePathConditionException
-	 *             if the memory represented by the lhs expression is invalid
+	 *                                                 if the memory represented
+	 *                                                 by the lhs expression is
+	 *                                                 invalid
 	 */
 	private State assignToPointer(CIVLSource source, State state, int pid,
 			SymbolicExpression pointer, SymbolicExpression value,
@@ -1480,7 +1493,7 @@ public class CommonExecutor implements Executor {
 		// write set recording:
 		boolean saveWrite = state.isMonitoringWrites(pid);
 
-		if (saveWrite) {
+		if (saveWrite && !Utils.containSequenceType(variable.type())) {
 			Evaluation eval = evaluator.memEvaluator().pointer2memValue(state,
 					pid, pointer, source);
 
@@ -1495,24 +1508,27 @@ public class CommonExecutor implements Executor {
 	 * at a given state by a certain process.
 	 * 
 	 * @param state
-	 *            the pre-state
+	 *                          the pre-state
 	 * @param pid
-	 *            the PID of the process that executes the assignment
+	 *                          the PID of the process that executes the
+	 *                          assignment
 	 * @param process
-	 *            the process name for error report
+	 *                          the process name for error report
 	 * @param lhs
-	 *            the left hand side expression that represents the memory to be
-	 *            written
+	 *                          the left hand side expression that represents
+	 *                          the memory to be written
 	 * @param value
-	 *            the value to be used for the assignment
+	 *                          the value to be used for the assignment
 	 * @param isInitializer
-	 *            true iff this is an initialization assignment in the model. if
-	 *            this is true, then the checking of write-to-input-variable
-	 *            error is disable.
+	 *                          true iff this is an initialization assignment in
+	 *                          the model. if this is true, then the checking of
+	 *                          write-to-input-variable error is disable.
 	 * @return the post state resulting performing the assignment using the
 	 *         given parameters
 	 * @throws UnsatisfiablePathConditionException
-	 *             if the memory represented by the lhs expression is invalid
+	 *                                                 if the memory represented
+	 *                                                 by the lhs expression is
+	 *                                                 invalid
 	 */
 	private State assignLHS(State state, int pid, String process,
 			LHSExpression lhs, SymbolicExpression value, boolean isInitializer)
@@ -1534,7 +1550,7 @@ public class CommonExecutor implements Executor {
 			boolean saveWrite = state.isMonitoringWrites(pid);
 
 			state = stateFactory.setVariable(state, variable, pid, value);
-			if (saveWrite) {
+			if (saveWrite && !Utils.containSequenceType(variable.type())) {
 				eval = evaluator.memEvaluator().pointer2memValue(
 						state, pid, symbolicUtil.makePointer(dyscopeId,
 								variable.vid(), universe.identityReference()),
@@ -1571,18 +1587,19 @@ public class CommonExecutor implements Executor {
 	 * </p>
 	 * 
 	 * @param state
-	 *            the current state
+	 *                          the current state
 	 * @param pid
-	 *            the PID of the running process
+	 *                          the PID of the running process
 	 * @param lhs
-	 *            an instance of {@link LHSExpression} which is going to be
-	 *            assigned
+	 *                          an instance of {@link LHSExpression} which is
+	 *                          going to be assigned
 	 * @param value
-	 *            the value that will assign to a {@link LHSExpression}, it is
-	 *            an instance of {@link SymbolicExpression}
+	 *                          the value that will assign to a
+	 *                          {@link LHSExpression}, it is an instance of
+	 *                          {@link SymbolicExpression}
 	 * @param isInitializer
-	 *            true iff this assign operation is an initialization of a
-	 *            variable.
+	 *                          true iff this assign operation is an
+	 *                          initialization of a variable.
 	 * @throws UnsatisfiablePathConditionException
 	 * @return the (maybe) updated right-hand side value
 	 */
@@ -1690,7 +1707,7 @@ public class CommonExecutor implements Executor {
 
 		boolean saveWrite = state.isMonitoringWrites(pid);
 
-		if (saveWrite) {
+		if (saveWrite && !Utils.containSequenceType(var.type())) {
 			eval = evaluator.memEvaluator().makeMemValue(state, pid,
 					pointerToVarOrHeapObj, valueSetTemplate, source);
 
