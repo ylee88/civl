@@ -35,7 +35,6 @@ import dev.civl.abc.ast.type.IF.TypeFactory;
 import dev.civl.abc.ast.type.IF.UnqualifiedObjectType;
 import dev.civl.abc.ast.value.IF.StringValue;
 import dev.civl.abc.ast.value.IF.Value;
-import dev.civl.abc.ast.value.IF.ValueFactory.Answer;
 import dev.civl.abc.config.IF.Configurations.Language;
 import dev.civl.abc.err.IF.ABCRuntimeException;
 import dev.civl.abc.token.IF.Source;
@@ -44,8 +43,8 @@ import dev.civl.abc.token.IF.StringLiteral;
 /**
  * <p>
  * This class translates a {@link CompoundInitializerNode} and an expression,
- * which represents the object that is associated to the compound initializer,
- * to a sequence of assignments.
+ * which represents the object that is being assigned the value specified by the
+ * compound initializer, to a sequence of scalar assignments.
  * </p>
  * 
  * <p>
@@ -59,19 +58,22 @@ import dev.civl.abc.token.IF.StringLiteral;
  * <ul>
  * <li>This class <b>ASSUMES</b> that the aggregate object that is associated
  * with the compound initializer has been set to have its default value if it
- * has or is suppose to be treated as having static storage.</li>
+ * has or is suppose to be treated as having static storage. [DELETE THIS
+ * ASSUMPTION, I don't think it is true or necessary --sfs]</li>
+ * 
  * <li>This class guarantees that the output contains no compound initializer
  * node <b>EXCEPT FOR</b> $domain initializers</li>
+ * 
  * <li>TODO: this worker currently is used by the {@link SideEffectRemover} due
- * to the fact that side-effect remover has a mature structure for traversing a
- * tree and factoring statements from expressions. Semantically, this is not a
- * "side-effect removing" work.</li>
+ * to the fact that the side-effect remover has a mature structure for
+ * traversing a tree and factoring statements from expressions. Semantically,
+ * this is not a "side-effect removing" transformation, so maybe it should go
+ * elsewhere. [or maybe the side-effect remover should be renamed "code
+ * normalizer" or something like that --sfs]</li>
  * </ul>
  * </p>
  * 
  * @author ziqing
- *
- * 
  */
 class StringOrCompoundInitializerTranslateWorker {
 
@@ -184,14 +186,12 @@ class StringOrCompoundInitializerTranslateWorker {
 
 					if (val != null) {
 						String fieldName = type.getField(i).getName();
-						ExpressionNode subObj;
+						ExpressionNode subObj = fieldName == null
+								? obj
+								: nodeFactory.newDotNode(source, obj.copy(),
+										nodeFactory.newIdentifierNode(source,
+												fieldName));
 
-						if (fieldName == null)
-							subObj = obj;
-						else
-							subObj = nodeFactory.newDotNode(source, obj.copy(),
-									nodeFactory.newIdentifierNode(source,
-											fieldName));
 						results.addAll(translateInitializerWorker(subObj, val));
 					}
 				}
@@ -203,13 +203,13 @@ class StringOrCompoundInitializerTranslateWorker {
 
 			init.remove();
 			// no need to assign 0s to scalar, which should have been dealt with
-			// by its default value:
+			// by its default value [what does this mean --sfs]
 			if (init.expressionKind() == ExpressionKind.CONSTANT) {
 				Value val = ((ConstantNode) init).getConstantValue();
 
-//				if (val != null && val.getType().kind() == TypeKind.BASIC)
-//					if (val.isZero() == Answer.YES)
-//						return results;
+				// if (val != null && val.getType().kind() == TypeKind.BASIC)
+				// if (val.isZero() == Answer.YES)
+				// return results; [disagree --sfs]
 				if (val instanceof StringValue)
 					return translateStringLiteralInitializerWorker(obj,
 							litObj.getType(), ((StringValue) val).getLiteral(),
@@ -382,7 +382,7 @@ class StringOrCompoundInitializerTranslateWorker {
 	 * constant or variable length.</li>
 	 * <li>Otherwise, to conform C11 standard, no initializer expression but a
 	 * sequence of assignments will be given for initialization of arrays with
-	 * constant length. Attemptence to initialize variable size array will be
+	 * constant length. Attempts to initialize variable size array will be
 	 * reported.</li>
 	 * </ul>
 	 * </p>

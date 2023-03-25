@@ -5644,27 +5644,27 @@ public class FunctionTranslator {
 		return result;
 	}
 
-	/**
-	 * Calculate the index of a field in a struct type
-	 * 
-	 * @param fieldIdentifier
-	 *                            The identifier of the field
-	 * @return The index of the field
-	 */
-	private int getFieldIndex(IdentifierNode fieldIdentifier) {
-		Entity entity = fieldIdentifier.getEntity();
-		EntityKind kind = entity.getEntityKind();
-
-		if (kind == EntityKind.FIELD) {
-			Field field = (Field) entity;
-
-			return field.getMemberIndex();
-		} else {
-			throw new CIVLInternalException(
-					"getFieldIndex given identifier that does not correspond to field: ",
-					modelFactory.sourceOf(fieldIdentifier));
-		}
-	}
+	// /**
+	// * Calculate the index of a field in a struct type
+	// *
+	// * @param fieldIdentifier
+	// * The identifier of the field
+	// * @return The index of the field
+	// */
+	// private int getFieldIndex(IdentifierNode fieldIdentifier) {
+	// Entity entity = fieldIdentifier.getEntity();
+	// EntityKind kind = entity.getEntityKind();
+	//
+	// if (kind == EntityKind.FIELD) {
+	// Field field = (Field) entity;
+	//
+	// return field.getMemberIndex();
+	// } else {
+	// throw new CIVLInternalException(
+	// "getFieldIndex given identifier that does not correspond to field: ",
+	// modelFactory.sourceOf(fieldIdentifier));
+	// }
+	// }
 
 	/**
 	 * Translate ABC basic types into CIVL types
