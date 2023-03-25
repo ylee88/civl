@@ -19,6 +19,7 @@ import dev.civl.mc.run.IF.UserInterface;
  *
  */
 public class ShowStatesTest {
+	@SuppressWarnings("exports")
 	@Rule
 	public Timeout globalTimeout = Timeout.seconds(30);
 

@@ -50,8 +50,7 @@ public class GuidedTransitionChooser<STATE, TRANSITION>
 
 	private Guide guide;
 
-	public GuidedTransitionChooser(EnablerIF<STATE, TRANSITION> enabler,
-			Guide guide) {
+	GuidedTransitionChooser(EnablerIF<STATE, TRANSITION> enabler, Guide guide) {
 		this.enabler = enabler;
 		this.guide = guide;
 	}
@@ -91,7 +90,7 @@ public class GuidedTransitionChooser<STATE, TRANSITION>
 	 *                                         reader
 	 * @throws MisguidedExecutionException
 	 */
-	public static Guide makeGuide(BufferedReader reader)
+	static Guide makeGuide(BufferedReader reader)
 			throws IOException, MisguidedExecutionException {
 		int length;
 		LinkedList<Pair<Integer, Integer>> choices = new LinkedList<>();
@@ -171,7 +170,7 @@ public class GuidedTransitionChooser<STATE, TRANSITION>
 	 *                                         reading from, or closing the file
 	 * @throws MisguidedExecutionException
 	 */
-	public static Guide makeGuide(File file)
+	static Guide makeGuide(File file)
 			throws IOException, MisguidedExecutionException {
 		return makeGuide(new BufferedReader(new FileReader(file)));
 	}

@@ -23,6 +23,7 @@ import dev.civl.mc.model.IF.CIVLSyntaxException;
 import dev.civl.mc.run.IF.UserInterface;
 
 public class LanguageFeaturesTest {
+	@SuppressWarnings("exports")
 	@Rule
 	public Timeout globalTimeout = Timeout.seconds(30);
 

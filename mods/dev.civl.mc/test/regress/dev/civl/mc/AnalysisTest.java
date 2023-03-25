@@ -16,6 +16,7 @@ import org.junit.rules.Timeout;
 import dev.civl.mc.run.IF.UserInterface;
 
 public class AnalysisTest {
+	@SuppressWarnings("exports")
 	@Rule
 	public Timeout globalTimeout = Timeout.seconds(30);
 

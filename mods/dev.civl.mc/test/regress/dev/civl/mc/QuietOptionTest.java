@@ -27,6 +27,7 @@ import dev.civl.mc.run.IF.UserInterface;
  *
  */
 public class QuietOptionTest {
+	@SuppressWarnings("exports")
 	@Rule
 	public Timeout globalTimeout = Timeout.seconds(30);
 

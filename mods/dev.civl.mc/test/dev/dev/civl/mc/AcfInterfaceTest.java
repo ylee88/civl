@@ -21,6 +21,7 @@ import dev.civl.abc.err.IF.ABCException;
 import dev.civl.mc.run.IF.UserInterface;
 
 public class AcfInterfaceTest {
+	@SuppressWarnings("exports")
 	@Rule
 	public Timeout globalTimeout = Timeout.seconds(30);
 
