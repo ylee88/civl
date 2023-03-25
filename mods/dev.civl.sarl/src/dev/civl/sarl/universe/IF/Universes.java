@@ -35,7 +35,6 @@ import dev.civl.sarl.prove.IF.Prove;
 import dev.civl.sarl.prove.IF.TheoremProverFactory;
 import dev.civl.sarl.reason.IF.Reason;
 import dev.civl.sarl.reason.IF.ReasonerFactory;
-import dev.civl.sarl.reason.common.Why3ReasonerFactory;
 import dev.civl.sarl.simplify.IF.SimplifierFactory;
 import dev.civl.sarl.simplify.IF.Simplify;
 import dev.civl.sarl.type.IF.SymbolicTypeFactory;
@@ -62,14 +61,14 @@ public class Universes {
 		ReasonerFactory reasonerFactory = Reason.newReasonerFactory(universe,
 				simplifierFactory, proverFactory);
 
-		if (config.getWhy3ProvePlatform() != null) {
-			Why3ReasonerFactory why3ReasonerFactory = Reason
-					.newWhy3ReasonerFactory(config, universe, simplifierFactory,
-							Prove.newWhy3ProvePlatformFactory(universe,
-									config.getWhy3ProvePlatform(), config));
-
-			universe.setWhy3ReasonerFactory(why3ReasonerFactory);
-		}
+//		if (config.getWhy3ProvePlatform() != null) {
+//			Why3ReasonerFactory why3ReasonerFactory = Reason
+//					.newWhy3ReasonerFactory(config, universe, simplifierFactory,
+//							Prove.newWhy3ProvePlatformFactory(universe,
+//									config.getWhy3ProvePlatform(), config));
+//
+//			universe.setWhy3ReasonerFactory(why3ReasonerFactory);
+//		}
 		universe.setReasonerFactory(reasonerFactory);
 		return universe;
 	}
@@ -90,14 +89,14 @@ public class Universes {
 		ReasonerFactory reasonerFactory = Reason.newReasonerFactory(universe,
 				simplifierFactory, proverFactory);
 
-		if (config.getWhy3ProvePlatform() != null) {
-			Why3ReasonerFactory why3ReasonerFactory = Reason
-					.newWhy3ReasonerFactory(config, universe, simplifierFactory,
-							Prove.newWhy3ProvePlatformFactory(universe,
-									config.getWhy3ProvePlatform(), config));
-
-			universe.setWhy3ReasonerFactory(why3ReasonerFactory);
-		}
+//		if (config.getWhy3ProvePlatform() != null) {
+//			Why3ReasonerFactory why3ReasonerFactory = Reason
+//					.newWhy3ReasonerFactory(config, universe, simplifierFactory,
+//							Prove.newWhy3ProvePlatformFactory(universe,
+//									config.getWhy3ProvePlatform(), config));
+//
+//			universe.setWhy3ReasonerFactory(why3ReasonerFactory);
+//		}
 
 		universe.setReasonerFactory(reasonerFactory);
 		return universe;
@@ -127,14 +126,14 @@ public class Universes {
 		ReasonerFactory reasonerFactory = Reason.newReasonerFactory(universe,
 				simplifierFactory, proverFactory);
 
-		if (config.getWhy3ProvePlatform() != null) {
-			Why3ReasonerFactory why3ReasonerFactory = Reason
-					.newWhy3ReasonerFactory(config, universe, simplifierFactory,
-							Prove.newWhy3ProvePlatformFactory(universe,
-									config.getWhy3ProvePlatform(), config));
-
-			universe.setWhy3ReasonerFactory(why3ReasonerFactory);
-		}
+//		if (config.getWhy3ProvePlatform() != null) {
+//			Why3ReasonerFactory why3ReasonerFactory = Reason
+//					.newWhy3ReasonerFactory(config, universe, simplifierFactory,
+//							Prove.newWhy3ProvePlatformFactory(universe,
+//									config.getWhy3ProvePlatform(), config));
+//
+//			universe.setWhy3ReasonerFactory(why3ReasonerFactory);
+//		}
 		universe.setReasonerFactory(reasonerFactory);
 		return universe;
 	}

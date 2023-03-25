@@ -26,7 +26,6 @@ import dev.civl.sarl.IF.SARLInternalException;
 import dev.civl.sarl.IF.ValidityResult;
 import dev.civl.sarl.IF.ValidityResult.ResultType;
 import dev.civl.sarl.IF.config.ProverInfo;
-import dev.civl.sarl.IF.config.ProverInfo.ProverKind;
 import dev.civl.sarl.IF.config.SARLConfig;
 import dev.civl.sarl.IF.expr.SymbolicConstant;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
@@ -35,8 +34,6 @@ import dev.civl.sarl.prove.common.CommonModelResult;
 import dev.civl.sarl.prove.common.CommonValidityResult;
 import dev.civl.sarl.prove.common.MultiProverFactory;
 import dev.civl.sarl.prove.cvc.RobustCVCTheoremProverFactory;
-import dev.civl.sarl.prove.why3.RobustWhy3ProvePlatform;
-import dev.civl.sarl.prove.why3.RobustWhy3ProvePlatformFactory;
 import dev.civl.sarl.prove.z3.RobustZ3TheoremProverFactory;
 
 /**
@@ -81,11 +78,11 @@ public class Prove {
 	 * inconclusive, it goes to the next, and so on.
 	 * 
 	 * @param universe
-	 *            the symbolic universe used to manage and produce symbolic
-	 *            expressions
+	 *                     the symbolic universe used to manage and produce
+	 *                     symbolic expressions
 	 * @param config
-	 *            a SARL configuration object specifying some sequence of
-	 *            theorem provers which are available
+	 *                     a SARL configuration object specifying some sequence
+	 *                     of theorem provers which are available
 	 * @return a new theorem prover factory which may use all of the provers
 	 *         specified in the config, in order, until a conclusive result is
 	 *         reached or all provers have been exhausted
@@ -108,50 +105,30 @@ public class Prove {
 	 * theorem prover.
 	 * 
 	 * @param universe
-	 *            the symbolic universe used to produce and manipulate symbolic
-	 *            expressions
+	 *                     the symbolic universe used to produce and manipulate
+	 *                     symbolic expressions
 	 * @param prover
-	 *            a {@link ProverInfo} object providing information on the
-	 *            specific underlying theorem prover which will be used
+	 *                     a {@link ProverInfo} object providing information on
+	 *                     the specific underlying theorem prover which will be
+	 *                     used
 	 * @return the new theorem prover factory based on the given prover
 	 */
 	public static TheoremProverFactory newProverFactory(PreUniverse universe,
 			ProverInfo prover) {
 		switch (prover.getKind()) {
-		case CVC4:
-			return new RobustCVCTheoremProverFactory(universe, prover);
-		case Z3:
-			return new RobustZ3TheoremProverFactory(universe, prover);
-		case CVC4_API:
-		case Z3_API:
-			// return new Z3TheoremProverFactory(universe, prover);
-			throw new SARLException(
-					"Unsupported theorem prover: " + prover.getKind());
-		default:
-			throw new SARLInternalException(
-					"Unknown kind of theorem prover: " + prover.getKind());
+			case CVC4 :
+				return new RobustCVCTheoremProverFactory(universe, prover);
+			case Z3 :
+				return new RobustZ3TheoremProverFactory(universe, prover);
+			case CVC4_API :
+			case Z3_API :
+				// return new Z3TheoremProverFactory(universe, prover);
+				throw new SARLException(
+						"Unsupported theorem prover: " + prover.getKind());
+			default :
+				throw new SARLInternalException(
+						"Unknown kind of theorem prover: " + prover.getKind());
 		}
-	}
-
-	/**
-	 * Creates a Why3 prove platform factory which instantiates
-	 * {@link RobustWhy3ProvePlatform}
-	 * 
-	 * @param universe
-	 *            the symbolic universe used to produce and manipulate symbolic
-	 *            expressions
-	 * @param why3Info
-	 *            a {@link ProverInfo} object providing information for the why3
-	 *            prove platform.
-	 * @return the new why3 prove platform factory, or null if the given
-	 *         why3Info is null or does not have a why3 kind.
-	 */
-	public static RobustWhy3ProvePlatformFactory newWhy3ProvePlatformFactory(
-			PreUniverse universe, ProverInfo prover, SARLConfig config) {
-		if (prover != null && prover.getKind() == ProverKind.Why3)
-			return new RobustWhy3ProvePlatformFactory(universe, prover, config);
-		else
-			return null;
 	}
 
 	/**
@@ -159,7 +136,7 @@ public class Prove {
 	 * {@link #RESULT_MAYBE}, corresponding to the given type.
 	 * 
 	 * @param type
-	 *            a non-null {@link ResultType}
+	 *                 a non-null {@link ResultType}
 	 * @return either {@link #RESULT_YES}, {@link #RESULT_NO}, or
 	 *         {@link #RESULT_MAYBE}, depending on whether <code>type</code> is
 	 *         {@link ResultType#YES}, {@link ResultType#NO}, or
@@ -167,14 +144,14 @@ public class Prove {
 	 */
 	public static ValidityResult validityResult(ResultType type) {
 		switch (type) {
-		case YES:
-			return RESULT_YES;
-		case NO:
-			return RESULT_NO;
-		case MAYBE:
-			return RESULT_MAYBE;
-		default:
-			throw new SARLInternalException("unreachable");
+			case YES :
+				return RESULT_YES;
+			case NO :
+				return RESULT_NO;
+			case MAYBE :
+				return RESULT_MAYBE;
+			default :
+				throw new SARLInternalException("unreachable");
 		}
 	}
 
@@ -188,8 +165,8 @@ public class Prove {
 	 * queried assumption evaluates to <code>true</code>.
 	 * 
 	 * @param model
-	 *            mapping giving concrete value to each symbolic constant
-	 *            occurring in the query
+	 *                  mapping giving concrete value to each symbolic constant
+	 *                  occurring in the query
 	 * @return new instance of {@link ModelResult} wrapping the given
 	 *         <code>mode</code>.
 	 */

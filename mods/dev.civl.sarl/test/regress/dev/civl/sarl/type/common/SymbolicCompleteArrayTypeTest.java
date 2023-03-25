@@ -3,6 +3,8 @@ package dev.civl.sarl.type.common;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Comparator;
+
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -43,7 +45,7 @@ public class SymbolicCompleteArrayTypeTest {
 	ObjectFactory objectFactory;
 	SymbolicObject symbolicObject2, symbolicObject3;
 	NumericExpression number2, number3;
-	TypeComparator typeComparator;
+	Comparator<SymbolicType> typeComparator;
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {

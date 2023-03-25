@@ -79,7 +79,6 @@
     <pathelement path="${mc.bin.dir}" />
     <pathelement location="${antlr4.runtime.mod.jar.path}" />
     <pathelement location="${antlr3.runtime.mod.jar.path}" />
-  	<pathelement location="${junit.jar}" />
   </path>
 
   <!-- note that ABC builds SARL -->

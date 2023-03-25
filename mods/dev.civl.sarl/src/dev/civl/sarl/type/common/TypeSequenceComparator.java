@@ -25,12 +25,10 @@ import dev.civl.sarl.IF.type.SymbolicTypeSequence;
 
 /**
  * compares two {@link SymbolicTypeSequence}
- * 
- * @author mohammedalali
- *
  */
-public class TypeSequenceComparator implements
-		Comparator<SymbolicTypeSequence> {
+public class TypeSequenceComparator
+		implements
+			Comparator<SymbolicTypeSequence> {
 	/**
 	 * holds the way to compare two SymbolicTypeSequences
 	 */
@@ -39,7 +37,7 @@ public class TypeSequenceComparator implements
 	public TypeSequenceComparator() {
 
 	}
-	
+
 	/**
 	 * must be used to set the typeComparator before comparing by compare()
 	 * 

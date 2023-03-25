@@ -51,8 +51,9 @@ public class Expressions {
 	 * Produces a new instance of the standard expression factory.
 	 * 
 	 * @param numericFactory
-	 *            the numeric factory that the new standard expression factory
-	 *            will use for the creation of {@link NumericExpression}s.
+	 *                           the numeric factory that the new standard
+	 *                           expression factory will use for the creation of
+	 *                           {@link NumericExpression}s.
 	 * @return the new expression factory
 	 */
 	public static ExpressionFactory newExpressionFactory(
@@ -66,23 +67,21 @@ public class Expressions {
 	 * expressions.
 	 * 
 	 * @param typeFactory
-	 *            the type factory that should be used by the new boolean
-	 *            factory
+	 *                              the type factory that should be used by the
+	 *                              new boolean factory
 	 * @param objectFactory
-	 *            the object factory that should be used by the new boolean
-	 *            factory
+	 *                              the object factory that should be used by
+	 *                              the new boolean factory
 	 * @param collectionFactory
-	 *            the collection factory that should be used by the new boolean
-	 *            factory
+	 *                              the collection factory that should be used
+	 *                              by the new boolean factory
 	 * @return the new boolean expression factory
 	 */
 	public static BooleanExpressionFactory newCnfFactory(
-			// NumericExpressionFactory numericFactory,
 			SymbolicTypeFactory typeFactory, ObjectFactory objectFactory) {
 		BooleanExpressionFactory result = new CnfFactory(typeFactory,
 				objectFactory);
 
-		// result.setNumericExpressionFactory(numericFactory);
 		return result;
 	}
 
@@ -94,14 +93,18 @@ public class Expressions {
 	 * boolean expressions.
 	 * 
 	 * @param numberFactory
-	 *            the factory used to produce and manipulate concrete
-	 *            {@link dev.civl.sarl.IF.number.Number}s.
+	 *                              the factory used to produce and manipulate
+	 *                              concrete
+	 *                              {@link dev.civl.sarl.IF.number.Number}s.
 	 * @param objectFactory
-	 *            factory used to produce {@link SymbolicObject}s
+	 *                              factory used to produce
+	 *                              {@link SymbolicObject}s
 	 * @param typeFactory
-	 *            factory used to produce {@link SymbolicType}s
+	 *                              factory used to produce
+	 *                              {@link SymbolicType}s
 	 * @param collectionFactory
-	 *            factory used to produce {@link SymbolicCollection}s
+	 *                              factory used to produce
+	 *                              {@link SymbolicCollection}s
 	 * @return the new ideal expression factory
 	 */
 	public static ExpressionFactory newIdealExpressionFactory(
@@ -123,14 +126,18 @@ public class Expressions {
 	 * functions.
 	 * 
 	 * @param numberFactory
-	 *            the factory used to produce and manipulate concrete
-	 *            {@link dev.civl.sarl.IF.number.Number}s.
+	 *                              the factory used to produce and manipulate
+	 *                              concrete
+	 *                              {@link dev.civl.sarl.IF.number.Number}s.
 	 * @param objectFactory
-	 *            factory used to produce {@link SymbolicObject}s
+	 *                              factory used to produce
+	 *                              {@link SymbolicObject}s
 	 * @param typeFactory
-	 *            factory used to produce {@link SymbolicType}s
+	 *                              factory used to produce
+	 *                              {@link SymbolicType}s
 	 * @param collectionFactory
-	 *            factory used to produce {@link SymbolicCollection}s
+	 *                              factory used to produce
+	 *                              {@link SymbolicCollection}s
 	 * @return the new Herbrand expression factory
 	 */
 	public static ExpressionFactory newHerbrandExpressionFactory(
@@ -151,14 +158,18 @@ public class Expressions {
 	 * by the types of the arguments to the numerical operators.
 	 * 
 	 * @param numberFactory
-	 *            the factory used to produce and manipulate concrete
-	 *            {@link dev.civl.sarl.IF.number.Number}s.
+	 *                              the factory used to produce and manipulate
+	 *                              concrete
+	 *                              {@link dev.civl.sarl.IF.number.Number}s.
 	 * @param objectFactory
-	 *            factory used to produce {@link SymbolicObject}s
+	 *                              factory used to produce
+	 *                              {@link SymbolicObject}s
 	 * @param typeFactory
-	 *            factory used to produce {@link SymbolicType}s
+	 *                              factory used to produce
+	 *                              {@link SymbolicType}s
 	 * @param collectionFactory
-	 *            factory used to produce {@link SymbolicCollection}s
+	 *                              factory used to produce
+	 *                              {@link SymbolicCollection}s
 	 * @return the new standard (Herbrand-Ideal composite) expression factory
 	 */
 	public static ExpressionFactory newStandardExpressionFactory(
@@ -182,10 +193,11 @@ public class Expressions {
 	 * expression factory.
 	 * 
 	 * @param standardExpressionFactory
-	 *            a standard expression factory which uses Ideal and Herbrand
-	 *            arithmetic
+	 *                                      a standard expression factory which
+	 *                                      uses Ideal and Herbrand arithmetic
 	 * @param universe
-	 *            the pre-universe used to make symbolic expressions
+	 *                                      the pre-universe used to make
+	 *                                      symbolic expressions
 	 * @return the new simplifier factory
 	 */
 	public static SimplifierFactory standardSimplifierFactory(

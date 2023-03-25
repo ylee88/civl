@@ -36,8 +36,6 @@ import dev.civl.sarl.IF.type.SymbolicTypeSequence;
 import dev.civl.sarl.IF.type.SymbolicUninterpretedType;
 import dev.civl.sarl.IF.type.SymbolicUnionType;
 import dev.civl.sarl.object.IF.ObjectFactory;
-import dev.civl.sarl.type.common.TypeComparator;
-import dev.civl.sarl.type.common.TypeSequenceComparator;
 
 /**
  * A factory used to produce {@link SymbolicType}s and other related objects.
@@ -49,7 +47,7 @@ public interface SymbolicTypeFactory {
 	 * when comparing CompleteArrayType
 	 * 
 	 * @param c
-	 *            used to compare
+	 *              used to compare
 	 */
 	void setExpressionComparator(Comparator<SymbolicExpression> c);
 
@@ -109,8 +107,8 @@ public interface SymbolicTypeFactory {
 	 * Creates a SymbolicTypeSequence from a list of SymbolicTypes
 	 * 
 	 * @param elements
-	 *            a non-<code>null</code> list of elements can be of any type
-	 *            that extends SymbolicType.
+	 *                     a non-<code>null</code> list of elements can be of
+	 *                     any type that extends SymbolicType.
 	 * @return a symbolic type sequence for any SymbolicType elements.
 	 * 
 	 */
@@ -120,8 +118,8 @@ public interface SymbolicTypeFactory {
 	 * Creates a SymbolicTypeSequecne from an array of SymbolicType
 	 * 
 	 * @param elements
-	 *            array of any length of any SymbolicType, e.g. integer, real,
-	 *            primitve, array, ...
+	 *                     array of any length of any SymbolicType, e.g.
+	 *                     integer, real, primitve, array, ...
 	 * @return a SymbolicTypeSequence for the elements in the array.
 	 */
 	SymbolicTypeSequence sequence(SymbolicType[] elements);
@@ -130,7 +128,7 @@ public interface SymbolicTypeFactory {
 	 * Creates a SymbolicTypeSequence of 1 element that has a SymbolicType
 	 * 
 	 * @param type
-	 *            any SymbolicType
+	 *                 any SymbolicType
 	 * @return a SymbolicTypeSequence that contains one element only.
 	 */
 	SymbolicTypeSequence singletonSequence(SymbolicType type);
@@ -139,8 +137,8 @@ public interface SymbolicTypeFactory {
 	 * Creates a SymbolicArrayType that has elements of type elementType
 	 * 
 	 * @param elementType
-	 *            any SymbolicType that represents that type of the
-	 *            SymbolicArrayType
+	 *                        any SymbolicType that represents that type of the
+	 *                        SymbolicArrayType
 	 * @return an SymbolicArrayType of elements of type elementType.
 	 */
 	SymbolicArrayType arrayType(SymbolicType elementType);
@@ -149,9 +147,9 @@ public interface SymbolicTypeFactory {
 	 * Creates a SymbolicCompleteArrayType
 	 * 
 	 * @param elementType
-	 *            the type of elements in the array
+	 *                        the type of elements in the array
 	 * @param extent
-	 *            the length of the array as a NumericExpression
+	 *                        the length of the array as a NumericExpression
 	 * @return a SymbolicCompleteArrayType of length extent and type elementType
 	 */
 	SymbolicCompleteArrayType arrayType(SymbolicType elementType,
@@ -161,9 +159,9 @@ public interface SymbolicTypeFactory {
 	 * Creates a SymbolicTupleType
 	 * 
 	 * @param name
-	 *            the name of the SymbolicTupleType
+	 *                       the name of the SymbolicTupleType
 	 * @param fieldTypes
-	 *            a finite, ordered typeSequence
+	 *                       a finite, ordered typeSequence
 	 * @return a SymbolicTupleType that contains a name and fieldTypes as
 	 *         typeSequence
 	 */
@@ -174,9 +172,9 @@ public interface SymbolicTypeFactory {
 	 * Creates a SymbolicUnionType
 	 * 
 	 * @param name
-	 *            the name of the unionType
+	 *                        the name of the unionType
 	 * @param memberTypes
-	 *            a typeSequence of the elements in the UnionType
+	 *                        a typeSequence of the elements in the UnionType
 	 * @return a SymbolicUnionType that contains a name and a memberTypes.
 	 */
 	SymbolicUnionType unionType(StringObject name,
@@ -187,9 +185,10 @@ public interface SymbolicTypeFactory {
 	 * function
 	 * 
 	 * @param inputTypes
-	 *            a SymbolicTypeSequence of SymbolicTypes.
+	 *                       a SymbolicTypeSequence of SymbolicTypes.
 	 * @param outputType
-	 *            a SymbolicType that represents the output of the function
+	 *                       a SymbolicType that represents the output of the
+	 *                       function
 	 * @return a SymbolicFunctionType of sequence inputTypes and outputType.
 	 */
 	SymbolicFunctionType functionType(SymbolicTypeSequence inputTypes,
@@ -204,7 +203,7 @@ public interface SymbolicTypeFactory {
 	 * {@link SymbolicUninterpretedType}.
 	 * 
 	 * @param name
-	 *            the name of the returning uninterpreted type
+	 *                 the name of the returning uninterpreted type
 	 * @return an instance of {@link SymbolicUninterpretedType} whose name is
 	 *         the given String.
 	 */
@@ -215,13 +214,7 @@ public interface SymbolicTypeFactory {
 	 * 
 	 * @return a typeComparator to compare two symbolic types
 	 */
-	TypeComparator typeComparator();
-
-	/**
-	 * @return typeSequenceComparator that is used when comparing two symbolic
-	 *         Tuple, Union, or Function types
-	 */
-	TypeSequenceComparator typeSequenceComparator();
+	Comparator<SymbolicType> typeComparator();
 
 	/**
 	 * The pureType of t1 is t1 after removing the length for example,
