@@ -19,17 +19,15 @@ public class MFASTBuilder implements ASTBuilder {
 
 	private String filePath;
 
-
-	public MFASTBuilder(Configuration configuration,
-			ASTFactory astFactory) {
+	public MFASTBuilder(Configuration configuration, ASTFactory astFactory) {
 		this.config = configuration;
 		this.astFactory = astFactory;
 		pragmaFactory = new PragmaFactory(this);
 		this.filePath = "";
 	}
-	
-	public MFASTBuilder(Configuration configuration,
-			ASTFactory astFactory, String filePath) {
+
+	public MFASTBuilder(Configuration configuration, ASTFactory astFactory,
+			String filePath) {
 		this.config = configuration;
 		this.astFactory = astFactory;
 		pragmaFactory = new PragmaFactory(this);
@@ -44,8 +42,8 @@ public class MFASTBuilder implements ASTBuilder {
 	@Override
 	public AST getTranslationUnit(ParseTree tree) throws SyntaxException {
 		MFTree fTree = (MFTree) tree;
-		MFASTBuilderWorker worker = new MFASTBuilderWorker(config,
-				fTree, astFactory, filePath, pragmaFactory);
+		MFASTBuilderWorker worker = new MFASTBuilderWorker(config, fTree,
+				astFactory, filePath, pragmaFactory);
 
 		return worker.generateAST();
 	}
@@ -53,10 +51,5 @@ public class MFASTBuilder implements ASTBuilder {
 	@Override
 	public ASTFactory getASTFactory() {
 		return this.astFactory;
-	}
-
-	@Override
-	public PragmaFactory getPragmaFactory() {
-		return null; // No progma for Fortran
 	}
 }

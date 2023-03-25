@@ -79,7 +79,8 @@ public class CommonFlowInsensePointsToAnalyzer
 
 	private SymbolicUniverse universe;
 
-	CommonFlowInsensePointsToAnalyzer(AST ast, InsensitiveFlowFactory factory,
+	public CommonFlowInsensePointsToAnalyzer(AST ast,
+			InsensitiveFlowFactory factory,
 			InvocationGraphNodeFactory igFactory) {
 		this.program = ast;
 		this.factory = factory;
@@ -256,14 +257,16 @@ public class CommonFlowInsensePointsToAnalyzer
 	 * recursively do inter-procedural analysis for each invocation graph node
 	 * 
 	 * @param node
-	 *            an invocation graph node
+	 *                            an invocation graph node
 	 * @param nodeInputsTable
-	 *            a table maps RECURSIVE nodes to the inputs (points-to set for
-	 *            every possible input) shared by the set of their associated
-	 *            APPROXIMATE nodes
+	 *                            a table maps RECURSIVE nodes to the inputs
+	 *                            (points-to set for every possible input)
+	 *                            shared by the set of their associated
+	 *                            APPROXIMATE nodes
 	 * @param funcDefTable
-	 *            a table maps {@link Function}s to its {@link PointsToGraph}
-	 *            obtained at the intra-procedural analysis phase
+	 *                            a table maps {@link Function}s to its
+	 *                            {@link PointsToGraph} obtained at the
+	 *                            intra-procedural analysis phase
 	 */
 	private void analyzeInvocationGraphNode(InvocationGraphNode node,
 			Map<InvocationGraphNode, FunctionCallInputs> nodeInputsTable,
@@ -325,13 +328,14 @@ public class CommonFlowInsensePointsToAnalyzer
 	 * </p>
 	 * 
 	 * @param node
-	 *            the processing APPROXIMATE invocation graph node
+	 *                          the processing APPROXIMATE invocation graph node
 	 * @param callerPtGraph
-	 *            the points-to graph of the parent node of the processing node
+	 *                          the points-to graph of the parent node of the
+	 *                          processing node
 	 * @param inputsTable
-	 *            a table maps RECURSIVE nodes to their
-	 *            {@link FunctionCallInputs} which is shared by the set of their
-	 *            associated APPROXIMATE nodes
+	 *                          a table maps RECURSIVE nodes to their
+	 *                          {@link FunctionCallInputs} which is shared by
+	 *                          the set of their associated APPROXIMATE nodes
 	 * @return true IFF analyzing this nodes 1) affects the points-to
 	 *         information of its caller or 2) affects its
 	 *         {@link FunctionCallInputs} which is shared by its APPROXIMATE
@@ -373,9 +377,10 @@ public class CommonFlowInsensePointsToAnalyzer
 	 * </p>
 	 * 
 	 * @param node
-	 *            the processing ORDINARY invocation graph node
+	 *                          the processing ORDINARY invocation graph node
 	 * @param callerPtGraph
-	 *            the points-to graph of the parent node of the processing node
+	 *                          the points-to graph of the parent node of the
+	 *                          processing node
 	 * @return true IFF analyzing this nodes affects the points-to information
 	 *         of its caller, i.e. a fix point is definitely not reached
 	 */
@@ -396,13 +401,14 @@ public class CommonFlowInsensePointsToAnalyzer
 	 * </p>
 	 * 
 	 * @param node
-	 *            the process RECURSIVE invocation graph node
+	 *                          the process RECURSIVE invocation graph node
 	 * @param callerPtGraph
-	 *            the points-to graph of the parent of the processing node
+	 *                          the points-to graph of the parent of the
+	 *                          processing node
 	 * @param inputsTable
-	 *            a table maps RECURSIVE nodes to their
-	 *            {@link FunctionCallInputs} which is shared by the set of their
-	 *            associated APPROXIMATE nodes
+	 *                          a table maps RECURSIVE nodes to their
+	 *                          {@link FunctionCallInputs} which is shared by
+	 *                          the set of their associated APPROXIMATE nodes
 	 * @return true IFF 1) true IFF analyzing this nodes affects the points-to
 	 *         information of its caller or 2) there are delayed APPROXIMATE
 	 *         nodes. In general, returning true means a fix point is definitely
@@ -460,10 +466,10 @@ public class CommonFlowInsensePointsToAnalyzer
 	 * 
 	 * 
 	 * @param node
-	 *            a invocation node
+	 *                      a invocation node
 	 * @param nodeGraph
-	 *            the points-to graph of the function associated with the given
-	 *            node
+	 *                      the points-to graph of the function associated with
+	 *                      the given node
 	 */
 	private void updateNodeGraphWRTCaller(InvocationGraphNode node,
 			PointsToGraph nodeGraph, PointsToGraph callerGraph) {
@@ -529,13 +535,13 @@ public class CommonFlowInsensePointsToAnalyzer
 	 * is changed.
 	 * 
 	 * @param node
-	 *            a invocation node
+	 *                        a invocation node
 	 * @param nodeGraph
-	 *            the points-to graph of the function associated with the given
-	 *            node
+	 *                        the points-to graph of the function associated
+	 *                        with the given node
 	 * @param callerGraph
-	 *            the points-to graph of the function that calls the function
-	 *            associated with the given node
+	 *                        the points-to graph of the function that calls the
+	 *                        function associated with the given node
 	 * @return true iff at least one of the computed constraints is new to the
 	 *         caller's points-to graph
 	 */
@@ -588,12 +594,13 @@ public class CommonFlowInsensePointsToAnalyzer
 	 * are contained by the {@link FunctionCallInputs}.
 	 * 
 	 * @param node
-	 *            a invocation node
+	 *                        a invocation node
 	 * @param callerGraph
-	 *            the points-to graph of the caller function which contains the
-	 *            function call represented by the given node
+	 *                        the points-to graph of the caller function which
+	 *                        contains the function call represented by the
+	 *                        given node
 	 * @param inputs
-	 *            the saved inputs of the given node
+	 *                        the saved inputs of the given node
 	 * @return true iff the inputs (computed by the caller graph) of the given
 	 *         node are covered by the saved inputs.
 	 */
@@ -617,12 +624,13 @@ public class CommonFlowInsensePointsToAnalyzer
 	 * of a node to its saved input
 	 * 
 	 * @param node
-	 *            a invocation node
+	 *                        a invocation node
 	 * @param callerGraph
-	 *            the points-to graph of the caller function which contains the
-	 *            function call represented by the given node
+	 *                        the points-to graph of the caller function which
+	 *                        contains the function call represented by the
+	 *                        given node
 	 * @param inputs
-	 *            the saved inputs of the given node
+	 *                        the saved inputs of the given node
 	 */
 	private void mergeInputs(InvocationGraphNode node,
 			PointsToGraph callerGraph, FunctionCallInputs inputs) {

@@ -10,6 +10,7 @@ import org.antlr.runtime.tree.CommonTree;
 import dev.civl.abc.config.IF.Configurations.Language;
 import dev.civl.abc.err.IF.ABCRuntimeException;
 import dev.civl.abc.front.IF.ParseException;
+import dev.civl.abc.front.IF.ParseTree;
 import dev.civl.abc.front.IF.Parser;
 import dev.civl.abc.front.IF.PreprocessorRuntimeException;
 import dev.civl.abc.front.IF.RuntimeParseException;
@@ -67,7 +68,7 @@ public class CParser implements Parser {
 	 * @throws ParseException
 	 *             if something goes wrong parsing the input
 	 */
-	public CParseTree parse(RuleKind rule, CivlcTokenSource tokenSource,
+	public ParseTree parse(RuleKind rule, CivlcTokenSource tokenSource,
 			Stack<ScopeSymbols> symbols) throws ParseException {
 		TokenStream stream = new CommonTokenStream(tokenSource);
 		CivlCParser parser = new CivlCParser(stream);
@@ -105,7 +106,7 @@ public class CParser implements Parser {
 	}
 
 	@Override
-	public CParseTree parse(CivlcTokenSource tokenSource)
+	public ParseTree parse(CivlcTokenSource tokenSource)
 			throws ParseException {
 		return parse(RuleKind.TRANSLATION_UNIT, tokenSource,
 				new Stack<ScopeSymbols>());

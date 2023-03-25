@@ -45,9 +45,4 @@ public class CASTBuilder implements ASTBuilder {
 	public ASTFactory getASTFactory() {
 		return astFactory;
 	}
-
-	@Override
-	public PragmaFactory getPragmaFactory() {
-		return pragmaFactory;
-	}
 }

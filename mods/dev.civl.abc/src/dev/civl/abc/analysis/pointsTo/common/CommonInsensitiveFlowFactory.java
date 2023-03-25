@@ -142,7 +142,7 @@ public class CommonInsensitiveFlowFactory implements InsensitiveFlowFactory {
 	}
 
 	/* ****************** Constructor ****************** */
-	CommonInsensitiveFlowFactory(InvocationGraphNodeFactory igFactory,
+	public CommonInsensitiveFlowFactory(InvocationGraphNodeFactory igFactory,
 			TypeFactory typeFactory) {
 		this.FULL = new CommonAssignExpr(assignExprCounter++, null);
 		this.allAssignExprs = new HashMap<>();

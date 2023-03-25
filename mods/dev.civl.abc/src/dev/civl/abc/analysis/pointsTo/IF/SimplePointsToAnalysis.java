@@ -1,8 +1,8 @@
-package dev.civl.abc.analysis.pointsTo.common;
+package dev.civl.abc.analysis.pointsTo.IF;
 
-import dev.civl.abc.analysis.pointsTo.IF.FlowInsensePointsToAnalyzer;
-import dev.civl.abc.analysis.pointsTo.IF.InvocationGraphNodeFactory;
-import dev.civl.abc.analysis.pointsTo.IF.SimplePointsToAnalysisIF;
+import dev.civl.abc.analysis.pointsTo.common.CommonFlowInsensePointsToAnalyzer;
+import dev.civl.abc.analysis.pointsTo.common.CommonInsensitiveFlowFactory;
+import dev.civl.abc.analysis.pointsTo.common.CommonInvocationGraphFactory;
 import dev.civl.abc.ast.IF.AST;
 import dev.civl.abc.ast.type.IF.TypeFactory;
 

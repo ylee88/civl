@@ -1,6 +1,6 @@
 module dev.civl.abc {
     requires dev.civl.sarl;
-    requires antlr3runtime;
+    requires transitive antlr3runtime;
     exports dev.civl.abc.main;
     exports dev.civl.abc.ast.IF;
     exports dev.civl.abc.ast.node.IF;
@@ -31,6 +31,5 @@ module dev.civl.abc {
     exports dev.civl.abc.front.c.parse;
     exports dev.civl.abc.ast.type.common;
     exports dev.civl.abc.front.c.preproc;
-    exports dev.civl.abc.analysis.pointsTo.common;
     exports dev.civl.abc.ast.node.common.expression;
 }

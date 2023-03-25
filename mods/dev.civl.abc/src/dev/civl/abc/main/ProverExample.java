@@ -24,7 +24,7 @@ public class ProverExample {
 	 * 
 	 * @param universe
 	 */
-	public ProverExample(SymbolicUniverse universe) {
+	ProverExample(SymbolicUniverse universe) {
 		// the context is the underlying assumption that will be used
 		// when reasoning about validity. It is usually the "path condition"....
 		BooleanExpression context = universe.trueExpression();
@@ -51,18 +51,18 @@ public class ProverExample {
 		// if you just care about true/false (maybe maps to false)
 
 		switch (resultType) {
-		case MAYBE:
-			System.out.println("Not sure");
-			break;
-		case NO:
-			System.out.println("Not equivalent");
-			break;
-		case YES:
-			System.out.println("Equivalent");
-			break;
-		default:
-			// unreachable
-			assert false;
+			case MAYBE :
+				System.out.println("Not sure");
+				break;
+			case NO :
+				System.out.println("Not equivalent");
+				break;
+			case YES :
+				System.out.println("Equivalent");
+				break;
+			default :
+				// unreachable
+				assert false;
 		}
 
 	}
