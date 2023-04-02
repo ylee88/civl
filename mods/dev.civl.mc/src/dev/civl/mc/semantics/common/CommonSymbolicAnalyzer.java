@@ -989,7 +989,7 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 	 * @return The string representation of the given symbolic expression
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	@SuppressWarnings("unchecked")
+	//@SuppressWarnings("unchecked")
 	private StringBuffer symbolicExpressionToString(CIVLSource source,
 			State state, CIVLType civlType,
 			SymbolicExpression symbolicExpression, boolean atomize,

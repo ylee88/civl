@@ -246,6 +246,36 @@ public class LanguageFeaturesTest {
 	}
 
 	@Test
+	public void compoundInit1() {
+		assertTrue(ui.run(VERIFY, QUIET, filename("compoundInit1.c")));
+	}
+
+	@Test
+	public void compoundInit2() {
+		assertTrue(ui.run(VERIFY, QUIET, filename("compoundInit2.c")));
+	}
+	
+	@Test
+	public void compoundInit3() {
+		assertFalse(ui.run(VERIFY, QUIET, filename("compoundInit3.c")));
+	}
+
+	@Test
+	public void compoundInit4() {
+		assertTrue(ui.run(VERIFY, QUIET, filename("compoundInit4.c")));
+	}
+	
+	@Test
+	public void compoundInit5() {
+		assertFalse(ui.run(VERIFY, QUIET, filename("compoundInit5.c")));
+	}
+	
+	@Test
+	public void compoundInit6() {
+		assertFalse(ui.run(VERIFY, QUIET, filename("compoundInit6.c")));
+	}
+
+	@Test
 	public void conditionalExpression() throws ABCException {
 		assertTrue(
 				ui.run(VERIFY, QUIET, filename("conditionalExpression.cvl")));
