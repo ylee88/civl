@@ -41,13 +41,13 @@ import dev.civl.abc.transform.IF.Transformer;
  * <p>
  * For declarations of variables with external-linkage, their "extern"
  * specifiers can be removed since all translation units have already been
- * linked togather. Variable declarations in file scopes are still considered
+ * linked together. Variable declarations in file scopes are still considered
  * having external linkages. For declarations of variables with external-linkage
  * in block scopes, some actions are needed.
  * </p>
  * <p>
  * For declarations of variables with external-linkage in block scopes, one
- * cannot simply remove their "extern" specifiers because that will them no
+ * cannot simply remove their "extern" specifiers because that will make them no
  * longer have extern linkages. In such case, one must move the declaration to
  * the file scope. Followings are two examples of such cases: <br>
  * <b> Example 1.</b> <code>
