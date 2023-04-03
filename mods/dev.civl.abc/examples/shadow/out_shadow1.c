@@ -1,6 +1,7 @@
 #include <stdio.h>
-int x;
+int x=1;
 int main() {
-  int _x_1=1;
-  printf("%d\n", _x_1);
+  int y=x;
+  int _x_1=2;
+  printf("%d %d\n", _x_1, y);
 }

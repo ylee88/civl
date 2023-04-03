@@ -12,6 +12,7 @@ import dev.civl.abc.transform.common.CompareCombiner;
 import dev.civl.abc.transform.common.ExternLinkageVariableRenamer;
 import dev.civl.abc.transform.common.GenericSelectionRemover;
 import dev.civl.abc.transform.common.Pruner;
+import dev.civl.abc.transform.common.ShadowRemover;
 import dev.civl.abc.transform.common.SideEffectRemover;
 
 /**
@@ -54,7 +55,7 @@ public class Transform {
 					return new GenericSelectionRemover(astFactory);
 				}
 			},
-			
+
 			new TransformRecord(SideEffectRemover.CODE,
 					SideEffectRemover.LONG_NAME,
 					SideEffectRemover.SHORT_DESCRIPTION) {
@@ -78,6 +79,14 @@ public class Transform {
 				@Override
 				public Transformer create(ASTFactory astFactory) {
 					return new ExternLinkageVariableRenamer(astFactory);
+				}
+			},
+
+			new TransformRecord(ShadowRemover.CODE, ShadowRemover.LONG_NAME,
+					ShadowRemover.SHORT_DESCRIPTION) {
+				@Override
+				public Transformer create(ASTFactory astFactory) {
+					return new ShadowRemover(astFactory);
 				}
 			}
 
@@ -110,10 +119,10 @@ public class Transform {
 	 * any time but usually it is done in some initialization phase.
 	 * 
 	 * @param record
-	 *            a transform record
+	 *                   a transform record
 	 * @throws ABCRuntimeException
-	 *             if there is already a transform with the given code in this
-	 *             current collection
+	 *                                 if there is already a transform with the
+	 *                                 given code in this current collection
 	 */
 	public static void addTransform(TransformRecord record) {
 		if (codeToRecord.put(record.code, record) != null)
@@ -134,10 +143,11 @@ public class Transform {
 	 * Returns the short description associated to the given transformer code.
 	 * 
 	 * @param code
-	 *            a transformer code currently in the collection
+	 *                 a transformer code currently in the collection
 	 * @return the short description of the transformation
 	 * @throws ABCRuntimeException
-	 *             if there is no such code in the current collection
+	 *                                 if there is no such code in the current
+	 *                                 collection
 	 */
 	public static String getShortDescription(String code) {
 		TransformRecord record = codeToRecord.get(code);
@@ -152,10 +162,11 @@ public class Transform {
 	 * Returns the long name associated to the given transformer code.
 	 * 
 	 * @param code
-	 *            a transformer code currently in the collection
+	 *                 a transformer code currently in the collection
 	 * @return the long name of that transformer, e.g., "MPITransformer"
 	 * @throws ABCRuntimeException
-	 *             if there is no such code in the current collection
+	 *                                 if there is no such code in the current
+	 *                                 collection
 	 */
 	public static String getLongName(String code) {
 		TransformRecord record = codeToRecord.get(code);
@@ -171,7 +182,7 @@ public class Transform {
 	 * <code>null</code> if no such record exists.
 	 * 
 	 * @param code
-	 *            a transformer code
+	 *                 a transformer code
 	 * @return the {@link TransformRecord} with that code or <code>null</code>
 	 */
 	public static TransformRecord getRecord(String code) {
@@ -192,13 +203,16 @@ public class Transform {
 	 * 
 	 * 
 	 * @param code
-	 *            a short string indicating the kind of transformer to produce
+	 *                       a short string indicating the kind of transformer
+	 *                       to produce
 	 * @param astFactory
-	 *            the AST factory that will is used to produce all the ASTs upon
-	 *            which the new transformer will operate
+	 *                       the AST factory that will is used to produce all
+	 *                       the ASTs upon which the new transformer will
+	 *                       operate
 	 * @return a new transformer instance of the specified kind
 	 * @throws ABCRuntimeException
-	 *             if there is no such code in the current collection
+	 *                                 if there is no such code in the current
+	 *                                 collection
 	 */
 	public static Transformer newTransformer(String code,
 			ASTFactory astFactory) {

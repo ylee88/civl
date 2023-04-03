@@ -116,6 +116,7 @@ public class ShadowRemover extends BaseTransformer {
 		if (nameMap.isEmpty())
 			return ast;
 		pass2(ast);
+		ast.release();
 
 		AST result = astFactory.newAST(rootNode, ast.getSourceFiles(),
 				ast.isWholeProgram());

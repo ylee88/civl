@@ -19,7 +19,7 @@ import dev.civl.abc.program.IF.Program;
 
 public class ShadowRemoverTest {
 
-	public static boolean debug = false;
+	public static boolean debug = true;
 
 	private final static List<String> codes = Arrays.asList("prune", "shadow",
 			"prune");
