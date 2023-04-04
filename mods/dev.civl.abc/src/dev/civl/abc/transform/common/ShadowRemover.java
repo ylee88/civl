@@ -71,6 +71,7 @@ public class ShadowRemover extends BaseTransformer {
 
 					nameMap.put(entity, newName);
 					countMap.put(name, count);
+					break;
 				}
 			}
 		}

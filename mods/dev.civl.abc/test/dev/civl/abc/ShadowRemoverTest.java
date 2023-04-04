@@ -24,8 +24,7 @@ public class ShadowRemoverTest {
 	private final static List<String> codes = Arrays.asList("prune", "shadow",
 			"prune");
 
-	private final static File root = new File(new File("examples"),
-			"shadow");
+	private final static File root = new File(new File("examples"), "shadow");
 
 	private final static Configuration config = Configurations
 			.newMinimalConfiguration();
@@ -65,6 +64,11 @@ public class ShadowRemoverTest {
 	@Test
 	public void shadow1() throws ABCException {
 		check("shadow1.c");
+	}
+
+	@Test
+	public void shadow2() throws ABCException {
+		check("shadow2.c");
 	}
 
 }
