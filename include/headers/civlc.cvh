@@ -125,6 +125,9 @@ $system void $free(void *p);
   @*/
 $system void $havoc(void *ptr);
 
+$abstract void* $make_unreachable(void* ptr);
+$system void* $extract_unreachable(void* ptr);
+
 /* Assigns default value to the object referred by the given pointer
  * "ptr" as if the object has static storage.  The definition of
  * default values of objects having static storage conforms C11

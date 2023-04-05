@@ -1997,7 +1997,7 @@ public class CommonModelFactory implements ModelFactory {
 			CIVLFunction function;
 			Scope paraScope;
 
-			parameters.add(this.variable(systemSource, typeFactory.domainType(),
+			parameters.add(this.variable(systemSource, typeFactory.domainType(typeFactory.rangeType()),
 					this.identifier(systemSource, "domain"), 1));
 			paraScope = this.scope(systemSource, systemScope, parameters, null);
 			function = this.systemFunction(systemSource,

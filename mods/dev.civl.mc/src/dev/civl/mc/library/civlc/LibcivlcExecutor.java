@@ -1,5 +1,7 @@
 package dev.civl.mc.library.civlc;
 
+import java.util.Arrays;
+
 import dev.civl.mc.config.IF.CIVLConfiguration;
 import dev.civl.mc.dynamic.IF.SymbolicUtility;
 import dev.civl.mc.library.civlc.Heuristics.Query;
@@ -182,6 +184,10 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 			case "$havoc" :
 				callEval = executeHavoc(state, pid, process, arguments,
 						argumentValues, source);
+				break;
+			case "$extract_unreachable" :
+				callEval = executeExtractUnreachable(state, pid, process,
+						arguments, argumentValues, source);
 				break;
 			case "$is_concrete_int" :
 				callEval = this.executeIsConcreteInt(state, pid, process,
@@ -372,7 +378,8 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 					this.symbolicAnalyzer.stateInformation(state),
 					checkPointer.left, checkPointer.right,
 					CIVLProperty.MEMORY_MANAGE,
-					"can't apply $havoc to a pointer that can't be dereferenced.\npointer: "
+					"can't apply $havoc to a pointer that can't be dereferenced.\n"
+							+ "pointer: "
 							+ this.symbolicAnalyzer.symbolicExpressionToString(
 									source, state, null, pointer));
 
@@ -386,6 +393,35 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 		state = this.primaryExecutor.assign(source, havocEval.state, pid,
 				pointer, havocEval.value);
 		return new Evaluation(state, null);
+	}
+
+	private Evaluation executeExtractUnreachable(State state, int pid,
+			String process, Expression[] arguments,
+			SymbolicExpression[] argumentValues, CIVLSource source)
+			throws UnsatisfiablePathConditionException {
+		SymbolicExpression pointer = argumentValues[0];
+		
+		if (pointer.operator() != SymbolicOperator.APPLY || !pointer.argument(0)
+				.equals(universe.symbolicConstant(
+						universe.stringObject("AF_$make_unreachable"),
+						universe.functionType(
+								Arrays.asList(
+										typeFactory.pointerSymbolicType()),
+								typeFactory.pointerSymbolicType())))) {
+			state = this.errorLogger.logError(source, state, pid,
+					this.symbolicAnalyzer.stateInformation(state), falseValue,
+					ResultType.NO, CIVLProperty.LIBRARY,
+					"Cannot apply $extract_unreachable to a pointer whose value "
+							+ "isn't an application of the $abstract function "
+							+ "$make_unreachable.\npointer: "
+							+ this.symbolicAnalyzer.symbolicExpressionToString(
+									source, state, null, pointer));
+		}
+		@SuppressWarnings("unchecked")
+		SymbolicExpression extractedPointer = ((Iterable<? extends SymbolicExpression>) pointer
+				.argument(1)).iterator().next();
+		
+		return new Evaluation(state, extractedPointer);
 	}
 
 	private Evaluation executePow(State state, int pid, String process,

@@ -29,13 +29,6 @@ public class CommonDomainType extends CommonType implements CIVLDomainType {
 		this.rangeType = rangeType;
 	}
 
-	/**
-	 * For incomplete domain or literal domain
-	 */
-	public CommonDomainType() {
-		super();
-	}
-
 	@Override
 	public TypeKind typeKind() {
 		return TypeKind.DOMAIN;
