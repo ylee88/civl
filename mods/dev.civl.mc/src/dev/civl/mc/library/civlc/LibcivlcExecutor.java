@@ -400,14 +400,10 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 			SymbolicExpression[] argumentValues, CIVLSource source)
 			throws UnsatisfiablePathConditionException {
 		SymbolicExpression pointer = argumentValues[0];
-		
-		if (pointer.operator() != SymbolicOperator.APPLY || !pointer.argument(0)
-				.equals(universe.symbolicConstant(
-						universe.stringObject("AF_$make_unreachable"),
-						universe.functionType(
-								Arrays.asList(
-										typeFactory.pointerSymbolicType()),
-								typeFactory.pointerSymbolicType())))) {
+
+		if (pointer.operator() != SymbolicOperator.APPLY
+				|| pointer.argument(0) != ((LibcivlcEvaluator) evaluator)
+						.getMakeUnreachableConstant()) {
 			state = this.errorLogger.logError(source, state, pid,
 					this.symbolicAnalyzer.stateInformation(state), falseValue,
 					ResultType.NO, CIVLProperty.LIBRARY,
@@ -420,7 +416,7 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 		@SuppressWarnings("unchecked")
 		SymbolicExpression extractedPointer = ((Iterable<? extends SymbolicExpression>) pointer
 				.argument(1)).iterator().next();
-		
+
 		return new Evaluation(state, extractedPointer);
 	}
 
