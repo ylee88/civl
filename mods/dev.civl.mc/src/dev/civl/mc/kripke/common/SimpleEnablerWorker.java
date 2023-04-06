@@ -265,9 +265,10 @@ public class SimpleEnablerWorker {
 	 * Creates a new worker. Initializes all fields.
 	 * 
 	 * @param enabler
-	 *            the {@link SimpleEnabler} that is creating this worker
+	 *                    the {@link SimpleEnabler} that is creating this worker
 	 * @param state
-	 *            the {@link State} that this worker has been created to analyze
+	 *                    the {@link State} that this worker has been created to
+	 *                    analyze
 	 */
 	SimpleEnablerWorker(SimpleEnabler enabler, State state) {
 		this.enabler = enabler;
@@ -296,12 +297,12 @@ public class SimpleEnablerWorker {
 	 * {@code result}.
 	 * 
 	 * @param result
-	 *            the {@code SeqSet} to which the pair will be added
+	 *                     the {@code SeqSet} to which the pair will be added
 	 * @param dyid
-	 *            the ID number of a dynamic scope in {@link #theState}
+	 *                     the ID number of a dynamic scope in {@link #theState}
 	 * @param variable
-	 *            a {@code Variable} that resides in the static scope
-	 *            corresponding to the dynamic scope {@code dyid}
+	 *                     a {@code Variable} that resides in the static scope
+	 *                     corresponding to the dynamic scope {@code dyid}
 	 */
 	private void addVariable(SeqSet result, int dyid, Variable variable) {
 		if (variable == null || variable.isInput()
@@ -354,13 +355,13 @@ public class SimpleEnablerWorker {
 	 * </p>
 	 * 
 	 * @param result
-	 *            the set to which the variable should be added
+	 *                     the set to which the variable should be added
 	 * @param state
-	 *            the state in which this variable instance exists
+	 *                     the state in which this variable instance exists
 	 * @param pid
-	 *            the ID of the process which references this variable
+	 *                     the ID of the process which references this variable
 	 * @param variable
-	 *            the (static) variable to search for
+	 *                     the (static) variable to search for
 	 */
 	private void addVariable(SeqSet result, State state, int pid,
 			Variable variable) {
@@ -392,18 +393,19 @@ public class SimpleEnablerWorker {
 	 * </p>
 	 * 
 	 * @param result
-	 *            the set to which the memory locations should be added
+	 *                    the set to which the memory locations should be added
 	 * @param state
-	 *            the state in which the pointer is evaluated
+	 *                    the state in which the pointer is evaluated
 	 * @param source
-	 *            source information used for error-reporting; should be the
-	 *            piece of source code that was evaluated to yield the pointer
-	 *            value
+	 *                    source information used for error-reporting; should be
+	 *                    the piece of source code that was evaluated to yield
+	 *                    the pointer value
 	 * @param pointer
-	 *            a non-null pointer value
+	 *                    a non-null pointer value
 	 * @throws NoReductionException
-	 *             if the pointer is not concrete, and therefore no reasonable
-	 *             over-estimate of the pointed-to objects can be made
+	 *                                  if the pointer is not concrete, and
+	 *                                  therefore no reasonable over-estimate of
+	 *                                  the pointed-to objects can be made
 	 */
 	private void addPointer(SeqSet result, State state, CIVLSource source,
 			SymbolicExpression pointer) throws NoReductionException {
@@ -478,7 +480,7 @@ public class SimpleEnablerWorker {
 	 * </p>
 	 * 
 	 * @param type
-	 *            any symbolic type
+	 *                 any symbolic type
 	 * @return {@code true} iff the pointer type occurs as a sub-type of
 	 *         {@code type} (including {@code type} itself)
 	 */
@@ -527,10 +529,10 @@ public class SimpleEnablerWorker {
 	 * pointer type or the {@code $mem} type.
 	 * 
 	 * @param state
-	 *            a {@link State} of the model
+	 *                  a {@link State} of the model
 	 * @param obj
-	 *            an integer sequence identifying an object in state
-	 *            {@code state}
+	 *                  an integer sequence identifying an object in state
+	 *                  {@code state}
 	 * @return {@code true} iff the variable or heap-allocated object identified
 	 *         by {@code obj} has a static type which contains the CIVL pointer
 	 *         or {@code $mem} type as a sub-type
@@ -557,9 +559,10 @@ public class SimpleEnablerWorker {
 	 * integer type, occurring as length expressions in array types.
 	 * 
 	 * @param result
-	 *            the collection to which the symbolic expressions will be added
+	 *                   the collection to which the symbolic expressions will
+	 *                   be added
 	 * @param type
-	 *            the type to be searched for symbolic expressions
+	 *                   the type to be searched for symbolic expressions
 	 */
 	private void getExpressionsInType(Collection<SymbolicExpression> result,
 			SymbolicType type) {
@@ -611,16 +614,17 @@ public class SimpleEnablerWorker {
 	 * some component of the given value.
 	 * 
 	 * @param result
-	 *            set to which the objects will be added
+	 *                   set to which the objects will be added
 	 * @param state
-	 *            the state in which the value exists
+	 *                   the state in which the value exists
 	 * @param source
-	 *            source code info for error reporting; should correspond to the
-	 *            expression that evaluated to {@code value}
+	 *                   source code info for error reporting; should correspond
+	 *                   to the expression that evaluated to {@code value}
 	 * @param value
-	 *            the value to search for pointers
+	 *                   the value to search for pointers
 	 * @throws NoReductionException
-	 *             if a pointer found in {@code value} is not concrete
+	 *                                  if a pointer found in {@code value} is
+	 *                                  not concrete
 	 */
 	private void getPointedObjects(SeqSet result, State state,
 			CIVLSource source, SymbolicExpression value)
@@ -647,6 +651,10 @@ public class SimpleEnablerWorker {
 				 */
 				// } else if (containsPointer(type))
 				// throw new NoReductionException();
+			} else if (expr.operator() == SymbolicOperator.APPLY
+					&& expr.argument(0) == enabler.hideFunction) {
+				// do nothing. This is a special abstract function used
+				// to hide pointers from this reachability analysis
 			} else {
 				for (SymbolicObject obj : expr.getArguments()) {
 					switch (obj.symbolicObjectKind()) {
@@ -687,9 +695,10 @@ public class SimpleEnablerWorker {
 	 * single malloc call) within that row.
 	 * 
 	 * @param state
-	 *            the state in which the value of the object will be found
+	 *                     the state in which the value of the object will be
+	 *                     found
 	 * @param objectID
-	 *            the sequence of integers specifying the object
+	 *                     the sequence of integers specifying the object
 	 * @return the value of the specified object in {@code state}
 	 */
 	private SymbolicExpression getValue(State state, int[] objectID) {
@@ -741,15 +750,18 @@ public class SimpleEnablerWorker {
 	 * </p>
 	 * 
 	 * @param result
-	 *            the result of the irreflexive transitive closure (out)
+	 *                      the result of the irreflexive transitive closure
+	 *                      (out)
 	 * @param objectSet
-	 *            the starting points; this set will not be modified (in)
+	 *                      the starting points; this set will not be modified
+	 *                      (in)
 	 * @param state
-	 *            the state
+	 *                      the state
 	 * @param source
-	 *            source object for this operation
+	 *                      source object for this operation
 	 * @throws NoReductionException
-	 *             if no over-approximation of the result can be obtained
+	 *                                  if no over-approximation of the result
+	 *                                  can be obtained
 	 */
 	private void closeIrreflexive(SeqSet result, SeqSet objectSet, State state,
 			CIVLSource source) throws NoReductionException {
@@ -779,16 +791,16 @@ public class SimpleEnablerWorker {
 	 * in {@link #addVariable(SeqSet, int, Variable)}.
 	 * 
 	 * @param state
-	 *            the state which specifies the values of all objects
+	 *                   the state which specifies the values of all objects
 	 * @param pid
-	 *            the ID of the process which is referencing the variables; used
-	 *            together with {@code state} to determine the variable
-	 *            instances and the values stored
+	 *                   the ID of the process which is referencing the
+	 *                   variables; used together with {@code state} to
+	 *                   determine the variable instances and the values stored
 	 * @param source
-	 *            a source info object used for reporting errors
+	 *                   a source info object used for reporting errors
 	 * @param vars
-	 *            the set of variables which form the starting point of the
-	 *            search
+	 *                   the set of variables which form the starting point of
+	 *                   the search
 	 * @return the set of reachable objects, represented as a {@link SeqSet}
 	 */
 	private SeqSet findReachableIrreflexive(State state, int pid,
@@ -844,25 +856,32 @@ public class SimpleEnablerWorker {
 	 * a[0..n-1][0..1] where a is an array of array of pointers.
 	 * 
 	 * @param result
-	 *            the set into which the dependent object of the call will be
-	 *            added
+	 *                      the set into which the dependent object of the call
+	 *                      will be added
 	 * @param state
-	 *            the state from which the function is called
+	 *                      the state from which the function is called
 	 * @param pid
-	 *            the ID of the process making the call
+	 *                      the ID of the process making the call
 	 * @param statement
-	 *            the call statement
+	 *                      the call statement
 	 * @return <code>true</code> if the function has an enabled depends_on
 	 *         clause at {@code state}, <code>false</code> otherwise. In the
 	 *         case of {@code false} being returned, the <code>result</code> is
 	 *         not modified
 	 * @throws UnsatisfiablePathConditionException
-	 *             if in the course of evaluating some expression it is
-	 *             discovered that the path condition of {@code state} is
-	 *             unsatisfiable
+	 *                                                 if in the course of
+	 *                                                 evaluating some
+	 *                                                 expression it is
+	 *                                                 discovered that the path
+	 *                                                 condition of
+	 *                                                 {@code state} is
+	 *                                                 unsatisfiable
 	 * @throws NoReductionException
-	 *             if the called function is a system function or atomic
-	 *             function, but no depends_on clause is specified
+	 *                                                 if the called function is
+	 *                                                 a system function or
+	 *                                                 atomic function, but no
+	 *                                                 depends_on clause is
+	 *                                                 specified
 	 */
 	private boolean memFromContract(SeqSet result, State state, int pid,
 			CallOrSpawnStatement statement)
@@ -992,18 +1011,24 @@ public class SimpleEnablerWorker {
 	 * them to the specified {@code SeqSet}.
 	 * 
 	 * @param result
-	 *            the set to which the objects should be added
+	 *                   the set to which the objects should be added
 	 * @param state
-	 *            the state to which the memory unit reference applies
+	 *                   the state to which the memory unit reference applies
 	 * @param pid
-	 *            the ID of the process containing the memory unit reference
+	 *                   the ID of the process containing the memory unit
+	 *                   reference
 	 * @param ref
-	 *            the memory unit reference
+	 *                   the memory unit reference
 	 * @throws UnsatisfiablePathConditionException
-	 *             if in the course of evaluating, it is determined that the
-	 *             path condition of {@code state} is unsatisfiable
+	 *                                                 if in the course of
+	 *                                                 evaluating, it is
+	 *                                                 determined that the path
+	 *                                                 condition of
+	 *                                                 {@code state} is
+	 *                                                 unsatisfiable
 	 * @throws NoReductionException
-	 *             if a non-concrete pointer is encountered
+	 *                                                 if a non-concrete pointer
+	 *                                                 is encountered
 	 */
 	private void findObjects(SeqSet result, State state, int pid,
 			MemoryUnitReference ref)
@@ -1021,22 +1046,27 @@ public class SimpleEnablerWorker {
 	 * modified) by executing a statement.
 	 *
 	 * @param resultAll
-	 *            the set to which the computed set of all objects will be added
-	 *            (out variable)
+	 *                      the set to which the computed set of all objects
+	 *                      will be added (out variable)
 	 * @param resultRO
-	 *            the set to which the computed set of read-only objects will be
-	 *            added (out variable)
+	 *                      the set to which the computed set of read-only
+	 *                      objects will be added (out variable)
 	 * @param state
-	 *            the state from which the statement is executed
+	 *                      the state from which the statement is executed
 	 * @param pid
-	 *            the ID of the process executing the statement
+	 *                      the ID of the process executing the statement
 	 * @param statement
-	 *            the statement being executed
+	 *                      the statement being executed
 	 * @throws UnsatisfiablePathConditionException
-	 *             if in the course of this computation it is discovered that
-	 *             {@code state} has an unsatisfiable path condition
+	 *                                                 if in the course of this
+	 *                                                 computation it is
+	 *                                                 discovered that
+	 *                                                 {@code state} has an
+	 *                                                 unsatisfiable path
+	 *                                                 condition
 	 * @throws NoReductionException
-	 *             if a non-concrete pointer is encountered
+	 *                                                 if a non-concrete pointer
+	 *                                                 is encountered
 	 */
 	private void computeMem(SeqSet resultAll, SeqSet resultWrite, State state,
 			int pid, Statement statement)
@@ -1171,23 +1201,27 @@ public class SimpleEnablerWorker {
 	 * block or function.
 	 * 
 	 * @param resultAll
-	 *            set of objects which could be accessed (out)
+	 *                        set of objects which could be accessed (out)
 	 * @param resultWrite
-	 *            set of objects which could be accessed by writes (out)
+	 *                        set of objects which could be accessed by writes
+	 *                        (out)
 	 * @param state
-	 *            the state in which the objects reside (in)
+	 *                        the state in which the objects reside (in)
 	 * @param pid
-	 *            the ID of the executing process (in)
+	 *                        the ID of the executing process (in)
 	 * @param start
-	 *            the start location of the atomic block or function (in)
+	 *                        the start location of the atomic block or function
+	 *                        (in)
 	 * @param vars
-	 *            the set of variables (in scope for process {@code pid} at
-	 *            state {@code state}) accessed within the atomic block or
-	 *            function, including through function calls, calls made by
-	 *            those functions, etc. (in)
+	 *                        the set of variables (in scope for process
+	 *                        {@code pid} at state {@code state}) accessed
+	 *                        within the atomic block or function, including
+	 *                        through function calls, calls made by those
+	 *                        functions, etc. (in)
 	 * @throws NoReductionException
-	 *             if it is determined that the path condition of {@code state}
-	 *             is unsatisfiable
+	 *                                  if it is determined that the path
+	 *                                  condition of {@code state} is
+	 *                                  unsatisfiable
 	 */
 	private void computeAccessesAtomic(SeqSet resultAll, SeqSet resultWrite,
 			State state, int pid, Location start, Set<Variable> vars)
@@ -1232,18 +1266,22 @@ public class SimpleEnablerWorker {
 	 * </p>
 	 * 
 	 * @param resultAll
-	 *            set of objects which could be accessed (out)
+	 *                        set of objects which could be accessed (out)
 	 * @param resultWrite
-	 *            set of objects which could be accessed by writes (out)
+	 *                        set of objects which could be accessed by writes
+	 *                        (out)
 	 * @param state
-	 *            the state from which the atomic statement is executed
+	 *                        the state from which the atomic statement is
+	 *                        executed
 	 * @param pid
-	 *            process ID for the process executing the atomic statement
+	 *                        process ID for the process executing the atomic
+	 *                        statement
 	 * @param as
-	 *            the {@link Statement} that marks the entrance to the atomic
-	 *            statement by obtaining the atomic lock
+	 *                        the {@link Statement} that marks the entrance to
+	 *                        the atomic statement by obtaining the atomic lock
 	 * @throws NoReductionException
-	 *             if no upper bound on the set of objects can be found
+	 *                                  if no upper bound on the set of objects
+	 *                                  can be found
 	 */
 	private void computeMemAtomicBlock(SeqSet resultAll, SeqSet resultWrite,
 			State state, int pid, AtomicLockAssignStatement as)
@@ -1260,23 +1298,26 @@ public class SimpleEnablerWorker {
 	 * atomic, defined (non-system) function.
 	 * 
 	 * @param resultAll
-	 *            objects that could be accessed (out)
+	 *                        objects that could be accessed (out)
 	 * @param resultWrite
-	 *            objects that could be accessed by a write (out)
+	 *                        objects that could be accessed by a write (out)
 	 * @param state
-	 *            state from which the call is made (in)
+	 *                        state from which the call is made (in)
 	 * @param pid
-	 *            ID of the process making the call (in)
+	 *                        ID of the process making the call (in)
 	 * @param function
-	 *            the atomic function being called
+	 *                        the atomic function being called
 	 * @param arguments
-	 *            the arguments in the call expression
+	 *                        the arguments in the call expression
 	 * @throws NoReductionException
-	 *             if no good approximation to the resulting sets can be
-	 *             obtained
+	 *                                                 if no good approximation
+	 *                                                 to the resulting sets can
+	 *                                                 be obtained
 	 * @throws UnsatisfiablePathConditionException
-	 *             if it is determined that the path condition of {@code state}
-	 *             is unsatisfiable
+	 *                                                 if it is determined that
+	 *                                                 the path condition of
+	 *                                                 {@code state} is
+	 *                                                 unsatisfiable
 	 */
 	private void computeMemAtomicFunction(SeqSet resultAll, SeqSet resultWrite,
 			State state, int pid, CIVLFunction function,
@@ -1300,20 +1341,23 @@ public class SimpleEnablerWorker {
 	 * from evaluating {@code p} occurs. And so on.
 	 * 
 	 * @param resultAll
-	 *            the set of objects accessed (out)
+	 *                        the set of objects accessed (out)
 	 * @param resultWrite
-	 *            the set of objects accessed by writing (out)
+	 *                        the set of objects accessed by writing (out)
 	 * @param state
-	 *            the state at which the assignment takes place
+	 *                        the state at which the assignment takes place
 	 * @param pid
-	 *            the ID of the process performing the assignment
+	 *                        the ID of the process performing the assignment
 	 * @param lhs
-	 *            the left hand side expression of the assignment
+	 *                        the left hand side expression of the assignment
 	 * @throws NoReductionException
-	 *             if no good approximation can be obtained
+	 *                                                 if no good approximation
+	 *                                                 can be obtained
 	 * @throws UnsatisfiablePathConditionException
-	 *             if it is determined that the path condition of {@code state}
-	 *             is unsatisfiable
+	 *                                                 if it is determined that
+	 *                                                 the path condition of
+	 *                                                 {@code state} is
+	 *                                                 unsatisfiable
 	 */
 	private void findAccessesLHS(SeqSet resultAll, SeqSet resultWrite,
 			State state, int pid, LHSExpression lhs)
@@ -1370,18 +1414,22 @@ public class SimpleEnablerWorker {
 	 * neither read nor modified. And so on.
 	 * 
 	 * @param result
-	 *            the set to which the memory locations should be added
+	 *                   the set to which the memory locations should be added
 	 * @param state
-	 *            the state in which the expression {@code arg} occurs
+	 *                   the state in which the expression {@code arg} occurs
 	 * @param pid
-	 *            process ID for the process evaluating the expression
+	 *                   process ID for the process evaluating the expression
 	 * @param arg
-	 *            the argument to the address-of operator
+	 *                   the argument to the address-of operator
 	 * @throws UnsatisfiablePathConditionException
-	 *             if it is discovered that the path condition of {@code state}
-	 *             is unsatisfiable
+	 *                                                 if it is discovered that
+	 *                                                 the path condition of
+	 *                                                 {@code state} is
+	 *                                                 unsatisfiable
 	 * @throws NoReductionException
-	 *             if no good over-approximation can be found
+	 *                                                 if no good
+	 *                                                 over-approximation can be
+	 *                                                 found
 	 */
 	private void findObjectsLHS(SeqSet result, State state, int pid,
 			LHSExpression arg)
@@ -1427,15 +1475,16 @@ public class SimpleEnablerWorker {
 	 * impossible to evaluate and the no-reduction exception is thrown.
 	 * 
 	 * @param state
-	 *            a state
+	 *                  a state
 	 * @param pid
-	 *            ID of process evaluating the pointer expression
+	 *                  ID of process evaluating the pointer expression
 	 * @param expr
-	 *            an expression of pointer type
+	 *                  an expression of pointer type
 	 * @return pointer to the object pointed to, though not necessarily the
 	 *         exact location within that object
 	 * @throws NoReductionException
-	 *             if it is not possible to evaluate the pointer expression
+	 *                                  if it is not possible to evaluate the
+	 *                                  pointer expression
 	 */
 	private SymbolicExpression coarsePointerEval(State state, int pid,
 			Expression expr) throws NoReductionException {
@@ -1466,22 +1515,27 @@ public class SimpleEnablerWorker {
 	 * evaluating an expression.
 	 * 
 	 * @param result
-	 *            the (non-null) set to which the memory locations referenced in
-	 *            {@code expr} will be added
+	 *                   the (non-null) set to which the memory locations
+	 *                   referenced in {@code expr} will be added
 	 * @param state
-	 *            the state in which the evaluation occurs
+	 *                   the state in which the evaluation occurs
 	 * @param pid
-	 *            the process ID number for the process that is evaluating
-	 *            {@code expr}
+	 *                   the process ID number for the process that is
+	 *                   evaluating {@code expr}
 	 * @param expr
-	 *            the expression being evaluated. may be {@code null}, in which
-	 *            case this is a no-op
+	 *                   the expression being evaluated. may be {@code null}, in
+	 *                   which case this is a no-op
 	 * @throws UnsatisfiablePathConditionException
-	 *             if in the course of evaluating {@code expr} it is discovered
-	 *             that the path condition of the current state is not
-	 *             satisfiable
+	 *                                                 if in the course of
+	 *                                                 evaluating {@code expr}
+	 *                                                 it is discovered that the
+	 *                                                 path condition of the
+	 *                                                 current state is not
+	 *                                                 satisfiable
 	 * @throws NoReductionException
-	 *             if no good over-approximation can be found
+	 *                                                 if no good
+	 *                                                 over-approximation can be
+	 *                                                 found
 	 */
 	private void findObjects(SeqSet result, State state, int pid,
 			Expression expr)
@@ -1735,18 +1789,22 @@ public class SimpleEnablerWorker {
 	 * Example: in the type {@code int[n]} the object {@code n} is referenced.
 	 * 
 	 * @param result
-	 *            the set to which the objects shall be added
+	 *                   the set to which the objects shall be added
 	 * @param state
-	 *            the state in which this type is evaluated
+	 *                   the state in which this type is evaluated
 	 * @param pid
-	 *            the ID of the process performing the evaluation
+	 *                   the ID of the process performing the evaluation
 	 * @param type
-	 *            the CIVL type
+	 *                   the CIVL type
 	 * @throws UnsatisfiablePathConditionException
-	 *             if it is discovered that the path condition of {@code state}
-	 *             is unsatisfiable
+	 *                                                 if it is discovered that
+	 *                                                 the path condition of
+	 *                                                 {@code state} is
+	 *                                                 unsatisfiable
 	 * @throws NoReductionException
-	 *             if no good over-approximation can be found
+	 *                                                 if no good
+	 *                                                 over-approximation can be
+	 *                                                 found
 	 */
 	private void findObjects(SeqSet result, State state, int pid, CIVLType type)
 			throws UnsatisfiablePathConditionException, NoReductionException {
@@ -1759,21 +1817,25 @@ public class SimpleEnablerWorker {
 	 * function that keeps track of the set of seen types.
 	 * 
 	 * @param result
-	 *            the set to which the objects shall be added
+	 *                   the set to which the objects shall be added
 	 * @param state
-	 *            the state in which this type is evaluated
+	 *                   the state in which this type is evaluated
 	 * @param pid
-	 *            the ID of the process performing the evaluation
+	 *                   the ID of the process performing the evaluation
 	 * @param type
-	 *            the CIVL type
+	 *                   the CIVL type
 	 * @param seen
-	 *            the set of types already encountered in this invocation of
-	 *            {@link #findObjects(SeqSet, State, int, CIVLType)}.
+	 *                   the set of types already encountered in this invocation
+	 *                   of {@link #findObjects(SeqSet, State, int, CIVLType)}.
 	 * @throws UnsatisfiablePathConditionException
-	 *             if it is discovered that the path condition of {@code state}
-	 *             is unsatisfiable
+	 *                                                 if it is discovered that
+	 *                                                 the path condition of
+	 *                                                 {@code state} is
+	 *                                                 unsatisfiable
 	 * @throws NoReductionException
-	 *             if no good over-approximation can be found
+	 *                                                 if no good
+	 *                                                 over-approximation can be
+	 *                                                 found
 	 */
 	private void findObjectsHelper(SeqSet result, State state, int pid,
 			CIVLType type, Set<CIVLType> seen)
@@ -1837,14 +1899,18 @@ public class SimpleEnablerWorker {
 	 * {@link #theState}.
 	 * 
 	 * @param pid
-	 *            the process ID
+	 *                the process ID
 	 * @param sid
-	 *            the statement ID, i.e., the index in the list of outgoing
-	 *            statements from the current location of the process
+	 *                the statement ID, i.e., the index in the list of outgoing
+	 *                statements from the current location of the process
 	 * @return evaluated guard
 	 * @throws UnsatisfiablePathConditionException
-	 *             if in the course of evaluating it is discovered that the path
-	 *             condition of {@link #theState} is unsatisfiable
+	 *                                                 if in the course of
+	 *                                                 evaluating it is
+	 *                                                 discovered that the path
+	 *                                                 condition of
+	 *                                                 {@link #theState} is
+	 *                                                 unsatisfiable
 	 */
 	private BooleanExpression getGuardValue(int pid, int sid)
 			throws UnsatisfiablePathConditionException {
@@ -1879,18 +1945,22 @@ public class SimpleEnablerWorker {
 	 * </p>
 	 * 
 	 * @param result
-	 *            the list to which the enabled transitions will be added
+	 *                     the list to which the enabled transitions will be
+	 *                     added
 	 * @param pid
-	 *            the ID of the process executing the statement
+	 *                     the ID of the process executing the statement
 	 * @param location
-	 *            the current location of the process at state {@link #theState}
-	 *            (this could be determined from {@link #theState} but is an
-	 *            argument for efficiency)
+	 *                     the current location of the process at state
+	 *                     {@link #theState} (this could be determined from
+	 *                     {@link #theState} but is an argument for efficiency)
 	 * @param stmtID
-	 *            the ID number of the outgoing statement from {@code location}
+	 *                     the ID number of the outgoing statement from
+	 *                     {@code location}
 	 * @throws UnsatisfiablePathConditionException
-	 *             if it is determined that the path condition of
-	 *             {@link #theState} is unsatisfiable
+	 *                                                 if it is determined that
+	 *                                                 the path condition of
+	 *                                                 {@link #theState} is
+	 *                                                 unsatisfiable
 	 */
 	private void computeEnabledFromStatement(List<Transition> result, int pid,
 			Location location, int stmtID)
@@ -1931,12 +2001,14 @@ public class SimpleEnablerWorker {
 	 * </p>
 	 * 
 	 * @param result
-	 *            the list to which the enabled transitions will be added
+	 *                   the list to which the enabled transitions will be added
 	 * @param pid
-	 *            ID of the process
+	 *                   ID of the process
 	 * @throws UnsatisfiablePathConditionException
-	 *             if it is determined that the path condition of
-	 *             {@link #theState} is unsatisfiable
+	 *                                                 if it is determined that
+	 *                                                 the path condition of
+	 *                                                 {@link #theState} is
+	 *                                                 unsatisfiable
 	 */
 	private void computeEnabledInProcess(List<Transition> result, int pid)
 			throws UnsatisfiablePathConditionException {
@@ -1975,18 +2047,21 @@ public class SimpleEnablerWorker {
 	 * </p>
 	 * 
 	 * @param pid
-	 *            the ID of the process (in)
+	 *                        the ID of the process (in)
 	 * @param depend
-	 *            the set of objects of the process's depend set (out)
+	 *                        the set of objects of the process's depend set
+	 *                        (out)
 	 * @param dependWrite
-	 *            the set of objects of the depend set that may be modified
-	 *            (out)
+	 *                        the set of objects of the depend set that may be
+	 *                        modified (out)
 	 * @return set of PIDs of processes on which this process is waiting with
 	 *         blocked wait statements, or {@code null} if there are no such
 	 *         waitees
 	 * @throws UnsatisfiablePathConditionException
-	 *             if it is determined that the path condition of
-	 *             {@link #theState} is unsatisfiable
+	 *                                                 if it is determined that
+	 *                                                 the path condition of
+	 *                                                 {@link #theState} is
+	 *                                                 unsatisfiable
 	 */
 	Set<Integer> computeDepends(int pid, SeqSet depend, SeqSet dependWrite)
 			throws UnsatisfiablePathConditionException {
@@ -2046,12 +2121,13 @@ public class SimpleEnablerWorker {
 	 * </p>
 	 * 
 	 * @param pid
-	 *            the ID of the process
+	 *                       the ID of the process
 	 * @param reach
-	 *            out variable: set to which all reachable objects will be added
+	 *                       out variable: set to which all reachable objects
+	 *                       will be added
 	 * @param reachWrite
-	 *            out variable: set to which all reachable objects which are
-	 *            possibly modified will be added
+	 *                       out variable: set to which all reachable objects
+	 *                       which are possibly modified will be added
 	 * @return the set of reachable objects represented as a {@link SeqSet}
 	 */
 	void computeReach(int pid, SeqSet reach, SeqSet reachWrite) {
@@ -2101,9 +2177,9 @@ public class SimpleEnablerWorker {
 	 * the current state {@link #theState}.
 	 * 
 	 * @param out
-	 *            the stream to which the output should be printed
+	 *                the stream to which the output should be printed
 	 * @param ss
-	 *            the set representing a set of objects
+	 *                the set representing a set of objects
 	 */
 	protected void printObjSet(PrintStream out, SeqSet ss) {
 		boolean first = true;
@@ -2201,12 +2277,14 @@ public class SimpleEnablerWorker {
 	 * </p>
 	 * 
 	 * @param pid
-	 *            process ID
+	 *                process ID
 	 * @return {@code true} if it is possible the process has a visible enabled
 	 *         transition
 	 * @throws UnsatisfiablePathConditionException
-	 *             if it is determined that the path condition of
-	 *             {@link #theState} is unsatisfiable
+	 *                                                 if it is determined that
+	 *                                                 the path condition of
+	 *                                                 {@link #theState} is
+	 *                                                 unsatisfiable
 	 */
 	protected boolean allInvisible(int pid)
 			throws UnsatisfiablePathConditionException {
@@ -2261,7 +2339,7 @@ public class SimpleEnablerWorker {
 	 * termination is not guaranteed.
 	 * 
 	 * @param pid
-	 *            the ID of the process
+	 *                the ID of the process
 	 * @return {@code} true if process {@code PID} is at a location from which
 	 *         it could enter a possibly non-terminating atomic block
 	 * 
@@ -2288,11 +2366,13 @@ public class SimpleEnablerWorker {
 	 * enabled in a process.
 	 * 
 	 * @param pid
-	 *            the ID of the process
+	 *                the ID of the process
 	 * @return the set of enabled transitions, represented as an array
 	 * @throws UnsatisfiablePathConditionException
-	 *             if it is determined that the path condition of
-	 *             {@link #theState} is unsatisfiable
+	 *                                                 if it is determined that
+	 *                                                 the path condition of
+	 *                                                 {@link #theState} is
+	 *                                                 unsatisfiable
 	 */
 	protected Transition[] enabledTransitionsInProcess(int pid)
 			throws UnsatisfiablePathConditionException {
@@ -2313,14 +2393,14 @@ public class SimpleEnablerWorker {
 	 * set information to {@link Enabler#debugOut}.
 	 * 
 	 * @param sc
-	 *            the instance of {@link StrongConnect} already used to find an
-	 *            ample set (or fail to find one)
+	 *                      the instance of {@link StrongConnect} already used
+	 *                      to find an ample set (or fail to find one)
 	 * @param amplePids
-	 *            the list of process IDs of the ample set, or {@code null} if
-	 *            no ample set was found and therefore the full set should be
-	 *            used
+	 *                      the list of process IDs of the ample set, or
+	 *                      {@code null} if no ample set was found and therefore
+	 *                      the full set should be used
 	 * @throws UnsatisfiablePathConditionException
-	 *             should not be thrown
+	 *                                                 should not be thrown
 	 */
 	private void printAmpleInfo(StrongConnect sc, LinkedList<Integer> amplePids)
 			throws UnsatisfiablePathConditionException {
@@ -2353,8 +2433,10 @@ public class SimpleEnablerWorker {
 	 * {@link #full} to {@code true}, indicating that the full set was used.
 	 * 
 	 * @throws UnsatisfiablePathConditionException
-	 *             if it is discovered that the path condition of
-	 *             {@link #theState} is unsatisfiable
+	 *                                                 if it is discovered that
+	 *                                                 the path condition of
+	 *                                                 {@link #theState} is
+	 *                                                 unsatisfiable
 	 */
 	protected void computeAmpleSet()
 			throws UnsatisfiablePathConditionException {

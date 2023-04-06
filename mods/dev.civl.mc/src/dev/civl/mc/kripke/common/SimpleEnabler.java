@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import dev.civl.gmc.GMCConfiguration;
 import dev.civl.mc.config.IF.CIVLConfiguration;
 import dev.civl.mc.kripke.IF.Enabler;
 import dev.civl.mc.kripke.IF.LibraryEnabler;
@@ -36,11 +37,11 @@ import dev.civl.mc.state.IF.State;
 import dev.civl.mc.state.IF.StateFactory;
 import dev.civl.mc.state.IF.UnsatisfiablePathConditionException;
 import dev.civl.mc.util.IF.Triple;
-import dev.civl.gmc.GMCConfiguration;
 import dev.civl.sarl.IF.Reasoner;
 import dev.civl.sarl.IF.SymbolicUniverse;
 import dev.civl.sarl.IF.ValidityResult.ResultType;
 import dev.civl.sarl.IF.expr.BooleanExpression;
+import dev.civl.sarl.IF.expr.SymbolicConstant;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.util.EmptySet;
 
@@ -216,6 +217,12 @@ public class SimpleEnabler implements Enabler {
 	 */
 	private Collection<Transition> emptySet;
 
+	/**
+	 * Special symbolic constant of function type used to "hide" pointer values
+	 * from the reachability analysis.
+	 */
+	protected SymbolicConstant hideFunction;
+
 	/* ***************************** Constructor *************************** */
 
 	/**
@@ -223,27 +230,30 @@ public class SimpleEnabler implements Enabler {
 	 * initialize many of the instance fields.
 	 * 
 	 * @param stateFactory
-	 *            factory that will be used for creating new states or reading
-	 *            information from states
+	 *                             factory that will be used for creating new
+	 *                             states or reading information from states
 	 * 
 	 * @param evaluator
-	 *            used for evaluating expressions
+	 *                             used for evaluating expressions
 	 * @param executor
-	 *            used to execute {@link Statement}s
+	 *                             used to execute {@link Statement}s
 	 * @param symbolicAnalyzer
-	 *            utility serving as higher-level interface to SARL (symbolic
-	 *            execution engine)
+	 *                             utility serving as higher-level interface to
+	 *                             SARL (symbolic execution engine)
 	 * @param libLoader
-	 *            used to find the classes (enablers, executors) implementing
-	 *            libraries and load them
+	 *                             used to find the classes (enablers,
+	 *                             executors) implementing libraries and load
+	 *                             them
 	 * @param errorLogger
-	 *            used to log errors (violations) as they are encountered
+	 *                             used to log errors (violations) as they are
+	 *                             encountered
 	 * @param civlConfig
-	 *            class providing all of the configuration parameters provided
-	 *            by the user at startup
+	 *                             class providing all of the configuration
+	 *                             parameters provided by the user at startup
 	 * @param gmcConfig
-	 *            configuration parameters for the GMC (generic model checker),
-	 *            which are in addition to those of CIVL
+	 *                             configuration parameters for the GMC (generic
+	 *                             model checker), which are in addition to
+	 *                             those of CIVL
 	 */
 	public SimpleEnabler(StateFactory stateFactory, Evaluator evaluator,
 			Executor executor, SymbolicAnalyzer symbolicAnalyzer,
@@ -283,6 +293,8 @@ public class SimpleEnabler implements Enabler {
 				.variable();
 		this.atomicLockVariableVid = atomicLockVariable.vid();
 		this.atomicLockVariableScopeId = atomicLockVariable.scope().id();
+		this.hideFunction = modelFactory.getMakeUnreachableConstant();
+
 	}
 
 	/* ************************** Private Methods ************************ */
@@ -314,16 +326,20 @@ public class SimpleEnabler implements Enabler {
 	 * </p>
 	 * 
 	 * @param state
-	 *            the state from which the call will take place
+	 *                      the state from which the call will take place
 	 * @param pid
-	 *            the ID of the process in which the call takes place
+	 *                      the ID of the process in which the call takes place
 	 * @param statement
-	 *            a call statement
+	 *                      a call statement
 	 * @return the guard expression, or {@code null} (if {@code statement} is
 	 *         not a call or if the called function is statically known)
 	 * @throws UnsatisfiablePathConditionException
-	 *             if in the course of evaluating the function expression it is
-	 *             determined that the path condition is not satisfiable
+	 *                                                 if in the course of
+	 *                                                 evaluating the function
+	 *                                                 expression it is
+	 *                                                 determined that the path
+	 *                                                 condition is not
+	 *                                                 satisfiable
 	 */
 	private Expression getDynamicGuard(State state, int pid,
 			CallOrSpawnStatement statement)
@@ -361,16 +377,21 @@ public class SimpleEnabler implements Enabler {
 	 * known dynamically. This method will figure it out in either case.
 	 * 
 	 * @param state
-	 *            the state in which the function is called or spawned; needed
-	 *            in case the function expression is not statically known
+	 *                      the state in which the function is called or
+	 *                      spawned; needed in case the function expression is
+	 *                      not statically known
 	 * @param pid
-	 *            the ID of the process performing the call or spawn
+	 *                      the ID of the process performing the call or spawn
 	 * @param statement
-	 *            the call or spawn statement
+	 *                      the call or spawn statement
 	 * @return the function called or spawned
 	 * @throws UnsatisfiablePathConditionException
-	 *             if in the course of evaluating the function expression it is
-	 *             determined that the path condition is not satisfiable
+	 *                                                 if in the course of
+	 *                                                 evaluating the function
+	 *                                                 expression it is
+	 *                                                 determined that the path
+	 *                                                 condition is not
+	 *                                                 satisfiable
 	 */
 	protected CIVLFunction getFunction(State state, int pid,
 			CallOrSpawnStatement statement)
@@ -392,7 +413,7 @@ public class SimpleEnabler implements Enabler {
 	 * Is the given expression the boolean expression "true"?
 	 * 
 	 * @param expr
-	 *            a non-null CIVL {@link Expression}
+	 *                 a non-null CIVL {@link Expression}
 	 * @return {@code true} iff {@code expr} is the expression "true"
 	 */
 	protected boolean isTrue(Expression expr) {
@@ -404,7 +425,7 @@ public class SimpleEnabler implements Enabler {
 	 * Is the given {@link Statement} the {@code $yield} statement?
 	 * 
 	 * @param stmt
-	 *            a (non-null) {@link Statement}
+	 *                 a (non-null) {@link Statement}
 	 * @return {@code true} iff {@code stmt} is the {@code $yield statement}
 	 */
 	protected boolean isYield(Statement stmt) {
@@ -419,7 +440,7 @@ public class SimpleEnabler implements Enabler {
 	 * Is the given {@link Statement} a {@code $wait} statement?
 	 * 
 	 * @param stmt
-	 *            a (non-null) {@link Statement}
+	 *                 a (non-null) {@link Statement}
 	 * @return {@code true} iff {@code stmt} is a {@code $wait statement}
 	 */
 	protected boolean isWait(Statement stmt) {
@@ -436,16 +457,20 @@ public class SimpleEnabler implements Enabler {
 	 * pointer or other complex function expression.
 	 * 
 	 * @param state
-	 *            the state from which the statement is executed
+	 *                  the state from which the statement is executed
 	 * @param pid
-	 *            the ID of the process executing {@code stmt}
+	 *                  the ID of the process executing {@code stmt}
 	 * @param stmt
-	 *            the statement being executed
+	 *                  the statement being executed
 	 * @return {@code true} iff {@code stmt} is a call of a system function
 	 * @throws UnsatisfiablePathConditionException
-	 *             if in the course of evaluating the function expression it is
-	 *             discovered that the path condition of {@code state} is
-	 *             unsatisfiable
+	 *                                                 if in the course of
+	 *                                                 evaluating the function
+	 *                                                 expression it is
+	 *                                                 discovered that the path
+	 *                                                 condition of
+	 *                                                 {@code state} is
+	 *                                                 unsatisfiable
 	 */
 	protected boolean isSystemCall(State state, int pid, Statement stmt)
 			throws UnsatisfiablePathConditionException {
@@ -467,16 +492,18 @@ public class SimpleEnabler implements Enabler {
 	 * {@code $comm_enqueue}?
 	 * 
 	 * @param state
-	 *            the state from which the statement is executed
+	 *                  the state from which the statement is executed
 	 * @param pid
-	 *            the ID of the process executing the statement
+	 *                  the ID of the process executing the statement
 	 * @param stmt
-	 *            any non-null CIVL {@link Statement}
+	 *                  any non-null CIVL {@link Statement}
 	 * @return {@code true} iff {@code stmt} is a call of function
 	 *         {@code $comm_enqueue}
 	 * @throws UnsatisfiablePathConditionException
-	 *             if it is determined that the path condition of {@code state}
-	 *             is unsatisfiable
+	 *                                                 if it is determined that
+	 *                                                 the path condition of
+	 *                                                 {@code state} is
+	 *                                                 unsatisfiable
 	 */
 	protected boolean isSend(State state, int pid, Statement stmt)
 			throws UnsatisfiablePathConditionException {
@@ -500,7 +527,7 @@ public class SimpleEnabler implements Enabler {
 	 * statement?
 	 * 
 	 * @param stmt
-	 *            a (non-null) {@link Statement}
+	 *                 a (non-null) {@link Statement}
 	 * @return {@code true} iff {@code stmt} is an invocation of the
 	 *         {@code $assume statement}
 	 */
@@ -530,17 +557,20 @@ public class SimpleEnabler implements Enabler {
 	 * </p>
 	 * 
 	 * @param state
-	 *            the original state
+	 *                      the original state
 	 * @param pid
-	 *            the ID of the process performing the call
+	 *                      the ID of the process performing the call
 	 * @param function
-	 *            the function being called
+	 *                      the function being called
 	 * @param arguments
-	 *            the actual argument expressions in the call
+	 *                      the actual argument expressions in the call
 	 * @return the new state immediately after the call
 	 * @throws UnsatisfiablePathConditionException
-	 *             if in the course of evaluating the arguments it is discovered
-	 *             that the path condition is unsatisfiable
+	 *                                                 if in the course of
+	 *                                                 evaluating the arguments
+	 *                                                 it is discovered that the
+	 *                                                 path condition is
+	 *                                                 unsatisfiable
 	 */
 	protected State executeContract(State state, int pid, CIVLFunction function,
 			List<Expression> arguments)
@@ -578,19 +608,22 @@ public class SimpleEnabler implements Enabler {
 	 * </p>
 	 * 
 	 * @param state
-	 *            the original state
+	 *                      the original state
 	 * @param pid
-	 *            the ID of the process performing the call
+	 *                      the ID of the process performing the call
 	 * @param function
-	 *            the function being called
+	 *                      the function being called
 	 * @param arguments
-	 *            the actual argument expressions in the call
+	 *                      the actual argument expressions in the call
 	 * @return the new state immediately after the call (i.e., just after the
 	 *         new frame is pushed onto the call stack and control enters the
 	 *         called function)
 	 * @throws UnsatisfiablePathConditionException
-	 *             if in the course of evaluating the arguments it is discovered
-	 *             that the path condition is unsatisfiable
+	 *                                                 if in the course of
+	 *                                                 evaluating the arguments
+	 *                                                 it is discovered that the
+	 *                                                 path condition is
+	 *                                                 unsatisfiable
 	 */
 	protected State executeCall(State state, int pid, CIVLFunction function,
 			List<Expression> arguments)
@@ -627,20 +660,23 @@ public class SimpleEnabler implements Enabler {
 	 * an implicit guard if there is a bound on the number of processes.
 	 * 
 	 * @param state
-	 *            the state
+	 *                     the state
 	 * @param reasoner
-	 *            a {@link Reasoner} based on the path condition of
-	 *            {@code state}
+	 *                     a {@link Reasoner} based on the path condition of
+	 *                     {@code state}
 	 * @param pid
-	 *            ID of the process about to execute
+	 *                     ID of the process about to execute
 	 * @param stmt
-	 *            the {@code Statement} emanating from the source location of
-	 *            process {@code pid} at state {@code state}
+	 *                     the {@code Statement} emanating from the source
+	 *                     location of process {@code pid} at state
+	 *                     {@code state}
 	 * @return the symbolic expression of boolean type which evaluates to
 	 *         {@code true} iff the statement can execute
 	 * @throws UnsatisfiablePathConditionException
-	 *             if it is determined that the path condition of {@code state}
-	 *             is unsatisfiable
+	 *                                                 if it is determined that
+	 *                                                 the path condition of
+	 *                                                 {@code state} is
+	 *                                                 unsatisfiable
 	 */
 	protected BooleanExpression computeGuard(State state, Reasoner reasoner,
 			int pid, Statement stmt)
@@ -733,21 +769,24 @@ public class SimpleEnabler implements Enabler {
 	 * {@link Statement} itself. Use whichever is more convenient.
 	 * 
 	 * @param state
-	 *            the state
+	 *                     the state
 	 * @param reasoner
-	 *            a {@link Reasoner} based on the path condition of
-	 *            {@code state}
+	 *                     a {@link Reasoner} based on the path condition of
+	 *                     {@code state}
 	 * @param pid
-	 *            ID of the process about to execute
+	 *                     ID of the process about to execute
 	 * @param sid
-	 *            the ID number of a {@link Statement} emanating from the source
-	 *            location of process {@code pid} at state {@code state}; from
-	 *            each location, the outgoing statements are numbered from 0
+	 *                     the ID number of a {@link Statement} emanating from
+	 *                     the source location of process {@code pid} at state
+	 *                     {@code state}; from each location, the outgoing
+	 *                     statements are numbered from 0
 	 * @return the symbolic expression of boolean type which evaluates to
 	 *         {@code true} iff the statement can execute
 	 * @throws UnsatisfiablePathConditionException
-	 *             if it is determined that the path condition of {@code state}
-	 *             is unsatisfiable
+	 *                                                 if it is determined that
+	 *                                                 the path condition of
+	 *                                                 {@code state} is
+	 *                                                 unsatisfiable
 	 */
 	protected BooleanExpression computeGuard(State state, Reasoner reasoner,
 			int pid, int sid) throws UnsatisfiablePathConditionException {
@@ -765,10 +804,10 @@ public class SimpleEnabler implements Enabler {
 	 * "LibXEnabler".
 	 * 
 	 * @param civlSource
-	 *            source object for reporting errors
+	 *                       source object for reporting errors
 	 * @param library
-	 *            the name of the library, which is how libraries are uniquely
-	 *            identified
+	 *                       the name of the library, which is how libraries are
+	 *                       uniquely identified
 	 * @return the library's enabler, or {@code null} if that class cannot be
 	 *         found
 	 */
@@ -789,19 +828,24 @@ public class SimpleEnabler implements Enabler {
 	 * {@link LibraryEnabler}.
 	 * 
 	 * @param state
-	 *            the {@link State} from which the system call will take place
+	 *                       the {@link State} from which the system call will
+	 *                       take place
 	 * @param pid
-	 *            the ID of the process making the call
+	 *                       the ID of the process making the call
 	 * @param guardValue
-	 *            the value of the guard expression of the call statement, in
-	 *            state {@link #theState}
+	 *                       the value of the guard expression of the call
+	 *                       statement, in state {@link #theState}
 	 * @param call
-	 *            the call statement
+	 *                       the call statement
 	 * @return the list of transitions enabled by this system call
 	 * @throws UnsatisfiablePathConditionException
-	 *             if in the process of evaluating the function expression it is
-	 *             determined that the path condition of {@link #theState} is
-	 *             unsatisfiable
+	 *                                                 if in the process of
+	 *                                                 evaluating the function
+	 *                                                 expression it is
+	 *                                                 determined that the path
+	 *                                                 condition of
+	 *                                                 {@link #theState} is
+	 *                                                 unsatisfiable
 	 */
 	protected List<Transition> enabledTransitionsOfSystemCall(State state,
 			int pid, BooleanExpression guardValue, CallOrSpawnStatement call)
@@ -831,21 +875,23 @@ public class SimpleEnabler implements Enabler {
 	 * </p>
 	 * 
 	 * @param state
-	 *            the state from which the statement is executed
+	 *                       the state from which the statement is executed
 	 * @param pid
-	 *            the ID of the process executing the statement
+	 *                       the ID of the process executing the statement
 	 * @param guardValue
-	 *            the value of the guard for the statement at state
-	 *            {@code state}, as obtained from
-	 *            {@link #computeGuard(State, Reasoner, int, Statement)}
+	 *                       the value of the guard for the statement at state
+	 *                       {@code state}, as obtained from
+	 *                       {@link #computeGuard(State, Reasoner, int, Statement)}
 	 * @param stmt
-	 *            the statement
+	 *                       the statement
 	 * @return a transition wrapping the statement, guard, and pid, or
 	 *         {@code null} if the statement is a system function call and the
 	 *         implementing library returns n transitions, where n!=1
 	 * @throws UnsatisfiablePathConditionException
-	 *             if it is discovered that the path condition of {@code state}
-	 *             is unsatisfiable
+	 *                                                 if it is discovered that
+	 *                                                 the path condition of
+	 *                                                 {@code state} is
+	 *                                                 unsatisfiable
 	 */
 	protected Transition singleTransitionFromStatement(State state, int pid,
 			BooleanExpression guardValue, Statement stmt)
