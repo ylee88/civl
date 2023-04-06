@@ -88,6 +88,7 @@ import dev.civl.mc.model.IF.variable.Variable;
 import dev.civl.mc.model.common.ModelFactoryException;
 import dev.civl.mc.util.IF.Pair;
 import dev.civl.sarl.IF.SymbolicUniverse;
+import dev.civl.sarl.IF.expr.SymbolicConstant;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.IF.type.SymbolicType;
 
@@ -1627,6 +1628,8 @@ public interface ModelFactory {
 	 */
 	Identifier getLiteralDomCounterIdentifier(CIVLSource source, int count);
 
+	SymbolicConstant getMakeUnreachableConstant();
+	
 	/**
 	 * Create a variable of the given type and add it to the given scope.
 	 * 

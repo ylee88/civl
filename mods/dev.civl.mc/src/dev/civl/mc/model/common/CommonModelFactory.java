@@ -183,6 +183,7 @@ import dev.civl.mc.util.IF.Pair;
 import dev.civl.mc.util.IF.Singleton;
 import dev.civl.sarl.IF.SymbolicUniverse;
 import dev.civl.sarl.IF.expr.NumericExpression;
+import dev.civl.sarl.IF.expr.SymbolicConstant;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
 import dev.civl.sarl.IF.number.IntegerNumber;
@@ -335,6 +336,8 @@ public class CommonModelFactory implements ModelFactory {
 	private FunctionIdentifierExpression waitFuncPointer = null;
 
 	private FunctionIdentifierExpression elaborateDomainFuncPointer = null;
+	
+	private SymbolicConstant makeUnreachableConstant = null;
 
 	/* **************************** Constructors *************************** */
 
@@ -1738,6 +1741,18 @@ public class CommonModelFactory implements ModelFactory {
 					function);
 		}
 		return waitFuncPointer;
+	}
+	
+	@Override
+	public SymbolicConstant getMakeUnreachableConstant() {
+		if (makeUnreachableConstant == null) {
+			makeUnreachableConstant = universe.symbolicConstant(
+					universe.stringObject("AF_$make_unreachable"),
+					universe.functionType(
+							Arrays.asList(typeFactory.pointerSymbolicType()),
+							typeFactory.pointerSymbolicType()));
+		}
+		return makeUnreachableConstant;
 	}
 
 	@Override

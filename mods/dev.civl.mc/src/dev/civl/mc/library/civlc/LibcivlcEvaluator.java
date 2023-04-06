@@ -1,7 +1,5 @@
 package dev.civl.mc.library.civlc;
 
-import java.util.Arrays;
-
 import dev.civl.mc.config.IF.CIVLConfiguration;
 import dev.civl.mc.dynamic.IF.SymbolicUtility;
 import dev.civl.mc.library.common.BaseLibraryEvaluator;
@@ -22,7 +20,6 @@ import dev.civl.sarl.IF.expr.ArrayElementReference;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.NumericExpression;
 import dev.civl.sarl.IF.expr.ReferenceExpression;
-import dev.civl.sarl.IF.expr.SymbolicConstant;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
 import dev.civl.sarl.IF.number.IntegerNumber;
@@ -32,19 +29,12 @@ public class LibcivlcEvaluator extends BaseLibraryEvaluator
 		implements
 			LibraryEvaluator {
 
-	private SymbolicConstant makeUnreachableConstant;
-
 	public LibcivlcEvaluator(String name, Evaluator evaluator,
 			ModelFactory modelFactory, SymbolicUtility symbolicUtil,
 			SymbolicAnalyzer symbolicAnalyzer, CIVLConfiguration civlConfig,
 			LibraryEvaluatorLoader libEvaluatorLoader) {
 		super(name, evaluator, modelFactory, symbolicUtil, symbolicAnalyzer,
 				civlConfig, libEvaluatorLoader);
-		makeUnreachableConstant = universe.symbolicConstant(
-				universe.stringObject("AF_$make_unreachable"),
-				universe.functionType(
-						Arrays.asList(typeFactory.pointerSymbolicType()),
-						typeFactory.pointerSymbolicType()));
 	}
 
 	@Override
@@ -65,10 +55,6 @@ public class LibcivlcEvaluator extends BaseLibraryEvaluator
 			default :
 				return new Evaluation(state, trueValue);
 		}
-	}
-
-	public SymbolicConstant getMakeUnreachableConstant() {
-		return makeUnreachableConstant;
 	}
 
 	/**

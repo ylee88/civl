@@ -401,9 +401,8 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 			throws UnsatisfiablePathConditionException {
 		SymbolicExpression pointer = argumentValues[0];
 
-		if (pointer.operator() != SymbolicOperator.APPLY
-				|| pointer.argument(0) != ((LibcivlcEvaluator) evaluator)
-						.getMakeUnreachableConstant()) {
+		if (pointer.operator() != SymbolicOperator.APPLY || pointer
+				.argument(0) != modelFactory.getMakeUnreachableConstant()) {
 			state = this.errorLogger.logError(source, state, pid,
 					this.symbolicAnalyzer.stateInformation(state), falseValue,
 					ResultType.NO, CIVLProperty.LIBRARY,
