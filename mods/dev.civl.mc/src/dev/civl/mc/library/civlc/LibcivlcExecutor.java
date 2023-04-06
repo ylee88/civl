@@ -1,7 +1,5 @@
 package dev.civl.mc.library.civlc;
 
-import java.util.Arrays;
-
 import dev.civl.mc.config.IF.CIVLConfiguration;
 import dev.civl.mc.dynamic.IF.SymbolicUtility;
 import dev.civl.mc.library.civlc.Heuristics.Query;
@@ -188,6 +186,10 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 			case "$extract_unreachable" :
 				callEval = executeExtractUnreachable(state, pid, process,
 						arguments, argumentValues, source);
+				break;
+			case "$is_unreachable" :
+				callEval = executeIsUnreachable(state, pid, process, arguments,
+						argumentValues, source);
 				break;
 			case "$is_concrete_int" :
 				callEval = this.executeIsConcreteInt(state, pid, process,
@@ -417,6 +419,18 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 				.argument(1)).iterator().next();
 
 		return new Evaluation(state, extractedPointer);
+	}
+
+	private Evaluation executeIsUnreachable(State state, int pid,
+			String process, Expression[] arguments,
+			SymbolicExpression[] argumentValues, CIVLSource source)
+			throws UnsatisfiablePathConditionException {
+		SymbolicExpression pointer = argumentValues[0];
+
+		return new Evaluation(state,
+				universe.bool(pointer.operator() == SymbolicOperator.APPLY
+						&& pointer.argument(0) == modelFactory
+								.getMakeUnreachableConstant()));
 	}
 
 	private Evaluation executePow(State state, int pid, String process,
