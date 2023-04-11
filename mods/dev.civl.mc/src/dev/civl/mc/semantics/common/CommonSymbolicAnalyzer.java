@@ -52,6 +52,7 @@ import dev.civl.mc.model.IF.statement.Statement.StatementKind;
 import dev.civl.mc.model.IF.statement.UpdateStatement;
 import dev.civl.mc.model.IF.statement.WithStatement;
 import dev.civl.mc.model.IF.type.CIVLArrayType;
+import dev.civl.mc.model.IF.type.CIVLBundleType;
 import dev.civl.mc.model.IF.type.CIVLHeapType;
 import dev.civl.mc.model.IF.type.CIVLMemType;
 import dev.civl.mc.model.IF.type.CIVLStateType;
@@ -1578,9 +1579,15 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 					case UNION_INJECT : {
 						int fieldIndex = ((IntObject) symbolicExpression
 								.argument(0)).getInt();
-						CIVLStructOrUnionType unionType = (CIVLStructOrUnionType) civlType;
-						CIVLType fieldType = unionType.getField(fieldIndex)
-								.type();
+						CIVLType fieldType;
+						if (civlType instanceof CIVLStructOrUnionType) {
+							CIVLStructOrUnionType unionType = (CIVLStructOrUnionType) civlType;
+							fieldType = unionType.getField(fieldIndex)
+									.type();
+						} else {
+							CIVLBundleType bundleType = (CIVLBundleType) civlType;
+							fieldType = bundleType.getStaticElementType(fieldIndex);
+						}
 
 						result.append(this.symbolicExpressionToString(source,
 								state, fieldType,
