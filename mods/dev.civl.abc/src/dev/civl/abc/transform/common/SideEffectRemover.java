@@ -2267,11 +2267,8 @@ public class SideEffectRemover extends BaseTransformer {
 		List<BlockItemNode> bodyList = translateStatement(body);
 
 		removeNodes(bodyList);
-		if (bodyList.size() == 1)
-			loop.setBody((StatementNode) bodyList.get(0));
-		else
-			loop.setBody(nodeFactory.newCompoundStatementNode(body.getSource(),
-					bodyList));
+		loop.setBody(nodeFactory.newCompoundStatementNode(body.getSource(),
+				bodyList));
 	}
 
 	/**
@@ -2342,19 +2339,18 @@ public class SideEffectRemover extends BaseTransformer {
 		ExpressionNode incrementer = forLoop.getIncrementer();
 		List<BlockItemNode> incItems = translateExpressionAsStatement(
 				incrementer);
-		
-		//Removing this case so that the incrementer is always moved into the body
-		/*
-		if (incItems.size() == 1
-				&& incItems.get(0) instanceof ExpressionStatementNode) {
-			// nothing to do
-			ExpressionNode newIncrementer = ((ExpressionStatementNode) incItems
-					.get(0)).getExpression();
 
-			newIncrementer.remove();
-			forLoop.setIncrementer(newIncrementer);	
-		} else {
-		*/
+		// Removing this case so that the incrementer is always moved into the
+		// body
+		/*
+		 * if (incItems.size() == 1 && incItems.get(0) instanceof
+		 * ExpressionStatementNode) { // nothing to do ExpressionNode
+		 * newIncrementer = ((ExpressionStatementNode) incItems
+		 * .get(0)).getExpression();
+		 * 
+		 * newIncrementer.remove(); forLoop.setIncrementer(newIncrementer); }
+		 * else {
+		 */
 		if (incItems.size() > 0) {
 			// has side-effects:
 			CompoundStatementNode body;
@@ -3313,12 +3309,14 @@ public class SideEffectRemover extends BaseTransformer {
 	}
 
 	private boolean disableShortCircuit(ASTNode node) {
-		if (node == null) return false;
-		
+		if (node == null)
+			return false;
+
 		Source src = node.getSource();
-		
-		if (src == null) return false;
-		
+
+		if (src == null)
+			return false;
+
 		String locationString = src.getLocation(false);
 		int fileSuffixStart = locationString.indexOf(".");
 		int fileSuffixEnd = locationString.indexOf(":");

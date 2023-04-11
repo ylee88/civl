@@ -254,7 +254,7 @@ public class LanguageFeaturesTest {
 	public void compoundInit2() {
 		assertTrue(ui.run(VERIFY, QUIET, filename("compoundInit2.c")));
 	}
-	
+
 	@Test
 	public void compoundInit3() {
 		assertFalse(ui.run(VERIFY, QUIET, filename("compoundInit3.c")));
@@ -264,12 +264,12 @@ public class LanguageFeaturesTest {
 	public void compoundInit4() {
 		assertTrue(ui.run(VERIFY, QUIET, filename("compoundInit4.c")));
 	}
-	
+
 	@Test
 	public void compoundInit5() {
 		assertFalse(ui.run(VERIFY, QUIET, filename("compoundInit5.c")));
 	}
-	
+
 	@Test
 	public void compoundInit6() {
 		assertFalse(ui.run(VERIFY, QUIET, filename("compoundInit6.c")));
@@ -904,6 +904,16 @@ public class LanguageFeaturesTest {
 	public void yieldPurelyLocal() {
 		assertTrue(ui.run(VERIFY, QUIET,
 				yieldTestfilename("yield_purely_local.cvl")));
+	}
+
+	@Test
+	public void shadow1Test() {
+		assertTrue(ui.run(VERIFY, QUIET, filename("shadow1.c")));
+	}
+
+	@Test
+	public void shadow2Test() {
+		assertTrue(ui.run(VERIFY, QUIET, filename("shadow2.c")));
 	}
 
 	@AfterClass
