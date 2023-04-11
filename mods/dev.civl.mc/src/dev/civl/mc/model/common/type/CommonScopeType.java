@@ -79,14 +79,9 @@ public class CommonScopeType extends CommonPrimitiveType
 	 */
 	private ScopeIdentityToValue scopeIdentity2ValueOperator = null;
 
-	/**
-	 * The name of the dynamic scope type.
-	 */
-	private static final String DYNAMIC_SCOPE_TYPE_NAME = "scope";
-
-	public CommonScopeType(NumericExpression sizeofExpression,
+	public CommonScopeType(SymbolicType symbolicType, NumericExpression sizeofExpression,
 			BooleanExpression facts) {
-		super(PrimitiveTypeKind.SCOPE, null, sizeofExpression, facts);
+		super(PrimitiveTypeKind.SCOPE, symbolicType, sizeofExpression, facts);
 	}
 
 	@Override
@@ -94,6 +89,7 @@ public class CommonScopeType extends CommonPrimitiveType
 		return TypeKind.PRIMITIVE;
 	}
 
+	/*
 	@Override
 	public SymbolicType getDynamicType(SymbolicUniverse universe) {
 		if (dynamicType == null)
@@ -101,6 +97,7 @@ public class CommonScopeType extends CommonPrimitiveType
 					.symbolicUninterpretedType(DYNAMIC_SCOPE_TYPE_NAME);
 		return dynamicType;
 	}
+	*/
 
 	@Override
 	public boolean isNumericType() {

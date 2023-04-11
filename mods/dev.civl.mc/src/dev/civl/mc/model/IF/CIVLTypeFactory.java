@@ -191,7 +191,7 @@ public interface CIVLTypeFactory {
 	 * 
 	 * @return the symbolic heap type
 	 */
-	SymbolicTupleType heapSymbolicType();
+	SymbolicType heapSymbolicType();
 
 	/**
 	 * Get a new pointer type.

@@ -142,7 +142,7 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 
 	private CIVLHeapType heapType;
 
-	private SymbolicTupleType dynamicHeapType;
+	private SymbolicType dynamicHeapType;
 
 	private SymbolicTupleType procType;
 
