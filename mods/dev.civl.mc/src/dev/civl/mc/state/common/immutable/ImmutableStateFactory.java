@@ -466,7 +466,8 @@ public class ImmutableStateFactory implements StateFactory {
 								SymbolicExpression heapObj = universe.arrayRead(
 										heapField, universe.integer(objectId));
 
-								if (config.isPropertyToggled(CIVLProperty.MEMORY_LEAK)
+								if (config.isPropertyToggled(
+										CIVLProperty.MEMORY_LEAK)
 										&& !symbolicUtil
 												.isInvalidHeapObject(heapObj)
 										&& !toBeIgnored.contains(
@@ -664,7 +665,8 @@ public class ImmutableStateFactory implements StateFactory {
 			DynamicScope dyscope = state.getDyscope(0);
 			SymbolicExpression heap = dyscope.getValue(0);
 
-			if (config.isPropertyToggled(CIVLProperty.MEMORY_LEAK) && !symbolicUtil.isEmptyHeap(heap))
+			if (config.isPropertyToggled(CIVLProperty.MEMORY_LEAK)
+					&& !symbolicUtil.isEmptyHeap(heap))
 				throw new CIVLHeapException(CIVLProperty.MEMORY_LEAK,
 						Certainty.CONCRETE, state, "d0", 0, heap,
 						HeapErrorKind.NONEMPTY,
@@ -2069,7 +2071,7 @@ public class ImmutableStateFactory implements StateFactory {
 			DynamicScope dyscope = state.getDyscope(i);
 			int numVars = dyscope.numberOfValues();
 
-			for (int vid = 0; vid < numVars; vid++) {
+			for (int vid = 1; vid < numVars; vid++) {
 				SymbolicExpression value = dyscope.getValue(vid);
 
 				reachableHeapObjectsOfValue(state, value, reachable);
@@ -2078,58 +2080,22 @@ public class ImmutableStateFactory implements StateFactory {
 		return reachable;
 	}
 
-	@SuppressWarnings("incomplete-switch")
 	private void reachableHeapObjectsOfValue(State state,
 			SymbolicExpression value, Set<SymbolicExpression> reachable) {
 		if (value.isNull())
 			return;
-		else if (!this.isPointer(value)) {
-			int numArgs = value.numArguments();
 
-			for (int i = 0; i < numArgs; i++) {
-				SymbolicObject arg = value.argument(i);
-				SymbolicObjectKind kind = arg.symbolicObjectKind();
+		if (value.operator() == SymbolicOperator.TUPLE
+				&& this.isPointer(value)) {
+			if (symbolicUtil.isPointerToHeap(value)) {
+				// Widen our pointer to include the entire heap memory unit
+				value = this.symbolicUtil.heapMemUnit(value);
 
-				switch (kind) {
-					case BOOLEAN :
-					case INT :
-					case NUMBER :
-					case STRING :
-					case CHAR :
-					case TYPE :
-					case TYPE_SEQUENCE :
-						break;
-					default :
-						switch (kind) {
-							case EXPRESSION :
-								reachableHeapObjectsOfValue(state,
-										(SymbolicExpression) arg, reachable);
-								break;
-							case SEQUENCE : {
-								Iterator<? extends SymbolicExpression> iter = ((SymbolicSequence<?>) arg)
-										.iterator();
-
-								while (iter.hasNext()) {
-									SymbolicExpression expr = iter.next();
-
-									reachableHeapObjectsOfValue(state, expr,
-											reachable);
-								}
-							}
-						}
-				}
+				// If we already analyzed this heap memory unit then we are done
+				if (!reachable.add(value))
+					return;
 			}
-		} else if (symbolicUtil.isPointerToHeap(value)) {
-			SymbolicExpression heapObjPtr = this.symbolicUtil
-					.heapMemUnit(value);
 
-			// if (!reachable.contains(heapObjPtr))
-			reachable.add(heapObjPtr);
-		} else if (value.operator() != SymbolicOperator.TUPLE) {
-			return;
-		} else if (value.type()
-				.equals(this.typeFactory.pointerSymbolicType())) {
-			// other pointers
 			SymbolicExpression scopeVal = symbolicUtil.getScopeValue(value);
 			int dyscopeId = scopeValueToDyscopeID.apply(scopeVal).intValue();
 
@@ -2148,6 +2114,38 @@ public class ImmutableStateFactory implements StateFactory {
 					return;
 				}
 				reachableHeapObjectsOfValue(state, objectValue, reachable);
+			}
+		} else {
+			int numArgs = value.numArguments();
+
+			for (int i = 0; i < numArgs; i++) {
+				SymbolicObject arg = value.argument(i);
+				SymbolicObjectKind kind = arg.symbolicObjectKind();
+
+				switch (kind) {
+					case BOOLEAN :
+					case INT :
+					case NUMBER :
+					case STRING :
+					case CHAR :
+					case TYPE :
+					case TYPE_SEQUENCE :
+						break;
+					case EXPRESSION :
+						reachableHeapObjectsOfValue(state,
+								(SymbolicExpression) arg, reachable);
+						break;
+					case SEQUENCE : {
+						Iterator<? extends SymbolicExpression> iter = ((SymbolicSequence<?>) arg)
+								.iterator();
+
+						while (iter.hasNext()) {
+							SymbolicExpression expr = iter.next();
+
+							reachableHeapObjectsOfValue(state, expr, reachable);
+						}
+					}
+				}
 			}
 		}
 	}
@@ -3191,8 +3189,8 @@ public class ImmutableStateFactory implements StateFactory {
 			int[] mono2state, SymbolicExpression[] state2curr) {
 		for (int i = 0; i < mono2curr.length; i++) {
 			assert state2curr[mono2state[i]] == null
-					|| state2curr[mono2state[i]] == mono2curr[i] : ""
-							+ "not concatenation";
+					|| state2curr[mono2state[i]] == mono2curr[i]
+					: "" + "not concatenation";
 			state2curr[mono2state[i]] = mono2curr[i];
 		}
 	}
