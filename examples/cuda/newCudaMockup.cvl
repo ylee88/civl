@@ -9,7 +9,6 @@
  * - Add in block-level barriers and a __syncthreads() nested function that uses the barrier.
  * - Add in data race checking support and implement atomicAdd for integers
  * - Handle dependencies at atomic blocks (replace some with local blocks if possible)
- * - Create device scope for cudaMallocs
  */
 
 #include <concurrency.cvh>
@@ -79,6 +78,24 @@ typedef struct $cuda_context {
 	int numStreams;
 } $cuda_context;
 
+typedef struct $cuda_memcpy_data {
+  void* dst;
+  const void* src;
+  size_t count;
+  cudaMemcpyKind kind;
+} $cuda_memcpy_data;
+
+typedef struct $cuda_kernel_1_data {
+  dim3 gridDim;
+  dim3 blockDim;
+  size_t $cudaMemSize;
+  cudaStream_t $cudaStream;
+  const float* A;
+  const float* B;
+  float* C;
+  int numElements;
+} $cuda_kernel_1_data;
+
 //////////////////////
 // Global Variables //
 //////////////////////
@@ -86,66 +103,79 @@ typedef struct $cuda_context {
 $gcomm $cuda_gcomm = $gcomm_create($here, 2);
 const int $CUDA_PLACE_HOST = 0;
 const int $CUDA_PLACE_DEVICE = 1;
-$comm $cuda_host_comm = $comm_create($here, $cuda_gcomm, $cuda_place_host);
+$comm $cuda_host_comm = $comm_create($here, $cuda_gcomm, $CUDA_PLACE_HOST);
 
 /**
  * Tags used for message-passing between host and device
  */
-// Predefined tags
-const int $CUDA_TAG_TEARDOWN = 0;
-const int $CUDA_TAG_cudaMalloc = 1;
-const int $CUDA_TAG_cudaMemcpy = 2;
-// Generated tags (by transformer)
-const int $CUDA_TAG_LAUNCH_kernel_1 = 5;
+
+enum $cuda_tag {
+  // Predefined tags
+  $CUDA_TAG_TEARDOWN,
+  $CUDA_TAG_SCOPE_REQUEST,
+  $CUDA_TAG_cudaFree,
+  $CUDA_TAG_cudaMemcpy,
+  $CUDA_TAG_cudaMemcpyAsync,
+  // Generated tags (by transformer)
+  $CUDA_TAG_LAUNCH_kernel_1
+};
 
 ////////////////////////////////////////////
 // CUDA API Functions (For Host-use Only) //
 ////////////////////////////////////////////
 
+/*
 cudaError_t cudaMalloc(void** devPtr, size_t size) {
   $comm_enqueue($cuda_host_comm, $message_pack($CUDA_PLACE_HOST, $CUDA_PLACE_DEVICE, $CUDA_TAG_cudaMalloc, &size, sizeof(size_t)));
   $message response = $comm_dequeue($cuda_host_comm, $CUDA_PLACE_DEVICE, $CUDA_TAG_cudaMalloc);
   $message_unpack(response, devPtr, sizeof(void*));
+
+  return cudaSuccess;
+}
+*/
+
+$scope $cuda_host_request_device_scope() {
+  $comm_enqueue($cuda_host_comm, $message_pack($CUDA_PLACE_HOST, $CUDA_PLACE_DEVICE, $CUDA_TAG_SCOPE_REQUEST, NULL, 0));
+  $message response = $comm_dequeue($cuda_host_comm, $CUDA_PLACE_DEVICE, $CUDA_TAG_SCOPE_REQUEST);
+  $scope result;
+  $message_unpack(response, &result, sizeof($scope));
+
+  return result;
 }
 
-typedef struct $cuda_memcpy_args {
-  void* dst;
-  void src;
-  size_t count;
-  cudaMemcpyKind kind;
-} $cuda_memcpy_args;
+cudaError_t cudaFree(void* devPtr) {
+  $comm_enqueue($cuda_host_comm, $message_pack($CUDA_PLACE_HOST, $CUDA_PLACE_DEVICE, $CUDA_TAG_cudaFree, &devPtr, sizeof(void*)));
+  $comm_dequeue($cuda_host_comm, $CUDA_PLACE_DEVICE, $CUDA_TAG_cudaFree);
+  
+  return cudaSuccess;
+}
 
-cudaError_t cudaMemcpy(void* dst, const void* src, size_t count, cudaMemcpyKind kind) {
-	if (kind == cudaMemcpyHostToHost) {
+void $cuda_helper_host_memcpy(void* dst, const void* src, size_t count, cudaMemcpyKind kind, _Bool async) {
+  if (kind == cudaMemcpyHostToHost) {
 		memcpy(dst, src, count);
 	} else {
-    $cuda_memcpy_args args;
+    $cuda_memcpy_data args;
     args.dst = dst;
     args.src = src;
     args.count = count;
     args.kind = kind;
-    
-    $comm_enqueue($cuda_host_comm, $message_pack($CUDA_PLACE_HOST, $CUDA_PLACE_DEVICE, $CUDA_TAG_cudaMemcpy, &args, sizeof($cuda_memcpy_args)));
-    $comm_dequeue($cuda_host_comm, $CUDA_PLACE_DEVICE, $CUDA_TAG_cudaMalloc);
+
+    int tag = async ? $CUDA_TAG_cudaMemcpyAsync : $CUDA_TAG_cudaMemcpy;
+
+    $comm_enqueue($cuda_host_comm, $message_pack($CUDA_PLACE_HOST, $CUDA_PLACE_DEVICE, tag, &args, sizeof($cuda_memcpy_data)));
+    $comm_dequeue($cuda_host_comm, $CUDA_PLACE_DEVICE, tag);
 	}
-	
+}
+
+cudaError_t cudaMemcpy(void* dst, const void* src, size_t count, cudaMemcpyKind kind) {
+	$cuda_helper_host_memcpy(dst, src, count, kind, false);
 	return cudaSuccess;
 }
 
-$cuda_stream_node_t $create_new_stream_node() {
-	cudaStream_t newStream = (cudaStream_t) malloc(sizeof(struct cudaStream));
-	newStream->head = NULL;
-	newStream->tail = NULL;
-	newStream->numOps = 0;
-	newStream->alive = true;
-	
-	$cuda_stream_node_t newHead = ($cuda_stream_node_t) malloc(sizeof(struct $cuda_stream_node));
-	newHead->stream = newStream;
-	newStream->containingNode = newHead;
-	newHead->prev = NULL;
-	newHead->next = NULL;
-	
-	return newHead;
+cudaError_t cudaMemcpyAsync(void* dst, const void* src, size_t count,
+                            cudaMemcpyKind kind, cudaStream_t stream) {
+  $cuda_helper_host_memcpy(dst, src, count, kind, true);
+	return cudaSuccess;
 }
 
 /**
@@ -153,6 +183,7 @@ $cuda_stream_node_t $create_new_stream_node() {
  *   - test
  *   - atomic?
  */
+/*
 cudaError_t cudaStreamCreate(cudaStream_t * pStream) {
 	// Create new stream node in linked list
 	$cuda_stream_node_t newHead = $create_new_stream_node();
@@ -165,114 +196,32 @@ cudaError_t cudaStreamCreate(cudaStream_t * pStream) {
 	
 	return cudaSuccess;
 }
+*/
 
 /**
  * TODO:
  *   - test
  *   - atomic?
  */
+/*
 cudaError_t cudaStreamSynchronize(cudaStream_t stream) {
 	stream = $default_stream_if_null(stream);
 	$assert(stream->alive, "Attempt to synchronize with a destroyed stream");
 	$when(stream->head == NULL) return cudaSuccess;
 }
-
-//@ depends_on \nothing;
-$atomic_f $proc $destroy_stream_node($cuda_stream_node_t node) {
-    $proc lastOpProc = $proc_null;
-    cudaStream_t stream = node->stream;
-    
-    if (node->prev != NULL) {
-      node->prev->next = node->next;
-    }
-    if (node->next != NULL) {
-      node->next->prev = node->prev;
-    }
-    free(node);
-    
-    stream->alive = false;
-    if(stream->tail != NULL)
-      lastOpProc = stream->tail->opState->op;
-	
-	void $destroy_stream_when_complete($proc lastOpProc, cudaStream_t stream) {
-		$wait(lastOpProc);
-		free(stream);
-	}
-  
-	return $spawn $destroy_stream_when_complete(lastOpProc, stream);
-}
+*/
 
 // TODO: atomic
+/*
 cudaError_t cudaStreamDestroy(cudaStream_t stream) {
 	$assert(stream != NULL && stream != $cuda_default_stream, "Attempt to destroy default stream");
 	$assert(stream->alive, "Attempt to destroy an already destroyed stream");
 	$destroy_stream_node(stream->containingNode);
 	return cudaSuccess;
 }
+*/
 
-/**
- * Enqueues the calling $proc as a new cuda operation onto stream. Then blocks until the cuda operation is allowed to execute.
- */
-//@ depends_on \nothing;
-$atomic_f $cuda_op_state_t $stream_enqueue(_Bool* enqueuedFlag, cudaStream_t stream) {
-  $cuda_op_state_t newOpState = ($cuda_op_state_t) malloc(sizeof(struct $cuda_op_state));
-  newOpState->start = false;
-  newOpState->op = $self;
-
-  $cuda_op_state_node_t newOpStateNode = ($cuda_op_state_node_t) malloc(sizeof(struct $cuda_op_state_node));
-  newOpStateNode->opState = newOpState;
-  newOpStateNode->next = NULL;
-  
-  stream = $default_stream_if_null(stream);
-  $assert(stream->alive, "Attempt to enqueue a CUDA operation onto a destroyed stream");
-	
-  if (stream->tail == NULL) {
-    stream->head = newOpStateNode;
-    stream->tail = newOpStateNode;
-    newOpState->start = true;
-  } else {
-    stream->tail->next = newOpStateNode;
-    stream->tail = newOpStateNode;
-  }
-  stream->numOps++;
-  *enqueuedFlag = true;
-
-  return newOpState;
-}
-
-//@ depends_on \nothing;
-$atomic_f void $stream_dequeue(cudaStream_t stream) {
-	stream = $default_stream_if_null(stream);
-	$assert(stream->head != NULL, "Attempt to dequeue an empty stream");
-
-    if (stream->head == stream->tail) {
-      stream->tail = NULL;
-    }
-	
-    $cuda_op_state_node_t oldHead = stream->head;
-    stream->head = oldHead->next;
-    if (stream->head != NULL) {
-      stream->head->opState->start = true;
-    }
-	
-    stream->numOps--;
-    free(oldHead->opState);
-    free(oldHead);
-}
-
-cudaError_t cudaMemcpyAsync(void* dst, const void* src, size_t count,
-                            cudaMemcpyKind kind, cudaStream_t stream) {
-	if (kind == cudaMemcpyHostToHost) {
-		memcpy(dst, src, count);
-	} else {
-    _Bool enqueuedFlag = false;
-		$spawn $cuda_memcpy_proc(dst, src, count, &enqueuedFlag, stream);
-    $when(enqueuedFlag);
-	}
-	
-	return cudaSuccess;
-}
-
+/*
 cudaError_t cudaDeviceSynchronize() {
 	$proc* opsToWaitOn;
 	int numOps = 0;
@@ -293,42 +242,22 @@ cudaError_t cudaDeviceSynchronize() {
 	
   return cudaSuccess;
 }
+*/
 
-// Helper function
-int $dim3_index(dim3 size, uint3 location) {
-  return location.x + size.x * (location.y + size.y * location.z);
-}
+void $cuda_host_launch_kernel_1(dim3 gridDim, dim3 blockDim, size_t $cudaMemSize, cudaStream_t $cudaStream,
+                                const float* A, const float* B, float* C, int numElements) {
+  $cuda_kernel_1_data args;
+  args.gridDim = gridDim;
+  args.blockDim = blockDim;
+  args.$cudaMemSize = $cudaMemSize;
+  args.$cudaStream = $cudaStream;
+  args.A = A;
+  args.B = B;
+  args.C = C;
+  args.numElements = numElements;
 
-// Helper function
-int $cuda_kernel_index (dim3 gDim, dim3 bDim, uint3 bIdx, uint3 tIdx) {
-  return $dim3_index(gDim, bIdx) * (bDim.x * bDim.y * bDim.z) + $dim3_index(bDim, tIdx);
-}
-
-void $cuda_run_and_wait_on_procs(dim3 dim, void spawningFunction(uint3)) {
-  //TODO: calculate length and index, replace this function in the kernel
-  $local_start();
-  int length = dim.x * dim.y * dim.z;
-  $proc proc_array[length];
-  $range rx = 0 .. dim.x - 1;
-  $range ry = 0 .. dim.y - 1;
-  $range rz = 0 .. dim.z - 1;
-  $domain(3) dom = ($domain(3)){rx, ry, rz};
-  $for(int x,y,z : dom){
-    uint3 id = { x, y, z };
-    int index = $dim3_index(dim, id);
-    proc_array[index] = $spawn spawningFunction(id);
-  }
-  $local_end();
-  $waitall(proc_array,length);
-}
-
-void $proc_kernel_1(dim3 gridDim, dim3 blockDim, size_t _cudaMemSize,
-                    _Bool* enqueuedFlag, cudaStream_t _cudaStream,
-                    const float *A, const float *B, float *C, int numElements) {
-  $cuda_op_state_t opState = $stream_enqueue(enqueuedFlag, _cudaStream);
-  $when(opState->start);
-  _cuda_kernel_1(gridDim, blockDim, _cudaMemSize, A, B, C, numElements);
-  $stream_dequeue(_cudaStream);
+  $comm_enqueue($cuda_host_comm, $message_pack($CUDA_PLACE_HOST, $CUDA_PLACE_DEVICE, $CUDA_TAG_LAUNCH_kernel_1, &args, sizeof($cuda_kernel_1_data)));
+  $comm_dequeue($cuda_host_comm, $CUDA_PLACE_DEVICE, $CUDA_TAG_LAUNCH_kernel_1);
 }
 
 /////////////////
@@ -341,14 +270,122 @@ void _cuda_main() {
   // Device Variables //
   //////////////////////
 
-  $comm $cuda_device_comm = $comm_create($here, $cuda_gcomm, 1);
+  $scope $cuda_scope = $here;
+  
+  $comm $cuda_device_comm = $comm_create($cuda_scope, $cuda_gcomm, 1);
   $cuda_context $cuda_global_context;
   cudaStream_t $cuda_default_stream;
+
+  /////////////////////////////////
+  // Context & Stream Management //
+  /////////////////////////////////
+
+  // Helper function to get the default stream if passed NULL, and just returns stream otherwise
+  cudaStream_t $default_stream_if_null(cudaStream_t stream) {
+    return stream == NULL ? $cuda_default_stream : stream;
+  }
+
+  $cuda_stream_node_t $create_new_stream_node() {
+    cudaStream_t newStream = (cudaStream_t) malloc(sizeof(struct cudaStream));
+    newStream->head = NULL;
+    newStream->tail = NULL;
+    newStream->numOps = 0;
+    newStream->alive = true;
+	
+    $cuda_stream_node_t newHead = ($cuda_stream_node_t) malloc(sizeof(struct $cuda_stream_node));
+    newHead->stream = newStream;
+    newStream->containingNode = newHead;
+    newHead->prev = NULL;
+    newHead->next = NULL;
+	
+    return newHead;
+  }
+
+  //@ depends_on \nothing;
+  $atomic_f $proc $destroy_stream_node($cuda_stream_node_t node) {
+    $proc lastOpProc = $proc_null;
+    cudaStream_t stream = node->stream;
+    
+    if (node->prev != NULL) {
+      node->prev->next = node->next;
+    }
+    if (node->next != NULL) {
+      node->next->prev = node->prev;
+    }
+    free(node);
+    
+    stream->alive = false;
+    if(stream->tail != NULL)
+      lastOpProc = stream->tail->opState->op;
+	
+    void $destroy_stream_when_complete($proc lastOpProc, cudaStream_t stream) {
+      $wait(lastOpProc);
+      free(stream);
+    }
+  
+    return $spawn $destroy_stream_when_complete(lastOpProc, stream);
+  }
+  
+  /**
+   * Enqueues the calling $proc as a new cuda operation onto stream. Then blocks until the cuda operation is allowed to execute.
+   *
+   * Reasoning behind using enqueuedFlag:
+   * + Enforces in the interface more explicitly that device proc shouldn't continue until new op state is created and properly filled out (including the $proc field)
+   * + Keeps symmetry since this method means the op does both enqueueing and dequeueing. The alternative technique would have device enqueuing and op dequeuing.
+   * + Reduces dependencies since device proc will not be manipulating the streams nor have direct access to the newly created op state.
+   * + Keeps responsibility of device proc strictly to interpreting messages, spawning appropriate ops and sending message.
+   */
+  //@ depends_on \nothing;
+  $atomic_f $cuda_op_state_t $stream_enqueue(_Bool* enqueuedFlag, cudaStream_t stream) {
+    $cuda_op_state_t newOpState = ($cuda_op_state_t) $malloc($cuda_scope, sizeof(struct $cuda_op_state));
+    newOpState->start = false;
+    newOpState->op = $self;
+
+    $cuda_op_state_node_t newOpStateNode = ($cuda_op_state_node_t) $malloc($cuda_scope, sizeof(struct $cuda_op_state_node));
+    newOpStateNode->opState = newOpState;
+    newOpStateNode->next = NULL;
+  
+    stream = $default_stream_if_null(stream);
+    $assert(stream->alive, "Attempt to enqueue a CUDA operation onto a destroyed stream");
+	
+    if (stream->tail == NULL) {
+      stream->head = newOpStateNode;
+      stream->tail = newOpStateNode;
+      newOpState->start = true;
+    } else {
+      stream->tail->next = newOpStateNode;
+      stream->tail = newOpStateNode;
+    }
+    stream->numOps++;
+    *enqueuedFlag = true;
+
+    return newOpState;
+  }
+
+  //@ depends_on \nothing;
+  $atomic_f void $stream_dequeue(cudaStream_t stream) {
+    stream = $default_stream_if_null(stream);
+    $assert(stream->head != NULL, "Attempt to dequeue an empty stream");
+
+    if (stream->head == stream->tail) {
+      stream->tail = NULL;
+    }
+	
+    $cuda_op_state_node_t oldHead = stream->head;
+    stream->head = oldHead->next;
+    if (stream->head != NULL) {
+      stream->head->opState->start = true;
+    }
+	
+    stream->numOps--;
+    free(oldHead->opState);
+    free(oldHead);
+  }
 
   ///////////////////////////////
   // CUDA Function Definitions //
   ///////////////////////////////
-  
+
   /**
    * Only called at start of program
    */
@@ -366,48 +403,92 @@ void _cuda_main() {
   void $cuda_teardown() {
     $proc destructor = $destroy_stream_node($cuda_default_stream->containingNode);
     $wait(destructor);
+    $comm_destroy($cuda_device_comm);
   }
 
+  /*
   $message $cuda_malloc($message request) {
     size_t size;
     $message_unpack(request, &size, sizeof(size_t));
-    void* ptr = $malloc($here, size);
+    void* ptr = $make_unreachable((void*)$malloc($cuda_scope, size));
+    return $message_pack($CUDA_PLACE_DEVICE, $CUDA_PLACE_HOST, $CUDA_TAG_cudaMalloc, &ptr, sizeof(void*));
+  }
+  */
 
-    return $message_pack($CUDA_PLACE_DEVICE, $CUDA_PLACE_HOST, $CUDA_TAG_cudaMalloc, &$make_unreachable(ptr), sizeof(void*));
+  $message $cuda_free($message request) {
+    void* devPtr;
+    $message_unpack(request, &devPtr, sizeof(void*));
+    //free($extract_unreachable(devPtr));
+    free(devPtr);
+
+    return $message_pack($CUDA_PLACE_DEVICE, $CUDA_PLACE_HOST, $CUDA_TAG_cudaFree, NULL, 0);
   }
 
-  void $cuda_memcpy_proc(void* dst, const void* src, size_t count, _Bool* enqueuedFlag, cudaStream_t stream) {
+  void $cuda_memcpy_proc(void* dst, const void* src, size_t count, cudaMemcpyKind kind, _Bool* enqueuedFlag, cudaStream_t stream) {
     $cuda_op_state_t opState = $stream_enqueue(enqueuedFlag, stream);
     $when(opState->start);
+    
+    if (kind == cudaMemcpyHostToDevice || cudaMemcpyDeviceToDevice) {
+      //dst = $extract_unreachable(dst);
+    }
+    if (kind == cudaMemcpyDeviceToHost || cudaMemcpyDeviceToDevice) {
+      //src = $extract_unreachable((void*)src);
+    }
     memcpy(dst, src, count);
+    
     $stream_dequeue(stream);
   }
 
-  $message $cuda_memcpy($message request) {
-    $cuda_memcpy_args args;
-    $message_unpack(request, &args, sizeof($cuda_memcpy_args));
+  $message $cuda_memcpy($message request, _Bool async) {
+    $cuda_memcpy_data args;
+    $message_unpack(request, &args, sizeof($cuda_memcpy_data));
     
     _Bool enqueuedFlag = false;
-		$proc memcpyProc = $spawn $cuda_memcpy_proc(args.dst, args.src, args.count, &enqueuedFlag, $cuda_default_stream);
+		$proc memcpyProc = $spawn $cuda_memcpy_proc(args.dst, args.src, args.count, args.kind, &enqueuedFlag, $cuda_default_stream);
     $when(enqueuedFlag);
-		if (args.kind != cudaMemcpyDeviceToDevice) {
+    
+		if (!async && args.kind != cudaMemcpyDeviceToDevice) {
 			$wait(memcpyProc);
 		}
+    int tag = async ? $CUDA_TAG_cudaMemcpyAsync : $CUDA_TAG_cudaMemcpy;
 
-    return $message_pack($CUDA_PLACE_DEVICE, $CUDA_PLACE_HOST, $CUDA_TAG_cudaMemcpy, null, 0);
-  }
-  
-  // Helper function to get the default stream if passed NULL, and just returns stream otherwise
-  cudaStream_t $default_stream_if_null(cudaStream_t stream) {
-    return stream == NULL ? $cuda_default_stream : stream;
+    return $message_pack($CUDA_PLACE_DEVICE, $CUDA_PLACE_HOST, tag, NULL, 0);
   }
 
   ////////////////////////
   // Kernel Definitions //
   ////////////////////////
+
+  // Helper function
+  int $dim3_index(dim3 size, uint3 location) {
+    return location.x + size.x * (location.y + size.y * location.z);
+  }
+
+  // Helper function
+  int $cuda_kernel_index (dim3 gDim, dim3 bDim, uint3 bIdx, uint3 tIdx) {
+    return $dim3_index(gDim, bIdx) * (bDim.x * bDim.y * bDim.z) + $dim3_index(bDim, tIdx);
+  }
+
+  void $cuda_run_and_wait_on_procs(dim3 dim, void spawningFunction(uint3)) {
+    //TODO: calculate length and index, replace this function in the kernel
+    $local_start();
+    int length = dim.x * dim.y * dim.z;
+    $proc proc_array[length];
+    $range rx = 0 .. dim.x - 1;
+    $range ry = 0 .. dim.y - 1;
+    $range rz = 0 .. dim.z - 1;
+    $domain(3) dom = ($domain(3)){rx, ry, rz};
+    $for(int x,y,z : dom){
+      uint3 id = { x, y, z };
+      int index = $dim3_index(dim, id);
+      proc_array[index] = $spawn spawningFunction(id);
+    }
+    $local_end();
+    $waitall(proc_array,length);
+  }
   
   // Generated from kernel_1 definition
-  void _cuda_kernel_1(dim3 gridDim, dim3 blockDim, size_t _cuda_mem_size,
+  void $cuda_kernel_1(dim3 gridDim, dim3 blockDim, size_t _cuda_mem_size,
                     const float *A, const float *B, float *C, int numElements) {
     void _cuda_block(uint3 blockIdx) {
       int numThreads = (blockDim.x * blockDim.y) * blockDim.z;
@@ -436,6 +517,26 @@ void _cuda_main() {
     }
     $cuda_run_and_wait_on_procs(gridDim, _cuda_block);
   }
+
+  void $cuda_kernel_1_proc (_Bool* enqueuedFlag, dim3 gridDim, dim3 blockDim,
+                      size_t $cudaMemSize, cudaStream_t $cudaStream,
+                      const float *A, const float *B, float *C, int numElements) {
+    $cuda_op_state_t opState = $stream_enqueue(enqueuedFlag, $cudaStream);
+    $when(opState->start);
+    $cuda_kernel_1(gridDim, blockDim, $cudaMemSize, A, B, C, numElements);
+    $stream_dequeue($cudaStream);
+  }
+
+  $message $cuda_device_launch_kernel_1($message request) {
+    $cuda_kernel_1_data args;
+    $message_unpack(request, &args, sizeof($cuda_kernel_1_data));
+    
+    _Bool enqueuedFlag = false;
+    $spawn $cuda_kernel_1_proc(&enqueuedFlag, args.gridDim, args.blockDim, args.$cudaMemSize, args.$cudaStream, args.A, args.B, args.C, args.numElements);
+    $when(enqueuedFlag);
+
+    return $message_pack($CUDA_PLACE_DEVICE, $CUDA_PLACE_HOST, $CUDA_TAG_LAUNCH_kernel_1, NULL, 0);
+  }
   
   /////////////////
   // Device main //
@@ -446,20 +547,27 @@ void _cuda_main() {
   while (true) {
     $message request = $comm_dequeue($cuda_device_comm, $CUDA_PLACE_HOST, $COMM_ANY_TAG);
     $message response;
-    int tag = $message_tag(request);
+    const int tag = $message_tag(request);
     
     switch(tag) {
+    case $CUDA_TAG_SCOPE_REQUEST :
+      response = $message_pack($CUDA_PLACE_DEVICE, $CUDA_PLACE_HOST, $CUDA_TAG_SCOPE_REQUEST, &$cuda_scope, sizeof($scope));
+      break;
+    case $CUDA_TAG_cudaFree :
+      response = $cuda_free(request);
+      break;
+    case $CUDA_TAG_cudaMemcpy :
+      response = $cuda_memcpy(request, false);
+      break;
+    case $CUDA_TAG_cudaMemcpyAsync :
+      response = $cuda_memcpy(request, true);
+      break;
+    case $CUDA_TAG_LAUNCH_kernel_1 :
+      response = $cuda_device_launch_kernel_1(request);
+      break;
     case $CUDA_TAG_TEARDOWN :
       $cuda_teardown();
       return;
-    case $CUDA_TAG_cudaMalloc :
-      response = $cuda_malloc(request);
-      break;
-    case $CUDA_TAG_cudaMemcpy :
-      response = $cuda_memcpy(request);
-      break;
-    case $CUDA_TAG_LAUNCH_kernel_1 :
-      response = ???;
     default :
       $assert(false, "Unknown CUDA request");
     }
@@ -483,34 +591,35 @@ void _host_main() {
   int numThreads = N%2 == 0? N/2 : (N+1)/2;
 
   float* cuda_A;
-  foo((void **)&cuda_A, size);
-  /*
+  // cudaMalloc((void **)&cuda_A, size);
   {
-    cuda_A = (float *) malloc(size);
+    $scope deviceScope = $cuda_host_request_device_scope();
+    //cuda_A = $make_unreachable((float*)$malloc(deviceScope, size));
+    cuda_A = (float*)$malloc(deviceScope, size);
   }
-  */
   cudaMemcpy(cuda_A, A, size, cudaMemcpyHostToDevice);
 
   float* cuda_B;
   // cudaMalloc((void **)&cuda_B, size);
   {
-    cuda_B = (float *) malloc(size);
+    $scope deviceScope = $cuda_host_request_device_scope();
+    //cuda_B = $make_unreachable((float*)$malloc(deviceScope, size));
+    cuda_B = (float*)$malloc(deviceScope, size);
   }
   cudaMemcpy(cuda_B, B, size, cudaMemcpyHostToDevice);
 
   float* cuda_C;
   // cudaMalloc((void **)&cuda_C, size);
   {
-    cuda_C = (float *) malloc(size);
+    $scope deviceScope = $cuda_host_request_device_scope();
+    //cuda_C = $make_unreachable((float*)$malloc(deviceScope, size));
+    cuda_C = (float*)$malloc(deviceScope, size);
   }
 
-  { // kernel_1<<<gridDim, blockDim>>>(cuda_A, cuda_B, cuda_C, N);
-    dim3 gridDim = {numBlocks, 1, 1};
-    dim3 blockDim = {numThreads, 1, 1};
-    _Bool enqueuedFlag = false;
-    $spawn $proc_kernel_1(gridDim, blockDim, 0, &enqueuedFlag, NULL, cuda_A, cuda_B, cuda_C, N);
-    $when(enqueuedFlag);
-  }
+  dim3 gridDim = {numBlocks, 1, 1};
+  dim3 blockDim = {numThreads, 1, 1};
+  // kernel_1<<<gridDim, blockDim>>>(cuda_A, cuda_B, cuda_C, N);
+  $cuda_host_launch_kernel_1(gridDim, blockDim, 0, NULL, cuda_A, cuda_B, cuda_C, N);
   
   //Checking correctness
   float* C = (float *)malloc(size);
@@ -522,13 +631,13 @@ void _host_main() {
   
   free(C);
   
-  //cudaFree(cuda_A);...
-  free(cuda_A);
-  free(cuda_B);
-  free(cuda_C);
+  cudaFree(cuda_A);
+  cudaFree(cuda_B);
+  cudaFree(cuda_C);
 
   // inserted by transformer
   $comm_enqueue($cuda_host_comm, $message_pack($CUDA_PLACE_HOST, $CUDA_PLACE_DEVICE, $CUDA_TAG_TEARDOWN, NULL, 0));
+  $comm_destroy($cuda_host_comm);
 }
 
 int main() {
@@ -536,4 +645,5 @@ int main() {
   $proc cuda = $spawn _cuda_main();
   $wait(host);
   $wait(cuda);
+  $gcomm_destroy($cuda_gcomm, NULL);
 }
