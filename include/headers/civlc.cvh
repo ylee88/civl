@@ -125,9 +125,29 @@ $system void $free(void *p);
   @*/
 $system void $havoc(void *ptr);
 
-$abstract void* $make_unreachable(void* ptr);
-$system void* $extract_unreachable(void* ptr);
-$system _Bool $is_unreachable(void* ptr);
+/* Special $abstract function meant to temporarily "hide" a pointer value from
+ * being considered reachable by POR analysis
+ */
+$abstract void* $hide(void* ptr);
+
+/* Replaces any subexpressions of the value of ptr of the form $hide(p_expr) with
+ * p_expr. In other words, it pulls out the arguments to any calls to $hide,
+ * "revealing" them to be reachable by POR again.
+ */
+/*@ pure;
+  @ depends_on \nothing;
+  @ executes_when \true;
+  @*/
+$system void* $reveal(void* ptr);
+
+/* Determines if a given pointer value is an application of the $abstract function
+ * $hide (potentially, inside of a cast and/or with an offset)
+ */
+/*@ pure;
+  @ depends_on \nothing;
+  @ executes_when \true;
+  @*/
+$system _Bool $hidden(void* ptr);
 
 /* Assigns default value to the object referred by the given pointer
  * "ptr" as if the object has static storage.  The definition of

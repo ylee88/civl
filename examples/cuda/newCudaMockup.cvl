@@ -406,20 +406,11 @@ void _cuda_main() {
     $comm_destroy($cuda_device_comm);
   }
 
-  /*
-  $message $cuda_malloc($message request) {
-    size_t size;
-    $message_unpack(request, &size, sizeof(size_t));
-    void* ptr = $make_unreachable((void*)$malloc($cuda_scope, size));
-    return $message_pack($CUDA_PLACE_DEVICE, $CUDA_PLACE_HOST, $CUDA_TAG_cudaMalloc, &ptr, sizeof(void*));
-  }
-  */
-
   $message $cuda_free($message request) {
     void* devPtr;
     $message_unpack(request, &devPtr, sizeof(void*));
-    //free($extract_unreachable(devPtr));
-    free(devPtr);
+    free($reveal(devPtr));
+    //free(devPtr);
 
     return $message_pack($CUDA_PLACE_DEVICE, $CUDA_PLACE_HOST, $CUDA_TAG_cudaFree, NULL, 0);
   }
@@ -429,10 +420,10 @@ void _cuda_main() {
     $when(opState->start);
     
     if (kind == cudaMemcpyHostToDevice || cudaMemcpyDeviceToDevice) {
-      //dst = $extract_unreachable(dst);
+      dst = $reveal(dst);
     }
     if (kind == cudaMemcpyDeviceToHost || cudaMemcpyDeviceToDevice) {
-      //src = $extract_unreachable((void*)src);
+      src = $reveal(src);
     }
     memcpy(dst, src, count);
     
@@ -594,8 +585,8 @@ void _host_main() {
   // cudaMalloc((void **)&cuda_A, size);
   {
     $scope deviceScope = $cuda_host_request_device_scope();
-    //cuda_A = $make_unreachable((float*)$malloc(deviceScope, size));
-    cuda_A = (float*)$malloc(deviceScope, size);
+    cuda_A = $hide((float*)$malloc(deviceScope, size));
+    //cuda_A = (float*)$malloc(deviceScope, size);
   }
   cudaMemcpy(cuda_A, A, size, cudaMemcpyHostToDevice);
 
@@ -603,8 +594,8 @@ void _host_main() {
   // cudaMalloc((void **)&cuda_B, size);
   {
     $scope deviceScope = $cuda_host_request_device_scope();
-    //cuda_B = $make_unreachable((float*)$malloc(deviceScope, size));
-    cuda_B = (float*)$malloc(deviceScope, size);
+    cuda_B = $hide((float*)$malloc(deviceScope, size));
+    //cuda_B = (float*)$malloc(deviceScope, size);
   }
   cudaMemcpy(cuda_B, B, size, cudaMemcpyHostToDevice);
 
@@ -612,8 +603,8 @@ void _host_main() {
   // cudaMalloc((void **)&cuda_C, size);
   {
     $scope deviceScope = $cuda_host_request_device_scope();
-    //cuda_C = $make_unreachable((float*)$malloc(deviceScope, size));
-    cuda_C = (float*)$malloc(deviceScope, size);
+    cuda_C = $hide((float*)$malloc(deviceScope, size));
+    //cuda_C = (float*)$malloc(deviceScope, size);
   }
 
   dim3 gridDim = {numBlocks, 1, 1};

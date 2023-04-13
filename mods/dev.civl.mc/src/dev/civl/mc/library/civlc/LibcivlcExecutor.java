@@ -183,12 +183,12 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 				callEval = executeHavoc(state, pid, process, arguments,
 						argumentValues, source);
 				break;
-			case "$extract_unreachable" :
-				callEval = executeExtractUnreachable(state, pid, process,
+			case "$reveal" :
+				callEval = executeReveal(state, pid, process,
 						arguments, argumentValues, source);
 				break;
-			case "$is_unreachable" :
-				callEval = executeIsUnreachable(state, pid, process, arguments,
+			case "$hidden" :
+				callEval = executeHidden(state, pid, process, arguments,
 						argumentValues, source);
 				break;
 			case "$is_concrete_int" :
@@ -397,20 +397,20 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 		return new Evaluation(state, null);
 	}
 
-	private Evaluation executeExtractUnreachable(State state, int pid,
+	private Evaluation executeReveal(State state, int pid,
 			String process, Expression[] arguments,
 			SymbolicExpression[] argumentValues, CIVLSource source)
 			throws UnsatisfiablePathConditionException {
 		SymbolicExpression pointer = argumentValues[0];
 
 		if (pointer.operator() != SymbolicOperator.APPLY || pointer
-				.argument(0) != modelFactory.getMakeUnreachableConstant()) {
+				.argument(0) != modelFactory.getHideConstant()) {
 			state = this.errorLogger.logError(source, state, pid,
 					this.symbolicAnalyzer.stateInformation(state), falseValue,
 					ResultType.NO, CIVLProperty.LIBRARY,
-					"Cannot apply $extract_unreachable to a pointer whose value "
+					"Cannot apply $reveal to a pointer whose value "
 							+ "isn't an application of the $abstract function "
-							+ "$make_unreachable.\npointer: "
+							+ "$hide.\npointer: "
 							+ this.symbolicAnalyzer.symbolicExpressionToString(
 									source, state, null, pointer));
 		}
@@ -421,7 +421,7 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 		return new Evaluation(state, extractedPointer);
 	}
 
-	private Evaluation executeIsUnreachable(State state, int pid,
+	private Evaluation executeHidden(State state, int pid,
 			String process, Expression[] arguments,
 			SymbolicExpression[] argumentValues, CIVLSource source)
 			throws UnsatisfiablePathConditionException {
@@ -430,7 +430,7 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 		return new Evaluation(state,
 				universe.bool(pointer.operator() == SymbolicOperator.APPLY
 						&& pointer.argument(0) == modelFactory
-								.getMakeUnreachableConstant()));
+								.getHideConstant()));
 	}
 
 	private Evaluation executePow(State state, int pid, String process,

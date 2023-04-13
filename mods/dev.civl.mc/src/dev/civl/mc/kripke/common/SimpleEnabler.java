@@ -293,7 +293,7 @@ public class SimpleEnabler implements Enabler {
 				.variable();
 		this.atomicLockVariableVid = atomicLockVariable.vid();
 		this.atomicLockVariableScopeId = atomicLockVariable.scope().id();
-		this.hideFunction = modelFactory.getMakeUnreachableConstant();
+		this.hideFunction = modelFactory.getHideConstant();
 
 	}
 

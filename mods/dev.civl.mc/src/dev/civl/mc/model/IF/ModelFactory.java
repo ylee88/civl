@@ -1628,7 +1628,7 @@ public interface ModelFactory {
 	 */
 	Identifier getLiteralDomCounterIdentifier(CIVLSource source, int count);
 
-	SymbolicConstant getMakeUnreachableConstant();
+	SymbolicConstant getHideConstant();
 	
 	/**
 	 * Create a variable of the given type and add it to the given scope.

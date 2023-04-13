@@ -337,7 +337,7 @@ public class CommonModelFactory implements ModelFactory {
 
 	private FunctionIdentifierExpression elaborateDomainFuncPointer = null;
 	
-	private SymbolicConstant makeUnreachableConstant = null;
+	private SymbolicConstant hideConstant = null;
 
 	/* **************************** Constructors *************************** */
 
@@ -1744,15 +1744,15 @@ public class CommonModelFactory implements ModelFactory {
 	}
 	
 	@Override
-	public SymbolicConstant getMakeUnreachableConstant() {
-		if (makeUnreachableConstant == null) {
-			makeUnreachableConstant = universe.symbolicConstant(
-					universe.stringObject("AF_$make_unreachable"),
+	public SymbolicConstant getHideConstant() {
+		if (hideConstant == null) {
+			hideConstant = universe.symbolicConstant(
+					universe.stringObject("AF_$hide"),
 					universe.functionType(
 							Arrays.asList(typeFactory.pointerSymbolicType()),
 							typeFactory.pointerSymbolicType()));
 		}
-		return makeUnreachableConstant;
+		return hideConstant;
 	}
 
 	@Override
