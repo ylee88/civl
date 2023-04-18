@@ -11,6 +11,7 @@ import dev.civl.sarl.IF.type.SymbolicType;
 import dev.civl.sarl.object.IF.ObjectFactory;
 import dev.civl.sarl.preuniverse.IF.PreUniverse;
 import dev.civl.sarl.type.IF.SymbolicTypeFactory;
+import dev.civl.sarl.IF.UnaryOperator;
 
 /**
  * A substituter specified by giving an explicit Java {@link Map} from
@@ -52,13 +53,13 @@ public class MapSubstituter extends ExpressionSubstituter {
 		}
 	}
 
-	private Map<SymbolicExpression, SymbolicExpression> map;
+	private UnaryOperator<SymbolicExpression> operator;
 
 	public MapSubstituter(PreUniverse universe, ObjectFactory objectFactory,
 			SymbolicTypeFactory typeFactory,
-			Map<SymbolicExpression, SymbolicExpression> map) {
+			UnaryOperator<SymbolicExpression> operator) {
 		super(universe, objectFactory, typeFactory);
-		this.map = map;
+		this.operator = operator;
 	}
 
 	@Override
@@ -84,7 +85,7 @@ public class MapSubstituter extends ExpressionSubstituter {
 			return expression;
 		else
 			return universe.make(expression.operator(), newType,
-					new SymbolicObject[] { arg0, newArg1 });
+					new SymbolicObject[]{arg0, newArg1});
 	}
 
 	@Override
@@ -95,7 +96,7 @@ public class MapSubstituter extends ExpressionSubstituter {
 				&& ((BoundStack) state).contains((SymbolicConstant) expr))
 			return expr;
 
-		SymbolicExpression result = map.get(expr);
+		SymbolicExpression result = operator.apply(expr);
 
 		if (result != null)
 			return result;

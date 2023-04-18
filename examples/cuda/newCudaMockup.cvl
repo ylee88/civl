@@ -523,7 +523,7 @@ void _cuda_main() {
     $message_unpack(request, &args, sizeof($cuda_kernel_1_data));
     
     _Bool enqueuedFlag = false;
-    $spawn $cuda_kernel_1_proc(&enqueuedFlag, args.gridDim, args.blockDim, args.$cudaMemSize, args.$cudaStream, args.A, args.B, args.C, args.numElements);
+    $spawn $cuda_kernel_1_proc(&enqueuedFlag, args.gridDim, args.blockDim, args.$cudaMemSize, args.$cudaStream, $reveal(args.A), $reveal(args.B), $reveal(args.C), args.numElements);
     $when(enqueuedFlag);
 
     return $message_pack($CUDA_PLACE_DEVICE, $CUDA_PLACE_HOST, $CUDA_TAG_LAUNCH_kernel_1, NULL, 0);

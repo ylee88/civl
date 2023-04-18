@@ -489,6 +489,8 @@ public interface CoreUniverse {
 	 */
 	UnaryOperator<SymbolicExpression> mapSubstituter(
 			Map<SymbolicExpression, SymbolicExpression> map);
+	
+	UnaryOperator<SymbolicExpression> mapSubstituter(UnaryOperator<SymbolicExpression> operator);
 
 	/**
 	 * Returns a substituter specified by a mapping of old names to new names

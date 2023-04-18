@@ -3098,9 +3098,14 @@ public class CommonPreUniverse implements PreUniverse {
 	@Override
 	public UnaryOperator<SymbolicExpression> mapSubstituter(
 			Map<SymbolicExpression, SymbolicExpression> map) {
-		return new MapSubstituter(this, objectFactory, typeFactory, map);
+		return mapSubstituter(e -> map.get(e));
 	}
 
+	@Override
+	public UnaryOperator<SymbolicExpression> mapSubstituter(UnaryOperator<SymbolicExpression> operator) {
+		return new MapSubstituter(this, objectFactory, typeFactory, operator);
+	}
+	
 	@Override
 	public UnaryOperator<SymbolicExpression> nameSubstituter(
 			Map<StringObject, StringObject> nameMap) {

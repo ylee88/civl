@@ -128,7 +128,7 @@ $system void $havoc(void *ptr);
 /* Special $abstract function meant to temporarily "hide" a pointer value from
  * being considered reachable by POR analysis
  */
-$abstract void* $hide(void* ptr);
+$abstract void* $hide(const void* ptr);
 
 /* Replaces any subexpressions of the value of ptr of the form $hide(p_expr) with
  * p_expr. In other words, it pulls out the arguments to any calls to $hide,
@@ -138,7 +138,7 @@ $abstract void* $hide(void* ptr);
   @ depends_on \nothing;
   @ executes_when \true;
   @*/
-$system void* $reveal(void* ptr);
+$system void* $reveal(const void* ptr);
 
 /* Determines if a given pointer value is an application of the $abstract function
  * $hide (potentially, inside of a cast and/or with an offset)
@@ -147,7 +147,7 @@ $system void* $reveal(void* ptr);
   @ depends_on \nothing;
   @ executes_when \true;
   @*/
-$system _Bool $hidden(void* ptr);
+$system _Bool $hidden(const void* ptr);
 
 /* Assigns default value to the object referred by the given pointer
  * "ptr" as if the object has static storage.  The definition of

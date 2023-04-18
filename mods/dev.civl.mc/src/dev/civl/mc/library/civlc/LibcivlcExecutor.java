@@ -1,5 +1,8 @@
 package dev.civl.mc.library.civlc;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import dev.civl.mc.config.IF.CIVLConfiguration;
 import dev.civl.mc.dynamic.IF.SymbolicUtility;
 import dev.civl.mc.library.civlc.Heuristics.Query;
@@ -29,6 +32,7 @@ import dev.civl.mc.state.IF.State;
 import dev.civl.mc.state.IF.UnsatisfiablePathConditionException;
 import dev.civl.mc.util.IF.Pair;
 import dev.civl.sarl.IF.Reasoner;
+import dev.civl.sarl.IF.UnaryOperator;
 import dev.civl.sarl.IF.ValidityResult.ResultType;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.NTReferenceExpression;
@@ -37,6 +41,8 @@ import dev.civl.sarl.IF.expr.ReferenceExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
 import dev.civl.sarl.IF.number.IntegerNumber;
+import dev.civl.sarl.IF.object.SymbolicObject;
+import dev.civl.sarl.IF.object.SymbolicObject.SymbolicObjectKind;
 import dev.civl.sarl.IF.type.SymbolicArrayType;
 import dev.civl.sarl.IF.type.SymbolicTupleType;
 import dev.civl.sarl.IF.type.SymbolicType;
@@ -184,8 +190,8 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 						argumentValues, source);
 				break;
 			case "$reveal" :
-				callEval = executeReveal(state, pid, process,
-						arguments, argumentValues, source);
+				callEval = executeReveal(state, pid, process, arguments,
+						argumentValues, source);
 				break;
 			case "$hidden" :
 				callEval = executeHidden(state, pid, process, arguments,
@@ -397,40 +403,29 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 		return new Evaluation(state, null);
 	}
 
-	private Evaluation executeReveal(State state, int pid,
-			String process, Expression[] arguments,
-			SymbolicExpression[] argumentValues, CIVLSource source)
-			throws UnsatisfiablePathConditionException {
-		SymbolicExpression pointer = argumentValues[0];
-
-		if (pointer.operator() != SymbolicOperator.APPLY || pointer
-				.argument(0) != modelFactory.getHideConstant()) {
-			state = this.errorLogger.logError(source, state, pid,
-					this.symbolicAnalyzer.stateInformation(state), falseValue,
-					ResultType.NO, CIVLProperty.LIBRARY,
-					"Cannot apply $reveal to a pointer whose value "
-							+ "isn't an application of the $abstract function "
-							+ "$hide.\npointer: "
-							+ this.symbolicAnalyzer.symbolicExpressionToString(
-									source, state, null, pointer));
-		}
-		@SuppressWarnings("unchecked")
-		SymbolicExpression extractedPointer = ((Iterable<? extends SymbolicExpression>) pointer
-				.argument(1)).iterator().next();
-
-		return new Evaluation(state, extractedPointer);
+	private Evaluation executeReveal(State state, int pid, String process,
+			Expression[] arguments, SymbolicExpression[] argumentValues,
+			CIVLSource source) throws UnsatisfiablePathConditionException {
+		return new Evaluation(state,
+				(SymbolicExpression) revealObject(argumentValues[0]));
 	}
 
-	private Evaluation executeHidden(State state, int pid,
-			String process, Expression[] arguments,
-			SymbolicExpression[] argumentValues, CIVLSource source)
-			throws UnsatisfiablePathConditionException {
-		SymbolicExpression pointer = argumentValues[0];
+	private SymbolicExpression revealObject(SymbolicExpression expr) {
+		@SuppressWarnings("unchecked")
+		UnaryOperator<SymbolicExpression> subDefn = e -> e
+				.operator() == SymbolicOperator.APPLY
+				&& e.argument(0) == modelFactory.getHideConstant()
+						? ((Iterable<? extends SymbolicExpression>) e
+								.argument(1)).iterator().next()
+						: null;
+		return universe.mapSubstituter(subDefn).apply(expr);
+	}
 
-		return new Evaluation(state,
-				universe.bool(pointer.operator() == SymbolicOperator.APPLY
-						&& pointer.argument(0) == modelFactory
-								.getHideConstant()));
+	private Evaluation executeHidden(State state, int pid, String process,
+			Expression[] arguments, SymbolicExpression[] argumentValues,
+			CIVLSource source) throws UnsatisfiablePathConditionException {
+		return new Evaluation(state, universe
+				.bool(argumentValues[0] != revealObject(argumentValues[0])));
 	}
 
 	private Evaluation executePow(State state, int pid, String process,
