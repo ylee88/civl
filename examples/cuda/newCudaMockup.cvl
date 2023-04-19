@@ -336,7 +336,7 @@ void _cuda_main() {
    * + Keeps responsibility of device proc strictly to interpreting messages, spawning appropriate ops and sending message.
    */
   //@ depends_on \nothing;
-  $atomic_f $cuda_op_state_t $stream_enqueue(_Bool* enqueuedFlag, cudaStream_t stream) {
+  $atomic_f $cuda_op_state_t $stream_enqueue(_Bool** enqueuedFlag, cudaStream_t stream) {
     $cuda_op_state_t newOpState = ($cuda_op_state_t) $malloc($cuda_scope, sizeof(struct $cuda_op_state));
     newOpState->start = false;
     newOpState->op = $self;
@@ -357,7 +357,8 @@ void _cuda_main() {
       stream->tail = newOpStateNode;
     }
     stream->numOps++;
-    *enqueuedFlag = true;
+    **enqueuedFlag = true;
+    *enqueuedFlag = NULL;
 
     return newOpState;
   }
@@ -416,7 +417,7 @@ void _cuda_main() {
   }
 
   void $cuda_memcpy_proc(void* dst, const void* src, size_t count, cudaMemcpyKind kind, _Bool* enqueuedFlag, cudaStream_t stream) {
-    $cuda_op_state_t opState = $stream_enqueue(enqueuedFlag, stream);
+    $cuda_op_state_t opState = $stream_enqueue(&enqueuedFlag, stream);
     $when(opState->start);
     
     if (kind == cudaMemcpyHostToDevice || cudaMemcpyDeviceToDevice) {
@@ -512,7 +513,7 @@ void _cuda_main() {
   void $cuda_kernel_1_proc (_Bool* enqueuedFlag, dim3 gridDim, dim3 blockDim,
                       size_t $cudaMemSize, cudaStream_t $cudaStream,
                       const float *A, const float *B, float *C, int numElements) {
-    $cuda_op_state_t opState = $stream_enqueue(enqueuedFlag, $cudaStream);
+    $cuda_op_state_t opState = $stream_enqueue(&enqueuedFlag, $cudaStream);
     $when(opState->start);
     $cuda_kernel_1(gridDim, blockDim, $cudaMemSize, A, B, C, numElements);
     $stream_dequeue($cudaStream);
@@ -622,7 +623,7 @@ void _host_main() {
   
   free(C);
   
-  cudaFree(cuda_A);
+  cudaFree(cuda_A); 
   cudaFree(cuda_B);
   cudaFree(cuda_C);
 
