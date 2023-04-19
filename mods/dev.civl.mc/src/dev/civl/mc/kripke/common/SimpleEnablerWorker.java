@@ -637,6 +637,10 @@ public class SimpleEnablerWorker {
 			SymbolicType type = expr.type();
 
 			if (type == null) {// a NULL object has null type, ignore
+			} else if (expr.operator() == SymbolicOperator.APPLY
+					&& expr.argument(0) == enabler.hideFunction) {
+				// do nothing. This is a special abstract function used
+				// to hide pointers from this reachability analysis
 			} else if (type == pointerSymbolicType) {
 				addPointer(result, state, source, expr);
 			} else if (expr.operator() == SymbolicOperator.SYMBOLIC_CONSTANT) {
@@ -651,10 +655,6 @@ public class SimpleEnablerWorker {
 				 */
 				// } else if (containsPointer(type))
 				// throw new NoReductionException();
-			} else if (expr.operator() == SymbolicOperator.APPLY
-					&& expr.argument(0) == enabler.hideFunction) {
-				// do nothing. This is a special abstract function used
-				// to hide pointers from this reachability analysis
 			} else {
 				for (SymbolicObject obj : expr.getArguments()) {
 					switch (obj.symbolicObjectKind()) {
