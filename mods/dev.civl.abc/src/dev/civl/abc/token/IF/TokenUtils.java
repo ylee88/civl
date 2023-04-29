@@ -242,15 +242,15 @@ public class TokenUtils {
 	 */
 	private static String getLineContentFromToken(CivlcToken token) {
 		String line = null;
-		String filePath = token.getSourceFile().getFile().getAbsolutePath();
+		String filePath = token.getSourceFile().getFile().toString();
 
 		if (token.getType() < 0)
 			return token.getText();
 		try {
-			if (filePath.startsWith("/include")) {
+			if (filePath.startsWith("include/")) {
 				StringBuilder sBuilder = new StringBuilder();
 				int lineCount = token.getLine() - 1;
-				InputStream lines = TokenUtils.class.getResourceAsStream(filePath);
+				InputStream lines = ClassLoader.getSystemResourceAsStream(filePath);
 				
 				if (lines == null) {
 					System.err.println("Failed to load resource "+filePath);

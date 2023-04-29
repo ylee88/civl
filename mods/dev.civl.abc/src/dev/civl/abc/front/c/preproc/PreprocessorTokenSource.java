@@ -283,7 +283,7 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	 * file, or <code>null</code> if the file cannot be found.
 	 * 
 	 * @param path     the path leading to the file; this path is relative to the
-	 *                 class path and starts with "/", e.g., "/include/abc".
+	 *                 class path e.g., "include/abc".
 	 * @param filename the name of the file proper, e.g., "stdlib.h"
 	 * @return a new character stream obtained from the file or <code>null</code>
 	 */
