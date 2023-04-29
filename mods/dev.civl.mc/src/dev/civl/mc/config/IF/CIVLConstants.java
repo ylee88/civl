@@ -589,7 +589,7 @@ public class CIVLConstants {
 	 */
 	public final static Option ompNoSimplifyO = Option.newScalarOption(
 			OMP_NO_SIMPLIFY, OptionType.BOOLEAN, "don't simplify omp pragmas",
-			false);
+			true);
 
 	/**
 	 * Only relies on the OpenMP simplifier ? i.e., either simplify an omp
