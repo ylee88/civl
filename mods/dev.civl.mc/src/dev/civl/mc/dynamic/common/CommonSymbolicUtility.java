@@ -964,7 +964,7 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 
 							hasNext = universe.or(hasNext, rangeIHasNext);
 						}
-						return universe.extractBoolean(hasNext);
+						return hasNext.isTrue();
 					}
 				}
 
