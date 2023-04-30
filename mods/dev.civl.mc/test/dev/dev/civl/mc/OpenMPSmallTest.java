@@ -55,8 +55,8 @@ public class OpenMPSmallTest {
 
 	// TODO: failing
 	/**
-	 * The atomic is not transformed correctly,
-	 * CIVL will report a race condition problem even though there is none.
+	 * The atomic is not transformed correctly, CIVL will report a race
+	 * condition problem even though there is none.
 	 */
 	@Test
 	public void ptr_share() {
@@ -66,13 +66,19 @@ public class OpenMPSmallTest {
 
 	// TODO: failing
 	/**
-	 * The atomic is not transformed correctly,
-	 * CIVL will report a race condition problem even though there is none.
+	 * The atomic is not transformed correctly, CIVL will report a race
+	 * condition problem even though there is none.
 	 */
 	@Test
 	public void simple_omp_share() {
 		assertTrue(ui.run(VERIFY, "-input_omp_thread_max=4",
 				filename("simple_omp_share.c")));
+	}
+
+	@Test
+	public void symb_dom() {
+		assertTrue(ui.run(VERIFY, "-input_omp_thread_max=2", "-inputN=10",
+				"-showProgram", filename("symb_dom.cvl")));
 	}
 
 }

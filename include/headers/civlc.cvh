@@ -75,6 +75,11 @@ $system int $choose_int(int n);
 /*@ depends_on \nothing;
   @ executes_when \true;
   @*/
+$system void $elaborate_domain($domain d);
+
+/*@ depends_on \nothing;
+  @ executes_when \true;
+  @*/
 $system void $assert(_Bool expr, ...);
 
 /*@ depends_on \nothing;

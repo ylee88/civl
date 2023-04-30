@@ -485,6 +485,7 @@ $domain $omp_arrive_loop($omp_team team, int location, $domain loop_dom,
     $assert(gteam->init[tid], "The current thread %d has not joined the gteam!", tid);
     if(nthreads == 1)
       return loop_dom;
+    $elaborate_domain(loop_dom);
     index = find_work_record(gteam, tid, location, &workrecord);
     if(index >= 0){//workrecord found
       $assert($equals(&gteam->work[index][0].loop_domain, &loop_dom), "The loop domain at location %d is changed when thread %d arrives it. \n Expected %s but saw %s.",

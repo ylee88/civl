@@ -964,7 +964,16 @@ public class CommonSymbolicUtility implements SymbolicUtility {
 
 							hasNext = universe.or(hasNext, rangeIHasNext);
 						}
-						return hasNext.isTrue();
+
+						Boolean result = universe.extractBoolean(hasNext);
+
+						if (result == null) {
+							// TODO: Pass the source into this function.
+							throw new CIVLInternalException(
+									"The domain has to be concrete before iterating ",
+									(CIVLSource) null);
+						}
+						return result;
 					}
 				}
 
