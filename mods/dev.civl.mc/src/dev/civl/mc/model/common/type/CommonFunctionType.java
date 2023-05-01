@@ -1,5 +1,7 @@
 package dev.civl.mc.model.common.type;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import dev.civl.mc.model.IF.type.CIVLFunctionType;
@@ -39,11 +41,9 @@ public class CommonFunctionType extends CommonType implements CIVLFunctionType {
 	 * @param parasTypes
 	 *            The types of the parameter list.
 	 */
-	public CommonFunctionType(CIVLType returnType, CIVLType[] parasTypes,
-			SymbolicType functionPointerType) {
+	public CommonFunctionType(CIVLType returnType, CIVLType[] parasTypes) {
 		this.returnType = returnType;
 		this.parameterTypes = parasTypes;
-		this.dynamicType = functionPointerType;
 	}
 
 	/* ******************* Methods from CIVLFunctionType ******************* */
@@ -61,8 +61,14 @@ public class CommonFunctionType extends CommonType implements CIVLFunctionType {
 
 	@Override
 	public SymbolicType getDynamicType(SymbolicUniverse universe) {
-		assert this.dynamicType != null;
-		return this.dynamicType;
+		if (dynamicType == null) {
+			List<SymbolicType> parameters = new ArrayList<>(parameterTypes.length);
+
+			for (CIVLType paramType : parameterTypes)
+				parameters.add(paramType.getDynamicType(universe));
+			dynamicType = universe.functionType(parameters, returnType.getDynamicType(universe));
+		}
+		return dynamicType;
 	}
 
 	@Override
@@ -93,11 +99,13 @@ public class CommonFunctionType extends CommonType implements CIVLFunctionType {
 	@Override
 	public void setReturnType(CIVLType type) {
 		this.returnType = type;
+		this.dynamicType = null;
 	}
 
 	@Override
 	public void setParameterTypes(CIVLType[] types) {
 		this.parameterTypes = types;
+		this.dynamicType = null;
 	}
 
 	@Override

@@ -380,12 +380,7 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	@Override
 	public CIVLFunctionType functionType(CIVLType returnType,
 			CIVLType[] paraTypes) {
-		List<SymbolicType> parameters = new ArrayList<>(paraTypes.length);
-
-		for (CIVLType paraType : paraTypes)
-			parameters.add(paraType.getDynamicType(universe));
-		return new CommonFunctionType(returnType, paraTypes, universe
-				.functionType(parameters, returnType.getDynamicType(universe)));
+		return new CommonFunctionType(returnType, paraTypes);
 	}
 
 	@Override
