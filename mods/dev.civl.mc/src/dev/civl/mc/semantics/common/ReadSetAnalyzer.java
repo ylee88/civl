@@ -643,6 +643,9 @@ public class ReadSetAnalyzer {
 
 	private Set<SymbolicExpression> analyzeAddressOf(AddressOfExpression expr,
 			State state, int pid) throws UnsatisfiablePathConditionException {
+		if (expr.operand().expressionKind() == ExpressionKind.VARIABLE) {
+			return new TreeSet<>();
+		}
 		return analyzeMemWorker(expr.operand(), state, pid, false);
 	}
 
