@@ -75,6 +75,8 @@ public class TestConstants {
 	public static String OMP_THREAD_TEN = "-input_omp_thread_max=10";
 
 	public static String OMP_NO_SIMP = "-ompNoSimplify";
+	
+	public static String OMP_SIMP = "-ompNoSimplify=false";
 
 	public static String OMP_ONLY_SIMP = "-ompOnlySimplifier";
 
