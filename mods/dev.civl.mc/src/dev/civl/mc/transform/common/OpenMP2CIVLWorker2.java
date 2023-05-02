@@ -3126,7 +3126,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		AST newAst = astFactory.newAST(newRoot, oldAst.getSourceFiles(),
 				oldAst.isWholeProgram());
 
-		newAst.prettyPrint(System.out, true);
+		//newAst.prettyPrint(System.out, true);
 		return newAst;
 	}
 }
