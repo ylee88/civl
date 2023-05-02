@@ -48,18 +48,18 @@ public class OpenMPOrphanWorker extends BaseWorker {
 
 	@Override
 	protected AST transformCore(AST ast) throws SyntaxException {
-		SequenceNode<BlockItemNode> root = ast.getRootNode();
-		AST newAst;
-		Function main = ast.getMain();
-		Set<Function> visitedFunctions = new HashSet<>();
-		Set<String> globalVars = retrieveVars(root.iterator());
+//		SequenceNode<BlockItemNode> root = ast.getRootNode();
+//		AST newAst;
+//		Function main = ast.getMain();
+//		Set<Function> visitedFunctions = new HashSet<>();
+//		Set<String> globalVars = retrieveVars(root.iterator());
+//
+//		ast.release();
+//		searchOMPParallel(main, visitedFunctions, globalVars);
+//		newAst = astFactory.newAST(root, ast.getSourceFiles(),
+//				ast.isWholeProgram());
 
-		ast.release();
-		searchOMPParallel(main, visitedFunctions, globalVars);
-		newAst = astFactory.newAST(root, ast.getSourceFiles(),
-				ast.isWholeProgram());
-
-		return newAst;
+		return ast;
 	}
 
 	/**

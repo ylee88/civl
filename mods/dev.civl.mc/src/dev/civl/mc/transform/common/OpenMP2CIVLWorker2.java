@@ -2,7 +2,9 @@ package dev.civl.mc.transform.common;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +14,7 @@ import java.util.Stack;
 import dev.civl.abc.ast.IF.AST;
 import dev.civl.abc.ast.IF.ASTFactory;
 import dev.civl.abc.ast.entity.IF.Entity;
+import dev.civl.abc.ast.entity.IF.Function;
 import dev.civl.abc.ast.entity.IF.Variable;
 import dev.civl.abc.ast.node.IF.ASTNode;
 import dev.civl.abc.ast.node.IF.ASTNode.NodeKind;
@@ -21,6 +24,7 @@ import dev.civl.abc.ast.node.IF.PairNode;
 import dev.civl.abc.ast.node.IF.SequenceNode;
 import dev.civl.abc.ast.node.IF.compound.CompoundInitializerNode;
 import dev.civl.abc.ast.node.IF.compound.DesignationNode;
+import dev.civl.abc.ast.node.IF.declaration.FunctionDefinitionNode;
 import dev.civl.abc.ast.node.IF.declaration.InitializerNode;
 import dev.civl.abc.ast.node.IF.declaration.VariableDeclarationNode;
 import dev.civl.abc.ast.node.IF.expression.ExpressionNode;
@@ -258,6 +262,8 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 	private List<BlockItemNode> signalCreates = new LinkedList<>();
 
 	Map<String, VariableDeclarationNode> reductionId2TempDecls;
+
+	private OmpOrphanFunctions ompOrphanFuncs;
 
 	// Constructors
 	/**
@@ -1921,6 +1927,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		List<BlockItemNode> ompBlockItems = new LinkedList<>();
 		List<BlockItemNode> lstpvtAssignments = new LinkedList<>();
 
+		ompOrphanFuncs.init();
 		// PRE: Record the current OpenMP region info
 		ompRgn.push(new OmpRegion(OmpRgnKind.PARALLEL));
 		// levelParallel += 1;
@@ -2009,6 +2016,28 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 				nodeExprId(srcMethod, TEAM)));
 		// $local_end();
 		parForBodyItems.add(nodeStmtCall(srcMethod, LOCAL_END));
+
+		// Get Orphan functions
+		ExpressionNode ompTeamNode = nodeExprId(srcMethod, TEAM);
+
+		for (BlockItemNode n : parForBodyItems) {
+			ompOrphanFuncs.searchOmpOrphanFunctions(n);
+		}
+		for (FunctionDefinitionNode n : ompOrphanFuncs.getOrphanFuncDefs()) {
+			// SequenceNode<VariableDeclarationNode> nParams = n.getTypeNode()
+			// .getParameters();
+			// int indexParam = nParams.numChildren();
+			// VariableDeclarationNode ompTeamParamNode = nodeDeclVar(srcMethod,
+			// TEAM, nodeTypeNamed(srcMethod, "$omp_team"));
+
+			// nParams.setSequenceChild(indexParam, ompTeamParamNode);
+			// ompOrphanFuncs.updateOmpOrphanFunctions(n, ompTeamNode);
+			parForBodyItems.add(2, n.copy());
+		}
+		// for (BlockItemNode n : parForBodyItems) {
+		// ompOrphanFuncs.updateOmpOrphanFunctions(n, ompTeamNode);
+		// }
+
 		// ADD: creates of OpenMP helper signals used by this transformer
 		ompBlockItems.addAll(signalCreates);
 		// ADD: $parfor (int _omp_tid : _omp_dom) { .. }
@@ -3018,6 +3047,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		List<String> ioVarNames = new LinkedList<>();
 		String srcFile = null;
 
+		ompOrphanFuncs = new OmpOrphanFunctions(oldAst);
 		// Search and Transform all OpenMP Nodes
 		searchOmpInstructions((ASTNode) root);
 		reduceDuplicateNode(root, PREDICATE_BARRIER_AND_FLUSH);
@@ -3080,12 +3110,23 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		newItems.add(declOmpNumThreads(srcMethod));
 		// ADD: transformed Civl AST nodes from the old AST.
 		newItems.addAll(oldItems);
+		// Remove: all origin orphan functions
+		oldItems = newItems;
+		newItems = new LinkedList<>();
+		for (BlockItemNode n : oldItems) {
+			if (!(n instanceof FunctionDefinitionNode) || !(ompOrphanFuncs
+					.isOriginOmpOrphanFuncDef((FunctionDefinitionNode) n))) {
+				newItems.add(n);
+			}
+		}
 
 		// CREATE: a new AST from the old one by transforming all OpenMP nodes
 		SequenceNode<BlockItemNode> newRoot = nodeFactory
 				.newSequenceNode(root.getSource(), "Omp2CivlProgram", newItems);
 		AST newAst = astFactory.newAST(newRoot, oldAst.getSourceFiles(),
 				oldAst.isWholeProgram());
+
+		newAst.prettyPrint(System.out, true);
 		return newAst;
 	}
 }
@@ -3118,5 +3159,95 @@ class OmpLoopInfo {
 			Triple<ExpressionNode, ExpressionNode, ExpressionNode> range) {
 		this.loopVarName = varName;
 		this.range = range;
+	}
+}
+
+class OmpOrphanFunctions {
+	AST ast;
+	ArrayList<FunctionDefinitionNode> orphanFuncDefs;
+	HashSet<String> searchedFuncNames;
+	HashSet<FunctionDefinitionNode> allOrphanFuncDefs;
+
+	OmpOrphanFunctions(AST ast) {
+		this.ast = ast;
+		this.allOrphanFuncDefs = new HashSet<>();
+	}
+
+	void init() {
+		this.orphanFuncDefs = new ArrayList<>();
+		this.searchedFuncNames = new HashSet<>();
+	}
+
+	boolean isOriginOmpOrphanFuncDef(FunctionDefinitionNode funcDefNode) {
+		return allOrphanFuncDefs.contains(funcDefNode);
+	}
+
+	boolean searchOmpOrphanFunctions(ASTNode node) {
+		boolean isOmpOrphanFunction = false;
+
+		if (node == null)
+			return false;
+		if (node instanceof FunctionCallNode) {
+			// 1. Check the validity of the function called.
+			FunctionCallNode funcCall = (FunctionCallNode) node;
+			ExpressionNode funcExpr = funcCall.getFunction();
+
+			if (!(funcExpr instanceof IdentifierExpressionNode)) {
+				String msg = "The transformation of function pointers in OpenMP orphan constructs.";
+
+				throw new CIVLUnimplementedFeatureException(
+						"The following feature is not yet implemented: " + msg);
+			}
+
+			// 2. Extract the function name to exclude duplicated ones.
+			IdentifierNode funcIdent = ((IdentifierExpressionNode) funcExpr)
+					.getIdentifier();
+			Function orphanFunc = (Function) funcIdent.getEntity();
+			String funcName = funcIdent.name();
+
+			// 3. Check Omp Functions
+			if (funcName.startsWith("omp_") || funcName.startsWith("$omp")) {
+				return true;
+			} else if (funcName.startsWith("$") || funcName.equals("assert")) {
+				return false;
+			}
+
+			// 4. Check validity and duplication
+			if (searchedFuncNames.contains(funcName) || orphanFunc == null
+					|| orphanFunc.getDefinition() == null) {
+				return false;
+			}
+			searchedFuncNames.add(funcName);
+
+			// 4. Extract the function definition
+			FunctionDefinitionNode orphanFuncDef = orphanFunc.getDefinition();
+			CompoundStatementNode body = orphanFuncDef.getBody();
+			Iterator<BlockItemNode> bodyIter = body.iterator();
+
+			while (bodyIter.hasNext()) {
+				boolean useOrphanFunction = searchOmpOrphanFunctions(
+						bodyIter.next());
+
+				isOmpOrphanFunction = useOrphanFunction || isOmpOrphanFunction;
+			}
+			if (isOmpOrphanFunction)
+				orphanFuncDefs.add(0, orphanFuncDef);
+		} else {
+			for (ASTNode n : node.children()) {
+				boolean useOrphanFunction = searchOmpOrphanFunctions(n);
+
+				isOmpOrphanFunction = useOrphanFunction || isOmpOrphanFunction
+						|| node instanceof OmpWorksharingNode
+						|| node instanceof OmpSyncNode;
+			}
+		}
+		return isOmpOrphanFunction;
+	}
+
+	ArrayList<FunctionDefinitionNode> getOrphanFuncDefs() {
+		for (FunctionDefinitionNode defNode : orphanFuncDefs) {
+			allOrphanFuncDefs.add(defNode);
+		}
+		return orphanFuncDefs;
 	}
 }
