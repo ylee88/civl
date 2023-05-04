@@ -388,6 +388,12 @@ typedef struct {
   int numElements;
 } $cuda_kernel_1_data;
 
+void $cuda_reveal_kernel_1_args($cuda_kernel_1_data* args) {
+  args->A = $reveal(args->A);
+  args->B = $reveal(args->B);
+  args->C = $reveal(args->C);
+}
+
 void $cuda_host_launch_kernel_1(dim3 gridDim, dim3 blockDim,
                                 size_t $cudaMemSize, cudaStream_t $cudaStream,
                                 const float* A, const float* B, float* C, int numElements) {
@@ -441,8 +447,9 @@ void $cuda_kernel_1_proc ($message request, $cuda_op_state_t opState, cudaStream
 
   $cuda_kernel_1_data args;
   $message_unpack(request, &args, sizeof($cuda_kernel_1_data));
+  $cuda_reveal_kernel_1_args(&args);
 
-  $cuda_kernel_1(args.gridDim, args.blockDim, args.$cudaMemSize, $reveal(args.A), $reveal(args.B), $reveal(args.C), args.numElements);
+  $cuda_kernel_1(args.gridDim, args.blockDim, args.$cudaMemSize, args.A, args.B, args.C, args.numElements);
   $stream_dequeue(cudaStream);
 }
 
