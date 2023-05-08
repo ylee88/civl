@@ -1,0 +1,36 @@
+#include <comm.cvh>
+
+$gcomm g = $gcomm_create($here, 2);
+
+void p0_f() {
+  $comm c = $comm_create($here, g, 0);
+  int* m = (int*) $malloc($here, sizeof(int));
+  
+  *m = 0;
+  $comm_enqueue(c, $message_pack(0, 1, 0, &m, sizeof(int*)));
+  *m = 1;
+
+  $comm_dequeue(c, 1, 0);
+  $free(m);
+  $comm_destroy(c);
+}
+
+void p1_f() {
+  $comm c = $comm_create($here, g, 1);
+  $message result = $comm_dequeue(c, 0, 0); 
+
+  int* m;
+  $message_unpack(result, &m, sizeof(int*));
+  $assert(*m == 1);
+
+  $comm_enqueue(c, $message_pack(1, 0, 0, NULL, 0));
+  $comm_destroy(c);
+}
+
+int main() {
+  $proc p0 = $spawn p0_f();
+  $proc p1 = $spawn p1_f();
+  $wait(p0);
+  $wait(p1);
+  $gcomm_destroy(g, NULL);
+}
