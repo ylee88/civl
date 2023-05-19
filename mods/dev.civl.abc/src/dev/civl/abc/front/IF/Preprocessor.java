@@ -42,13 +42,6 @@ public interface Preprocessor {
 	final static String civlcHeaderName = "civlc.cvh";
 
 	/**
-	 * The name of the CIVL-C header file resource, which is needed to extract
-	 * the contents of the file from the class path or jar.
-	 */
-	final static String civlcHeaderResource = new File(ABC_INCLUDE_PATH,
-			civlcHeaderName).getAbsolutePath();
-
-	/**
 	 * Default value for system include path list.
 	 */
 	static File[] defaultSystemIncludes = new File[] {};
