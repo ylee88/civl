@@ -95,7 +95,7 @@ public class ParseSystemLibrary implements DynamicTask {
 			if (!hasOmpHeader && !this.civlOmpAdded) {
 				if (this.hasOmpPragma(ast.getRootNode())) {
 					result.add(newUnitTask(
-							new File(CIVLConstants.CIVL_INCLUDE_PATH,
+							new File(CIVLConstants.CIVL_LIB_SRC_PATH,
 									CIVLConstants.CIVL_OMP_SRC)));
 					this.civlOmpAdded = true;
 				}
@@ -139,7 +139,7 @@ public class ParseSystemLibrary implements DynamicTask {
 		// paths. Because a user could create their own "pthread.h"
 		// (for example), in which case we don't want to link in the
 		// system implementation.
-		if (!file.getPath().startsWith(CIVLConstants.ROOT_INCLUDE_PATH_STR))
+		if (!file.getPath().startsWith(CIVLConstants.ROOT_RESOURCE_PATH_STR))
 			return null;
 		// for debugging...
 		// System.out.println("Including system file: "+file.getPath());
@@ -149,11 +149,11 @@ public class ParseSystemLibrary implements DynamicTask {
 		if (CIVLConstants.getCivlLibHeaders().contains(name)) {
 			String srcName = name.substring(0, name.length() - 1) + "l";
 			if (CIVLConstants.getCivlLibSrcs().contains(srcName))
-				return new File(CIVLConstants.CIVL_INCLUDE_PATH, srcName);
+				return new File(CIVLConstants.CIVL_LIB_SRC_PATH, srcName);
 		} else if (CIVLConstants.getCStdLibHeaders().contains(name)) {
 			String srcName = name.substring(0, name.length() - 1) + "cvl";
 			if (CIVLConstants.getCStdLibSrcs().contains(srcName))
-				return new File(CIVLConstants.CIVL_INCLUDE_PATH, srcName);
+				return new File(CIVLConstants.CIVL_LIB_SRC_PATH, srcName);
 		}
 		return null;
 	}

@@ -6,18 +6,15 @@ import dev.civl.abc.ast.IF.AST;
 import dev.civl.abc.ast.IF.ASTFactory;
 import dev.civl.abc.token.IF.SyntaxException;
 import dev.civl.abc.transform.IF.BaseTransformer;
+import dev.civl.mc.config.IF.CIVLConstants;
 import dev.civl.mc.transform.common.LoopContractTransformerWorker;
 
 public class LoopContractTransformer extends BaseTransformer {
 
-	private final static String MEM_HEADER = "include/headers/mem.cvh";
-
-	private final static String STRING_HEADER = "include/headers/string.h";
-
-	private final static String STRING_IMPL = "include/impls/string.cvl";
-
-	public final static File[] additionalLibraries = {new File(MEM_HEADER),
-			new File(STRING_HEADER), new File(STRING_IMPL)};
+	public final static File[] additionalLibraries = {
+			new File(CIVLConstants.CIVL_LIB_INCLUDE_PATH, "mem.cvh"),
+			new File(CIVLConstants.CIVL_LIB_INCLUDE_PATH, "string.h"),
+			new File(CIVLConstants.CIVL_LIB_SRC_PATH, "string.cvl")};
 
 	/**
 	 * The code (short name) of this transformer.

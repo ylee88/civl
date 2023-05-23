@@ -892,8 +892,8 @@ public class ContractTransformerWorker extends BaseWorker {
 	private boolean findMPIAndNodesofSourceFiles(
 			SequenceNode<BlockItemNode> root,
 			List<BlockItemNode> srcFileNodes) {
-		Path civlIncludePath = CIVLConstants.CIVL_INCLUDE_PATH.toPath();
-		Path frontendIncludePath = CIVLConstants.FRONT_END_INCLUDE_PATH
+		Path civlIncludePath = CIVLConstants.CIVL_LIB_SRC_PATH.toPath();
+		Path frontendIncludePath = CIVLConstants.CIVL_LIB_INCLUDE_PATH
 				.toPath();
 		boolean hasMPI = false;
 

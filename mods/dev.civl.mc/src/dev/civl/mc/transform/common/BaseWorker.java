@@ -1144,7 +1144,7 @@ public abstract class BaseWorker {
 			File file = sourceFile.getFile();
 			String name = sourceFile.getName();
 
-			if (file.getPath().startsWith(CIVLConstants.ROOT_INCLUDE_PATH_STR) && name.equals(header))
+			if (file.getPath().startsWith(CIVLConstants.ROOT_RESOURCE_PATH_STR) && name.equals(header))
 				return true;
 		}
 		return false;

@@ -7,13 +7,13 @@ import dev.civl.abc.ast.IF.ASTFactory;
 import dev.civl.abc.token.IF.SyntaxException;
 import dev.civl.abc.transform.IF.BaseTransformer;
 import dev.civl.mc.config.IF.CIVLConfiguration;
+import dev.civl.mc.config.IF.CIVLConstants;
 import dev.civl.mc.transform.common.contracts.ContractTransformerWorker;
 
 public class ContractTransformer extends BaseTransformer {
 
-	private final static String MEM_HEADER = "/include/abc/mem.cvh";
-
-	public final static File[] additionalLibraries = {new File(MEM_HEADER)};
+	public final static File[] additionalLibraries = {
+			new File(CIVLConstants.CIVL_LIB_INCLUDE_PATH, "mem.cvh")};
 
 	/**
 	 * The code (short name) of this transformer.

@@ -247,7 +247,7 @@ public class TokenUtils {
 		if (token.getType() < 0)
 			return token.getText();
 		try {
-			if (filePath.startsWith("include/")) {
+			if (filePath.startsWith("dev/civl/")) {
 				StringBuilder sBuilder = new StringBuilder();
 				int lineCount = token.getLine() - 1;
 				InputStream lines = ClassLoader.getSystemResourceAsStream(filePath);

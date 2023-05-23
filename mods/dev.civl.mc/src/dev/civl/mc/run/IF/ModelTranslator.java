@@ -610,7 +610,7 @@ public class ModelTranslator {
 		File[] newSysIncludes = new File[numIncludes + 1];
 
 		System.arraycopy(sysIncludes, 0, newSysIncludes, 0, numIncludes);
-		newSysIncludes[numIncludes] = CIVLConstants.CIVL_INCLUDE_PATH;
+		newSysIncludes[numIncludes] = CIVLConstants.CIVL_LIB_SRC_PATH;
 		return newSysIncludes;
 	}
 

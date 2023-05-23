@@ -942,7 +942,7 @@ public class UserInterface {
 		out.println("\n" + statsBar + " Source files " + statsBar);
 
 		List<String> ignore = Arrays.asList(
-				CIVLConstants.ROOT_INCLUDE_PATH_STR, "predefined");
+				CIVLConstants.ROOT_RESOURCE_PATH_STR, "predefined");
 		indexer.printFiltered(out, ignore);
 	}
 

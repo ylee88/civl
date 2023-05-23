@@ -1,5 +1,5 @@
 /**
- * The inclusion library for C11 standard. It maibry contains all C11 standard
+ * The inclusion library for C11 standard. It contains all C11 standard
  * library files and some system library files. <br>
  * The C11 standard library files are (Updated on Jan. 2018, based on ISO/IEC
  * 9899:201x (the C11 standard) <br>
@@ -36,4 +36,4 @@
  * @author VSL
  *
  */
-package include.headers;
+package dev.civl.abc.include;

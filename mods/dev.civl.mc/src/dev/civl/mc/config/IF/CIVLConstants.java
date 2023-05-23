@@ -74,24 +74,22 @@ public class CIVLConstants {
 	}
 
 	/**
-	 * The root of the include directory.
+	 * The common root of the paths of all resources.
 	 */
-	public final static String ROOT_INCLUDE_PATH_STR = "include/";
+	public final static String ROOT_RESOURCE_PATH_STR = "dev/civl/";
 
 	/**
-	 * Where the CIVL library implementations files (.cvl) are located. This
-	 * path is relative to the class path. Since the "include" directory is in
-	 * the class path, this will cause ABC to look in include/civl.
+	 * Resource path to the CIVL library implementations files (.cvl).
 	 */
-	public final static File CIVL_INCLUDE_PATH = new File(
-			ROOT_INCLUDE_PATH_STR + "impls");
+	public final static File CIVL_LIB_SRC_PATH = new File(
+			ROOT_RESOURCE_PATH_STR + "mc/src/");
 
 	/**
 	 * Where the CIVL header files (suffix .h and .cvh) are located. This path
 	 * is relative to the class path.
 	 */
-	public final static File FRONT_END_INCLUDE_PATH = new File(
-			ROOT_INCLUDE_PATH_STR + "headers");
+	public final static File CIVL_LIB_INCLUDE_PATH = new File(
+			ROOT_RESOURCE_PATH_STR + "abc/include/");
 
 	/** The version of this release of CIVL. */
 	public final static String version = "1.22";

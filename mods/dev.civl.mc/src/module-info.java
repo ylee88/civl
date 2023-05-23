@@ -6,5 +6,5 @@ module dev.civl.mc {
     requires antlr3runtime;
     //    requires transitive junit;
     exports dev.civl.mc;
-    opens include.impls;
+    opens dev.civl.mc.src;
 }

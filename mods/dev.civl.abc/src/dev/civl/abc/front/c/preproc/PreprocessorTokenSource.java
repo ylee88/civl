@@ -316,7 +316,6 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 			if (result != null)
 				return result;
 		}
-		// look in directory "/include/abc" in the class path:
 		return findInternalSystemFile(Preprocessor.ABC_INCLUDE_PATH, filename);
 	}
 

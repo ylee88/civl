@@ -693,7 +693,7 @@ public class IntOperationWorker extends BaseWorker {
 		// INT_DIV_NO_CHECKING_SOURCE_FILE), macros);
 		// else
 		intDivLib = this.parseSystemLibrary(
-				new File(CIVLConstants.CIVL_INCLUDE_PATH, INT_DIV_SOURCE_FILE),
+				new File(CIVLConstants.CIVL_LIB_SRC_PATH, INT_DIV_SOURCE_FILE),
 				macros);
 
 		SequenceNode<BlockItemNode> root = intDivLib.getRootNode();
@@ -731,7 +731,7 @@ public class IntOperationWorker extends BaseWorker {
 	private void linkUnsignedArithLibrary(SequenceNode<BlockItemNode> ast)
 			throws SyntaxException {
 		AST unsignedArithLib = this
-				.parseSystemLibrary(new File(CIVLConstants.CIVL_INCLUDE_PATH,
+				.parseSystemLibrary(new File(CIVLConstants.CIVL_LIB_SRC_PATH,
 						UNSIGNED_ARITH_SOURCE_FILE), macros);
 		SequenceNode<BlockItemNode> root = unsignedArithLib.getRootNode();
 		List<BlockItemNode> funcDefinitions = new ArrayList<>();
