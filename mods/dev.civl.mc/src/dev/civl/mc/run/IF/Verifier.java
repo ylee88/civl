@@ -250,7 +250,8 @@ public class Verifier extends Player {
 				predicate, config);
 		if (civlConfig.debug())
 			searcher.setDebugOut(out);
-		searcher.setReportCycleAsViolation(civlConfig.cyclesViolate());
+		searcher.setReportCycleAsViolation(
+				civlConfig.isPropertyToggled(CIVLProperty.TERMINATION));
 		searcher.setName(sessionName);
 		log.setSearcher(searcher);
 		if (minimize)

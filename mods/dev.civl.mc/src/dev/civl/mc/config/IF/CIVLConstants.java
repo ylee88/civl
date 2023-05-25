@@ -699,10 +699,6 @@ public class CIVLConstants {
 			OptionType.STRING,
 			"Direct branching at line numbers in the given file", null);
 
-	public final static Option cyclesViolateO = Option.newScalarOption(
-			CYCLES_VIOLATE, OptionType.BOOLEAN,
-			"Report cycles in the state space as violations", false);
-
 	/**
 	 * An option to enable test generation for SARL, i.e. generate SARL tests
 	 * for some validity checks that CIVL encounters during a run.
@@ -743,7 +739,7 @@ public class CIVLConstants {
 				analyzeAbsO, strictCompareO, collectOutputO, timeoutO,
 				unpreprocO, sliceAnalysisO, witnessO, direct0, intBit,
 				intOperationTransformer, maxProcsO, SARLTestGenO,
-				cyclesViolateO, preemptionBoundO),
+				preemptionBoundO),
 				CIVLProperty.getAllConfigurableProperties().stream()
 						.map(e -> e.getOption()))
 				.toArray(Option[]::new);
