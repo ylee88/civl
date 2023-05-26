@@ -493,8 +493,8 @@
 	<pathelement location="${antlr3.runtime.mod.jar.path}" />
       </modulepath>
     </javac>
-    <copy todir="${bin.dir}/include">
-      <fileset dir="${src.dir}/include" />
+    <copy todir="${bin.dir}/dev/civl/abc/include">
+      <fileset dir="${src.dir}/dev/civl/abc/include" />
     </copy>
   </target>
 

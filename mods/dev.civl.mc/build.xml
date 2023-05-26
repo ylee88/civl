@@ -95,8 +95,8 @@
 	   srcdir="${src.dir}" destdir="${bin.dir}"
 	   modulepathref="module.path"
 	   encoding="UTF-8" includeantruntime="false" />
-    <copy todir="${bin.dir}/include">
-      <fileset dir="${src.dir}/include" />
+    <copy todir="${bin.dir}/dev/civl/mc/src">
+      <fileset dir="${src.dir}/dev/civl/mc/src" />
     </copy>
   </target>
 
