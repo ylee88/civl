@@ -21,7 +21,7 @@ import dev.civl.gmc.Option.OptionType;
 public enum CIVLProperty {
 	/* Unconfigurable properties */
 	DEREFERENCE ("dereference errors"),
-	FUNCTIONAL_EQUIVALENCE ("functional equivalence"),
+	FUNCTIONAL_EQUIVALENCE ("functional equivalence violations"),
 	INTERNAL ("internal errors"),
 	LIBRARY ("library loading errors"),
 	OTHER ("other errors"),
@@ -37,12 +37,12 @@ public enum CIVLProperty {
 	MEMORY_LEAK ("memory leaks", "checkMemoryLeak", OptionType.BOOLEAN, true),
 	MEMORY_MANAGE ("memory management errors", "checkMemManageErr", OptionType.BOOLEAN, true),
 	MPI_ERROR ("mpi usage errors", "checkMpiErr", OptionType.BOOLEAN, true),
-	OUT_OF_BOUNDS ("out of bounds", "checkOutOfBounds", OptionType.BOOLEAN, true),
+	OUT_OF_BOUNDS ("out of bounds errors", "checkOutOfBounds", OptionType.BOOLEAN, true),
 	OUTPUT_READ ("reads from $output variables", "checkOutputRead", OptionType.BOOLEAN, true),
 	POINTER ("pointer errors", "checkPointerErr", OptionType.BOOLEAN, true),
 	PROCESS_LEAK ("process leaks", "checkProcLeak", OptionType.BOOLEAN, true),
 	SEQUENCE ("sequence errors", "checkSeqErr", OptionType.BOOLEAN, true),
-	TERMINATION ("termination", "checkTermination", OptionType.BOOLEAN, true),
+	TERMINATION ("non-termination", "checkTermination", OptionType.BOOLEAN, true),
 	UNDEFINED_VALUE ("use of undefined values", "checkUndefVal", OptionType.BOOLEAN, true),
 	UNION ("union errors", "checkUnionErr", OptionType.BOOLEAN, true);
 

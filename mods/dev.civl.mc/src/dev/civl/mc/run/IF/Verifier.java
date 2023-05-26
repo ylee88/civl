@@ -453,7 +453,7 @@ public class Verifier extends Player {
 							"Failed to print log file " + log.getLogFile());
 				}
 			} else {
-				result = "All properties marked with '+' hold on all executions.\n";
+				result = "All errors marked with '+' are absent on all executions.\n";
 				result += civlConfig.getCheckedPropertiesSummary();
 			}
 			this.verificationStatus = new VerificationStatus(

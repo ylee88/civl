@@ -1,7 +1,10 @@
 package dev.civl.mc.config.IF;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import dev.civl.mc.config.IF.CIVLConstants.DeadlockKind;
@@ -601,6 +604,13 @@ public class CIVLConfiguration {
 		this.toggleableCivlProps.put(prop, value);
 	}
 
+	private String whitespace(int n) {
+		assert n >= 0;
+		char[] ws = new char[n];
+		Arrays.fill(ws, ' ');
+		return new String(ws);
+	}
+
 	/**
 	 * Generates a summary of all CIVLProperty's that are enabled
 	 * 
@@ -610,36 +620,54 @@ public class CIVLConfiguration {
 		String summary = "";
 		String yes = " +  ";
 		String no = " -  ";
-		// Print unconfigurable properties as having been checked.
-		for (CIVLProperty prop : CIVLProperty
-				.getAllUnconfigurableProperties()) {
-			summary += yes + getSummaryTitle(prop);
-		}
-
-		for (CIVLProperty prop : CIVLProperty.getAllConfigurableProperties()) {
+		
+		List<CIVLProperty> unconfigProps = CIVLProperty
+				.getAllUnconfigurableProperties();
+		List<CIVLProperty> configProps = CIVLProperty
+				.getAllConfigurableProperties();
+		int numProps = unconfigProps.size() + configProps.size();
+		List<CIVLProperty> props = new ArrayList<CIVLProperty>(numProps);
+		
+		props.addAll(unconfigProps);
+		props.addAll(configProps);
+		
+		int numCols = 2;
+		int colWidth = 35;
+		int currCol = 0;
+		
+		for (CIVLProperty prop : props) {
+			String summTitle = getSummaryTitle(prop);
+			boolean checked = true;
+			
 			if (isToggleableProperty(prop)) {
-				summary += (isPropertyToggled(prop) ? yes : no)
-						+ getSummaryTitle(prop);
+				checked = isPropertyToggled(prop);
 			} else if (prop == CIVLProperty.DEADLOCK) {
 				// Print deadlock property
 				switch (checkDeadlockKind) {
 					case ABSOLUTE :
-						summary += yes + "Absolute "
-								+ getSummaryTitle(CIVLProperty.DEADLOCK)
-										.toLowerCase();
+						summTitle = "Absolute " + summTitle.toLowerCase();
 						break;
 					case POTENTIAL :
-						summary += yes + "Potential "
-								+ getSummaryTitle(CIVLProperty.DEADLOCK)
-										.toLowerCase();
+						summTitle = "Potential " + summTitle.toLowerCase();
 						break;
 					case NONE :
-						summary += no + getSummaryTitle(CIVLProperty.DEADLOCK);
+						checked = false;
 						break;
 				}
-			} else {
-				summary += no + getSummaryTitle(prop);
 			}
+			summary += (checked ? yes : no) + summTitle;
+			
+			if (currCol < numCols - 1) {
+				summary += whitespace(colWidth - summTitle.length());
+				currCol++;
+			} else {
+				summary += "\n";
+				currCol = 0;
+			}
+		}
+		
+		if (currCol > 0) {
+			summary += "\n";
 		}
 
 		return summary;
@@ -647,7 +675,7 @@ public class CIVLConfiguration {
 
 	private String getSummaryTitle(CIVLProperty prop) {
 		String title = prop.getPropertyTitle();
-		return title.substring(0, 1).toUpperCase() + title.substring(1) + "\n";
+		return title.substring(0, 1).toUpperCase() + title.substring(1);
 	}
 
 	public void setOut(PrintStream out) {
