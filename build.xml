@@ -1,4 +1,4 @@
-<project name="CIVL" basedir="." default="all"
+<project name="CIVL" basedir="." default="compile"
 	 xmlns:jacoco="antlib:org.jacoco.ant"> 
 
   <import file="common.xml" />
