@@ -137,6 +137,7 @@ OPTION_NAME
     | '-collectSymbolicConstants'
     | '-cyclesViolate'
     | '-debug'
+    | '-disableLocalBlock'
     | '-enablePrintf'
     | '-errorBound'
     | '-errorStateEquiv'

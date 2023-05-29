@@ -1920,6 +1920,8 @@ public class FunctionTranslator {
 		Location location = modelFactory.location(nodeSource, scope);
 		String name = function.name().name();
 
+		if (civlConfig.disableLocalBlock())
+			return modelFactory.noopStatementTemporary(nodeSource, location);
 		if (name.equals("$local_start")) {
 			location.setIsEntryOfLocalBlock(true);
 			return modelFactory.atomicEnter(location);
@@ -4666,8 +4668,8 @@ public class FunctionTranslator {
 					CIVLType oldCIVLType;
 
 					assert (oldCIVLType = translateABCType(source, scope,
-							oldType))
-							.equals(translateABCType(source, scope, oldType))
+							oldType)).equals(
+									translateABCType(source, scope, oldType))
 							&& oldCIVLType
 									.equals(expression.getExpressionType());
 					// The C11 Section 6.2.7 states following about 2 types have

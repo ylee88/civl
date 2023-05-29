@@ -220,6 +220,7 @@ public class CIVLConstants {
 	public static String CYCLES_VIOLATE = "cyclesViolate";
 	public static String RUNTIME_UPDATE = "runtimeUpdate";
 	public static String PREEMPTION_BOUND = "preemptionBound";
+	public static String DISABLE_LOCAL_BLOCK = "disableLocalBlock";
 
 	// Option objects
 	/**
@@ -712,6 +713,13 @@ public class CIVLConstants {
 			PREEMPTION_BOUND, OptionType.INTEGER, "preemption bound", -1);
 
 	/**
+	 * Disable the local block, which optimizes the POR impl. false by default
+	 */
+	public final static Option disableLocalBlockO = Option.newScalarOption(
+			DISABLE_LOCAL_BLOCK, OptionType.BOOLEAN, "disable local block", 
+			false);
+
+	/**
 	 * The name of the CIVL system function, which is the starting point of a
 	 * CIVL model.
 	 */
@@ -739,7 +747,7 @@ public class CIVLConstants {
 				analyzeAbsO, strictCompareO, collectOutputO, timeoutO,
 				unpreprocO, sliceAnalysisO, witnessO, direct0, intBit,
 				intOperationTransformer, maxProcsO, SARLTestGenO,
-				preemptionBoundO),
+				preemptionBoundO, disableLocalBlockO),
 				CIVLProperty.getAllConfigurableProperties().stream()
 						.map(e -> e.getOption()))
 				.toArray(Option[]::new);

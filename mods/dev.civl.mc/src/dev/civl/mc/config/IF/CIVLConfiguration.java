@@ -316,6 +316,11 @@ public class CIVLConfiguration {
 	 * preemption-bounded) search.
 	 */
 	private int preemptionBound;
+	
+	/**
+	 * If true, $local_start() and $local_end will be translated as no-op
+	 */
+	private boolean disableLocalBlock;
 
 	/**
 	 * Constructs a new CIVL configuration object from the command line
@@ -496,6 +501,8 @@ public class CIVLConfiguration {
 		this.runtimeUpdate = config.isTrue(CIVLConstants.runtimeUpdateO);
 		this.preemptionBound = (Integer) config
 				.getValueOrDefault(CIVLConstants.preemptionBoundO);
+		this.disableLocalBlock = config.isTrue(
+				CIVLConstants.disableLocalBlockO);
 	}
 
 	public CIVLConfiguration(CIVLConfiguration config) {
@@ -545,6 +552,7 @@ public class CIVLConfiguration {
 		this.maxProcs = config.maxProcs;
 		this.intOperationTransiformer = config.intOperationTransiformer;
 		this.runtimeUpdate = config.runtimeUpdate;
+		this.disableLocalBlock = config.disableLocalBlock;
 	}
 
 	public CIVLConfiguration() {
@@ -1220,5 +1228,9 @@ public class CIVLConfiguration {
 	 */
 	public int preemptionBound() {
 		return this.preemptionBound;
+	}
+	
+	public boolean disableLocalBlock() {
+		return this.disableLocalBlock;
 	}
 }
