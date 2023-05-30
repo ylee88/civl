@@ -36,7 +36,7 @@ public enum CIVLProperty {
 	MALLOC ("malloc errors", "checkMallocErr", OptionType.BOOLEAN, true),
 	MEMORY_LEAK ("memory leaks", "checkMemoryLeak", OptionType.BOOLEAN, true),
 	MEMORY_MANAGE ("memory management errors", "checkMemManageErr", OptionType.BOOLEAN, true),
-	MPI_ERROR ("mpi usage errors", "checkMpiErr", OptionType.BOOLEAN, true),
+	MPI_ERROR ("MPI usage errors", "checkMpiErr", OptionType.BOOLEAN, true),
 	OUT_OF_BOUNDS ("out of bounds errors", "checkOutOfBounds", OptionType.BOOLEAN, true),
 	OUTPUT_READ ("reads from $output variables", "checkOutputRead", OptionType.BOOLEAN, true),
 	POINTER ("pointer errors", "checkPointerErr", OptionType.BOOLEAN, true),

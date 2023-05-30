@@ -6,6 +6,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.math.BigInteger;
+import java.util.LinkedList;
+import java.util.List;
 
 import dev.civl.mc.config.IF.CIVLConstants;
 import dev.civl.mc.log.IF.CIVLExecutionException;
@@ -13,6 +15,7 @@ import dev.civl.mc.model.IF.Model;
 import dev.civl.mc.semantics.IF.Transition;
 import dev.civl.mc.state.IF.CIVLStateException;
 import dev.civl.mc.state.IF.State;
+import dev.civl.mc.util.IF.Pair;
 import dev.civl.gmc.CommandLineException;
 import dev.civl.gmc.GMCConfiguration;
 import dev.civl.gmc.GuidedTransitionChooser;
@@ -130,13 +133,17 @@ public class TracePlayer extends Player {
 		}
 	}
 
-	public void printStats() {
-		civlConfig.out()
-				.println("   max process count   : " + stateManager.maxProcs());
-		civlConfig.out().print("   states              : ");
-		civlConfig.out().println(stateManager.numStatesExplored());
+	public List<Pair<String, String>> getStats() {
+		List<Pair<String, String>> stats = new LinkedList<Pair<String, String>>();
+		
+		stats.add(new Pair<String, String>("max process count",
+				Integer.toString(stateManager.maxProcs())));
+		stats.add(new Pair<String, String>("states",
+				Integer.toString(stateManager.numStatesExplored())));
 		if (isRandom)
-			civlConfig.out().println("   seed                : " + seed);
+			stats.add(new Pair<String, String>("seed", Long.toString(seed)));
+		
+		return stats;
 	}
 
 	/**

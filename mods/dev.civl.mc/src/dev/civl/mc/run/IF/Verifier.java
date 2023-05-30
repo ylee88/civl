@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -302,21 +304,22 @@ public class Verifier extends Player {
 	 * including time, memory, symbolic expressions, etc., are dealt with in the
 	 * general UserInterface class.
 	 */
-	public void printStats() {
-		civlConfig.out().print("   max process count   : ");
-		civlConfig.out().println(stateManager.maxProcs());
-		civlConfig.out().print("   states              : ");
-		civlConfig.out().println(stateManager.numStatesExplored());
-		civlConfig.out().print("   states saved        : ");
-		civlConfig.out().println(searcher.numOfSearchNodeSaved());
-		// civlConfig.out().print(" statesSeen : ");
-		// civlConfig.out().println(searcher.numStatesSeen());
-		civlConfig.out().print("   state matches       : ");
-		civlConfig.out().println(searcher.numStatesMatched());
-		civlConfig.out().print("   transitions         : ");
-		civlConfig.out().println(executor.getNumSteps());
-		civlConfig.out().print("   trace steps         : ");
-		civlConfig.out().println(searcher.numTransitions());
+	public List<Pair<String, String>> getStats() {
+		List<Pair<String, String>> stats = new LinkedList<Pair<String,String>>();
+		
+		stats.add(new Pair<String, String>("max process count",
+				Integer.toString(stateManager.maxProcs())));
+		stats.add(new Pair<String, String>("states",
+				Integer.toString(stateManager.numStatesExplored())));
+		stats.add(new Pair<String, String>("states saved",
+				Integer.toString(searcher.numOfSearchNodeSaved())));
+		stats.add(new Pair<String, String>("state matches",
+				Integer.toString(searcher.numStatesMatched())));
+		stats.add(new Pair<String, String>("transitions",
+				Long.toString(executor.getNumSteps())));
+		stats.add(new Pair<String, String>("trace steps",
+				Integer.toString(searcher.numTransitions())));
+		return stats;
 	}
 
 	public boolean run() throws FileNotFoundException, InterruptedException,

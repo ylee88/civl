@@ -112,7 +112,6 @@ public class CommonFileIndexer implements FileIndexer {
 			out.print("  (" + sourceFile.getPath() + ")");
 			out.println();
 		}
-		out.println();
 		out.flush();
 	}
 

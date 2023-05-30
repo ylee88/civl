@@ -30,6 +30,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -614,9 +615,10 @@ public class UserInterface {
 				printSourcefiles(out,
 						modelTranslator.frontEnd.getFileIndexer());
 				printCommand(out, command);
-				replayer.printStats();
-				printUniverseStats(out, modelTranslator.universe);
-				out.println();
+				List<Pair<String, String>> stats = getCommonStats();
+				stats.addAll(replayer.getStats());
+				stats.addAll(getUniverseStats(modelTranslator.universe));
+				printStats(out, stats);
 			}
 			if (sliceMode) {
 				Slice slice = new CommonSlice(trace, model);
@@ -653,9 +655,10 @@ public class UserInterface {
 				printSourcefiles(out,
 						modelTranslator.frontEnd.getFileIndexer());
 				this.printCommand(out, command);
-				player.printStats();
-				printUniverseStats(out, modelTranslator.universe);
-				out.println();
+				List<Pair<String, String>> stats = getCommonStats();
+				stats.addAll(player.getStats());
+				stats.addAll(getUniverseStats(modelTranslator.universe));
+				printStats(out, stats);
 			}
 			return result;
 		}
@@ -728,10 +731,12 @@ public class UserInterface {
 			if (!isQuiet) {
 				printSourcefiles(out,
 						modelTranslator.frontEnd.getFileIndexer());
-				this.printCommand(out, command);
-				verifier.printStats();
-				printUniverseStats(out, modelTranslator.universe);
-				out.println();
+				printCommand(out, command);
+
+				List<Pair<String, String>> stats = getCommonStats();
+				stats.addAll(verifier.getStats());
+				stats.addAll(getUniverseStats(modelTranslator.universe));
+				printStats(out, stats);
 				verifier.printResult();
 				out.flush();
 			}
@@ -855,22 +860,26 @@ public class UserInterface {
 					stateManager.collectedOutputs());
 			result = verifier.run_work();
 			statusImpl = verifier.verificationStatus;
-			this.printCommand(out, compareCommand.getCommandString());
-			out.print("   max process count   : ");
-			out.println(Math.max(statusSpec.maxProcessCount,
-					statusImpl.maxProcessCount));
-			out.print("   states              : ");
-			out.println(statusSpec.numStates + statusImpl.numStates);
-			out.print("   states saved        : ");
-			out.println(statusSpec.numSavedStates + statusImpl.numSavedStates);
-			out.print("   state matches       : ");
-			out.println(
-					statusSpec.numMatchedStates + statusImpl.numMatchedStates);
-			out.print("   transitions         : ");
-			out.println(statusSpec.numTransitions + statusImpl.numTransitions);
-			out.print("   trace steps         : ");
-			out.println(statusSpec.numTraceSteps + statusImpl.numTraceSteps);
-			printUniverseStats(out, specWorker.universe);
+			
+			printCommand(out, compareCommand.getCommandString());
+			
+			List<Pair<String, String>> stats = new LinkedList<Pair<String, String>>();
+			stats.add(new Pair<String, String>("max process count",
+					Integer.toString(Math.max(statusSpec.maxProcessCount,
+							statusImpl.maxProcessCount))));
+			stats.add(new Pair<String, String>("states", Integer
+					.toString(statusSpec.numStates + statusImpl.numStates)));
+			stats.add(new Pair<String, String>("states saved", Integer.toString(
+					statusSpec.numSavedStates + statusImpl.numSavedStates)));
+			stats.add(new Pair<String, String>("state matches",
+					Integer.toString(statusSpec.numMatchedStates
+							+ statusImpl.numMatchedStates)));
+			stats.add(new Pair<String, String>("transitions", Long.toString(
+					statusSpec.numTransitions + statusImpl.numTransitions)));
+			stats.add(new Pair<String, String>("trace steps", Integer.toString(
+					statusSpec.numTraceSteps + statusImpl.numTraceSteps)));
+			stats.addAll(getUniverseStats(specWorker.universe));
+			printStats(out,stats);
 		}
 		if (result)
 			out.println("\nThe standard properties hold for all executions and "
@@ -926,23 +935,61 @@ public class UserInterface {
 	}
 
 	private void printCommand(PrintStream out, String command) {
+		out.println("\n" + statsBar + " Command " + statsBar);
+		out.print("civl " + command);
+	}
+
+	private String whitespace(int n) {
+		assert n >= 0;
+		char[] ws = new char[n];
+		Arrays.fill(ws, ' ');
+		return new String(ws);
+	}
+
+	private void printStats(PrintStream out, List<Pair<String, String>> stats) {
+		out.println("\n" + statsBar + " Stats " + statsBar);
+		String tab = "   ";
+		String sep = ": ";
+		int labelWidth = 25;
+		int columnWidth = 35;
+		int numCols = 2;
+		int currCol = 0;
+
+		for (Pair<String, String> stat : stats) {
+			String labelWs = whitespace(labelWidth - tab.length()
+					- stat.left.length() - sep.length());
+			String statStr = tab + stat.left + labelWs + sep + stat.right;
+
+			out.print(statStr);
+			if (currCol < numCols - 1) {
+				out.print(whitespace(columnWidth - statStr.length()));
+				currCol++;
+			} else {
+				out.println();
+				currCol = 0;
+			}
+		}
+		out.println();
+	}
+
+	private List<Pair<String, String>> getCommonStats() {
 		double time = Math.ceil((System.currentTimeMillis() - startTime) / 10.0)
 				/ 100.0;
 		long memory = Runtime.getRuntime().totalMemory();
-		out.println("\n" + statsBar + " Command " + statsBar);
-		out.print("civl " + command);
-		out.println("\n" + statsBar + " Stats " + statsBar);
-		out.print("   time (s)            : ");
-		out.println(time);
-		out.print("   memory (bytes)      : ");
-		out.println(memory);
+		List<Pair<String, String>> stats = new LinkedList<Pair<String, String>>();
+
+		stats.add(new Pair<String, String>("time (s)", Double.toString(time)));
+		stats.add(new Pair<String, String>("memory (bytes)",
+				Double.toString(memory)));
+
+		return stats;
 	}
 
 	private void printSourcefiles(PrintStream out, FileIndexer indexer) {
 		out.println("\n" + statsBar + " Source files " + statsBar);
 
-		List<String> ignore = Arrays.asList(
-				CIVLConstants.ROOT_RESOURCE_PATH_STR, "predefined");
+		List<String> ignore = Arrays
+				.asList(CIVLConstants.ROOT_RESOURCE_PATH_STR, "predefined");
 		indexer.printFiltered(out, ignore);
 	}
 
@@ -1004,9 +1051,10 @@ public class UserInterface {
 		if (!quiet) {
 			printSourcefiles(out, fileIndexer);
 			this.printCommand(out, command);
-			verifier.printStats();
-			printUniverseStats(out, universe);
-			out.println();
+			List<Pair<String, String>> stats = getCommonStats();
+			stats.addAll(verifier.getStats());
+			stats.addAll(getUniverseStats(universe));
+			printStats(out, stats);
 			verifier.printResult();
 			out.flush();
 		}
@@ -1029,10 +1077,12 @@ public class UserInterface {
 		result = trace.result();
 		if (!quiet) {
 			printSourcefiles(out, fileIndexer);
-			this.printCommand(out, command);
-			replayer.printStats();
-			printUniverseStats(out, universe);
-			out.println();
+			printCommand(out, command);
+
+			List<Pair<String, String>> stats = getCommonStats();
+			stats.addAll(replayer.getStats());
+			stats.addAll(getUniverseStats(universe));
+			printStats(out, stats);
 		}
 		return result;
 	}
@@ -1203,7 +1253,7 @@ public class UserInterface {
 	 * @param transitions
 	 *            the number of transitions executed in the course of the run
 	 */
-	private void printUniverseStats(PrintStream out,
+	private List<Pair<String, String>> getUniverseStats(
 			SymbolicUniverse universe) {
 		// round up time to nearest 1/100th of second...
 		long numValidCalls = universe.numValidCalls();
@@ -1211,22 +1261,28 @@ public class UserInterface {
 		SARLConfig sarlConfig = Configurations.getDefaultConfiguration();
 		Iterable<ProverInfo> provers;
 		int i = 0;
+		List<Pair<String, String>> stats = new LinkedList<Pair<String, String>>();
 
-		out.print("   valid calls         : ");
-		out.println(numValidCalls);
+		stats.add(new Pair<String, String>("valid calls",
+				Long.toString(numValidCalls)));
+
 		provers = sarlConfig.getProvers();
-		out.print("   provers             : ");
+		String proversStr = "";
+
 		for (ProverInfo prover : provers) {
 			if (i != 0)
-				out.print(", ");
-			out.print(prover);
+				proversStr += ", ";
+			proversStr += prover;
 			i++;
 		}
+
 		if (sarlConfig.getWhy3ProvePlatform() != null)
-			out.print(", why3");
-		out.println();
-		out.print("   prover calls        : ");
-		out.println(numProverCalls);
+			proversStr += ", why3";
+		stats.add(new Pair<String, String>("provers", proversStr));
+		stats.add(new Pair<String, String>("prover calls",
+				Long.toString(numProverCalls)));
+
+		return stats;
 	}
 
 	private void setToDefault(GMCSection config, Collection<Option> options) {

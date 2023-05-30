@@ -209,7 +209,7 @@ public abstract class Player {
 	// }
 
 	public void printResult() {
-		civlConfig.out().println(statsBar + " Result " + statsBar);
+		civlConfig.out().println("\n" + statsBar + " Result " + statsBar);
 		civlConfig.out().println(result);
 	}
 
