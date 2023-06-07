@@ -962,6 +962,135 @@ public abstract class BaseWorker {
 						CivlcTokenConstant.INTEGER_CONSTANT),
 				Integer.toString(value));
 	}
+	
+	/** @return {@link CompoundStatementNode} */
+	protected CompoundStatementNode nodeBlock(String srcMethod,
+			BlockItemNode... blockItems) {
+		return nodeBlock(srcMethod, Arrays.asList(blockItems));
+	}
+
+	/** @return {@link CompoundStatementNode} */
+	protected CompoundStatementNode nodeBlock(String srcMethod,
+			List<BlockItemNode> blockItems) {
+		return nodeFactory.newCompoundStatementNode(
+				newSource(srcMethod, CivlcTokenConstant.COMPOUND_STATEMENT),
+				blockItems);
+	}
+
+	protected VariableDeclarationNode nodeDeclVarInt(String srcMethod,
+			String varName) {
+		return nodeDeclVar(srcMethod, varName, nodeTypeInt(srcMethod));
+	}
+
+	/** @return {@link VariableDeclarationNode} with type but no init */
+	protected VariableDeclarationNode nodeDeclVar(String srcMethod,
+			String varName, TypeNode type) {
+		return nodeFactory.newVariableDeclarationNode(
+				newSource(srcMethod, CivlcTokenConstant.DECLARATION),
+				nodeIdent(srcMethod, varName), type);
+	}
+
+	/** @return {@link VariableDeclarationNode} with type and init */
+	protected VariableDeclarationNode nodeDeclVarInit(String srcMethod,
+			String varName, TypeNode type, ExpressionNode init) {
+		return nodeFactory.newVariableDeclarationNode(
+				newSource(srcMethod, CivlcTokenConstant.DECLARATION),
+				nodeIdent(srcMethod, varName), type, init);
+	}
+
+	/** @return {@link FunctionCallNode} */
+	protected ExpressionNode nodeExprCall(String srcMethod, String funcName,
+			ExpressionNode... argExprs) {
+		return nodeFactory.newFunctionCallNode(
+				newSource(srcMethod, CivlcTokenConstant.CALL),
+				nodeExprId(srcMethod, funcName), Arrays.asList(argExprs), null);
+	}
+
+	/** @return {@link ExpressionNode}: <code>(type) expr</code> */
+	protected ExpressionNode nodeExprCast(String srcMethod, TypeNode type,
+			ExpressionNode expr) {
+		return nodeFactory.newCastNode(
+				newSource(srcMethod, CivlcTokenConstant.CAST), type, expr);
+	}
+
+	/** @return {@link ExpressionNode}: <code>$here</code> */
+	protected ExpressionNode nodeExprHere(String srcMethod) {
+		return nodeFactory
+				.newHereNode(newSource(srcMethod, CivlcTokenConstant.HERE));
+	}
+
+	/** @return {@link IdentifierExpressionNode} */
+	protected ExpressionNode nodeExprId(String srcMethod, String idName) {
+		IdentifierNode ident = nodeIdent(srcMethod, idName);
+
+		return nodeFactory.newIdentifierExpressionNode(ident.getSource(),
+				ident);
+	}
+
+	/** @return {@link IntegerConstantNode} */
+	protected ExpressionNode nodeExprInt(String srcMethod, int val) {
+		return nodeFactory.newIntConstantNode(
+				newSource(srcMethod, CivlcTokenConstant.INTEGER_CONSTANT), val);
+	}
+
+	/** @return {@link RegularRangeNode} */
+	protected ExpressionNode nodeExprRange(String srcMethod, ExpressionNode lo,
+			ExpressionNode hi, ExpressionNode step) {
+		if (step == null)
+			return nodeFactory.newRegularRangeNode(
+					newSource(srcMethod, CivlcTokenConstant.EXPR), lo, hi);
+		else
+			return nodeFactory.newRegularRangeNode(
+					newSource(srcMethod, CivlcTokenConstant.EXPR), lo, hi,
+					step);
+	}
+
+	/** @return {@link IdentifierNode} */
+	protected IdentifierNode nodeIdent(String srcMethod, String idName) {
+		return nodeFactory.newIdentifierNode(
+				newSource(srcMethod, CivlcTokenConstant.IDENTIFIER), idName);
+	}
+
+	/** @return {@link StatementNode} for a function call */
+	protected StatementNode nodeStmtCall(String srcMethod, String funcName,
+			ExpressionNode... argExprs) {
+		return nodeFactory.newExpressionStatementNode(
+				nodeExprCall(srcMethod, funcName, argExprs));
+	}
+	
+	/** @return CIVL <code>$domain(dim)</code> type node: */
+	protected TypeNode nodeTypeDom(String srcMethod, int dim) {
+		if (dim > 0) // $domain(dim)
+			return nodeFactory.newDomainTypeNode(
+					newSource(srcMethod, CivlcTokenConstant.DOMAIN),
+					nodeExprInt(srcMethod, dim));
+		else // $domain
+			return nodeFactory.newDomainTypeNode(
+					newSource(srcMethod, CivlcTokenConstant.DOMAIN));
+	}
+
+	/** @return <code>int</code> {@link TypeNode} */
+	protected TypeNode nodeTypeInt(String srcMethod) {
+		return nodeFactory.newBasicTypeNode(
+				newSource(srcMethod, CivlcTokenConstant.INT),
+				BasicTypeKind.INT);
+	}
+
+	/** @return named_type_def {@link TypeNode} w/ given <code>name</code> */
+	protected TypeNode nodeTypeNamed(String srcMethod, String name) {
+		return nodeFactory.newTypedefNameNode(nodeIdent(srcMethod, name), null);
+	}
+
+	/** @return CIVL <code>$range</code> {@link TypeNode} */
+	protected TypeNode nodeTypeRange(String srcMethod) {
+		return nodeFactory.newRangeTypeNode(
+				newSource(srcMethod, CivlcTokenConstant.RANGE));
+	}
+
+	protected TypeNode nodeTypeFromExpr(String srcMethod, ExpressionNode expr) {
+		return typeNode(newSource(srcMethod, CivlcTokenConstant.TYPE),
+				expr.getConvertedType());
+	}
 
 	/**
 	 * Combines two ASTs into one, assuming that there are no name conflicts.

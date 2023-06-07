@@ -1343,88 +1343,6 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 						.getEntity().equals(varId.getEntity());
 	}
 
-	/** @return {@link CompoundStatementNode} */
-	private CompoundStatementNode nodeBlock(String srcMethod,
-			BlockItemNode... blockItems) {
-		return nodeBlock(srcMethod, Arrays.asList(blockItems));
-	}
-
-	/** @return {@link CompoundStatementNode} */
-	private CompoundStatementNode nodeBlock(String srcMethod,
-			List<BlockItemNode> blockItems) {
-		return nodeFactory.newCompoundStatementNode(
-				newSource(srcMethod, CivlcTokenConstant.COMPOUND_STATEMENT),
-				blockItems);
-	}
-
-	private VariableDeclarationNode nodeDeclVarInt(String srcMethod,
-			String varName) {
-		return nodeDeclVar(srcMethod, varName, nodeTypeInt(srcMethod));
-	}
-
-	/** @return {@link VariableDeclarationNode} with type but no init */
-	private VariableDeclarationNode nodeDeclVar(String srcMethod,
-			String varName, TypeNode type) {
-		return nodeFactory.newVariableDeclarationNode(
-				newSource(srcMethod, CivlcTokenConstant.DECLARATION),
-				nodeIdent(srcMethod, varName), type);
-	}
-
-	/** @return {@link VariableDeclarationNode} with type and init */
-	private VariableDeclarationNode nodeDeclVarInit(String srcMethod,
-			String varName, TypeNode type, ExpressionNode init) {
-		return nodeFactory.newVariableDeclarationNode(
-				newSource(srcMethod, CivlcTokenConstant.DECLARATION),
-				nodeIdent(srcMethod, varName), type, init);
-	}
-
-	/** @return {@link FunctionCallNode} */
-	private ExpressionNode nodeExprCall(String srcMethod, String funcName,
-			ExpressionNode... argExprs) {
-		return nodeFactory.newFunctionCallNode(
-				newSource(srcMethod, CivlcTokenConstant.CALL),
-				nodeExprId(srcMethod, funcName), Arrays.asList(argExprs), null);
-	}
-
-	/** @return {@link ExpressionNode}: <code>(type) expr</code> */
-	private ExpressionNode nodeExprCast(String srcMethod, TypeNode type,
-			ExpressionNode expr) {
-		return nodeFactory.newCastNode(
-				newSource(srcMethod, CivlcTokenConstant.CAST), type, expr);
-	}
-
-	/** @return {@link ExpressionNode}: <code>$here</code> */
-	private ExpressionNode nodeExprHere(String srcMethod) {
-		return nodeFactory
-				.newHereNode(newSource(srcMethod, CivlcTokenConstant.HERE));
-	}
-
-	/** @return {@link IdentifierExpressionNode} */
-	private ExpressionNode nodeExprId(String srcMethod, String idName) {
-		IdentifierNode ident = nodeIdent(srcMethod, idName);
-
-		return nodeFactory.newIdentifierExpressionNode(ident.getSource(),
-				ident);
-	}
-
-	/** @return {@link IntegerConstantNode} */
-	private ExpressionNode nodeExprInt(String srcMethod, int val) {
-		return nodeFactory.newIntConstantNode(
-				newSource(srcMethod, CivlcTokenConstant.INTEGER_CONSTANT), val);
-	}
-
-	/** @return {@link RegularRangeNode} */
-	private ExpressionNode nodeExprRange(String srcMethod, ExpressionNode lo,
-			ExpressionNode hi, ExpressionNode step) {
-		if (step == null)
-			return nodeFactory.newRegularRangeNode(
-					newSource(srcMethod, CivlcTokenConstant.EXPR), lo, hi);
-		else
-			return nodeFactory.newRegularRangeNode(
-					newSource(srcMethod, CivlcTokenConstant.EXPR), lo, hi,
-					step);
-	}
-
 	/** @return {@link ExpressionNode} for omp reduction init val */
 	private ExpressionNode nodeExprReductionInit(String srcMethod,
 			OmpReductionOperator reductionOp, TypeNode type) {
@@ -1464,19 +1382,6 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		}
 	}
 
-	/** @return {@link IdentifierNode} */
-	private IdentifierNode nodeIdent(String srcMethod, String idName) {
-		return nodeFactory.newIdentifierNode(
-				newSource(srcMethod, CivlcTokenConstant.IDENTIFIER), idName);
-	}
-
-	/** @return {@link StatementNode} for a function call */
-	private StatementNode nodeStmtCall(String srcMethod, String funcName,
-			ExpressionNode... argExprs) {
-		return nodeFactory.newExpressionStatementNode(
-				nodeExprCall(srcMethod, funcName, argExprs));
-	}
-
 	/**
 	 * Returns a list of {@link BlockItemNode}s representing that the given
 	 * <code>nodes</code> wrapped as a protected interleave block tagged with
@@ -1505,40 +1410,6 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		// ADD: $omp_atomic_execution_lock_release(team, &blockName);
 		wrappedNodes.add(callLockRelease(srcMethod, blockName));
 		return wrappedNodes;
-	}
-
-	/** @return CIVL <code>$domain(dim)</code> type node: */
-	private TypeNode nodeTypeDom(String srcMethod, int dim) {
-		if (dim > 0) // $domain(dim)
-			return nodeFactory.newDomainTypeNode(
-					newSource(srcMethod, CivlcTokenConstant.DOMAIN),
-					nodeExprInt(srcMethod, dim));
-		else // $domain
-			return nodeFactory.newDomainTypeNode(
-					newSource(srcMethod, CivlcTokenConstant.DOMAIN));
-	}
-
-	/** @return <code>int</code> {@link TypeNode} */
-	private TypeNode nodeTypeInt(String srcMethod) {
-		return nodeFactory.newBasicTypeNode(
-				newSource(srcMethod, CivlcTokenConstant.INT),
-				BasicTypeKind.INT);
-	}
-
-	/** @return named_type_def {@link TypeNode} w/ given <code>name</code> */
-	private TypeNode nodeTypeNamed(String srcMethod, String name) {
-		return nodeFactory.newTypedefNameNode(nodeIdent(srcMethod, name), null);
-	}
-
-	/** @return CIVL <code>$range</code> {@link TypeNode} */
-	private TypeNode nodeTypeRange(String srcMethod) {
-		return nodeFactory.newRangeTypeNode(
-				newSource(srcMethod, CivlcTokenConstant.RANGE));
-	}
-
-	private TypeNode nodeTypeFromExpr(String srcMethod, ExpressionNode expr) {
-		return typeNode(newSource(srcMethod, CivlcTokenConstant.TYPE),
-				expr.getConvertedType());
 	}
 
 	private void procOmpBarrierNode(OmpSyncNode ompBarrierNode) {
