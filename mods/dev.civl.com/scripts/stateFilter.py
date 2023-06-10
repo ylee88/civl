@@ -6,29 +6,71 @@ class StateSpace:
     def __init__(self):
         self.uStateMap = {}
         self.pStateMap = {}
+        self.outgoingMap = {}
+        self.incomingMap = {}
         self.initState = None
 
-    def addState(self, state):
-        self.uStateMap[state.sid.unique] = state
-        self.pStateMap[(state.sid.left, state.sid.right)] = state
+    def addTransition(self, transition):
+        fs = transition.fromState
+        ts = transition.toState
+        self._addState(fs)
+        self._addState(ts)
+        self.incomingMap[ts.uid()].append(transition)
+        self.outgoingMap[fs.uid()].append(transition)
+
+    def incoming(self, stateID):
+        return self.incomingMap.get(stateID.unique, None)
+
+    def outgoing(self, stateID):
+        return self.outgoingMap.get(stateID.unique, None)
+
+    def _addState(self, state):
+        self.uStateMap.setdefault(state.uid(), state)
+        self.pStateMap.setdefault(state.pairID(), state)
+        self.incomingMap.setdefault(state.uid(), [])
+        self.outgoingMap.setdefault(state.uid(), [])
 
     def setInitState(self, state):
+        self._addState(state)
         self.initState = state
 
     def getState(self, stateID):
         return self.getStateFromUID(stateID.unique)
 
     def getStateFromUID(self, uid):
-        return self.uStateMap[uid]
+        return self.uStateMap.get(uid, None)
 
     def getStateFromPairID(self, bid, lid):
-        return self.pStateMap[(bid,lid)]
+        return self.pStateMap.get((bid,lid), None)
 
     def __str__(self):
-        pass # Perform DFS of space, printing as we go
+        outStr = str(self.initState)
+        seenStates = {self.initState}
+        openList = []
+        openList.extend(reversed(self.outgoing(self.initState.stateID())))
+        while len(openList) > 0:
+            nextTrans = openList.pop()
+            outStr += str(nextTrans) + "\n"
+            if nextTrans.toState not in seenStates:
+                seenStates.add(nextTrans.toState)
+                outStr += str(nextTrans.toState)
+                openList.extend(reversed(self.outgoing(nextTrans.toState.stateID())))
 
-    # TODO: Add methods for creating subspaces of this space via reachability-filtering
-        
+        return outStr # Perform DFS of space, printing as we go
+
+    def reachableFrom(self, startState):
+        subSpace = StateSpace()
+        subSpace.setInitState(startState)
+        openList = []
+        openList.extend(reversed(self.outgoing(startState.stateID())))
+        while len(openList) > 0:
+            nextTrans = openList.pop()
+            if not subSpace.getState(nextTrans.toState.stateID()):
+                openList.extend(reversed(self.outgoing(nextTrans.toState.stateID())))
+            subSpace.addTransition(nextTrans)
+
+        return subSpace
+            
 
 ##########
 # Tokens #
@@ -45,26 +87,18 @@ class State:
         self.headStr = headStr
         self.contentStr = contentStr
         self.sid = sid
-        self.incomingTrans = []
-        self.outgoingTrans = []
 
     def stateID(self):
         return self.sid
 
-    def addIncoming(self, trans):
-        self.incomingTrans.append(trans)
+    def uid(self):
+        return self.sid.unique
 
-    def addOutgoing(self, trans):
-        self.outgoingTrans.append(trans)
-
-    def incoming(self):
-        return self.incomingTrans
-
-    def outgoing(self):
-        return self.outgoingTrans
+    def pairID(self):
+        return (self.sid.left, self.sid.right)
 
     def __str__(self):
-        return self.headStr + "\n" + self.contentStr
+        return self.headStr + "\n" + self.contentStr + "\n"
 
 @dataclass
 class Transition:
@@ -76,11 +110,9 @@ class Transition:
     def __str__(self):
         return "Executed by p"+str(self.pid)+" from "+self.fromState.headStr+"\n  "+self.contentStr+"--> "+self.toState.headStr+"\n"
 
-def createTransition(contentStr, pid, fromState, toState):
+def createTransition(stateSpace, contentStr, pid, fromState, toState):
     transition = Transition(contentStr, pid, fromState, toState)
-    
-    fromState.addOutgoing(transition)
-    toState.addIncoming(transition)
+    stateSpace.addTransition(transition)
     return transition
 
 @dataclass
@@ -408,7 +440,6 @@ def parseInitState(file, stateSpace):
     try:
         while not (initState := parseTerminal(file, StateTerminal)) and not file.eof():
             file.readline()
-            #print("Ignoring :"+file.readline(), end='')
     except ParseError as err:
         print("Parsing error: Failed to parse initial state.", err)
         exit()
@@ -416,14 +447,11 @@ def parseInitState(file, stateSpace):
         print("No States found.")
         exit()
 
-    stateSpace.addState(initState)
     stateSpace.setInitState(initState)
 
 def parseState(file, stateSpace):
     try:
-        if (state := parseTerminal(file, StateTerminal)):
-            stateSpace.addState(state)
-        return state
+        return parseTerminal(file, StateTerminal)
     except ParseError as err:
         print("Parsing error: Failed to parse initial state.", err)
         raise
@@ -463,7 +491,7 @@ def parseLargeTransitionStep(file, stateSpace):
 
     file.skipws()
     while (nextState := parseState(file, stateSpace)):
-        newTransition = createTransition(subTransToken.contentStr, startToken.pid, lastState, nextState)
+        newTransition = createTransition(stateSpace, subTransToken.contentStr, startToken.pid, lastState, nextState)
         lastState = nextState
         
         file.skipws()
@@ -474,8 +502,8 @@ def parseLargeTransitionStep(file, stateSpace):
 
     file.skipws()
     if not (endState := parseState(file, stateSpace)):
-        endState = stateSpace.getState(stopToken.toStateID)    
-    lastTransition = createTransition(subTransToken.contentStr, startToken.pid, lastState, endState)
+        endState = stateSpace.getState(stopToken.toStateID)
+    lastTransition = createTransition(stateSpace, subTransToken.contentStr, startToken.pid, lastState, endState)
     
     return True
 
@@ -496,13 +524,6 @@ if __name__ == "__main__":
     with open(sys.argv[1], 'r', encoding="utf-8") as f:
         stateSpace = parseStateSpace(LexicalStream(f))
     print("Done parsing")
-    
-    state = stateSpace.getStateFromUID(9)
-    
-    print(state)
-    while len(outgoing := state.outgoing()) > 0:
-        transition = outgoing[0]
-        print(transition)
-        state = transition.toState
-        print(state)
+
+    print(stateSpace)
         
