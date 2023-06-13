@@ -8,7 +8,7 @@ class StateSpace:
         self.pStateMap = {}
         self.outgoingMap = {}
         self.incomingMap = {}
-        self.initState = None
+        self.initStates = set()
 
     def addTransition(self, transition):
         fs = transition.fromState
@@ -30,46 +30,102 @@ class StateSpace:
         self.incomingMap.setdefault(state.uid(), [])
         self.outgoingMap.setdefault(state.uid(), [])
 
-    def setInitState(self, state):
+    def addInitState(self, state):
         self._addState(state)
-        self.initState = state
+        self.initStates.add(state)
 
     def getState(self, stateID):
-        return self.getStateFromUID(stateID.unique)
-
-    def getStateFromUID(self, uid):
-        return self.uStateMap.get(uid, None)
-
-    def getStateFromPairID(self, bid, lid):
-        return self.pStateMap.get((bid,lid), None)
+        if isinstance(stateID, StateID):
+            stateID = stateID.unique
+        if isinstance(stateID, tuple):
+            assert len(stateID) == 2
+            return self.pStateMap.get(stateID, None)
+        else:
+            assert isinstance(stateID, int)
+            return self.uStateMap.get(stateID, None)
 
     def __str__(self):
-        outStr = str(self.initState)
-        seenStates = {self.initState}
-        openList = []
-        openList.extend(reversed(self.outgoing(self.initState.stateID())))
-        while len(openList) > 0:
-            nextTrans = openList.pop()
-            outStr += str(nextTrans) + "\n"
-            if nextTrans.toState not in seenStates:
-                seenStates.add(nextTrans.toState)
-                outStr += str(nextTrans.toState)
-                openList.extend(reversed(self.outgoing(nextTrans.toState.stateID())))
+        seenStates = set()
+        outStr = ""
+        for initState in self.initStates:
+            if initState in seenStates:
+                continue
+            outStr += str(initState)
+            seenStates.add(initState)
+            openList = []
+            openList.extend(reversed(self.outgoing(initState.stateID())))
+            while len(openList) > 0:
+                nextTrans = openList.pop()
+                outStr += str(nextTrans) + "\n"
+                if nextTrans.toState not in seenStates:
+                    seenStates.add(nextTrans.toState)
+                    outStr += str(nextTrans.toState)
+                    openList.extend(reversed(self.outgoing(nextTrans.toState.stateID())))
 
-        return outStr # Perform DFS of space, printing as we go
+        return outStr
 
-    def reachableFrom(self, startState):
+    def reachableFrom(self, startStates):
+        if not isinstance(startStates, set):
+            startStates = {startStates}
         subSpace = StateSpace()
-        subSpace.setInitState(startState)
-        openList = []
-        openList.extend(reversed(self.outgoing(startState.stateID())))
-        while len(openList) > 0:
-            nextTrans = openList.pop()
-            if not subSpace.getState(nextTrans.toState.stateID()):
-                openList.extend(reversed(self.outgoing(nextTrans.toState.stateID())))
-            subSpace.addTransition(nextTrans)
+        for startState in startStates:
+            if subSpace.getState(startState.stateID()):
+                continue
+            subSpace.addInitState(startState)
+            openList = []
+            openList.extend(self.outgoing(startState.stateID()))
+            while len(openList) > 0:
+                nextTrans = openList.pop()
+                if not subSpace.getState(nextTrans.toState.stateID()):
+                    openList.extend(self.outgoing(nextTrans.toState.stateID()))
+                subSpace.addTransition(nextTrans)
 
         return subSpace
+
+    def reachableTo(self, endStates):
+        if not isinstance(endStates, set):
+            endStates = {endStates}
+        subSpace = StateSpace()
+        for endState in endStates:
+            if subSpace.getState(endState.stateID()):
+                continue
+            openList = []
+            openList.extend(self.incoming(endState.stateID()))
+            if len(openList) == 0:
+                subSpace.addInitState(endState)
+            while len(openList) > 0:
+                prevTrans = openList.pop()
+                if not subSpace.getState(prevTrans.fromState.stateID()):
+                    incomingList = self.incoming(prevTrans.fromState.stateID())
+                    if len(incomingList) == 0:
+                        subSpace.addInitState(prevTrans.fromState)
+                    else:
+                        openList.extend(incomingList)
+                else:
+                    subSpace.addInitState(prevTrans.fromState)
+                subSpace.addTransition(prevTrans)
+
+        subSpace._collapseInitStates()
+        return subSpace
+
+    # Removes any redundant initStates
+    def _collapseInitStates(self):
+        possibleInitStates = self.initStates.copy()
+        for initState in self.initStates:
+            if initState not in possibleInitStates:
+                continue
+            seenStates = {initState}
+            openList = []
+            openList.extend(self.outgoing(initState.stateID()))
+            while len(openList) > 0:
+                nextTrans = openList.pop()
+                if nextTrans.toState not in seenStates:
+                    seenStates.add(nextTrans.toState)
+                    openList.extend(self.outgoing(nextTrans.toState.stateID()))
+            seenStates.remove(initState)
+            possibleInitStates.difference_update(seenStates)
+
+        self.initStates = possibleInitStates
             
 
 ##########
@@ -447,7 +503,7 @@ def parseInitState(file, stateSpace):
         print("No States found.")
         exit()
 
-    stateSpace.setInitState(initState)
+    stateSpace.addInitState(initState)
 
 def parseState(file, stateSpace):
     try:
@@ -507,22 +563,24 @@ def parseLargeTransitionStep(file, stateSpace):
     
     return True
 
-def parseStateSpace(file):
+def parseStateSpace(fileName):
     stateSpace = StateSpace()
 
-    try:
-        parseInitState(file, stateSpace)
-        file.skipws()
-        while parseLargeTransitionStep(file, stateSpace):
+    with open(fileName, 'r', encoding="utf-8") as f:
+        file = LexicalStream(f)
+        try:
+            parseInitState(file, stateSpace)
             file.skipws()
-    except ParseError:
-        pass
+            while parseLargeTransitionStep(file, stateSpace):
+                file.skipws()
+        except ParseError:
+            pass
+        
 
     return stateSpace
 
 if __name__ == "__main__":
-    with open(sys.argv[1], 'r', encoding="utf-8") as f:
-        stateSpace = parseStateSpace(LexicalStream(f))
+    stateSpace = parseStateSpace(sys.argv[1])
     print("Done parsing")
 
     print(stateSpace)
