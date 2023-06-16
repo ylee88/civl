@@ -62,9 +62,21 @@ public class LinearVariableSet {
 	private Set<Monic> intMonicSet = new HashSet<Monic>();
 
 	/**
+	 * Subset of intMonicSet containing monics which are keys in the
+	 * substitution map of the Context being normalized or a parent context.
+	 */
+	private Set<Monic> intKeyMonicSet = new HashSet<Monic>();
+
+	/**
 	 * The set of real "variables" in the system of linear equations.
 	 */
 	private Set<Monic> realMonicSet = new HashSet<Monic>();
+	
+	/**
+	 * Subset of realMonicSet containing monics which are keys in the
+	 * substitution map of the Context being normalized or a parent context.
+	 */
+	private Set<Monic> realKeyMonicSet = new HashSet<Monic>();
 
 	/**
 	 * The elements of {@link #intMonicSet}, ordered using the total order on
@@ -163,21 +175,28 @@ public class LinearVariableSet {
 
 			SymbolicType type = key.type();
 			Set<Monic> monics;
+			Set<Monic> keyMonics;
 
 			if (type.isInteger()) {
 				numIntConstraints++;
 				monics = intMonicSet;
+				keyMonics = intKeyMonicSet;
 			} else if (type.isReal()) {
 				numRealConstraints++;
 				monics = realMonicSet;
+				keyMonics = realKeyMonicSet;
 			} else
 				continue;
-			for (Monomial term : ((Monic) key).termMap(idealFactory)) {
+			Monomial[] keyTermMap = ((Monic) key).termMap(idealFactory);
+			for (Monomial term : keyTermMap) {
 				Monic monic = term.monic(idealFactory);
 
 				// a key should not have a constant term:
 				assert !monic.isOne();
 				monics.add(monic);
+				if (keyTermMap.length == 1) {
+					keyMonics.add(monic);
+				}
 			}
 			for (Monomial term : ((Monomial) value).termMap(idealFactory)) {
 				Monic monic = term.monic(idealFactory);
@@ -221,18 +240,27 @@ public class LinearVariableSet {
 		// map will have a cycle!
 
 		if (backwardsSub) {
-			BinaryPredicate<Monic> superObj = new BinaryPredicate<Monic>() {
-
+			BinaryPredicate<Monic> intSuperObj = new BinaryPredicate<Monic>() {
 				@Override
 				public boolean apply(Monic x, Monic y) {
-					return x.containsSubobject(y);
+					boolean xIsKey = intKeyMonicSet.contains(x);
+					boolean yIsKey = intKeyMonicSet.contains(y);
+					return (xIsKey && !yIsKey) || x.containsSubobject(y);
 				}
-
 			};
-			TopologicalSorter<Monic> sorter = new TopologicalSorter<>(superObj);
+			BinaryPredicate<Monic> realSuperObj = new BinaryPredicate<Monic>() {
+				@Override
+				public boolean apply(Monic x, Monic y) {
+					boolean xIsKey = realKeyMonicSet.contains(x);
+					boolean yIsKey = realKeyMonicSet.contains(y);
+					return (xIsKey && !yIsKey) || x.containsSubobject(y);
+				}
+			};
+			TopologicalSorter<Monic> intSorter = new TopologicalSorter<>(intSuperObj);
+			TopologicalSorter<Monic> realSorter = new TopologicalSorter<>(realSuperObj);
 
-			sorter.sort(intMonics);
-			sorter.sort(realMonics);
+			intSorter.sort(intMonics);
+			realSorter.sort(realMonics);
 		}
 		for (i = 0; i < numIntMonics; i++)
 			intIdMap.put(intMonics[i], i);

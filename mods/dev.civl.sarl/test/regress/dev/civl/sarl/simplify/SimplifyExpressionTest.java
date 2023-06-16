@@ -7,7 +7,9 @@ import java.io.PrintStream;
 import java.util.Arrays;
 
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 import dev.civl.sarl.SARL;
 import dev.civl.sarl.IF.Reasoner;
@@ -19,18 +21,29 @@ import dev.civl.sarl.IF.expr.NumericSymbolicConstant;
 import dev.civl.sarl.IF.expr.SymbolicConstant;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.IF.type.SymbolicType;
+import dev.civl.sarl.expr.common.CommonNumericExpressionFactory;
+import dev.civl.sarl.ideal.IF.IdealFactory;
+import dev.civl.sarl.ideal.IF.Monic;
+import dev.civl.sarl.universe.common.CommonSymbolicUniverse;
 
 public class SimplifyExpressionTest {
+	@Rule
+	public Timeout globalTimeout = Timeout.seconds(10);
 
 	private static PrintStream out = System.out;
 
-	private static SymbolicUniverse universe = SARL.newStandardUniverse();
+	private static CommonSymbolicUniverse universe = (CommonSymbolicUniverse) SARL
+			.newStandardUniverse();
 
 	private static SymbolicType boolType = universe.booleanType();
 
 	private static SymbolicType intType = universe.integerType();
 
 	private static SymbolicType realType = universe.realType();
+
+	private static NumericExpression zero = universe.integer(0);
+
+	private static NumericExpression two = universe.integer(2);
 
 	@BeforeClass
 	public static void setUpBeforeClass() {
@@ -193,5 +206,58 @@ public class SimplifyExpressionTest {
 				.equals(reasoner.simplify(arrayLambdaY6)));
 		assertTrue(reasoner.simplify(arrayLambdaY7)
 				.equals(reasoner.simplify(arrayLambdaY11)));
+	}
+
+	/**
+	 * Tests a specific termination bug that occurred due to GaussianNormalizer
+	 * not maintaining the invariant of a Context which states that a key of its
+	 * submap cannot appear as a subexpression of any other key or value in it,
+	 * or any subcontext's submap.
+	 * 
+	 * In rare cases, invariant can be broken if K -> T is in super context's
+	 * submap, and we try to simplify an expression E containing T as a subterm.
+	 * The circumstances that needed to occur were that K would get ordered
+	 * after T when forming the columns of the matrix to be solved. If this
+	 * happened, then K was not guaranteed to be chosen as a "pivot" column
+	 * which would mean that the submatrix of E could end up with a non-zero
+	 * coefficient for K, which meant that K would appear as a subterm of the
+	 * simplified expression. This would then result in an entry into the submap
+	 * that contained K as a subexpression, breaking the invariant.
+	 * 
+	 * Non-termination would then occur because SubstitutionNormalizer would
+	 * replace this instance of K with T, but then the GaussianNormalizer would
+	 * resolve the matrix in the same way as before, placing K back into the
+	 * substitution map. This would repeat ad infinitum.
+	 */
+	@Test
+	public void gaussTerminationTest() {
+		IdealFactory idealFactory = (IdealFactory) ((CommonNumericExpressionFactory) universe
+				.numericExpressionFactory()).idealFactory();
+		Monic[] symbols = new Monic[]{
+				(Monic) universe.symbolicConstant(universe.stringObject("X"),
+						intType),
+				(Monic) universe.symbolicConstant(universe.stringObject("Y"),
+						intType),
+				(Monic) universe.symbolicConstant(universe.stringObject("Z"),
+						intType)};
+		// Sort symbols so that we can purposefully construct our expressions so
+		// that the bug gets triggered.
+		Arrays.sort(symbols, idealFactory.monicComparator());
+
+		// Need K -> T in sub map with K > T. Multiplying by 2 does this.
+		NumericExpression symb1Expr = universe.multiply(symbols[1], two);
+		BooleanExpression superAssumption = universe.equals(symbols[2],
+				symb1Expr);
+		Reasoner reasoner = universe.reasoner(superAssumption);
+
+		NumericExpression yMinusZ = universe.subtract(symb1Expr, symbols[0]);
+		// Using a conjunction so that we use SubContextSimplification to
+		// simplify our expression.
+		BooleanExpression expr = universe.and(
+				universe.lessThanEquals(yMinusZ, zero),
+				universe.lessThanEquals(zero, yMinusZ));
+		BooleanExpression expectedExpr = universe.equals(symb1Expr, symbols[0]);
+
+		assertEquals(reasoner.simplify(expectedExpr), reasoner.simplify(expr));
 	}
 }
