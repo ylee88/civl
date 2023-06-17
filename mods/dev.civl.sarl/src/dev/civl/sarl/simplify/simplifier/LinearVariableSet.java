@@ -71,7 +71,7 @@ public class LinearVariableSet {
 	 * The set of real "variables" in the system of linear equations.
 	 */
 	private Set<Monic> realMonicSet = new HashSet<Monic>();
-	
+
 	/**
 	 * Subset of realMonicSet containing monics which are keys in the
 	 * substitution map of the Context being normalized or a parent context.
@@ -155,16 +155,38 @@ public class LinearVariableSet {
 	 * "usable" entry consists of a {@link Monic} key and a {@link Monomial}
 	 * value. Entries of other types are ignored.
 	 * 
+	 * If the entry is from a parent/super context, then isContextEntry should
+	 * be true. Terms which appear as a standalone key in a super context are
+	 * collected into {@link intKeyMonicSet}/{@link realKeyMonicSet} so that can
+	 * be ordered in the matrix (ordering is done later in the call to
+	 * {@link finish}) earlier than all other entries. This is needed so that
+	 * constraints in the context being normalized don't end up with such a key
+	 * as a subexpression since this would break the submap invariant of
+	 * Context's.
+	 * 
+	 * We do not collect Monic keys from the current context because if we
+	 * ordered these earlier as well then this would break idempotency. For
+	 * example: If the super context has A - B = 0 and A - C = 0 and the current
+	 * context has B = 0, then ordering all Monic keys earlier would put B in
+	 * the matrix first, causing it to become a pivot point, and then relative
+	 * Gaussian elimination would change the current context to be C = 0. Then
+	 * on a subsequent call, C would get ordered first, causing it to become a
+	 * pivot point which would then result in the constraint for the current
+	 * context to switch back to B = 0.
+	 * 
 	 * Preconditions: a {@link Monic} key should not have a constant term
 	 * 
 	 * @param entrySet
 	 *            a collection of entries from a substitution map
+	 * @param isContextEntry
+	 *            Whether this entry is from a (super) context constraint
 	 * @return a pair in which the first component is the number of usable
 	 *         {@link Entry}s of integer type, and the second component is the
 	 *         number of usable {@link Entry}s of real type.
 	 */
 	public Pair<Integer, Integer> addEntries(
-			Collection<Entry<SymbolicExpression, SymbolicExpression>> entrySet) {
+			Collection<Entry<SymbolicExpression, SymbolicExpression>> entrySet,
+			boolean isContextEntry) {
 		int numIntConstraints = 0, numRealConstraints = 0;
 
 		for (Entry<SymbolicExpression, SymbolicExpression> entry : entrySet) {
@@ -194,7 +216,7 @@ public class LinearVariableSet {
 				// a key should not have a constant term:
 				assert !monic.isOne();
 				monics.add(monic);
-				if (keyTermMap.length == 1) {
+				if (isContextEntry && keyTermMap.length == 1) {
 					keyMonics.add(monic);
 				}
 			}
@@ -256,8 +278,10 @@ public class LinearVariableSet {
 					return (xIsKey && !yIsKey) || x.containsSubobject(y);
 				}
 			};
-			TopologicalSorter<Monic> intSorter = new TopologicalSorter<>(intSuperObj);
-			TopologicalSorter<Monic> realSorter = new TopologicalSorter<>(realSuperObj);
+			TopologicalSorter<Monic> intSorter = new TopologicalSorter<>(
+					intSuperObj);
+			TopologicalSorter<Monic> realSorter = new TopologicalSorter<>(
+					realSuperObj);
 
 			intSorter.sort(intMonics);
 			realSorter.sort(realMonics);

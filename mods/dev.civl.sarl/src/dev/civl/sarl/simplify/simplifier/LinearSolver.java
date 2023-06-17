@@ -699,7 +699,7 @@ public class LinearSolver {
 		LinearVariableSet keySet = new LinearVariableSet(info.idealFactory,
 				monicComparator);
 		Pair<Integer, Integer> numConstraints = keySet
-				.addEntries(map.entrySet());
+				.addEntries(map.entrySet(), false);
 
 		keySet.finish(backwardsSub);
 
@@ -718,8 +718,8 @@ public class LinearSolver {
 		LinearVariableSet keySet = new LinearVariableSet(info.idealFactory,
 				monicComparator);
 		Pair<Integer, Integer> numConstraints1 = keySet
-				.addEntries(context.entrySet()),
-				numConstraints2 = keySet.addEntries(map.entrySet());
+				.addEntries(context.entrySet(), true),
+				numConstraints2 = keySet.addEntries(map.entrySet(), false);
 
 		keySet.finish(backwardsSub);
 

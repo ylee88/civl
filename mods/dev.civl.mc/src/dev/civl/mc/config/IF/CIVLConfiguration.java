@@ -455,6 +455,10 @@ public class CIVLConfiguration {
 		if (this.isEnableMpiContract())
 			this.intOperationTransiformer = false;
 		this.loopInvariantEnabled = config.isTrue(CIVLConstants.loopO);
+		if (this.loopInvariantEnabled) {
+			// Loop invariant transformation has cycles
+			this.setToggleableProperty(CIVLProperty.TERMINATION, false);
+		}
 		this.collectSymbolicNames = config
 				.isTrue(CIVLConstants.collectSymbolicConstantsO)
 				|| loopInvariantEnabled;
