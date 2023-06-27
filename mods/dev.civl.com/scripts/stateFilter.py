@@ -274,6 +274,9 @@ class LexicalStream:
             
 
     def read(self, n):
+        if self.eof():
+            return ""
+        
         rest = self._restOfLine()
         if n < len(rest):
             self._headLoc = SourceLoc(self._headLoc.lineNum, self._headLoc.charPos + n)
@@ -310,13 +313,13 @@ class LexicalStream:
 
     def skipws(self):
         rest = self._restOfLine()
-        while (nextNonWs := len(rest) - len(rest.lstrip())) == len(rest):
+        while (nextNonWs := len(rest) - len(rest.lstrip())) == len(rest) and not self.eof():
             self.readline()
             rest = self._restOfLine()
         self._headLoc = SourceLoc(self._headLoc.lineNum, self._headLoc.charPos + nextNonWs)
 
     def pos(self):
-        return self._headLoc
+        return self._getGlobalLoc(self._headLoc)
 
     # Private methods
 
@@ -349,7 +352,7 @@ class LexicalStream:
             newLine = self._in.readline()
             
             if newLine == "":
-                self._eof = true
+                self._eof = True
             pulledLines.append(newLine)
             n -= 1
         
@@ -393,7 +396,7 @@ class SourceLoc:
     # Intentially not __add__ since it isn't associative
     def add(self, other):
         charPos = other.charPos
-        if other.lineNum > 0:
+        if other.lineNum == 0:
             charPos += self.charPos
         return SourceLoc(self.lineNum + other.lineNum, charPos)
     
@@ -436,7 +439,7 @@ class StateTerminal:
         headRange, sid = StateTerminal.parseHead(file)
         file.skipws()
         contentStr = ""
-        while not (line := file.readline()).isspace():
+        while (not (line := file.readline()).isspace()) and not file.eof():
             contentStr += line
 
         return State(headRange.getStr().strip(), contentStr, sid)
