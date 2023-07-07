@@ -101,6 +101,12 @@ public class PORTest {
 	}
 
 	@Test
+	public void loopCheckTermination() {
+		assertFalse(ui.run("verify -errorBound=4", "-checkTermination=true",
+				QUIET, filename("loop.cvl")));
+	}
+
+	@Test
 	public void loop2() {
 		assertTrue(ui.run("verify", QUIET, filename("loop2.cvl")));
 	}

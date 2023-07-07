@@ -429,6 +429,7 @@ public class Verifier extends Player {
 							log.report(entry); // may throw
 												// ExcessiveErrorException
 						}
+						violationFound = true;
 						continue; // cycle violation logged, continue the search
 					}
 					violationFound = true;
