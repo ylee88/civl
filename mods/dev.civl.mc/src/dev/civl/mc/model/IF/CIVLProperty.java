@@ -42,7 +42,7 @@ public enum CIVLProperty {
 	POINTER ("pointer errors", "checkPointerErr", OptionType.BOOLEAN, true),
 	PROCESS_LEAK ("process leaks", "checkProcLeak", OptionType.BOOLEAN, true),
 	SEQUENCE ("sequence errors", "checkSeqErr", OptionType.BOOLEAN, true),
-	TERMINATION ("non-termination", "checkTermination", OptionType.BOOLEAN, true),
+	TERMINATION ("non-termination", "checkTermination", OptionType.BOOLEAN, false),
 	UNDEFINED_VALUE ("use of undefined values", "checkUndefVal", OptionType.BOOLEAN, true),
 	UNION ("union errors", "checkUnionErr", OptionType.BOOLEAN, true);
 
