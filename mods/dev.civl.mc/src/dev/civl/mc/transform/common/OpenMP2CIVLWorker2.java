@@ -29,10 +29,8 @@ import dev.civl.abc.ast.node.IF.declaration.VariableDeclarationNode;
 import dev.civl.abc.ast.node.IF.expression.ExpressionNode;
 import dev.civl.abc.ast.node.IF.expression.FunctionCallNode;
 import dev.civl.abc.ast.node.IF.expression.IdentifierExpressionNode;
-import dev.civl.abc.ast.node.IF.expression.IntegerConstantNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode.Operator;
-import dev.civl.abc.ast.node.IF.expression.RegularRangeNode;
 import dev.civl.abc.ast.node.IF.omp.OmpAtomicNode;
 import dev.civl.abc.ast.node.IF.omp.OmpAtomicNode.OmpAtomicClause;
 import dev.civl.abc.ast.node.IF.omp.OmpDeclarativeNode;
@@ -58,7 +56,6 @@ import dev.civl.abc.ast.node.IF.statement.LoopNode.LoopKind;
 import dev.civl.abc.ast.node.IF.statement.StatementNode;
 import dev.civl.abc.ast.node.IF.statement.WhenNode;
 import dev.civl.abc.ast.node.IF.type.TypeNode;
-import dev.civl.abc.ast.type.IF.StandardBasicType.BasicTypeKind;
 import dev.civl.abc.front.IF.CivlcTokenConstant;
 import dev.civl.abc.token.IF.Source;
 import dev.civl.abc.token.IF.SyntaxException;
@@ -166,8 +163,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 	static private final String OMP_REDUCTION_COMBINE = "$omp_reduction_combine";
 	static private final String OMP_TEAM_CREATE = "$omp_team_create";
 	static private final String OMP_TEAM_DESTROY = "$omp_team_destroy";
-	// static private final String OMP_THREAD_TERMINATION =
-	// "$omp_thread_termination";
+	static private final String OMP_THREAD_TERMINATION = "$omp_thread_termination";
 	static private final String READ_AND_WRITE_SETS_POP = "$read_and_write_sets_pop";
 	static private final String READ_AND_WRITE_SETS_PUSH = "$read_and_write_sets_push";
 	static private final String READ_SET_POP = "$read_set_pop";
@@ -1881,6 +1877,10 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 					nodeBlock(srcMethod, lstpvtAssignments)));
 			hasLastPrivate = false;
 		}
+
+		// ADD: data race checking on the termination of each thread.
+		parForBodyItems.add(nodeStmtCall(srcMethod, OMP_THREAD_TERMINATION,
+				nodeExprId(srcMethod, TEAM)));
 		// $omp_team_destroy(team);
 		parForBodyItems.add(nodeStmtCall(srcMethod, OMP_TEAM_DESTROY,
 				nodeExprId(srcMethod, TEAM)));
@@ -1888,7 +1888,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		parForBodyItems.add(nodeStmtCall(srcMethod, LOCAL_END));
 
 		// Get Orphan functions
-		ExpressionNode ompTeamNode = nodeExprId(srcMethod, TEAM);
+		// ExpressionNode ompTeamNode = nodeExprId(srcMethod, TEAM);
 
 		for (BlockItemNode n : parForBodyItems) {
 			ompOrphanFuncs.searchOmpOrphanFunctions(n);
@@ -2996,7 +2996,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		AST newAst = astFactory.newAST(newRoot, oldAst.getSourceFiles(),
 				oldAst.isWholeProgram());
 
-		//newAst.prettyPrint(System.out, true);
+		// newAst.prettyPrint(System.out, true);
 		return newAst;
 	}
 }

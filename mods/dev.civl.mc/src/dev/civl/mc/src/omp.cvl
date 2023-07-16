@@ -36,6 +36,7 @@ void omp_destroy_lock(omp_lock_t *lock){
 }
 
 /* void omp_set_lock (omp_lock_t *); */
+// Omp-acquire checking is added by the transformer
 void $omp_set_lock(omp_lock_t *lock, int tid) {
   $atomic {
     $assert(lock->state != OMP_LOCK_UNINITIALIZED, 
@@ -52,6 +53,7 @@ void $omp_set_lock(omp_lock_t *lock, int tid) {
 }
 
 /* void omp_unset_lock (omp_lock_t *); */
+// Omp-release checking is added by the transformer
 void $omp_unset_lock(omp_lock_t *lock, int tid) {
   $atomic {
     $assert(lock->state == tid, 
@@ -109,6 +111,7 @@ void omp_destroy_nest_lock(omp_nest_lock_t *lock){
 }
 
 /* void omp_set_nest_lock (omp_nest_lock_t *); */
+// Omp-acquire checking is added by the transformer
 void $omp_set_nest_lock(omp_nest_lock_t *lock, int tid) {
   $atomic {
     $assert(lock->state != OMP_LOCK_UNINITIALIZED, 
@@ -127,6 +130,7 @@ void $omp_set_nest_lock(omp_nest_lock_t *lock, int tid) {
 }
 
 /* void omp_unset_nest_lock (omp_nest_lock_t *); */
+// Omp-release checking is added by the transformer
 void $omp_unset_nest_lock(omp_nest_lock_t *lock, int tid) {
   $atomic {
     $assert(lock->state == tid, 
