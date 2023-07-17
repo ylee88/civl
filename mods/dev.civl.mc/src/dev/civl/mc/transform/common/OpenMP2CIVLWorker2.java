@@ -163,7 +163,6 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 	static private final String OMP_REDUCTION_COMBINE = "$omp_reduction_combine";
 	static private final String OMP_TEAM_CREATE = "$omp_team_create";
 	static private final String OMP_TEAM_DESTROY = "$omp_team_destroy";
-	static private final String OMP_THREAD_TERMINATION = "$omp_thread_termination";
 	static private final String READ_AND_WRITE_SETS_POP = "$read_and_write_sets_pop";
 	static private final String READ_AND_WRITE_SETS_PUSH = "$read_and_write_sets_push";
 	static private final String READ_SET_POP = "$read_set_pop";
@@ -1879,7 +1878,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		}
 
 		// ADD: data race checking on the termination of each thread.
-		parForBodyItems.add(nodeStmtCall(srcMethod, OMP_THREAD_TERMINATION,
+		parForBodyItems.add(nodeStmtCall(srcMethod, CHECK_DATA_RACE,
 				nodeExprId(srcMethod, TEAM)));
 		// $omp_team_destroy(team);
 		parForBodyItems.add(nodeStmtCall(srcMethod, OMP_TEAM_DESTROY,

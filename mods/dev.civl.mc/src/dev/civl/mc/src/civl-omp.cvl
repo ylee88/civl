@@ -662,12 +662,3 @@ $atomic_f void $omp_loop_operation($omp_team team) {
   // push: memsets
   $read_and_write_sets_push(team);
 }
-
-$atomic_f void $omp_thread_termination($omp_team team) {
-  // pop: memsets
-  $read_and_write_sets_pop(team);
-  // check: data race
-  $check_data_race(team);
-  // push: memsets
-  $read_and_write_sets_push(team);
-}
