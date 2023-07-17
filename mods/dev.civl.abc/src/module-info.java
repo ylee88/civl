@@ -33,4 +33,5 @@ module dev.civl.abc {
     exports dev.civl.abc.front.c.preproc;
     exports dev.civl.abc.ast.node.common.expression;
     opens dev.civl.abc.include;
+    opens dev.civl.abc.include.sys;
 }
