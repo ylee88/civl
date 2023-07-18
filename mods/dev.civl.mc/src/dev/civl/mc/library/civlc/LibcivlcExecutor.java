@@ -1,8 +1,5 @@
 package dev.civl.mc.library.civlc;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import dev.civl.mc.config.IF.CIVLConfiguration;
 import dev.civl.mc.dynamic.IF.SymbolicUtility;
 import dev.civl.mc.library.civlc.Heuristics.Query;
@@ -41,8 +38,6 @@ import dev.civl.sarl.IF.expr.ReferenceExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
 import dev.civl.sarl.IF.number.IntegerNumber;
-import dev.civl.sarl.IF.object.SymbolicObject;
-import dev.civl.sarl.IF.object.SymbolicObject.SymbolicObjectKind;
 import dev.civl.sarl.IF.type.SymbolicArrayType;
 import dev.civl.sarl.IF.type.SymbolicTupleType;
 import dev.civl.sarl.IF.type.SymbolicType;

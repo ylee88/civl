@@ -12,7 +12,6 @@ import dev.civl.abc.ast.entity.IF.Entity;
 import dev.civl.abc.ast.entity.IF.Function;
 import dev.civl.abc.ast.node.IF.ASTNode;
 import dev.civl.abc.ast.node.IF.IdentifierNode;
-import dev.civl.abc.ast.node.IF.SequenceNode;
 import dev.civl.abc.ast.node.IF.declaration.FunctionDefinitionNode;
 import dev.civl.abc.ast.node.IF.declaration.VariableDeclarationNode;
 import dev.civl.abc.ast.node.IF.expression.ExpressionNode;

@@ -52,8 +52,6 @@ import dev.civl.mc.model.IF.statement.Statement.StatementKind;
 import dev.civl.mc.model.IF.statement.UpdateStatement;
 import dev.civl.mc.model.IF.statement.WithStatement;
 import dev.civl.mc.model.IF.type.CIVLArrayType;
-import dev.civl.mc.model.IF.type.CIVLBundleType;
-import dev.civl.mc.model.IF.type.CIVLDomainType;
 import dev.civl.mc.model.IF.type.CIVLHeapType;
 import dev.civl.mc.model.IF.type.CIVLMemType;
 import dev.civl.mc.model.IF.type.CIVLStateType;
@@ -1133,11 +1131,12 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 								.argument(0).symbolicObjectKind();
 
 						if (objectKind == SymbolicObjectKind.SEQUENCE) {
+							@SuppressWarnings("unchecked")
+							SymbolicSequence<? extends SymbolicExpression> sequence = (SymbolicSequence<? extends SymbolicExpression>) symbolicExpression
+									.argument(0);
 							result.append(symbolicSequenceToString(source,
-									state,
-									(SymbolicSequence<? extends SymbolicExpression>) symbolicExpression
-											.argument(0),
-									civlType, separator, prefix));
+									state, sequence, civlType, separator,
+									prefix));
 						} else {
 							result.append(symbolicExpression.argument(0)
 									.toStringBuffer(true));
