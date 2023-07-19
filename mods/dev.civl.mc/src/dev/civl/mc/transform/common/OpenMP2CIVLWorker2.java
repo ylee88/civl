@@ -159,7 +159,6 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 	static private final String OMP_HELPER_SIGNAL_CREATE = "$omp_helper_signal_create";
 	static private final String OMP_HELPER_SIGNAL_WAIT = "$omp_helper_signal_wait";
 	static private final String OMP_HELPER_SIGNAL_SEND = "$omp_helper_signal_send";
-	static private final String OMP_LOOP_OPERATION = "$omp_loop_operation";
 	static private final String OMP_REDUCTION_COMBINE = "$omp_reduction_combine";
 	static private final String OMP_TEAM_CREATE = "$omp_team_create";
 	static private final String OMP_TEAM_DESTROY = "$omp_team_destroy";
@@ -1600,10 +1599,6 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		if (!ompForNode.nowait())
 			// ADD: $omp_barrier(team);
 			ompBlockItems.add(callOmpBarrier(srcMethod));
-		else {
-			ompBlockItems.add(nodeStmtCall(srcMethod, OMP_LOOP_OPERATION,
-					nodeExprId(srcMethod, TEAM)));
-		}
 
 		// TRANS: replace parallel region with transformed block
 		replaceOmpNode(srcMethod, ompForNode, ompBlockItems);
@@ -1764,11 +1759,11 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		// ADD: pop
 		orderedBodyItems.add(nodeStmtCall(srcMethod, READ_AND_WRITE_SETS_POP,
 				nodeExprId(srcMethod, TEAM)));
-		// ADD: $yield();
-		orderedBodyItems.add(nodeStmtCall(srcMethod, YIELD));
 		// ADD: check
 		orderedBodyItems.add(nodeStmtCall(srcMethod, CHECK_DATA_RACE,
 				nodeExprId(srcMethod, TEAM)));
+		// ADD: $yield();
+		orderedBodyItems.add(nodeStmtCall(srcMethod, YIELD));
 		// ADD: release
 		orderedBodyItems.add(sendNext);
 		// ADD: push
@@ -1995,10 +1990,6 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		if (!ompSectionsNode.nowait())
 			// ADD: $omp_barrier(team);
 			ompBlockItems.add(callOmpBarrier(srcMethod));
-		else {
-			ompBlockItems.add(nodeStmtCall(srcMethod, OMP_LOOP_OPERATION,
-					nodeExprId(srcMethod, TEAM)));
-		}
 		// TRANS: replace sections region with transformed block
 		replaceOmpNode(srcMethod, ompSectionsNode, ompBlockItems);
 		ompRgn.pop();
@@ -2056,10 +2047,6 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		if (!ompSingleNode.nowait())
 			// ADD: $omp_barrier(team);
 			ompBlockItems.add(callOmpBarrier(srcMethod));
-		else {
-			ompBlockItems.add(nodeStmtCall(srcMethod, OMP_LOOP_OPERATION,
-					nodeExprId(srcMethod, TEAM)));
-		}
 		// TRANS: replace single construct with transformed block
 		replaceOmpNode(srcMethod, ompSingleNode, ompBlockItems);
 		ompRgn.pop();
@@ -2139,11 +2126,11 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 					wrappedFunctionCall.add(
 							nodeStmtCall(srcMethod, READ_AND_WRITE_SETS_POP,
 									nodeExprId(srcMethod, TEAM)));
-					// ADD: yield
-					wrappedFunctionCall.add(nodeStmtCall(srcMethod, YIELD));
 					// ADD: check
 					wrappedFunctionCall.add(nodeStmtCall(srcMethod,
 							CHECK_DATA_RACE, nodeExprId(srcMethod, TEAM)));
+					// ADD: yield
+					wrappedFunctionCall.add(nodeStmtCall(srcMethod, YIELD));
 					// release
 					wrappedFunctionCall.add(functionCallStmt);
 					// push

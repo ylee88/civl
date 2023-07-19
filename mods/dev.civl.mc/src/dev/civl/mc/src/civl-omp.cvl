@@ -642,10 +642,10 @@ $atomic_f void $omp_atomic_execution_lock_release(
   $omp_team team, $omp_helper_signal *lock) {
   // pop: memsets
   $read_and_write_sets_pop(team);
-  // yield: to other threads
-  $yield();
   // check: data race
   $check_data_race(team);
+  // yield: to other threads
+  $yield();
   // release: lock
   $omp_helper_signal_send(lock, 0);
   // push: memsets
@@ -662,3 +662,4 @@ $atomic_f void $omp_loop_operation($omp_team team) {
   // push: memsets
   $read_and_write_sets_push(team);
 }
+	
