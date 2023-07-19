@@ -211,12 +211,11 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 	 */
 	private CIVLConfiguration config;
 
-	/** A counter for $omp_arrive_loop functions */
-	private int ctrOmpArriveLoop = 0;
-	/** A counter for $omp_arrive_sections functions */
-	private int ctrOmpArriveSections = 0;
-	/** A counter for $omp_arrive_single functions */
-	private int ctrOmpArriveSingle = 0;
+	/**
+	 * A counter for all omp work sharing arrive checking functions including
+	 * $omp_arrive_loop, $omp_arrive_sections, $omp_arrive_single
+	 */
+	private int ctrOmpWorkShareRecordSetId = 0;
 	/** A counter for OpenMP reduction items */
 	private int ctrOmpReductionItem = 0;
 	/** A counter for OpenMP ordered construct */
@@ -503,7 +502,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		ExpressionNode init = nodeExprCast(srcMethod, typeDom.copy(),
 				nodeExprCall(srcMethod, "$omp_arrive_loop",
 						nodeExprId(srcMethod, TEAM),
-						nodeExprInt(srcMethod, ctrOmpArriveLoop++),
+						nodeExprInt(srcMethod, ctrOmpWorkShareRecordSetId++),
 						nodeExprCast(srcMethod, nodeTypeDom(srcMethod, 0),
 								nodeExprId(srcMethod, DOM_LOOP)),
 						nodeExprInt(srcMethod, config.ompLoopDecomp())));
@@ -537,7 +536,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		ExpressionNode init = nodeExprCast(srcMethod, typeDom.copy(),
 				nodeExprCall(srcMethod, OMP_ARRIVE_SECTIONS,
 						nodeExprId(srcMethod, TEAM),
-						nodeExprInt(srcMethod, ctrOmpArriveSections++),
+						nodeExprInt(srcMethod, ctrOmpWorkShareRecordSetId++),
 						nodeExprInt(srcMethod, numSection)));
 
 		return nodeFactory.newVariableDeclarationNode(
@@ -562,7 +561,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		// init: $omp_arrive_single(team, single_id++);
 		ExpressionNode init = nodeExprCall(srcMethod, OMP_ARRIVE_SINGLE,
 				nodeExprId(srcMethod, TEAM),
-				nodeExprInt(srcMethod, ctrOmpArriveSingle++));
+				nodeExprInt(srcMethod, ctrOmpWorkShareRecordSetId++));
 
 		return nodeFactory.newVariableDeclarationNode(
 				newSource(srcMethod, CivlcTokenConstant.DECLARATION),
