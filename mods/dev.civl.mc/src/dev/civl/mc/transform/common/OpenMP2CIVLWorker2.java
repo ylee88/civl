@@ -1958,9 +1958,9 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 				throw new CIVLSyntaxException(
 						"Non-section item in OpenMP sections construct.");
 		}
-		// ADD: $read_set_pop();
-		// ADD: $write_set_pop();
-		ompBlockItems.addAll(callRWSetPop(srcMethod));
+		// ADD: $read_set_push();
+		// ADD: $write_set_push();
+		ompBlockItems.addAll(callRWSetPush(srcMethod));
 		// ADD: $domain(1) _omp_sections_dist = ($domain(1))
 		// $omp_arrive_sections(_omp_team, section_id++, numSection);
 		ompBlockItems.add(declOmpDistSections(srcMethod, sectionBlocks.size()));
@@ -1970,9 +1970,9 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		ompBlockItems.addAll(fstpvtDeclsList.get(INDEX_TMP_DECLS));
 		// ADD: dummy decl. for pvt.1st var.
 		ompBlockItems.addAll(fstpvtDeclsList.get(INDEX_PVT_DECLS));
-		// ADD: $read_set_push();
-		// ADD: $write_set_push();
-		ompBlockItems.addAll(callRWSetPush(srcMethod));
+		// ADD: $read_set_pop();
+		// ADD: $write_set_pop();
+		ompBlockItems.addAll(callRWSetPop(srcMethod));
 
 		// TRANS: OMP sections Region -> CIVL $for construct
 		// ADD:
@@ -2014,9 +2014,9 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		assert ompSingleNode.copyprivateList() == null;
 		assert ompSingleNode.copyinList() == null;
 
-		// ADD: $read_set_pop();
-		// ADD: $write_set_pop();
-		ompBlockItems.addAll(callRWSetPop(srcMethod));
+		// ADD: $read_set_push();
+		// ADD: $write_set_push();
+		ompBlockItems.addAll(callRWSetPush(srcMethod));
 		// ADD: int _omp_single_dist = $omp_arrive_single(team, single_id++);
 		ompBlockItems.add(declOmpDistSingle(srcMethod));
 		// ADD: dummy decl. for pvt. var.
@@ -2025,9 +2025,9 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		ompBlockItems.addAll(fstpvtDeclsList.get(INDEX_TMP_DECLS));
 		// ADD: dummy decl. for pvt.1st var.
 		ompBlockItems.addAll(fstpvtDeclsList.get(INDEX_PVT_DECLS));
-		// ADD: $read_set_push();
-		// ADD: $write_set_push();
-		ompBlockItems.addAll(callRWSetPush(srcMethod));
+		// ADD: $read_set_pop();
+		// ADD: $write_set_pop();
+		ompBlockItems.addAll(callRWSetPop(srcMethod));
 		// TRANS: recursively transforms child nodes.
 		searchOmpInstructions(ompSingleNode);
 
