@@ -135,7 +135,6 @@ OPTION_NAME
     | '-collectProcesses'
     | '-collectScopes'
     | '-collectSymbolicConstants'
-    | '-cyclesViolate'
     | '-debug'
     | '-disableLocalBlock'
     | '-enablePrintf'
