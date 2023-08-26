@@ -1,0 +1,83 @@
+#include <seq.cvh>
+#include <mem.cvh>
+
+int main() {
+
+  int a[];
+  int b[10] = {0};
+  int zero = 0;
+  $mem m;
+
+  $seq_init(&a, 5, &zero);
+  $read_set_push();
+
+  // simple test:
+  b[0] = a[0];
+
+  m = $read_set_pop();
+  // note that 1) no value in `b` is read and 2) the sequence `a` is
+  // read as an scalar object:
+  $assert($mem_contains(m, ($mem)&a));
+  $assert($mem_contains(($mem)&a, m));
+
+  int c[2][];
+
+  $seq_init(&c[0], 5, &zero);
+  $seq_init(&c[1], 5, &zero);
+  $read_set_push();
+
+  // test sequence of array elements
+  b[0] = c[0][0];
+  b[1] = c[1][0];
+
+  m = $read_set_pop();
+  $assert($mem_contains(m, $mem_union(($mem)&c[0], ($mem)&c[1])));
+  $assert($mem_contains($mem_union(($mem)&c[0], ($mem)&c[1]), m));
+
+  $read_set_push();
+
+  // test reading sequence as array indexes:
+  b[a[0]] = 0;
+  b[a[0] + 1] = 0;
+
+  m = $read_set_pop();
+  $assert($mem_contains(m, ($mem)&a));
+  $assert($mem_contains(($mem)&a, m));
+
+  int *p = &a[0];
+
+  $read_set_push();
+
+  // test reading sequence through pointers
+  b[p[0]] = 0;
+
+  m = $read_set_pop();
+  $assert($mem_contains(m, $mem_union(($mem)&a,
+				      ($mem)&p)));
+  $assert($mem_contains($mem_union(($mem)&a,
+				   ($mem)&p),
+			m));
+
+  struct T {
+    int a[];
+    int b[];
+  } t, *tp;
+
+  tp = &t;
+  $seq_init(&t.a, 5, &zero);
+  $seq_init(&t.b, 5, &zero);  
+  $read_set_push();
+
+  // test reading sequence type struct fields:
+  b[0] = tp->a[0];
+  tp->b[0] = 0;
+  t.b[0] = 0;
+  
+  m = $read_set_pop();
+  $assert($mem_contains(m, $mem_union(($mem)&t.a,
+				      ($mem)&tp)));
+  $assert($mem_contains($mem_union(($mem)&t.a,
+				   ($mem)&tp),
+			m));  
+  
+}

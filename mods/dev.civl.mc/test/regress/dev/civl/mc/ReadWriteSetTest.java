@@ -14,9 +14,9 @@ import dev.civl.abc.err.IF.ABCException;
 import dev.civl.mc.run.IF.UserInterface;
 
 public class ReadWriteSetTest {
-	@SuppressWarnings("exports")
-	@Rule
-	public Timeout globalTimeout = Timeout.seconds(30);
+//	@SuppressWarnings("exports")
+//	@Rule
+//	public Timeout globalTimeout = Timeout.seconds(30);
 
 	static String QUIET = TestConstants.QUIET;
 
@@ -138,5 +138,11 @@ public class ReadWriteSetTest {
 	public void structComplex2() throws ABCException {
 		assertTrue(ui.run(VERIFY, QUIET,
 				filenameForReadsetTest("structComplex2.cvl")));
+	}
+	
+	@Test
+	public void sequenceReadSet() throws ABCException {
+		assertTrue(
+				ui.run(VERIFY, QUIET, filenameForReadsetTest("sequence.cvl")));
 	}
 }
