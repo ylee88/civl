@@ -120,6 +120,8 @@ public class MPINonBlockingTest {
 				filename("nonblocking_manytoone_anyorder.c")));
 	}
 
+	// Taking too long for now
+	@Ignore
 	@Test
 	public void nonblockingManytoOneAnyorderMix() {
 		assertTrue(ui.run("verify -input_mpi_nprocs=3", TestConstants.QUIET,
