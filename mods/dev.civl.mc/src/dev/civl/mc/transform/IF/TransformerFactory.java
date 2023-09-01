@@ -41,8 +41,6 @@ public class TransformerFactory {
 
 	private OpenMP2CIVLTransformer openMP2CivlTransformer;
 
-	private OpenMPOrphanTransformer openMPOrphanTransformer;
-
 	private Pthread2CIVLTransformer pthread2CivlTransformer;
 
 	private Cuda2CIVLTransformer cuda2CivlTransformer;
@@ -171,20 +169,6 @@ public class TransformerFactory {
 		};
 	}
 
-	public TransformRecord getOpenMPOrphanTransformerRecord() {
-		return new TransformRecord(OpenMPOrphanTransformer.CODE,
-				OpenMPOrphanTransformer.LONG_NAME,
-				OpenMPOrphanTransformer.SHORT_DESCRIPTION) {
-			@Override
-			public Transformer create(ASTFactory astFactory) {
-				if (openMPOrphanTransformer == null)
-					openMPOrphanTransformer = new OpenMPOrphanTransformer(
-							astFactory);
-				return openMPOrphanTransformer;
-			}
-		};
-	}
-
 	public TransformRecord getPthread2CIVLTransformerRecord() {
 		return new TransformRecord(Pthread2CIVLTransformer.CODE,
 				Pthread2CIVLTransformer.LONG_NAME,
@@ -228,7 +212,7 @@ public class TransformerFactory {
 	 * Creates a new instance of a {@link ShortCircuitTransformer}
 	 * 
 	 * @param config
-	 *            A reference to {@link CIVLConfiguration}
+	 *                   A reference to {@link CIVLConfiguration}
 	 * @return A {@link TransformRecord} of a {@link ShortCircuitTransformer}.
 	 */
 	public TransformRecord getShortCircuitTransformerRecord(

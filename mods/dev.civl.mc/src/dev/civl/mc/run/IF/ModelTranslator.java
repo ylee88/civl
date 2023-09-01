@@ -199,21 +199,22 @@ public class ModelTranslator {
 	 * Creates a new instance of model translator.
 	 * 
 	 * @param gmcConfig
-	 *            The GMC configuration which corresponds to the command line.
+	 *                       The GMC configuration which corresponds to the
+	 *                       command line.
 	 * @param gmcSection
-	 *            The GMC section which corresponds to the command line section
-	 *            this model translator associates with.
+	 *                       The GMC section which corresponds to the command
+	 *                       line section this model translator associates with.
 	 * @param filenames
-	 *            The list of file names for parsing, which are specified in the
-	 *            command line.
+	 *                       The list of file names for parsing, which are
+	 *                       specified in the command line.
 	 * @param coreName
-	 *            The core name of the user file. It is assumed that the first
-	 *            file in the file list from the command line is the core user
-	 *            file, which usually is the one that contains the main
-	 *            function.
+	 *                       The core name of the user file. It is assumed that
+	 *                       the first file in the file list from the command
+	 *                       line is the core user file, which usually is the
+	 *                       one that contains the main function.
 	 * @throws PreprocessorException
-	 *             if there is a problem processing any macros defined in the
-	 *             command line
+	 *                                   if there is a problem processing any
+	 *                                   macros defined in the command line
 	 */
 	ModelTranslator(GMCConfiguration gmcConfig, GMCSection gmcSection,
 			String[] filenames, String coreName) throws PreprocessorException {
@@ -225,25 +226,28 @@ public class ModelTranslator {
 	 * Creates a new instance of model translator.
 	 * 
 	 * @param gmcConfig
-	 *            The GMC configuration which corresponds to the command line.
+	 *                        The GMC configuration which corresponds to the
+	 *                        command line.
 	 * @param gmcSection
-	 *            The GMC section which corresponds to the command line section
-	 *            this model translator associates with.
+	 *                        The GMC section which corresponds to the command
+	 *                        line section this model translator associates
+	 *                        with.
 	 * @param filenames
-	 *            The list of file names for parsing, which are specified in the
-	 *            command line.
+	 *                        The list of file names for parsing, which are
+	 *                        specified in the command line.
 	 * @param coreName
-	 *            The core name of the user file. It is assumed that the first
-	 *            file in the file list from the command line is the core user
-	 *            file, which usually is the one that contains the main
-	 *            function.
+	 *                        The core name of the user file. It is assumed that
+	 *                        the first file in the file list from the command
+	 *                        line is the core user file, which usually is the
+	 *                        one that contains the main function.
 	 * @param universe
-	 *            The symbolic universe, the unique one used by this run.
+	 *                        The symbolic universe, the unique one used by this
+	 *                        run.
 	 * @param fileIndexer
-	 *            the file indexer to use, can be null
+	 *                        the file indexer to use, can be null
 	 * @throws PreprocessorException
-	 *             if there is a problem processing any macros defined in the
-	 *             command line
+	 *                                   if there is a problem processing any
+	 *                                   macros defined in the command line
 	 */
 	ModelTranslator(GMCConfiguration gmcConfig, GMCSection cmdSection,
 			String[] filenames, String coreName, SymbolicUniverse universe,
@@ -343,8 +347,6 @@ public class ModelTranslator {
 			task.addTransformRecord(
 					transformerFactory.getOpenMPSimplifierRecord(config));
 			task.addTransformRecord(
-					transformerFactory.getOpenMPOrphanTransformerRecord());
-			task.addTransformRecord(
 					transformerFactory.getOpenMP2CIVLTransformerRecord(config));
 			task.addTransformRecord(
 					transformerFactory.getMacroTransformerRecord(config));
@@ -376,7 +378,8 @@ public class ModelTranslator {
 	 * 
 	 * @return a map of macro keys and objects.
 	 * @throws PreprocessorExceptions
-	 *             if there is a problem preprocessing the macros.
+	 *                                    if there is a problem preprocessing
+	 *                                    the macros.
 	 */
 	private Map<String, String> getMacros() throws PreprocessorException {
 		Map<String, Object> macroDefMap = cmdSection.getMapValue(macroO);
@@ -416,9 +419,11 @@ public class ModelTranslator {
 	 * @return the CIVL-C model of this compiling task specified by the command
 	 *         line
 	 * @throws CommandLineException
-	 *             if there is a problem interpreting the command line section
+	 *                                  if there is a problem interpreting the
+	 *                                  command line section
 	 * @throws IOException
-	 *             if there is a problem reading source files.
+	 *                                  if there is a problem reading source
+	 *                                  files.
 	 * @throws ABCException
 	 */
 	Model translate() throws CommandLineException, IOException, ABCException {
@@ -467,7 +472,7 @@ public class ModelTranslator {
 	 * 
 	 * @return the input variables declared in the given program
 	 * @throws IOException
-	 *             if there is a problem reading source files.
+	 *                          if there is a problem reading source files.
 	 * @throws ABCException
 	 */
 	List<VariableDeclarationNode> getInputVariables()
@@ -483,11 +488,12 @@ public class ModelTranslator {
 	 * linking and transforming source files.
 	 * 
 	 * @param program
-	 *            the ABC program.
+	 *                    the ABC program.
 	 * @return the CIVL model representation of the given ABC program.
 	 * @throws CommandLineException
-	 *             if there is a problem in the format of input variable values
-	 *             in the command line.
+	 *                                  if there is a problem in the format of
+	 *                                  input variable values in the command
+	 *                                  line.
 	 */
 	Model buildModel(Program program) throws CommandLineException {
 		Model model;
@@ -515,8 +521,8 @@ public class ModelTranslator {
 	 * Gets the list of input variables declared in the given program.
 	 * 
 	 * @param program
-	 *            the program, which is the result of parsing, linking and
-	 *            transforming.
+	 *                    the program, which is the result of parsing, linking
+	 *                    and transforming.
 	 * @return the list of input variables declared in the given program.
 	 */
 	private List<VariableDeclarationNode> inputVariablesOfProgram(
@@ -545,7 +551,7 @@ public class ModelTranslator {
 	 * generated files, and for error reporting.
 	 * 
 	 * @param filename
-	 *            a filename
+	 *                     a filename
 	 * @return the core part of that filename
 	 */
 	private static String coreName(String filename) {
@@ -567,7 +573,7 @@ public class ModelTranslator {
 	 * it up and returns an array of File objects, one for each name.
 	 * 
 	 * @param string
-	 *            null or colon-separated list of filenames
+	 *                   null or colon-separated list of filenames
 	 * @return array of File
 	 */
 	private File[] extractPaths(String string) {
@@ -588,7 +594,8 @@ public class ModelTranslator {
 	 * Gets the user include paths, which are specified in the command line
 	 * 
 	 * @param section
-	 *            the command line section this model translator corresponds to.
+	 *                    the command line section this model translator
+	 *                    corresponds to.
 	 * @return the user include paths.
 	 */
 	private File[] getUserIncludes(GMCSection section) {

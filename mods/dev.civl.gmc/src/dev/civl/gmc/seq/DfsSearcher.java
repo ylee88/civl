@@ -413,6 +413,11 @@ public class DfsSearcher<STATE, TRANSITION> {
 		}
 		return false;
 	}
+	
+//	private boolean isFairCycle() {
+//			// TODO
+//		return true;
+//	}
 
 	/**
 	 * Searches for the next new state by iterating over transitions from the
@@ -541,6 +546,10 @@ public class DfsSearcher<STATE, TRANSITION> {
 			debug(newState + " seen before!  Moving to next transition.");
 			if (reportCycleAsViolation
 					&& newSequentialNode.getStackPosition() >= 0) {
+				// TODO: if restricting to fair execution, check whether there
+				// is
+				// a process enabled at each state in cycle but never executes.
+
 				cycleFound = true;
 				throw new StateSpaceCycleException(
 						newSequentialNode.getStackPosition());
