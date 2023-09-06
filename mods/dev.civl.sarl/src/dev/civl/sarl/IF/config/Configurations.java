@@ -109,8 +109,11 @@ public class Configurations {
 				ConfigFactory.checkConfig(DEFAULT_CONFIG);
 			}
 			if (DEFAULT_CONFIG.getNumProvers() == 0) {
-				System.err.println(
-						"Warning: using SARL with no theorem provers. Consider putting provers in your PATH.");
+				// TODO: Shouldn't have to hardcode what provers we support in
+				// this warning message.
+				System.err
+						.println("Warning: using SARL with no theorem provers. "
+								+ "Consider putting Z3, CVC4, or Why3 in your PATH.");
 				System.err.flush();
 			}
 		} catch (Exception e) {
