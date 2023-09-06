@@ -191,7 +191,7 @@ float cudaAtomicExch_float(float* address, float val);
 #define atomicExch(X,Y) _Generic(X,             \
     default : cudaAtomicExch_int,                   \
     unsigned int* : cudaAtomicExch_uint,            \
-    unsigned long long int* : cudaAtomicExch_ullint \
+    unsigned long long int* : cudaAtomicExch_ullint, \
     float* : cudaAtomicExch_float) (X,Y)
 
 /* atomicMin()
