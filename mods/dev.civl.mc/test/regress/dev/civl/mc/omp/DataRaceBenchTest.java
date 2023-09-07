@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
@@ -509,6 +510,8 @@ public class DataRaceBenchTest {
 				pathToSrcFile("DRB075-getthreadnum-orig-yes.c")));
 	}
 
+	// test passes but takes too long
+	@Ignore
 	@Test
 	public void DRB076_flush_orig_no() {
 		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, QUIET,

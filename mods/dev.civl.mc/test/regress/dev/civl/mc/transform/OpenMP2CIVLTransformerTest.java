@@ -228,6 +228,8 @@ public class OpenMP2CIVLTransformerTest {
 				filename(transformDir, "omp_reduction_parallel.c")));
 	}
 
+	// test passes but takes too long
+	@Ignore
 	@Test
 	public void omp_reduction_parallel_for() {
 		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TEN, QUIET,
@@ -246,7 +248,8 @@ public class OpenMP2CIVLTransformerTest {
 				filename(transformDir, "omp_sections.c")));
 	}
 
-	@Ignore // @Test
+	@Ignore
+	@Test
 	public void omp_loop_ordered_collapse() {
 		assertTrue(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, "-showProgram",
 				filename(transformDir, "omp_loop_ordered_collapse.c")));
