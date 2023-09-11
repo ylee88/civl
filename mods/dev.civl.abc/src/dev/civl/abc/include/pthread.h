@@ -56,10 +56,6 @@ enum{
     PTHREAD_PROCESS_PRIVATE,
 };
 
-enum{
-    PTHREAD_BARRIER_SERIAL_THREAD
-};
-
 //Error definitions
 enum{
     EINVAL,      //Designates an invalid value
@@ -73,8 +69,6 @@ enum{
 
 typedef struct pthread_mutexattr_t pthread_mutexattr_t;
 typedef struct pthread_mutex_t pthread_mutex_t;
-typedef struct pthread_barrierattr_t pthread_barrierattr_t;
-typedef struct pthread_barrier_t pthread_barrier_t;
 typedef struct pthread_spinlock_t pthread_spinlock_t;
 //typedef struct pthread_attr_t pthread_attr_t;
 typedef struct pthread_rwlockattr_t pthread_rwlockattr_t;
@@ -99,11 +93,6 @@ int pthread_rwlock_destroy(pthread_rwlock_t *);
 int pthread_rwlock_rdlock(pthread_rwlock_t *);
 int pthread_rwlock_wrlock(pthread_rwlock_t *);
 int pthread_rwlock_unlock(pthread_rwlock_t *);
-int pthread_barrierattr_init(pthread_barrierattr_t *);
-int pthread_barrierattr_destroy(pthread_barrierattr_t *);
-int pthread_barrier_init(pthread_barrier_t *, const pthread_barrierattr_t *, int);
-int pthread_barrier_destroy(pthread_barrier_t *);
-int pthread_barrier_wait(pthread_barrier_t *);
 int pthread_mutexattr_init(pthread_mutexattr_t *);
 int pthread_mutexattr_destroy(pthread_mutexattr_t *);
 int pthread_mutexattr_getrobust(const pthread_mutexattr_t *, int *);
