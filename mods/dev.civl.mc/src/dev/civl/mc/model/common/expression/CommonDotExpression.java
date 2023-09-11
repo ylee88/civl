@@ -100,7 +100,9 @@ public class CommonDotExpression extends CommonExpression
 	@Override
 	public void purelyLocalAnalysisOfVariables(Scope funcScope) {
 		this.structOrUnion.purelyLocalAnalysisOfVariables(funcScope);
-		if (funcScope.isDescendantOf(this.expressionScope()))
+		Scope exprScope = this.expressionScope();
+		
+		if (exprScope != null && funcScope.isDescendantOf(exprScope))
 			this.setPurelyLocal(false);
 	}
 
