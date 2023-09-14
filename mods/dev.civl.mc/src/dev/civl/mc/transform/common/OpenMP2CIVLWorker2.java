@@ -50,11 +50,7 @@ import dev.civl.abc.ast.node.IF.statement.DeclarationListNode;
 import dev.civl.abc.ast.node.IF.statement.ExpressionStatementNode;
 import dev.civl.abc.ast.node.IF.statement.ForLoopInitializerNode;
 import dev.civl.abc.ast.node.IF.statement.ForLoopNode;
-import dev.civl.abc.ast.node.IF.statement.IfNode;
-import dev.civl.abc.ast.node.IF.statement.LoopNode;
-import dev.civl.abc.ast.node.IF.statement.LoopNode.LoopKind;
 import dev.civl.abc.ast.node.IF.statement.StatementNode;
-import dev.civl.abc.ast.node.IF.statement.WhenNode;
 import dev.civl.abc.ast.node.IF.type.TypeNode;
 import dev.civl.abc.front.IF.CivlcTokenConstant;
 import dev.civl.abc.token.IF.Source;
@@ -2494,40 +2490,14 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 	private void searchOmpInstructions(ASTNode root) throws SyntaxException {
 		// DFS: recursively search for OmpNode
 		for (ASTNode child : root.children()) {
-			if (child instanceof OmpNode) // recognize and process OmpNode
+			if (child == null)
+				continue;
+			else if (child instanceof OmpNode) // recognize and process OmpNode
 				recognizeOmpInstructions((OmpNode) child);
 			else if (child instanceof FunctionCallNode)
 				recognizeOmpFunctionCalls((FunctionCallNode) child);
-			else if (child != null) // Explore non-OmpNode
+			else // Explore non null omp node
 				searchOmpInstructions(child);
-			searchGuardExpr(child);
-		}
-	}
-
-	private void searchGuardExpr(ASTNode child) {
-		if (!ompRgn.empty()) {
-			ExpressionNode condExpr = null;
-
-			if (child instanceof IfNode) {
-				// extract the if cond expr
-				condExpr = ((IfNode) child).getCondition();
-			} else if (child instanceof LoopNode) {
-				// extract the while cond expr
-				if (((LoopNode) child).getKind() == LoopKind.WHILE) {
-					condExpr = ((LoopNode) child).getCondition();
-				}
-			} else if (child instanceof WhenNode)
-				condExpr = ((WhenNode) child).getGuard();
-			if (null != condExpr) {
-				String srcMethod = SRC_INFO + ".searchGuardExpr";
-				List<BlockItemNode> newBlock = new ArrayList<>();
-
-				newBlock.add(nodeFactory
-						.newExpressionStatementNode(condExpr.copy()));
-				newBlock.add((BlockItemNode) child.copy());
-				child.parent().setChild(child.childIndex(),
-						nodeBlock(srcMethod, newBlock));
-			}
 		}
 	}
 
@@ -2981,7 +2951,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		AST newAst = astFactory.newAST(newRoot, oldAst.getSourceFiles(),
 				oldAst.isWholeProgram());
 
-		// newAst.prettyPrint(System.out, true);
+		newAst.prettyPrint(System.out, true);
 		return newAst;
 	}
 }
@@ -3083,7 +3053,9 @@ class OmpOrphanFunctions {
 				boolean useOrphanFunction = searchOmpOrphanFunctions(
 						bodyIter.next());
 
-				isOmpOrphanFunction = useOrphanFunction || isOmpOrphanFunction;
+				isOmpOrphanFunction = useOrphanFunction || isOmpOrphanFunction
+						|| node instanceof OmpWorksharingNode
+						|| node instanceof OmpSyncNode;
 			}
 			if (isOmpOrphanFunction)
 				orphanFuncDefs.add(0, orphanFuncDef);
