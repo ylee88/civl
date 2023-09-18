@@ -212,6 +212,13 @@ public class MemTest {
 		assertFalse(ui.run(VERIFY, QUIET,
 				filename("mem_union_widening_2arrays-bad.cvl")));
 	}
+	
+	@Test
+	public void memUnionWideningSeq() throws ABCException {
+		assertTrue(
+				ui.run(VERIFY, QUIET, filename("mem_union_widening_seq.cvl")));
+	}
+
 
 	/* ************* Test for Havoc ****************/
 	@Test

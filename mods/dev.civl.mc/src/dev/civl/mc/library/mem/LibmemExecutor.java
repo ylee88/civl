@@ -544,6 +544,8 @@ public class LibmemExecutor extends BaseLibraryExecutor
 				assert var.type().typeKind() == TypeKind.PRIMITIVE;
 				rootValueType = var.type().getDynamicType(universe);
 			}
+			// Since it is an identity reference, we do not have to worry about
+			// referencing sequence elements:
 			rootTemplate = universe.valueSetTemplate(rootValueType,
 					new ValueSetReference[]{universe.vsIdentityReference()});
 			vid = universe.integer(memRef.vid());

@@ -5001,17 +5001,16 @@ public class CommonPreUniverse implements PreUniverse {
 		SymbolicType type1 = vst1.type();
 
 		if (!expressionFactory.isValueSetTemplateType(type0))
-			throw new SARLException("Operand " + vst0
-					+ " of value set " + op + " operation does not have value set template type.");
+			throw new SARLException("Operand " + vst0 + " of value set " + op
+					+ " operation does not have value set template type.");
 		if (!expressionFactory.isValueSetTemplateType(type1))
-			throw new SARLException("Operand " + vst1
-					+ " of value set " + op + " operation does not have value set template type.");
+			throw new SARLException("Operand " + vst1 + " of value set " + op
+					+ " operation does not have value set template type.");
 
-		SymbolicExpression valueTypeArgument0 = tupleRead(vst0, intObject(0));
-		SymbolicExpression valueTypeArgument1 = tupleRead(vst1, intObject(0));
+		SymbolicType valueType0 = getValueTypeOfValueSetTemplate(vst0);
+		SymbolicType valueType1 = getValueTypeOfValueSetTemplate(vst1);
 
-		if (!valueTypeArgument0.argument(0)
-				.equals(valueTypeArgument1.argument(0)))
+		if (!valueType0.equals(valueType1))
 			throw new SARLException(
 					"Value set templates of types: " + type0 + " and " + type1
 							+ " are not compatiable for operation: " + op);

@@ -29,6 +29,7 @@ import dev.civl.mc.model.IF.expression.VariableExpression;
 import dev.civl.mc.model.IF.type.CIVLMemType;
 import dev.civl.mc.model.IF.type.CIVLMemType.MemoryLocationReference;
 import dev.civl.mc.model.IF.type.CIVLSetType;
+import dev.civl.mc.model.IF.type.CIVLType;
 import dev.civl.mc.model.IF.variable.Variable;
 import dev.civl.mc.semantics.IF.Evaluation;
 import dev.civl.mc.semantics.IF.Evaluator;
@@ -184,11 +185,11 @@ public class MemEvaluator extends CommonEvaluator {
 	 * </p>
 	 * 
 	 * @param state
-	 *                  the current state
+	 *            the current state
 	 * @param pid
-	 *                  the PID of the running process
+	 *            the PID of the running process
 	 * @param expr
-	 *                  an expression that will be casted to be of $mem type
+	 *            an expression that will be casted to be of $mem type
 	 * @return
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -233,14 +234,14 @@ public class MemEvaluator extends CommonEvaluator {
 	 * </p>
 	 * 
 	 * @param state
-	 *                    the current state
+	 *            the current state
 	 * @param pid
-	 *                    the PID of the running process
+	 *            the PID of the running process
 	 * @param pointer
-	 *                    a concrete pointer value (see
-	 *                    {@link SymbolicUtility#isConcretePointer(SymbolicExpression)})
+	 *            a concrete pointer value (see
+	 *            {@link SymbolicUtility#isConcretePointer(SymbolicExpression)})
 	 * @param source
-	 *                    the {@link CIVLSource} related to this method call
+	 *            the {@link CIVLSource} related to this method call
 	 * @return an evaluation includes a symbolic expression of dynamic $mem type
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -273,18 +274,16 @@ public class MemEvaluator extends CommonEvaluator {
 	 * </p>
 	 * 
 	 * @param state
-	 *                             the current state
+	 *            the current state
 	 * @param pid
-	 *                             the PID of the running process
+	 *            the PID of the running process
 	 * @param pointer
-	 *                             a pointer to a variable or a memory heap
-	 *                             object
+	 *            a pointer to a variable or a memory heap object
 	 * @param valueSetTemplate
-	 *                             a symbolic expression of
-	 *                             {@link SymbolicUniverse#valueSetTemplateType()}
+	 *            a symbolic expression of
+	 *            {@link SymbolicUniverse#valueSetTemplateType()}
 	 * @param source
-	 *                             the {@link CIVLSource} related to this method
-	 *                             call
+	 *            the {@link CIVLSource} related to this method call
 	 * @return an evaluation containing the resulting value of dynamic $mem type
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -561,7 +560,7 @@ public class MemEvaluator extends CommonEvaluator {
 	 * Converts a {@link ReferenceExpression} to a {@link ValueSetReference}
 	 * 
 	 * @param ref
-	 *                a {@link ReferenceExpression}
+	 *            a {@link ReferenceExpression}
 	 * @return a {@link ValueSetReference} which is converted from the given
 	 *         "ref"
 	 */
@@ -619,18 +618,18 @@ public class MemEvaluator extends CommonEvaluator {
 	 * </p>
 	 * 
 	 * @param state
-	 *                   the current state
+	 *            the current state
 	 * @param pid
-	 *                   the PID of the running process
+	 *            the PID of the running process
 	 * @param expr
-	 *                   the binary expression representing a (set-of)
-	 *                   pointer(s) plus a (set-of) integer(s)
+	 *            the binary expression representing a (set-of) pointer(s) plus
+	 *            a (set-of) integer(s)
 	 * @param ptrVal
-	 *                   either a concrete pointer or a
-	 *                   {@link #valueSetPointer(int, SymbolicExpression, ValueSetReference)}
+	 *            either a concrete pointer or a
+	 *            {@link #valueSetPointer(int, SymbolicExpression, ValueSetReference)}
 	 * @param oftVal
-	 *                   an integer or regular range value representing a set of
-	 *                   offsets
+	 *            an integer or regular range value representing a set of
+	 *            offsets
 	 * @returns {@link #valueSetPointer(int, SymbolicExpression, ValueSetReference)}
 	 *          representing the result of the expression
 	 * @throws UnsatisfiablePathConditionException
@@ -730,6 +729,7 @@ public class MemEvaluator extends CommonEvaluator {
 			int sid, ValueSetReference vsRef, CIVLSource source)
 			throws UnsatisfiablePathConditionException {
 		SymbolicExpression value = state.getVariableValue(sid, vid);
+		CIVLType type;
 		SymbolicType valueType;
 		int heapID = -1, mallocID = -1;
 		Variable var = state.getDyscope(sid).lexicalScope().variable(vid);
@@ -753,11 +753,10 @@ public class MemEvaluator extends CommonEvaluator {
 		}
 		assert !value.isNull() || var.type().isScalar()
 				: "value-set references to an uninitialized aggregate-type variable";
-		if (var.type().isScalar())
-			valueType = var.type().getDynamicType(universe); // value maybe NULL
-		else
-			valueType = value.type();
-		if (valueType == typeFactory.heapSymbolicType()) {
+		type = var.type();
+		valueType = getDynamicType(state, pid, type, var.getSource(),
+				false).type;
+		if (type == typeFactory.heapType()) {
 			/*
 			 * Note that if the value type is dynamic heap type, the type is
 			 * incomplete. The given value set reference shall only refer to one
@@ -779,20 +778,28 @@ public class MemEvaluator extends CommonEvaluator {
 			mallocID = memoryHeapMallocID(ref2heapObject);
 			vsRef = refOnHeapObject;
 			valueType = heapObjectType;
-		}
+			vsRef = symbolicUtil.getValueSetUtility()
+					.getVSReferenceToSequenceOrNoop(modelFactory.model()
+							.getMalloc(mallocID).getStaticElementType(), true,
+							vsRef);
+		} else
+			vsRef = symbolicUtil.getValueSetUtility()
+					.getVSReferenceToSequenceOrNoop(type, false, vsRef);
 		if (civlConfig.isPropertyToggled(CIVLProperty.OUT_OF_BOUNDS)) {
 			// error checking ...
 			state = checkValueSetReferenceOutOfBound(state, pid, valueType,
 					vsRef, source);
 		}
-
+		
 		// make value of dynamic $mem type ...
 		Function<List<SymbolicExpression[]>, SymbolicExpression> memValueCreator = typeFactory
 				.civlMemType().memValueCreator(universe);
 		List<SymbolicExpression[]> result = new LinkedList<>();
-		SymbolicExpression vst = universe.valueSetTemplate(valueType,
+		SymbolicExpression vst;
+		
+		
+		vst = universe.valueSetTemplate(valueType,
 				new ValueSetReference[]{vsRef});
-
 		result.add(new SymbolicExpression[]{universe.integer(vid),
 				universe.integer(heapID), universe.integer(mallocID),
 				stateFactory.scopeValue(sid), vst});
@@ -805,22 +812,19 @@ public class MemEvaluator extends CommonEvaluator {
 	 * {@link VSReferenceKind#ARRAY_SECTION} refer to out-of bound regions
 	 * 
 	 * @param state
-	 *                      the current state
+	 *            the current state
 	 * @param pid
-	 *                      the PID of the running process
+	 *            the PID of the running process
 	 * @param valueType
-	 *                      the value type of what the given "ref" refers to
+	 *            the value type of what the given "ref" refers to
 	 * @param ref
-	 *                      a value set reference that will be checked
+	 *            a value set reference that will be checked
 	 * @param source
-	 *                      the {@link CIVLSource} that will be used for error
-	 *                      reporting
+	 *            the {@link CIVLSource} that will be used for error reporting
 	 * @return a state where some out-of bound error may has been logged.
 	 * @throws UnsatisfiablePathConditionException
-	 *                                                 when the value set
-	 *                                                 reference refers to
-	 *                                                 regions that are out of
-	 *                                                 bound
+	 *             when the value set reference refers to regions that are out
+	 *             of bound
 	 */
 	private State checkValueSetReferenceOutOfBound(State state, int pid,
 			SymbolicType valueType, ValueSetReference ref, CIVLSource source)
@@ -877,12 +881,12 @@ public class MemEvaluator extends CommonEvaluator {
 	 *
 	 * 
 	 * @param valueType
-	 *                      the dynamic type of the referred value
+	 *            the dynamic type of the referred value
 	 * @param ref
-	 *                      a value set reference
+	 *            a value set reference
 	 * @param source
-	 *                      the {@code CIVLSource} related to this method call
-	 *                      and will be used for error reporting
+	 *            the {@code CIVLSource} related to this method call and will be
+	 *            used for error reporting
 	 * @return
 	 */
 	private BooleanExpression checkValueSetReferenceOutOfBoundWorker(
@@ -999,7 +1003,7 @@ public class MemEvaluator extends CommonEvaluator {
 	 * one {@link VSOffsetReference}.
 	 * 
 	 * @param ref
-	 *                a {@link ValueSetReference}
+	 *            a {@link ValueSetReference}
 	 * @return true iff the given {@link ValueSetReference} contains at least
 	 *         one {@link VSOffsetReference}.
 	 */
@@ -1015,8 +1019,8 @@ public class MemEvaluator extends CommonEvaluator {
 	/**
 	 * 
 	 * @param pointer
-	 *                    a regular pointer or a
-	 *                    {@link #valueSetPointer(int, SymbolicExpression, ValueSetReference)}
+	 *            a regular pointer or a
+	 *            {@link #valueSetPointer(int, SymbolicExpression, ValueSetReference)}
 	 * @return the {@link ReferenceExpression} or {@link ValueSetReference} in
 	 *         the given pointer
 	 */
@@ -1035,8 +1039,8 @@ public class MemEvaluator extends CommonEvaluator {
 	 * </p>
 	 * 
 	 * @param ref
-	 *                a {@link ValueSetReference} to some sub-value of a memory
-	 *                heap object
+	 *            a {@link ValueSetReference} to some sub-value of a memory heap
+	 *            object
 	 * @return a {@link ValueSetReference} to the memory heap object
 	 */
 	private ValueSetReference vsReferenceToMemoryHeap(ValueSetReference ref) {
@@ -1063,8 +1067,8 @@ public class MemEvaluator extends CommonEvaluator {
 	 * <code>r'</code> have the same sub-references on the heap object.
 	 * 
 	 * @param ref
-	 *                a value set reference <code>r</code> where the root
-	 *                identity reference refers to a heap variable
+	 *            a value set reference <code>r</code> where the root identity
+	 *            reference refers to a heap variable
 	 * @return a value set reference <code>r'</code> where the root identity
 	 *         reference refers to the heap object that is referred by
 	 *         <code>r</code>
@@ -1120,10 +1124,10 @@ public class MemEvaluator extends CommonEvaluator {
 	 * </p>
 	 * 
 	 * @param heapValue
-	 *                      a symbolic expression of
-	 *                      {@link CIVLTypeFactory#heapSymbolicType()}
+	 *            a symbolic expression of
+	 *            {@link CIVLTypeFactory#heapSymbolicType()}
 	 * @param ref2heap
-	 *                      a {@link ValueSetReference} to a memory heap object
+	 *            a {@link ValueSetReference} to a memory heap object
 	 * @return the {@link SymbolicType} of the referred memory heap object
 	 */
 	private SymbolicType getMalloctedObjectType(SymbolicExpression heapValue,
@@ -1142,10 +1146,11 @@ public class MemEvaluator extends CommonEvaluator {
 	 * reference. A heap ID is the ID of a lexical malloc statement.
 	 */
 	private int memoryHeapID(ValueSetReference ref2heap) {
-		ValueSetReference parent = ((NTValueSetReference) ref2heap).getParent();
-		IntObject tupleIdx = ((VSTupleComponentReference) parent).getIndex();
+		NumericExpression mallocId = ((VSArrayElementReference) ref2heap)
+				.getIndex();
 
-		return tupleIdx.getInt();
+		assert mallocId.operator() == SymbolicOperator.CONCRETE;
+		return ((IntegerNumber) universe.extractNumber(mallocId)).intValue();
 	}
 
 	/**
@@ -1154,11 +1159,10 @@ public class MemEvaluator extends CommonEvaluator {
 	 * specific malloc statement.
 	 */
 	private int memoryHeapMallocID(ValueSetReference ref2heap) {
-		NumericExpression mallocId = ((VSArrayElementReference) ref2heap)
-				.getIndex();
+		ValueSetReference parent = ((NTValueSetReference) ref2heap).getParent();
+		IntObject tupleIdx = ((VSTupleComponentReference) parent).getIndex();
 
-		assert mallocId.operator() == SymbolicOperator.CONCRETE;
-		return ((IntegerNumber) universe.extractNumber(mallocId)).intValue();
+		return tupleIdx.getInt();
 	}
 
 	private static String[] prettyPrintValueSetTemplate(

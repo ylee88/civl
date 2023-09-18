@@ -91,8 +91,8 @@ public class ReadWriteSetTest {
 
 	@Test
 	public void wsPushPopSeqUnsupported() throws ABCException {
-		assertFalse(ui.run(VERIFY, QUIET,
-				filenameForWritesetTest("ws_push_seq-unsupported.cvl")));
+		assertTrue(ui.run(VERIFY, QUIET,
+				filenameForWritesetTest("ws_push_seq.cvl")));
 	}
 
 	/* ****************** read set tests ******************** */

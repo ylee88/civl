@@ -56,8 +56,8 @@ struct OMP_gteam {
   $omp_gshared shared[];
   $gbarrier gbarrier;
   /* r/w sets for each thread */
-  $mem read_sets[];
-  $mem write_sets[];
+  $mem *read_sets;
+  $mem *write_sets;
 };
 
 struct OMP_team {
@@ -77,7 +77,6 @@ struct OMP_HELPER_SIGNAL {
 $atomic_f $omp_gteam $omp_gteam_create($scope scope, int nthreads) {
   $omp_gteam result = ($omp_gteam)$malloc(scope, sizeof(struct OMP_gteam));
   _Bool f = $false;
-  $mem empty = $mem_empty();
 
   //$seq_init(&empty, 0, NULL);
   result->scope = scope;
@@ -85,8 +84,12 @@ $atomic_f $omp_gteam $omp_gteam_create($scope scope, int nthreads) {
   $seq_init(&result->init, nthreads, &f);
   $seq_init(&result->work, 0, NULL);
   $seq_init(&result->shared, 0, NULL);
-  $seq_init(&result->read_sets, nthreads, &empty);
-  $seq_init(&result->write_sets, nthreads, &empty);
+  result->read_sets = ($mem*)$malloc(scope, sizeof($mem) * nthreads);
+  result->write_sets = ($mem*)$malloc(scope, sizeof($mem) * nthreads);
+  for (int i = 0; i < nthreads; i++) {
+    result->read_sets[i] = $mem_empty();
+    result->write_sets[i] = $mem_empty();
+  }
   result->gbarrier = $gbarrier_create(scope, nthreads);
   return result;
 }
@@ -96,7 +99,9 @@ $atomic_f void $omp_gteam_destroy($omp_gteam gteam) {
   
   $assert(length == 0, "There are still %d queued worksharing events.", length);
   $free(gteam->gbarrier);
-  $free(gteam);
+  $free(gteam->read_sets);
+  $free(gteam->write_sets);  
+  $free(gteam);  
 }
 
 /* creates new local team object for a specific thread. */

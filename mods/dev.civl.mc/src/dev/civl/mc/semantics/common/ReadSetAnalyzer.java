@@ -4,8 +4,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
 
+import dev.civl.mc.dynamic.IF.SymbolicUtility;
 import dev.civl.mc.model.IF.CIVLInternalException;
-import dev.civl.mc.model.IF.CIVLSource;
 import dev.civl.mc.model.IF.CIVLUnimplementedFeatureException;
 import dev.civl.mc.model.IF.Identifier;
 import dev.civl.mc.model.IF.ModelConfiguration;
@@ -42,7 +42,6 @@ import dev.civl.mc.model.IF.type.CIVLMemType;
 import dev.civl.mc.model.IF.type.CIVLPointerType;
 import dev.civl.mc.model.IF.type.CIVLStructOrUnionType;
 import dev.civl.mc.model.IF.type.CIVLType;
-import dev.civl.mc.model.IF.type.CIVLType.TypeKind;
 import dev.civl.mc.model.IF.type.StructOrUnionField;
 import dev.civl.mc.semantics.IF.Evaluation;
 import dev.civl.mc.semantics.IF.Evaluator;
@@ -432,15 +431,8 @@ public class ReadSetAnalyzer {
 			State state, int pid) throws UnsatisfiablePathConditionException {
 		Set<SymbolicExpression> result = analyzeMemWorker(expr.index(), state,
 				pid);
-		Evaluation eval;
-		CIVLArrayType arrTy = (CIVLArrayType) expr.array().getExpressionType();
-
-		if (arrTy.typeKind() != TypeKind.COMPLETE_ARRAY)
-			// A sequence type object is a memory location that
-			// has no sub-locations:
-			eval = evaluator.reference(state, pid, expr.array());
-		else
-			eval = evaluator.reference(state, pid, expr);
+		Evaluation eval = evaluator.reference(state, pid, expr);
+		
 		if (!isPointsToConstantScope(eval.value)) {
 			eval = evaluator.memEvaluator().pointer2memValue(state, pid,
 					eval.value, expr.getSource());
@@ -502,9 +494,28 @@ public class ReadSetAnalyzer {
 	private Set<SymbolicExpression> analyzeFuncCall(FunctionCallExpression expr,
 			State state, int pid) throws UnsatisfiablePathConditionException {
 		Set<SymbolicExpression> result = new TreeSet<>(universe.comparator());
+		boolean isSystem = expr.callStatement().function().isSystemFunction();
 
-		for (Expression arg : expr.callStatement().arguments())
+		for (Expression arg : expr.callStatement().arguments()) {
 			result.addAll(analyzeMemWorker(arg, state, pid));
+
+			if (isSystem) {
+				// Over-approximate for pointer arguments in case of system
+				// functions: we assume the whole variable pointed by the
+				// pointer will be read.
+				CIVLType argTy = arg.getExpressionType();
+
+				if (argTy.isPointerType() || argTy.isArrayType()) {
+					Evaluation eval = evaluator.evaluate(state, pid, arg);
+					SymbolicUtility symUtil = evaluator.symbolicUtility();
+
+					if (!symUtil.isConcretePointer(eval.value))
+						continue; // lets ignore non-concrete pointers
+					result.add(symUtil.setSymRef(eval.value,
+							universe.identityReference()));
+				}
+			}
+		}
 		// TODO: process function reads clauses
 		return result;
 	}
@@ -564,9 +575,6 @@ public class ReadSetAnalyzer {
 
 		if (isPointsToConstantScope(eval.value))
 			return result;
-		if (isPointsToSequenceElement(eval.state, eval.value,
-				expr.pointer().getSource()))
-			eval.value = evaluator.symbolicUtility().parentPointer(eval.value);
 		eval = evaluator.memEvaluator().pointer2memValue(state, pid, eval.value,
 				expr.getSource());
 		result.add(eval.value);
@@ -657,20 +665,5 @@ public class ReadSetAnalyzer {
 				.getScopeValue(pointer);
 
 		return scopeVal.equals(constantDyScopeVal);
-	}
-
-	private boolean isPointsToSequenceElement(State state,
-			SymbolicExpression pointer, CIVLSource source) {
-		if (evaluator.symbolicUtility().referenceOfPointer(pointer)
-				.isArrayElementReference()) {
-			SymbolicExpression parentPtr = evaluator.symbolicUtility()
-					.parentPointer(pointer);
-			CIVLType objTy = evaluator.symbolicAnalyzer()
-					.civlTypeOfObjByPointer(source, state, parentPtr);
-
-			return objTy.typeKind() == TypeKind.ARRAY
-			/* so that `objTy.typeKind() != TypeKind.COMPLETE_ARRAY` */;
-		}
-		return false;
 	}
 }

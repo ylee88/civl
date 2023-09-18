@@ -9,6 +9,10 @@ import java.util.Map;
 import dev.civl.mc.dynamic.IF.SymbolicUtility;
 import dev.civl.mc.dynamic.IF.ValueSetUtility;
 import dev.civl.mc.model.IF.CIVLUnimplementedFeatureException;
+import dev.civl.mc.model.IF.type.CIVLArrayType;
+import dev.civl.mc.model.IF.type.CIVLStructOrUnionType;
+import dev.civl.mc.model.IF.type.CIVLType;
+import dev.civl.mc.model.IF.type.CIVLType.TypeKind;
 import dev.civl.mc.util.IF.Pair;
 import dev.civl.sarl.IF.SymbolicUniverse;
 import dev.civl.sarl.IF.expr.BooleanExpression;
@@ -20,7 +24,9 @@ import dev.civl.sarl.IF.expr.valueSetReference.NTValueSetReference;
 import dev.civl.sarl.IF.expr.valueSetReference.VSArrayElementReference;
 import dev.civl.sarl.IF.expr.valueSetReference.VSArraySectionReference;
 import dev.civl.sarl.IF.expr.valueSetReference.VSTupleComponentReference;
+import dev.civl.sarl.IF.expr.valueSetReference.VSUnionMemberReference;
 import dev.civl.sarl.IF.expr.valueSetReference.ValueSetReference;
+import dev.civl.sarl.IF.expr.valueSetReference.ValueSetReference.VSReferenceKind;
 import dev.civl.sarl.IF.object.IntObject;
 import dev.civl.sarl.IF.type.SymbolicArrayType;
 import dev.civl.sarl.IF.type.SymbolicCompleteArrayType;
@@ -81,6 +87,78 @@ class CommonValueSetUtility implements ValueSetUtility {
 			}
 		}
 		return groups.values();
+	}
+
+	@Override
+	public ValueSetReference getVSReferenceToSequenceOrNoop(
+			CIVLType varTypeOrMallocElementType, boolean isMallocElementType,
+			ValueSetReference vsRef) {
+		ValueSetReference refToSeq = getVSReferenceToSequenceWorker(
+				varTypeOrMallocElementType, isMallocElementType, vsRef).left;
+
+		if (refToSeq == null)
+			return vsRef;
+		return refToSeq;
+	}
+
+	/**
+	 * Worker method of {@link #getVSReferenceToSequenceOrNoop}.
+	 * 
+	 * @return a pair where the following invariants apply:
+	 *         <li><code>pair.right</code> is the type of the values referenced
+	 *         by <code>vsRef</code></li>
+	 * 
+	 *         <li><code>pair.left</code> is the oldest descendant of
+	 *         <code>vsRef</code> that references to a sequence object, or null
+	 *         if no such descendant</li>
+	 */
+	private Pair<ValueSetReference, CIVLType> getVSReferenceToSequenceWorker(
+			CIVLType type, boolean isMallocElementType,
+			ValueSetReference vsRef) {
+		if (isMallocElementType) {
+			assert vsRef instanceof NTValueSetReference
+					: "invalid argument value for `vsRef`";
+
+			NTValueSetReference ntVsRef = (NTValueSetReference) vsRef;
+
+			if (ntVsRef.getParent().isIdentityReference()) {
+				assert vsRef.isArrayElementReference()
+						|| vsRef.isArraySectionReference()
+						: "invalid argument value for `vsRef`";
+				return new Pair<>(null, type);
+			}
+		} else if (vsRef.isIdentityReference())
+			return new Pair<>(null, type);
+
+		ValueSetReference parent = ((NTValueSetReference) vsRef).getParent();
+		Pair<ValueSetReference, CIVLType> pair = getVSReferenceToSequenceWorker(
+				type, isMallocElementType, parent);
+
+		if (pair.right.typeKind() == TypeKind.ARRAY) {
+			// it is not COMPLETE_ARRAY so its a sequence
+			pair.left = parent;
+			pair.right = ((CIVLArrayType) pair.right).elementType();
+		} else if (pair.right.typeKind() == TypeKind.COMPLETE_ARRAY) {
+			pair.right = ((CIVLArrayType) pair.right).elementType();
+		} else {
+			assert pair.right.typeKind() == TypeKind.STRUCT_OR_UNION
+					: "unexpected type of values to be referenced";
+			CIVLStructOrUnionType t = (CIVLStructOrUnionType) pair.right;
+			
+			if (vsRef
+					.valueSetReferenceKind() == VSReferenceKind.TUPLE_COMPONENT) {
+				VSTupleComponentReference r = (VSTupleComponentReference) vsRef;
+
+				pair.right = t.getField(r.getIndex().getInt()).type();
+			} else {
+				assert vsRef
+						.valueSetReferenceKind() == VSReferenceKind.UNION_MEMBER;
+				VSUnionMemberReference r = (VSUnionMemberReference) vsRef;
+
+				pair.right = t.getField(r.getIndex().getInt()).type();
+			}
+		}
+		return pair;
 	}
 
 	@Override

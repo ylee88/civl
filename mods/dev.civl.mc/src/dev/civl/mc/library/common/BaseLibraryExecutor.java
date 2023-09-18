@@ -181,9 +181,8 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 					eval = evaluator.memEvaluator().pointer2memValue(state, pid,
 							pointer2memoryBlk, source);
 					state = eval.state;
-					if (saveWrite)
-						state = stateFactory.addReadWriteRecords(state, pid,
-								eval.value, false);
+					state = stateFactory.addReadWriteRecords(state, pid,
+							eval.value, false);
 				}
 				state = stateFactory.deallocate(state, firstElementPointer,
 						symbolicUtil.getScopeValue(firstElementPointer),

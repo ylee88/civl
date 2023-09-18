@@ -2,6 +2,7 @@ package dev.civl.mc.dynamic.IF;
 
 import java.util.List;
 
+import dev.civl.mc.model.IF.type.CIVLType;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.IF.expr.valueSetReference.ValueSetReference;
@@ -52,4 +53,35 @@ public interface ValueSetUtility {
 	BooleanExpression buildFrameCondition(SymbolicType varType,
 			SymbolicExpression oldVal, SymbolicExpression newVal,
 			SymbolicExpression valueSetTemplate);
+
+	/**
+	 * <p>
+	 * This method over-approximates <code>vsRef</code> if it references into
+	 * sequence elements. In this case, the returned value is an ancestor that
+	 * references to the outer-most sequence object that encloses what
+	 * <code>vsRef</code> references to.
+	 * </p>
+	 * 
+	 * <p>
+	 * The parameter <code>variableOrMallocElementType</code> is the CIVLType of
+	 * the variable where <code>vsRef</code> references, if <code>vsRef</code>
+	 * does NOT reference to a heap object. Otherwise,
+	 * <code>variableOrMallocElementType</code> is the element type statically
+	 * determined by the corresponding malloc statement. In this case, the root
+	 * ancestor of <code>vsRef</code> references to the heap object instead of
+	 * the heap variable.
+	 * </p>
+	 * 
+	 * <p>
+	 * The reason of why this method analyzes <code>vsRef</code> with respect to
+	 * CIVLType instead of dynamic types is that sequence type is invisible to
+	 * dynamic types. The reason of why we treat variables and heap objects
+	 * differently is that there is no CIVLType exisiting in the model for a
+	 * heap object. There are only CIVLType of static element types extracted
+	 * from malloc statement.
+	 * </p>
+	 */
+	ValueSetReference getVSReferenceToSequenceOrNoop(
+			CIVLType variableOrMallocElementType, boolean isMallocElementType,
+			ValueSetReference vsRef);
 }

@@ -1493,7 +1493,7 @@ public class CommonExecutor implements Executor {
 		// write set recording:
 		boolean saveWrite = state.isMonitoringWrites(pid);
 
-		if (saveWrite && !Utils.containSequenceType(variable.type())) {
+		if (saveWrite) {
 			Evaluation eval = evaluator.memEvaluator().pointer2memValue(state,
 					pid, pointer, source);
 
@@ -1550,7 +1550,7 @@ public class CommonExecutor implements Executor {
 			boolean saveWrite = state.isMonitoringWrites(pid);
 
 			state = stateFactory.setVariable(state, variable, pid, value);
-			if (saveWrite && !Utils.containSequenceType(variable.type())) {
+			if (saveWrite) {
 				eval = evaluator.memEvaluator().pointer2memValue(
 						state, pid, symbolicUtil.makePointer(dyscopeId,
 								variable.vid(), universe.identityReference()),
@@ -1707,12 +1707,10 @@ public class CommonExecutor implements Executor {
 
 		boolean saveWrite = state.isMonitoringWrites(pid);
 
-		if (saveWrite && !Utils.containSequenceType(var.type())) {
+		if (saveWrite) {
 			eval = evaluator.memEvaluator().makeMemValue(state, pid,
 					pointerToVarOrHeapObj, valueSetTemplate, source);
-
 			state = eval.state;
-			// write is also read
 			state = stateFactory.addReadWriteRecords(state, pid, eval.value,
 					false);
 		}

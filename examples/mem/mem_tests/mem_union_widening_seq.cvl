@@ -1,0 +1,22 @@
+#include<mem.cvh>
+#include<seq.cvh>
+
+
+int main() {
+  struct {
+    int a[];
+    int b[10];
+  } s;
+  int zero = 0;
+  
+  $seq_init(&s.a, 10, &zero);
+  $mem m = ($mem)&s.a[0];
+  
+  $assert($mem_contains(m, &s.a));
+  $assert($mem_contains(&s.a, m));
+  
+  m = $mem_union_widening(m, ($mem)&s.a[1]);
+  
+  $assert($mem_contains(m, &s.a));
+  $assert($mem_contains(&s.a, m));
+}

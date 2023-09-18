@@ -569,14 +569,18 @@ public class VSReferenceFactory {
 			}
 			if (!Arrays.equals(args0, args1)) {
 				// widening:
-				SymbolicCompleteArrayType arrType = (SymbolicCompleteArrayType) referredType(
+				SymbolicArrayType arrTy = (SymbolicArrayType) referredType(
 						valueType, ((NTValueSetReference) r0).getParent());
 				ValueSetReference parent = defaultWideningWorker(valueType,
 						((NTValueSetReference) r0).getParent(),
 						((NTValueSetReference) r1).getParent());
-
-				return vsArraySectionReference(parent, numericFactory.zeroInt(),
-						arrType.extent(), numericFactory.oneInt());
+				if (arrTy.isComplete())
+					return vsArraySectionReference(parent,
+							numericFactory.zeroInt(),
+							((SymbolicCompleteArrayType) arrTy).extent(),
+							numericFactory.oneInt());
+				else
+					return parent;
 			}
 		}
 
@@ -1390,17 +1394,22 @@ public class VSReferenceFactory {
 		if (toMax == 0)
 			return refs;
 		switch (referredType.typeKind()) {
-		case ARRAY: {
-			SymbolicCompleteArrayType arrType = (SymbolicCompleteArrayType) referredType;
-			NumericExpression extent = arrType.extent();
-			ValueSetReference[] results = new ValueSetReference[refs.length];
+			case ARRAY : {
+				SymbolicArrayType arrTy = (SymbolicArrayType) referredType;
 
-			for (int i = 0; i < results.length; i++)
-				results[i] = vsArraySectionReference(refs[i],
-						numericFactory.zeroInt(), extent,
-						numericFactory.oneInt());
-			return extendWorker(results, arrType.elementType(), toMax - 1);
-		}
+				if (!arrTy.isComplete())
+					// do not further extend references to incomplete arrays
+					return refs;
+				NumericExpression extent = ((SymbolicCompleteArrayType) arrTy)
+						.extent();
+				ValueSetReference[] results = new ValueSetReference[refs.length];
+
+				for (int i = 0; i < results.length; i++)
+					results[i] = vsArraySectionReference(refs[i],
+							numericFactory.zeroInt(), extent,
+							numericFactory.oneInt());
+				return extendWorker(results, arrTy.elementType(), toMax - 1);
+			}
 		case TUPLE: {
 			SymbolicTupleType tupleType = (SymbolicTupleType) referredType;
 			int numTypes = tupleType.sequence().numTypes();
