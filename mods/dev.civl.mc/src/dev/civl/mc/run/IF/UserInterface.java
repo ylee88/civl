@@ -30,8 +30,10 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -859,9 +861,9 @@ public class UserInterface {
 					stateManager.collectedOutputs());
 			result = verifier.run_work();
 			statusImpl = verifier.verificationStatus;
-			
+
 			printCommand(out, compareCommand.getCommandString());
-			
+
 			List<Pair<String, String>> stats = new LinkedList<Pair<String, String>>();
 			stats.add(new Pair<String, String>("max process count",
 					Integer.toString(Math.max(statusSpec.maxProcessCount,
@@ -878,7 +880,7 @@ public class UserInterface {
 			stats.add(new Pair<String, String>("trace steps", Integer.toString(
 					statusSpec.numTraceSteps + statusImpl.numTraceSteps)));
 			stats.addAll(getUniverseStats(specWorker.universe));
-			printStats(out,stats);
+			printStats(out, stats);
 		}
 		if (result)
 			out.println("\nThe standard properties hold for all executions and "
@@ -939,7 +941,8 @@ public class UserInterface {
 	}
 
 	private String whitespace(int n) {
-		assert n >= 0;
+		if (n <= 0)
+			return "";
 		char[] ws = new char[n];
 		Arrays.fill(ws, ' ');
 		return new String(ws);
@@ -948,20 +951,46 @@ public class UserInterface {
 	private void printStats(PrintStream out, List<Pair<String, String>> stats) {
 		out.println("\n" + statsBar + " Stats " + statsBar);
 		String tab = "   ";
-		String sep = ": ";
-		int labelWidth = 25;
-		int columnWidth = 35;
+		String intraSep = " : ";
+		String interSep = "  ";
 		int numCols = 2;
+		// Each pair represents (width of label, width of value) for a column
+		ArrayList<Pair<Integer, Integer>> colWidths = new ArrayList<Pair<Integer, Integer>>(
+				numCols);
 		int currCol = 0;
 
-		for (Pair<String, String> stat : stats) {
-			String labelWs = whitespace(labelWidth - tab.length()
-					- stat.left.length() - sep.length());
-			String statStr = tab + stat.left + labelWs + sep + stat.right;
+		// Initialize column widths
+		for (; currCol < numCols; currCol++) {
+			colWidths.add(new Pair<Integer, Integer>(0, 0));
+		}
+		currCol = 0;
 
-			out.print(statStr);
+		stats = rearrangeStats(stats, numCols);
+
+		// Calculate column widths
+		for (Pair<String, String> stat : stats) {
+			Pair<Integer, Integer> widths = colWidths.get(currCol);
+			widths.left = Math.max(stat.left.length(), widths.left);
+			widths.right = Math.max(stat.right.length(), widths.right);
+
+			currCol = currCol < numCols - 1 ? currCol + 1 : 0;
+		}
+		currCol = 0;
+
+		// Print columns
+		for (Pair<String, String> stat : stats) {
+			int labelWidth = colWidths.get(currCol).left;
+			int valueWidth = colWidths.get(currCol).right;
+
+			if (currCol == 0) {
+				out.print(tab);
+			}
+			out.print(stat.left + whitespace(labelWidth - stat.left.length())
+					+ intraSep + stat.right
+					+ whitespace(valueWidth - stat.right.length()));
+
 			if (currCol < numCols - 1) {
-				out.print(whitespace(columnWidth - statStr.length()));
+				out.print(interSep);
 				currCol++;
 			} else {
 				out.println();
@@ -969,6 +998,30 @@ public class UserInterface {
 			}
 		}
 		out.println();
+	}
+
+	// Rearranges stats so they print in column order rather than by row
+	private List<Pair<String, String>> rearrangeStats(
+			List<Pair<String, String>> stats, int numCols) {
+		ArrayList<Pair<String, String>> rearrangedStats = new ArrayList<Pair<String, String>>(
+				Collections.nCopies(stats.size(), null));
+		float rowsPerCol = (float) stats.size() / numCols;
+
+		int i = 0;
+		int currCol = 0;
+		for (Pair<String, String> stat : stats) {
+			int currElem = i * numCols + currCol;
+
+			if (currElem >= stats.size()) {
+				i = 0;
+				currCol++;
+				currElem = currCol;
+			}
+			rearrangedStats.set(currElem, stat);
+			i++;
+		}
+
+		return rearrangedStats;
 	}
 
 	private List<Pair<String, String>> getCommonStats() {
