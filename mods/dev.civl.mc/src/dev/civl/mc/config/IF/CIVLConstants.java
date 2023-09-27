@@ -313,11 +313,9 @@ public class CIVLConstants {
 	 */
 	public final static Option mpiContractO = Option.newScalarOption(
 			MPI_CONTRACT, OptionType.STRING,
-			"MPI contract mode, specify the name of the function to be verified, "
-					+ "or specify \"" + CONTRACT_CHECK_ALL
-					+ "\" for checking all annotated functions."
-					+ " Default value \"" + CONTRACT_CHECK_NONE
-					+ "\" is equivalent to disble MPI contract mode",
+			"Name of annotated MPI function. " + CONTRACT_CHECK_ALL + " (or "
+					+ CONTRACT_CHECK_NONE
+					+ ") for checking all (or no) functions.",
 			CONTRACT_CHECK_NONE);
 
 	/**
@@ -335,8 +333,7 @@ public class CIVLConstants {
 	 */
 	public final static Option loopO = Option.newScalarOption(LOOP_INV,
 			OptionType.BOOLEAN,
-			"Enable all settings that are required for verifying with loop invariants. "
-					+ "(e.g. collect symbolic constants will be enabled)",
+			"Enable all settings that are required for verifying with loop invariants",
 			false);
 
 	/**
@@ -579,8 +576,7 @@ public class CIVLConstants {
 	 */
 	public final static Option showPathConditionO = Option.newScalarOption(
 			SHOW_PATH_CONDITION, OptionType.STRING,
-			"show the path condition of each state? "
-					+ "(LINE (display as one line) | BLOCK (display as multiple lines))",
+			"show path condition of each state as one line (LINE) or on multiple lines (BLOCK)?",
 			"LINE");
 
 	/**
@@ -596,8 +592,7 @@ public class CIVLConstants {
 	 */
 	public final static Option ompOnlySimplifierO = Option.newScalarOption(
 			OMP_ONLY_SIMPLIFIER, OptionType.BOOLEAN,
-			"only relies on the OpenMP simplifier, i.e.,"
-					+ "either simplify an omp program or report possible data-race",
+			"rely on the OpenMP simplifier only, i.e. no data-race checking.",
 			false);
 
 	/**
@@ -716,7 +711,7 @@ public class CIVLConstants {
 	 * Disable the local block, which optimizes the POR impl. false by default
 	 */
 	public final static Option disableLocalBlockO = Option.newScalarOption(
-			DISABLE_LOCAL_BLOCK, OptionType.BOOLEAN, "disable local block", 
+			DISABLE_LOCAL_BLOCK, OptionType.BOOLEAN, "disable local block",
 			false);
 
 	/**
@@ -881,7 +876,8 @@ public class CIVLConstants {
 				GNUC, INTTYPES, ISO646, LIMITS, LOCALE, MATH, MPI, OMP, OP,
 				PTHREAD, SCHED, SETJMP, SIGNAL, STDALIGN, STDARG, STDATOMIC,
 				STDBOOL, STDDEF, STDINT, STDIO, STDLIB, STDNORETURN, STRING,
-				STRINGS, SVCOMP, TGMATH, THREADS, TIME, UCHAR, UNISTD, WCHAR, WCTYPE));
+				STRINGS, SVCOMP, TGMATH, THREADS, TIME, UCHAR, UNISTD, WCHAR,
+				WCTYPE));
 	}
 
 	/**
@@ -908,8 +904,8 @@ public class CIVLConstants {
 	public final static Set<String> getCStdLibSrcs() {
 		return new HashSet<String>(Arrays.asList(ASSERT_SRC, CUDA_SRC, MATH_SRC,
 				MPI_SRC, OMP_SRC, PTHREAD_SRC, SCHED_SRC, STDING_SRC, STDIO_SRC,
-				STDLIB_SRC, STRING_SRC, SYS_TIME_SRC, SVCOMP_SRC, TIME_SRC, TIMES_SRC,
-				UNISTD_SRC));
+				STDLIB_SRC, STRING_SRC, SYS_TIME_SRC, SVCOMP_SRC, TIME_SRC,
+				TIMES_SRC, UNISTD_SRC));
 	}
 
 	public final static Set<String> getCivlLibSrcs() {

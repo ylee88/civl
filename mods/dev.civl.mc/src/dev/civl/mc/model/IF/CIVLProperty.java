@@ -29,7 +29,8 @@ public enum CIVLProperty {
 	ASSERTION_VIOLATION ("assertion violations", "checkAssertion", OptionType.BOOLEAN, true),
 	COMMUNICATION ("communication errors", "checkCommErr", OptionType.BOOLEAN, true),
 	CONSTANT_WRITE ("writes to constant variables", "checkConstWrite", OptionType.BOOLEAN, true),
-	DEADLOCK ("deadlocks", "checkDeadlock", OptionType.STRING, "absolute"),
+	DEADLOCK ("deadlocks", "checkDeadlock", OptionType.STRING, "absolute",
+			"Available options: \"absolute\", \"potential\", \"none\""),
 	DIVISION_BY_ZERO ("division by zero", "checkDivisionByZero", OptionType.BOOLEAN, true),
 	INPUT_WRITE ("writes to $input variables", "checkInputWrite", OptionType.BOOLEAN, true),
 	INVALID_CAST ("invalid casts", "checkInvalidCast", OptionType.BOOLEAN, true),
@@ -72,9 +73,19 @@ public enum CIVLProperty {
 	 */
 	private CIVLProperty(String propTitle, String optionStr,
 			OptionType optionType, Object defaultValue) {
+		this(propTitle, optionStr, optionType, defaultValue, "");
+	}
+
+	private CIVLProperty(String propTitle, String optionStr,
+			OptionType optionType, Object defaultValue,
+			String extraDescription) {
+		if (extraDescription != "") {
+			extraDescription = ". "+extraDescription;
+		}
+		
 		this.propTitle = propTitle;
 		this.controllingOption = Option.newScalarOption(optionStr, optionType,
-				"check " + propTitle, defaultValue);
+				"check " + propTitle + extraDescription, defaultValue);
 	}
 	
 	private static ArrayList<CIVLProperty> unconfigurableProperties = new ArrayList<>(CIVLProperty.values().length);
