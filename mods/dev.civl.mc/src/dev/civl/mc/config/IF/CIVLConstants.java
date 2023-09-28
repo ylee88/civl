@@ -279,8 +279,7 @@ public class CIVLConstants {
 	 */
 	public final static Option guidedO = Option.newScalarOption(GUIDED,
 			OptionType.BOOLEAN,
-			"user guided simulation; applies only to run, ignored\n"
-					+ "    for all other commands",
+			"user guided simulation; applies only to run command",
 			null);
 
 	/**
@@ -313,9 +312,7 @@ public class CIVLConstants {
 	 */
 	public final static Option mpiContractO = Option.newScalarOption(
 			MPI_CONTRACT, OptionType.STRING,
-			"Name of annotated MPI function. " + CONTRACT_CHECK_ALL + " (or "
-					+ CONTRACT_CHECK_NONE
-					+ ") for checking all (or no) functions.",
+			"Name of annotated MPI function.",
 			CONTRACT_CHECK_NONE);
 
 	/**
@@ -324,7 +321,7 @@ public class CIVLConstants {
 	 */
 	public final static Option mpiModelO = Option.newScalarOption(MPI_MODEL,
 			OptionType.STRING,
-			"select the MPI implementation model. Available values are blocking (default), nonblocking, contract.",
+			"MPI implementation model. Available values: blocking, nonblocking, contract",
 			"blocking");
 
 	/**
@@ -355,8 +352,7 @@ public class CIVLConstants {
 
 	public final static Option randomO = Option.newScalarOption(RANDOM,
 			OptionType.BOOLEAN,
-			"select enabled transitions randomly; default for run,\n"
-					+ "    ignored for all other commands",
+			"select enabled transitions randomly",
 			null);
 
 	/**
@@ -365,8 +361,7 @@ public class CIVLConstants {
 	 */
 	public final static Option runtimeUpdateO = Option.newScalarOption(
 			RUNTIME_UPDATE, OptionType.BOOLEAN,
-			"set as `false` to disable CIVL updater thread, \n"
-					+ "which printing update-info periodically",
+			"print update-info periodically?",
 			true);
 
 	/**
