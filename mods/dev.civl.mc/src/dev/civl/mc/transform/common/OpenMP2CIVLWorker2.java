@@ -81,6 +81,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 	 */
 	static private final String SRC_INFO = "OpenMP2CIVLWorker2";
 
+	static private final String FORTRAN_FILE_SUFFIX = ".f";
 	/* Specific numbers used in this transformer */
 	static private final int INDEX_PVT_DECLS = 0;
 	static private final int INDEX_TMP_DECLS = 1;
@@ -803,49 +804,70 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 	 * @return See above
 	 */
 	private List<BlockItemNode> declOmpRange(String srcMethod, int num,
-			Triple<ExpressionNode, ExpressionNode, ExpressionNode> range) {
+			Triple<ExpressionNode, ExpressionNode, ExpressionNode> range,
+			boolean isFortran) {
 		List<BlockItemNode> rangeDeclItems = new LinkedList<>();
 		// type: $range
 		TypeNode typeInt = nodeTypeRange(srcMethod);
 		// id: _omp_rangeX
 		String rangeIdName = RANGE + Integer.toString(num);
 		IdentifierNode _omp_rangeX = nodeIdent(srcMethod, rangeIdName);
-		// range var decl: $range _omp_rangeX;
-		VariableDeclarationNode rangeVarDecl = nodeFactory
-				.newVariableDeclarationNode(
-						newSource(srcMethod, CivlcTokenConstant.DECLARATION), //
-						_omp_rangeX, typeInt);
-		// range var val:
-		// step >=0
-		ExpressionNode cond = nodeFactory.newOperatorNode(
-				newSource(srcMethod, CivlcTokenConstant.EXPR), Operator.GTE,
-				range.third.copy(), nodeExprInt(srcMethod, 0));
-		// first .. second#step
-		ExpressionNode rangePosStep = nodeExprRange(srcMethod,
-				range.first.copy(), range.second.copy(), range.third.copy());
-		// second .. first#step
-		ExpressionNode rangeNegStep = nodeExprRange(srcMethod, range.second,
-				range.first, range.third);
-		// _omp_rangeX = {first .. second#step};
-		ExpressionNode rangePosStepAssign = nodeFactory.newOperatorNode(
-				newSource(srcMethod, CivlcTokenConstant.EXPR), Operator.ASSIGN,
-				nodeExprId(srcMethod, rangeIdName), rangePosStep);
-		ExpressionStatementNode trueStmt = nodeFactory
-				.newExpressionStatementNode(rangePosStepAssign);
-		// _omp_rangeX = {second .. first#step};
-		ExpressionNode rangeNegStepAssign = nodeFactory.newOperatorNode(
-				newSource(srcMethod, CivlcTokenConstant.EXPR), Operator.ASSIGN,
-				nodeExprId(srcMethod, rangeIdName), rangeNegStep);
-		ExpressionStatementNode falseStmt = nodeFactory
-				.newExpressionStatementNode(rangeNegStepAssign);
-		// if (step >=0) _omp_rangeX = {first .. second#step};
-		// else _omp_rangeX = {second .. first#step};
-		StatementNode rangeifAssignStmt = nodeFactory.newIfNode(
-				newSource(srcMethod, CivlcTokenConstant.STATEMENT), cond,
-				trueStmt, falseStmt);
 
-		rangeDeclItems.add(rangeVarDecl);
-		rangeDeclItems.add(rangeifAssignStmt);
+		if (isFortran) {
+			// range var decl: $range _omp_rangeX;
+			VariableDeclarationNode rangeVarDecl = nodeFactory
+					.newVariableDeclarationNode(
+							newSource(srcMethod,
+									CivlcTokenConstant.DECLARATION), //
+							_omp_rangeX, typeInt);
+			// range var val:
+			// step >=0
+			ExpressionNode cond = nodeFactory.newOperatorNode(
+					newSource(srcMethod, CivlcTokenConstant.EXPR), Operator.GTE,
+					range.third.copy(), nodeExprInt(srcMethod, 0));
+			// first .. second#step
+			ExpressionNode rangePosStep = nodeExprRange(srcMethod,
+					range.first.copy(), range.second.copy(),
+					range.third.copy());
+			// second .. first#step
+			ExpressionNode rangeNegStep = nodeExprRange(srcMethod,
+					range.second.copy(), range.first.copy(),
+					range.third.copy());
+			// _omp_rangeX = {first .. second#step};
+			ExpressionNode rangePosStepAssign = nodeFactory.newOperatorNode(
+					newSource(srcMethod, CivlcTokenConstant.EXPR),
+					Operator.ASSIGN, nodeExprId(srcMethod, rangeIdName),
+					rangePosStep);
+			ExpressionStatementNode trueStmt = nodeFactory
+					.newExpressionStatementNode(rangePosStepAssign);
+			// _omp_rangeX = {second .. first#step};
+			ExpressionNode rangeNegStepAssign = nodeFactory.newOperatorNode(
+					newSource(srcMethod, CivlcTokenConstant.EXPR),
+					Operator.ASSIGN, nodeExprId(srcMethod, rangeIdName),
+					rangeNegStep);
+			ExpressionStatementNode falseStmt = nodeFactory
+					.newExpressionStatementNode(rangeNegStepAssign);
+			// if (step >=0) _omp_rangeX = {first .. second#step};
+			// else _omp_rangeX = {second .. first#step};
+			StatementNode rangeifAssignStmt = nodeFactory.newIfNode(
+					newSource(srcMethod, CivlcTokenConstant.STATEMENT), cond,
+					trueStmt, falseStmt);
+
+			rangeDeclItems.add(rangeVarDecl);
+			rangeDeclItems.add(rangeifAssignStmt);
+		} else {
+			// {first .. second#step};
+			ExpressionNode init = nodeExprRange(srcMethod, range.first.copy(),
+					range.second.copy(), range.third.copy());
+			// range var decl: $range _omp_rangeX = {first .. second#step};
+			VariableDeclarationNode rangeVarDecl = nodeFactory
+					.newVariableDeclarationNode(
+							newSource(srcMethod,
+									CivlcTokenConstant.DECLARATION), //
+							_omp_rangeX, typeInt, init);
+
+			rangeDeclItems.add(rangeVarDecl);
+		}
 		return rangeDeclItems;
 	}
 
@@ -1484,6 +1506,9 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		String srcMethod = SRC_INFO + ".procOmpForNode";
 		List<BlockItemNode> ompBlockItems = new LinkedList<>();
 		List<BlockItemNode> lstpvtAssignments = new LinkedList<>();
+		boolean isFortran = ompForNode.getSource().getFirstToken()
+				.getSourceFile().getName().toLowerCase()
+				.contains(FORTRAN_FILE_SUFFIX);
 		// PROC: collapse
 		int collapse = ompForNode.collapse();
 		int numLoopRanges = 0;
@@ -1509,8 +1534,8 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		// ADD: $range _omp_rangeX = {lo .. hi, step};
 		// * note that X is [1 .. numLoopRanges]
 		for (OmpLoopInfo info : loopInfos)
-			ompBlockItems.addAll(
-					declOmpRange(srcMethod, ++numLoopRanges, info.range));
+			ompBlockItems.addAll(declOmpRange(srcMethod, ++numLoopRanges,
+					info.range, isFortran));
 		assert numLoopRanges == loopInfos.size();
 		// ADD: $domain(1) _omp_loop_domain = ($domain){_omp_range1, ...};
 		ompBlockItems.add(declOmpDomain(srcMethod, numLoopRanges));
@@ -2982,7 +3007,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		AST newAst = astFactory.newAST(newRoot, oldAst.getSourceFiles(),
 				oldAst.isWholeProgram());
 
-		//newAst.prettyPrint(System.out, true);
+		// newAst.prettyPrint(System.out, true);
 		return newAst;
 	}
 }
