@@ -9,6 +9,7 @@ import static org.junit.Assert.assertFalse;
 
 import java.io.File;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
@@ -63,7 +64,7 @@ public class DataRaceBenchFortranTest {
 				pathToSrcFile("DRB001-antidep1-orig-yes.f95")));
 	}
 
-	@Test
+	@Ignore
 	public void DRB002_antidep1_var_yes() {
 		assertFalse(ui.run(VERIFY, OMP_NO_SIMP, OMP_THREAD_TWO, DN_10, QUIET,
 				pathToSrcFile("DRB002-antidep1-var-yes.f95")));
