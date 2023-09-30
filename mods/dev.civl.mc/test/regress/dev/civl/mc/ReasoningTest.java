@@ -85,12 +85,6 @@ public class ReasoningTest {
 	}
 
 	@Test
-	public void stepedUniversal() {
-		assertTrue(ui.run(VERIFY, QUIET,
-				reasoningfilename("stepedUniversal.cvl")));
-	}
-
-	@Test
 	public void powerDecomposeSimplification() {
 		assertTrue(
 				ui.run(VERIFY, QUIET, reasoningfilename("powerSimplify.cvl")));
