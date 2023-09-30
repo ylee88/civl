@@ -196,7 +196,7 @@ public class ExpressionAnalyzer {
 	 * the converted type of all of node's children nodes.
 	 *
 	 * @param node
-	 *            an expression node
+	 *                 an expression node
 	 * @throws SyntaxException
 	 */
 	void processExpression(ExpressionNode node) throws SyntaxException {
@@ -428,12 +428,12 @@ public class ExpressionAnalyzer {
 	 * as simple assignments.
 	 *
 	 * @param lhsType
-	 *            type of left hand side
+	 *                    type of left hand side
 	 * @param rhs
-	 *            expression
+	 *                    expression
 	 * @return type of assignment
 	 * @throws UnsourcedException
-	 *             if the types are not compatible
+	 *                                if the types are not compatible
 	 * @throws SyntaxException
 	 */
 	UnqualifiedObjectType processAssignment(ObjectType lhsType,
@@ -514,15 +514,15 @@ public class ExpressionAnalyzer {
 	 * </p>
 	 *
 	 * @param type
-	 *            the expected type of this compound initializer; must be a
-	 *            domain type
+	 *                 the expected type of this compound initializer; must be a
+	 *                 domain type
 	 * @param node
-	 *            a compound literal node with domain type
+	 *                 a compound literal node with domain type
 	 *
 	 * @throws SyntaxException
-	 *             if any of the above properties is violated, or there is a
-	 *             syntax exception generated when checking the range
-	 *             expressions
+	 *                             if any of the above properties is violated,
+	 *                             or there is a syntax exception generated when
+	 *                             checking the range expressions
 	 */
 	void processCartesianDomainInitializer(CompoundInitializerNode initNode,
 			DomainType type) throws SyntaxException {
@@ -751,12 +751,13 @@ public class ExpressionAnalyzer {
 	 * </p>
 	 *
 	 * @param node
-	 *            an AST node representing a "dot" expression
+	 *                 an AST node representing a "dot" expression
 	 * @throws SyntaxException
-	 *             if left operand is not a structure or union, or no field of
-	 *             the name corresponding to the right operand exists in that
-	 *             structure or union, or if there is any static error in either
-	 *             operand
+	 *                             if left operand is not a structure or union,
+	 *                             or no field of the name corresponding to the
+	 *                             right operand exists in that structure or
+	 *                             union, or if there is any static error in
+	 *                             either operand
 	 */
 	private void processDot(DotNode node) throws SyntaxException {
 		ExpressionNode expression = node.getStructure();
@@ -1449,9 +1450,10 @@ public class ExpressionAnalyzer {
 	 * {@link #processExpression}.
 	 *
 	 * @param node
-	 *            an OperatorNode with operator ASSIGN
+	 *                 an OperatorNode with operator ASSIGN
 	 * @throws SyntaxException
-	 *             if there is a type incompatibility between the two sides
+	 *                             if there is a type incompatibility between
+	 *                             the two sides
 	 */
 
 	private void processASSIGN(OperatorNode node) throws SyntaxException {
@@ -1596,12 +1598,12 @@ public class ExpressionAnalyzer {
 				&& type2 instanceof ArithmeticType) {
 			type = typeFactory.usualArithmeticConversion((ArithmeticType) type1,
 					(ArithmeticType) type2);
-		} else if (type1 instanceof StructureOrUnionType) {
-			if (!type1.equals(type2))
-				throw error(
-						"Operands of conditional operator have incompatible types",
-						node);
+		} else if (type1.equals(type2)) {
 			type = type1;
+		} else if (type1 instanceof StructureOrUnionType) {
+			throw error(
+					"Operands of conditional operator have incompatible types",
+					node);
 		} else if (type1.kind() == TypeKind.VOID
 				&& type2.kind() == TypeKind.VOID) {
 			type = type1;
@@ -1922,7 +1924,7 @@ public class ExpressionAnalyzer {
 	 * operator. </blockquote>
 	 *
 	 * @param node
-	 *            expression node with operator SHIFTLEFTEQ or SHIFTRIGHTEQ
+	 *                 expression node with operator SHIFTLEFTEQ or SHIFTRIGHTEQ
 	 * @throws SyntaxException
 	 */
 	private void processSHIFTLEFTEQorSHIFTRIGHTEQ(OperatorNode node)
@@ -1967,8 +1969,8 @@ public class ExpressionAnalyzer {
 	 * int. </blockquote>
 	 *
 	 * @param node
-	 *            an expression node for one of the operators LT, GT, LTE, or
-	 *            GTE.
+	 *                 an expression node for one of the operators LT, GT, LTE,
+	 *                 or GTE.
 	 */
 	private void processRelational(OperatorNode node) throws SyntaxException {
 		Operator operator = node.getOperator();
@@ -2239,7 +2241,7 @@ public class ExpressionAnalyzer {
 	 * are performed. The type is the promoted type.
 	 *
 	 * @param node
-	 *            expression node for unary + or - operator
+	 *                 expression node for unary + or - operator
 	 */
 	private void processUNARAYPLUSorUNARYMINUS(OperatorNode node)
 			throws SyntaxException {
@@ -2410,8 +2412,8 @@ public class ExpressionAnalyzer {
 	 * Process an {@link MPIContractExpressionKind#MPI_REGION} kind node.
 	 *
 	 * @param node
-	 *            The node with kind
-	 *            {@link MPIContractExpressionKind#MPI_REGION}.
+	 *                 The node with kind
+	 *                 {@link MPIContractExpressionKind#MPI_REGION}.
 	 * @throws SyntaxException
 	 */
 	private void processMPIRegionNode(MPIContractExpressionNode node)
@@ -2431,8 +2433,8 @@ public class ExpressionAnalyzer {
 	 * Process an {@link MPIContractExpressionKind#MPI_VALID} kind node.
 	 *
 	 * @param node
-	 *            The node with kind {@link MPIContractExpressionKind#MPI_VALID}
-	 *            .
+	 *                 The node with kind
+	 *                 {@link MPIContractExpressionKind#MPI_VALID} .
 	 * @throws SyntaxException
 	 */
 	private void processMPIValidNode(MPIContractExpressionNode node)
@@ -2449,8 +2451,8 @@ public class ExpressionAnalyzer {
 	 * Process an {@link MPIContractExpressionKind#MPI_OFFSET} kind node.
 	 *
 	 * @param node
-	 *            The node with kind
-	 *            {@link MPIContractExpressionKind#MPI_OFFSET}.
+	 *                 The node with kind
+	 *                 {@link MPIContractExpressionKind#MPI_OFFSET}.
 	 * @throws SyntaxException
 	 */
 	private void processMPIOffsetNode(MPIContractExpressionNode node)
@@ -2467,8 +2469,8 @@ public class ExpressionAnalyzer {
 	 * Process an {@link MPIContractExpressionKind#MPI_EXTENT} kind node.
 	 *
 	 * @param node
-	 *            The node with kind
-	 *            {@link MPIContractExpressionKind#MPI_EXTENT}.
+	 *                 The node with kind
+	 *                 {@link MPIContractExpressionKind#MPI_EXTENT}.
 	 * @throws SyntaxException
 	 */
 	private void processMPIExtentNode(MPIContractExpressionNode node)
@@ -2494,7 +2496,8 @@ public class ExpressionAnalyzer {
 	 * Process {@link MPIContractExpressionKind#MPI_EQUALS} kind node
 	 *
 	 * @param nodeThe
-	 *            node with {@link MPIContractExpressionKind#MPI_EQUALS} kind.
+	 *                    node with {@link MPIContractExpressionKind#MPI_EQUALS}
+	 *                    kind.
 	 * @throws SyntaxException
 	 */
 	private void processMPIEqualsNode(MPIContractExpressionNode node)
@@ -2529,17 +2532,17 @@ public class ExpressionAnalyzer {
 	 * <code> mpi-contract-expr (void * buf, int count, MPI_Datatype type, ... );</code>
 	 *
 	 * @param ptr
-	 *            A pointer type expression node. It is the first argument in
-	 *            the above pattern.
+	 *                  A pointer type expression node. It is the first argument
+	 *                  in the above pattern.
 	 * @param count
-	 *            An integer type expression node. It is the second argument in
-	 *            the above pattern.
+	 *                  An integer type expression node. It is the second
+	 *                  argument in the above pattern.
 	 * @param type
-	 *            An MPI_Datatype type expression node. It is the third argument
-	 *            in the above pattern.
+	 *                  An MPI_Datatype type expression node. It is the third
+	 *                  argument in the above pattern.
 	 * @param name
-	 *            The name of the {@link MPIContractExpressionNode} which will
-	 *            be used for error reporting.
+	 *                  The name of the {@link MPIContractExpressionNode} which
+	 *                  will be used for error reporting.
 	 * @throws SyntaxException
 	 * @throws UnsourcedException
 	 */
@@ -2616,7 +2619,7 @@ public class ExpressionAnalyzer {
 	 * pointer type).
 	 *
 	 * @param type
-	 *            unqualified, non-atomic type
+	 *                 unqualified, non-atomic type
 	 * @return true if scalar, false otherwise
 	 */
 	private boolean isScalar(Type type) {
@@ -2687,7 +2690,7 @@ public class ExpressionAnalyzer {
 	 * </p>
 	 *
 	 * @param node
-	 *            an expression node
+	 *                 an expression node
 	 * @return the post-coversion type of the expression
 	 * @throws SyntaxException
 	 */
@@ -2705,12 +2708,12 @@ public class ExpressionAnalyzer {
 	 * </p>
 	 *
 	 * @param node
-	 *            an expression node that will be added with a MemType
-	 *            conversion
+	 *                 an expression node that will be added with a MemType
+	 *                 conversion
 	 * @return the type of the expression after conversion
 	 * @throws SyntaxException
-	 *             the given node does not have a pointer or set of pointer
-	 *             type.
+	 *                             the given node does not have a pointer or set
+	 *                             of pointer type.
 	 */
 	Type addMemTypeConversion(ExpressionNode node) throws SyntaxException {
 		Type oldType = node.getType();
@@ -2782,7 +2785,7 @@ public class ExpressionAnalyzer {
 	 * Is the given type the type void* ?
 	 *
 	 * @param type
-	 *            any non-null type
+	 *                 any non-null type
 	 * @return <code>true</code> iff type is void* (with no qualifiers)
 	 */
 	private boolean isVoidPointer(Type type) {
@@ -2795,9 +2798,9 @@ public class ExpressionAnalyzer {
 	 * are qualified or unqualified versions of compatible types.
 	 *
 	 * @param type0
-	 *            any type
+	 *                  any type
 	 * @param type1
-	 *            any type
+	 *                  any type
 	 * @return true iff condition above holds
 	 */
 	private boolean pointerToCompatibleTypes(Type type0, Type type1) {
@@ -2817,9 +2820,9 @@ public class ExpressionAnalyzer {
 	 * are qualified or unqualified versions of compatible object types.
 	 *
 	 * @param type0
-	 *            any type
+	 *                  any type
 	 * @param type1
-	 *            any type
+	 *                  any type
 	 * @return true iff condition above holds
 	 */
 	private boolean pointerToCompatibleObject(Type type0, Type type1) {
@@ -2841,9 +2844,9 @@ public class ExpressionAnalyzer {
 	 * types.
 	 *
 	 * @param type0
-	 *            any type
+	 *                  any type
 	 * @param type1
-	 *            any type
+	 *                  any type
 	 * @return true iff condition above holds
 	 */
 	private boolean pointerToCompatibleComplete(Type type0, Type type1) {
@@ -2870,9 +2873,9 @@ public class ExpressionAnalyzer {
 	 * function). If you want those, do them first, then invoke this method.
 	 *
 	 * @param arg0
-	 *            expression of arithmetic type
+	 *                 expression of arithmetic type
 	 * @param arg1
-	 *            expression of arithmetic type
+	 *                 expression of arithmetic type
 	 * @return the common type resulting from the usual arithmetic conversions
 	 */
 	private ArithmeticType doUsualArithmetic(ExpressionNode arg0,
@@ -2910,7 +2913,8 @@ public class ExpressionAnalyzer {
 	 * @param assignExpression
 	 * @return the type of the assignment expression
 	 * @throws SyntaxException
-	 *             if the type of the left hand side is not an object type
+	 *                             if the type of the left hand side is not an
+	 *                             object type
 	 */
 	private Type assignmentType(OperatorNode assignExpression)
 			throws SyntaxException {
@@ -2956,9 +2960,10 @@ public class ExpressionAnalyzer {
 	 * from applying lvalue conversion to the left hand side.
 	 *
 	 * @param assignmentType
-	 *            the type of the assignment expression
+	 *                           the type of the assignment expression
 	 * @param rightNode
-	 *            the right hand side argument of the assignment expression
+	 *                           the right hand side argument of the assignment
+	 *                           expression
 	 */
 	private void doArithmeticCompoundAssign(ArithmeticType assignmentType,
 			ExpressionNode rightNode) {
@@ -2986,10 +2991,10 @@ public class ExpressionAnalyzer {
 	 * necessary to the node.
 	 *
 	 * @param node
-	 *            an expression node
+	 *                 an expression node
 	 * @return the post-conversion type of the expression
 	 * @throws SyntaxException
-	 *             if the node does not have integer type
+	 *                             if the node does not have integer type
 	 */
 	private IntegerType doIntegerPromotion(ExpressionNode node)
 			throws SyntaxException {
