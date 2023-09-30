@@ -478,6 +478,7 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 		BooleanExpression assumeValue = (BooleanExpression) argumentValues[0];
 
 		state = stateFactory.addToPathcondition(state, pid, assumeValue);
+		state = stateFactory.simplify(state);
 		return new Evaluation(state, null);
 	}
 
