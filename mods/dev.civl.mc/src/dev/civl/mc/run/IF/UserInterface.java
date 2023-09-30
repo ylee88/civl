@@ -190,7 +190,7 @@ public class UserInterface {
 	 * Runs the appropriate CIVL tools based on the command line arguments.
 	 * 
 	 * @param args
-	 *            command line arguments
+	 *                 command line arguments
 	 * @return true iff everything succeeded and no errors were found
 	 */
 	public boolean run(String... args) {
@@ -210,7 +210,7 @@ public class UserInterface {
 	 * array.
 	 * 
 	 * @param args
-	 *            command line arguments as collection
+	 *                 command line arguments as collection
 	 * @return true iff everything succeeded and no errors were found
 	 */
 	public boolean run(Collection<String> args) {
@@ -221,8 +221,8 @@ public class UserInterface {
 	 * Runs command specified as one big String.
 	 * 
 	 * @param argsString
-	 *            a single string containing command and all options; what would
-	 *            be typed on the command line by a user
+	 *                       a single string containing command and all options;
+	 *                       what would be typed on the command line by a user
 	 * @return true iff everything succeeded and no errors were found
 	 */
 	public boolean run(String argsString) {
@@ -236,21 +236,27 @@ public class UserInterface {
 	 * replay, verify, help, or config.
 	 * 
 	 * @param commandLine
-	 *            the command line object to be run, resulting from parsing the
-	 *            command line
+	 *                        the command line object to be run, resulting from
+	 *                        parsing the command line
 	 * @return true iff everything succeeded and no errors were found
 	 * @throws CommandLineException
-	 *             if there is a syntax error in the command
+	 *                                         if there is a syntax error in the
+	 *                                         command
 	 * @throws ABCException
-	 *             if anything goes wrong in preprocessing, parsing, building or
-	 *             transforming the AST; usually this means a syntax error in
-	 *             the program
+	 *                                         if anything goes wrong in
+	 *                                         preprocessing, parsing, building
+	 *                                         or transforming the AST; usually
+	 *                                         this means a syntax error in the
+	 *                                         program
 	 * @throws IOException
-	 *             if a file is not found, or attempts to create and write to a
-	 *             file fail
+	 *                                         if a file is not found, or
+	 *                                         attempts to create and write to a
+	 *                                         file fail
 	 * @throws MisguidedExecutionException
-	 *             in the case of replay, if the trace in the trace file is not
-	 *             compatible with the specified program
+	 *                                         in the case of replay, if the
+	 *                                         trace in the trace file is not
+	 *                                         compatible with the specified
+	 *                                         program
 	 */
 	public boolean runNormalCommand(NormalCommandLine commandLine)
 			throws CommandLineException, ABCException, IOException,
@@ -334,21 +340,27 @@ public class UserInterface {
 	 * of a trace that resulted from a prior compare command).
 	 * 
 	 * @param compareCommand
-	 *            the compare command to be run; the result of parsing the
-	 *            command line string
+	 *                           the compare command to be run; the result of
+	 *                           parsing the command line string
 	 * @return true iff everything succeeded and no errors were found
 	 * @throws CommandLineException
-	 *             if there is a syntax error in the command
+	 *                                         if there is a syntax error in the
+	 *                                         command
 	 * @throws ABCException
-	 *             if anything goes wrong in preprocessing, parsing, building or
-	 *             transforming the AST; usually this means a syntax error in
-	 *             the program
+	 *                                         if anything goes wrong in
+	 *                                         preprocessing, parsing, building
+	 *                                         or transforming the AST; usually
+	 *                                         this means a syntax error in the
+	 *                                         program
 	 * @throws IOException
-	 *             if a file is not found, or attempts to create and write to a
-	 *             file fail
+	 *                                         if a file is not found, or
+	 *                                         attempts to create and write to a
+	 *                                         file fail
 	 * @throws MisguidedExecutionException
-	 *             in the case of replay, if the trace in the trace file is not
-	 *             compatible with the specified program
+	 *                                         in the case of replay, if the
+	 *                                         trace in the trace file is not
+	 *                                         compatible with the specified
+	 *                                         program
 	 */
 	public boolean runCompareCommand(CompareCommandLine compareCommand)
 			throws CommandLineException, ABCException, IOException,
@@ -432,12 +444,13 @@ public class UserInterface {
 	 * different input variables.
 	 * 
 	 * @param files
-	 *            the source files to parse
+	 *                  the source files to parse
 	 * @return the list of input variable declaration nodes, which contains
 	 *         plenty of information about the input variable, e.g., the source,
 	 *         type and name, etc.
 	 * @throws ABCException
-	 *             if anything goes wrong with parsing or constructing the AST
+	 *                          if anything goes wrong with parsing or
+	 *                          constructing the AST
 	 */
 	public List<VariableDeclarationNode> getInputVariables(String[] files)
 			throws ABCException {
@@ -460,9 +473,9 @@ public class UserInterface {
 	 * If the user set quiet option to true in the command, line
 	 * 
 	 * @param args
-	 *            the command line arguments, e.g., {"verify", "-verbose",
-	 *            "foo.c"}. This is an array of strings of length at least 1;
-	 *            element 0 should be the name of the command
+	 *                 the command line arguments, e.g., {"verify", "-verbose",
+	 *                 "foo.c"}. This is an array of strings of length at least
+	 *                 1; element 0 should be the name of the command
 	 * @return true iff user sets quiet option true in the command line.
 	 */
 	private boolean isQuiet(String[] args) {
@@ -497,12 +510,13 @@ public class UserInterface {
 	 * those arguments.
 	 * 
 	 * @param args
-	 *            the command line arguments, e.g., {"verify", "-verbose",
-	 *            "foo.c"}. This is an array of strings of length at least 1;
-	 *            element 0 should be the name of the command
+	 *                 the command line arguments, e.g., {"verify", "-verbose",
+	 *                 "foo.c"}. This is an array of strings of length at least
+	 *                 1; element 0 should be the name of the command
 	 * @return true iff everything succeeded and no errors discovered
 	 * @throws CommandLineException
-	 *             if the args are not properly formatted command line arguments
+	 *                                  if the args are not properly formatted
+	 *                                  command line arguments
 	 */
 	private boolean runMain(String[] args) throws CommandLineException {
 		boolean quiet = false;
@@ -579,21 +593,28 @@ public class UserInterface {
 	 * </p>
 	 * 
 	 * @param modelTranslator
-	 *            The model translator for this replay command, which contains
-	 *            the command line section information.
+	 *                            The model translator for this replay command,
+	 *                            which contains the command line section
+	 *                            information.
 	 * @return true iff everything succeeded and no errors were found
 	 * @throws CommandLineException
-	 *             if there is a syntax error in the command
+	 *                                         if there is a syntax error in the
+	 *                                         command
 	 * @throws ABCException
-	 *             if anything goes wrong in preprocessing, parsing, building or
-	 *             transforming the AST; usually this means a syntax error in
-	 *             the program
+	 *                                         if anything goes wrong in
+	 *                                         preprocessing, parsing, building
+	 *                                         or transforming the AST; usually
+	 *                                         this means a syntax error in the
+	 *                                         program
 	 * @throws IOException
-	 *             if a file is not found, or attempts to create and write to a
-	 *             file fail
+	 *                                         if a file is not found, or
+	 *                                         attempts to create and write to a
+	 *                                         file fail
 	 * @throws MisguidedExecutionException
-	 *             in the case of replay, if the trace in the trace file is not
-	 *             compatible with the specified program
+	 *                                         in the case of replay, if the
+	 *                                         trace in the trace file is not
+	 *                                         compatible with the specified
+	 *                                         program
 	 */
 	private boolean runReplay(String command, ModelTranslator modelTranslator,
 			File traceFile) throws CommandLineException, IOException,
@@ -753,17 +774,23 @@ public class UserInterface {
 	 * 
 	 * @return true iff everything succeeded and no errors were found
 	 * @throws CommandLineException
-	 *             if there is a syntax error in the command
+	 *                                         if there is a syntax error in the
+	 *                                         command
 	 * @throws ABCException
-	 *             if anything goes wrong in preprocessing, parsing, building or
-	 *             transforming the AST; usually this means a syntax error in
-	 *             the program
+	 *                                         if anything goes wrong in
+	 *                                         preprocessing, parsing, building
+	 *                                         or transforming the AST; usually
+	 *                                         this means a syntax error in the
+	 *                                         program
 	 * @throws IOException
-	 *             if a file is not found, or attempts to create and write to a
-	 *             file fail
+	 *                                         if a file is not found, or
+	 *                                         attempts to create and write to a
+	 *                                         file fail
 	 * @throws MisguidedExecutionException
-	 *             in the case of replay, if the trace in the trace file is not
-	 *             compatible with the specified program
+	 *                                         in the case of replay, if the
+	 *                                         trace in the trace file is not
+	 *                                         compatible with the specified
+	 *                                         program
 	 */
 	private boolean strictCompareWorker(CompareCommandLine compareCommand,
 			ModelTranslator specWorker, ModelTranslator implWorker,
@@ -832,14 +859,16 @@ public class UserInterface {
 	 * 
 	 * @return true iff everything succeeded and no errors were found
 	 * @throws CommandLineException
-	 *             if there is a syntax error in the command
+	 *                                  if there is a syntax error in the
+	 *                                  command
 	 * @throws ABCException
-	 *             if anything goes wrong in preprocessing, parsing, building or
-	 *             transforming the AST; usually this means a syntax error in
-	 *             the program
+	 *                                  if anything goes wrong in preprocessing,
+	 *                                  parsing, building or transforming the
+	 *                                  AST; usually this means a syntax error
+	 *                                  in the program
 	 * @throws IOException
-	 *             if a file is not found, or attempts to create and write to a
-	 *             file fail
+	 *                                  if a file is not found, or attempts to
+	 *                                  create and write to a file fail
 	 */
 	private boolean lessStrictCompareWorker(CompareCommandLine compareCommand,
 			ModelTranslator specWorker, ModelTranslator implWorker,
@@ -1005,7 +1034,7 @@ public class UserInterface {
 			List<Pair<String, String>> stats, int numCols) {
 		ArrayList<Pair<String, String>> rearrangedStats = new ArrayList<Pair<String, String>>(
 				Collections.nCopies(stats.size(), null));
-		float rowsPerCol = (float) stats.size() / numCols;
+		// float rowsPerCol = (float) stats.size() / numCols;
 
 		int i = 0;
 		int currCol = 0;
@@ -1157,9 +1186,9 @@ public class UserInterface {
 	 * also be set to true.
 	 * 
 	 * @param lhs
-	 *            spec or impl GMCSection.
+	 *                spec or impl GMCSection.
 	 * @param rhs
-	 *            Anonymous GMCSection.
+	 *                Anonymous GMCSection.
 	 * @return A modified copy of lhs (spec or impl GMCSection).
 	 */
 	private GMCSection readVerboseOrDebugOption(GMCSection lhs,
@@ -1258,7 +1287,7 @@ public class UserInterface {
 	 * Prints usage information to the given stream and flushes the stream.
 	 * 
 	 * @param out
-	 *            stream to which to print
+	 *                stream to which to print
 	 */
 	private void printUsage(PrintStream out) {
 		out.println("Usage: civl (replay|run|show|verify) [options] filename+");
@@ -1293,17 +1322,18 @@ public class UserInterface {
 	 * provided as parameters to this method.
 	 * 
 	 * @param out
-	 *            the stream to which to print
+	 *                          the stream to which to print
 	 * @param maxProcs
-	 *            the maximum number of processes that existed in any state
-	 *            encountered
+	 *                          the maximum number of processes that existed in
+	 *                          any state encountered
 	 * @param statesSeen
-	 *            the number of states seen in the run
+	 *                          the number of states seen in the run
 	 * @param statesMatched
-	 *            the number of states encountered which were determined to have
-	 *            been seen before
+	 *                          the number of states encountered which were
+	 *                          determined to have been seen before
 	 * @param transitions
-	 *            the number of transitions executed in the course of the run
+	 *                          the number of transitions executed in the course
+	 *                          of the run
 	 */
 	private List<Pair<String, String>> getUniverseStats(
 			SymbolicUniverse universe) {
