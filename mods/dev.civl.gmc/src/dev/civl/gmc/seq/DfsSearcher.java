@@ -70,6 +70,13 @@ public class DfsSearcher<STATE, TRANSITION> {
 	private boolean reportCycleAsViolation = false;
 
 	/**
+	 * If reporting cycles as violations, only report a cycle as a violation if
+	 * it is a fair cycle. The cycle is not fair iff there is a process that is
+	 * enabled at every state in the cycle but never executes in the cycle.
+	 */
+	private boolean fairCycleCheck = false;
+
+	/**
 	 * If this searcher stopped because a cycle was found, this flag will be set
 	 * to true, else it is false.
 	 */
@@ -248,6 +255,26 @@ public class DfsSearcher<STATE, TRANSITION> {
 	}
 
 	/**
+	 * Set the fairCycleCheck bit. If reporting cycles as violations, only
+	 * report a cycle as a violation if it is a fair cycle. The cycle is not
+	 * fair iff there is a process that is enabled at every state in the cycle
+	 * but never executes in the cycle.
+	 */
+	public void setFairCycleCheck(boolean value) {
+		this.fairCycleCheck = value;
+	}
+
+	/**
+	 * Gets the fairCycleCheck bit. If reporting cycles as violations, only
+	 * report a cycle as a violation if it is a fair cycle. The cycle is not
+	 * fair iff there is a process that is enabled at every state in the cycle
+	 * but never executes in the cycle.
+	 */
+	public boolean fairCycleCheck() {
+		return this.fairCycleCheck;
+	}
+
+	/**
 	 * If you want to check for cycles in the state space, and report the
 	 * existence of a cycle as a violation, this flag should be set to true.
 	 * Else set it to false. By default, it is false.
@@ -413,11 +440,82 @@ public class DfsSearcher<STATE, TRANSITION> {
 		}
 		return false;
 	}
-	
-//	private boolean isFairCycle() {
-//			// TODO
-//		return true;
-//	}
+
+	/**
+	 * Determines whether the cycle in the search stack is fair. There should be
+	 * a cycle in the stack starting at position idx.
+	 * 
+	 * @param idx
+	 *                index of the first entry in the stack in the cycle
+	 * @return <code>true</code> iff the cycle is fair, i.e., there is no
+	 *         process p that is enabled at every node in the cycle but never
+	 *         executes in the cycle
+	 */
+	private boolean isFairCycle(int idx) {
+		int size = stack.size();
+		assert idx >= 0 && idx < size;
+		Collection<TRANSITION> transSet = enabler
+				.fullSet(stack.get(idx).getState());
+		int maxPid = -1;
+
+		for (TRANSITION t : transSet) {
+			int pid = manager.getPid(t);
+
+			if (pid > maxPid)
+				maxPid = pid;
+		}
+		// since node idx is on a cycle, it must have at least one enabled
+		// transition...
+		assert (maxPid >= 0);
+		// create the waiting set: initially all PIDs enabled at idx...
+
+		boolean[] waiting = new boolean[maxPid + 1];
+		int nwaiting = 0;
+
+		for (TRANSITION t : transSet) {
+			int pid = manager.getPid(t);
+
+			if (!waiting[pid]) {
+				waiting[pid] = true;
+				nwaiting++;
+			}
+		}
+		assert nwaiting > 0;
+		// remove from the waiting set any PID that executes in the cycle...
+		for (int i = idx; i < size; i++) {
+			int pid = manager.getPid(stack.get(i).peek());
+
+			if (pid <= maxPid && waiting[pid]) {
+				waiting[pid] = false;
+				nwaiting--;
+				if (nwaiting == 0)
+					return true; // fair cycle, no proc waiting forever
+			}
+		}
+		// remove from the waiting set any Pid that becomes disabled...
+		for (int i = idx + 1; i < size; i++) {
+			boolean[] pids = new boolean[maxPid + 1];
+
+			transSet = enabler.fullSet(stack.get(i).getNode().getState());
+			for (TRANSITION t : transSet) {
+				int pid = manager.getPid(t);
+
+				if (pid <= maxPid)
+					pids[pid] = true;
+			}
+			// set difference : waiting - pids
+			for (int j = 0; j <= maxPid; j++) {
+				if (waiting[j] && !pids[j]) {
+					waiting[j] = false;
+					nwaiting--;
+				}
+			}
+			if (nwaiting == 0)
+				return true;
+		}
+		assert nwaiting > 0;
+		return false; // not fair, some proc waiting forever
+	}
 
 	/**
 	 * Searches for the next new state by iterating over transitions from the
@@ -544,15 +642,14 @@ public class DfsSearcher<STATE, TRANSITION> {
 				return true;
 			}
 			debug(newState + " seen before!  Moving to next transition.");
-			if (reportCycleAsViolation
-					&& newSequentialNode.getStackPosition() >= 0) {
-				// TODO: if restricting to fair execution, check whether there
-				// is
-				// a process enabled at each state in cycle but never executes.
-
-				cycleFound = true;
-				throw new StateSpaceCycleException(
-						newSequentialNode.getStackPosition());
+			assert newStateStackIndex == newSequentialNode.getStackPosition();
+			if (reportCycleAsViolation && newStateStackIndex >= 0) {
+				// new node is already on the stack
+				if (!fairCycleCheck || isFairCycle(newStateStackIndex)) {
+					cycleFound = true;
+					throw new StateSpaceCycleException(
+							newSequentialNode.getStackPosition());
+				}
 			}
 			numStatesMatched++;
 			// a transition is being removed. update preemptionCount

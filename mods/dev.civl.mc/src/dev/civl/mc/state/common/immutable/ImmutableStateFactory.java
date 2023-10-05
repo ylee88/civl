@@ -266,6 +266,12 @@ public class ImmutableStateFactory implements StateFactory {
 	 */
 	private DynamicMemoryLocationSetFactory memoryLocationSetFactory;
 
+	/**
+	 * Will we do process canonicalization? Yes, unless we are doing preemption
+	 * bounded search, or we are checking for fair termination.
+	 */
+	private boolean collectProcs = true;
+
 	/* **************************** Constructors *************************** */
 
 	/**
@@ -310,6 +316,9 @@ public class ImmutableStateFactory implements StateFactory {
 		this.trueContextReasoner = universe.reasoner(universe.trueExpression());
 		memoryLocationSetFactory = Dynamics.newDynamicMemoryLocationSetFactory(
 				universe, typeFactory, this.nullScopeValue);
+		this.collectProcs = config.preemptionBound() < 0
+				&& !(config.isToggleableProperty(CIVLProperty.TERMINATION)
+						&& config.isFair());
 	}
 
 	/* ********************** Methods from StateFactory ******************** */
@@ -359,32 +368,35 @@ public class ImmutableStateFactory implements StateFactory {
 	 * 
 	 * 
 	 * @param state
-	 *            The state that will be canonicalized
+	 *                             The state that will be canonicalized
 	 * @param collectProcesses
-	 *            true to collect process states in the state during
-	 *            canonicalization.
+	 *                             true to collect process states in the state
+	 *                             during canonicalization.
 	 * @param collectScopes
-	 *            true to collect dynamic scopes in the state during
-	 *            canonicalization.
+	 *                             true to collect dynamic scopes in the state
+	 *                             during canonicalization.
 	 * @param collectHeaps
-	 *            true to collect memory heaps in the state during
-	 *            canonicalization.
+	 *                             true to collect memory heaps in the state
+	 *                             during canonicalization.
 	 * @param toBeIgnored
-	 *            A set of {@link HeapErrorKind}s which will be supressed during
-	 *            heap collection.
+	 *                             A set of {@link HeapErrorKind}s which will be
+	 *                             supressed during heap collection.
 	 * @param isReferredState
-	 *            <p>
-	 *            True if and only if the given state is a referred state, i.e.
-	 *            it is referred by a variable in current main state (currently
-	 *            it is always a collate state). For referred state, their
-	 *            simplification and symbolic constant collection must be
-	 *            carried out along with their main state. Otherwise there will
-	 *            be inconsistency in between them (referred and main states).
-	 *            </p>
-	 *            <p>
-	 *            Here main state means the state where has variables referring
-	 *            this referred state.
-	 *            </p>
+	 *                             <p>
+	 *                             True if and only if the given state is a
+	 *                             referred state, i.e. it is referred by a
+	 *                             variable in current main state (currently it
+	 *                             is always a collate state). For referred
+	 *                             state, their simplification and symbolic
+	 *                             constant collection must be carried out along
+	 *                             with their main state. Otherwise there will
+	 *                             be inconsistency in between them (referred
+	 *                             and main states).
+	 *                             </p>
+	 *                             <p>
+	 *                             Here main state means the state where has
+	 *                             variables referring this referred state.
+	 *                             </p>
 	 * @return
 	 * @throws CIVLHeapException
 	 */
@@ -528,11 +540,11 @@ public class ImmutableStateFactory implements StateFactory {
 	 * conditions and write sets in {@link ProcessState}s of the given state.
 	 * 
 	 * @param state
-	 *            The state where heap pointers are collected.
+	 *                          The state where heap pointers are collected.
 	 * @param substituteMap
-	 *            A unary operator which will be applied to partial path
-	 *            condition stacks and write set stacks of processes in the
-	 *            given state.
+	 *                          A unary operator which will be applied to
+	 *                          partial path condition stacks and write set
+	 *                          stacks of processes in the given state.
 	 * @return A new state in which heap pointers in process states are
 	 *         collected.
 	 */
@@ -576,14 +588,14 @@ public class ImmutableStateFactory implements StateFactory {
 	 * parameter that {@link #collectScopes(State, Set)} doesn't need.
 	 * 
 	 * @param state
-	 *            the state whose scopes will be collected
+	 *                          the state whose scopes will be collected
 	 * @param toBeIgnored
-	 *            the set of {@link HeapErrorKind}s that will be ignored during
-	 *            collection
+	 *                          the set of {@link HeapErrorKind}s that will be
+	 *                          ignored during collection
 	 * @param old2NewOutput
-	 *            OUTPUT parameter. A map from old scope IDs to new scope IDs.
-	 *            <b>pre-condition:</b>
-	 *            <code>old2NewOutput.length == state.numDyscopes()</code>
+	 *                          OUTPUT parameter. A map from old scope IDs to
+	 *                          new scope IDs. <b>pre-condition:</b>
+	 *                          <code>old2NewOutput.length == state.numDyscopes()</code>
 	 * 
 	 * @return
 	 * @throws CIVLHeapException
@@ -834,9 +846,7 @@ public class ImmutableStateFactory implements StateFactory {
 	public ImmutableState collectProcesses(State state) {
 		ImmutableState theState = (ImmutableState) state;
 
-		// Never change process IDs when doing a preemptive-bounded
-		// search...
-		if (config.preemptionBound() >= 0)
+		if (!collectProcs)
 			return theState;
 
 		int numProcs = theState.numProcs();
@@ -1104,7 +1114,7 @@ public class ImmutableStateFactory implements StateFactory {
 	 * Simplify the given state.
 	 * 
 	 * @param state
-	 *            the state that will gets simplified
+	 *                  the state that will gets simplified
 	 * @return
 	 */
 	private ImmutableState simplifyWork(State state,
@@ -1185,7 +1195,7 @@ public class ImmutableStateFactory implements StateFactory {
 	 * values in the dynamic scope
 	 * 
 	 * @param state
-	 *            The state in which referred states will be returned.
+	 *                  The state in which referred states will be returned.
 	 * @return A list of pairs: one is the ID of the dyscope, in which contains
 	 *         at least one $state variable, of the given state; the other is
 	 *         the set of values of $state objects in aforementioned dyscope.
@@ -1226,20 +1236,23 @@ public class ImmutableStateFactory implements StateFactory {
 	 * referred states consistent with the current state.
 	 * 
 	 * @param state
-	 *            The current state
+	 *                                      The current state
 	 * @param renamer
-	 *            The symbolic constant renamer used by the current state, which
-	 *            contains a mapping function from old collected symbolic
-	 *            constants to new ones.
+	 *                                      The symbolic constant renamer used
+	 *                                      by the current state, which contains
+	 *                                      a mapping function from old
+	 *                                      collected symbolic constants to new
+	 *                                      ones.
 	 * @param collectReferredStateDepth
-	 *            The depth of collecting symbolic constants in referred states.
-	 *            To understand "depth", see
-	 *            {@link #NORMALIZE_REFERRED_STATES_DEPTH}
+	 *                                      The depth of collecting symbolic
+	 *                                      constants in referred states. To
+	 *                                      understand "depth", see
+	 *                                      {@link #NORMALIZE_REFERRED_STATES_DEPTH}
 	 * @return A new state which is same as the current state but $state
 	 *         variables in it are updated.
 	 * @throws CIVLHeapException
-	 *             If unexpected heap exception happens during canonicalizing
-	 *             referred states
+	 *                               If unexpected heap exception happens during
+	 *                               canonicalizing referred states
 	 */
 	private ImmutableState collectHavocVariablesInReferredStates(
 			ImmutableState state, UnaryOperator<SymbolicExpression> renamer,
@@ -1338,12 +1351,13 @@ public class ImmutableStateFactory implements StateFactory {
 	 * state with the context of the current state.
 	 * 
 	 * @param state
-	 *            The current state.
+	 *                    The current state.
 	 * @param context
-	 *            The permanent path condition of the current state.
+	 *                    The permanent path condition of the current state.
 	 * @param depth
-	 *            The depth of simplification of referred states. To understand
-	 *            the depth, see {@link #NORMALIZE_REFERRED_STATES_DEPTH}
+	 *                    The depth of simplification of referred states. To
+	 *                    understand the depth, see
+	 *                    {@link #NORMALIZE_REFERRED_STATES_DEPTH}
 	 * @return A new state which is the same as the current state but referred
 	 *         states are updated.
 	 */
@@ -1563,9 +1577,9 @@ public class ImmutableStateFactory implements StateFactory {
 	 * Adds a new initial process state to the given state.
 	 * 
 	 * @param state
-	 *            The old state.
+	 *                             The old state.
 	 * @param selfDestructable
-	 *            If the created process is self-destructable
+	 *                             If the created process is self-destructable
 	 * @return A new instance of state with only the process states changed.
 	 */
 	protected ImmutableState createNewProcess(State state,
@@ -1585,9 +1599,10 @@ public class ImmutableStateFactory implements StateFactory {
 	 * Creates a dyscope in its initial state.
 	 * 
 	 * @param lexicalScope
-	 *            The lexical scope corresponding to this dyscope.
+	 *                         The lexical scope corresponding to this dyscope.
 	 * @param parent
-	 *            The parent of this dyscope. -1 only for the topmost dyscope.
+	 *                         The parent of this dyscope. -1 only for the
+	 *                         topmost dyscope.
 	 * @return A new dynamic scope.
 	 */
 	private ImmutableDynamicScope initialDynamicScope(Scope lexicalScope,
@@ -1600,7 +1615,8 @@ public class ImmutableStateFactory implements StateFactory {
 	 * Creates the initial value of a given lexical scope.
 	 * 
 	 * @param lexicalScope
-	 *            The lexical scope whose variables are to be initialized.
+	 *                         The lexical scope whose variables are to be
+	 *                         initialized.
 	 * @return An array of initial values of variables of the given lexical
 	 *         scope.
 	 */
@@ -1667,13 +1683,14 @@ public class ImmutableStateFactory implements StateFactory {
 	 * </ul>
 	 * 
 	 * @param scope1
-	 *            a static scope
+	 *                   a static scope
 	 * @param scope2
-	 *            a static scope
+	 *                   a static scope
 	 * @return join sequence as described above
 	 * 
 	 * @exception IllegalArgumentException
-	 *                if the scopes do not have a common ancestor
+	 *                                         if the scopes do not have a
+	 *                                         common ancestor
 	 */
 	private Scope[] joinSequence(Scope scope1, Scope scope2) {
 		if (scope1 == scope2)
@@ -1716,7 +1733,7 @@ public class ImmutableStateFactory implements StateFactory {
 	 * Does not modify anything.
 	 * 
 	 * @param state
-	 *            a state
+	 *                  a state
 	 * @return an array mapping old scope IDs to new.
 	 */
 	private int[] numberScopes(ImmutableState state) {
@@ -1757,7 +1774,7 @@ public class ImmutableStateFactory implements StateFactory {
 	 * Checks if a given claim is not satisfiable.
 	 * 
 	 * @param claim
-	 *            The given claim.
+	 *                  The given claim.
 	 * @return True iff the given claim is evaluated to be false.
 	 */
 	private boolean nsat(BooleanExpression claim) {
@@ -1775,8 +1792,8 @@ public class ImmutableStateFactory implements StateFactory {
 	 * PID.
 	 * 
 	 * @param oldToNewPidMap
-	 *            The map of old PID to new PID, i.e, oldToNewPidMap[old PID] =
-	 *            new PID.
+	 *                           The map of old PID to new PID, i.e,
+	 *                           oldToNewPidMap[old PID] = new PID.
 	 * @return The map of process value's from old process value to new process
 	 *         value.
 	 */
@@ -1800,33 +1817,37 @@ public class ImmutableStateFactory implements StateFactory {
 	 * call stack is for a new process (and therefore empty).
 	 * 
 	 * @param state
-	 *            the initial state
+	 *                      the initial state
 	 * @param pid
-	 *            the PID of the process whose stack is to be modified; this
-	 *            stack may be empty
+	 *                      the PID of the process whose stack is to be
+	 *                      modified; this stack may be empty
 	 * @param function
-	 *            the called function that will be pushed onto the stack
+	 *                      the called function that will be pushed onto the
+	 *                      stack
 	 * @param newScope
-	 *            the static scope that will be used for the new dynamic scope
-	 *            that will be associated to the new frame. This is usually
-	 *            either the outer scope of the function, or the contract scope
+	 *                      the static scope that will be used for the new
+	 *                      dynamic scope that will be associated to the new
+	 *                      frame. This is usually either the outer scope of the
+	 *                      function, or the contract scope
 	 * @param cid
-	 *            The dyscope ID of the parent of the new function; If the
-	 *            caller has no knowledge about what is suppose to be the
-	 *            correct parent scope, caller can pass "-1" for this argument.
-	 *            This method will attempt to use the dyscope of the static
-	 *            parent scope of the function definition as the parent dyscope.
-	 *            If this is not the case you want, don't pass '-1' here.
+	 *                      The dyscope ID of the parent of the new function; If
+	 *                      the caller has no knowledge about what is suppose to
+	 *                      be the correct parent scope, caller can pass "-1"
+	 *                      for this argument. This method will attempt to use
+	 *                      the dyscope of the static parent scope of the
+	 *                      function definition as the parent dyscope. If this
+	 *                      is not the case you want, don't pass '-1' here.
 	 * @param arguments
-	 *            the arguments to the function
+	 *                      the arguments to the function
 	 * @param callerPid
-	 *            the PID of the process that is creating the new frame. For an
-	 *            ordinary function call, this will be the same as pid. For a
-	 *            "spawn" command, callerPid will be different from pid and
-	 *            process pid will be new and have an empty stack. Exception: if
-	 *            callerPid is -1 then the new dynamic scope will have no
-	 *            parent; this is used for pushing the original system function,
-	 *            which has no caller
+	 *                      the PID of the process that is creating the new
+	 *                      frame. For an ordinary function call, this will be
+	 *                      the same as pid. For a "spawn" command, callerPid
+	 *                      will be different from pid and process pid will be
+	 *                      new and have an empty stack. Exception: if callerPid
+	 *                      is -1 then the new dynamic scope will have no
+	 *                      parent; this is used for pushing the original system
+	 *                      function, which has no caller
 	 * @return new stack with new frame on call stack of process pid
 	 */
 	protected ImmutableState pushCallStack2(ImmutableState state, int pid,
@@ -1882,8 +1903,9 @@ public class ImmutableStateFactory implements StateFactory {
 	 * old dyscope ID to new dyscope ID.
 	 * 
 	 * @param oldToNewSidMap
-	 *            The map of old dyscope ID to new dyscoep ID, i.e,
-	 *            oldToNewSidMap[old dyscope ID] = new dyscope ID.
+	 *                           The map of old dyscope ID to new dyscoep ID,
+	 *                           i.e, oldToNewSidMap[old dyscope ID] = new
+	 *                           dyscope ID.
 	 * @return The map of scope value's from old scope value to new scope value.
 	 */
 	private Map<SymbolicExpression, SymbolicExpression> scopeSubMap(
@@ -1908,9 +1930,9 @@ public class ImmutableStateFactory implements StateFactory {
 	 * except for the corrected bit set.
 	 * 
 	 * @param dynamicScopes
-	 *            an array of dynamic scopes, to be modified
+	 *                          an array of dynamic scopes, to be modified
 	 * @param process
-	 *            a process state
+	 *                          a process state
 	 */
 	private void setReachablesForProc(ImmutableDynamicScope[] dynamicScopes,
 			ImmutableProcessState process) {
@@ -1947,9 +1969,10 @@ public class ImmutableStateFactory implements StateFactory {
 	 * Create a new call stack entry.
 	 * 
 	 * @param location
-	 *            The location to go to after returning from this call.
+	 *                      The location to go to after returning from this
+	 *                      call.
 	 * @param dyscopeId
-	 *            The dynamic scope the process is in before the call.
+	 *                      The dynamic scope the process is in before the call.
 	 */
 	protected ImmutableStackEntry stackEntry(Location location, int dyscopeId) {
 		return new ImmutableStackEntry(location, dyscopeId);
@@ -1964,10 +1987,10 @@ public class ImmutableStateFactory implements StateFactory {
 	 * 
 	 * @param oldBitSet
 	 * @param oldToNewPidMap
-	 *            array of length state.numProcs in which element at index i is
-	 *            the new PID of the process whose old PID is i. A negative
-	 *            value indicates that the process of (old) PID i is to be
-	 *            removed.
+	 *                           array of length state.numProcs in which element
+	 *                           at index i is the new PID of the process whose
+	 *                           old PID is i. A negative value indicates that
+	 *                           the process of (old) PID i is to be removed.
 	 * @return
 	 */
 	private BitSet updateBitSet(BitSet oldBitSet, int[] oldToNewPidMap) {
@@ -2006,12 +2029,12 @@ public class ImmutableStateFactory implements StateFactory {
 	 * The method returns null if no changes were made.
 	 * 
 	 * @param state
-	 *            a state
+	 *                           a state
 	 * @param oldToNewPidMap
-	 *            array of length state.numProcs in which element at index i is
-	 *            the new PID of the process whose old PID is i. A negative
-	 *            value indicates that the process of (old) PID i is to be
-	 *            removed.
+	 *                           array of length state.numProcs in which element
+	 *                           at index i is the new PID of the process whose
+	 *                           old PID is i. A negative value indicates that
+	 *                           the process of (old) PID i is to be removed.
 	 * @return new dynamic scopes or null
 	 */
 	private ImmutableDynamicScope[] updateProcessReferencesInScopes(State state,
@@ -2385,15 +2408,15 @@ public class ImmutableStateFactory implements StateFactory {
 	 * @precondition The largest new index in "oldToNew" table should be less
 	 *               than the length of the output array.
 	 * @param oldDyscopes
-	 *            An array of old {@link DynamicScope}
+	 *                             An array of old {@link DynamicScope}
 	 * @param oldToNew
-	 *            An array as a dictionary which is used for looking up new IDs
-	 *            by indexing old IDs.
+	 *                             An array as a dictionary which is used for
+	 *                             looking up new IDs by indexing old IDs.
 	 * @param outputDyscopes
-	 *            An array of new {@link DynamicScope}
+	 *                             An array of new {@link DynamicScope}
 	 * @param oldPathCondition
-	 *            The old path condition which may contains expressions
-	 *            involving old dyscope IDs.
+	 *                             The old path condition which may contains
+	 *                             expressions involving old dyscope IDs.
 	 * @return The new path condition which is obtained from substituting old
 	 *         dyscope IDs with new ones on the oldPathCondition>
 	 */
@@ -2482,15 +2505,17 @@ public class ImmutableStateFactory implements StateFactory {
 	 * Carve a mono state out of the current state.
 	 * 
 	 * @param state
-	 *            the current state
+	 *                          the current state
 	 * @param pid
-	 *            the PID of the process who is associated with the mono state
+	 *                          the PID of the process who is associated with
+	 *                          the mono state
 	 * @param topDyscope
-	 *            the dyscope ID of the "top scope", up to which all the
-	 *            dyscopes that are reachable by the given process will be
-	 *            included by the result.
+	 *                          the dyscope ID of the "top scope", up to which
+	 *                          all the dyscopes that are reachable by the given
+	 *                          process will be included by the result.
 	 * @param scopeIDs2Curr
-	 *            a map that maps dyscope IDs in the mono state to current state
+	 *                          a map that maps dyscope IDs in the mono state to
+	 *                          current state
 	 * @return a pair consists of the state ID of the mono state and the mono
 	 *         state itself.
 	 */
@@ -2589,23 +2614,28 @@ public class ImmutableStateFactory implements StateFactory {
 	 * Merge a mono state to a existing state
 	 * 
 	 * @param state
-	 *            the existing state
+	 *                                 the existing state
 	 * @param monoState
-	 *            the mono state
+	 *                                 the mono state
 	 * @param newPid
-	 *            the new PID for the process , which is associated with the
-	 *            mono state, in the result merged state
+	 *                                 the new PID for the process , which is
+	 *                                 associated with the mono state, in the
+	 *                                 result merged state
 	 * @param scopeValueState2Curr
-	 *            INPUT/OUTPUT. As INPUT, this array maps scope values of the
-	 *            given state, which is a merged state, to scope values of
-	 *            current state. As OUTPUT, this array will be concatenated with
-	 *            another map from scope values of the merging mono state to
-	 *            current state. This array must be large enough for
-	 *            concatenation, i.e. there are enough suffix spaces in the
-	 *            array for taking new values from another map
+	 *                                 INPUT/OUTPUT. As INPUT, this array maps
+	 *                                 scope values of the given state, which is
+	 *                                 a merged state, to scope values of
+	 *                                 current state. As OUTPUT, this array will
+	 *                                 be concatenated with another map from
+	 *                                 scope values of the merging mono state to
+	 *                                 current state. This array must be large
+	 *                                 enough for concatenation, i.e. there are
+	 *                                 enough suffix spaces in the array for
+	 *                                 taking new values from another map
 	 * @param scopeValueMono2Curr
-	 *            INPUT. this array maps scope values of the mono state to scope
-	 *            values of current state
+	 *                                 INPUT. this array maps scope values of
+	 *                                 the mono state to scope values of current
+	 *                                 state
 	 * @return
 	 */
 	// this method is quite long hence I use comments to partition each
@@ -3153,9 +3183,9 @@ public class ImmutableStateFactory implements StateFactory {
 	 * </ol>
 	 * 
 	 * @param old2new
-	 *            INPUT
+	 *                    INPUT
 	 * @param new2old
-	 *            OUTPUT
+	 *                    OUTPUT
 	 */
 	private void mapReverse(int[] old2new, int[] new2old) {
 		Arrays.fill(new2old, ModelConfiguration.DYNAMIC_NULL_SCOPE);
@@ -3170,19 +3200,20 @@ public class ImmutableStateFactory implements StateFactory {
 	 * mono scope value to (merged)state scope value
 	 * 
 	 * @param mono2curr
-	 *            INPUT. this array maps scope values of the mono state to scope
-	 *            values of current state
+	 *                       INPUT. this array maps scope values of the mono
+	 *                       state to scope values of current state
 	 * @param mono2state
-	 *            the converting map from mono scope values to (merged)state
-	 *            scope values
+	 *                       the converting map from mono scope values to
+	 *                       (merged)state scope values
 	 * @param state2curr
-	 *            INPUT/OUTPUT. As INPUT, this array maps scope values of the
-	 *            given state, which is a merged state, to scope values of
-	 *            current state. As OUTPUT, this array will be concatenated with
-	 *            another map from scope values of the merging mono state to
-	 *            current state. This array must be large enough for
-	 *            concatenation, i.e. there are enough suffix spaces in the
-	 *            array for taking new values from another map
+	 *                       INPUT/OUTPUT. As INPUT, this array maps scope
+	 *                       values of the given state, which is a merged state,
+	 *                       to scope values of current state. As OUTPUT, this
+	 *                       array will be concatenated with another map from
+	 *                       scope values of the merging mono state to current
+	 *                       state. This array must be large enough for
+	 *                       concatenation, i.e. there are enough suffix spaces
+	 *                       in the array for taking new values from another map
 	 * 
 	 */
 	private void concatenateMonoScopeMap(SymbolicExpression[] mono2curr,

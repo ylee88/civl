@@ -1,0 +1,19 @@
+/* This program has a non-terminating fair execution */
+#include <stdio.h>
+
+int x=0, y=0;
+
+void f() {
+  $when (x==1) y=1;
+  printf("bye\n");
+}
+
+int main() {
+  $proc p1 = $spawn f();
+  while (y==0) {
+    x=0;
+    x=1;
+    printf("hi\n");
+  }
+  $wait(p1);
+}

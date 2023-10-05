@@ -221,6 +221,7 @@ public class CIVLConstants {
 	public static String RUNTIME_UPDATE = "runtimeUpdate";
 	public static String PREEMPTION_BOUND = "preemptionBound";
 	public static String DISABLE_LOCAL_BLOCK = "disableLocalBlock";
+	public static String FAIR = "fair";
 
 	// Option objects
 	/**
@@ -710,6 +711,15 @@ public class CIVLConstants {
 			false);
 
 	/**
+	 * If this is true, and termination is being checked, then a cycle in which
+	 * some process remains enabled at each state will not be considered a
+	 * violation of non-termination (as it is not considered to represent a real
+	 * execution).
+	 */
+	public final static Option fairO = Option.newScalarOption(FAIR,
+			OptionType.BOOLEAN, "ignore unfair cycles", false);
+
+	/**
 	 * The name of the CIVL system function, which is the starting point of a
 	 * CIVL model.
 	 */
@@ -737,7 +747,7 @@ public class CIVLConstants {
 				analyzeAbsO, strictCompareO, collectOutputO, timeoutO,
 				unpreprocO, sliceAnalysisO, witnessO, direct0, intBit,
 				intOperationTransformer, maxProcsO, SARLTestGenO,
-				preemptionBoundO, disableLocalBlockO),
+				preemptionBoundO, disableLocalBlockO, fairO),
 				CIVLProperty.getAllConfigurableProperties().stream()
 						.map(e -> e.getOption()))
 				.toArray(Option[]::new);

@@ -24,6 +24,7 @@ import static dev.civl.mc.config.IF.CIVLConstants.minO;
 import static dev.civl.mc.config.IF.CIVLConstants.mpiContractO;
 import static dev.civl.mc.config.IF.CIVLConstants.ompLoopDecompO;
 import static dev.civl.mc.config.IF.CIVLConstants.ompNoSimplifyO;
+import static dev.civl.mc.config.IF.CIVLConstants.ompOnlySimplifierO;
 import static dev.civl.mc.config.IF.CIVLConstants.preprocO;
 import static dev.civl.mc.config.IF.CIVLConstants.procBoundO;
 import static dev.civl.mc.config.IF.CIVLConstants.quietO;
@@ -58,20 +59,20 @@ import static dev.civl.mc.config.IF.CIVLConstants.unpreprocO;
 import static dev.civl.mc.config.IF.CIVLConstants.userIncludePathO;
 import static dev.civl.mc.config.IF.CIVLConstants.verboseO;
 import static dev.civl.mc.config.IF.CIVLConstants.witnessO;
-import static dev.civl.mc.config.IF.CIVLConstants.ompOnlySimplifierO;
+import static dev.civl.mc.config.IF.CIVLConstants.fairO;
 
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import dev.civl.gmc.Option;
 import dev.civl.mc.model.IF.CIVLInternalException;
 import dev.civl.mc.model.IF.CIVLProperty;
 import dev.civl.mc.model.IF.CIVLSource;
 import dev.civl.mc.run.IF.CommandLine;
 import dev.civl.mc.run.IF.CommandLine.CommandLineKind;
 import dev.civl.mc.run.common.NormalCommandLine.NormalCommandKind;
-import dev.civl.gmc.Option;
 
 public class CIVLCommand {
 
@@ -88,7 +89,7 @@ public class CIVLCommand {
 				ompOnlySimplifierO, ompLoopDecompO, macroO, preprocO, astO,
 				showTimeO, CIVLMacroO, quietO, unpreprocO, direct0, intBit,
 				intOperationTransformer, maxProcsO);
-		CIVLCommand.addVerifyOrCompareOption(errorBoundO, verboseO, debugO,
+		CIVLCommand.addVerifyOption(errorBoundO, verboseO, debugO,
 				userIncludePathO, sysIncludePathO, showTransitionsO,
 				showStatesO, showSavedStatesO, showQueriesO, showProverQueriesO,
 				inputO, minO, loopO, mpiContractO, maxdepthO, procBoundO,
@@ -100,8 +101,8 @@ public class CIVLCommand {
 				macroO, preprocO, astO, showTimeO, showMemoryUnitsO, CIVLMacroO,
 				showUnreachedCodeO, analyzeAbsO, collectOutputO, timeoutO,
 				quietO, unpreprocO, direct0, intBit, intOperationTransformer,
-				maxProcsO);
-		CIVLCommand.addVerifyOrCompareOption(
+				maxProcsO, fairO);
+		CIVLCommand.addVerifyOption(
 				CIVLProperty.getAllConfigurableProperties().stream()
 						.map(e -> e.getOption()).toArray(Option[]::new));
 		CIVLCommand.addCompareOption(errorBoundO, verboseO, debugO,
@@ -115,7 +116,7 @@ public class CIVLCommand {
 				collectHeapsO, macroO, preprocO, astO, showTimeO,
 				showMemoryUnitsO, CIVLMacroO, showUnreachedCodeO, analyzeAbsO,
 				strictCompareO, timeoutO, quietO, unpreprocO, intBit,
-				intOperationTransformer, maxProcsO);
+				intOperationTransformer, maxProcsO, fairO);
 		CIVLCommand.addCompareOption(CIVLProperty.getAllConfigurableProperties()
 				.stream().map(e -> e.getOption()).toArray(Option[]::new));
 		CIVLCommand.addReplayOption(showModelO, verboseO, debugO,
@@ -137,7 +138,7 @@ public class CIVLCommand {
 				collectProcessesO, collectScopesO, collectHeapsO, macroO,
 				preprocO, astO, showMemoryUnitsO, CIVLMacroO, collectOutputO,
 				timeoutO, quietO, unpreprocO, intBit, intOperationTransformer,
-				maxProcsO);
+				maxProcsO, fairO);
 		CIVLCommand.addRunOption(CIVLProperty.getAllConfigurableProperties()
 				.stream().map(e -> e.getOption()).toArray(Option[]::new));
 	}
@@ -153,7 +154,7 @@ public class CIVLCommand {
 		}
 	}
 
-	private static void addVerifyOrCompareOption(Option... options) {
+	private static void addVerifyOption(Option... options) {
 		for (Option option : options) {
 			if (verifyOptions.containsKey(option.name()))
 				throw new CIVLInternalException("Option " + option.name()

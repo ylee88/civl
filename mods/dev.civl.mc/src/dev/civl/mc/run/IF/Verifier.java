@@ -178,7 +178,7 @@ public class Verifier extends Player {
 		 * Constructs new runnable with given number of milliseconds.
 		 * 
 		 * @param millis
-		 *            number of milliseconds between update messages
+		 *                   number of milliseconds between update messages
 		 */
 		public UpdaterRunnable(long millis) {
 			this.millis = millis;
@@ -254,6 +254,7 @@ public class Verifier extends Player {
 			searcher.setDebugOut(out);
 		searcher.setReportCycleAsViolation(
 				civlConfig.isPropertyToggled(CIVLProperty.TERMINATION));
+		searcher.setFairCycleCheck(civlConfig.isFair());
 		searcher.setName(sessionName);
 		log.setSearcher(searcher);
 		if (minimize)
@@ -305,8 +306,8 @@ public class Verifier extends Player {
 	 * general UserInterface class.
 	 */
 	public List<Pair<String, String>> getStats() {
-		List<Pair<String, String>> stats = new LinkedList<Pair<String,String>>();
-		
+		List<Pair<String, String>> stats = new LinkedList<Pair<String, String>>();
+
 		stats.add(new Pair<String, String>("max process count",
 				Integer.toString(stateManager.maxProcs())));
 		stats.add(new Pair<String, String>("states",
@@ -370,6 +371,11 @@ public class Verifier extends Player {
 		}
 	}
 
+	private boolean isFairCycle(StateSpaceCycleException e) {
+
+		return true;
+	}
+
 	public boolean run_work() throws FileNotFoundException {
 		try {
 			State initialState = stateFactory.initialState(model);
@@ -403,10 +409,15 @@ public class Verifier extends Player {
 							break;
 					} catch (StateSpaceCycleException e) {
 						if (civlConfig
-								.isPropertyToggled(CIVLProperty.TERMINATION)) {
+								.isPropertyToggled(CIVLProperty.TERMINATION)
+								&& (!civlConfig.isFair() || isFairCycle(e))) {
 							// a cycle in state space detected:
 							int stackPos = e.stackPos();
 							int stackSize = searcher.stack().size();
+
+							searcher.stack().get(stackPos).getState()
+									.print(System.out);
+
 							Transition lastTran = (stackPos < stackSize - 1)
 									? searcher.stack().get(stackSize - 2).peek()
 									: searcher.stack().peek().peek();

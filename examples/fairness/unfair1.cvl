@@ -1,0 +1,17 @@
+/* This program has no non-terminating fair execution */
+#include <stdio.h>
+
+int x=0;
+
+void f() {
+  printf("bye\n");
+  x=1;
+}
+
+int main() {
+  $proc p1 = $spawn f();
+  while (x==0) {
+    printf("hi\n");
+  }
+  $wait(p1);
+}

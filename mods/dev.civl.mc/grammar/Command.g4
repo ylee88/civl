@@ -140,6 +140,7 @@ OPTION_NAME
     | '-enablePrintf'
     | '-errorBound'
     | '-errorStateEquiv'
+    | '-fair'
     | '-guided'
     | '-id'
     | '-int_bit'

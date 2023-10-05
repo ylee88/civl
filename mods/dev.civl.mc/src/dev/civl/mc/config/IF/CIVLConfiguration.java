@@ -316,18 +316,26 @@ public class CIVLConfiguration {
 	 * preemption-bounded) search.
 	 */
 	private int preemptionBound;
-	
+
 	/**
 	 * If true, $local_start() and $local_end will be translated as no-op
 	 */
 	private boolean disableLocalBlock;
 
 	/**
+	 * If this is true, and termination is being checked, then a cycle in which
+	 * some process remains enabled at each state will not be considered a
+	 * violation of non-termination (as it is not considered to represent a real
+	 * execution).
+	 */
+	private boolean fair;
+
+	/**
 	 * Constructs a new CIVL configuration object from the command line
 	 * configuration.
 	 * 
 	 * @param config
-	 *            The command line configuration.
+	 *                   The command line configuration.
 	 */
 	public CIVLConfiguration(GMCSection config) {
 		this.toggleableCivlProps = new HashMap<CIVLProperty, Boolean>();
@@ -505,8 +513,9 @@ public class CIVLConfiguration {
 		this.runtimeUpdate = config.isTrue(CIVLConstants.runtimeUpdateO);
 		this.preemptionBound = (Integer) config
 				.getValueOrDefault(CIVLConstants.preemptionBoundO);
-		this.disableLocalBlock = config.isTrue(
-				CIVLConstants.disableLocalBlockO);
+		this.disableLocalBlock = config
+				.isTrue(CIVLConstants.disableLocalBlockO);
+		this.fair = config.isTrue(CIVLConstants.fairO);
 	}
 
 	public CIVLConfiguration(CIVLConfiguration config) {
@@ -557,6 +566,7 @@ public class CIVLConfiguration {
 		this.intOperationTransiformer = config.intOperationTransiformer;
 		this.runtimeUpdate = config.runtimeUpdate;
 		this.disableLocalBlock = config.disableLocalBlock;
+		this.fair = config.fair;
 	}
 
 	public CIVLConfiguration() {
@@ -572,7 +582,8 @@ public class CIVLConfiguration {
 	 * Sets the kind of deadlocks we want to check for
 	 * 
 	 * @param checkDeadlockKind
-	 *            The new kind of deadlock we want to check for
+	 *                              The new kind of deadlock we want to check
+	 *                              for
 	 */
 	public void setCheckDeadlockKind(DeadlockKind checkDeadlockKind) {
 		this.checkDeadlockKind = checkDeadlockKind;
@@ -583,7 +594,7 @@ public class CIVLConfiguration {
 	 * toggleable if it is controlled by a boolean command line option.
 	 * 
 	 * @param prop
-	 *            The CIVLProperty that we want to check is toggleable
+	 *                 The CIVLProperty that we want to check is toggleable
 	 * @return whether prop is toggleable
 	 */
 	public boolean isToggleableProperty(CIVLProperty prop) {
@@ -594,8 +605,8 @@ public class CIVLConfiguration {
 	 * Determines if a toggleable property is toggled, i.e. is turned on.
 	 * 
 	 * @param prop
-	 *            The property we want to query. The property must be
-	 *            toggleable. Otherwise it is an error.
+	 *                 The property we want to query. The property must be
+	 *                 toggleable. Otherwise it is an error.
 	 * @return returns whether prop is toggled.
 	 */
 	public boolean isPropertyToggled(CIVLProperty prop) {
@@ -608,9 +619,9 @@ public class CIVLConfiguration {
 	 * Sets a CIVLProperty to be toggleable and to be either turned on or off
 	 * 
 	 * @param prop
-	 *            The CIVLProperty we want to control
+	 *                  The CIVLProperty we want to control
 	 * @param value
-	 *            The value of the CIVLProperty
+	 *                  The value of the CIVLProperty
 	 */
 	public void setToggleableProperty(CIVLProperty prop, boolean value) {
 		this.toggleableCivlProps.put(prop, value);
@@ -632,25 +643,25 @@ public class CIVLConfiguration {
 		String summary = "";
 		String yes = " + ";
 		String no = " - ";
-		
+
 		List<CIVLProperty> unconfigProps = CIVLProperty
 				.getAllUnconfigurableProperties();
 		List<CIVLProperty> configProps = CIVLProperty
 				.getAllConfigurableProperties();
 		int numProps = unconfigProps.size() + configProps.size();
 		List<CIVLProperty> props = new ArrayList<CIVLProperty>(numProps);
-		
+
 		props.addAll(unconfigProps);
 		props.addAll(configProps);
-		
+
 		int numCols = 2;
 		int colWidth = 35;
 		int currCol = 0;
-		
+
 		for (CIVLProperty prop : props) {
 			String summTitle = getSummaryTitle(prop);
 			boolean checked = true;
-			
+
 			if (isToggleableProperty(prop)) {
 				checked = isPropertyToggled(prop);
 			} else if (prop == CIVLProperty.DEADLOCK) {
@@ -668,7 +679,7 @@ public class CIVLConfiguration {
 				}
 			}
 			summary += (checked ? yes : no) + summTitle;
-			
+
 			if (currCol < numCols - 1) {
 				summary += whitespace(colWidth - summTitle.length());
 				currCol++;
@@ -677,7 +688,7 @@ public class CIVLConfiguration {
 				currCol = 0;
 			}
 		}
-		
+
 		if (currCol > 0) {
 			summary += "\n";
 		}
@@ -1019,7 +1030,7 @@ public class CIVLConfiguration {
 
 	/**
 	 * @param showUnreach
-	 *            the showUnreach to set
+	 *                        the showUnreach to set
 	 */
 	public void setShowUnreach(boolean showUnreach) {
 		this.showUnreach = showUnreach;
@@ -1034,7 +1045,7 @@ public class CIVLConfiguration {
 
 	/**
 	 * @param absAnalysis
-	 *            the absAnalysis to set
+	 *                        the absAnalysis to set
 	 */
 	public void setAbsAnalysis(boolean absAnalysis) {
 		this.absAnalysis = absAnalysis;
@@ -1049,7 +1060,7 @@ public class CIVLConfiguration {
 
 	/**
 	 * @param inputVariables
-	 *            the inputVariables to set
+	 *                           the inputVariables to set
 	 */
 	public void setInputVariables(Map<String, Object> inputVariables) {
 		this.inputVariables = inputVariables;
@@ -1064,7 +1075,7 @@ public class CIVLConfiguration {
 
 	/**
 	 * @param collectOutputs
-	 *            the collectOutputs to set
+	 *                           the collectOutputs to set
 	 */
 	public void setCollectOutputs(boolean collectOutputs) {
 		this.collectOutputs = collectOutputs;
@@ -1103,7 +1114,7 @@ public class CIVLConfiguration {
 
 	/**
 	 * @param timeout
-	 *            the timeout to set
+	 *                    the timeout to set
 	 */
 	public void setTimeout(int timeout) {
 		this.timeout = timeout;
@@ -1136,7 +1147,7 @@ public class CIVLConfiguration {
 
 	/**
 	 * @param collectSymbolicNames
-	 *            the collectSymbolicNames to set
+	 *                                 the collectSymbolicNames to set
 	 */
 	public void setCollectSymbolicNames(boolean collectSymbolicNames) {
 		this.collectSymbolicNames = collectSymbolicNames;
@@ -1151,7 +1162,7 @@ public class CIVLConfiguration {
 
 	/**
 	 * @param checkExpressionError
-	 *            the checkExpressionError to set
+	 *                                 the checkExpressionError to set
 	 */
 	public void setCheckExpressionError(boolean checkExpressionError) {
 		this.checkExpressionError = checkExpressionError;
@@ -1178,7 +1189,7 @@ public class CIVLConfiguration {
 
 	/**
 	 * @param svcomp17
-	 *            the svcomp17 to set
+	 *                     the svcomp17 to set
 	 */
 	public void setSvcomp17(boolean svcomp17) {
 		this.svcomp17 = svcomp17;
@@ -1233,8 +1244,21 @@ public class CIVLConfiguration {
 	public int preemptionBound() {
 		return this.preemptionBound;
 	}
-	
+
 	public boolean disableLocalBlock() {
 		return this.disableLocalBlock;
+	}
+	/**
+	 * If this is true, and termination is being checked, then a cycle in which
+	 * some process remains enabled at each state will not be considered a
+	 * violation of non-termination (as it is not considered to represent a real
+	 * execution).
+	 */
+	public boolean isFair() {
+		return fair;
+	}
+
+	public void setFair(boolean val) {
+		this.fair = val;
 	}
 }
