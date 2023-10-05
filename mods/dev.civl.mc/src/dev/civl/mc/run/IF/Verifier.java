@@ -431,7 +431,9 @@ public class Verifier extends Player {
 							CIVLExecutionException cycleException = new CIVLExecutionException(
 									CIVLProperty.TERMINATION,
 									Certainty.CONCRETE, process,
-									"A cycle in state space detected.  This execution will not terminate.",
+									"Found cycle in state space from step "
+											+ e.stackPos() + " to " + stackSize
+											+ ".   This execution will not terminate.",
 									lastState, pid, source);
 							CIVLLogEntry entry = new CIVLLogEntry(civlConfig,
 									config, cycleException,

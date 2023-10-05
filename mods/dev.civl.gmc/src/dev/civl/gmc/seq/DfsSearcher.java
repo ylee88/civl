@@ -647,8 +647,7 @@ public class DfsSearcher<STATE, TRANSITION> {
 				// new node is already on the stack
 				if (!fairCycleCheck || isFairCycle(newStateStackIndex)) {
 					cycleFound = true;
-					throw new StateSpaceCycleException(
-							newSequentialNode.getStackPosition());
+					throw new StateSpaceCycleException(newStateStackIndex);
 				}
 			}
 			numStatesMatched++;
