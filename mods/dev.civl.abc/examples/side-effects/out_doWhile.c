@@ -11,9 +11,11 @@ int main()
     int $sef$1;
     do
     {
-      int $sef$0 = i;
-      i = i - 1;
-      sum = sum + $sef$0;
+      {
+	int $sef$0 = i;
+	i = i - 1;
+	sum = sum + $sef$0;
+      }
       $sef$1 = f(i);
     }while($sef$1);
   }
@@ -21,7 +23,7 @@ int main()
   sum = 0;
   do
   {
-    sum = sum + i;
+    {sum = sum + i;}
     i = i - 1;
   }while(i);
   i = 10;
@@ -30,7 +32,7 @@ int main()
     int $sef$2;
     do
     {
-      sum = sum + i;
+      {sum = sum + i;}
       $sef$2 = i;
       i = i - 1;
     }while($sef$2);
