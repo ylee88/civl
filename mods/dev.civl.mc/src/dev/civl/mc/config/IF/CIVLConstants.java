@@ -92,7 +92,7 @@ public class CIVLConstants {
 			ROOT_RESOURCE_PATH_STR + "abc/include/");
 
 	/** The version of this release of CIVL. */
-	public final static String version = "1.22";
+	public final static String version = "1.22+";
 
 	/**
 	 * The date of this release of CIVL. Format: YYYY-MM-DD in accordance with
