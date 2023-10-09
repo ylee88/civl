@@ -1,5 +1,5 @@
       CIVL: The Concurrency Intermediate Verification Language
-                               v1.21
+                               v1.22
 
 ------------------------------ Overview -------------------------------
 
@@ -24,9 +24,6 @@ University of Delaware Department of Computer Science.
 For more information, visit http://vsl.cis.udel.edu/civl
 
 Active Developers:
-Matthew B. Dwyer
-Mitchell Gerrard
-Ziqing Luo
 Stephen F. Siegel
 Wenhao Wu
 Alexander Wilton
@@ -36,9 +33,11 @@ John Edenhofner
 Andre Marianiello
 Michael Rogers
 Timothy K. Zirkel
-Si Li
 Manchun Zheng
 Yihao Yan
+Matthew B. Dwyer
+Mitchell Gerrard
+Ziqing Luo
 
 ------------------------------- License -------------------------------
 
@@ -46,6 +45,21 @@ CIVL is open source software distributed under the GNU
 General Public License.  However, the libraries used by CIVL
 (and incorporated into the complete distribution) use various
 licenses.  See directory licenses for the license of each component.
+
+-------------------------- Updates from v1.21 -------------------------
+
+-- 1. Upgraded to Java 17
+-- 2. Overhauled repository structure by moving ABC, SARL, and GMC
+      repositories into this one.
+-- 3. Core language changes
+     3.1 Only the first statement in an $atomic block is allowed to block.
+     3.2 $yield can be used to release the lock of the atomic block
+     3.3 Removed $atom
+-- 4. Total overhaul to OpenMP transformations. Now includes a robust data
+      race detection feature as described in CAV 2023 paper 'Model Checking
+      Race-freedom When “Sequential Consistency for Data-race-free Programs”
+      is Guaranteed'
+-- 5. A large number of bug fixes and small improvements.
 
 -------------------------- Updates from v1.20 -------------------------
 -- 1. refine the Fortran extension for paper submitted to TACAS 2022

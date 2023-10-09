@@ -98,7 +98,7 @@ public class CIVLConstants {
 	 * The date of this release of CIVL. Format: YYYY-MM-DD in accordance with
 	 * ISO 8601.
 	 */
-	public final static String date = "2023-02-21";
+	public final static String date = "2023-10-09";
 
 	/**
 	 * The prefix of the full name of the class of a library enabler/executor.
