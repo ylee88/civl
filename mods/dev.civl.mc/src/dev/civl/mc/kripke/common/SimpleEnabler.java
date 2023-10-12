@@ -998,4 +998,9 @@ public class SimpleEnabler implements Enabler {
 		}
 	}
 
+	@Override
+	public boolean inAtomic(State state) {
+		return stateFactory.lockedByAtomic(state);
+	}
+
 }

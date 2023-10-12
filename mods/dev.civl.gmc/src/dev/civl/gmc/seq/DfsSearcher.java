@@ -445,6 +445,17 @@ public class DfsSearcher<STATE, TRANSITION> {
 	 * Determines whether the cycle in the search stack is fair. There should be
 	 * a cycle in the stack starting at position idx.
 	 * 
+	 * Ignores states within atomic block. Precisely: let W be the set of all
+	 * procs. Iterate over all states s in stack from idx to stackSize-1. If s
+	 * is inside atomic, skip it --- go to next stack entry. Remove from W all
+	 * procs not enabled at s. Remove from W the proc that executes from s.
+	 * 
+	 * At the end: if W=all procs, then the entire cycle is in an atomic and is
+	 * therefore "fair" because it represents a nonterminating execution.
+	 * Otherwise, if W is nonempty, there is some proc which is enabled
+	 * throughout the cycle but never executes, and the result is "unfair".
+	 * Otherwise, W is empty, and the result is "fair".
+	 * 
 	 * @param idx
 	 *                index of the first entry in the stack in the cycle
 	 * @return <code>true</code> iff the cycle is fair, i.e., there is no
@@ -452,67 +463,56 @@ public class DfsSearcher<STATE, TRANSITION> {
 	 *         executes in the cycle
 	 */
 	private boolean isFairCycle(int idx) {
-		int size = stack.size();
+		int size = stack.size(), nwaiting = 0, nprocs = 0;
 		assert idx >= 0 && idx < size;
-		Collection<TRANSITION> transSet = enabler
-				.fullSet(stack.get(idx).getState());
-		int maxPid = -1;
+		boolean[] waiting = null; // this is the set W. null=all procs.
 
-		for (TRANSITION t : transSet) {
-			int pid = manager.getPid(t);
-
-			if (pid > maxPid)
-				maxPid = pid;
-		}
-		// since node idx is on a cycle, it must have at least one enabled
-		// transition...
-		assert (maxPid >= 0);
-		// create the waiting set: initially all PIDs enabled at idx...
-
-		boolean[] waiting = new boolean[maxPid + 1];
-		int nwaiting = 0;
-
-		for (TRANSITION t : transSet) {
-			int pid = manager.getPid(t);
-
-			if (!waiting[pid]) {
-				waiting[pid] = true;
-				nwaiting++;
-			}
-		}
-		assert nwaiting > 0;
-		// remove from the waiting set any PID that executes in the cycle...
 		for (int i = idx; i < size; i++) {
-			int pid = manager.getPid(stack.get(i).peek());
-
-			if (pid <= maxPid && waiting[pid]) {
+			StackEntry<STATE, TRANSITION> entry = stack.get(i);
+			STATE state = entry.getNode().getState();
+			if (enabler.inAtomic(state))
+				continue;
+			if (waiting == null) {
+				Collection<TRANSITION> transSet = enabler.fullSet(state);
+				for (TRANSITION t : transSet) {
+					int pid = manager.getPid(t);
+					if (pid >= nprocs)
+						nprocs = pid + 1;
+				}
+				waiting = new boolean[nprocs];
+				for (TRANSITION t : transSet) {
+					int pid = manager.getPid(t);
+					if (!waiting[pid]) {
+						waiting[pid] = true;
+						nwaiting++;
+					}
+				}
+			} else {
+				boolean[] enabled = new boolean[nprocs];
+				for (TRANSITION t : enabler.fullSet(state)) {
+					int pid = manager.getPid(t);
+					if (pid < nprocs)
+						enabled[pid] = true;
+				}
+				for (int j = 0; j < nprocs; j++) {
+					if (waiting[j] && !enabled[j]) {
+						waiting[j] = false;
+						nwaiting--;
+						if (nwaiting == 0)
+							return true;
+					}
+				}
+			}
+			int pid = manager.getPid(entry.peek());
+			if (pid < nprocs && waiting[pid]) {
 				waiting[pid] = false;
 				nwaiting--;
 				if (nwaiting == 0)
 					return true; // fair cycle, no proc waiting forever
 			}
 		}
-		// remove from the waiting set any Pid that becomes disabled...
-		for (int i = idx + 1; i < size; i++) {
-			boolean[] pids = new boolean[maxPid + 1];
-
-			transSet = enabler.fullSet(stack.get(i).getNode().getState());
-			for (TRANSITION t : transSet) {
-				int pid = manager.getPid(t);
-
-				if (pid <= maxPid)
-					pids[pid] = true;
-			}
-			// set difference : waiting - pids
-			for (int j = 0; j <= maxPid; j++) {
-				if (waiting[j] && !pids[j]) {
-					waiting[j] = false;
-					nwaiting--;
-				}
-			}
-			if (nwaiting == 0)
-				return true;
-		}
+		if (waiting == null)
+			return true; // cycle contained in one atomic block
 		assert nwaiting > 0;
 		return false; // not fair, some proc waiting forever
 	}

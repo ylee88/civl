@@ -18,11 +18,11 @@ import java.util.Collection;
  * </p>
  * 
  * @param <STATE>
- *            the type used to represent states in the state-transition system
- *            being analyzed
+ *                         the type used to represent states in the
+ *                         state-transition system being analyzed
  * @param <TRANSITION>
- *            the type used to represent transitions in the state-transition
- *            system being analyzed
+ *                         the type used to represent transitions in the
+ *                         state-transition system being analyzed
  * 
  * @author Stephen F. Siegel, University of Delaware
  * @author Yihao Yan (yanyihao)
@@ -49,7 +49,7 @@ public interface EnablerIF<STATE, TRANSITION> {
 	 * </p>
 	 * 
 	 * @param source
-	 *            The target state.
+	 *                   The target state.
 	 * @return The candidate ampleSet of transitions of the target state.
 	 */
 	Collection<TRANSITION> ampleSet(STATE source);
@@ -58,17 +58,28 @@ public interface EnablerIF<STATE, TRANSITION> {
 	 * Computes the set of transitions which are enabled at {@code state}.
 	 * 
 	 * @param state
-	 *            The source state.
+	 *                  The source state.
 	 * @return the collection of transitions that are enabled at {@code state}.
 	 */
 	Collection<TRANSITION> fullSet(STATE state);
+
+	/**
+	 * Is the given state in the middle of an atomic action? Such intermediate
+	 * states should be ignored by some algorithms.
+	 * 
+	 * @param state
+	 *                  a state
+	 * @return {@code true} iff the state is in the midst of an atomic action
+	 */
+	boolean inAtomic(STATE state);
 
 	/**
 	 * Set the debugging flag to the given value. When true, debugging output
 	 * will be printed to the debugging output stream.
 	 * 
 	 * @param value
-	 *            true if you want to print debugging info, false otherwise
+	 *                  true if you want to print debugging info, false
+	 *                  otherwise
 	 */
 	void setDebugging(boolean value);
 
@@ -84,7 +95,8 @@ public interface EnablerIF<STATE, TRANSITION> {
 	 * Set the debugging output stream to the given stream.
 	 * 
 	 * @param out
-	 *            the stream to which you want the debugging output to be sent
+	 *                the stream to which you want the debugging output to be
+	 *                sent
 	 */
 	void setDebugOut(PrintStream out);
 

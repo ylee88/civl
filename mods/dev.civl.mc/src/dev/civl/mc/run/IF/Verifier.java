@@ -414,10 +414,6 @@ public class Verifier extends Player {
 							// a cycle in state space detected:
 							int stackPos = e.stackPos();
 							int stackSize = searcher.stack().size();
-
-							searcher.stack().get(stackPos).getState()
-									.print(System.out);
-
 							Transition lastTran = (stackPos < stackSize - 1)
 									? searcher.stack().get(stackSize - 2).peek()
 									: searcher.stack().peek().peek();

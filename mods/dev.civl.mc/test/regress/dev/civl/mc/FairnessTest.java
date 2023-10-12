@@ -2,6 +2,7 @@ package dev.civl.mc;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static dev.civl.mc.TestConstants.QUIET;
 
 import java.io.File;
 
@@ -22,6 +23,9 @@ public class FairnessTest {
 	private static File rootDir = new File(new File("examples"), "fairness");
 
 	private static UserInterface ui = new UserInterface();
+	
+	private static String TERM = "-checkTermination";
+	//private static String TERM = "";
 
 	/* *************************** Helper Methods ************************** */
 
@@ -33,38 +37,44 @@ public class FairnessTest {
 
 	@Test
 	public void fair1() {
-		assertFalse(ui.run("verify", "-checkTermination", "-fair",
+		assertFalse(ui.run("verify", QUIET, TERM, "-fair",
 				filename("fair1.cvl")));
 	}
 
 	@Test
 	public void fair2() {
-		assertFalse(ui.run("verify", "-checkTermination", "-fair",
+		assertFalse(ui.run("verify", QUIET, TERM, "-fair",
 				filename("fair2.cvl")));
 	}
 
 	@Test
 	public void fair3() {
-		assertFalse(ui.run("verify", "-checkTermination", "-fair",
+		assertFalse(ui.run("verify", QUIET, TERM, "-fair",
 				filename("fair3.cvl")));
 	}
 
 	@Test
 	public void fair4() {
-		assertFalse(ui.run("verify", "-checkTermination", "-fair",
+		assertFalse(ui.run("verify", QUIET, TERM, "-fair",
 				filename("fair4.cvl")));
 	}
 
 	@Test
 	public void unfair1() {
-		assertTrue(ui.run("verify", "-checkTermination", "-fair",
+		assertTrue(ui.run("verify", QUIET, TERM, "-fair",
 				filename("unfair1.cvl")));
 	}
 
 	@Test
 	public void unfair2() {
-		assertTrue(ui.run("verify", "-checkTermination", "-fair",
+		assertTrue(ui.run("verify", QUIET, TERM, "-fair",
 				filename("unfair2.cvl")));
+	}
+	
+	@Test
+	public void unfair3() {
+		assertTrue(ui.run("verify", QUIET, TERM, "-fair",
+				filename("unfair3.cvl")));
 	}
 
 	@AfterClass

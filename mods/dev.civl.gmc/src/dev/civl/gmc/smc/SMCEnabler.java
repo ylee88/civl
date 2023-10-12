@@ -78,4 +78,9 @@ public class SMCEnabler implements EnablerIF<Integer, String> {
 	public PrintStream getDebugOut() {
 		return debugStream;
 	}
+
+	@Override
+	public boolean inAtomic(Integer state) {
+		return false;
+	}
 }

@@ -1,0 +1,16 @@
+/* All fair executions terminate. */
+#include <stdio.h>
+
+int x=0;
+
+void f() {
+  while (x==0) {
+    $atomic{ printf("Hi\n"); }
+  }
+}
+
+int main() {
+  $proc p1 = $spawn f();
+  x=1;
+  $wait(p1);
+}
