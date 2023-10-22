@@ -1,0 +1,52 @@
+/* This program has a non-terminating fair execution */
+// #pragma CIVL ACSL
+#include <stdlib.h>
+
+typedef struct _lock {
+  $proc owner;
+} Lock;
+
+Lock* lock_create() {
+  Lock* result = (Lock*) malloc(sizeof(Lock));
+  result->owner = $proc_null;
+  return result;
+}
+
+void lock_destroy(Lock * l) {
+  free(l);
+}
+
+/*@ depends_on \access(l); */
+$atomic_f void lock_acquire(Lock* l) {
+  $when (l->owner == $proc_null)
+    l->owner = $self;
+}
+
+/*@ depends_on \access(l); */
+$atomic_f void lock_release(Lock* l) {
+  l->owner = $proc_null;
+}
+
+Lock * lock = lock_create();
+int x=1;
+
+void f1() {
+  while (x) {
+    lock_acquire(lock);
+    lock_release(lock);
+  }
+}
+
+void f2() {
+  lock_acquire(lock);
+  x=0;
+  lock_release(lock);
+}
+
+int main() {
+  $proc p1 = $spawn f1();
+  $proc p2 = $spawn f2();
+  $wait(p1);
+  $wait(p2);
+  lock_destroy(lock);
+}

@@ -441,6 +441,17 @@ public class DfsSearcher<STATE, TRANSITION> {
 		return false;
 	}
 
+	private static void printA(PrintStream out, boolean a[]) {
+		int n = a.length;
+		out.print("{");
+		for (int i = 0; i < n; i++) {
+			if (i > 0)
+				out.print(",");
+			out.print(a[i] ? 1 : 0);
+		}
+		out.println("}");
+	}
+
 	/**
 	 * Determines whether the cycle in the search stack is fair. There should be
 	 * a cycle in the stack starting at position idx.
@@ -467,11 +478,15 @@ public class DfsSearcher<STATE, TRANSITION> {
 		assert idx >= 0 && idx < size;
 		boolean[] waiting = null; // this is the set W. null=all procs.
 
+		PrintStream out = System.out;
+		debug("Analyzing cycle at step " + idx);
+
 		for (int i = idx; i < size; i++) {
 			StackEntry<STATE, TRANSITION> entry = stack.get(i);
 			STATE state = entry.getNode().getState();
 			if (enabler.inAtomic(state))
 				continue;
+			debug("Step = " + i);
 			if (waiting == null) {
 				Collection<TRANSITION> transSet = enabler.fullSet(state);
 				for (TRANSITION t : transSet) {
@@ -487,6 +502,8 @@ public class DfsSearcher<STATE, TRANSITION> {
 						nwaiting++;
 					}
 				}
+				if (debugging)
+					printA(out, waiting);
 			} else {
 				boolean[] enabled = new boolean[nprocs];
 				for (TRANSITION t : enabler.fullSet(state)) {
@@ -494,12 +511,19 @@ public class DfsSearcher<STATE, TRANSITION> {
 					if (pid < nprocs)
 						enabled[pid] = true;
 				}
+				debug("enabled = ");
+				if (debugging)
+					printA(out, enabled);
 				for (int j = 0; j < nprocs; j++) {
 					if (waiting[j] && !enabled[j]) {
 						waiting[j] = false;
 						nwaiting--;
-						if (nwaiting == 0)
+						if (debugging)
+							printA(out, waiting);
+						if (nwaiting == 0) {
+							debug("Cycle is fair");
 							return true;
+						}
 					}
 				}
 			}
@@ -507,13 +531,24 @@ public class DfsSearcher<STATE, TRANSITION> {
 			if (pid < nprocs && waiting[pid]) {
 				waiting[pid] = false;
 				nwaiting--;
-				if (nwaiting == 0)
+				if (debugging)
+					printA(out, waiting);
+
+				if (nwaiting == 0) {
+					debug("Cycle is fair");
 					return true; // fair cycle, no proc waiting forever
+				}
 			}
 		}
-		if (waiting == null)
+		if (waiting == null) {
+			debug("Cycle is fair (totally atomic)");
 			return true; // cycle contained in one atomic block
+		}
 		assert nwaiting > 0;
+		if (debugging)
+			printA(out, waiting);
+
+		debug("Cycle is unfair");
 		return false; // not fair, some proc waiting forever
 	}
 

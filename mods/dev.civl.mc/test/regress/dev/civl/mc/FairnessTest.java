@@ -23,9 +23,8 @@ public class FairnessTest {
 	private static File rootDir = new File(new File("examples"), "fairness");
 
 	private static UserInterface ui = new UserInterface();
-	
+
 	private static String TERM = "-checkTermination";
-	//private static String TERM = "";
 
 	/* *************************** Helper Methods ************************** */
 
@@ -37,26 +36,32 @@ public class FairnessTest {
 
 	@Test
 	public void fair1() {
-		assertFalse(ui.run("verify", QUIET, TERM, "-fair",
-				filename("fair1.cvl")));
+		assertFalse(
+				ui.run("verify", QUIET, TERM, "-fair", filename("fair1.cvl")));
 	}
 
 	@Test
 	public void fair2() {
-		assertFalse(ui.run("verify", QUIET, TERM, "-fair",
-				filename("fair2.cvl")));
+		assertFalse(
+				ui.run("verify", QUIET, TERM, "-fair", filename("fair2.cvl")));
 	}
 
 	@Test
 	public void fair3() {
-		assertFalse(ui.run("verify", QUIET, TERM, "-fair",
-				filename("fair3.cvl")));
+		assertFalse(
+				ui.run("verify", QUIET, TERM, "-fair", filename("fair3.cvl")));
 	}
 
 	@Test
 	public void fair4() {
-		assertFalse(ui.run("verify", QUIET, TERM, "-fair",
-				filename("fair4.cvl")));
+		assertFalse(
+				ui.run("verify", QUIET, TERM, "-fair", filename("fair4.cvl")));
+	}
+
+	@Test
+	public void fair5() {
+		assertFalse(
+				ui.run("verify", QUIET, TERM, "-fair", filename("fair5.cvl")));
 	}
 
 	@Test
@@ -70,7 +75,7 @@ public class FairnessTest {
 		assertTrue(ui.run("verify", QUIET, TERM, "-fair",
 				filename("unfair2.cvl")));
 	}
-	
+
 	@Test
 	public void unfair3() {
 		assertTrue(ui.run("verify", QUIET, TERM, "-fair",
