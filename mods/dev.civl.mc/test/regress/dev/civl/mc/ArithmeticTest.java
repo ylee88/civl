@@ -32,8 +32,7 @@ public class ArithmeticTest {
 	/* *************************** Helper Methods ************************** */
 
 	private void check(String name) {
-	    assertTrue(ui.run(VERIFY, //QUIET,
-			      filename(name)));
+		assertTrue(ui.run(VERIFY, QUIET, filename(name)));
 	}
 
 	private static String filename(String name) {

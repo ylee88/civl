@@ -3,6 +3,7 @@ package dev.civl.abc.transform.common;
 import dev.civl.abc.ast.IF.AST;
 import dev.civl.abc.ast.entity.IF.Entity;
 import dev.civl.abc.ast.entity.IF.Function;
+import dev.civl.abc.ast.entity.IF.OrdinaryEntity;
 import dev.civl.abc.ast.entity.IF.ProgramEntity;
 import dev.civl.abc.ast.entity.IF.Scope;
 import dev.civl.abc.ast.entity.IF.TaggedEntity;
@@ -14,6 +15,7 @@ import dev.civl.abc.ast.node.IF.declaration.DeclarationNode;
 import dev.civl.abc.ast.node.IF.declaration.InitializerNode;
 import dev.civl.abc.ast.node.IF.declaration.VariableDeclarationNode;
 import dev.civl.abc.ast.node.IF.statement.BlockItemNode;
+import dev.civl.abc.ast.node.IF.statement.CivlForNode;
 import dev.civl.abc.ast.node.IF.statement.CompoundStatementNode;
 import dev.civl.abc.ast.type.IF.ObjectType;
 import dev.civl.abc.ast.type.IF.QualifiedObjectType;
@@ -46,15 +48,23 @@ public class PrunerWorker {
 	private AST ast;
 
 	/**
+	 * Has the "$wait" function been explored? If a "$parfor" statement is
+	 * encountered, we must explore $wait, because we need to keep it in the AST
+	 * for the translation to model.
+	 */
+	private boolean exploredWait = false;
+
+	/**
 	 * Creates new instance and performs the reachability analysis on the
 	 * <code>root</code> node. After returning, all reachable nodes in the AST
 	 * will be marked with the <code>reachedKey</code> attribute set to
 	 * <code>true</code>.
 	 * 
 	 * @param reachedKey
-	 *            the attribute key to use for recording reachability of a node
+	 *                       the attribute key to use for recording reachability
+	 *                       of a node
 	 * @param root
-	 *            root node of AST
+	 *                       root node of AST
 	 */
 	public PrunerWorker(AttributeKey reachedKey, ASTNode root) {
 		this.reachedKey = reachedKey;
@@ -72,8 +82,8 @@ public class PrunerWorker {
 	 * with side effects will be kept.
 	 * 
 	 * @param node
-	 *            a declaration node occurring as a child of a sequence of
-	 *            {@link BlockItemNode}.
+	 *                 a declaration node occurring as a child of a sequence of
+	 *                 {@link BlockItemNode}.
 	 * @return <code>true</code> iff <code>node</code> should be kept
 	 */
 	private boolean keepSequenceDecl(DeclarationNode node) {
@@ -103,7 +113,7 @@ public class PrunerWorker {
 	 * of this node, and ancestors of this node.
 	 * 
 	 * @param node
-	 *            the AST node to mark as reachable and explore
+	 *                 the AST node to mark as reachable and explore
 	 */
 	private void markReachable(ASTNode node) {
 		Boolean value = (Boolean) node.getAttribute(reachedKey);
@@ -111,7 +121,15 @@ public class PrunerWorker {
 		if (value != null && value)
 			return;
 		node.setAttribute(reachedKey, true);
+		if (!exploredWait && node instanceof CivlForNode
+				&& ((CivlForNode) node).isParallel()) {
+			OrdinaryEntity waitE = ast.getInternalOrExternalEntity("$wait");
 
+			if (waitE != null && waitE instanceof Function) {
+				exploredWait = true;
+				explore(waitE);
+			}
+		}
 		if (node instanceof IdentifierNode) {
 			Entity entity = ((IdentifierNode) node).getEntity();
 
@@ -140,7 +158,7 @@ public class PrunerWorker {
 	 * entity.
 	 * 
 	 * @param entity
-	 *            any non-<code>null</code> program entity
+	 *                   any non-<code>null</code> program entity
 	 */
 	private void explore(ProgramEntity entity) {
 		if (entity instanceof TaggedEntity) {
@@ -164,6 +182,9 @@ public class PrunerWorker {
 			// getDeclarations are returned in program order.
 			// also, system types are weird and have decls from every
 			// AST ever seen, so ignore them...
+
+			// this code is questionable because ast is always null when
+			// this worker is created...
 			for (DeclarationNode current : entity.getDeclarations()) {
 				if (current.getOwner() != ast)
 					continue;

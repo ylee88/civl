@@ -330,13 +330,14 @@ public class CommonModelFactory implements ModelFactory {
 	 */
 	private Scope staticScope;
 
-	/**
-	 * An instance of a <code>$wait</code> system function identifier expression
-	 */
-	private FunctionIdentifierExpression waitFuncPointer = null;
+	// /**
+	// * An instance of a <code>$wait</code> system function identifier
+	// expression
+	// */
+	// private FunctionIdentifierExpression waitFuncPointer = null;
 
 	private FunctionIdentifierExpression elaborateDomainFuncPointer = null;
-	
+
 	private SymbolicConstant hideConstant = null;
 
 	/* **************************** Constructors *************************** */
@@ -346,7 +347,7 @@ public class CommonModelFactory implements ModelFactory {
 	 * model components will be created.
 	 * 
 	 * @param universe
-	 *            The symbolic universe
+	 *                     The symbolic universe
 	 */
 	public CommonModelFactory(SymbolicUniverse universe,
 			CIVLConfiguration config) {
@@ -435,11 +436,11 @@ public class CommonModelFactory implements ModelFactory {
 	 * A binary expression. One of {+,-,*,\,<,<=,==,!=,&&,||,%}
 	 * 
 	 * @param operator
-	 *            The binary operator.
+	 *                     The binary operator.
 	 * @param left
-	 *            The left operand.
+	 *                     The left operand.
 	 * @param right
-	 *            The right operand.
+	 *                     The right operand.
 	 * @return The binary expression.
 	 */
 	@Override
@@ -531,10 +532,10 @@ public class CommonModelFactory implements ModelFactory {
 	 * </ul>
 	 * 
 	 * @param argType0
-	 *            the type of one operand of the binary operation which has been
-	 *            known having set type
+	 *                     the type of one operand of the binary operation which
+	 *                     has been known having set type
 	 * @param argType1
-	 *            the type of the other operand of the binary operation
+	 *                     the type of the other operand of the binary operation
 	 * @return the type of the binary operation
 	 */
 	private CIVLType deriveBinaryOperationSetType(CIVLSetType argType0,
@@ -657,7 +658,7 @@ public class CommonModelFactory implements ModelFactory {
 	 * A boolean literal expression.
 	 * 
 	 * @param value
-	 *            True or false.
+	 *                  True or false.
 	 * @return The boolean literal expression.
 	 */
 	@Override
@@ -677,11 +678,13 @@ public class CommonModelFactory implements ModelFactory {
 	 * The ternary conditional expression ("?" in C).
 	 * 
 	 * @param condition
-	 *            The condition being evaluated in this conditional.
+	 *                        The condition being evaluated in this conditional.
 	 * @param trueBranch
-	 *            The expression returned if the condition evaluates to true.
+	 *                        The expression returned if the condition evaluates
+	 *                        to true.
 	 * @param falseBranch
-	 *            The expression returned if the condition evaluates to false.
+	 *                        The expression returned if the condition evaluates
+	 *                        to false.
 	 * @return The conditional expression.
 	 */
 	@Override
@@ -795,7 +798,7 @@ public class CommonModelFactory implements ModelFactory {
 	 * An integer literal expression.
 	 * 
 	 * @param value
-	 *            The (arbitrary precision) integer value.
+	 *                  The (arbitrary precision) integer value.
 	 * @return The integer literal expression.
 	 */
 	@Override
@@ -831,7 +834,7 @@ public class CommonModelFactory implements ModelFactory {
 	 * A real literal expression.
 	 * 
 	 * @param value
-	 *            The (arbitrary precision) real value.
+	 *                  The (arbitrary precision) real value.
 	 * @return The real literal expression.
 	 */
 	@Override
@@ -902,9 +905,9 @@ public class CommonModelFactory implements ModelFactory {
 	 * An expression for an array index operation. e.g. a[i]
 	 * 
 	 * @param array
-	 *            An expression evaluating to an array.
+	 *                  An expression evaluating to an array.
 	 * @param index
-	 *            An expression evaluating to an integer.
+	 *                  An expression evaluating to an integer.
 	 * @return The array index expression.
 	 */
 	@Override
@@ -945,9 +948,9 @@ public class CommonModelFactory implements ModelFactory {
 	 * A unary expression. One of {-,!}.
 	 * 
 	 * @param operator
-	 *            The unary operator.
+	 *                     The unary operator.
 	 * @param operand
-	 *            The expression to which the operator is applied.
+	 *                     The expression to which the operator is applied.
 	 * @return The unary expression.
 	 */
 	@Override
@@ -977,7 +980,7 @@ public class CommonModelFactory implements ModelFactory {
 	 * A variable expression.
 	 * 
 	 * @param variable
-	 *            The variable being referenced.
+	 *                     The variable being referenced.
 	 * @return The variable expression.
 	 */
 	@Override
@@ -1167,7 +1170,7 @@ public class CommonModelFactory implements ModelFactory {
 	 * A noop statement.
 	 * 
 	 * @param source
-	 *            The source location for this noop statement.
+	 *                   The source location for this noop statement.
 	 * @return A new noop statement.
 	 */
 	@Override
@@ -1724,26 +1727,6 @@ public class CommonModelFactory implements ModelFactory {
 	}
 
 	@Override
-	public FunctionIdentifierExpression waitFunctionPointer() {
-		if (waitFuncPointer == null) {
-			List<Variable> parameters = new ArrayList<>(2);
-			CIVLFunction function;
-			Scope paraScope;
-
-			parameters.add(variable(systemSource, typeFactory.processType,
-					identifier(systemSource, "proc"), 1));
-			paraScope = scope(systemSource, systemScope, parameters, null);
-			function = systemFunction(systemSource,
-					identifier(systemSource, "$wait"), paraScope, parameters,
-					typeFactory.voidType, systemScope, "civlc");
-			paraScope.setFunction(function);
-			waitFuncPointer = functionIdentifierExpression(systemSource,
-					function);
-		}
-		return waitFuncPointer;
-	}
-	
-	@Override
 	public SymbolicConstant getHideConstant() {
 		if (hideConstant == null) {
 			hideConstant = universe.symbolicConstant(
@@ -1802,8 +1785,8 @@ public class CommonModelFactory implements ModelFactory {
 	 * index 0).
 	 * 
 	 * @param scope
-	 *            The scope of the atomic lock variable, and should always be
-	 *            the root scope.
+	 *                  The scope of the atomic lock variable, and should always
+	 *                  be the root scope.
 	 */
 	private void createAtomicLockVariable(Scope scope) {
 		// Since the atomic lock variable is not declared explicitly in the CIVL
@@ -1849,10 +1832,12 @@ public class CommonModelFactory implements ModelFactory {
 	 * @param source
 	 * 
 	 * @param expression
-	 *            a numeric expression expected to hold concrete int value
+	 *                       a numeric expression expected to hold concrete int
+	 *                       value
 	 * @return the concrete int
 	 * @throws ClassCastException
-	 *             if a concrete integer value cannot be extracted
+	 *                                if a concrete integer value cannot be
+	 *                                extracted
 	 */
 	private int extractInt(NumericExpression expression) {
 		assert expression.operator() == SymbolicOperator.CONCRETE;
@@ -1868,9 +1853,9 @@ public class CommonModelFactory implements ModelFactory {
 	 * @param source
 	 * 
 	 * @param tuple
-	 *            symbolic expression of tuple type
+	 *                       symbolic expression of tuple type
 	 * @param fieldIndex
-	 *            index of a field in that tuple
+	 *                       index of a field in that tuple
 	 * @return the concrete int value of that field
 	 */
 	private int extractIntField(SymbolicExpression tuple,
@@ -1883,9 +1868,9 @@ public class CommonModelFactory implements ModelFactory {
 
 	/**
 	 * @param s0
-	 *            A scope. May be null.
+	 *               A scope. May be null.
 	 * @param s1
-	 *            A scope. May be null.
+	 *               A scope. May be null.
 	 * @return The scope that is the join, or least common ancestor in the scope
 	 *         tree, of s0 and s1. Null if both are null. If exactly one of s0
 	 *         and s1 are null, returns the non-null scope.
@@ -1973,7 +1958,8 @@ public class CommonModelFactory implements ModelFactory {
 	 * expressions.
 	 * 
 	 * @param expressions
-	 *            The list of expressions whose join scope is to be computed.
+	 *                        The list of expressions whose join scope is to be
+	 *                        computed.
 	 * @return The join scope of the list of expressions.
 	 */
 	private Scope joinScope(List<Expression> expressions) {
@@ -2012,7 +1998,8 @@ public class CommonModelFactory implements ModelFactory {
 			CIVLFunction function;
 			Scope paraScope;
 
-			parameters.add(this.variable(systemSource, typeFactory.domainType(typeFactory.rangeType()),
+			parameters.add(this.variable(systemSource,
+					typeFactory.domainType(typeFactory.rangeType()),
 					this.identifier(systemSource, "domain"), 1));
 			paraScope = this.scope(systemSource, systemScope, parameters, null);
 			function = this.systemFunction(systemSource,

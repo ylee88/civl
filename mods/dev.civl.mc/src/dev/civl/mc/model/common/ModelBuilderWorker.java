@@ -349,13 +349,14 @@ public class ModelBuilderWorker {
 	 * Constructs new instance of ModelBuilderWorker.
 	 * 
 	 * @param config
-	 *            the GMC configuration
+	 *                      the GMC configuration
 	 * @param factory
-	 *            the model factory
+	 *                      the model factory
 	 * @param program
-	 *            the program
+	 *                      the program
 	 * @param name
-	 *            name of the model, i.e. the file name without .cvl extension
+	 *                      name of the model, i.e. the file name without .cvl
+	 *                      extension
 	 * @param debugOut
 	 * @param debugging
 	 */
@@ -453,7 +454,7 @@ public class ModelBuilderWorker {
 	 * need to create that variable.
 	 * 
 	 * @param node
-	 *            an node from the AST
+	 *                 an node from the AST
 	 * @return true iff the node contains a function call node to
 	 *         $next_time_count.
 	 */
@@ -532,9 +533,11 @@ public class ModelBuilderWorker {
 	 * already, so the corresponding CIVL function should already exist.
 	 * 
 	 * @param functionNode
-	 *            The function definition node in the AST to be translated.
+	 *                         The function definition node in the AST to be
+	 *                         translated.
 	 * @throws CIVLInternalException
-	 *             if no corresponding CIVL function could be found.
+	 *                                   if no corresponding CIVL function could
+	 *                                   be found.
 	 */
 	private void translateFunctionDefinitionNode(
 			FunctionDefinitionNode functionNode) {
@@ -622,7 +625,7 @@ public class ModelBuilderWorker {
 	 * type is incomplete.
 	 * 
 	 * @param type
-	 *            The CIVL type to be checked
+	 *                 The CIVL type to be checked
 	 * @return True of False
 	 */
 	private boolean bundleableType(CIVLType type) {
@@ -712,10 +715,11 @@ public class ModelBuilderWorker {
 	 * obtained by the translation.
 	 * 
 	 * @param system
-	 *            The system function of the model, i.e. _CIVL_SYSTEM function.
+	 *                   The system function of the model, i.e. _CIVL_SYSTEM
+	 *                   function.
 	 */
 	protected void completeModel(CIVLFunction system) {
-		boolean hasWaitall = false;
+		// boolean hasWaitall = false;
 
 		model = factory.model(system.getSource(), system, this.program);
 		model.setMessageType(messageType);
@@ -724,16 +728,16 @@ public class ModelBuilderWorker {
 		// add all functions to model except main:
 		for (CIVLFunction f : functionMap.values()) {
 			model.addFunction(f);
-			if (f.name().name().equals("$waitall"))
-				hasWaitall = true;
+			// if (f.name().name().equals("$waitall"))
+			// hasWaitall = true;
 		}
 		for (CIVLFunction f : this.parProcFunctions.keySet())
 			model.addFunction(f);
 		for (CIVLFunction f : this.runProcFunctions.keySet())
 			model.addFunction(f);
-		if (this.parProcFunctions.size() > 0 && !hasWaitall) {
-			model.addFunction(factory.waitFunctionPointer().function());
-		}
+		// if (this.parProcFunctions.size() > 0 && !hasWaitall) {
+		// model.addFunction(factory.waitFunctionPointer().function());
+		// }
 		// if (this.elaborateDomainFunction.size() > 0
 		// && needToAddElaborateDomainFunction) {
 		// for (Entry<Scope, CIVLFunction> entry : elaborateDomainFunction
@@ -872,12 +876,12 @@ public class ModelBuilderWorker {
 	 * functions is guaranteed</li>
 	 * 
 	 * @param startLocation
-	 *            The entry location of the atomic block, it must has a sole
-	 *            outgoing statement ATOMIC_ENTER
+	 *                          The entry location of the atomic block, it must
+	 *                          has a sole outgoing statement ATOMIC_ENTER
 	 * @param endLocation
-	 *            The exit location of the atomic block, an atomic block must
-	 *            have exact one exit location. //TODO: does GOTO allowed in
-	 *            atomic block ?
+	 *                          The exit location of the atomic block, an atomic
+	 *                          block must have exact one exit location. //TODO:
+	 *                          does GOTO allowed in atomic block ?
 	 */
 	private void atomicBlockTerminationAnalysis(Location startLocation,
 			Location endLocation) {
@@ -950,8 +954,8 @@ public class ModelBuilderWorker {
 	 * all locations ({@link CIVLFunction#locations()}).
 	 * 
 	 * @param function
-	 *            The given function will be tested if it has any function call
-	 *            in its body.
+	 *                     The given function will be tested if it has any
+	 *                     function call in its body.
 	 * @return True iff there is at least one function call statement in the
 	 *         function body.
 	 */
@@ -1120,9 +1124,9 @@ public class ModelBuilderWorker {
 	 * the loop body.
 	 * 
 	 * @param loopStart
-	 *            the start location of the loop
+	 *                      the start location of the loop
 	 * @param loopExit
-	 *            the exit statement of the loop
+	 *                      the exit statement of the loop
 	 * @return
 	 */
 	private Statement getIncrement(Location loopStart, Statement loopExit) {
@@ -1287,10 +1291,10 @@ public class ModelBuilderWorker {
 	 * containing originalScope are considered. Other variables are ignored.
 	 * 
 	 * @param originalScope
-	 *            the scope containing the atomic section
+	 *                          the scope containing the atomic section
 	 * @param start
-	 *            the start location of the atomic function, or the target
-	 *            location of an atomic-enter statement
+	 *                          the start location of the atomic function, or
+	 *                          the target location of an atomic-enter statement
 	 * @return an over-approximation of the set of previously existing variables
 	 *         accessed in the atomic section, or {@code null} if no
 	 *         approximation could be computed

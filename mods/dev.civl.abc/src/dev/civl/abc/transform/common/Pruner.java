@@ -142,9 +142,9 @@ public class Pruner extends BaseTransformer {
 		if (main.getDefinition() == null)
 			throw new ASTException("Main function missing definition");
 		else {
-			ast.release();
 			markAllUnreachable(root);
 			new PrunerWorker(reachedKey, root);
+			ast.release();
 			root.keepOnly(reachable);
 
 			AST newAst = astFactory.newAST(root, ast.getSourceFiles(),

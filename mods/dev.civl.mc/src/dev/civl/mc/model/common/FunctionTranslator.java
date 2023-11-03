@@ -121,6 +121,7 @@ import dev.civl.abc.ast.value.IF.Value;
 import dev.civl.abc.token.IF.CivlcToken;
 import dev.civl.abc.token.IF.Source;
 import dev.civl.abc.token.IF.StringLiteral;
+import dev.civl.gmc.CommandLineException;
 import dev.civl.mc.config.IF.CIVLConfiguration;
 import dev.civl.mc.model.IF.AbstractFunction;
 import dev.civl.mc.model.IF.AccuracyAssumptionBuilder;
@@ -181,7 +182,6 @@ import dev.civl.mc.model.common.statement.CommonAtomicLockAssignStatement;
 import dev.civl.mc.util.IF.Pair;
 import dev.civl.mc.util.IF.Singleton;
 import dev.civl.mc.util.IF.Triple;
-import dev.civl.gmc.CommandLineException;
 import dev.civl.sarl.IF.SymbolicUniverse;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 
@@ -864,9 +864,21 @@ public class FunctionTranslator {
 		// The argument of the $wait: procArray[loopIdentifier]:
 		proc = modelFactory.subscriptExpression(processArray.getSource(),
 				processArray, loopIdentifier);
+		// the $wait function should have been in the AST and should
+		// have been processed already...
+		Function waitFun = (Function) modelBuilder.program.getAST()
+				.getInternalOrExternalEntity("$wait");
+		if (waitFun == null)
+			throw new CIVLInternalException("$wait function missing from AST",
+					source);
+		CIVLFunction civlWaitFun = modelBuilder.functionMap.get(waitFun);
+		if (civlWaitFun == null)
+			throw new CIVLInternalException(
+					"$wait function missing from CIVL model", source);
+		FunctionIdentifierExpression waitExpr = modelFactory
+				.functionIdentifierExpression(source, civlWaitFun);
 		waitStmt = modelFactory.callOrSpawnStatement(source, waitLocation, true,
-				modelFactory.waitFunctionPointer(), Arrays.asList(proc), null,
-				false);
+				waitExpr, Arrays.asList(proc), null, false);
 		// I thought CIVL can figure out the guard of system functions by itself
 		// (at runtime, the older version CIVL did that and changes happened
 		// after POR contracts I believe) but it seems not the case. Not
@@ -2615,6 +2627,13 @@ public class FunctionTranslator {
 			throw new CIVLInternalException("Unresolved function declaration",
 					modelFactory.sourceOf(node));
 		result = modelBuilder.functionMap.get(entity);
+
+		// TODO: debugging code...
+		// System.out.println("*** function: "+entity.getName());
+		// if ("$wait".equals(entity.getName())) {
+		// System.out.println("*** $wait function is being translated now.");
+		// }
+
 		// Create or update the CIVLFunction object in two cases:
 		// 1. It is the first time encountering the function declaration or
 		// definition.
@@ -4668,8 +4687,8 @@ public class FunctionTranslator {
 					CIVLType oldCIVLType;
 
 					assert (oldCIVLType = translateABCType(source, scope,
-							oldType)).equals(
-									translateABCType(source, scope, oldType))
+							oldType))
+							.equals(translateABCType(source, scope, oldType))
 							&& oldCIVLType
 									.equals(expression.getExpressionType());
 					// The C11 Section 6.2.7 states following about 2 types have
