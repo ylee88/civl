@@ -78,7 +78,7 @@ public class DeclarationAnalyzer {
 	 * analyzer.
 	 * 
 	 * @param entityAnalyzer
-	 *            the entity analyzer in charge
+	 *                           the entity analyzer in charge
 	 */
 	DeclarationAnalyzer(EntityAnalyzer entityAnalyzer) {
 		this.entityAnalyzer = entityAnalyzer;
@@ -92,7 +92,7 @@ public class DeclarationAnalyzer {
 	 * Sets the ignoredTypes to the given collection. Elements are not copied.
 	 * 
 	 * @param ignoredTypes
-	 *            names of types for which typedefs will be ignored
+	 *                         names of types for which typedefs will be ignored
 	 */
 	void setIgnoredTypes(Collection<String> ignoredTypes) {
 		this.ignoredTypes = ignoredTypes;
@@ -102,9 +102,11 @@ public class DeclarationAnalyzer {
 	 * Processes a typedef declaration.
 	 * 
 	 * @param node
-	 *            a typedef declaration node that has not yet been processes
+	 *                 a typedef declaration node that has not yet been
+	 *                 processes
 	 * @throws SyntaxException
-	 *             if anything is wrong with the typedef declaration
+	 *                             if anything is wrong with the typedef
+	 *                             declaration
 	 */
 	void processTypedefDeclaration(TypedefDeclarationNode node)
 			throws SyntaxException {
@@ -164,13 +166,13 @@ public class DeclarationAnalyzer {
 	 * function parameter.
 	 * 
 	 * @param node
-	 *            a variable declaration node
+	 *                 a variable declaration node
 	 * @return the {@link Variable} declared, which is either created by this
 	 *         method if this is the first declaration of that variable, or is
 	 *         the existing variable if this is not the first declaration of the
 	 *         variable
 	 * @throws SyntaxException
-	 *             if anything is wrong with the declaration
+	 *                             if anything is wrong with the declaration
 	 */
 	Variable processVariableDeclaration(VariableDeclarationNode node)
 			throws SyntaxException {
@@ -216,17 +218,19 @@ public class DeclarationAnalyzer {
 	 * </ul>
 	 * 
 	 * @param node
-	 *            the function declaration node to be processed
+	 *                 the function declaration node to be processed
 	 * @return the {@link Function} entity, either newly created or already
 	 *         existing
 	 * @throws SyntaxException
-	 *             if there is anything wrong with the type, contract (if one
-	 *             exists), or body (if the declaration is a function
-	 *             definition); if the function cannot be added to the
-	 *             definition or declaration scope (for example, because an
-	 *             object of the same name is already in one of those scopes);
-	 *             or if the type of the existing function is not compatible
-	 *             with the type specified by the declaration
+	 *                             if there is anything wrong with the type,
+	 *                             contract (if one exists), or body (if the
+	 *                             declaration is a function definition); if the
+	 *                             function cannot be added to the definition or
+	 *                             declaration scope (for example, because an
+	 *                             object of the same name is already in one of
+	 *                             those scopes); or if the type of the existing
+	 *                             function is not compatible with the type
+	 *                             specified by the declaration
 	 */
 	Function processFunctionDeclaration(FunctionDeclarationNode node)
 			throws SyntaxException {
@@ -312,17 +316,18 @@ public class DeclarationAnalyzer {
 	 * processing the type node, etc.
 	 * 
 	 * @param node
-	 *            a variable declaration node; after the type node of this
-	 *            declaration is processed, the resulting type must be an
-	 *            {@link ObjectType}
+	 *                        a variable declaration node; after the type node
+	 *                        of this declaration is processed, the resulting
+	 *                        type must be an {@link ObjectType}
 	 * @param isParameter
-	 *            is this variable a formal parameter in a function declaration
-	 *            or definition
+	 *                        is this variable a formal parameter in a function
+	 *                        declaration or definition
 	 * @return the Variable represented by this declaration (either the existing
 	 *         one or a new one)
 	 * @throws SyntaxException
-	 *             if there is any problem with the type node, or if a
-	 *             conflicting declaration of this object already exists
+	 *                             if there is any problem with the type node,
+	 *                             or if a conflicting declaration of this
+	 *                             object already exists
 	 */
 	Variable processVariableDeclaration(VariableDeclarationNode node,
 			boolean isParameter) throws SyntaxException {
@@ -420,7 +425,7 @@ public class DeclarationAnalyzer {
 
 	/**
 	 * @param type
-	 *            a type
+	 *                 a type
 	 * @return true iff the given type is or includes a sub-type which is an
 	 *         array with variable length
 	 */
@@ -456,9 +461,9 @@ public class DeclarationAnalyzer {
 	 * Creates a sourced static exception.
 	 * 
 	 * @param message
-	 *            the error message
+	 *                    the error message
 	 * @param node
-	 *            the node responsible for leading to the error
+	 *                    the node responsible for leading to the error
 	 * @return the new exception
 	 */
 	private SyntaxException error(String message, ASTNode node) {
@@ -470,10 +475,10 @@ public class DeclarationAnalyzer {
 	 * adding the source information from a given node.
 	 * 
 	 * @param e
-	 *            the unsourced exception
+	 *                 the unsourced exception
 	 * @param node
-	 *            the node responsible for leading to the error, whose source
-	 *            will be used to form the sourced exception
+	 *                 the node responsible for leading to the error, whose
+	 *                 source will be used to form the sourced exception
 	 * @return the new sourced static exception
 	 */
 	private SyntaxException error(UnsourcedException e, ASTNode node) {
@@ -484,14 +489,15 @@ public class DeclarationAnalyzer {
 	 * Processes and initializer node in a variable declaration.
 	 * 
 	 * @param initializer
-	 *            the initializer node
+	 *                        the initializer node
 	 * @param currentType
-	 *            the type of the variable being initialized before processing
-	 *            this initializer; must be non-<code>null</code>. Note the type
-	 *            may change as the initializer is processed
+	 *                        the type of the variable being initialized before
+	 *                        processing this initializer; must be
+	 *                        non-<code>null</code>. Note the type may change as
+	 *                        the initializer is processed
 	 * @throws SyntaxException
-	 *             if anything is wrong with this initializer, for example, if
-	 *             it has the wrong type
+	 *                             if anything is wrong with this initializer,
+	 *                             for example, if it has the wrong type
 	 */
 	private void processInitializer(InitializerNode initializer,
 			ObjectType currentType) throws SyntaxException {
@@ -546,7 +552,7 @@ public class DeclarationAnalyzer {
 	 * function name, or the root scope if there is no such ancestor.
 	 * 
 	 * @param functionDeclNode
-	 *            the node for the function declaration.
+	 *                             the node for the function declaration.
 	 * @return the definition scope
 	 */
 	private Scope getDefinitionScope(OrdinaryDeclarationNode functionDeclNode) {
@@ -579,11 +585,12 @@ public class DeclarationAnalyzer {
 	 * </ul>
 	 * 
 	 * @param node
-	 *            the function declaration node
+	 *                 the function declaration node
 	 * @return the kind of linkage
 	 * @throws SyntaxException
-	 *             if this analysis is taking place in C (not CIVL-C) mode and
-	 *             the declaration "static" is used in a block scope
+	 *                             if this analysis is taking place in C (not
+	 *                             CIVL-C) mode and the declaration "static" is
+	 *                             used in a block scope
 	 */
 	private LinkageKind computeLinkageOfFunction(OrdinaryDeclarationNode node)
 			throws SyntaxException {
@@ -674,13 +681,14 @@ public class DeclarationAnalyzer {
 	 * </p>
 	 * 
 	 * @param node
-	 *            an ordinary declaration
+	 *                 an ordinary declaration
 	 * @return the kind of linkage
 	 * @throws SyntaxException
-	 *             if the language is C and this is the declaration of a
-	 *             block-scope function and the declaration contains a storage
-	 *             class specifier that is not "extern". (This is prohibited by
-	 *             C11, but is allowed in CIVL-C.)
+	 *                             if the language is C and this is the
+	 *                             declaration of a block-scope function and the
+	 *                             declaration contains a storage class
+	 *                             specifier that is not "extern". (This is
+	 *                             prohibited by C11, but is allowed in CIVL-C.)
 	 */
 	private LinkageKind computeLinkage(OrdinaryDeclarationNode node,
 			boolean isParameter, Type type) throws SyntaxException {
@@ -767,13 +775,14 @@ public class DeclarationAnalyzer {
 	 * no-op.
 	 * 
 	 * @param functionNode
-	 *            a declaration of a function
+	 *                         a declaration of a function
 	 * @param entity
-	 *            a function entity
+	 *                         a function entity
 	 * @throws SyntaxException
-	 *             if the declaration indicates it is a system function
-	 *             declaration and <code>entity</code> is a system function and
-	 *             the library names of those two system functions differ
+	 *                             if the declaration indicates it is a system
+	 *                             function declaration and <code>entity</code>
+	 *                             is a system function and the library names of
+	 *                             those two system functions differ
 	 */
 	private void checkSystemLibraryForFunction(
 			FunctionDeclarationNode functionNode, Function entity)
@@ -798,12 +807,12 @@ public class DeclarationAnalyzer {
 	 * type" and updates the type of the entity to that composite type.
 	 * 
 	 * @param typeNode
-	 *            a type node
+	 *                     a type node
 	 * @param entity
-	 *            a {@link Function} or {@link Variable}
+	 *                     a {@link Function} or {@link Variable}
 	 * @throws SyntaxException
-	 *             if the type specified by the type node and the type of the
-	 *             entity are not compatible
+	 *                             if the type specified by the type node and
+	 *                             the type of the entity are not compatible
 	 */
 	private void addTypeToVariableOrFunction(TypeNode typeNode,
 			OrdinaryEntity entity) throws SyntaxException {
@@ -853,12 +862,13 @@ public class DeclarationAnalyzer {
 	 * </p>
 	 * 
 	 * @param variable
-	 *            a non-<code>null</code> {@link Variable}
+	 *                        a non-<code>null</code> {@link Variable}
 	 * @param declaration
-	 *            a declaration of <code>variable</code>
+	 *                        a declaration of <code>variable</code>
 	 * @throws SyntaxException
-	 *             if the type of <code>declaration</code> is incompatible with
-	 *             that of <code>variable</code>
+	 *                             if the type of <code>declaration</code> is
+	 *                             incompatible with that of
+	 *                             <code>variable</code>
 	 */
 	private void addDeclarationToVariable(Variable variable,
 			VariableDeclarationNode declaration) throws SyntaxException {
@@ -932,35 +942,38 @@ public class DeclarationAnalyzer {
 	 * </p>
 	 * 
 	 * @param function
-	 *            the {@link Function} entity
+	 *                        the {@link Function} entity
 	 * @param declaration
-	 *            a declaration of that function
+	 *                        a declaration of that function
 	 * @throws SyntaxException
-	 *             if there is disagreement on the Noreturn specifier among the
-	 *             declarations of the function, or if this is a second
-	 *             definition of that function
+	 *                             if there is disagreement on the Noreturn
+	 *                             specifier among the declarations of the
+	 *                             function, or if this is a second definition
+	 *                             of that function
 	 */
 	private void addDeclarationToFunction(Function function,
 			FunctionDeclarationNode declaration) throws SyntaxException {
 		Iterator<DeclarationNode> declarationIter = function.getDeclarations()
 				.iterator();
 
-		if (!declarationIter.hasNext()) {
+		// TODO: continue working on this to determine how to combine
+		// different declarations of a function...
+		if (declaration.hasAtomicFunctionSpecifier())
+			function.setAtomic(true);
+		if (declaration.hasStatefFunctionSpecifier())
+			function.setStateFunction(true);
+		if (declaration.hasPureFunctionSpecifier())
+			function.setPure(true);
+		if (declaration.hasSystemFunctionSpecifier()) {
+			function.setSystemFunction(true);
+			if (declaration.getSystemLibrary() != null)
+				function.setSystemLibrary(declaration.getSystemLibrary());
+		}
+		if (!declarationIter.hasNext()) { // first decl of this function
 			if (declaration.hasInlineFunctionSpecifier())
 				function.setIsInlined(true);
 			if (declaration.hasNoreturnFunctionSpecifier())
 				function.setDoesNotReturn(true);
-			if (declaration.hasAtomicFunctionSpecifier())
-				function.setAtomic(true);
-			if (declaration.hasSystemFunctionSpecifier()) {
-				function.setSystemFunction(true);
-				if (declaration.getSystemLibrary() != null)
-					function.setSystemLibrary(declaration.getSystemLibrary());
-			}
-			if (declaration.hasStatefFunctionSpecifier())
-				function.setStateFunction(true);
-			if (declaration.hasPureFunctionSpecifier())
-				function.setPure(true);
 			if (declaration instanceof AbstractFunctionDefinitionNode)
 				function.setAbstract(true);
 		} else if (declaration.hasNoreturnFunctionSpecifier() != function
@@ -1002,9 +1015,10 @@ public class DeclarationAnalyzer {
 	 * identifier.
 	 * 
 	 * @param node
-	 *            a node in the AST
+	 *                 a node in the AST
 	 * @throws SyntaxException
-	 *             if a "goto" statement refers to a label which does not exist
+	 *                             if a "goto" statement refers to a label which
+	 *                             does not exist
 	 */
 	private void processGotos(ASTNode node) throws SyntaxException {
 		Iterable<ASTNode> childIter = node.children();
