@@ -49,13 +49,22 @@ typedef struct _collate_state $collate_state;
 
 /********************* Function prototypes: *********************/
 /* API for creating a $gcollator: */
+/*@ depends_on \nothing;
+  @ executes_when \true;
+  @*/
 $atomic_f $gcollator $gcollator_create($scope scope, int nprocs);
 
 /* API for destroying a $gcollator, all referred gcollate states will
    be destroyed: */
+/*@ depends_on \nothing;
+  @ executes_when \true;
+  @*/
 $atomic_f void $gcollator_destroy($gcollator gc);
 
 /* API for creating a $collator: */
+/*@ depends_on \nothing;
+  @ executes_when \true;
+  @*/
 $atomic_f $collator  $collator_create($gcollator gcollator, $scope scope, int place);
 /* $collator can be destroyed by calling $free(..) */
 
@@ -147,9 +156,15 @@ $system $state_f _Bool $collate_complete($collate_state cp);
 $atomic_f $bundle $collate_check($collator c, $bundle attribute);
 
 /* Marks the status of entering the collator to be true. */
+/*@ depends_on \nothing;
+  @ executes_when \true;
+  @*/
 $atomic_f void $collator_enters($collator collator);
 
 /* Checks if the given processes in the range have all entered the collator. */
+/*@ depends_on \nothing;
+  @ executes_when \true;
+  @*/
 $atomic_f _Bool $collator_has_entered($collator colaltor, $range range);
 
 /** returns the state reference. */
