@@ -230,7 +230,7 @@ public class SideEffectRemover extends BaseTransformer {
 	/**
 	 * The number of temporary variables created by this transformer.
 	 */
-	private int tempVariableCounter = 0;
+	private static int tempVariableCounter = 0;
 
 	/**
 	 * A reference to {@link StringOrCompoundInitializerTranslateWorker} which

@@ -10,6 +10,134 @@
 
 #include <civl-cuda.cvh>
 
+/* the type returned by all Cuda functions
+ */
+typedef enum {
+  cudaSuccess,
+  cudaErrorMissingConfiguration,
+  cudaErrorMemoryAllocation,
+  cudaErrorInitializationError,
+  cudaErrorLaunchFailure,
+  cudaErrorPriorLaunchFailure,
+  cudaErrorLaunchTimeout,
+  cudaErrorLaunchOutOfResources,
+  cudaErrorInvalidDeviceFunction,
+  cudaErrorInvalidConfiguration,
+  cudaErrorInvalidDevice,
+  cudaErrorInvalidValue,
+  cudaErrorInvalidPitchValue,
+  cudaErrorInvalidSymbol,
+  cudaErrorMapBufferObjectFailed,
+  cudaErrorUnmapBufferObjectFailed,
+  cudaErrorInvalidHostPointer,
+  cudaErrorInvalidDevicePointer,
+  cudaErrorInvalidTexture,
+  cudaErrorInvalidTextureBinding,
+  cudaErrorInvalidChannelDescriptor,
+  cudaErrorInvalidMemcpyDirection,
+  cudaErrorAddressOfConstant,
+  cudaErrorTextureFetchFailed,
+  cudaErrorTextureNotBound,
+  cudaErrorSynchronizationError,
+  cudaErrorInvalidFilterSetting,
+  cudaErrorInvalidNormSetting,
+  cudaErrorMixedDeviceExecution,
+  cudaErrorCudartUnloading,
+  cudaErrorUnknown,
+  cudaErrorNotYetImplemented,
+  cudaErrorMemoryValueTooLarge,
+  cudaErrorInvalidResourceHandle,
+  cudaErrorNotReady,
+  cudaErrorInsufficientDriver,
+  cudaErrorSetOnActiveProcess,
+  cudaErrorInvalidSurface,
+  cudaErrorNoDevice,
+  cudaErrorECCUncorrectable,
+  cudaErrorSharedObjectSymbolNotFound,
+  cudaErrorSharedObjectInitFailed,
+  cudaErrorUnsupportedLimit,
+  cudaErrorDuplicateVariableName,
+  cudaErrorDuplicateTextureName,
+  cudaErrorDuplicateSurfaceName,
+  cudaErrorDevicesUnavailable,
+  cudaErrorInvalidKernelImage,
+  cudaErrorNoKernelImageForDevice,
+  cudaErrorIncompatibleDriverContext,
+  cudaErrorPeerAccessAlreadyEnabled,
+  cudaErrorPeerAccessNotEnabled,
+  cudaErrorDeviceAlreadyInUse,
+  cudaErrorProfilerDisabled,
+  cudaErrorProfilerNotInitialized,
+  cudaErrorProfilerAlreadyStarted,
+  cudaErrorProfilerAlreadyStopped,
+  cudaErrorAssert,
+  cudaErrorTooManyPeers,
+  cudaErrorHostMemoryAlreadyRegistered,
+  cudaErrorHostMemoryNotRegistered,
+  cudaErrorOperatingSystem,
+  cudaErrorStartupFailure,
+  cudaErrorApiFailureBase
+} cudaError;
+typedef cudaError cudaError_t;
+
+/* struct representing the properties of a Cuda device
+ */
+typedef struct cudaDeviceProp {
+  char name[256];
+  size_t totalGlobalMem;
+  size_t sharedMemPerBlock;
+  int regsPerBlock;
+  int warpSize;
+  size_t memPitch;
+  int maxThreadsPerBlock;
+  int maxThreadsDim[3];
+  int maxGridSize[3];
+  int clockRate;
+  size_t totalConstMem;
+  int major;
+  int minor;
+  size_t textureAlignment;
+  size_t texturePitchAlignment;
+  int deviceOverlap;
+  int multiProcessorCount;
+  int kernelExecTimeoutEnabled;
+  int integrated;
+  int canMapHostMemory;
+  int computeMode;
+  int maxTexture1D;
+  int maxTexture1DLinear;
+  int maxTexture2D[2];
+  int maxTexture2DLinear[3];
+  int maxTexture2DGather[2];
+  int maxTexture3D[3];
+  int maxTextureCubemap;
+  int maxTexture1DLayered[2];
+  int maxTexture2DLayered[3];
+  int maxTextureCubemapLayered[2];
+  int maxSurface1D;
+  int maxSurface2D[2];
+  int maxSurface3D[3];
+  int maxSurface1DLayered[2];
+  int maxSurface2DLayered[3];
+  int maxSurfaceCubemap;
+  int maxSurfaceCubemapLayered[2];
+  size_t surfaceAlignment;
+  int concurrentKernels;
+  int ECCEnabled;
+  int pciBusID;
+  int pciDeviceID;
+  int pciDomainID;
+  int tccDriver;
+  int asyncEngineCount;
+  int unifiedAddressing;
+  int memoryClockRate;
+  int memoryBusWidth;
+  int l2CacheSize;
+  int maxThreadsPerMultiProcessor;
+} cudaDeviceProp;
+
+typedef $cuda_stream_t cudaStream_t;
+
 /* Returns in *count the number of devices with compute capability 
  * greater or equal to 1.0 that are available for execution.
  */
@@ -22,49 +150,6 @@ cudaError_t cudaGetDevice(int * device);
 /* Returns in *prop the properties of device dev
  */
 cudaError_t cudaGetDeviceProperties(struct cudaDeviceProp * prop, int dev);
-
-/* Creates and event object
- */
-cudaError_t cudaEventCreate(cudaEvent_t *event);
-
-/* Records an event. If stream is non-zero, the event is recorded 
- * after all preceding operations in stream have been completed; 
- * otherwise, it is recorded after all preceding operations in the 
- * CUDA context have been completed. Since operation is asynchronous, 
- * cudaEventQuery() and/or cudaEventSynchronize() must be used to 
- * determine when the event has actually been recorded.
- */
-cudaError_t cudaEventRecord(cudaEvent_t event, cudaStream_t s);
-
-/* Query the status of all device work preceding the most recent call 
- * to cudaEventRecord() (in the appropriate compute streams, as 
- * specified by the arguments to cudaEventRecord()).
- * 
- * If this work has successfully been completed by the device, or if 
- * cudaEventRecord() has not been called on event, then cudaSuccess 
- * is returned. If this work has not yet been completed by the device 
- * then cudaErrorNotReady is returned.
- */
-cudaError_t cudaEventQuery(cudaEvent_t event);
-
-
-/* Wait until the completion of all device work preceding the most 
- * recent call to cudaEventRecord() (in the appropriate compute streams, 
- * as specified by the arguments to cudaEventRecord()).
- *
- * If cudaEventRecord() has not been called on event, cudaSuccess 
- * is returned immediately.
- */
-cudaError_t cudaEventSynchronize(cudaEvent_t event);
-
-/* since "timing" doesn't really make sense in the verification process
- * I'm not sure what this should do. maybe it shouldn't exist.
- */
-cudaError_t cudaEventElapsedTime(float *t, cudaEvent_t from, cudaEvent_t to);
-
-/* Destroys the event specified by event.
- */
-cudaError_t cudaEventDestroy(cudaEvent_t event);
 
 /* Creates a new asynchronous stream.
  */
@@ -96,7 +181,7 @@ cudaError_t cudaDeviceSynchronize( void );
  * or cudaMemcpyDeviceToDevice, and specifies the direction of the 
  * copy. The memory areas may not overlap.
  */
-cudaError_t cudaMemcpy ( void *dst, const void *src, size_t count, enum cudaMemcpyKind kind );
+cudaError_t cudaMemcpy ( void *dst, const void *src, size_t count, cudaMemcpyKind kind );
 
 /* Not implemented. Prototype provided for compiling purposes.
  */
@@ -133,17 +218,65 @@ cudaError_t cudaThreadExit(void);
  */
 void __syncthreads( void );
 
+int __popc(unsigned int x);
+int __popcll(unsigned long long int x);
+
 uint3 threadIdx;
 uint3 blockIdx;
 dim3 gridDim;
 dim3 blockDim;
-int warpSize;
 
-int __shfl_sync(unsigned mask, int var, int srcLane, ...);
-int __shfl_up_sync(unsigned mask, int var, unsigned int delta, ...);
-int __shfl_down_sync(unsigned mask, int var, unsigned int delta, ...);
-int __shfl_xor_sync(unsigned mask, int var, int laneMask, ...);
+#define $GET_ARG_1(_1, ...) _1
+#define $GET_ARG_2(_1, _2, ...) _2
+#define $CUDA_SHFL_PARAM_MACRO(...) $GET_ARG_1(__VA_ARGS__, warpSize, 0), $GET_ARG_2(__VA_ARGS__, warpSize, 0)
 
+#define __shfl_sync(mask, var, ...)                                     \
+  _Generic(var,                                                         \
+           default: $cuda__shfl_sync_int,                               \
+           unsigned int: $cuda__shfl_sync_uint,                         \
+           long: $cuda__shfl_sync_long,                                 \
+           unsigned long: $cuda__shfl_sync_ulong,                       \
+           long long: $cuda__shfl_sync_ll,                              \
+           unsigned long long: $cuda__shfl_sync_ull,                    \
+           float: $cuda__shfl_sync_float,                               \
+           double: $cuda__shfl_sync_double) (mask, var, $CUDA_SHFL_PARAM_MACRO(__VA_ARGS__), $lane)
+
+#define __shfl_up_sync(mask, var, ...)                                  \
+  _Generic(var,                                                         \
+           default: $cuda__shfl_up_sync_int,                            \
+           unsigned int: $cuda__shfl_up_sync_uint,                      \
+           long: $cuda__shfl_up_sync_long,                              \
+           unsigned long: $cuda__shfl_up_sync_ulong,                    \
+           long long: $cuda__shfl_up_sync_ll,                           \
+           unsigned long long: $cuda__shfl_up_sync_ull,                 \
+           float: $cuda__shfl_up_sync_float,                            \
+           double: $cuda__shfl_up_sync_double) (mask, var, $CUDA_SHFL_PARAM_MACRO(__VA_ARGS__), $lane)
+
+#define __shfl_down_sync(mask, var, ...)                                \
+  _Generic(var,                                                         \
+           default: $cuda__shfl_down_sync_int,                          \
+           unsigned int: $cuda__shfl_down_sync_uint,                    \
+           long: $cuda__shfl_down_sync_long,                            \
+           unsigned long: $cuda__shfl_down_sync_ulong,                  \
+           long long: $cuda__shfl_down_sync_ll,                         \
+           unsigned long long: $cuda__shfl_down_sync_ull,               \
+           float: $cuda__shfl_down_sync_float,                          \
+           double: $cuda__shfl_down_sync_double) (mask, var, $CUDA_SHFL_PARAM_MACRO(__VA_ARGS__), $lane)
+ 
+#define __shfl_xor_sync(mask, var, ...)                                 \
+  _Generic(var,                                                         \
+           default: $cuda__shfl_xor_sync_int,                           \
+           unsigned int: $cuda__shfl_xor_sync_uint,                     \
+           long: $cuda__shfl_xor_sync_long,                             \
+           unsigned long: $cuda__shfl_xor_sync_ulong,                   \
+           long long: $cuda__shfl_xor_sync_ll,                          \
+           unsigned long long: $cuda__shfl_xor_sync_ull,                \
+           float: $cuda__shfl_xor_sync_float,                           \
+           double: $cuda__shfl_xor_sync_double) (mask, var, $CUDA_SHFL_PARAM_MACRO(__VA_ARGS__), $lane)
+
+#define __ballot_sync(mask, predicate) $cuda__ballot_sync(mask, predicate, $lane)
+#define __all_sync(mask, predicate) $cuda__all_sync(mask, predicate, $lane)
+#define __any_sync(mask, predicate) $cuda__any_sync(mask, predicate, $lane)
 
 /** C++ Language Extensions **/
 
@@ -159,7 +292,7 @@ unsigned long long int cudaAtomicAdd_ullint(unsigned long long int* address,
                                         unsigned long long int val);
 float cudaAtomicAdd_float(float* address, float val);
 double cudaAtomicAdd_double(double* address, double val);
-#define atomicAdd(X,Y) _Generic(X,              \
+#define atomicAdd(X,Y) _Generic(X,                  \
     default : cudaAtomicAdd_int,                    \
     unsigned int* : cudaAtomicAdd_uint,             \
     unsigned long long int* : cudaAtomicAdd_ullint, \
@@ -174,7 +307,7 @@ double cudaAtomicAdd_double(double* address, double val);
  */
 int cudaAtomicSub_int(int* address, int val);
 unsigned int cudaAtomicSub_uint(unsigned int* address, unsigned int val);
-#define atomicSub(X,Y) _Generic X, \
+#define atomicSub(X,Y) _Generic(X,     \
     default : cudaAtomicSub_int,       \
     unsigned int* : cudaAtomicSub_uint) (X,Y)
 

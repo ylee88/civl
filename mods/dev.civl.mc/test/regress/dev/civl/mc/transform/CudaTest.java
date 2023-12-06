@@ -52,7 +52,7 @@ public class CudaTest {
 
 	@Test
 	public void dotTest() {
-		assertTrue(ui.run("verify -inputN_B=3 -input threadsPerBlock_B=3",
+		assertTrue(ui.run("verify -inputN_B=4",
 				QUIET, filename("dot.cu")));
 	}
 

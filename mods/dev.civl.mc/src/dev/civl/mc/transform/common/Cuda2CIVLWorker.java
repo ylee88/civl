@@ -3,9 +3,12 @@ package dev.civl.mc.transform.common;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import dev.civl.abc.ast.IF.AST;
@@ -15,8 +18,12 @@ import dev.civl.abc.ast.node.IF.ASTNode;
 import dev.civl.abc.ast.node.IF.ASTNode.NodeKind;
 import dev.civl.abc.ast.node.IF.IdentifierNode;
 import dev.civl.abc.ast.node.IF.SequenceNode;
+import dev.civl.abc.ast.node.IF.declaration.DeclarationNode;
+import dev.civl.abc.ast.node.IF.declaration.EnumeratorDeclarationNode;
+import dev.civl.abc.ast.node.IF.declaration.FieldDeclarationNode;
 import dev.civl.abc.ast.node.IF.declaration.FunctionDeclarationNode;
 import dev.civl.abc.ast.node.IF.declaration.FunctionDefinitionNode;
+import dev.civl.abc.ast.node.IF.declaration.TypedefDeclarationNode;
 import dev.civl.abc.ast.node.IF.declaration.VariableDeclarationNode;
 import dev.civl.abc.ast.node.IF.expression.CastNode;
 import dev.civl.abc.ast.node.IF.expression.DotNode;
@@ -27,6 +34,7 @@ import dev.civl.abc.ast.node.IF.expression.IdentifierExpressionNode;
 import dev.civl.abc.ast.node.IF.expression.IntegerConstantNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode.Operator;
+import dev.civl.abc.ast.node.IF.label.SwitchLabelNode;
 import dev.civl.abc.ast.node.IF.statement.BlockItemNode;
 import dev.civl.abc.ast.node.IF.statement.CompoundStatementNode;
 import dev.civl.abc.ast.node.IF.statement.ExpressionStatementNode;
@@ -34,9 +42,13 @@ import dev.civl.abc.ast.node.IF.statement.LoopNode;
 import dev.civl.abc.ast.node.IF.statement.StatementNode;
 import dev.civl.abc.ast.node.IF.statement.StatementNode.StatementKind;
 import dev.civl.abc.ast.node.IF.type.ArrayTypeNode;
+import dev.civl.abc.ast.node.IF.type.EnumerationTypeNode;
 import dev.civl.abc.ast.node.IF.type.FunctionTypeNode;
+import dev.civl.abc.ast.node.IF.type.PointerTypeNode;
 import dev.civl.abc.ast.node.IF.type.TypeNode;
 import dev.civl.abc.ast.node.IF.type.TypeNode.TypeNodeKind;
+import dev.civl.abc.ast.node.IF.type.TypedefNameNode;
+import dev.civl.abc.ast.type.IF.EnumerationType;
 import dev.civl.abc.ast.type.IF.FunctionType;
 import dev.civl.abc.ast.type.IF.ObjectType;
 import dev.civl.abc.ast.type.IF.PointerType;
@@ -46,43 +58,596 @@ import dev.civl.abc.ast.type.IF.StandardBasicType.BasicTypeKind;
 import dev.civl.abc.ast.type.IF.Type;
 import dev.civl.abc.ast.type.IF.Type.TypeKind;
 import dev.civl.abc.ast.type.common.CommonFunctionType;
+import dev.civl.abc.front.IF.CivlcTokenConstant;
 import dev.civl.abc.token.IF.CivlcToken;
+import dev.civl.abc.token.IF.Formation;
 import dev.civl.abc.token.IF.Source;
 import dev.civl.abc.token.IF.SourceFile;
+import dev.civl.abc.token.IF.StringLiteral;
+import dev.civl.abc.token.IF.StringToken;
 import dev.civl.abc.token.IF.SyntaxException;
+import dev.civl.abc.token.IF.TokenFactory;
+import dev.civl.abc.token.IF.CivlcToken.TokenVocabulary;
+import dev.civl.mc.model.IF.CIVLSyntaxException;
 import dev.civl.mc.transform.IF.Cuda2CIVLTransformer;
+import dev.civl.mc.util.IF.Pair;
 
 public class Cuda2CIVLWorker extends BaseWorker {
 
-	private static String CUDA_HEADER = "cuda.h";
+	private static final String CUDA_HEADER = "cuda.h";
 	private int tempVarNum;
+
+	private static final Set<String> builtinCUDAVariables = Set.of("threadIdx",
+			"blockIdx", "gridDim", "blockDim");
+
+	private static final String CUDA_TAG_ENUM_NAME = "$cuda_tag";
+	private static final String HOST_COMM_NAME = "$cuda_host_comm";
+	private static final String HOST_PLACE_NAME = "$CUDA_PLACE_HOST";
+	private static final String DEVICE_PLACE_NAME = "$CUDA_PLACE_DEVICE";
+	private static final String DEVICE_GLOB_CONTEXT_NAME = "$cuda_global_context";
+	private static final String CUDA_MAIN = "$cuda_main";
+	private EnumerationType cudaTagEnumType = null;
+
+	private Map<String, KernelInfo> kernelMap = new HashMap<String, KernelInfo>();
+	private Set<ExpressionStatementNode> kernelCalls = new HashSet<ExpressionStatementNode>();
+
+	protected class KernelInfo {
+		private static final String NUM_THREADS_NAME = "$numThreads";
+
+		public Function entity;
+		public int numSyncthreads = 0;
+
+		public KernelInfo(Function entity) {
+			this.entity = entity;
+		}
+
+		public CompoundStatementNode kernelBody = null;
+
+		/**
+		 * @return the name of the enum value that is used to signal to the
+		 *         device to launch this kernel.
+		 */
+		public String getTagName() {
+			return "$CUDA_TAG_LAUNCH_" + entity.getName();
+		}
+
+		public String getParamStructName() {
+			return "$cuda_" + entity.getName() + "_data";
+		}
+
+		public String getArgRevealFunctionName() {
+			return "$cuda_reveal_" + entity.getName() + "_args";
+		}
+
+		public String getKernelProcName() {
+			return "$cuda_" + entity.getName() + "_proc";
+		}
+
+		public String getLaunchFunctionName() {
+			return "$cuda_host_launch_" + entity.getName();
+		}
+
+		public String getTransformedKernelName() {
+			return "$cuda_" + entity.getName();
+		}
+
+		public String getSyncthreadsGBarrierName(int index) {
+			return "$cuda_syncthreads_gb_" + index;
+		}
+
+		public String getSyncthreadsBarrierName(int index) {
+			return "$cuda_syncthreads_b_" + index;
+		}
+
+		public FunctionDefinitionNode getDefinition() {
+			return entity.getDefinition();
+		}
+
+		// Each pair is param name followed by named type
+		private List<Pair<String, String>> contextParams() {
+			return Arrays.asList(new Pair<String, String>("gridDim", "dim3"),
+					new Pair<String, String>("blockDim", "dim3"),
+					new Pair<String, String>("_cuda_mem_size", "size_t"),
+					new Pair<String, String>("_cuda_stream", "cudaStream_t"));
+		}
+
+		/**
+		 * Generates a new struct (wrapped inside of a typedef to avoid needing
+		 * to prepend the "struct" keyword before uses of this type) that has a
+		 * field for each formal parameter that this kernel takes.
+		 * 
+		 * This struct is used for passing passing kernel parameters from the
+		 * host to the device via communicators.
+		 */
+		public TypedefDeclarationNode generateParameterStruct() {
+			String srcMethod = entity.getName() + ".generateParameterStruct";
+			List<Pair<String, String>> contextParams = contextParams();
+			List<FieldDeclarationNode> fieldList = new ArrayList<FieldDeclarationNode>(
+					entity.getType().getNumParameters() + contextParams.size());
+
+			for (Pair<String, String> contextParam : contextParams) {
+				fieldList.add(nodeDeclField(srcMethod, contextParam.left,
+						nodeTypeNamed(srcMethod, contextParam.right)));
+			}
+
+			for (VariableDeclarationNode param : getDefinition().getTypeNode()
+					.getParameters()) {
+				if (param.getTypeNode().kind() == TypeNodeKind.VOID)
+					continue;
+
+				fieldList.add(nodeDeclField(srcMethod, param.getName(),
+						param.getTypeNode().copy()));
+			}
+
+			return nodeTypeDefStruct(srcMethod, getParamStructName(),
+					fieldList);
+		}
+
+		/**
+		 * Generates a function which takes a pointer to the parameter struct
+		 * associated to this kernel and $reveal's any pointer parameters.
+		 */
+		public FunctionDefinitionNode generateArgRevealFunction() {
+			String srcMethod = entity.getName() + ".generateArgRevealFunction";
+
+			List<BlockItemNode> bodyList = new LinkedList<>();
+
+			for (VariableDeclarationNode formalDecl : generateFormalParameters(
+					srcMethod)) {
+				if (formalDecl.getTypeNode() instanceof PointerTypeNode) {
+					ExpressionNode argNode = nodeExprArrow(srcMethod,
+							nodeExprId(srcMethod, "args"),
+							formalDecl.getName());
+					bodyList.add(
+							nodeStmtAssign(srcMethod, argNode, nodeExprCall(
+									srcMethod, "$reveal", argNode.copy())));
+				}
+			}
+
+			return nodeDefnFunction(srcMethod, getArgRevealFunctionName(),
+					voidType(),
+					Arrays.asList(
+							nodeDeclVar(srcMethod, "args",
+									nodeTypePointer(srcMethod,
+											nodeTypeNamed(srcMethod,
+													getParamStructName())))),
+					bodyList);
+		}
+
+		/**
+		 * Generates a list of {@link VariableDeclarationNode}s which are the
+		 * full list of formal parameters to the kernel. This includes the
+		 * implicit context parameters that all CUDA kernels have.
+		 * 
+		 * @param srcMethod
+		 *            The name of the method generating these parameters. Used
+		 *            for source generation purposes.
+		 * @return
+		 */
+		public List<VariableDeclarationNode> generateFormalParameters(
+				String srcMethod) {
+			List<Pair<String, String>> contextParams = contextParams();
+			List<VariableDeclarationNode> formals = new ArrayList<VariableDeclarationNode>(
+					entity.getType().getNumParameters() + contextParams.size());
+
+			for (Pair<String, String> contextParam : contextParams) {
+				formals.add(nodeDeclVar(srcMethod, contextParam.left,
+						nodeTypeNamed(srcMethod, contextParam.right)));
+			}
+
+			for (VariableDeclarationNode param : getDefinition().getTypeNode()
+					.getParameters()) {
+				if (param.getTypeNode().kind() == TypeNodeKind.VOID)
+					continue;
+
+				formals.add(param.copy());
+			}
+
+			return formals;
+		}
+
+		private void transformKernelBody(ASTNode node) {
+			String srcMethod = entity.getName() + ".transformKernelBody";
+
+			for (ASTNode child : node.children()) {
+				if (child == null)
+					continue;
+
+				if (child instanceof ExpressionNode) {
+					ExpressionNode exprNode = (ExpressionNode) child;
+					if (exprNode instanceof FunctionCallNode) {
+						ExpressionNode function = ((FunctionCallNode) exprNode)
+								.getFunction();
+						if (function instanceof IdentifierExpressionNode) {
+							String functionName = ((IdentifierExpressionNode) function)
+									.getIdentifier().name();
+							if (functionName.equals("__syncthreads")) {
+								FunctionCallNode cudaBarrier = nodeExprCall(
+										srcMethod, "$cuda_syncthreads",
+										nodeExprId(srcMethod, "$kernel"),
+										nodeExprId(srcMethod, "$cuda_kid"),
+										nodeExprId(srcMethod,
+												getSyncthreadsBarrierName(
+														numSyncthreads)));
+								numSyncthreads++;
+
+								node.setChild(child.childIndex(), cudaBarrier);
+								continue;
+							}
+						}
+					}
+				}
+				transformKernelBody(child);
+			}
+		}
+
+		private FunctionDefinitionNode generateKernelThreadDefinition() {
+			String srcMethod = entity.getName()
+					+ ".generateKernelThreadDefinition";
+
+			List<BlockItemNode> bodyList = new LinkedList<>();
+
+			bodyList.add(nodeStmtCall(srcMethod, "$local_start"));
+			bodyList.add(nodeDeclVarInit(srcMethod, "$cuda_tid",
+					nodeTypeInt(srcMethod),
+					nodeExprCall(srcMethod, "$cuda_dim3_index",
+							nodeExprId(srcMethod, "blockDim"),
+							nodeExprId(srcMethod, "threadIdx"))));
+			bodyList.add(nodeDeclVarInit(srcMethod, "$cuda_kid",
+					nodeTypeInt(srcMethod),
+					nodeExprCall(srcMethod, "$cuda_kernel_index",
+							nodeExprId(srcMethod, "gridDim"),
+							nodeExprId(srcMethod, "blockDim"),
+							nodeExprId(srcMethod, "blockIdx"),
+							nodeExprId(srcMethod, "threadIdx"))));
+			for (int i = 0; i < numSyncthreads; i++) {
+				bodyList.add(
+						nodeDeclVarInit(srcMethod, getSyncthreadsBarrierName(i),
+								nodeTypeNamed(srcMethod, "$barrier"),
+								nodeExprCall(srcMethod, "$barrier_create",
+										nodeExprHere(srcMethod),
+										nodeExprId(srcMethod,
+												getSyncthreadsGBarrierName(i)),
+										nodeExprId(srcMethod, "$cuda_tid"))));
+			}
+			bodyList.add(nodeDeclVarInit(srcMethod, "$lane",
+					nodeTypeNamed(srcMethod, "$cuda_lane_t"),
+					nodeExprCall(srcMethod, "$create_cuda_lane",
+							nodeExprHere(srcMethod),
+							nodeExprOp(srcMethod, Operator.SUBSCRIPT,
+									nodeExprId(srcMethod, "$warps"),
+									nodeExprOp(srcMethod, Operator.DIV,
+											nodeExprId(srcMethod, "$cuda_tid"),
+											nodeExprId(srcMethod, "warpSize"))),
+							nodeExprOp(srcMethod, Operator.MOD,
+									nodeExprId(srcMethod, "$cuda_tid"),
+									nodeExprId(srcMethod, "warpSize")))));
+
+			for (BlockItemNode stmt : kernelBody) {
+				if (stmt != null) {
+					bodyList.add(stmt.copy());
+				}
+			}
+
+			for (int i = 0; i < numSyncthreads; i++) {
+				bodyList.add(nodeStmtCall(srcMethod, "$barrier_destroy",
+						nodeExprId(srcMethod, getSyncthreadsBarrierName(i))));
+			}
+			bodyList.add(nodeStmtCall(srcMethod, "$destroy_cuda_lane",
+					nodeExprId(srcMethod, "$lane")));
+			bodyList.add(nodeStmtCall(srcMethod, "$local_end"));
+
+			return nodeDefnFunction(srcMethod, "$cuda_thread", voidType(),
+					Arrays.asList(nodeDeclVar(srcMethod, "threadIdx",
+							nodeTypeNamed(srcMethod, "uint3"))),
+					bodyList);
+		}
+
+		private FunctionDefinitionNode generateKernelBlockDefinition() {
+			String srcMethod = entity.getName()
+					+ ".generateKernelBlockDefinition";
+
+			List<BlockItemNode> bodyList = new LinkedList<>();
+
+			bodyList.add(nodeDeclVarInit(srcMethod, NUM_THREADS_NAME,
+					nodeTypeInt(srcMethod),
+					nodeExprOp(srcMethod, Operator.TIMES, nodeExprOp(srcMethod,
+							Operator.TIMES,
+							nodeExprDot(srcMethod,
+									nodeExprId(srcMethod, "blockDim"), "x"),
+							nodeExprDot(srcMethod,
+									nodeExprId(srcMethod, "blockDim"), "y")),
+							nodeExprDot(srcMethod,
+									nodeExprId(srcMethod, "blockDim"), "z"))));
+			bodyList.add(nodeDeclVarInit(srcMethod, "$numWarps",
+					nodeTypeInt(srcMethod),
+					nodeExprOp(srcMethod, Operator.PLUS,
+							nodeExprOp(srcMethod, Operator.DIV,
+									nodeExprOp(srcMethod, Operator.MINUS,
+											nodeExprId(srcMethod,
+													NUM_THREADS_NAME),
+											nodeExprInt(srcMethod, 1)),
+									nodeExprId(srcMethod, "warpSize")),
+							nodeExprInt(srcMethod, 1))));
+			bodyList.add(nodeDeclVarInit(srcMethod, "$block_root",
+					nodeTypeScope(srcMethod), nodeExprHere(srcMethod)));
+			for (int i = 0; i < numSyncthreads; i++) {
+				bodyList.add(nodeDeclVarInit(srcMethod,
+						getSyncthreadsGBarrierName(i),
+						nodeTypeNamed(srcMethod, "$gbarrier"),
+						nodeExprCall(srcMethod, "$gbarrier_create",
+								nodeExprHere(srcMethod),
+								nodeExprId(srcMethod, NUM_THREADS_NAME))));
+			}
+
+			// Initializing warp array
+			bodyList.add(nodeDeclVar(srcMethod, "$warps",
+					nodeTypeArray(srcMethod,
+							nodeTypeNamed(srcMethod, "$cuda_warp_t"),
+							nodeExprId(srcMethod, "$numWarps"))));
+			bodyList.add(nodeFactory.newForLoopNode(
+					newSource(srcMethod, CivlcTokenConstant.FOR),
+					nodeFactory.newForLoopInitializerNode(
+							newSource(srcMethod,
+									CivlcTokenConstant.INITIALIZER_LIST),
+							Arrays.asList(nodeDeclVarInit(srcMethod, "i",
+									nodeTypeInt(srcMethod),
+									nodeExprInt(srcMethod, 0)))),
+					nodeExprOp(srcMethod, Operator.LT,
+							nodeExprId(srcMethod, "i"),
+							nodeExprOp(srcMethod, Operator.MINUS,
+									nodeExprId(srcMethod, "$numWarps"),
+									nodeExprInt(srcMethod, 1))),
+					nodeExprOp(srcMethod, Operator.POSTINCREMENT,
+							nodeExprId(srcMethod, "i")),
+					nodeStmtAssign(srcMethod,
+							nodeExprOp(srcMethod, Operator.SUBSCRIPT,
+									nodeExprId(srcMethod, "$warps"),
+									nodeExprId(srcMethod, "i")),
+							nodeExprCall(srcMethod, "$create_cuda_warp",
+									nodeExprId(srcMethod, "$block_root"),
+									nodeExprId(srcMethod, "warpSize"))),
+					null));
+			bodyList.add(nodeStmtAssign(srcMethod,
+					nodeExprOp(srcMethod, Operator.SUBSCRIPT,
+							nodeExprId(srcMethod, "$warps"),
+							nodeExprOp(srcMethod, Operator.MINUS,
+									nodeExprId(srcMethod, "$numWarps"),
+									nodeExprInt(srcMethod, 1))),
+					nodeExprCall(srcMethod, "$create_cuda_warp",
+							nodeExprId(srcMethod, "$block_root"),
+							nodeExprOp(srcMethod, Operator.PLUS, nodeExprOp(
+									srcMethod, Operator.MOD,
+									nodeExprOp(srcMethod, Operator.MINUS,
+											nodeExprId(srcMethod,
+													NUM_THREADS_NAME),
+											nodeExprInt(srcMethod, 1)),
+									nodeExprId(srcMethod, "warpSize")),
+									nodeExprInt(srcMethod, 1)))));
+
+			List<VariableDeclarationNode> sharedVars = extractSharedVariableDeclarations(
+					entity.getDefinition().getBody());
+			completeSharedExternArrays(sharedVars);
+			bodyList.addAll(sharedVars);
+
+			bodyList.add(generateKernelThreadDefinition());
+
+			bodyList.add(nodeStmtCall(srcMethod, "$cuda_run_and_wait_on_procs",
+					nodeExprId(srcMethod, "blockDim"),
+					nodeExprId(srcMethod, "$cuda_thread")));
+			for (int i = 0; i < numSyncthreads; i++) {
+				bodyList.add(nodeStmtCall(srcMethod, "$gbarrier_destroy",
+						nodeExprId(srcMethod, getSyncthreadsGBarrierName(i))));
+			}
+
+			// Cleanup warp array
+			bodyList.add(nodeFactory.newForLoopNode(
+					newSource(srcMethod, CivlcTokenConstant.FOR),
+					nodeFactory.newForLoopInitializerNode(
+							newSource(srcMethod,
+									CivlcTokenConstant.INITIALIZER_LIST),
+							Arrays.asList(nodeDeclVarInit(srcMethod, "i",
+									nodeTypeInt(srcMethod),
+									nodeExprInt(srcMethod, 0)))),
+					nodeExprOp(srcMethod, Operator.LT,
+							nodeExprId(srcMethod, "i"),
+							nodeExprId(srcMethod, "$numWarps")),
+					nodeExprOp(srcMethod, Operator.POSTINCREMENT,
+							nodeExprId(srcMethod, "i")),
+					nodeStmtCall(srcMethod, "$destroy_cuda_warp",
+							nodeExprOp(srcMethod, Operator.SUBSCRIPT,
+									nodeExprId(srcMethod, "$warps"),
+									nodeExprId(srcMethod, "i"))),
+					null));
+
+			return nodeDefnFunction(srcMethod, "$cuda_block", voidType(),
+					Arrays.asList(nodeDeclVar(srcMethod, "blockIdx",
+							nodeTypeNamed(srcMethod, "uint3"))),
+					bodyList);
+		}
+
+		/**
+		 * Generates a transformed definition of this kernel to emulate the
+		 * thread hierarchy of CUDA kernels as well as to inject data race
+		 * checks.
+		 */
+		public FunctionDefinitionNode generateTransformedKernelDefinition() {
+			String srcMethod = entity.getName()
+					+ ".generateTransformedKernelDefinition";
+
+			kernelBody = entity.getDefinition().getBody();
+
+			// We transform the kernel body first because it also scans the body
+			// for information we need ahead of time like the number of
+			// __syncthreads() calls.
+			transformKernelBody(kernelBody);
+
+			List<BlockItemNode> bodyList = new LinkedList<>();
+
+			// Need to initialize in order to pass in to $cuda_syncthreads
+			bodyList.add(nodeDeclVarInit(srcMethod, "$kernel",
+					nodeTypeNamed(srcMethod, "$cuda_kernel_instance_t"),
+					nodeExprCall(srcMethod, "$create_kernel_instance",
+							nodeExprHere(srcMethod),
+							nodeExprId(srcMethod, "gridDim"),
+							nodeExprId(srcMethod, "blockDim"))));
+
+			bodyList.add(generateKernelBlockDefinition());
+			bodyList.add(nodeStmtCall(srcMethod, "$cuda_run_and_wait_on_procs",
+					nodeExprId(srcMethod, "gridDim"),
+					nodeExprId(srcMethod, "$cuda_block")));
+
+			bodyList.add(nodeStmtCall(srcMethod, "$destroy_kernel_instance",
+					nodeExprId(srcMethod, "$kernel")));
+
+			return nodeDefnFunction(srcMethod, getTransformedKernelName(),
+					voidType(), generateFormalParameters(srcMethod), bodyList);
+		}
+
+		/**
+		 * Generates a transformed declaration of this kernel which uses the new
+		 * transformed name and includes the context parameters as regular
+		 * formal parameters.
+		 */
+		public FunctionDeclarationNode generateTransformedKernelDeclaration() {
+			String srcMethod = entity.getName()
+					+ ".generateTransformedKernelDeclaration";
+
+			return nodeDeclFunction(srcMethod, getTransformedKernelName(),
+					voidType(), generateFormalParameters(srcMethod));
+		}
+
+		public FunctionDefinitionNode generateKernelProcDefinition() {
+			String srcMethod = entity.getName()
+					+ ".generateKernelProcDefinition";
+
+			List<BlockItemNode> bodyList = new LinkedList<>();
+
+			bodyList.add(nodeStmtWhen(srcMethod, nodeExprArrow(srcMethod,
+					nodeExprId(srcMethod, "opState"), "start")));
+			bodyList.add(nodeDeclVar(srcMethod, "args",
+					nodeTypeNamed(srcMethod, getParamStructName())));
+			bodyList.add(nodeStmtCall(srcMethod, "$message_unpack",
+					nodeExprId(srcMethod, "request"),
+					nodeExprOp(srcMethod, Operator.ADDRESSOF,
+							nodeExprId(srcMethod, "args")),
+					nodeExprSizeof(srcMethod,
+							nodeTypeNamed(srcMethod, getParamStructName()))));
+			bodyList.add(nodeStmtCall(srcMethod, getArgRevealFunctionName(),
+					nodeExprOp(srcMethod, Operator.ADDRESSOF,
+							nodeExprId(srcMethod, "args"))));
+
+			List<VariableDeclarationNode> formals = generateFormalParameters(
+					srcMethod);
+			ExpressionNode kernelArgs[] = new ExpressionNode[formals.size()];
+
+			int i = 0;
+			for (VariableDeclarationNode paramDeclNode : formals) {
+				kernelArgs[i] = nodeExprDot(srcMethod,
+						nodeExprId(srcMethod, "args"), paramDeclNode.getName());
+				i++;
+			}
+
+			bodyList.add(nodeStmtCall(srcMethod, getTransformedKernelName(),
+					kernelArgs));
+			bodyList.add(nodeStmtCall(srcMethod, "$stream_dequeue",
+					nodeExprId(srcMethod, "cudaStream")));
+
+			return nodeDefnFunction(srcMethod, getKernelProcName(), voidType(),
+					Arrays.asList(
+							nodeDeclVar(srcMethod, "request",
+									nodeTypeNamed(srcMethod, "$message")),
+							nodeDeclVar(srcMethod, "opState",
+									nodeTypeNamed(srcMethod,
+											"$cuda_op_state_t")),
+							nodeDeclVar(srcMethod, "cudaStream",
+									nodeTypeNamed(srcMethod, "cudaStream_t"))),
+					bodyList);
+		}
+
+		/**
+		 * Generates a new launch function definition which the host will call
+		 * in place of a kernel launch.
+		 * 
+		 * This function takes the context parameters of the kernel followed by
+		 * the kernel's formal parameters. It then puts all of these parameters
+		 * into an instance of the kernel's parameter structure. Then it packs
+		 * this object into a message and sends it to the device. Then it waits
+		 * for a response from the device before moving on.
+		 * 
+		 * @return
+		 */
+		public FunctionDefinitionNode generateKernelLaunchFunction() {
+			String srcMethod = entity.getName()
+					+ ".generateKernelLaunchFunction";
+			List<VariableDeclarationNode> formals = generateFormalParameters(
+					srcMethod);
+
+			List<BlockItemNode> bodyList = new LinkedList<>();
+
+			bodyList.add(nodeDeclVar(srcMethod, "args",
+					nodeTypeNamed(srcMethod, getParamStructName())));
+
+			for (VariableDeclarationNode formal : formals) {
+				bodyList.add(nodeStmtAssign(srcMethod,
+						nodeExprDot(srcMethod, nodeExprId(srcMethod, "args"),
+								formal.getName()),
+						nodeExprId(srcMethod, formal.getName())));
+			}
+
+			ExpressionNode messagePackExpr = nodeExprCall(srcMethod,
+					"$message_pack", nodeExprId(srcMethod, HOST_PLACE_NAME),
+					nodeExprId(srcMethod, DEVICE_PLACE_NAME),
+					nodeFactory.newEnumerationConstantNode(
+							nodeIdent(srcMethod, getTagName())),
+					nodeExprOp(srcMethod, Operator.ADDRESSOF,
+							nodeExprId(srcMethod, "args")),
+					nodeExprSizeof(srcMethod,
+							nodeTypeNamed(srcMethod, getParamStructName())));
+
+			bodyList.add(nodeStmtCall(srcMethod, "$comm_enqueue",
+					nodeExprId(srcMethod, HOST_COMM_NAME), messagePackExpr));
+
+			bodyList.add(nodeStmtCall(srcMethod, "$comm_dequeue",
+					nodeExprId(srcMethod, HOST_COMM_NAME),
+					nodeExprId(srcMethod, DEVICE_PLACE_NAME),
+					nodeFactory.newEnumerationConstantNode(
+							nodeIdent(srcMethod, getTagName()))));
+
+			return nodeDefnFunction(srcMethod, getLaunchFunctionName(),
+					voidType(), formals, bodyList);
+		}
+	}
 
 	public Cuda2CIVLWorker(ASTFactory astFactory) {
 		super(Cuda2CIVLTransformer.LONG_NAME, astFactory);
-		this.identifierPrefix = "_cuda_";
+		identifierPrefix = "_cuda_";
 	}
 
 	@Override
 	protected AST transformCore(AST ast) throws SyntaxException {
-		if (!this.hasHeader(ast, CUDA_HEADER))
+		if (!hasHeader(ast, CUDA_HEADER))
 			return ast;
 
 		SequenceNode<BlockItemNode> root = ast.getRootNode();
-		AST newAST;
 
 		ast.release();
-		removeBuiltinDefinitions(root);
-		translateCudaMallocCalls(root);
-		translateKernelCalls(root);
+		scanTree(root);
+		assert cudaTagEnumType != null;
+		addEnumTags();
+		executeKernelTransformations();
+		executeKernelCallTransformations();
 
-		if (!this.has_gen_mainFunction(root)) {
+		translateCudaMallocCalls(root);
+		createCudaMain(root);
+		if (!has_gen_mainFunction(root)) {
 			transformMainFunction(root);
 			createNewMainFunction(root);
 		}
 		translateMainDefinition(root);
-		translateKernelDefinitions(root);
-		translateKernelDeclarations(root);
-		newAST = astFactory.newAST(root, ast.getSourceFiles(),
+		// translateKernelDefinitions(root);
+		// translateKernelDeclarations(root);
+		AST newAST = astFactory.newAST(root, ast.getSourceFiles(),
 				ast.isWholeProgram());
 		// newAST.prettyPrint(System.out, false);
 		return newAST;
@@ -94,73 +659,293 @@ public class Cuda2CIVLWorker extends BaseWorker {
 	 * @return A generated temporary variable name
 	 */
 	protected String newTemporaryVariableName() {
-		return this.identifierPrefix + "tmp" + tempVarNum++;
+		return identifierPrefix + "tmp" + tempVarNum++;
 	}
 
 	/**
-	 * Finds the main function definition node underneath root and calls
-	 * {@link Cuda2CIVLWorker#transformMainFunctionDefinition(FunctionDefinitionNode)}
-	 * on it
+	 * Scans the entire AST recursively, collecting nodes and entities of
+	 * interest. Also performs some light transformations such as removing all
+	 * of the built-in CUDA variables.
 	 * 
-	 * @param root the root node of an Abstract Syntax Tree
+	 * @param root
+	 *            The root of the AST to be scanned.
 	 */
-	protected void translateMainDefinition(ASTNode root) {
+	protected void scanTree(ASTNode root) {
 		for (ASTNode child : root.children()) {
 			if (child == null)
 				continue;
 
-			if (child.nodeKind() == NodeKind.FUNCTION_DEFINITION) {
-				FunctionDefinitionNode definition = (FunctionDefinitionNode) child;
+			switch (child.nodeKind()) {
+				case TYPE :
+					if (cudaTagEnumType == null && ((TypeNode) child)
+							.kind() == TypeNodeKind.ENUMERATION) {
+						EnumerationTypeNode enumTypeNode = (EnumerationTypeNode) child;
 
-				if (definition.getName() != null
-						&& definition.getName().equals("main")) {
-					transformMainFunctionDefinition(definition);
-					return;
-				}
+						if (enumTypeNode.getTag().name()
+								.equals(CUDA_TAG_ENUM_NAME)) {
+							cudaTagEnumType = enumTypeNode.getType();
+						}
+					}
+					break;
+
+				case FUNCTION_DEFINITION :
+					FunctionDefinitionNode definition = (FunctionDefinitionNode) child;
+
+					if (definition.hasGlobalFunctionSpecifier()) {
+						String kernelName = definition.getName();
+
+						if (kernelName == null) {
+							throw new CIVLSyntaxException(
+									"CUDA kernels cannot be anonymous",
+									definition.getSource());
+						}
+						addKernel(kernelName, definition.getEntity());
+					}
+					break;
+				case FUNCTION_DECLARATION :
+					FunctionDeclarationNode declaration = (FunctionDeclarationNode) child;
+
+					if (declaration.hasGlobalFunctionSpecifier() && declaration
+							.getTypeNode() instanceof FunctionTypeNode) {
+						String kernelName = declaration.getName();
+
+						if (kernelName == null) {
+							throw new CIVLSyntaxException(
+									"CUDA kernels cannot be anonymous",
+									declaration.getSource());
+						}
+						addKernel(kernelName, declaration.getEntity());
+					}
+					break;
+				case VARIABLE_DECLARATION :
+					VariableDeclarationNode variableDeclaration = (VariableDeclarationNode) child;
+
+					if (variableDeclaration.getIdentifier() != null
+							&& variableDeclaration.getIdentifier().getSource()
+									.getFirstToken().getSourceFile().getName()
+									.equals("cuda.h")
+							&& builtinCUDAVariables.contains(variableDeclaration
+									.getIdentifier().name())) {
+						// variableDeclaration.remove();
+						continue;
+					}
+					break;
+				case STATEMENT :
+					StatementNode statement = (StatementNode) child;
+
+					if (statement.statementKind() == StatementKind.EXPRESSION) {
+						ExpressionStatementNode expressionStatement = (ExpressionStatementNode) statement;
+						ExpressionNode expression = expressionStatement
+								.getExpression();
+						if (expression
+								.expressionKind() == ExpressionKind.FUNCTION_CALL) {
+							FunctionCallNode functionCall = (FunctionCallNode) expression;
+							if (functionCall
+									.getNumberOfContextArguments() > 0) {
+								if (functionCall.getFunction()
+										.expressionKind() != ExpressionKind.IDENTIFIER_EXPRESSION) {
+									throw new CIVLSyntaxException(
+											"CUDA kernel calls must be made with kernel identifier explicitly",
+											functionCall.getFunction()
+													.getSource());
+								}
+								kernelCalls.add(expressionStatement);
+								break;
+							}
+						}
+					}
+				default :
+					break;
 			}
+			scanTree(child);
 		}
 	}
 
 	/**
-	 * Transforms every kernel definition node under root using
-	 * {@link Cuda2CIVLWorker#kernelDefinitionTransform(FunctionDefinitionNode)}.
+	 * Gets the {@link KernelInfo} associated with kernelName if it exists. If
+	 * no such KernelInfo exists then a fresh one is created and associated to
+	 * kernelName and returned.
 	 * 
-	 * @param root the root node of an Abstract Syntax Tree
+	 * @param kernelName
+	 * @return the (potentially fresh) associated KernelInfo
 	 */
-	protected void translateKernelDefinitions(ASTNode root) {
-		for (ASTNode child : root.children()) {
-			if (child == null)
-				continue;
+	private KernelInfo addKernel(String kernelName, Function kernelEntity) {
+		KernelInfo kernelEntry = kernelMap.get(kernelName);
 
-			if (child.nodeKind() == NodeKind.FUNCTION_DEFINITION) {
-				FunctionDefinitionNode definition = (FunctionDefinitionNode) child;
+		if (kernelEntry == null) {
+			kernelEntry = new KernelInfo(kernelEntity);
+			kernelMap.put(kernelName, kernelEntry);
+		} else {
+			assert kernelEntry.entity == kernelEntity;
+		}
+		return kernelEntry;
+	}
 
-				if (definition.hasGlobalFunctionSpecifier()) {
-					root.setChild(child.childIndex(),
-							kernelDefinitionTransform(definition));
-				}
-			}
+	private void addEnumTags() {
+		SequenceNode<EnumeratorDeclarationNode> enumValues = ((EnumerationTypeNode) cudaTagEnumType
+				.getDefinition()).enumerators();
+		for (KernelInfo kernel : kernelMap.values()) {
+			enumValues.addSequenceChild(
+					nodeDeclEnumerator("addEnumTags", kernel.getTagName()));
 		}
 	}
 
 	/**
-	 * Transforms every kernel declaration node under root using
-	 * {@link Cuda2CIVLWorker#kernelDeclarationTransform(FunctionDeclarationNode)}.
-	 * 
-	 * @param root the root node of an Abstract Syntax Tree
+	 * Performs all transformations related to a kernel entity. This includes:
+	 * <ul>
+	 * <li>Generating a parameter struct definition associated to the kernel;
+	 * <li>Generating a launch function that the host will use to launch
+	 * instances of this kernel;
+	 * <li>Generating a "process" function which the device will $spawn a $proc
+	 * with which represents the CUDA op that executes the kernel
+	 * <li>Transforming the declaration(s) of this kernel to use the new
+	 * (mangled) name;
+	 * <li>Transforming the definition of this kernel to emulate the
+	 * hierarchical thread structure of CUDA and inject data race checks
+	 * </ul>
 	 */
-	protected void translateKernelDeclarations(ASTNode root) {
-		for (ASTNode child : root.children()) {
-			if (child == null)
-				continue;
+	private void executeKernelTransformations() {
+		for (KernelInfo kernel : kernelMap.values()) {
+			FunctionDefinitionNode kernelDefinition = kernel.getDefinition();
 
-			if (child.nodeKind() == NodeKind.FUNCTION_DECLARATION) {
-				FunctionDeclarationNode declaration = (FunctionDeclarationNode) child;
+			boolean firstDecl = true;
+			for (DeclarationNode decl : kernel.entity.getDeclarations()) {
+				if (firstDecl) {
+					@SuppressWarnings("unchecked")
+					SequenceNode<BlockItemNode> firstDeclParentNode = (SequenceNode<BlockItemNode>) decl
+							.parent();
+					firstDeclParentNode.insertChildren(decl.childIndex(),
+							Arrays.asList(kernel.generateParameterStruct(),
+									kernel.generateArgRevealFunction(),
+									kernel.generateKernelLaunchFunction()));
+					firstDeclParentNode.insertChildren(decl.childIndex() + 1,
+							Arrays.asList(
+									kernel.generateKernelProcDefinition()));
+					firstDecl = false;
+				}
+				if (decl == kernelDefinition)
+					continue;
 
-				if (declaration.hasGlobalFunctionSpecifier() && declaration
-						.getTypeNode() instanceof FunctionTypeNode) {
-					root.setChild(child.childIndex(),
-							kernelDeclarationTransform(declaration));
+				ASTNode declParent = decl.parent();
+				int index = decl.childIndex();
+				decl.remove();
+				declParent.setChild(index,
+						kernel.generateTransformedKernelDeclaration());
+			}
+			@SuppressWarnings("unchecked")
+			SequenceNode<BlockItemNode> parentNode = (SequenceNode<BlockItemNode>) kernelDefinition
+					.parent();
+			int index = kernelDefinition.childIndex();
+
+			kernelDefinition.remove();
+			parentNode.setChild(index,
+					kernel.generateTransformedKernelDefinition());
+		}
+	}
+
+	/**
+	 * Replaces kernel launches (that use the `kernel<<< context args
+	 * >>>(regular args)` syntax) with calls to the corresponding launch
+	 * function, generated earlier.
+	 */
+	private void executeKernelCallTransformations() {
+		String srcMethod = "executeKernelCallTransformations";
+
+		for (ExpressionStatementNode kernelCallStatement : kernelCalls) {
+			ASTNode parent = kernelCallStatement.parent();
+			FunctionCallNode kernelCallNode = (FunctionCallNode) kernelCallStatement
+					.getExpression();
+			String kernelName = ((IdentifierExpressionNode) kernelCallNode
+					.getFunction()).getIdentifier().name();
+			KernelInfo kernel = kernelMap.get(kernelName);
+
+			List<ExpressionNode> launchArgList = getContextArgList(srcMethod,
+					kernelCallNode);
+
+			for (ExpressionNode argument : kernelCallNode.getArguments()) {
+				launchArgList.add(argument.copy());
+			}
+
+			parent.setChild(kernelCallStatement.childIndex(),
+					nodeStmtCall(srcMethod, kernel.getLaunchFunctionName(),
+							launchArgList.toArray(new ExpressionNode[0])));
+		}
+	}
+
+	private List<ExpressionNode> getContextArgList(String srcMethod,
+			FunctionCallNode kernelCall) {
+		List<ExpressionNode> contextArgs = new ArrayList<>();
+
+		for (int i = 0; i < 2; i++) {
+			ExpressionNode arg = kernelCall.getContextArgument(i);
+			Type argType = arg.getConvertedType();
+
+			if (argType.kind() == TypeKind.QUALIFIED) {
+				argType = ((QualifiedObjectType) argType).getBaseType();
+			}
+
+			if (argType.kind() == TypeKind.BASIC
+					&& ((StandardBasicType) argType)
+							.getBasicTypeKind() == BasicTypeKind.INT) {
+				contextArgs.add(
+						nodeExprCall(srcMethod, "$cuda_to_dim3", arg.copy()));
+			} else {
+				contextArgs.add(arg.copy());
+			}
+		}
+
+		int numContextArgs = kernelCall.getNumberOfContextArguments();
+
+		contextArgs.add(numContextArgs < 3
+				? nodeExprInt(srcMethod, 0)
+				: kernelCall.getContextArgument(2).copy());
+		contextArgs.add(numContextArgs < 4
+				? nodeExprNullPointer(srcMethod)
+				: kernelCall.getContextArgument(3).copy());
+
+		return contextArgs;
+	}
+
+	/**
+	 * Alters a body of code by removing any variable declaration with the
+	 * "__shared__" tag and returning a new list of those removed declarations
+	 * without the "__shared__" tag.
+	 * 
+	 * @param statements
+	 *            a CompountStatementNode that is any section of code
+	 * @return The list of removed variable declarations
+	 */
+	private List<VariableDeclarationNode> extractSharedVariableDeclarations(
+			CompoundStatementNode statements) {
+		List<VariableDeclarationNode> declarations = new ArrayList<>();
+		for (BlockItemNode item : statements) {
+			if (item instanceof VariableDeclarationNode) {
+				VariableDeclarationNode variableDeclaration = (VariableDeclarationNode) item
+						.copy();
+				if (variableDeclaration.hasSharedStorage()) {
+					statements.removeChild(item.childIndex());
+					variableDeclaration.setSharedStorage(false);
+					declarations.add(variableDeclaration);
+				}
+			}
+		}
+		return declarations;
+	}
+
+	/**
+	 * 
+	 * @param sharedVars
+	 *            a list of VariableDeclarationNodes
+	 */
+	protected void completeSharedExternArrays(
+			List<VariableDeclarationNode> sharedVars) {
+		for (VariableDeclarationNode node : sharedVars) {
+			if (node.hasExternStorage()
+					&& node.getTypeNode().kind() == TypeNodeKind.ARRAY) {
+				ArrayTypeNode arrayType = (ArrayTypeNode) node.getTypeNode();
+				if (arrayType.getExtent() == null) {
+					arrayType.setExtent(identifierExpression("_cuda_mem_size"));
+					node.setExternStorage(false);
 				}
 			}
 		}
@@ -168,13 +953,14 @@ public class Cuda2CIVLWorker extends BaseWorker {
 
 	/**
 	 * Transforms every cuda malloc function call using
-	 * {@link Cuda2CIVLWorker#cudaMallocTransform(FunctionCallNode)}.
-	 * Cuda malloc calls are found by recursively searching through the
-	 * AST for a matching function call.
+	 * {@link Cuda2CIVLWorker#cudaMallocTransform(FunctionCallNode)}. Cuda
+	 * malloc calls are found by recursively searching through the AST for a
+	 * matching function call.
 	 * 
-	 * @param root the root node of an Abstract Syntax Tree
+	 * @param root
+	 *            the root node of an Abstract Syntax Tree
 	 */
-	protected void translateCudaMallocCalls(ASTNode root) {
+	private void translateCudaMallocCalls(ASTNode root) {
 		for (ASTNode child : root.children()) {
 			if (child == null)
 				continue;
@@ -194,6 +980,12 @@ public class Cuda2CIVLWorker extends BaseWorker {
 						if (identifierExpression.getIdentifier().name()
 								.equals("cudaMalloc")) {
 							int index = functionCall.childIndex();
+							/*
+							 * ASTNode parent = root; while(parent.nodeKind() !=
+							 * NodeKind.STATEMENT) { parent = parent.parent(); }
+							 * StatementNode parentStatement =
+							 * (StatementNode)parent;
+							 */
 
 							root.setChild(index,
 									cudaMallocTransform(functionCall));
@@ -208,52 +1000,31 @@ public class Cuda2CIVLWorker extends BaseWorker {
 	}
 
 	/**
-	 * Transforms every kernel call using
-	 * {@link Cuda2CIVLWorker#kernelCallTransform(FunctionCallNode)}.
-	 * Kernel calls are found by recursively searching through the
-	 * AST for a matching function call.
-	 * 
-	 * @param root the root node of an Abstract Syntax Tree
-	 */
-	protected void translateKernelCalls(ASTNode root) {
-		for (ASTNode child : root.children()) {
-			if (child == null)
-				continue;
-
-			if (child.nodeKind() == NodeKind.STATEMENT) {
-				StatementNode statement = (StatementNode) child;
-
-				if (statement.statementKind() == StatementKind.EXPRESSION) {
-					ExpressionStatementNode expressionStatement = (ExpressionStatementNode) statement;
-					ExpressionNode expression = expressionStatement
-							.getExpression();
-					if (expression
-							.expressionKind() == ExpressionKind.FUNCTION_CALL) {
-						FunctionCallNode functionCall = (FunctionCallNode) expression;
-						if (functionCall.getNumberOfContextArguments() > 0) {
-							root.setChild(statement.childIndex(),
-									kernelCallTransform(functionCall));
-							continue;
-						}
-					}
-				}
-			}
-
-			translateKernelCalls(child);
-		}
-	}
-
-	/**
 	 * Translates "cudaMalloc( (void**) ptrPtr, size)" to "*ptrPtr =
 	 * (type)$malloc($root, size), cudaSuccess" where "type" is the type of
 	 * *ptrPtr
 	 * 
-	 * @param cudaMallocCall a FunctionCallNode which is a call to cuda malloc
+	 * @param cudaMallocCall
+	 *            a FunctionCallNode which is a call to cuda malloc
 	 * @return The translated cuda malloc call as an expression node
 	 */
-	protected ExpressionNode cudaMallocTransform(
+	private ExpressionNode cudaMallocTransform(
 			FunctionCallNode cudaMallocCall) {
 		Source source = cudaMallocCall.getSource();
+
+		/*
+		 * TypeNode scope = nodeFactory.newScopeTypeNode(source);
+		 * VariableDeclarationNode deviceScopeDeclaration =
+		 * nodeFactory.newVariableDeclarationNode(source,
+		 * identifier("deviceScope"), scope);
+		 * deviceScopeDeclaration.setInitializer(nodeFactory.newFunctionCallNode
+		 * (source, identifierExpression("$cuda_host_request_device_scope"),
+		 * null, null));
+		 */
+		FunctionCallNode request_device = nodeFactory.newFunctionCallNode(
+				source, identifierExpression("$cuda_host_request_device_scope"),
+				Collections.<ExpressionNode>emptyList(), null);
+
 		// find the pointer
 		ExpressionNode ptrPtr = cudaMallocCall.getArgument(0);
 		while (ptrPtr instanceof CastNode) {
@@ -273,1103 +1044,486 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		}
 		// build rhs expression
 		FunctionCallNode mallocCall = nodeFactory.newFunctionCallNode(source,
-				this.identifierExpression(source, "$malloc"),
-				Arrays.asList(nodeFactory.newHereNode(source), size.copy()),
-				null);
+				identifierExpression(source, "$malloc"),
+
+				Arrays.asList(request_device, size.copy()), null);
 		CastNode mallocCast = nodeFactory.newCastNode(source,
-				this.typeNode(source, lhsType), mallocCall);
+				typeNode(source, lhsType), mallocCall);
+
 		// create assign node
 		OperatorNode assignment = nodeFactory.newOperatorNode(
 				cudaMallocCall.getSource(), Operator.ASSIGN,
-				Arrays.asList(assignLhs, mallocCast));
+				Arrays.asList(assignLhs,
+						nodeFactory.newFunctionCallNode(source,
+								identifierExpression("$hide"),
+								Arrays.asList(mallocCast), null)));
+
+		/*
+		 * List<BlockItemNode> transformedItems = new
+		 * ArrayList<BlockItemNode>();
+		 * transformedItems.add(deviceScopeDeclaration);
+		 * transformedItems.add(nodeFactory.newExpressionStatementNode(
+		 * assignment));
+		 */
+
+		// CompoundStatementNode newStatements =
+		// nodeFactory.newCompoundStatementNode(source, transformedItems);
 		// create comma node
 		ExpressionNode finalExpression = nodeFactory.newOperatorNode(source,
 				Operator.COMMA,
 				Arrays.asList(assignment,
 						nodeFactory.newEnumerationConstantNode(nodeFactory
 								.newIdentifierNode(source, "cudaSuccess"))));
+
+		// mallocStatement.parent().setChild(mallocStatement.childIndex(),
+		// newStatements);
+		// Need to figure out how to put this compound statement node above the
+		// statement with the cudaMalloc expression
+		// Maybe I have to copy all the statements like with the atomics
+
+		// Return (cuda_C =
+		// $hide((float*)$malloc($cuda_host_request_device_scope(),
+		// size)), cudaSuccess)
 		return finalExpression;
 	}
 
+	private void createCudaMain(SequenceNode<BlockItemNode> root) {
+		String srcMethod = "createCudaMain";
+
+		List<BlockItemNode> cudaMainBody = new ArrayList<BlockItemNode>();
+
+		createCudaMainGlobalVariables(cudaMainBody);
+		createDefaultStreamIfNullFunc(cudaMainBody);
+		createCudaMainWhileLoop(cudaMainBody);
+
+		root.addSequenceChild(nodeDefnFunction(srcMethod, CUDA_MAIN, voidType(),
+				Arrays.asList(), cudaMainBody));
+	}
+
+	private void createCudaMainGlobalVariables(List<BlockItemNode> body) {
+		String srcMethod = "createCudaMainGlobalVariables";
+
+		body.add(nodeDeclVarInit(srcMethod, "$cuda_scope",
+				nodeTypeScope(srcMethod), nodeExprHere(srcMethod)));
+
+		body.add(nodeDeclVarInit(srcMethod, "$cuda_device_comm",
+				nodeTypeNamed(srcMethod, "$comm"),
+				nodeExprCall(srcMethod, "$comm_create",
+						nodeExprId(srcMethod, "$cuda_scope"),
+						nodeExprId(srcMethod, "$cuda_gcomm"),
+						nodeExprInt(srcMethod, 1))));
+
+		body.add(nodeDeclVar(srcMethod, DEVICE_GLOB_CONTEXT_NAME,
+				nodeTypeNamed(srcMethod, "$cuda_context")));
+
+		body.add(nodeDeclVar(srcMethod, "$cuda_default_stream",
+				nodeTypeNamed(srcMethod, "cudaStream_t")));
+
+		body.add(nodeDeclVarInit(srcMethod, "defaultStreamNode",
+				nodeTypeNamed(srcMethod, "$cuda_stream_node_t"),
+				nodeExprCall(srcMethod, "$create_new_stream_node",
+						nodeExprId(srcMethod, "$cuda_scope"))));
+
+		body.add(nodeStmtAssign(CUDA_MAIN,
+				nodeExprId(srcMethod, "$cuda_default_stream"),
+				nodeExprArrow(srcMethod,
+						nodeExprId(srcMethod, "defaultStreamNode"), "stream")));
+
+		body.add(nodeStmtAssign(CUDA_MAIN, nodeExprDot(srcMethod,
+				nodeExprId(srcMethod, DEVICE_GLOB_CONTEXT_NAME), "headNode"),
+				nodeExprId(srcMethod, "defaultStreamNode")));
+
+		body.add(nodeStmtAssign(CUDA_MAIN, nodeExprDot(srcMethod,
+				nodeExprId(srcMethod, DEVICE_GLOB_CONTEXT_NAME), "numStreams"),
+				nodeExprInt(srcMethod, 1)));
+	}
+
+	private void createDefaultStreamIfNullFunc(List<BlockItemNode> body) {
+		String srcMethod = "createDefaultStreamIfNullFunc";
+
+		List<BlockItemNode> defaultStreamIfNullBody = new ArrayList<BlockItemNode>();
+
+		defaultStreamIfNullBody.add(nodeFactory.newReturnNode(
+				newSource(srcMethod, CivlcTokenConstant.RETURN),
+				nodeExprOp(srcMethod, Operator.CONDITIONAL,
+						nodeExprOp(srcMethod, Operator.EQUALS,
+								nodeExprId(srcMethod, "stream"),
+								nodeExprNullPointer(srcMethod)),
+						nodeExprId(srcMethod, "$cuda_default_stream"),
+						nodeExprId(srcMethod, "stream"))));
+
+		body.add(nodeDefnFunction(srcMethod, "$default_stream_if_null",
+				nodeTypeNamed(srcMethod, "cudaStream_t"),
+				Arrays.asList(nodeDeclVar(srcMethod, "stream",
+						nodeTypeNamed(srcMethod, "cudaStream_t"))),
+				defaultStreamIfNullBody));
+	}
+
+	private void createCudaMainWhileLoop(List<BlockItemNode> body) {
+		String srcMethod = "createCudaMainWhileLoop";
+
+		List<BlockItemNode> loopBody = new ArrayList<BlockItemNode>();
+
+		// TODO: Fix COMM_ANY_TAG issue, for now I will just use the int -2
+		loopBody.add(nodeDeclVarInit(srcMethod, "request",
+				nodeTypeNamed(srcMethod, "$message"),
+				nodeExprCall(srcMethod, "$comm_dequeue",
+						nodeExprId(srcMethod, "$cuda_device_comm"),
+						nodeExprId(srcMethod, "$CUDA_PLACE_HOST"),
+						nodeExprInt(srcMethod, -2))));
+
+		loopBody.add(nodeDeclVar(srcMethod, "response",
+				nodeTypeNamed(srcMethod, "$message")));
+
+		loopBody.add(nodeDeclVarInit(srcMethod, "tag", nodeTypeInt(srcMethod),
+				nodeExprCall(srcMethod, "$message_tag",
+						nodeExprId(srcMethod, "request"))));
+
+		createCudaMainSwitchStatement(loopBody);
+
+		loopBody.add(nodeStmtCall(srcMethod, "$comm_enqueue",
+				nodeExprId(srcMethod, "$cuda_device_comm"),
+				nodeExprId(srcMethod, "response")));
+
+		body.add(nodeFactory.newWhileLoopNode(
+				newSource(srcMethod, CivlcTokenConstant.WHILE),
+				booleanConstant(true),
+				nodeFactory.newCompoundStatementNode(
+						newSource(srcMethod,
+								CivlcTokenConstant.COMPOUND_STATEMENT),
+						loopBody),
+				null));
+	}
+
+	private void createCudaMainSwitchStatement(List<BlockItemNode> body) {
+		String srcMethod = "createCudaMainSwitchStatement";
+
+		ArrayList<BlockItemNode> switchBody = new ArrayList<BlockItemNode>();
+
+		//// $CUDA_TAG_SCOPE_REQUEST ////
+
+		List<BlockItemNode> cudaTagScopeRequestBody = new ArrayList<BlockItemNode>();
+
+		StatementNode scopeRequestAssignment = nodeStmtAssign(srcMethod,
+				nodeExprId(srcMethod, "response"),
+				nodeExprCall(srcMethod, "$message_pack",
+						nodeExprId(srcMethod, DEVICE_PLACE_NAME),
+						nodeExprId(srcMethod, HOST_PLACE_NAME),
+						nodeFactory.newEnumerationConstantNode(
+								identifier("$CUDA_TAG_SCOPE_REQUEST")),
+						nodeExprOp(srcMethod, Operator.ADDRESSOF,
+								nodeExprId(srcMethod, "$cuda_scope")),
+						nodeExprSizeof(srcMethod, nodeTypeScope(srcMethod))));
+
+		cudaTagScopeRequestBody.add(scopeRequestAssignment);
+		cudaTagScopeRequestBody.add(nodeBreak(srcMethod));
+
+		StatementNode cudaTagScopeRequestLabel = nodeSwitchLabeledStmt(
+				srcMethod, "$CUDA_TAG_SCOPE_REQUEST", cudaTagScopeRequestBody);
+
+		switchBody.add(cudaTagScopeRequestLabel);
+
+		//// $CUDA_TAG_cudaFree ////
+
+		List<BlockItemNode> cudaTagCudaFreeBody = new ArrayList<BlockItemNode>();
+
+		StatementNode cudaFreeAssignment = nodeStmtAssign(srcMethod,
+				nodeExprId(srcMethod, "response"), nodeExprCall(srcMethod,
+						"$cuda_free", nodeExprId(srcMethod, "request")));
+
+		cudaTagCudaFreeBody.add(cudaFreeAssignment);
+		cudaTagCudaFreeBody.add(nodeBreak(srcMethod));
+
+		StatementNode cudaTagCudaFreeLabel = nodeSwitchLabeledStmt(srcMethod,
+				"$CUDA_TAG_cudaFree", cudaTagCudaFreeBody);
+
+		switchBody.add(cudaTagCudaFreeLabel);
+
+		//// $CUDA_TAG_cudaMemcpy ////
+
+		List<BlockItemNode> cudaTagCudaMemcpyBody = new ArrayList<BlockItemNode>();
+
+		StatementNode cudaMemcpyAssignment = nodeStmtAssign(srcMethod,
+				nodeExprId(srcMethod, "response"),
+				nodeExprCall(srcMethod, "$cuda_memcpy",
+						nodeExprId(srcMethod, "$cuda_scope"),
+						nodeExprId(srcMethod, "$cuda_default_stream"),
+						nodeExprId(srcMethod, "request"),
+						booleanConstant(false)));
+
+		cudaTagCudaMemcpyBody.add(cudaMemcpyAssignment);
+		cudaTagCudaMemcpyBody.add(nodeBreak(srcMethod));
+
+		StatementNode cudaTagCudaMemcpyLabel = nodeSwitchLabeledStmt(srcMethod,
+				"$CUDA_TAG_cudaMemcpy", cudaTagCudaMemcpyBody);
+
+		switchBody.add(cudaTagCudaMemcpyLabel);
+
+		//// $CUDA_TAG_cudaMemcpyAsync ////
+
+		List<BlockItemNode> cudaTagCudaMemcpyAsyncBody = new ArrayList<BlockItemNode>();
+
+		StatementNode cudaMemcpyAsyncAssignment = nodeStmtAssign(srcMethod,
+				nodeExprId(srcMethod, "response"),
+				nodeExprCall(srcMethod, "$cuda_memcpy",
+						nodeExprId(srcMethod, "$cuda_scope"),
+						nodeExprId(srcMethod, "$cuda_default_stream"),
+						nodeExprId(srcMethod, "request"),
+						booleanConstant(true)));
+
+		cudaTagCudaMemcpyAsyncBody.add(cudaMemcpyAsyncAssignment);
+		cudaTagCudaMemcpyAsyncBody.add(nodeBreak(srcMethod));
+
+		StatementNode cudaTagCudaMemcpyAsyncLabel = nodeSwitchLabeledStmt(
+				srcMethod, "$CUDA_TAG_cudaMemcpyAsync",
+				cudaTagCudaMemcpyAsyncBody);
+
+		switchBody.add(cudaTagCudaMemcpyAsyncLabel);
+
+		//// $CUDA_TAG_cudaDeviceSynchronize ////
+
+		List<BlockItemNode> cudaTagCudaDeviceSynchronizeBody = new ArrayList<BlockItemNode>();
+
+		cudaTagCudaDeviceSynchronizeBody.add(nodeStmtAssign(srcMethod,
+				nodeExprId(srcMethod, "response"),
+				nodeExprCall(srcMethod, "$cuda_device_synchronize", nodeExprOp(
+						srcMethod, Operator.ADDRESSOF,
+						nodeExprId(srcMethod, DEVICE_GLOB_CONTEXT_NAME)))));
+
+		cudaTagCudaDeviceSynchronizeBody.add(nodeBreak(srcMethod));
+
+		StatementNode cudaTagCudaDeviceSynchronizeLabel = nodeSwitchLabeledStmt(
+				srcMethod, "$CUDA_TAG_cudaDeviceSynchronize",
+				cudaTagCudaDeviceSynchronizeBody);
+
+		switchBody.add(cudaTagCudaDeviceSynchronizeLabel);
+
+		//// $CUDA_TAG_LAUNCH_Kernel_X ////
+
+		for (KernelInfo kernel : kernelMap.values()) {
+			StatementNode cudaTagLaunchKernelLabel = generateCudaTagLaunchLabel(
+					kernel.getTagName(), kernel.getKernelProcName());
+			switchBody.add(cudaTagLaunchKernelLabel);
+		}
+
+		//// $CUDA_TAG_TEARDOWN ////
+
+		List<BlockItemNode> cudaTagCudaTeardownBody = new ArrayList<BlockItemNode>();
+
+		FunctionCallNode streamDestroyCall = nodeExprCall(srcMethod,
+				"$destroy_stream_node",
+				nodeExprArrow(srcMethod,
+						nodeExprId(srcMethod, "$cuda_default_stream"),
+						"containingNode"));
+
+		VariableDeclarationNode teardownProcDeclaration = nodeDeclVar(srcMethod,
+				"destructor", nodeTypeNamed(srcMethod, "$proc"));
+
+		teardownProcDeclaration.setInitializer(streamDestroyCall);
+		cudaTagCudaTeardownBody.add(teardownProcDeclaration);
+
+		StatementNode waitCall = nodeFactory
+				.newExpressionStatementNode(nodeExprCall(srcMethod, "$wait",
+						nodeExprId(srcMethod, "destructor")));
+
+		cudaTagCudaTeardownBody.add(waitCall);
+
+		StatementNode commDestroyCall = nodeFactory.newExpressionStatementNode(
+				nodeExprCall(srcMethod, "$comm_destroy",
+						nodeExprId(srcMethod, "$cuda_device_comm")));
+
+		cudaTagCudaTeardownBody.add(commDestroyCall);
+		cudaTagCudaTeardownBody.add(nodeFactory.newReturnNode(
+				newSource(srcMethod, CivlcTokenConstant.RETURN), null));
+
+		StatementNode cudaTagCudaTeardownLabel = nodeSwitchLabeledStmt(
+				srcMethod, "$CUDA_TAG_TEARDOWN", cudaTagCudaTeardownBody);
+
+		switchBody.add(cudaTagCudaTeardownLabel);
+
+		//// default ////
+
+		List<BlockItemNode> cudaTagDefaultBody = new ArrayList<BlockItemNode>();
+
+		String string = "\"" + "Unknown CUDA request" + "\"";
+
+		TokenFactory tokenFactory = astFactory.getTokenFactory();
+		Formation formation = tokenFactory
+				.newTransformFormation(transformerName, "stringLiteral");
+		CivlcToken ctoke = tokenFactory.newCivlcToken(
+				CivlcTokenConstant.STRING_LITERAL, string, formation,
+				TokenVocabulary.DUMMY);
+		StringToken stringToken;
+		StringLiteral literal = null;
+		try {
+			stringToken = tokenFactory.newStringToken(ctoke);
+			literal = stringToken.getStringLiteral();
+		} catch (SyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		StatementNode assertionStatement = nodeFactory
+				.newExpressionStatementNode(nodeExprCall(srcMethod, "$assert",
+						booleanConstant(false),
+						nodeFactory.newStringLiteralNode(
+								newSource(srcMethod,
+										CivlcTokenConstant.STRING_LITERAL),
+								string, literal)));
+
+		cudaTagDefaultBody.add(assertionStatement);
+
+		StatementNode cudaTagDefaultLabel = nodeSwitchLabeledStmt(srcMethod,
+				"default", cudaTagDefaultBody);
+
+		switchBody.add(cudaTagDefaultLabel);
+
+		//// Switch Statement ////
+
+		StatementNode switchStatement = nodeFactory.newSwitchNode(
+				newSource(srcMethod, CivlcTokenConstant.SWITCH),
+				nodeExprId(srcMethod, "tag"), nodeBlock(srcMethod, switchBody));
+		body.add(switchStatement);
+	}
+
+	private StatementNode nodeSwitchLabeledStmt(String srcMethod,
+			String caseName, List<BlockItemNode> body) {
+		Source labeledStmtSource = newSource(srcMethod,
+				CivlcTokenConstant.CASE_LABELED_STATEMENT);
+		SwitchLabelNode labelDecl;
+
+		if (caseName.equals("default")) {
+			labelDecl = nodeFactory
+					.newDefaultLabelDeclarationNode(labeledStmtSource, null);
+		} else {
+			labelDecl = nodeFactory.newCaseLabelDeclarationNode(
+					labeledStmtSource, nodeFactory.newEnumerationConstantNode(
+							identifier(caseName)),
+					null);
+		}
+
+		StatementNode label = nodeFactory.newLabeledStatementNode(
+				labeledStmtSource, labelDecl, nodeBlock(srcMethod, body));
+		return label;
+	}
+
+	private StatementNode generateCudaTagLaunchLabel(String caseName,
+			String procName) {
+		String srcMethod = "generateCudaTagLaunchLabel";
+		List<BlockItemNode> cudaTagLaunchBody = new ArrayList<BlockItemNode>();
+
+		StatementNode streamEnqueueCall = nodeFactory
+				.newExpressionStatementNode(nodeExprCall(srcMethod,
+						"$stream_enqueue", nodeExprId(srcMethod, "$cuda_scope"),
+						nodeExprId(srcMethod, "$cuda_default_stream"),
+						nodeExprId(srcMethod, "request"),
+						nodeExprId(srcMethod, procName)));
+
+		cudaTagLaunchBody.add(streamEnqueueCall);
+
+		StatementNode responseAssignment = nodeStmtAssign(srcMethod,
+				nodeExprId(srcMethod, "response"),
+				nodeExprCall(srcMethod, "$message_pack",
+						nodeExprId(srcMethod, DEVICE_PLACE_NAME),
+						nodeExprId(srcMethod, HOST_PLACE_NAME),
+						nodeExprId(srcMethod, "tag"), nullArgument(srcMethod),
+						nodeExprInt(srcMethod, 0)));
+
+		cudaTagLaunchBody.add(responseAssignment);
+		cudaTagLaunchBody.add(nodeBreak(srcMethod));
+
+		StatementNode cudaTagLaunchLabel = nodeSwitchLabeledStmt(srcMethod,
+				caseName, cudaTagLaunchBody);
+
+		return cudaTagLaunchLabel;
+	}
+
 	/**
-	 * Inserts a call to $cuda_init at the beginning of main and a call to
-	 * $cuda_finalize at the end of main
+	 * Finds the main function definition node underneath root and calls
+	 * {@link Cuda2CIVLWorker#transformMainFunctionDefinition(FunctionDefinitionNode)}
+	 * on it
 	 * 
-	 * @param mainFunction the function definition node for the main function
+	 * @param root
+	 *            the root node of an Abstract Syntax Tree
+	 */
+	private void translateMainDefinition(ASTNode root) {
+		for (ASTNode child : root.children()) {
+			if (child == null)
+				continue;
+
+			if (child.nodeKind() == NodeKind.FUNCTION_DEFINITION) {
+				FunctionDefinitionNode definition = (FunctionDefinitionNode) child;
+
+				if (definition.getName() != null
+						&& definition.getName().equals("main")) {
+					transformMainFunctionDefinition(definition);
+					return;
+				}
+			}
+		}
+	}
+
+	/**
+	 * Spawns a host $proc on the "new" main function and a device $proc on the
+	 * "cuda" main function. Waits for these processes and then destroys the
+	 * $gcomm that these two processes communicate with.
+	 * 
+	 * @param mainFunction
+	 *            the function definition node for the main function
 	 */
 	private void transformMainFunctionDefinition(
 			FunctionDefinitionNode mainFunction) {
-		Source source = mainFunction.getSource();
-		FunctionCallNode cudaInitCall = nodeFactory.newFunctionCallNode(source,
-				this.identifierExpression(source, "$cuda_init"),
-				Collections.<ExpressionNode>emptyList(), null);
-		FunctionCallNode cudaFinalizeCall = nodeFactory.newFunctionCallNode(
-				source, this.identifierExpression(source, "$cuda_finalize"),
-				Collections.<ExpressionNode>emptyList(), null);
-		CompoundStatementNode body = mainFunction.getBody();
+		String srcMethod = "transformMainFunctionDefinition";
+		String hostProcName = "$host_proc" + newTemporaryVariableName();
+		String deviceProcName = "$cuda_proc" + newTemporaryVariableName();
+		List<BlockItemNode> newBody = new LinkedList<BlockItemNode>();
 
-		body = this.insertToCompoundStatement(body,
-				nodeFactory.newExpressionStatementNode(cudaInitCall), 0);
-		body = this.insertToCompoundStatement(body,
-				nodeFactory.newExpressionStatementNode(cudaFinalizeCall),
-				body.numChildren());
-		mainFunction.setBody(body);
+		newBody.add(nodeDeclVarInit(srcMethod, hostProcName,
+				nodeTypeNamed(srcMethod, "$proc"),
+				nodeFactory.newSpawnNode(
+						newSource(srcMethod, CivlcTokenConstant.SPAWN),
+						nodeExprCall(srcMethod, GEN_MAIN))));
+		newBody.add(nodeDeclVarInit(srcMethod, deviceProcName,
+				nodeTypeNamed(srcMethod, "$proc"),
+				nodeFactory.newSpawnNode(
+						newSource(srcMethod, CivlcTokenConstant.SPAWN),
+						nodeExprCall(srcMethod, CUDA_MAIN))));
+		newBody.add(nodeStmtCall(srcMethod, "$wait",
+				nodeExprId(srcMethod, hostProcName)));
+
+		FunctionCallNode messagePackCall = this.nodeExprCall(srcMethod,
+				"$message_pack", this.nodeExprId(srcMethod, HOST_PLACE_NAME),
+				this.nodeExprId(srcMethod, DEVICE_PLACE_NAME),
+				nodeFactory.newEnumerationConstantNode(
+						this.identifier("$CUDA_TAG_TEARDOWN")),
+				this.nullArgument(srcMethod), this.nodeExprInt(srcMethod, 0));
+
+		FunctionCallNode commEnqueueCall = this.nodeExprCall(srcMethod,
+				"$comm_enqueue", this.nodeExprId(srcMethod, HOST_COMM_NAME),
+				messagePackCall);
+
+		FunctionCallNode commDestroyCall = this.nodeExprCall(srcMethod,
+				"$comm_destroy", this.nodeExprId(srcMethod, HOST_COMM_NAME));
+
+		newBody.add(nodeFactory.newExpressionStatementNode(commEnqueueCall));
+		newBody.add(nodeFactory.newExpressionStatementNode(commDestroyCall));
+
+		newBody.add(nodeStmtCall(srcMethod, "$wait",
+				nodeExprId(srcMethod, deviceProcName)));
+		newBody.add(nodeStmtCall(srcMethod, "$gcomm_destroy",
+				nodeExprId(srcMethod, "$cuda_gcomm"),
+				nodeExprNullPointer(srcMethod)));
+
+		mainFunction.setBody(nodeFactory.newCompoundStatementNode(
+				newSource(srcMethod, CivlcTokenConstant.COMPOUND_STATEMENT),
+				newBody));
 	}
 
-	/**
-	 * Given a kernel name, returns a transformed version of it to distinguish
-	 * it as a transformed version of the original kernel
-	 * 
-	 * @param name a string that is the name of the original kernel
-	 * @return the transformed name
-	 */
-	private String transformKernelName(String name) {
-		return "_cuda_" + name;
+	private CastNode nullArgument(String srcMethod) {
+		CastNode NULL = nodeExprCast(srcMethod,
+				nodeTypePointer(srcMethod, voidType()),
+				nodeExprInt(srcMethod, 0));
+		return NULL;
 	}
 
-	/**
-	 * Given a kernel definition node, this method transforms the kernel name
-	 * (see {@link Cuda2CIVLWorker#transformKernelName(String)}), prepends
-	 * formal parameters for the context arguments of the kernel, builds and
-	 * inserts the inner kernel definition from the kernel's body (see
-	 * {@link Cuda2CIVLWorker#buildInnerKernelDefinition(CompoundStatementNode)}),
-	 * and enqueues a call to the inner kernel definition using
-	 * $cuda_enqueue_kernel.
-	 * 
-	 * @param oldDefinition a FunctionDefinitionNode which is the definition of the original kernel
-	 * @return the transformed kernel definition
-	 */
-	protected FunctionDefinitionNode kernelDefinitionTransform(
-			FunctionDefinitionNode oldDefinition) {
-		// TODO: add execution configuration parameters as regular parameters
-		Source source = oldDefinition.getSource();
-		
-		
-		FunctionDefinitionNode innerKernelDefinition = this
-				.buildInnerKernelDefinition(oldDefinition.getBody());
-		String newKernelName = this
-				.transformKernelName(oldDefinition.getIdentifier().name());
-		FunctionCallNode enqueueKernelCall = nodeFactory.newFunctionCallNode(
-				source,
-				this.identifierExpression(source, "$cuda_enqueue_kernel"),
-				Arrays.asList(this.identifierExpression(source, "_cuda_stream"),
-						this.identifierExpression(source, "_cuda_kernel"),
-						this.identifierExpression(source, "gridDim"),
-						this.identifierExpression(source, "blockDim")),
-				null);
-		CompoundStatementNode newKernelBody = nodeFactory
-				.newCompoundStatementNode(source,
-						Arrays.asList(innerKernelDefinition,
-								nodeFactory.newExpressionStatementNode(
-										enqueueKernelCall)));
-		
-		List<VariableDeclarationNode> newKernelFormalsList = new ArrayList<>();
-
-		newKernelFormalsList.add(nodeFactory.newVariableDeclarationNode(source,
-				this.identifier("gridDim"),
-				nodeFactory.newTypedefNameNode(this.identifier("dim3"), null)));
-		newKernelFormalsList.add(nodeFactory.newVariableDeclarationNode(source,
-				this.identifier("blockDim"),
-				nodeFactory.newTypedefNameNode(this.identifier("dim3"), null)));
-		newKernelFormalsList.add(nodeFactory.newVariableDeclarationNode(source,
-				this.identifier("_cuda_mem_size"), nodeFactory
-						.newTypedefNameNode(this.identifier("size_t"), null)));
-		newKernelFormalsList.add(nodeFactory.newVariableDeclarationNode(source,
-				this.identifier("_cuda_stream"), nodeFactory.newTypedefNameNode(
-						this.identifier("cudaStream_t"), null)));
-		for (VariableDeclarationNode decl : oldDefinition.getTypeNode()
-				.getParameters()) {
-			if (decl.getTypeNode().kind() != TypeNodeKind.VOID)
-				newKernelFormalsList.add(decl.copy());
-		}
-		SequenceNode<VariableDeclarationNode> newKernelFormals = nodeFactory
-				.newSequenceNode(source, "kernel formals",
-						newKernelFormalsList);
-		FunctionTypeNode newKernelType = nodeFactory.newFunctionTypeNode(source,
-				oldDefinition.getTypeNode().getReturnType().copy(),
-				newKernelFormals, true);
-		FunctionDefinitionNode newKernel = nodeFactory
-				.newFunctionDefinitionNode(source,
-						nodeFactory.newIdentifierNode(source, newKernelName),
-						newKernelType, null, newKernelBody);
-		return newKernel;
-	}
-
-	/**
-	 * Given a kernel declaration node, this method transforms the kernel name
-	 * (see {@link Cuda2CIVLWorker#transformKernelName(String)}) and prepends
-	 * formal parameters for the context arguments of the kernel.
-	 * 
-	 * @param oldDeclaration a FunctionDeclarationNode which is the declaration of the original kernel
-	 * @return the transformed kernel declaration node
-	 */
-	protected FunctionDeclarationNode kernelDeclarationTransform(
-			FunctionDeclarationNode oldDeclaration) {
-		Source source = oldDeclaration.getSource();
-		String newKernelName = this
-				.transformKernelName(oldDeclaration.getIdentifier().name());
-		List<VariableDeclarationNode> newKernelFormalsList = new ArrayList<>();
-
-		newKernelFormalsList.add(nodeFactory.newVariableDeclarationNode(source,
-				this.identifier("gridDim"),
-				nodeFactory.newTypedefNameNode(this.identifier("dim3"), null)));
-		newKernelFormalsList.add(nodeFactory.newVariableDeclarationNode(source,
-				this.identifier("blockDim"),
-				nodeFactory.newTypedefNameNode(this.identifier("dim3"), null)));
-		newKernelFormalsList.add(nodeFactory.newVariableDeclarationNode(source,
-				this.identifier("_cuda_mem_size"), nodeFactory
-						.newTypedefNameNode(this.identifier("size_t"), null)));
-		newKernelFormalsList.add(nodeFactory.newVariableDeclarationNode(source,
-				this.identifier("_cuda_stream"), nodeFactory.newTypedefNameNode(
-						this.identifier("cudaStream_t"), null)));
-
-		FunctionTypeNode oldDeclarationTypeNode = ((FunctionTypeNode) oldDeclaration
-				.getTypeNode());
-		for (VariableDeclarationNode decl : oldDeclarationTypeNode
-				.getParameters()) {
-			if (decl.getTypeNode().kind() != TypeNodeKind.VOID)
-				newKernelFormalsList.add(decl.copy());
-		}
-		SequenceNode<VariableDeclarationNode> newKernelFormals = nodeFactory
-				.newSequenceNode(source, "kernel formals",
-						newKernelFormalsList);
-		FunctionTypeNode newKernelType = nodeFactory.newFunctionTypeNode(source,
-				oldDeclarationTypeNode.getReturnType().copy(), newKernelFormals,
-				true);
-		FunctionDeclarationNode newKernel = nodeFactory
-				.newFunctionDeclarationNode(source,
-						nodeFactory.newIdentifierNode(source, newKernelName),
-						newKernelType, null);
-		return newKernel;
-	}
-
-	/**
-	 * Alters a body of code by removing any variable declaration 
-	 * with the "__shared__" tag and returning a new list of those removed declarations
-	 * without the "__shared__" tag.
-	 * 
-	 * @param statements a CompountStatementNode that is any section of code
-	 * @return The list of removed variable declarations
-	 */
-	protected List<VariableDeclarationNode> extractSharedVariableDeclarations(
-			CompoundStatementNode statements) {
-		List<VariableDeclarationNode> declarations = new ArrayList<>();
-		for (BlockItemNode item : statements) {
-			if (item instanceof VariableDeclarationNode) {
-				VariableDeclarationNode variableDeclaration = (VariableDeclarationNode) item.copy();
-				if (variableDeclaration.hasSharedStorage()) {
-					statements.removeChild(item.childIndex());
-					variableDeclaration.setSharedStorage(false);
-					declarations.add(variableDeclaration);
-				}
-			}
-		}
-		return declarations;
-	}
-
-	/**
-	 * Given the body of a kernel definition, this method builds the 
-	 * inner kernel for the transformed kernel, which aims to generate a grid of blocks
-	 * and threads before running the body of the original kernel.
-	 * 
-	 * This method defines the inner kernel with formal parameters,
-	 * inserts the block function (see {@link Cuda2CIVLWorker#buildBlockDefinition(CompoundStatementNode)}),
-	 * and appends to that calls to $cuda_wait_in_queue,
-	 * $cuda_run_procs (for block generation), and $cuda_kernel_finish.
-	 * 
-	 * @param body a CompoundStatementNode which is the body of the original kernel 
-	 * @return The completed inner kernel definition
-	 */
-	protected FunctionDefinitionNode buildInnerKernelDefinition(
-			CompoundStatementNode body) {
-		Source source = body.getSource();
-		VariableDeclarationNode thisDeclaration = nodeFactory
-				.newVariableDeclarationNode(source,
-						nodeFactory.newIdentifierNode(source, "_cuda_this"),
-						nodeFactory.newPointerTypeNode(source,
-								nodeFactory.newTypedefNameNode(
-										nodeFactory.newIdentifierNode(source,
-												"$cuda_kernel_instance_t"),
-										null)));
-		VariableDeclarationNode eDeclaration = nodeFactory
-				.newVariableDeclarationNode(source,
-						nodeFactory.newIdentifierNode(source, "_cuda_event"),
-						nodeFactory.newTypedefNameNode(nodeFactory
-								.newIdentifierNode(source, "cudaEvent_t"),
-								null));
-		SequenceNode<VariableDeclarationNode> innerKernelFormals = nodeFactory
-				.newSequenceNode(source, "innerKernelFormals",
-						Arrays.asList(thisDeclaration, eDeclaration));
-		FunctionDefinitionNode blockDefinition = buildBlockDefinition(body);
-		FunctionCallNode waitInQueueCall = nodeFactory.newFunctionCallNode(
-				source,
-				this.identifierExpression(source, "$cuda_wait_in_queue"),
-				Arrays.asList(this.identifierExpression(source, "_cuda_this"),
-						this.identifierExpression(source, "_cuda_event")),
-				null);
-		
-		
-		
-		FunctionCallNode runProcsCall = nodeFactory.newFunctionCallNode(source,
-				this.identifierExpression(source, "$cuda_run_procs"),
-				Arrays.asList(this.identifierExpression(source, "gridDim"),
-						this.identifierExpression(source, "_cuda_block")),
-				null);
-		FunctionCallNode kernelFinishCall = nodeFactory.newFunctionCallNode(
-				source,
-				this.identifierExpression(source, "$cuda_kernel_finish"),
-				Arrays.asList(this.identifierExpression(source, "_cuda_this")),
-				null);
-		
-		CompoundStatementNode innerKernelBody = nodeFactory
-				.newCompoundStatementNode(source, Arrays.asList(blockDefinition,
-						nodeFactory.newExpressionStatementNode(waitInQueueCall),
-						nodeFactory.newExpressionStatementNode(runProcsCall),
-						nodeFactory
-								.newExpressionStatementNode(kernelFinishCall)));
-		FunctionDefinitionNode innerKernelDefinition = nodeFactory
-				.newFunctionDefinitionNode(source,
-						nodeFactory.newIdentifierNode(source, "_cuda_kernel"),
-						nodeFactory.newFunctionTypeNode(source,
-								nodeFactory.newVoidTypeNode(source),
-								innerKernelFormals, false),
-						null, innerKernelBody);
-		return innerKernelDefinition;
-	}
-
-	/**
-	 * Given the body of a kernel definition, this method builds the 
-	 * block function within the inner kernel, which aims to create threads within
-	 * a block before running the body of the original kernel.
-	 * 
-	 * This method defines the block function with formal parameters,
-	 * begins it with a barrier creation using $gbarrier_create, and appends to that
-	 * the thread function (see {@link Cuda2CIVLWorker#buildThreadDefinition(CompoundStatementNode)},
-	 * a call to $cuda_run_procs (for thread generation), and a call to $gbarrier_destroy.
-	 * 
-	 * @param body a CompoundStatementNode which is the body of the original kernel 
-	 * @return The completed block function definition
-	 */
-	protected FunctionDefinitionNode buildBlockDefinition(
-			CompoundStatementNode body) {
-		Source source = body.getSource();
-		DotNode blockDimX = nodeFactory.newDotNode(source,
-				this.identifierExpression(source, "blockDim"),
-				nodeFactory.newIdentifierNode(source, "x"));
-		DotNode blockDimY = nodeFactory.newDotNode(source,
-				this.identifierExpression(source, "blockDim"),
-				nodeFactory.newIdentifierNode(source, "y"));
-		DotNode blockDimZ = nodeFactory.newDotNode(source,
-				this.identifierExpression(source, "blockDim"),
-				nodeFactory.newIdentifierNode(source, "z"));
-		OperatorNode totalThreads = nodeFactory
-				.newOperatorNode(source, Operator.TIMES,
-						Arrays.asList(
-								nodeFactory
-										.newOperatorNode(source, Operator.TIMES,
-												Arrays.<ExpressionNode>asList(
-														blockDimX, blockDimY)),
-								blockDimZ));
-		
-		VariableDeclarationNode numThreads = nodeFactory.newVariableDeclarationNode(source,
-				this.identifier("numThreads"), nodeFactory.newBasicTypeNode(source, BasicTypeKind.INT));
-		numThreads.setInitializer(totalThreads);
-		
-		FunctionCallNode newGbarrier = nodeFactory.newFunctionCallNode(source,
-				this.identifierExpression(source, "$gbarrier_create"),
-				Arrays.asList(nodeFactory.newHereNode(source), this.identifierExpression("numThreads")),
-				null);
-		
-		VariableDeclarationNode gCommCreate = nodeFactory.newVariableDeclarationNode(source, 
-				this.identifier("gComm"), nodeFactory.newTypedefNameNode(this.identifier("$gcomm"), null));
-		
-		List<ExpressionNode> createArguments = new ArrayList<ExpressionNode>();
-		createArguments.add(nodeFactory.newHereNode(source));
-		createArguments.add(this.identifierExpression("numThreads"));
-		
-		gCommCreate.setInitializer(nodeFactory.newFunctionCallNode(source, this.identifierExpression("$gcomm_create"),
-				createArguments, null));
-		
-		VariableDeclarationNode numWarps = nodeFactory.newVariableDeclarationNode(source,
-				this.identifier("numWarps"), nodeFactory.newBasicTypeNode(source, BasicTypeKind.INT));
-		
-		OperatorNode totalWarps = nodeFactory.newOperatorNode(source, Operator.PLUS,
-				Arrays.asList(
-						nodeFactory.newOperatorNode(source, Operator.DIV, Arrays.asList(
-								this.identifierExpression("numThreads"), nodeFactory.newIntConstantNode(source, 32))),
-						nodeFactory.newOperatorNode(source, Operator.NEQ, Arrays.asList(
-								nodeFactory.newOperatorNode(source, Operator.MOD, Arrays.asList(
-										this.identifierExpression("numThreads"), nodeFactory.newIntConstantNode(source, 32)
-										)),
-								nodeFactory.newIntConstantNode(source, 0)))));
-		
-		numWarps.setInitializer(totalWarps);
-		
-		VariableDeclarationNode warpBarrierArray = nodeFactory.newVariableDeclarationNode(source,
-				this.identifier("warpBarriers"), nodeFactory.newArrayTypeNode(source, 
-						nodeFactory.newTypedefNameNode(this.identifier("$gbarrier"), null), this.identifierExpression("numWarps")));
-		
-		VariableDeclarationNode blockScope = nodeFactory.newVariableDeclarationNode(source,
-				this.identifier("_block_root"), nodeFactory.newTypedefNameNode(this.identifier("$scope"), null));
-		blockScope.setInitializer(nodeFactory.newHereNode(source));
-		
-		List<VariableDeclarationNode> creationLoopInitializerList = new ArrayList<VariableDeclarationNode>();
-		VariableDeclarationNode forLoopInitializer = nodeFactory.newVariableDeclarationNode(source, 
-				this.identifier("i"), nodeFactory.newBasicTypeNode(source, BasicTypeKind.INT));
-		forLoopInitializer.setInitializer(nodeFactory.newIntConstantNode(source, 0));
-		creationLoopInitializerList.add(forLoopInitializer);
-		
-		List<BlockItemNode> creationLoopItems = new ArrayList<BlockItemNode>();
-		FunctionCallNode warpBarrierCreate = nodeFactory.newFunctionCallNode(source,
-				this.identifierExpression("$gbarrier_create"), 
-				Arrays.asList(this.identifierExpression("_block_root"), nodeFactory.newIntConstantNode(source, 32)), null);
-		
-		OperatorNode warpBarrierAssign = nodeFactory.newOperatorNode(source, Operator.ASSIGN, 
-				Arrays.asList(
-						nodeFactory.newOperatorNode(source, Operator.SUBSCRIPT, 
-								Arrays.asList(this.identifierExpression("warpBarriers"),
-										this.identifierExpression("i"))),
-						warpBarrierCreate));
-		creationLoopItems.add(nodeFactory.newExpressionStatementNode(warpBarrierAssign));
-		CompoundStatementNode creationLoopBody = nodeFactory.newCompoundStatementNode(source, creationLoopItems);
-		
-		OperatorNode numWarpsMinusOne = nodeFactory.newOperatorNode(source, Operator.MINUS, Arrays.asList(this.identifierExpression("numWarps"),
-				nodeFactory.newIntConstantNode(source, 1)));
-		
-		LoopNode warpBarrierLoop = nodeFactory.newForLoopNode(source,
-				nodeFactory.newForLoopInitializerNode(source, creationLoopInitializerList), 
-				nodeFactory.newOperatorNode(source, Operator.LT, Arrays.asList(this.identifierExpression("i"), 
-						numWarpsMinusOne.copy())),
-				nodeFactory.newOperatorNode(source, Operator.POSTINCREMENT, this.identifierExpression("i")), 
-				creationLoopBody, null);
-		
-		OperatorNode lastWarpNumThreads = nodeFactory.newOperatorNode(source, Operator.MINUS, Arrays.asList(
-				this.identifierExpression("numThreads"),
-				nodeFactory.newOperatorNode(source, Operator.TIMES, Arrays.asList(
-						numWarpsMinusOne.copy(),
-						nodeFactory.newIntConstantNode(source, 32)))));
-		
-		FunctionCallNode lastWarpBarrierCreate = nodeFactory.newFunctionCallNode(source,
-				this.identifierExpression("$gbarrier_create"), 
-				Arrays.asList(this.identifierExpression("_block_root"), lastWarpNumThreads), null);
-		
-		OperatorNode LastWarpAssign = nodeFactory.newOperatorNode(source, Operator.ASSIGN,Arrays.asList(
-				nodeFactory.newOperatorNode(source, Operator.SUBSCRIPT, Arrays.asList(
-						this.identifierExpression("warpBarriers"),
-						numWarpsMinusOne.copy())),
-				lastWarpBarrierCreate));
-		
-		VariableDeclarationNode gbarrierCreation = nodeFactory
-				.newVariableDeclarationNode(source,
-						nodeFactory.newIdentifierNode(source,
-								"_cuda_block_barrier"),
-						nodeFactory.newTypedefNameNode(nodeFactory
-								.newIdentifierNode(source, "$gbarrier"), null),
-						newGbarrier);
-		List<VariableDeclarationNode> sharedVars = this
-				.extractSharedVariableDeclarations(body);
-		completeSharedExternArrays(sharedVars);
-		SequenceNode<VariableDeclarationNode> blockFormals = nodeFactory
-				.newSequenceNode(source, "blockFormals",
-						Arrays.asList(
-								nodeFactory.newVariableDeclarationNode(source,
-										nodeFactory.newIdentifierNode(source,
-												"blockIdx"),
-										nodeFactory.newTypedefNameNode(
-												nodeFactory.newIdentifierNode(
-														source, "uint3"),
-												null))));
-		FunctionDefinitionNode threadDefinition = this
-				.buildThreadDefinition(body);
-		FunctionCallNode runProcsCall = nodeFactory.newFunctionCallNode(source,
-				this.identifierExpression(source, "$cuda_run_procs"),
-				Arrays.asList(this.identifierExpression(source, "blockDim"),
-						this.identifierExpression(source, "_cuda_thread")),
-				null);
-		
-		List<VariableDeclarationNode> destructionLoopInitializerList = new ArrayList<VariableDeclarationNode>();
-		destructionLoopInitializerList.add(forLoopInitializer.copy());
-		
-		List<BlockItemNode> destructionLoopItems = new ArrayList<BlockItemNode>();
-		FunctionCallNode warpBarrierDestroy = nodeFactory.newFunctionCallNode(source,
-				this.identifierExpression("$gbarrier_destroy"), 
-				Arrays.asList(nodeFactory.newOperatorNode(source, Operator.SUBSCRIPT, 
-						Arrays.asList(this.identifierExpression("warpBarriers"), this.identifierExpression("i")))), null);
-		destructionLoopItems.add(nodeFactory.newExpressionStatementNode(warpBarrierDestroy));
-		CompoundStatementNode destructionLoopBody = nodeFactory.newCompoundStatementNode(source, destructionLoopItems);
-		
-		LoopNode warpBarrierDestruction = nodeFactory.newForLoopNode(source,
-				nodeFactory.newForLoopInitializerNode(source, destructionLoopInitializerList), 
-				nodeFactory.newOperatorNode(source, Operator.LT, Arrays.asList(this.identifierExpression("i"), this.identifierExpression("numWarps"))),
-				nodeFactory.newOperatorNode(source, Operator.POSTINCREMENT, this.identifierExpression("i")), 
-				destructionLoopBody, null);
-		
-		FunctionCallNode gbarrierDestruction = nodeFactory.newFunctionCallNode(
-				source, this.identifierExpression(source, "$gbarrier_destroy"),
-				Arrays.asList(this.identifierExpression(source,
-						"_cuda_block_barrier")),
-				null);
-		
-		List<ExpressionNode> destroyArguments = new ArrayList<ExpressionNode>();
-		destroyArguments.add(this.identifierExpression("gComm"));
-		IntegerConstantNode zero = nodeFactory.newIntConstantNode(source, 0);
-		CastNode NULL = nodeFactory.newCastNode(source, nodeFactory.newPointerTypeNode(source, nodeFactory.newVoidTypeNode(source)), zero);
-		destroyArguments.add(NULL);
-
-		FunctionCallNode gCommDestroy = nodeFactory.newFunctionCallNode(source, this.identifierExpression("$gcomm_destroy"), 
-				destroyArguments, null);
-		
-		List<BlockItemNode> blockBodyItems = new ArrayList<BlockItemNode>();
-		blockBodyItems.add(numThreads);
-		blockBodyItems.add(numWarps);
-		blockBodyItems.add(gCommCreate);
-		blockBodyItems.add(warpBarrierArray);
-		blockBodyItems.add(blockScope);
-		blockBodyItems.add(warpBarrierLoop);
-		blockBodyItems.add(nodeFactory.newExpressionStatementNode(LastWarpAssign));
-		blockBodyItems.add(gbarrierCreation);
-		blockBodyItems.addAll(sharedVars);
-		blockBodyItems.add(threadDefinition);
-		blockBodyItems
-				.add(nodeFactory.newExpressionStatementNode(runProcsCall));
-		blockBodyItems.add(
-				nodeFactory.newExpressionStatementNode(gbarrierDestruction));
-		blockBodyItems.add(warpBarrierDestruction);
-		blockBodyItems.add(nodeFactory.newExpressionStatementNode(gCommDestroy));
-		CompoundStatementNode blockBody = nodeFactory
-				.newCompoundStatementNode(source, blockBodyItems);
-		FunctionDefinitionNode blockDefinition = nodeFactory
-				.newFunctionDefinitionNode(source,
-						nodeFactory.newIdentifierNode(source, "_cuda_block"),
-						nodeFactory.newFunctionTypeNode(source,
-								nodeFactory.newVoidTypeNode(source),
-								blockFormals, false),
-						null, blockBody);
-		return blockDefinition;
-	}
-
-	/**
-	 * 
-	 * @param sharedVars a list of VariableDeclarationNodes
-	 */
-	protected void completeSharedExternArrays(
-			List<VariableDeclarationNode> sharedVars) {
-		for (VariableDeclarationNode node : sharedVars) {
-			if (node.hasExternStorage()
-					&& node.getTypeNode().kind() == TypeNodeKind.ARRAY) {
-				ArrayTypeNode arrayType = (ArrayTypeNode) node.getTypeNode();
-				if (arrayType.getExtent() == null) {
-					arrayType.setExtent(
-							this.identifierExpression("_cuda_mem_size"));
-					node.setExternStorage(false);
-				}
-			}
-		}
-	}
-
-	/**
-	 * Given the body of a kernel definition, this method builds the 
-	 * thread function within the block function of the inner kernel,
-	 * which aims to create a barrier for the thread before running the body of the original kernel.
-	 * 
-	 * This method defines the thread function with formal parameters and
-	 * inserts into it the body of the original kernel among other functions calls 
-	 * for the creation/destruction of a barrier and for data race checking.
-	 * 
-	 * @param body a CompoundStatementNode which is the body of the original kernel 
-	 * @return The completed thread function definition
-	 */
-	protected FunctionDefinitionNode buildThreadDefinition(
-			CompoundStatementNode body) {
-		translateShflCalls(body);
-		CompoundStatementNode newBody = translateAtomicCalls(body);
-		Source source = newBody.getSource();
-		SequenceNode<VariableDeclarationNode> threadFormals = nodeFactory
-				.newSequenceNode(source, "threadFormals",
-						Arrays.asList(
-								nodeFactory.newVariableDeclarationNode(source,
-										nodeFactory.newIdentifierNode(source,
-												"threadIdx"),
-										nodeFactory.newTypedefNameNode(
-												nodeFactory.newIdentifierNode(
-														source, "uint3"),
-												null))));
-		
-		FunctionCallNode localStart = nodeFactory.newFunctionCallNode(source, 
-				this.identifierExpression(source, "$local_start"), 
-				Arrays.asList(), null);
-		
-		VariableDeclarationNode tidDecl = nodeFactory
-				.newVariableDeclarationNode(source,
-						this.identifier("_cuda_tid"),
-						nodeFactory.newBasicTypeNode(source, BasicTypeKind.INT),
-						nodeFactory.newFunctionCallNode(source,
-								this.identifierExpression(source,
-										"$cuda_index"),
-								Arrays.asList(
-										this.identifierExpression(source,
-												"blockDim"),
-										this.identifierExpression(source,
-												"threadIdx")),
-								null));
-		// Kernel_id
-		VariableDeclarationNode kidDecl = nodeFactory
-				.newVariableDeclarationNode(source,
-						this.identifier("_cuda_kid"),
-						nodeFactory.newBasicTypeNode(source, BasicTypeKind.INT),
-						nodeFactory.newFunctionCallNode(source,
-								this.identifierExpression(source,
-										"$cuda_kernel_index"),
-								Arrays.asList(
-										this.identifierExpression(source,
-												"gridDim"),
-										this.identifierExpression(source,
-												"blockDim"),
-										this.identifierExpression(source,
-												"blockIdx"),
-										this.identifierExpression(source,
-												"threadIdx")),
-								null));
-		
-		VariableDeclarationNode commCreate = nodeFactory.newVariableDeclarationNode(source, 
-				this.identifier("comm"), nodeFactory.newTypedefNameNode(this.identifier("$comm"), null));
-		
-		List<ExpressionNode> createArguments = new ArrayList<ExpressionNode>();
-		createArguments.add(nodeFactory.newHereNode(source));
-		createArguments.add(this.identifierExpression("gComm"));
-		createArguments.add(this.identifierExpression("_cuda_tid"));
-		
-		commCreate.setInitializer(nodeFactory.newFunctionCallNode(source, this.identifierExpression("$comm_create"),
-				createArguments, null));
-		
-		
-		FunctionCallNode newBarrier = nodeFactory.newFunctionCallNode(source,
-				this.identifierExpression(source, "$barrier_create"),
-				Arrays.asList(nodeFactory.newHereNode(source),
-						this.identifierExpression(source,
-								"_cuda_block_barrier"),
-						this.identifierExpression("_cuda_tid")),
-				null);
-		VariableDeclarationNode barrierCreation = nodeFactory
-				.newVariableDeclarationNode(source,
-						nodeFactory.newIdentifierNode(source,
-								"_cuda_thread_barrier"),
-						nodeFactory.newTypedefNameNode(nodeFactory
-								.newIdentifierNode(source, "$barrier"), null),
-						newBarrier);
-		// FIXME: Not sure if this works with FunctionCallNode
-		FunctionCallNode readPop = nodeFactory.newFunctionCallNode(
-				source, this.identifierExpression(source, "$read_set_pop"),
-				Arrays.asList(), null
-				);
-		FunctionCallNode writePop = nodeFactory.newFunctionCallNode(
-				source, this.identifierExpression(source, "$write_set_pop"),
-				Arrays.asList(), null
-				);
-		FunctionCallNode barrierDestruction = nodeFactory.newFunctionCallNode(
-				source, this.identifierExpression(source, "$barrier_destroy"),
-				Arrays.asList(this.identifierExpression(source,
-						"_cuda_thread_barrier")),
-				null);
-		
-		List<ExpressionNode> destroyArguments = new ArrayList<ExpressionNode>();
-		destroyArguments.add(this.identifierExpression("comm"));
-		FunctionCallNode commDestroy = nodeFactory.newFunctionCallNode(source, this.identifierExpression("$comm_destroy"), 
-			    destroyArguments, null);
-		
-		FunctionCallNode localEnd = nodeFactory.newFunctionCallNode(source,
-				this.identifierExpression(source, "$local_end"),
-				Arrays.asList(), null);
-		
-		// FIXME: Not sure if this works
-		FunctionCallNode readPush = nodeFactory.newFunctionCallNode(
-				source, this.identifierExpression(source, "$read_set_push"),
-				Arrays.asList(), null
-				);
-		FunctionCallNode writePush = nodeFactory.newFunctionCallNode(
-				source, this.identifierExpression(source, "$write_set_push"),
-				Arrays.asList(), null
-				);
-		// Node for check_data_race
-		FunctionCallNode checkDataRace = nodeFactory.newFunctionCallNode(
-				source, this.identifierExpression(source, "$check_data_race"),
-				Arrays.asList(
-						this.identifierExpression(source,
-								"_cuda_this"),
-						this.identifierExpression(source,
-								"_cuda_kid")),
-				null);
-		List<BlockItemNode> threadBodyItems = new ArrayList<BlockItemNode>();
-		threadBodyItems.add(nodeFactory.newExpressionStatementNode(localStart));
-		threadBodyItems.add(tidDecl);
-		threadBodyItems.add(kidDecl);
-		threadBodyItems.add(commCreate);
-		threadBodyItems.add(barrierCreation);
-		// threadBodyItems.add(Node for read/write set push)
-		threadBodyItems.add(nodeFactory.newExpressionStatementNode(readPush));
-		threadBodyItems.add(nodeFactory.newExpressionStatementNode(writePush));
-		for (BlockItemNode child : newBody) {
-			if (child != null)
-				threadBodyItems.add(child.copy());
-		}
-		// check data race call (make Node)
-		threadBodyItems.add(nodeFactory.newExpressionStatementNode(checkDataRace));
-		// threadBodyItems.add(Node for read/write set pop)
-		threadBodyItems.add(nodeFactory.newExpressionStatementNode(readPop));
-		threadBodyItems.add(nodeFactory.newExpressionStatementNode(writePop));
-		threadBodyItems.add(
-				nodeFactory.newExpressionStatementNode(barrierDestruction));
-		threadBodyItems.add(nodeFactory.newExpressionStatementNode(commDestroy));
-		threadBodyItems.add(nodeFactory.newExpressionStatementNode(localEnd));
-		CompoundStatementNode threadBody = nodeFactory
-				.newCompoundStatementNode(source, threadBodyItems);
-		
-		FunctionDefinitionNode threadDefinition = nodeFactory
-				.newFunctionDefinitionNode(source,
-						nodeFactory.newIdentifierNode(source, "_cuda_thread"),
-						nodeFactory.newFunctionTypeNode(source,
-								nodeFactory.newVoidTypeNode(source),
-								threadFormals, false),
-						null, threadBody);
-
-		//TODO Change into $cuda_barrier
-		FunctionCallNode cudaBarrier = nodeFactory.newFunctionCallNode(source,
-				this.identifierExpression(source, "$cuda_barrier"),
-				Arrays.asList(
-						this.identifierExpression(source,
-								"_cuda_this"),
-						this.identifierExpression(source,
-								"_cuda_kid"),
-						this.identifierExpression(source,
-								"_cuda_thread_barrier")),
-				null);
-		
-		
-		replaceSyncThreadsCalls(threadDefinition, cudaBarrier);
-		return threadDefinition;
-	}
-
-	/**
-	 * Replaces all calls to "__synchthreads" with the replacement expression passed in.
-	 * The AST is searched through recursively to find all function calls matching "__syncthreads".
-	 * 
-	 * @param root the root node of an Abstract Syntax Tree
-	 * @param replacement an ExpressionNode which will replace all instances of "__synchthreads"
-	 */
-	protected void replaceSyncThreadsCalls(ASTNode root,
-			ExpressionNode replacement) {
-
-		for (ASTNode child : root.children()) {
-			if (child == null)
-				continue;
-
-			if (child instanceof ExpressionNode) {
-				ExpressionNode itemExpr = (ExpressionNode) child;
-				if (itemExpr instanceof FunctionCallNode) {
-					FunctionCallNode call = (FunctionCallNode) itemExpr;
-					ExpressionNode function = call.getFunction();
-					if (function instanceof IdentifierExpressionNode) {
-						String functionName = ((IdentifierExpressionNode) function)
-								.getIdentifier().name();
-						if (functionName.equals("__syncthreads")) {
-							root.setChild(child.childIndex(),
-									replacement.copy());
-							continue;
-						}
-					}
-				}
-			}
-			replaceSyncThreadsCalls(child, replacement);
-		}
-	}
-
-	/**
-	 * Searches through the kernel and performs a transformation on all atomic function
-	 * calls to ensure data races are accurately caught. This method acts on the statement
-	 * level and copies transformed statements to build a new kernel.
-	 * 
-	 * @param root the root node of an Abstract Syntax Tree (root of a kernel on initial call of this method)
-	 * @return A CompoundStatementNode with transformed statements (overall returns a new transformed kernel)
-	 */
-	protected CompoundStatementNode translateAtomicCalls(ASTNode root) {
-		List<BlockItemNode> newKernelItems = new ArrayList<BlockItemNode>();
-		
-		for (Iterator<ASTNode> it = root.children().iterator(); it.hasNext();) {
-			ASTNode child = it.next();
-			if (child == null)
-				continue;
-			
-			if (child.nodeKind() == NodeKind.STATEMENT) {
-				StatementNode statement = (StatementNode) child;
-				StatementKind statementKind = statement.statementKind();
-				if (statementKind == StatementKind.COMPOUND) {
-					newKernelItems.add(translateAtomicCalls(child));
-					continue;
-				}
-			}
-			replaceAtomicExpressions(child, newKernelItems);
-			newKernelItems.add((BlockItemNode)child.copy());
-		}
-		CompoundStatementNode newKernelBody = nodeFactory.newCompoundStatementNode(root.getSource(), newKernelItems);
-		return newKernelBody;
-	}
-	
-	/**
-	 * Takes in an ExpressionNode and determines if it is an atomic function call.
-	 * If the expression is such a call, the matching FunctionDefinitionNode is returned,
-	 * otherwise returns null.
-	 * 
-	 * @param expression an ExpressionNode
-	 * @return the FunctionDefinitionNode of the atomic function call that is passed in. 
-	 * If expression is not an atomic function call, null is returned.
-	 */
-	protected FunctionDefinitionNode findAtomicDefinition(ExpressionNode expression) {
-		if(expression.expressionKind() == ExpressionKind.FUNCTION_CALL) {
-			FunctionCallNode call = (FunctionCallNode) expression;
-			ExpressionNode function = call.getFunction();
-			if (function instanceof IdentifierExpressionNode) {
-				IdentifierNode identifier = ((IdentifierExpressionNode) function).getIdentifier();
-				String functionName = identifier.name();
-				if (functionName.toLowerCase().contains("atomic")) {
-					
-					Function functionEntity = (Function) identifier.getEntity();
-					FunctionDefinitionNode functionDefinition = functionEntity.getDefinition();
-					
-					Source source = functionDefinition.getSource();
-					CivlcToken token = source.getFirstToken();
-					SourceFile sourceFile = token.getSourceFile();
-					String fileName = sourceFile.getName();
-					
-					if(fileName.equals("cuda.cvl"))
-						return functionDefinition;
-				}
-			}
-		}
-		return null;
-	}
-	
-	/**
-	 * Extracts the expressions that are passed in as parameters to an atomic function call
-	 * and stores them in temporary variables. Recurses if a parameter is also an atomic 
-	 * function call. The temporary variable assignments are added to the new kernel.
-	 * 
-	 * @param functionCall the FunctionCallNode that is having its parameters transformed
-	 * @param newKernelItems a list of BlockItemNodes that will be built into the new kernel
-	 */
-	protected void transformParameters(FunctionCallNode functionCall, List<BlockItemNode> newKernelItems) {
-		for (ASTNode child: functionCall.getArguments()) {
-			if (child == null)
-				continue;
-			if (child.nodeKind() == NodeKind.EXPRESSION) {
-				ExpressionNode expression = (ExpressionNode) child;
-				if (expression.expressionKind() == ExpressionKind.CONSTANT)
-					continue;
-				FunctionDefinitionNode functionDefinition = findAtomicDefinition(expression);
-				if (functionDefinition != null) {
-					transformParameters((FunctionCallNode) expression, newKernelItems);
-					functionCall.setChild(child.childIndex(), atomicCallTransform((FunctionCallNode) expression, functionDefinition, newKernelItems));
-					continue;
-				}
-				replaceAtomicExpressions(child, newKernelItems);
-				Source source = expression.getSource();
-				Type type = expression.getType();
-				TypeNode typeNode;
-				if (type instanceof CommonFunctionType) {
-					FunctionType functionType = (FunctionType) type;
-					ObjectType returnType = functionType.getReturnType();
-					typeNode = this.typeNode(source, returnType);
-				}
-				else
-					typeNode = this.typeNode(source, type);
-				
-				String tmpVariableName = "$" + this.newTemporaryVariableName();
-				VariableDeclarationNode tmpDeclaration = nodeFactory.newVariableDeclarationNode(source, 
-					nodeFactory.newIdentifierNode(source, tmpVariableName),
-					typeNode.copy());
-					
-				tmpDeclaration.setInitializer(expression.copy());
-				
-				newKernelItems.add(tmpDeclaration);
-					
-				functionCall.setArgument(child.childIndex(), 
-						nodeFactory.newIdentifierExpressionNode(source, 
-								this.identifier(tmpVariableName)));
-			}
-			
-		}
-	}
-
-	/**
-	 * Searches through an AST in order to transform any atomic function calls. This method
-	 * searches on the expression level, thus it only replaces expressions in the parent
-	 * statements, and does not copy the statements into the new kernel.
-	 * 
-	 * @param root the root of an Abstract Syntax Tree
-	 * @param newKernelItems a list of BlockItemNodes that will be built into the new kernel
-	 */
-	protected void replaceAtomicExpressions(ASTNode root, List<BlockItemNode> newKernelItems) {
-		for (ASTNode child: root.children()) {
-			if (child == null)
-				continue;
-			
-			if(child.nodeKind() == NodeKind.STATEMENT) {
-				StatementNode statement = (StatementNode) child;
-				if (statement.statementKind() == StatementKind.COMPOUND) {
-					root.setChild(child.childIndex(), translateAtomicCalls(statement));
-					continue;
-				}
-				List<BlockItemNode> newStatementItems = new ArrayList<BlockItemNode>();
-				replaceAtomicExpressions(child, newStatementItems);
-				newStatementItems.add((BlockItemNode)child.copy());
-				CompoundStatementNode newStatementBody = nodeFactory.newCompoundStatementNode(root.getSource(), newStatementItems);
-				root.setChild(child.childIndex(), newStatementBody);
-				continue;	
-			}
-			
-			
-			if (child.nodeKind() == NodeKind.EXPRESSION) {
-				ExpressionNode expression = (ExpressionNode) child;
-				FunctionDefinitionNode functionDefinition = findAtomicDefinition(expression);
-				if (functionDefinition != null){
-					transformParameters((FunctionCallNode) expression, newKernelItems);
-					root.setChild(child.childIndex(), atomicCallTransform((FunctionCallNode) expression, functionDefinition, newKernelItems));
-					continue;
-				}
-			}
-			replaceAtomicExpressions(child, newKernelItems);
-		}
-	}
-	
-	/**
-	 * Performs the transformation of an atomic function call. This includes creating a
-	 * temporary variable to store the result of the function call, as well as checking
-	 * for data races and clearing memory sets within an atomic block. The series of statements
-	 * is added to the new kernel and the temporary variable identifier is returned.
-	 * 
-	 * @param atomicCall the FunctionCallNode that is an atomic function call
-	 * @param functionDefinition the FunctionDefinitionNode of the atomic function call
-	 * @param newKernelItems a list of BlockItemNodes that will be built into the new kernel
-	 * @return an IdentifierExpressionNode that holds the identifier for the temporary variable created in
-	 * the transformation
-	 */
-	protected IdentifierExpressionNode atomicCallTransform(FunctionCallNode atomicCall, FunctionDefinitionNode functionDefinition, List<BlockItemNode> newKernelItems) {
-		Source source = atomicCall.getSource();
-		
-		FunctionCallNode publish = nodeFactory.newFunctionCallNode(
-				source, this.identifierExpression(source, "$publish"),
-				Arrays.asList(
-						this.identifierExpression(source,
-								"_cuda_this"),
-						this.identifierExpression(source,
-								"_cuda_kid")),
-				null);
-		
-		
-		
-		// Node for check_data_race
-		FunctionCallNode checkDataRace = nodeFactory.newFunctionCallNode(
-				source, this.identifierExpression(source, "$check_data_race"),
-				Arrays.asList(
-						this.identifierExpression(source,
-								"_cuda_this"),
-						this.identifierExpression(source,
-								"_cuda_kid")),
-				null);
-		
-		FunctionCallNode clearMemSets = nodeFactory.newFunctionCallNode(source, 
-				this.identifierExpression(source, "$clear_mem_sets"),
-				Arrays.asList(
-						this.identifierExpression(source, "_cuda_this"),
-						this.identifierExpression(source, "_cuda_kid")),
-				null);
-		
-		FunctionCallNode yeild = nodeFactory.newFunctionCallNode(source, 
-				this.identifierExpression(source, "$yield"), 
-				Arrays.asList(), null);
-		
-		FunctionTypeNode functionType = (FunctionTypeNode) functionDefinition.getTypeNode();
-		TypeNode functionReturnType = functionType.getReturnType();
-		
-		String tmpVariableName = "$" + this.newTemporaryVariableName();
-		VariableDeclarationNode tmpDeclaration = nodeFactory.newVariableDeclarationNode(source, 
-				nodeFactory.newIdentifierNode(source, tmpVariableName),
-				functionReturnType.copy());
-		
-		tmpDeclaration.setInitializer(atomicCall.copy());
-
-		newKernelItems.add(nodeFactory.newExpressionStatementNode(publish));
-		newKernelItems.add(nodeFactory.newExpressionStatementNode(yeild.copy()));
-		newKernelItems.add(tmpDeclaration);
-		newKernelItems.add(nodeFactory.newExpressionStatementNode(checkDataRace));
-		newKernelItems.add(nodeFactory.newExpressionStatementNode(clearMemSets));
-
-		return nodeFactory.newIdentifierExpressionNode(source, this.identifier(tmpVariableName));	
-	}
-	
-	protected void translateShflCalls(ASTNode root) {
-		for (ASTNode child: root.children()) {
-			if (child == null) 
-				continue;
-			
-			if (child.nodeKind() == NodeKind.EXPRESSION) {
-				ExpressionNode expression = (ExpressionNode) child;
-				if (expression.expressionKind() == ExpressionKind.FUNCTION_CALL) {
-					FunctionCallNode functionCall = (FunctionCallNode) expression;
-					ExpressionNode function = functionCall.getFunction();
-					if (function instanceof IdentifierExpressionNode) {
-						IdentifierNode identifier = ((IdentifierExpressionNode) function).getIdentifier();
-						String functionName = identifier.name();
-						if (functionName.toLowerCase().contains("__shfl") && functionName.toLowerCase().contains("_sync")) {
-						
-							Function functionEntity = (Function) identifier.getEntity();
-							FunctionDeclarationNode functionDeclaration = (FunctionDeclarationNode) functionEntity.getDeclaration(0);
-							
-						
-							Source source = functionDeclaration.getSource();
-							CivlcToken token = source.getFirstToken();
-							SourceFile sourceFile = token.getSourceFile();
-							String fileName = sourceFile.getName();
-						
-							if(fileName.equals("cuda.h")) {
-								shflCallTransform(functionCall);
-							}
-						}
-					}
-				}
-			}
-			translateShflCalls(child);
-		}
-	}
-	
-	protected void shflCallTransform(FunctionCallNode shflCall) {
-		Source source = shflCall.getSource();
-		SequenceNode<ExpressionNode> arguments = shflCall.getArguments();
-		if (arguments.numChildren() < 4) {
-			arguments.addSequenceChild(nodeFactory.newIntConstantNode(source, 32));
-		}
-		
-		arguments.addSequenceChild(this.identifierExpression("numThreads"));
-		arguments.addSequenceChild(this.identifierExpression("_cuda_tid"));
-		arguments.addSequenceChild(this.identifierExpression("comm"));
-		arguments.addSequenceChild(this.identifierExpression("warpBarriers"));
-		
-		ExpressionNode function = shflCall.getFunction();
-		IdentifierNode identifier = ((IdentifierExpressionNode) function).getIdentifier();
-		String functionName = identifier.name();
-		String cudaFunctionName = "_cuda" + functionName;
-		identifier.setName(cudaFunctionName);
-	}
-	
-	/**
-	 * Transforms the kernel call to instead use the kernel's transformed
-	 * signature as transformed by
-	 * {@link Cuda2CIVLWorker#kernelDeclarationTransform(FunctionDeclarationNode)}.
-	 * 
-	 * @param kernelCall a FunctionCallNode which is a kernel call
-	 * @return The transformed kernel call
-	 */
-	protected StatementNode kernelCallTransform(FunctionCallNode kernelCall) {
-		Source source = kernelCall.getSource();
-		List<VariableDeclarationNode> tempVarDecls = new ArrayList<>();
-		List<ExpressionNode> newArgumentList = new ArrayList<>();
-		for (int i = 0; i < 2; i++) {
-			ExpressionNode arg = kernelCall.getContextArgument(i);
-			Type argType = arg.getConvertedType();
-			if (argType.kind() == TypeKind.QUALIFIED) {
-				argType = ((QualifiedObjectType) argType).getBaseType();
-			}
-			if (argType.kind() == TypeKind.BASIC
-					&& ((StandardBasicType) argType)
-							.getBasicTypeKind() == BasicTypeKind.INT) {
-
-				String tmpVar = newTemporaryVariableName();
-				ExpressionNode intConvertedToDim3 = nodeFactory
-						.newFunctionCallNode(source,
-								this.identifierExpression("$cuda_to_dim3"),
-								Arrays.asList(arg.copy()), null);
-				tempVarDecls
-						.add(nodeFactory.newVariableDeclarationNode(source,
-								this.identifier(tmpVar),
-								nodeFactory.newTypedefNameNode(
-										this.identifier("dim3"), null),
-								intConvertedToDim3));
-				newArgumentList.add(this.identifierExpression(tmpVar));
-			} else {
-				newArgumentList.add(arg.copy());
-			}
-		}
-		if (kernelCall.getNumberOfContextArguments() < 3) {
-			try {
-				newArgumentList
-						.add(nodeFactory.newIntegerConstantNode(source, "0"));
-			} catch (SyntaxException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		} else {
-			newArgumentList.add(kernelCall.getContextArgument(2).copy());
-		}
-		if (kernelCall.getNumberOfContextArguments() < 4) {
-			try {
-				newArgumentList
-						.add(nodeFactory.newIntegerConstantNode(source, "0"));
-			} catch (SyntaxException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		} else {
-			newArgumentList.add(kernelCall.getContextArgument(3).copy());
-		}
-		for (int i = 0; i < kernelCall.getNumberOfArguments(); i++) {
-			newArgumentList.add(kernelCall.getArgument(i).copy());
-		}
-		ExpressionNode newFunction;
-		if (kernelCall.getFunction() instanceof IdentifierExpressionNode) {
-			IdentifierExpressionNode identifierExpression = (IdentifierExpressionNode) kernelCall
-					.getFunction();
-			newFunction = this.identifierExpression(transformKernelName(
-					identifierExpression.getIdentifier().name()));
-		} else {
-			newFunction = kernelCall.getFunction().copy();
-		}
-		FunctionCallNode newFunctionCall = nodeFactory.newFunctionCallNode(
-				source, newFunction, newArgumentList, null);
-		List<BlockItemNode> blockItems = new ArrayList<>();
-		blockItems.addAll(tempVarDecls);
-		blockItems.add(nodeFactory.newExpressionStatementNode(newFunctionCall));
-		CompoundStatementNode replacementNode = nodeFactory
-				.newCompoundStatementNode(source, blockItems);
-		return replacementNode;
-	}
-
-	/**
-	 * Removes all definitions of the variables "threadIdx", "blockIdx", "gridDim", and "blockDim"
-	 * that exist in the original CUDA code. The AST is searched recursively to find all variable
-	 * declarations with a matching name.
-	 *  
-	 * @param root the root node of an Abstract Syntax Tree
-	 */
-	protected void removeBuiltinDefinitions(ASTNode root) {
-		Set<String> builtinVariables = new HashSet<>(
-				Arrays.asList("threadIdx", "blockIdx", "gridDim", "blockDim"));
-		for (ASTNode child : root.children()) {
-			if (child == null)
-				continue;
-			if (child.nodeKind() == NodeKind.VARIABLE_DECLARATION) {
-				VariableDeclarationNode variableDeclaration = (VariableDeclarationNode) child;
-				if (variableDeclaration.getIdentifier() != null
-						&& variableDeclaration.getIdentifier().getSource()
-								.getFirstToken().getSourceFile().getName()
-								.equals("cuda.h")
-						&& builtinVariables.contains(
-								variableDeclaration.getIdentifier().name())) {
-					root.removeChild(child.childIndex());
-					continue;
-				}
-			}
-
-			removeBuiltinDefinitions(child);
-		}
-	}
 }
-

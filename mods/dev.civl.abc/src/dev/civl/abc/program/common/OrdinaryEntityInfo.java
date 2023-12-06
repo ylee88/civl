@@ -218,9 +218,10 @@ public class OrdinaryEntityInfo extends EntityInfo {
 				if (typedef0.getType().kind() == TypeKind.ENUMERATION) {
 					for (Pair<Integer, OrdinaryEntity> pair : internals) {
 						Typedef typedef = (Typedef) pair.right;
-						EnumerationTypeNode enumTypeNode = (EnumerationTypeNode) typedef
-								.getDefinition().getTypeNode();
-						EnumerationType enumeration = enumTypeNode.getType();
+						TypeNode typeNode = typedef.getDefinition()
+								.getTypeNode();
+						EnumerationType enumeration = (EnumerationType) typeNode
+								.getType();
 
 						enumMergeMap.put(enumeration, tuid0);
 					}

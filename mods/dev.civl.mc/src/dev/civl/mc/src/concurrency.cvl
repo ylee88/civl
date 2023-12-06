@@ -38,14 +38,14 @@ struct _barrier {
 $atomic_f void $barrier_enter($barrier barrier, int nprocs, void foo(void)){
   $gbarrier gbarrier=barrier->gbarrier;
   int myplace=barrier->place;
-
-  $assert(!gbarrier->in_barrier[myplace],
-	  "the barrier of has already been entered with the place %d",
-	  myplace);
-  gbarrier->in_barrier[barrier->place]=$true;
   if(gbarrier->nprocs < nprocs){
   	nprocs = gbarrier->nprocs;
   }
+  $assert(!gbarrier->in_barrier[myplace],
+	  "the barrier of has already been entered with the place %d",
+	  myplace);
+  
+  gbarrier->in_barrier[barrier->place]=$true;
   if(++gbarrier->num_in_barrier == nprocs){
     foo();
     for(int i=0; i<gbarrier->nprocs; i++)

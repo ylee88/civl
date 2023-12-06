@@ -1,6 +1,6 @@
 #include <civlc.cvh>
 /* This header file contains useful helper functions for manipulating
- * the CIVL versions of various Cuda objects.
+ * the CIVL versions of various CUDA objects.
  */
 
 #include <string.h>
@@ -14,124 +14,128 @@
 #include <comm.cvh>
 #pragma CIVL ACSL
 
-/* type used to represent an instance of a Cuda kernel
- * TODO: Update with read/write sets
- */
-struct $cuda_kernel_instance {
-  $proc process;        // the actual process executing this kernel
-  $cuda_kernel_status status; // the kernel status
-  // Read and Write sets
-  $mem read_sets[];
-  $mem write_sets[];
-  // Number of threads in kernel
-  int size;
-};
+$cuda_gcomm = $gcomm_create($here, 2);
+$CUDA_PLACE_HOST = 0;
+$CUDA_PLACE_DEVICE = 1;
+$cuda_host_comm = $comm_create($here, $cuda_gcomm, $CUDA_PLACE_HOST);
 
-/* a type that wraps a kernel instance for insertion into a list
- */
-struct $cuda_kernel_instance_node {
-  $cuda_kernel_instance_t *instance;
-  $cuda_kernel_instance_node_t  *next;
-};
+$input int warpSize = 32;
 
-/* $cuda_kernel_instance_node_t interface
- */
-$cuda_kernel_instance_t *$cuda_get_instance($cuda_kernel_instance_node_t *node) {
-  return node->instance;
+// ------------------------------------------------
+
+$atomic_f $proc $stream_enqueue($scope cudaScope, $cuda_stream_t stream, $message opParams, void(*opProc)($message, $cuda_op_state_t, $cuda_stream_t)) {
+  $assert(stream->alive, "Attempt to enqueue a CUDA operation onto a destroyed stream");
+
+  $cuda_op_state_t newOpState = ($cuda_op_state_t) $malloc(cudaScope, sizeof($cuda_op_state));
+  newOpState->start = $false;
+  newOpState->op = $spawn opProc(opParams, newOpState, stream);
+
+  $cuda_op_state_node_t newOpStateNode = ($cuda_op_state_node_t) $malloc(cudaScope, sizeof($cuda_op_state_node));
+  newOpStateNode->opState = newOpState;
+  newOpStateNode->next = NULL;
+	
+  if (stream->tail == NULL) {
+    stream->head = newOpStateNode;
+    stream->tail = newOpStateNode;
+    newOpState->start = $true;
+  } else {
+    stream->tail->next = newOpStateNode;
+    stream->tail = newOpStateNode;
+  }
+  stream->numOps++;
+
+  return newOpState->op;
 }
 
-/* a type used to represent a Cuda stream
- */
-struct _CUstream {
-    $cuda_kernel_instance_node_t *mostRecent;  // the most recently enqueued instance
-    _Bool usable;                     // indicates whether or not this stream
-                                      // has been marked for deletion
-};
+$atomic_f void $stream_dequeue($cuda_stream_t stream) {
+  $assert(stream->head != NULL, "Attempt to dequeue an empty stream");
 
-/* _CUstream interface
- */
-$cuda_kernel_instance_node_t *$cuda_get_most_recent(cudaStream_t s) {
-  return s->mostRecent;
+  if (stream->head == stream->tail) {
+    stream->tail = NULL;
+  }
+	
+  $cuda_op_state_node_t oldHead = stream->head;
+  stream->head = oldHead->next;
+  if (stream->head != NULL) {
+    stream->head->opState->start = $true;
+  }
+	
+  stream->numOps--;
+  free(oldHead->opState);
+  free(oldHead);
 }
 
-_Bool $cuda_is_usable(cudaStream_t s) {
-  return s->usable;
+$cuda_stream_node_t $create_new_stream_node($scope cudaScope) {
+  $cuda_stream_t newStream = ($cuda_stream_t) $malloc(cudaScope, sizeof($cuda_stream));
+  newStream->head = NULL;
+  newStream->tail = NULL;
+  newStream->numOps = 0;
+  newStream->alive = $true;
+	
+  $cuda_stream_node_t newHead = ($cuda_stream_node_t) $malloc(cudaScope, sizeof($cuda_stream_node));
+  newHead->stream = newStream;
+  newStream->containingNode = newHead;
+  newHead->prev = NULL;
+  newHead->next = NULL;
+	
+  return newHead;
 }
 
-void $cuda_set_usable(cudaStream_t s, _Bool b) {
-  s->usable = b;
+$atomic_f $proc $destroy_stream_node($cuda_stream_node_t node) {
+  $proc lastOpProc = $proc_null;
+  $cuda_stream_t stream = node->stream;
+    
+  if (node->prev != NULL) {
+    node->prev->next = node->next;
+  }
+  if (node->next != NULL) {
+    node->next->prev = node->prev;
+  }
+  free(node);
+    
+  stream->alive = $false;
+  if(stream->tail != NULL)
+    lastOpProc = stream->tail->opState->op;
+	
+  void destroyStreamWhenComplete($proc lastOpProc, $cuda_stream_t stream) {
+    $wait(lastOpProc);
+    free(stream);
+  }
+  
+  return $spawn destroyStreamWhenComplete(lastOpProc, stream);
 }
 
-/* a type that wraps a stream for insertion into a list
- */
-struct $cuda_stream_node {
-  cudaStream_t stream;
-  $cuda_stream_node_t *next;
-};
-
-/* $cuda_stream_node_t encapsulation functions
- */
-void $cuda_set_stream($cuda_stream_node_t* node, cudaStream_t stream) {
-  node->stream = stream;
+$cuda_kernel_instance_t $create_kernel_instance($scope cudaScope, dim3 gridDim, dim3 blockDim){
+	int threadsPerBlock = (blockDim.x * blockDim.y) * blockDim.z;
+	int numBlocks = (gridDim.x * gridDim.y) * gridDim.z;
+	int numThreads = threadsPerBlock * numBlocks;
+	
+	$cuda_kernel_instance_t $kernel = ($cuda_kernel_instance_t)$malloc(cudaScope, sizeof($cuda_kernel_instance));
+	$mem* read_sets = ($mem*)$malloc(cudaScope, sizeof($mem) * numThreads);
+	$mem* write_sets = ($mem*)$malloc(cudaScope, sizeof($mem) * numThreads);
+	//Is this meant to be the number of threads in the grid?
+	int size = numThreads;
+	
+	$kernel->read_sets = read_sets;
+	$kernel->write_sets = write_sets;
+	$kernel->size = size;
+	
+	return $kernel;
 }
 
-void $cuda_set_next($cuda_stream_node_t* node, $cuda_stream_node_t* next) {
-  node->next = next;
+void $destroy_kernel_instance($cuda_kernel_instance_t $kernel){
+	free($kernel->read_sets);
+	free($kernel->write_sets);
+	free($kernel);
+	return;
 }
 
-/* a type used to represent a Cuda event
- */
-struct _CUevent {
-  $cuda_kernel_instance_t **instances;
-  int numInstances;
-};
-
-/* _CUevent encapsulation functions
- */
-$cuda_kernel_instance_t **$cuda_get_instances(cudaEvent_t e) {
-  return e->instances;
-}
-
-void $cuda_set_instances(cudaEvent_t e, $cuda_kernel_instance_t** instances, int numInstances) {
-  e->instances = instances;
-  e->numInstances = numInstances;
-}
-
-int $cuda_get_num_instances(cudaEvent_t e) {
-  return e->numInstances;
-}
-
-/* a type representing the state of a Cuda device
- */
-struct $cuda_context {
-  $cuda_stream_node_t *headNode;
-  cudaStream_t nullStream;
-  int numStreams;
-};
-
-/* $cuda_context_t encapsulation functions
- */
-int $cuda_get_num_streams($cuda_context_t *_context) {
-  return _context->numStreams;
-}
-
-$cuda_stream_node_t *$cuda_get_head_node($cuda_context_t *_context) {
-  return _context->headNode;
-}
-
-cudaStream_t $cuda_get_null_stream($cuda_context_t *_context) {
-  return _context->nullStream;
-}
-
-void $cuda_add_new_stream($cuda_context_t *_context, $cuda_stream_node_t *newNode) {
-  _context->headNode = newNode;
-  _context->numStreams++;
-}
+// ------------------------------------------------
 
 /* Computes the one dimensional index of a grid cell at a given location
  * in a three dimensional grid of a given size
  */
-int $cuda_index (dim3 size, uint3 location) {
+int $cuda_dim3_index(dim3 size, uint3 location) {
   return location.x + size.x * (location.y + size.y * location.z);
 }
 
@@ -139,7 +143,7 @@ int $cuda_index (dim3 size, uint3 location) {
  * the grid dimension, block dimension, block index, and thread index
  */
 int $cuda_kernel_index (dim3 gDim, dim3 bDim, uint3 bIdx, uint3 tIdx) {
-  return $cuda_index(gDim, bIdx) * (bDim.x * bDim.y * bDim.z) + $cuda_index(bDim, tIdx);
+  return $cuda_dim3_index(gDim, bIdx) * (bDim.x * bDim.y * bDim.z) + $cuda_dim3_index(bDim, tIdx);
 }
 
 /* Lifts a single integer x into a three dimensional vector representing
@@ -151,297 +155,28 @@ dim3 $cuda_to_dim3(int x) {
   return d;
 }
 
-/* Given a three dimensional vector representing a grid of size dim,
- * create and destroy a process, in parallel, for each cell in the grid. 
- * The location of the cell is passed to the spawning function.
- */
-void $cuda_run_procs(dim3 dim, void spawningFunction(uint3)) {
-  $range rx = 0 .. (dim.x == 0 ? -1 : dim.x - 1);
-  $range ry = 0 .. (dim.y == 0 ? -1 : dim.y - 1);
-  $range rz = 0 .. (dim.z == 0 ? -1 : dim.z - 1);
-  $domain(3) dom = ($domain){rx, ry, rz};
-  $parfor(int x,y,z : dom){
+void $cuda_run_and_wait_on_procs(dim3 dim, void spawningFunction(uint3)) {
+  $local_start();
+  int length = dim.x * dim.y * dim.z;
+  $proc procArray[length];
+  $range rx = 0 .. dim.x - 1;
+  $range ry = 0 .. dim.y - 1;
+  $range rz = 0 .. dim.z - 1;
+  $domain(3) dom = ($domain(3)){rx, ry, rz};
+  $for(int x,y,z : dom){
     uint3 id = { x, y, z };
-    spawningFunction(id);
+    int index = $cuda_dim3_index(dim, id);
+    procArray[index] = $spawn spawningFunction(id);
   }
+  $local_end();
+  $waitall(procArray,length);
 }
 
 // ------------------------------------------------
 
-/* $wait on a given process is it is non-null
- */
-void $cuda_try_wait($proc p) {
-  if (p != $proc_null) {
-    $yield();
-    $wait(p);
-  }
-}
-
-/* The current state of the GPU
- */
-$cuda_context_t $cuda_current_context = { 
-  .headNode = NULL, 
-  .nullStream = NULL,
-  .numStreams = 0
-};
-
-/* malloc and initialize a new $cuda_kernel_instance_t
- */
- 
- // TODO: Determine if passing parameters is better or not
-$cuda_kernel_instance_t *$cuda_kernel_instance_create(dim3 gDim, dim3 bDim) {
-  //printf("mallocing kernel instance\n");
-  $cuda_kernel_instance_t *i = ($cuda_kernel_instance_t*)malloc(sizeof($cuda_kernel_instance_t));
-
-  i->process = $proc_null;
-  i->status = $cuda_kernel_status_waiting;
-  int threadNum = gDim.x * gDim.y * gDim.z * bDim.x * bDim.y * bDim.z;
-  i->size = threadNum;
-  // TODO: either sequentially or non-sequentially?
-  $mem empty = $mem_empty();
-  $seq_init(&i->read_sets, threadNum, &empty);
-  $seq_init(&i->write_sets, threadNum, &empty);
-  return i;
-}
-
-/* cleanup and free a given $cuda_kernel_instance_t
- */
-void $cuda_kernel_instance_destroy($cuda_kernel_instance_t *i) {
-  $cuda_try_wait(i->process);
-  //printf("freeing kernel instance\n");
-  $free(i); 
-}
-
-/* malloc and initialize a new $cuda_kernel_instance_node_t
- */
-$cuda_kernel_instance_node_t *$cuda_kernel_instance_node_create() {
-  //printf("mallocing kernel instance node\n");
-  $cuda_kernel_instance_node_t *node = ($cuda_kernel_instance_node_t*)malloc(sizeof($cuda_kernel_instance_node_t));
-
-  node->instance = NULL;
-  node->next = NULL;
-  return node;
-}
-
-/* cleanup and free a given $cuda_kernel_instance_node_t
- */
-void $cuda_kernel_instance_node_destroy($cuda_kernel_instance_node_t *node) {
-  $cuda_kernel_instance_destroy(node->instance);
-  //printf("freeing kernel instance node\n");
-  $free(node); 
-}
-
-/* malloc and initialize a new stream
- */
-cudaStream_t $cuda_stream_create() {
-  cudaStream_t s;
-
-  //printf("mallocing cuda stream\n");
-  s = (cudaStream_t)malloc(sizeof(_CUstream));
-  s->mostRecent = $cuda_kernel_instance_node_create();
-  dim3 arbitrary = { 1, 1, 1 };
-  s->mostRecent->instance = $cuda_kernel_instance_create(arbitrary, arbitrary);
-  s->mostRecent->instance->status = $cuda_kernel_status_finished;
-  s->usable = $true;
-  return s;
-}
-
-/* block until the most recently enqueued process on the given stream
- * has terminated (meaning all kernels in that stream have completed)
- */
-void $cuda_stream_wait(cudaStream_t s) {
-  $cuda_kernel_instance_t *mostRecentInstance = s->mostRecent->instance;
-  $yield();
-  $unidirectional_when(mostRecentInstance->status == $cuda_kernel_status_finished);
-}
-
-/* block until no more streams have kernels executing
- */
-void $cuda_stream_wait_all() {
-  $cuda_stream_node_t *curNode = $cuda_current_context.headNode;
-
-  while (curNode != NULL) {
-      $cuda_stream_wait(curNode->stream);
-      curNode = curNode->next;
-  }
-}
-
-/* cleanup and free a given stream
- */
-void $cuda_stream_destroy(cudaStream_t s) {
-  $cuda_kernel_instance_node_t *curNode = s->mostRecent;
-  $cuda_kernel_instance_node_t *nextNode;
-
-  while (curNode != NULL) {
-    nextNode = curNode->next;
-    $cuda_kernel_instance_node_destroy(curNode);
-    curNode = nextNode;
-  }
-  //printf("freeing cuda stream\n");
-  $free(s);
-}
-
-/* malloc and initialize a new $cuda_stream_node_t
- */
-$cuda_stream_node_t *$cuda_stream_node_create() {
-  //printf("mallocing cuda stream node\n");
-  $cuda_stream_node_t *node = ($cuda_stream_node_t*)malloc(sizeof($cuda_stream_node_t));
-
-  node->stream = NULL;
-  node->next = NULL;
-  return node;
-}
-
-/* cleanup and free a given $cuda_stream_node_t
- */
-void $cuda_stream_node_destroy($cuda_stream_node_t *node) {
-  $assert((!node->stream->usable));
-  $cuda_stream_destroy(node->stream);
-  //printf("freeing cuda stream node\n");
-  $free(node);
-}
-
-/* destroy all stream nodes contained in the context
- */
-void $cuda_stream_node_destroy_all() {
-  $cuda_stream_node_t *curNode = $cuda_current_context.headNode;
-  $cuda_stream_node_t *nextNode;
-
-  while (curNode != NULL) {
-    nextNode = curNode->next;
-    $cuda_stream_node_destroy(curNode);
-    curNode = nextNode;
-  }
-  $cuda_current_context.headNode = NULL;
-}
-
-/* malloc and initialize a new event
- */
-cudaEvent_t $cuda_event_create() {
-  //printf("mallocing event\n");
-  cudaEvent_t e = (cudaEvent_t)malloc(sizeof(_CUevent));
-
-  e->numInstances = 0;
-  e->instances = NULL;
-  return e;
-}
-
-/* block until all $cuda_kernel_instance_ts contained in this event have
- * completed
- */
-/*@ depends_on \access(e);
-  @*/	
-void $cuda_event_wait(cudaEvent_t e) {
-  for (int i = 0; i < e->numInstances; i++) {
-    $yield();
-    $unidirectional_when(e->instances[i]->status == $cuda_kernel_status_finished);
-  }
-}
-
-/* cleanup and free a given event
- */
-void $cuda_event_destroy(cudaEvent_t e) {
-  if (e->instances != NULL) { 
-    //printf("freeing instance list a\n");
-    $free(e->instances);
-  }
-  //printf("freeing event\n");
-  $free(e);
-}
-
-/* initialize the cuda context. must be called before any cuda functions.
- */
-void $cuda_init() {
-  $cuda_current_context.nullStream = $cuda_stream_create();
-}
-
-/* cleanup the cuda context. must be called after all cuda functions.
- */
-void $cuda_finalize() {
-  $cuda_stream_wait_all();
-  $cuda_stream_wait($cuda_current_context.nullStream);
-  $cuda_stream_node_destroy_all();
-  $cuda_stream_destroy($cuda_current_context.nullStream);
-}
-
-/* returns an array of pointers to the most recently enqueued kernel
- * of each stream.
- */
-$cuda_kernel_instance_t **$cuda_all_most_recent_kernels() {
-  int n = $cuda_current_context.numStreams + 1;
-  $cuda_stream_node_t *curNode = $cuda_current_context.headNode;
-  //printf("mallocing instance list a\n");
-  $cuda_kernel_instance_t **insts = ($cuda_kernel_instance_t**)malloc(n * sizeof($cuda_kernel_instance_t*)) ;
-
-  insts[0] = $cuda_current_context.nullStream->mostRecent->instance;
-  for (int i = 1; i < n; i++, curNode = curNode->next) {
-    insts[i] = curNode->stream->mostRecent->instance;
-  }
-  return insts;
-}
-
-/* create a kernel instance for the given function k, and enqueue it
- * onto the given stream.
- */
-void $cuda_enqueue_kernel(cudaStream_t stream, void (*k)($cuda_kernel_instance_t*, cudaEvent_t), dim3 gDim, 
-dim3 bDim) {
-  cudaStream_t s;
-  cudaEvent_t e = $cuda_event_create();
-  $cuda_kernel_instance_node_t *newNode = $cuda_kernel_instance_node_create();
-
-  if (stream == NULL) {
-    e->numInstances = $cuda_current_context.numStreams + 1;
-    e->instances = $cuda_all_most_recent_kernels();
-    s = $cuda_current_context.nullStream;
-  } else {
-    e->numInstances = 2;
-    //printf("mallocing instance list b\n");
-    e->instances = ($cuda_kernel_instance_t**)malloc(2 * sizeof($cuda_kernel_instance_t*)) ;
-    e->instances[0] = stream->mostRecent->instance;
-    e->instances[1] = $cuda_current_context.nullStream->mostRecent->instance;
-    s = stream;
-  }
-  $assert((s->usable));
-  newNode->instance = $cuda_kernel_instance_create(gDim, bDim);
-  newNode->next = s->mostRecent;
-  s->mostRecent = newNode;
-  s->mostRecent->instance->process = $spawn k(s->mostRecent->instance, e);
-}
-
-/* called by kernel processes. wait on the given event, then update
- * the status of the calling kernel to indicate it has finished waiting
- */
-void $cuda_wait_in_queue ($cuda_kernel_instance_t *this, cudaEvent_t e) {
-  $cuda_event_wait(e);
-  $cuda_event_destroy(e);
-  this->status = $cuda_kernel_status_running;
-}
-
-/* called by kernel processes. update the status of the calling kernel
- * to indicate that it has completed execution
- */
-void $cuda_kernel_finish($cuda_kernel_instance_t *k) {
-  k->status = $cuda_kernel_status_finished;
-}
-
-/* TODO: Finish check_data_race
- */
-void $cuda_barrier($cuda_kernel_instance_t *k, int kernel_id, $barrier g) {
-  $check_data_race(k, kernel_id);
-  // We have to push a new read and write set before the barrier call to ignore it's reads and writes
-  $read_set_push();
-  $write_set_push();
-  void captured_clear_mems(){
-    $clear_all_mem_sets(k);
-  }  
-  $barrier_call_execute(g, captured_clear_mems);
-  $read_set_pop();
-  $write_set_pop();
-}
-
 /* TODO: Finish read_write_sets
  */
-$atomic_f void $check_data_race($cuda_kernel_instance_t *k, int cur_tid) {
+$atomic_f void $check_data_race($cuda_kernel_instance_t k, int cur_tid) {
   //printf("Current id: %d\n", cur_tid);
   $mem out_s0 = $mem_empty();
   $mem out_s1 = $mem_empty();
@@ -487,115 +222,400 @@ $atomic_f void $check_data_race($cuda_kernel_instance_t *k, int cur_tid) {
 
 /* Clears read and write memory sets of the given thread
 */
-void $clear_mem_sets($cuda_kernel_instance_t *k, int cur_tid) {
+void $clear_mem_sets($cuda_kernel_instance_t k, int cur_tid) {
 	k->write_sets[cur_tid] = $mem_empty();
     k->read_sets[cur_tid] = $mem_empty();
 }
 
-void $clear_all_mem_sets($cuda_kernel_instance_t *k){
+void $clear_all_mem_sets($cuda_kernel_instance_t k){
     for(int i = 0; i < k->size; i++)
       $clear_mem_sets(k, i);
 }
 
 /* Publishes current read a write sets to global arrays. Local sets are not cleared
 */
-void $publish($cuda_kernel_instance_t *k, int cur_tid) {
+void $publish($cuda_kernel_instance_t k, int cur_tid) {
     k->write_sets[cur_tid] = $write_set_peek();
     k->read_sets[cur_tid] = $read_set_peek();
 }
 
-int is_valid_width(int width){
-    for(int i = 32; i > 1; i /= 2){
-        if(width == i){
-            return 1;
-        }
+// ------------------------------------------------
+
+$message $cuda_free($message request) {
+  void* devPtr;
+  $message_unpack(request, &devPtr, sizeof(void*));
+  free($reveal(devPtr));
+
+  return $message_pack($CUDA_PLACE_DEVICE, $CUDA_PLACE_HOST, $CUDA_TAG_cudaFree, NULL, 0);
+}
+
+void $cuda_memcpy_proc($message m, $cuda_op_state_t opState, $cuda_stream_t stream) {
+  
+  $when(opState->start);
+  $cuda_memcpy_data args;
+  $message_unpack(m, &args, sizeof($cuda_memcpy_data));
+    
+  if (args.kind == cudaMemcpyHostToDevice || cudaMemcpyDeviceToDevice) {
+    args.dst = $reveal(args.dst);
+  }
+  if (args.kind == cudaMemcpyDeviceToHost || cudaMemcpyDeviceToDevice) {
+    args.src = $reveal(args.src);
+  }
+  memcpy(args.dst, args.src, args.count);
+    
+  $stream_dequeue(stream);
+}
+
+$message $cuda_memcpy($scope cudaScope, $cuda_stream_t stream, $message request, _Bool async) {
+  $cuda_memcpy_data args;
+  $message_unpack(request, &args, sizeof($cuda_memcpy_data));
+
+  $proc memcpyProc = $stream_enqueue(cudaScope, stream, request, $cuda_memcpy_proc);
+    
+  if (!async && args.kind != cudaMemcpyDeviceToDevice) {
+    $wait(memcpyProc);
+  }
+  int tag = async ? $CUDA_TAG_cudaMemcpyAsync : $CUDA_TAG_cudaMemcpy;
+
+  return $message_pack($CUDA_PLACE_DEVICE, $CUDA_PLACE_HOST, tag, NULL, 0);
+}
+
+void $cuda_host_memcpy(void* dst, const void* src, size_t count, cudaMemcpyKind kind, _Bool async) {
+  if (kind == cudaMemcpyHostToHost) {
+		memcpy(dst, src, count);
+	} else {
+    $cuda_memcpy_data args;
+    args.dst = dst;
+    args.src = src;
+    args.count = count;
+    args.kind = kind;
+
+    int tag = async ? $CUDA_TAG_cudaMemcpyAsync : $CUDA_TAG_cudaMemcpy;
+
+    $comm_enqueue($cuda_host_comm, $message_pack($CUDA_PLACE_HOST, $CUDA_PLACE_DEVICE, tag, &args, sizeof($cuda_memcpy_data)));
+    $comm_dequeue($cuda_host_comm, $CUDA_PLACE_DEVICE, tag);
+	}
+}
+
+$message $cuda_device_synchronize($cuda_context_t context) {
+  $local_start();
+  $cuda_stream_node_t currNode = context->headNode;
+
+  while (currNode != NULL) {
+    $cuda_stream_t currStream = currNode->stream;
+    if (currStream != NULL) {
+      $cuda_op_state_node_t lastOpNode = currStream->tail;
+      if (lastOpNode != NULL) {
+      	$proc lastOp = lastOpNode->opState->op;
+      	$local_end();
+      	$wait(lastOp);
+      	$local_start();
+      }
     }
-    return 0;
+    currNode = currNode->next;
+  }
+  
+  $local_end();
+  return $message_pack($CUDA_PLACE_DEVICE, $CUDA_PLACE_HOST, $CUDA_TAG_cudaDeviceSynchronize, NULL, 0);
 }
 
-int exchange_data(unsigned mask, int var, int srcLane, int tid, $comm comm, $gbarrier* warpBarriers){
-    $read_set_push();
-	$write_set_push();
-	int laneID = tid % 32;
-	int warpID = tid / 32;
-	int currLaneInMask = (mask >> laneID) & 1;
-	int srcLaneInMask = (mask >> srcLane) & 1;
-	int dest;
-	$gbarrier gbarrier = warpBarriers[warpID];
-	int numActiveThreads = 0;
-	for (int i = 0; i < $get_nprocs(gbarrier); i++){
-		numActiveThreads += (mask >> i) & 1;
-	}
-	if(currLaneInMask){
-		$barrier barrier = $barrier_create($here, gbarrier, laneID);
-		if(srcLaneInMask){
-			$message request_message = $message_pack(tid, srcLane, 0, &tid, sizeof(int));
-			$comm_enqueue(comm, request_message);
-		}
-		$barrier_call_subset(barrier, numActiveThreads);
-		while ($comm_probe(comm, $COMM_ANY_SOURCE, 0)){
-		    $yield();
-			$message recv_request = $comm_dequeue(comm, $COMM_ANY_SOURCE, 0);
-			$message_unpack(recv_request, &dest, sizeof(int));
-			$message send_message = $message_pack(tid, dest, 1, &var, sizeof(int));
-			$comm_enqueue(comm, send_message); 
-		}
-		if(srcLaneInMask){
-		    $yield();
-			$message recv_message = $comm_dequeue(comm, srcLane, 1);
-			$message_unpack(recv_message, &var, sizeof(int));
-		}
-		else{
-			$havoc(&var);
-		}
-		$barrier_destroy(barrier);
-	}
-	else{
-		if(laneID != srcLane)
-			$havoc(&var);
-	}	
-	$read_set_pop();
-	$write_set_pop();
-	return var;
+void $cuda_host_device_synchronize() {
+	$comm_enqueue($cuda_host_comm, $message_pack($CUDA_PLACE_HOST, $CUDA_PLACE_DEVICE, $CUDA_TAG_cudaDeviceSynchronize, NULL, 0));
+	$comm_dequeue($cuda_host_comm, $CUDA_PLACE_DEVICE, $CUDA_TAG_cudaDeviceSynchronize);
 }
 
-int _cuda__shfl_sync(unsigned mask, int var, int srcLane, int width, int numThreads, int tid, $comm comm, $gbarrier* warpBarriers){
-    $assert(is_valid_width(width));
-	int subWarpID = tid / width;
-	srcLane = srcLane % width + subWarpID * width;
-	if(srcLane >= numThreads){
-	    int lastSubWarpSize = numThreads % width;
-	    srcLane = srcLane % lastSubWarpSize + subWarpID * width;
-	}
-    return exchange_data(mask, var, srcLane, tid, comm, warpBarriers);
-}
-int _cuda__shfl_up_sync(unsigned mask, int var, unsigned int delta, int width, int numThreads, int tid, $comm comm, $gbarrier* warpBarriers){
-    $assert(is_valid_width(width));
-	int subWarpLaneID = tid % width;
-	int srcLane = tid;
-	if (subWarpLaneID - delta >= 0){
-	    srcLane = tid - delta;
-	}
-    return exchange_data(mask, var, srcLane, tid, comm, warpBarriers);
-}
-int _cuda__shfl_down_sync(unsigned mask, int var, unsigned int delta, int width, int numThreads, int tid, $comm comm, $gbarrier* warpBarriers){
-	$assert(is_valid_width(width));
-	int subWarpLaneID = tid % width;
-	int srcLane = tid;
-	if (subWarpLaneID + delta < width && tid + delta < numThreads) {
-	    srcLane = tid + delta;
-	}
-    return exchange_data(mask, var, srcLane, tid, comm, warpBarriers);
-}
-int _cuda__shfl_xor_sync(unsigned mask, int var, int laneMask, int width, int numThreads, int tid, $comm comm, $gbarrier* warpBarriers){
-    $assert(is_valid_width(width));
-    int laneID = tid % 32;
-	int warpID = tid / 32;
-	int subWarpID = tid / width; 
-	int srcLane = laneID ^ laneMask;
-	if(!(srcLane / 32 == warpID && srcLane / width <= subWarpID && srcLane < numThreads)){
-	    srcLane = tid;
-	}
-    return exchange_data(mask, var, srcLane, tid, comm, warpBarriers);
+$scope $cuda_host_request_device_scope() {
+  $comm_enqueue($cuda_host_comm, $message_pack($CUDA_PLACE_HOST, $CUDA_PLACE_DEVICE, $CUDA_TAG_SCOPE_REQUEST, NULL, 0));
+  $message response = $comm_dequeue($cuda_host_comm, $CUDA_PLACE_DEVICE, $CUDA_TAG_SCOPE_REQUEST);
+  $scope result;
+  $message_unpack(response, &result, sizeof($scope));
+
+  return result;
 }
 
+// ------------------------------------------------
+
+/* TODO: Finish check_data_race
+ */
+void $cuda_syncthreads($cuda_kernel_instance_t k, int kernel_id, $barrier g) {
+  /*$check_data_race(k, kernel_id);
+   We have to push a new read and write set before the barrier call to ignore it's reads and writes
+  //$read_set_push();
+  //$write_set_push();
+  void captured_clear_mems(){
+    $clear_all_mem_sets(k);
+  }  
+  */
+  //$barrier_call_execute(g, captured_clear_mems);
+  $local_end();
+  $barrier_call(g);
+  $local_start();
+  //$read_set_pop();
+  //$write_set_pop();
+}
+
+$cuda_warp_t $create_cuda_warp($scope warpScope, int size) {
+  $cuda_warp_t newWarp = ($cuda_warp_t) malloc(sizeof($cuda_warp));
+  newWarp->size = size;
+  newWarp->num_alive = size;
+  newWarp->alive = (_Bool[size])$lambda(int i) $true;
+  newWarp->num_in_barrier = 0;
+  newWarp->in_barrier = (_Bool[size])$lambda(int i) $false;
+  newWarp->reductionLane = -1;
+  newWarp->warp_gcomm = $gcomm_create(warpScope, size);
+  
+  return newWarp;
+}
+
+void $destroy_cuda_warp($cuda_warp_t warp) {
+  $assert(warp != NULL, "Attempt to destroy a NULL warp");
+
+  $gcomm_destroy(warp->warp_gcomm, NULL);
+  free(warp);
+}
+
+/*@ depends_on \access(warp);
+  @ executes_when \true;
+  @ */
+$atomic_f void $cuda_warp_barrier_update($cuda_warp_t warp) {
+  if (warp->num_in_barrier == warp->num_alive) {
+    warp->num_in_barrier = 0;
+    for (int i = 0; i < warp->size; i++) {
+      warp->in_barrier[i] = $false;
+    }
+  }
+}
+
+$cuda_lane_t $create_cuda_lane($scope laneScope, $cuda_warp_t warp, int laneID) {
+  $assert(warp != NULL, "Attempt to create lane from NULL warp");
+  
+  $cuda_lane_t newLane = ($cuda_lane_t) malloc(sizeof($cuda_lane));
+  newLane->laneID = laneID;
+  newLane->warp = warp;
+  newLane->lane_comm = $comm_create(laneScope, warp->warp_gcomm, laneID);
+
+  return newLane;
+};
+
+/*@ depends_on \access(lane);
+  @ executes_when \true;
+  @ */
+$atomic_f void $destroy_cuda_lane($cuda_lane_t lane) {
+  $assert(lane != NULL, "Attempt to destroy NULL lane");
+
+  lane->warp->alive[lane->laneID] = $false;
+  lane->warp->num_alive--;
+  $cuda_warp_barrier_update(lane->warp);
+  $comm_destroy(lane->lane_comm);
+  free(lane);
+}
+
+/*@ depends_on \access(lane);
+  @ executes_when \true;
+  @ */
+$atomic_f void $cuda_warp_barrier_enter($cuda_lane_t lane) {
+  $cuda_warp_t warp = lane->warp;
+  int place = lane->laneID;
+  $assert(!warp->in_barrier[place]);
+  
+  warp->in_barrier[place] = $true;
+  warp->num_in_barrier++;
+  $cuda_warp_barrier_update(warp);
+}
+
+/*@ depends_on \access(lane);
+  @ */
+$atomic_f void $cuda_warp_barrier_exit($cuda_lane_t lane) {
+  $when(!lane->warp->in_barrier[lane->laneID]);
+}
+
+void $cuda_warp_barrier_call($cuda_lane_t lane) {
+  $cuda_warp_barrier_enter(lane);
+  $cuda_warp_barrier_exit(lane);
+}
+
+typedef enum {
+  $CUDA_WARP_TAG_shfl_sync,
+  $CUDA_WARP_TAG_shfl_up_sync,
+  $CUDA_WARP_TAG_shfl_down_sync,
+  $CUDA_WARP_TAG_shfl_xor_sync,
+  $CUDA_WARP_TAG_all_sync,
+  $CUDA_WARP_TAG_any_sync,
+  $CUDA_WARP_TAG_ballot_sync
+} $cuda_warp_tag;
+
+#define $CUDA_GENERIC_SHFL_BODY()                                       \
+  $assert (width <= warpSize);                                          \
+  for (int v = width; v > 1; v /= 2) {                                  \
+    $assert(v % 2 == 0);                                                \
+  }                                                                     \
+                                                                        \
+  int requestLane;                                                      \
+  switch(tag) {                                                         \
+    case $CUDA_WARP_TAG_shfl_sync:                                      \
+      requestLane = lane->laneID/width + laneParam % width;             \
+      break;                                                            \
+    case $CUDA_WARP_TAG_shfl_up_sync:                                   \
+      requestLane = lane->laneID - laneParam;                           \
+      break;                                                            \
+    case $CUDA_WARP_TAG_shfl_down_sync:                                 \
+      requestLane = lane->laneID + laneParam;                           \
+      break;                                                            \
+    case $CUDA_WARP_TAG_shfl_xor_sync:                                  \
+      requestLane = lane->laneID ^ laneParam;                           \
+      break;                                                            \
+  }                                                                     \
+  _Bool validSrcLane = requestLane >= 0 && requestLane < lane->warp->size; \
+  if (validSrcLane) {                                                   \
+    $comm_enqueue(lane->lane_comm, $message_pack(lane->laneID, requestLane, tag, NULL, 0)); \
+  }                                                                     \
+                                                                        \
+  $local_end();                                                         \
+  $cuda_warp_barrier_call(lane);                                        \
+  $local_start();                                                       \
+                                                                        \
+  while ($comm_probe(lane->lane_comm, $COMM_ANY_SOURCE, tag)) {         \
+    $message request = $comm_dequeue(lane->lane_comm, $COMM_ANY_SOURCE, tag); \
+                                                                        \
+    $comm_enqueue(lane->lane_comm, $message_pack(lane->laneID, $message_source(request), tag, &var, typeSize)); \
+  }                                                                     \
+                                                                        \
+  $local_end();                                                         \
+  $cuda_warp_barrier_call(lane);                                        \
+  $local_start();                                                       \
+                                                                        \
+  if (validSrcLane) {                                                   \
+    $message result = $comm_dequeue(lane->lane_comm, requestLane, tag); \
+    $message_unpack(result, &resultVal, typeSize);                      \
+  } else {                                                              \
+    $havoc(&resultVal);                                                 \
+  }
+
+#define $CUDA_DEFINE_SHFL(NAME, T, TAG)                                 \
+  T NAME(unsigned mask, T var, int laneParam, int width, $cuda_lane_t lane) { \
+    T resultVal;                                                        \
+    int typeSize = sizeof(T);                                           \
+    $cuda_warp_tag tag = TAG;                                           \
+                                                                        \
+    $CUDA_GENERIC_SHFL_BODY();                                          \
+                                                                        \
+    return resultVal;                                                   \
+  }
+
+$CUDA_DEFINE_SHFL($cuda__shfl_sync_int, int, $CUDA_WARP_TAG_shfl_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_sync_uint, unsigned int, $CUDA_WARP_TAG_shfl_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_sync_long, long, $CUDA_WARP_TAG_shfl_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_sync_ulong, unsigned long, $CUDA_WARP_TAG_shfl_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_sync_ll, long long, $CUDA_WARP_TAG_shfl_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_sync_ull, unsigned long long, $CUDA_WARP_TAG_shfl_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_sync_float, float, $CUDA_WARP_TAG_shfl_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_sync_double, double, $CUDA_WARP_TAG_shfl_sync)
+
+$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_int, int, $CUDA_WARP_TAG_shfl_up_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_uint, unsigned int, $CUDA_WARP_TAG_shfl_up_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_long, long, $CUDA_WARP_TAG_shfl_up_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_ulong, unsigned long, $CUDA_WARP_TAG_shfl_up_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_ll, long long, $CUDA_WARP_TAG_shfl_up_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_ull, unsigned long long, $CUDA_WARP_TAG_shfl_up_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_float, float, $CUDA_WARP_TAG_shfl_up_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_double, double, $CUDA_WARP_TAG_shfl_up_sync)
+
+$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_int, int, $CUDA_WARP_TAG_shfl_down_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_uint, unsigned int, $CUDA_WARP_TAG_shfl_down_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_long, long, $CUDA_WARP_TAG_shfl_down_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_ulong, unsigned long, $CUDA_WARP_TAG_shfl_down_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_ll, long long, $CUDA_WARP_TAG_shfl_down_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_ull, unsigned long long, $CUDA_WARP_TAG_shfl_down_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_float, float, $CUDA_WARP_TAG_shfl_down_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_double, double, $CUDA_WARP_TAG_shfl_down_sync)
+
+$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_int, int, $CUDA_WARP_TAG_shfl_xor_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_uint, unsigned int, $CUDA_WARP_TAG_shfl_xor_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_long, long, $CUDA_WARP_TAG_shfl_xor_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_ulong, unsigned long, $CUDA_WARP_TAG_shfl_xor_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_ll, long long, $CUDA_WARP_TAG_shfl_xor_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_ull, unsigned long long, $CUDA_WARP_TAG_shfl_xor_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_float, float, $CUDA_WARP_TAG_shfl_xor_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_double, double, $CUDA_WARP_TAG_shfl_xor_sync)
+
+#define $CUDA_GENERIC_COND_REDUCTION_BODY(COND, T_REDUCTION, F_REDUCTION) \
+  $cuda_warp_t warp = lane->warp;                                       \
+  int laneID = lane->laneID;                                            \
+  $comm comm = lane->lane_comm;                                         \
+  if (warp->reductionLane == -1) {                                      \
+    warp->reductionLane = laneID;                                       \
+                                                                        \
+    result = initialValue;                                              \
+    for (int i = 0; i < warp->size; i++) {                              \
+      if (i == laneID) {                                                \
+        operand = value;                                                \
+      } else {                                                          \
+        $local_end();                                                   \
+        $when(!warp->alive[i] || $comm_probe(comm, i, tag)) $local_start(); \
+                                                                        \
+        if (!warp->alive[i]) {                                          \
+          operand = initialValue;                                       \
+        } else {                                                        \
+          $local_end();                                                 \
+          $message_unpack($comm_dequeue(comm, i, tag), &operand, typeSize); \
+          $local_start();                                               \
+        }                                                               \
+      }                                                                 \
+                                                                        \
+	  if (COND) {                                                       \
+        result = T_REDUCTION;                                           \
+      } else {                                                          \
+        result = F_REDUCTION;                                           \
+      }                                                                 \
+    }                                                                   \
+                                                                        \
+    warp->reductionLane = -1;                                           \
+                                                                        \
+    for (int i = 0; i< warp->size; i++) {                               \
+      if (i != laneID && warp->alive[i]) {                              \
+        $comm_enqueue(comm, $message_pack(laneID, i, tag, &result, typeSize)); \
+      }                                                                 \
+    }                                                                   \
+  } else {                                                              \
+    int reductionLane = warp->reductionLane;                            \
+    $comm_enqueue(comm, $message_pack(laneID, reductionLane, tag, &value, typeSize)); \
+    $local_end();                                                       \
+    $message_unpack($comm_dequeue(comm, reductionLane, tag), &result, typeSize); \
+    $local_start();                                                     \
+  }
+
+#define $CUDA_GENERIC_REDUCTION_BODY(REDUCTION) $CUDA_GENERIC_COND_REDUCTION_BODY($true, REDUCTION, result)
+
+int $cuda__all_sync(unsigned mask, int value, $cuda_lane_t lane) {
+  $cuda_warp_tag tag = $CUDA_WARP_TAG_all_sync;
+  int typeSize = sizeof(int);
+  int initialValue = 1;
+  int result, operand;
+
+  $CUDA_GENERIC_COND_REDUCTION_BODY(result != 0 && operand != 0, 1, 0);
+
+  return result;
+}
+
+int $cuda__any_sync(unsigned mask, int value, $cuda_lane_t lane) {
+  $cuda_warp_tag tag = $CUDA_WARP_TAG_any_sync;
+  int typeSize = sizeof(int);
+  int initialValue = 0;
+  int result, operand;
+
+  $CUDA_GENERIC_COND_REDUCTION_BODY(result != 0 || operand != 0, 1, 0);
+
+  return result;
+}
+
+unsigned $cuda__ballot_sync(unsigned mask, int value, $cuda_lane_t lane) {
+  $cuda_warp_tag tag = $CUDA_WARP_TAG_ballot_sync;
+  int initialValue = 0;
+  int typeSize = sizeof(int);
+  unsigned result;
+  int operand;
+
+  $CUDA_GENERIC_COND_REDUCTION_BODY(operand == 0, 2 * result, 2 * result + 1);
+
+  return result;
+}

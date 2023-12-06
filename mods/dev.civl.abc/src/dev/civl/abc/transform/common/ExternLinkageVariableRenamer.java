@@ -140,7 +140,7 @@ public class ExternLinkageVariableRenamer extends BaseTransformer {
 
 	/**
 	 * @param externVarDecl
-	 *                          a variable declaration with external linkage
+	 *            a variable declaration with external linkage
 	 * @return All declarations of the same entity as the given one that appear
 	 *         in block scopes.
 	 */
@@ -236,37 +236,48 @@ public class ExternLinkageVariableRenamer extends BaseTransformer {
 				InitializerNode initializer = definition.getInitializer();
 
 				if (initializer != null) {
-					ExpressionNode rhs;
-					StatementNode assignment;
-					ASTNode parent = definition.parent();
-					int childIdx = definition.childIndex();
-					Source source = definition.getSource();
-					NodeFactory nf = astFactory.getNodeFactory();
+					VariableDeclarationNode firstDecl = externVarDecls
+							.getNthPureDeclarationInFile(0);
+					if (firstDecl.getTypeNode().isInputQualified()) {
+						definition.remove();
+						initializer.remove();
+						if (firstDecl.getInitializer() == null) {
+							firstDecl.setInitializer(initializer.copy());
+						}
+					} else {
+						ExpressionNode rhs;
+						StatementNode assignment;
+						ASTNode parent = definition.parent();
+						int childIdx = definition.childIndex();
+						Source source = definition.getSource();
+						NodeFactory nf = astFactory.getNodeFactory();
 
-					definition.remove();
-					initializer.remove();
-					if (initializer.nodeKind() == NodeKind.EXPRESSION)
-						rhs = (ExpressionNode) initializer;
-					else {
-						// compund initializer:
-						CompoundInitializerNode compoundInit = (CompoundInitializerNode) initializer;
-						TypeNode typeNode = definition.getTypeNode();
+						definition.remove();
+						initializer.remove();
+						if (initializer.nodeKind() == NodeKind.EXPRESSION)
+							rhs = (ExpressionNode) initializer;
+						else {
+							// compund initializer:
+							CompoundInitializerNode compoundInit = (CompoundInitializerNode) initializer;
+							TypeNode typeNode = definition.getTypeNode();
 
-						typeNode.remove();
-						rhs = nf.newCompoundLiteralNode(initializer.getSource(),
-								typeNode, compoundInit);
+							typeNode.remove();
+							rhs = nf.newCompoundLiteralNode(
+									initializer.getSource(), typeNode,
+									compoundInit);
+						}
+
+						IdentifierNode identifier = definition.getIdentifier();
+
+						identifier.remove();
+						assignment = nf.newExpressionStatementNode(
+								nf.newOperatorNode(source, Operator.ASSIGN,
+										astFactory.getNodeFactory()
+												.newIdentifierExpressionNode(
+														source, identifier),
+										rhs));
+						parent.setChild(childIdx, assignment);
 					}
-
-					IdentifierNode identifier = definition.getIdentifier();
-
-					identifier.remove();
-					assignment = nf.newExpressionStatementNode(
-							nf.newOperatorNode(source, Operator.ASSIGN,
-									astFactory.getNodeFactory()
-											.newIdentifierExpressionNode(source,
-													identifier),
-									rhs));
-					parent.setChild(childIdx, assignment);
 				}
 			}
 		}
@@ -291,15 +302,14 @@ public class ExternLinkageVariableRenamer extends BaseTransformer {
 	 * </ol>
 	 * 
 	 * @param ast
-	 *                       The AST which represents the program where extern
-	 *                       variable declarations will be cleaned.
+	 *            The AST which represents the program where extern variable
+	 *            declarations will be cleaned.
 	 * @param newNameMap
-	 *                       A map from {@link Entity} to their new names if
-	 *                       they need to be renamed.
+	 *            A map from {@link Entity} to their new names if they need to
+	 *            be renamed.
 	 * @return A new AST where extern variable declarations are cleaned.
 	 * @throws SyntaxException
-	 *                             If there exists any semantics error after the
-	 *                             cleaning work.
+	 *             If there exists any semantics error after the cleaning work.
 	 */
 	private AST cleanExternVariableDeclarations(AST ast,
 			Map<Entity, String> newNameMap) throws SyntaxException {

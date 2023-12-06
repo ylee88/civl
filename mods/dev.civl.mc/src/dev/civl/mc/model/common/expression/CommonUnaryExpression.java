@@ -157,7 +157,6 @@ public class CommonUnaryExpression extends CommonExpression
 	@Override
 	public void calculateConstantValueWork(SymbolicUniverse universe) {
 		SymbolicExpression operandValue;
-
 		operand.calculateConstantValue(universe);
 		operandValue = this.operand.constantValue();
 		if (operandValue == null)
@@ -173,9 +172,14 @@ public class CommonUnaryExpression extends CommonExpression
 				break;
 			case BIG_O :
 				break;
-			default :
-				throw new CIVLInternalException(
-						"Unknown unary operator: " + operator, this);
+			case BIT_NOT :
+				this.constantValue = universe
+						.bitnot((NumericExpression) operandValue);
+				break;
+			/*
+			 * default : throw new CIVLInternalException(
+			 * "Unknown unary operator: " + operator, this);
+			 */
 		}
 	}
 

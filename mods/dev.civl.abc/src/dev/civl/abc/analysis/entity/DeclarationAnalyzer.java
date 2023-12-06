@@ -877,7 +877,7 @@ public class DeclarationAnalyzer {
 				.typeAlignmentSpecifiers();
 		SequenceNode<ExpressionNode> constantAlignmentSpecifiers = declaration
 				.constantAlignmentSpecifiers();
-
+		
 		if (initializer != null) {
 			InitializerNode oldInitializer = variable.getInitializer();
 

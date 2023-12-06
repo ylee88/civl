@@ -20,9 +20,13 @@ import dev.civl.abc.ast.node.IF.NodePredicate;
 import dev.civl.abc.ast.node.IF.SequenceNode;
 import dev.civl.abc.ast.node.IF.acsl.MPIContractExpressionNode;
 import dev.civl.abc.ast.node.IF.acsl.MPIContractExpressionNode.MPIContractExpressionKind;
+import dev.civl.abc.ast.node.IF.declaration.EnumeratorDeclarationNode;
+import dev.civl.abc.ast.node.IF.declaration.FieldDeclarationNode;
 import dev.civl.abc.ast.node.IF.declaration.FunctionDeclarationNode;
 import dev.civl.abc.ast.node.IF.declaration.FunctionDefinitionNode;
+import dev.civl.abc.ast.node.IF.declaration.TypedefDeclarationNode;
 import dev.civl.abc.ast.node.IF.declaration.VariableDeclarationNode;
+import dev.civl.abc.ast.node.IF.expression.CastNode;
 import dev.civl.abc.ast.node.IF.expression.ExpressionNode;
 import dev.civl.abc.ast.node.IF.expression.ExpressionNode.ExpressionKind;
 import dev.civl.abc.ast.node.IF.expression.FunctionCallNode;
@@ -30,6 +34,7 @@ import dev.civl.abc.ast.node.IF.expression.IdentifierExpressionNode;
 import dev.civl.abc.ast.node.IF.expression.IntegerConstantNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode.Operator;
+import dev.civl.abc.ast.node.IF.expression.SizeableNode;
 import dev.civl.abc.ast.node.IF.expression.StringLiteralNode;
 import dev.civl.abc.ast.node.IF.statement.BlockItemNode;
 import dev.civl.abc.ast.node.IF.statement.CompoundStatementNode;
@@ -37,6 +42,7 @@ import dev.civl.abc.ast.node.IF.statement.ExpressionStatementNode;
 import dev.civl.abc.ast.node.IF.statement.ForLoopInitializerNode;
 import dev.civl.abc.ast.node.IF.statement.StatementNode;
 import dev.civl.abc.ast.node.IF.statement.StatementNode.StatementKind;
+import dev.civl.abc.ast.node.IF.statement.WhenNode;
 import dev.civl.abc.ast.node.IF.type.FunctionTypeNode;
 import dev.civl.abc.ast.node.IF.type.TypeNode;
 import dev.civl.abc.ast.type.IF.ArrayType;
@@ -181,7 +187,8 @@ public abstract class BaseWorker {
 	 */
 	protected StatementNode elaborateExpression(ExpressionNode expression)
 			throws SyntaxException {
-		Source source = newSource("elaborateExpression", CivlcTokenConstant.FOR);
+		Source source = newSource("elaborateExpression",
+				CivlcTokenConstant.FOR);
 		VariableDeclarationNode forLoopVarDecl = nodeFactory
 				.newVariableDeclarationNode(source,
 						identifier(ELABORATE_LOOP_VAR),
@@ -435,34 +442,15 @@ public abstract class BaseWorker {
 	}
 
 	protected void createNewMainFunction(SequenceNode<BlockItemNode> root) {
-		FunctionCallNode callMain;
+		String srcMethod = "createNewMainFunction";
 		List<BlockItemNode> blockItems = new LinkedList<>();
-		FunctionTypeNode mainFuncType;
-		FunctionDefinitionNode newMainFunction;
 
-		callMain = nodeFactory.newFunctionCallNode(
-				this.newSource("createNewMainFunction", CivlcTokenConstant.CALL),
-				this.identifierExpression(GEN_MAIN),
-				new LinkedList<ExpressionNode>(), null);
-		blockItems.add(nodeFactory.newExpressionStatementNode(callMain));
-		mainFuncType = nodeFactory.newFunctionTypeNode(
-				this.newSource("createNewMainFunction", CivlcTokenConstant.TYPE),
-				nodeFactory.newBasicTypeNode(this.newSource("createNewMainFunction",
-						CivlcTokenConstant.TYPE), BasicTypeKind.INT),
-				nodeFactory.newSequenceNode(
-						this.newSource("createNewMainFunction",
-								CivlcTokenConstant.PARAMETER_TYPE_LIST),
-						"formal parameter types",
-						new LinkedList<VariableDeclarationNode>()),
-				false);
-		newMainFunction = nodeFactory.newFunctionDefinitionNode(
-				this.newSource("createNewMainFunction",
-						CivlcTokenConstant.FUNCTION_DEFINITION),
-				this.identifier(MAIN), mainFuncType, null,
-				nodeFactory.newCompoundStatementNode(
-						this.newSource("createNewMainFunction",
-								CivlcTokenConstant.BODY),
-						blockItems));
+		blockItems.add(nodeStmtCall(srcMethod, GEN_MAIN));
+
+		FunctionDefinitionNode newMainFunction = nodeDefnFunction(srcMethod,
+				MAIN, nodeTypeInt(srcMethod),
+				new LinkedList<VariableDeclarationNode>(), blockItems);
+
 		root.addSequenceChild(newMainFunction);
 	}
 
@@ -645,7 +633,7 @@ public abstract class BaseWorker {
 							CivlcToken postToken = postNode == null
 									? null
 									: postNode.getSource().getFirstToken();
-							String text = node.prettyRepresentation(20)
+							String text = node.prettyRepresentation(35)
 									.toString();
 
 							tf.setPreToken(preToken);
@@ -851,7 +839,8 @@ public abstract class BaseWorker {
 	 * @return the new type node.
 	 */
 	protected TypeNode typeNode(Type type) {
-		Source source = this.newSource("typeNode " + type, CivlcTokenConstant.TYPE);
+		Source source = this.newSource("typeNode " + type,
+				CivlcTokenConstant.TYPE);
 
 		return this.typeNode(source, type);
 	}
@@ -941,7 +930,9 @@ public abstract class BaseWorker {
 	 * @return the new boolean constant node
 	 */
 	protected ExpressionNode booleanConstant(boolean value) {
-		String method = value ? "booleanConstant $true" : "booleanConstant $false";
+		String method = value
+				? "booleanConstant $true"
+				: "booleanConstant $false";
 		int tokenType = value ? 1 : 0;
 
 		return nodeFactory.newBooleanConstantNode(
@@ -962,7 +953,7 @@ public abstract class BaseWorker {
 						CivlcTokenConstant.INTEGER_CONSTANT),
 				Integer.toString(value));
 	}
-	
+
 	/** @return {@link CompoundStatementNode} */
 	protected CompoundStatementNode nodeBlock(String srcMethod,
 			BlockItemNode... blockItems) {
@@ -999,7 +990,7 @@ public abstract class BaseWorker {
 	}
 
 	/** @return {@link FunctionCallNode} */
-	protected ExpressionNode nodeExprCall(String srcMethod, String funcName,
+	protected FunctionCallNode nodeExprCall(String srcMethod, String funcName,
 			ExpressionNode... argExprs) {
 		return nodeFactory.newFunctionCallNode(
 				newSource(srcMethod, CivlcTokenConstant.CALL),
@@ -1007,10 +998,17 @@ public abstract class BaseWorker {
 	}
 
 	/** @return {@link ExpressionNode}: <code>(type) expr</code> */
-	protected ExpressionNode nodeExprCast(String srcMethod, TypeNode type,
+	protected CastNode nodeExprCast(String srcMethod, TypeNode type,
 			ExpressionNode expr) {
 		return nodeFactory.newCastNode(
 				newSource(srcMethod, CivlcTokenConstant.CAST), type, expr);
+	}
+
+	protected ExpressionNode nodeExprNullPointer(String srcMethod) {
+		TypeNode voidType = voidType();
+		return nodeExprCast(srcMethod,
+				nodeFactory.newPointerTypeNode(voidType.getSource(), voidType),
+				nodeExprInt(srcMethod, 0));
 	}
 
 	/** @return {@link ExpressionNode}: <code>$here</code> */
@@ -1020,7 +1018,8 @@ public abstract class BaseWorker {
 	}
 
 	/** @return {@link IdentifierExpressionNode} */
-	protected ExpressionNode nodeExprId(String srcMethod, String idName) {
+	protected IdentifierExpressionNode nodeExprId(String srcMethod,
+			String idName) {
 		IdentifierNode ident = nodeIdent(srcMethod, idName);
 
 		return nodeFactory.newIdentifierExpressionNode(ident.getSource(),
@@ -1045,6 +1044,57 @@ public abstract class BaseWorker {
 					step);
 	}
 
+	protected ExpressionNode nodeExprDot(String srcMethod,
+			ExpressionNode structExpr, String fieldName) {
+		return nodeFactory.newDotNode(
+				newSource(srcMethod, CivlcTokenConstant.DOT), structExpr,
+				nodeIdent(srcMethod, fieldName));
+	}
+
+	protected ExpressionNode nodeExprArrow(String srcMethod,
+			ExpressionNode structExpr, String fieldName) {
+		return nodeFactory.newArrowNode(
+				newSource(srcMethod, CivlcTokenConstant.ARROW), structExpr,
+				nodeIdent(srcMethod, fieldName));
+	}
+
+	protected ExpressionNode nodeExprOp(String srcMethod, Operator op,
+			ExpressionNode... argExprs) {
+		return nodeFactory.newOperatorNode(
+				newSource(srcMethod, CivlcTokenConstant.OTHER), op,
+				Arrays.asList(argExprs));
+	}
+
+	protected ExpressionNode nodeExprSizeof(String srcMethod,
+			SizeableNode sizeable) {
+		return nodeFactory.newSizeofNode(
+				newSource(srcMethod, CivlcTokenConstant.SIZEOF), sizeable);
+	}
+
+	protected FunctionDefinitionNode nodeDefnFunction(String srcMethod,
+			String functionName, TypeNode returnType,
+			List<VariableDeclarationNode> parameters,
+			List<BlockItemNode> body) {
+		return nodeFactory
+				.newFunctionDefinitionNode(
+						newSource(srcMethod,
+								CivlcTokenConstant.FUNCTION_DEFINITION),
+						nodeIdent(srcMethod, functionName),
+						nodeFactory.newFunctionTypeNode(
+								newSource(srcMethod,
+										CivlcTokenConstant.FUNCTION_DEFINITION),
+								returnType,
+								nodeFactory.newSequenceNode(newSource(srcMethod,
+										CivlcTokenConstant.PARAMETER_LIST),
+										functionName, parameters),
+								false),
+						null,
+						nodeFactory.newCompoundStatementNode(
+								newSource(srcMethod,
+										CivlcTokenConstant.COMPOUND_STATEMENT),
+								body));
+	}
+
 	/** @return {@link IdentifierNode} */
 	protected IdentifierNode nodeIdent(String srcMethod, String idName) {
 		return nodeFactory.newIdentifierNode(
@@ -1052,12 +1102,36 @@ public abstract class BaseWorker {
 	}
 
 	/** @return {@link StatementNode} for a function call */
-	protected StatementNode nodeStmtCall(String srcMethod, String funcName,
-			ExpressionNode... argExprs) {
+	protected ExpressionStatementNode nodeStmtCall(String srcMethod,
+			String funcName, ExpressionNode... argExprs) {
 		return nodeFactory.newExpressionStatementNode(
 				nodeExprCall(srcMethod, funcName, argExprs));
 	}
-	
+
+	protected WhenNode nodeStmtWhen(String srcMethod, ExpressionNode guard) {
+		return nodeStmtWhen(srcMethod, guard, nodeFactory.newNullStatementNode(
+				newSource(srcMethod, CivlcTokenConstant.STATEMENT)));
+	}
+
+	protected WhenNode nodeStmtWhen(String srcMethod, ExpressionNode guard,
+			StatementNode body) {
+		return nodeFactory.newWhenNode(
+				newSource(srcMethod, CivlcTokenConstant.WHEN), guard, body);
+	}
+
+	protected StatementNode nodeStmtAssign(String srcMethod, ExpressionNode lhs,
+			ExpressionNode rhs) {
+		return nodeFactory
+				.newExpressionStatementNode(nodeFactory.newOperatorNode(
+						newSource(srcMethod, CivlcTokenConstant.ASSIGN),
+						Operator.ASSIGN, lhs, rhs));
+	}
+
+	protected BlockItemNode nodeBreak(String srcMethod) {
+		return nodeFactory
+				.newBreakNode(newSource(srcMethod, CivlcTokenConstant.BREAK));
+	}
+
 	/** @return CIVL <code>$domain(dim)</code> type node: */
 	protected TypeNode nodeTypeDom(String srcMethod, int dim) {
 		if (dim > 0) // $domain(dim)
@@ -1067,6 +1141,11 @@ public abstract class BaseWorker {
 		else // $domain
 			return nodeFactory.newDomainTypeNode(
 					newSource(srcMethod, CivlcTokenConstant.DOMAIN));
+	}
+
+	protected TypeNode nodeTypeScope(String srcMethod) {
+		return nodeFactory.newScopeTypeNode(
+				newSource(srcMethod, CivlcTokenConstant.TYPE));
 	}
 
 	/** @return <code>int</code> {@link TypeNode} */
@@ -1087,9 +1166,69 @@ public abstract class BaseWorker {
 				newSource(srcMethod, CivlcTokenConstant.RANGE));
 	}
 
+	protected TypeNode nodeTypePointer(String srcMethod,
+			TypeNode referencedType) {
+		return nodeFactory.newPointerTypeNode(
+				newSource(srcMethod, CivlcTokenConstant.POINTER),
+				referencedType);
+	}
+
+	protected TypeNode nodeTypeArray(String srcMethod, TypeNode elementType,
+			ExpressionNode extentExpr) {
+		return nodeFactory.newArrayTypeNode(
+				newSource(srcMethod, CivlcTokenConstant.ARRAY_SUFFIX),
+				elementType, extentExpr);
+	}
+
 	protected TypeNode nodeTypeFromExpr(String srcMethod, ExpressionNode expr) {
 		return typeNode(newSource(srcMethod, CivlcTokenConstant.TYPE),
 				expr.getConvertedType());
+	}
+
+	protected TypedefDeclarationNode nodeTypeDefStruct(String srcMethod,
+			String structName, List<FieldDeclarationNode> fieldNodes) {
+		return nodeFactory.newTypedefDeclarationNode(
+				newSource(srcMethod, CivlcTokenConstant.TYPEDEF),
+				nodeIdent(srcMethod, structName),
+				nodeFactory.newStructOrUnionTypeNode(
+						newSource(srcMethod,
+								CivlcTokenConstant.STRUCT_DECLARATION),
+						true, nodeIdent(srcMethod, structName),
+						nodeFactory.newSequenceNode(
+								newSource(srcMethod,
+										CivlcTokenConstant.SEQUENCE),
+								"Field sequence of " + structName,
+								fieldNodes)));
+	}
+
+	protected FunctionDeclarationNode nodeDeclFunction(String srcMethod,
+			String functionName, TypeNode returnType,
+			List<VariableDeclarationNode> varDecls) {
+		FunctionTypeNode functionTypeNode = nodeFactory.newFunctionTypeNode(
+				newSource(srcMethod, CivlcTokenConstant.DECLARATION),
+				returnType,
+				nodeFactory.newSequenceNode(
+						newSource(srcMethod, CivlcTokenConstant.SEQUENCE),
+						functionName + " formal parameters", varDecls),
+				false);
+		return nodeFactory.newFunctionDeclarationNode(
+				functionTypeNode.getSource(),
+				nodeIdent(srcMethod, functionName), functionTypeNode, null);
+	}
+
+	protected FieldDeclarationNode nodeDeclField(String srcMethod,
+			String fieldName, TypeNode fieldType) {
+		IdentifierNode ident = nodeIdent(srcMethod, fieldName);
+		return nodeFactory.newFieldDeclarationNode(
+				tokenFactory.join(fieldType.getSource(), ident.getSource()),
+				ident, fieldType);
+	}
+
+	protected EnumeratorDeclarationNode nodeDeclEnumerator(String srcMethod,
+			String enumValueName) {
+		return nodeFactory.newEnumeratorDeclarationNode(
+				newSource(srcMethod, CivlcTokenConstant.ENUMERATOR),
+				nodeIdent(srcMethod, enumValueName), null);
 	}
 
 	/**
@@ -1273,7 +1412,8 @@ public abstract class BaseWorker {
 			File file = sourceFile.getFile();
 			String name = sourceFile.getName();
 
-			if (file.getPath().startsWith(CIVLConstants.ROOT_RESOURCE_PATH_STR) && name.equals(header))
+			if (file.getPath().startsWith(CIVLConstants.ROOT_RESOURCE_PATH_STR)
+					&& name.equals(header))
 				return true;
 		}
 		return false;
@@ -1305,7 +1445,7 @@ public abstract class BaseWorker {
 
 				return ((VariableDeclarationNode) variable
 						.getFirstDeclaration()).getTypeNode()
-								.isInputQualified();
+						.isInputQualified();
 			}
 		} else {
 			for (ASTNode child : node.children()) {

@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <mem.cvh>
 #pragma CIVL ACSL
 
 ///////////
@@ -15,13 +16,7 @@ enum cudaError {
 };
 typedef enum cudaError cudaError_t;
 
-typedef enum cudaMemcpyKind {
-	cudaMemcpyHostToHost,
-	cudaMemcpyHostToDevice,
-	cudaMemcpyDeviceToHost,
-	cudaMemcpyDeviceToDevice,
-	cudaMemcpyDefault
-} cudaMemcpyKind;
+//typedef $cuda_memcpy_kind cudaMemcpyKind;
 
 typedef struct {
   unsigned int x, y, z;
@@ -33,42 +28,53 @@ typedef struct {
   unsigned int x, y, z;
 } uint3;
 
+typedef enum {
+  cudaMemcpyHostToHost,
+  cudaMemcpyHostToDevice,
+  cudaMemcpyDeviceToHost,
+  cudaMemcpyDeviceToDevice,
+  cudaMemcpyDefault
+} cudaMemcpyKind;
+
 typedef struct $cuda_op_state* $cuda_op_state_t;
-struct $cuda_op_state {
+typedef struct $cuda_op_state {
 	_Bool start;
 	$proc op;
-};
+} $cuda_op_state;
 
 typedef struct $cuda_op_state_node* $cuda_op_state_node_t;
-struct $cuda_op_state_node {
+typedef struct $cuda_op_state_node {
 	$cuda_op_state_t opState;
 	$cuda_op_state_node_t next;
-};
+} $cuda_op_state_node;
 
-typedef struct cudaStream* cudaStream_t;
 typedef struct $cuda_stream_node* $cuda_stream_node_t;
-struct cudaStream {
+typedef struct $cuda_stream* $cuda_stream_t;
+typedef $cuda_stream_t cudaStream_t;
+typedef struct $cuda_stream {
 	$cuda_op_state_node_t head;
 	$cuda_op_state_node_t tail;
 	int numOps;
 	$cuda_stream_node_t containingNode;
 	_Bool alive;
-};
+} $cuda_stream;
 
-struct $cuda_stream_node {
+typedef struct $cuda_stream_node{
 	cudaStream_t stream;
 	$cuda_stream_node_t prev;
 	$cuda_stream_node_t next;
-};
+} $cuda_stream_node;
 
+typedef struct $cuda_context* $cuda_context_t;
 typedef struct $cuda_context {
 	$cuda_stream_node_t head;
 	int numStreams;
 } $cuda_context;
 
-typedef struct {
-  $mem readSets[];
-  $mem writeSets[];
+typedef struct $cuda_kernel_instance* $cuda_kernel_instance_t;
+typedef struct $cuda_kernel_instance {
+  $mem* readSets;
+  $mem* writeSets;
   int size;
 } $cuda_kernel_instance;
 
@@ -115,7 +121,7 @@ $scope $cuda_host_request_device_scope() {
   return result;
 }
 
-void $cuda_helper_host_memcpy(void* dst, const void* src, size_t count, cudaMemcpyKind kind, _Bool async) {
+void $cuda_host_memcpy(void* dst, const void* src, size_t count, cudaMemcpyKind kind, _Bool async) {
   if (kind == cudaMemcpyHostToHost) {
 		memcpy(dst, src, count);
 	} else {
@@ -133,13 +139,13 @@ void $cuda_helper_host_memcpy(void* dst, const void* src, size_t count, cudaMemc
 }
 
 $cuda_stream_node_t $create_new_stream_node($scope cudaScope) {
-  cudaStream_t newStream = (cudaStream_t) $malloc(cudaScope, sizeof(struct cudaStream));
+  cudaStream_t newStream = (cudaStream_t) $malloc(cudaScope, sizeof($cuda_stream));
   newStream->head = NULL;
   newStream->tail = NULL;
   newStream->numOps = 0;
   newStream->alive = true;
 	
-  $cuda_stream_node_t newHead = ($cuda_stream_node_t) $malloc(cudaScope, sizeof(struct $cuda_stream_node));
+  $cuda_stream_node_t newHead = ($cuda_stream_node_t) $malloc(cudaScope, sizeof($cuda_stream_node));
   newHead->stream = newStream;
   newStream->containingNode = newHead;
   newHead->prev = NULL;
@@ -183,11 +189,11 @@ $atomic_f $proc $destroy_stream_node($cuda_stream_node_t node) {
 $atomic_f $proc $stream_enqueue($scope cudaScope, cudaStream_t stream, $message opParams, void(*opProc)($message, $cuda_op_state_t, cudaStream_t)) {
   $assert(stream->alive, "Attempt to enqueue a CUDA operation onto a destroyed stream");
 
-  $cuda_op_state_t newOpState = ($cuda_op_state_t) $malloc(cudaScope, sizeof(struct $cuda_op_state));
+  $cuda_op_state_t newOpState = ($cuda_op_state_t) $malloc(cudaScope, sizeof($cuda_op_state));
   newOpState->start = false;
   newOpState->op = $spawn opProc(opParams, newOpState, stream);
 
-  $cuda_op_state_node_t newOpStateNode = ($cuda_op_state_node_t) $malloc(cudaScope, sizeof(struct $cuda_op_state_node));
+  $cuda_op_state_node_t newOpStateNode = ($cuda_op_state_node_t) $malloc(cudaScope, sizeof($cuda_op_state_node));
   newOpStateNode->opState = newOpState;
   newOpStateNode->next = NULL;
 	
@@ -296,6 +302,104 @@ $message $cuda_free($message request) {
   return $message_pack($CUDA_PLACE_DEVICE, $CUDA_PLACE_HOST, $CUDA_TAG_cudaFree, NULL, 0);
 }
 
+$cuda_kernel_instance_t $create_kernel_instance($scope cudaScope, dim3 gridDim, dim3 blockDim){
+	int threadsPerBlock = (blockDim.x * blockDim.y) * blockDim.z;
+	int numBlocks = (gridDim.x * gridDim.y) * gridDim.z;
+	int numThreads = threadsPerBlock * numBlocks;
+	
+  $cuda_kernel_instance_t $kernel = ($cuda_kernel_instance_t)$malloc(cudaScope, sizeof($cuda_kernel_instance));
+	$mem* readSets = ($mem*)$malloc(cudaScope, sizeof($mem) * numThreads);
+	$mem* writeSets = ($mem*)$malloc(cudaScope, sizeof($mem) * numThreads);
+	//Is this meant to be the number of threads in the grid?
+	int size = numThreads;
+	
+	$kernel->readSets = readSets;
+	$kernel->writeSets = writeSets;
+	$kernel->size = size;
+	
+	return $kernel;
+}
+
+void $destroy_kernel_instance($cuda_kernel_instance_t $kernel){
+	free($kernel->readSets);
+	free($kernel->writeSets);
+	free($kernel);
+	return;
+}
+
+void $clear_mem_sets($cuda_kernel_instance_t k, int cur_tid) {
+	k->writeSets[cur_tid] = $mem_empty();
+    k->readSets[cur_tid] = $mem_empty();
+}
+
+void $clear_all_mem_sets($cuda_kernel_instance_t k){
+    for(int i = 0; i < k->size; i++)
+      $clear_mem_sets(k, i);
+}
+
+$atomic_f void $check_data_race($cuda_kernel_instance_t k, int cur_tid) {
+  //printf("Current id: %d\n", cur_tid);
+  $mem out_s0 = $mem_empty();
+  $mem out_s1 = $mem_empty();
+  $mem cur_mw = $write_set_pop();
+  $mem cur_mr = $read_set_pop();
+  
+  // Update current R/W sets
+  k->writeSets[cur_tid] = cur_mw;
+  k->readSets[cur_tid] = cur_mr;
+  
+  /*
+  printf("CHECKING DATA RACE %d [\n", cur_tid);
+  for (int tmp_tid = 0; tmp_tid < k->size; tmp_tid++) {
+    printf("  RS %d: %s\n", tmp_tid, k->read_sets[tmp_tid]);
+    printf("  WS %d: %s\n", tmp_tid, k->write_sets[tmp_tid]);
+  }
+  printf("]\n");
+  */
+  
+  // Check data race
+  for (int tmp_tid = 0; tmp_tid < k->size; tmp_tid++) {
+    if (tmp_tid == cur_tid) continue;
+    
+    $mem tmp_mr = k->readSets[tmp_tid];
+    $mem tmp_mw = k->writeSets[tmp_tid];
+    
+    $assert($mem_no_intersect(cur_mr, tmp_mw, &out_s0, &out_s1), 
+              "Data-race detected: %p read by thread %d intersects %p written by thread %d\n",
+	          out_s0, cur_tid, out_s1, tmp_tid);
+    $assert($mem_no_intersect(cur_mw, tmp_mr, &out_s0, &out_s1), 
+              "Data-race detected: %p read by thread %d intersects %p written by thread %d\n",
+	          out_s0, cur_tid, out_s1, tmp_tid);
+    $assert($mem_no_intersect(cur_mw, tmp_mw, &out_s0, &out_s1), 
+              "Data-race detected: %p written by thread %d intersects %p written by thread %d\n",
+	          out_s0, cur_tid, out_s1, tmp_tid);
+  }
+  // Update current R/W sets
+  //k->writeSets[cur_tid] = $mem_empty();
+  //k->readSets[cur_tid] = $mem_empty();
+  $read_set_push();
+  $write_set_push();
+}
+
+void $cuda_barrier($cuda_kernel_instance_t k, int kernel_id, $barrier g) {
+  /*$check_data_race(k, kernel_id);
+   We have to push a new read and write set before the barrier call to ignore it's reads and writes
+  $read_set_push();
+  $write_set_push();
+  void captured_clear_mems(){
+    $clear_all_mem_sets(k);
+  }  
+  */
+  //$barrier_call_execute(g, captured_clear_mems);
+  $local_end();
+  $barrier_call(g);
+  $local_start();
+  //$read_set_pop();
+  //$write_set_pop();
+}
+
+
+
 ////////////////////////////////////////////
 // CUDA API Functions (For Host-use Only) //
 ////////////////////////////////////////////
@@ -308,13 +412,13 @@ cudaError_t cudaFree(void* devPtr) {
 }
 
 cudaError_t cudaMemcpy(void* dst, const void* src, size_t count, cudaMemcpyKind kind) {
-	$cuda_helper_host_memcpy(dst, src, count, kind, false);
+	$cuda_host_memcpy(dst, src, count, kind, false);
 	return cudaSuccess;
 }
 
 cudaError_t cudaMemcpyAsync(void* dst, const void* src, size_t count,
                             cudaMemcpyKind kind, cudaStream_t stream) {
-  $cuda_helper_host_memcpy(dst, src, count, kind, true);
+  $cuda_host_memcpy(dst, src, count, kind, true);
 	return cudaSuccess;
 }
 
@@ -373,6 +477,399 @@ cudaError_t cudaDeviceSynchronize() {
 }
 */
 
+////////////////
+// Warp stuff //
+////////////////
+
+// TODO: Handle thread termination!
+
+$input int warpSize = 32;
+
+typedef struct $cuda_warp* $cuda_warp_t;
+typedef struct $cuda_warp {
+  int size;
+  int num_alive;
+  _Bool alive[];
+  int num_in_barrier;
+  _Bool in_barrier[];
+  int reductionLane;
+  $gcomm warp_gcomm;
+} $cuda_warp;
+
+$cuda_warp_t $create_cuda_warp($scope warpScope, int size) {
+  $cuda_warp_t newWarp = ($cuda_warp_t) malloc(sizeof($cuda_warp));
+  newWarp->size = size;
+  newWarp->num_alive = size;
+  newWarp->alive = (_Bool[size])$lambda(int i) $true;
+  newWarp->num_in_barrier = 0;
+  newWarp->in_barrier = (_Bool[size])$lambda(int i) $false;
+  newWarp->reductionLane = -1;
+  newWarp->warp_gcomm = $gcomm_create(warpScope, size);
+  
+  return newWarp;
+}
+
+void $destroy_cuda_warp($cuda_warp_t warp) {
+  $assert(warp != NULL, "Attempt to destroy a NULL warp");
+
+  $gcomm_destroy(warp->warp_gcomm, NULL);
+  free(warp);
+}
+
+/*@ depends_on \access(warp);
+  @ executes_when \true;
+  @ */
+$atomic_f void $cuda_warp_barrier_update($cuda_warp_t warp) {
+  if (warp->num_in_barrier == warp->num_alive) {
+    warp->num_in_barrier = 0;
+    for (int i = 0; i < warp->size; i++) {
+      warp->in_barrier[i] = $false;
+    }
+  }
+}
+
+typedef struct $cuda_lane* $cuda_lane_t;
+typedef struct $cuda_lane {
+  int laneID;
+  $cuda_warp_t warp;
+  $comm lane_comm;
+} $cuda_lane;
+
+$cuda_lane_t $create_cuda_lane($scope laneScope, $cuda_warp_t warp, int laneID) {
+  $assert(warp != NULL, "Attempt to create lane from NULL warp");
+  
+  $cuda_lane_t newLane = ($cuda_lane_t) malloc(sizeof($cuda_lane));
+  newLane->laneID = laneID;
+  newLane->warp = warp;
+  newLane->lane_comm = $comm_create(laneScope, warp->warp_gcomm, laneID);
+
+  return newLane;
+};
+
+/*@ depends_on \access(lane);
+  @ executes_when \true;
+  @ */
+$atomic_f void $destroy_cuda_lane($cuda_lane_t lane) {
+  $assert(lane != NULL, "Attempt to destroy NULL lane");
+
+  lane->warp->alive[lane->laneID] = $false;
+  lane->warp->num_alive--;
+  $cuda_warp_barrier_update(lane->warp);
+  $comm_destroy(lane->lane_comm);
+  free(lane);
+}
+
+/*@ depends_on \access(lane);
+  @ executes_when \true;
+  @ */
+$atomic_f void $cuda_warp_barrier_enter($cuda_lane_t lane) {
+  $cuda_warp_t warp = lane->warp;
+  int place = lane->laneID;
+  $assert(!warp->in_barrier[place]);
+  
+  warp->in_barrier[place] = $true;
+  warp->num_in_barrier++;
+  $cuda_warp_barrier_update(warp);
+}
+
+/*@ depends_on \access(lane);
+  @ */
+$atomic_f void $cuda_warp_barrier_exit($cuda_lane_t lane) {
+  $when(!lane->warp->in_barrier[lane->laneID]);
+}
+
+void $cuda_warp_barrier_call($cuda_lane_t lane) {
+  $cuda_warp_barrier_enter(lane);
+  $cuda_warp_barrier_exit(lane);
+}
+
+typedef enum {
+  $CUDA_WARP_TAG_shfl_sync,
+  $CUDA_WARP_TAG_shfl_up_sync,
+  $CUDA_WARP_TAG_shfl_down_sync,
+  $CUDA_WARP_TAG_shfl_xor_sync,
+  $CUDA_WARP_TAG_all_sync,
+  $CUDA_WARP_TAG_any_sync,
+  $CUDA_WARP_TAG_ballot_sync
+} $cuda_warp_tag;
+
+#define $GET_ARG_1(_1, ...) _1
+#define $GET_ARG_2(_1, _2, ...) _2
+#define $CUDA_SHFL_PARAM_MACRO(...) $GET_ARG_1(__VA_ARGS__, warpSize, 0), $GET_ARG_2(__VA_ARGS__, warpSize, 0)
+
+#define __shfl_sync(mask, var, ...)                                     \
+  _Generic(var,                                                         \
+           default: $cuda__shfl_sync_int,                               \
+           unsigned int: $cuda__shfl_sync_uint,                         \
+           long: $cuda__shfl_sync_long,                                 \
+           unsigned long: $cuda__shfl_sync_ulong,                       \
+           long long: $cuda__shfl_sync_ll,                              \
+           unsigned long long: $cuda__shfl_sync_ull,                    \
+           float: $cuda__shfl_sync_float,\
+           double: $cuda__shfl_sync_double) (mask, var, $CUDA_SHFL_PARAM_MACRO(__VA_ARGS__), $lane)
+
+#define __shfl_up_sync(mask, var, ...)                                  \
+  _Generic(var,                                                         \
+           default: $cuda__shfl_up_sync_int,                            \
+           unsigned int: $cuda__shfl_up_sync_uint,                      \
+           long: $cuda__shfl_up_sync_long,                              \
+           unsigned long: $cuda__shfl_up_sync_ulong,                    \
+           long long: $cuda__shfl_up_sync_ll,                           \
+           unsigned long long: $cuda__shfl_up_sync_ull,                 \
+           float: $cuda__shfl_up_sync_float,                            \
+           double: $cuda__shfl_up_sync_double) (mask, var, $CUDA_SHFL_PARAM_MACRO(__VA_ARGS__), $lane)
+
+#define __shfl_down_sync(mask, var, ...)                                \
+  _Generic(var,                                                         \
+           default: $cuda__shfl_down_sync_int,                          \
+           unsigned int: $cuda__shfl_down_sync_uint,                    \
+           long: $cuda__shfl_down_sync_long,                            \
+           unsigned long: $cuda__shfl_down_sync_ulong,                  \
+           long long: $cuda__shfl_down_sync_ll,                         \
+           unsigned long long: $cuda__shfl_down_sync_ull,               \
+           float: $cuda__shfl_down_sync_float,                          \
+           double: $cuda__shfl_down_sync_double) (mask, var, $CUDA_SHFL_PARAM_MACRO(__VA_ARGS__), $lane)
+ 
+#define __shfl_xor_sync(mask, var, ...)                                 \
+  _Generic(var,                                                         \
+           default: $cuda__shfl_xor_sync_int,                           \
+           unsigned int: $cuda__shfl_xor_sync_uint,                     \
+           long: $cuda__shfl_xor_sync_long,                             \
+           unsigned long: $cuda__shfl_xor_sync_ulong,                   \
+           long long: $cuda__shfl_xor_sync_ll,                          \
+           unsigned long long: $cuda__shfl_xor_sync_ull,                \
+           float: $cuda__shfl_xor_sync_float,                           \
+           double: $cuda__shfl_xor_sync_double) (mask, var, $CUDA_SHFL_PARAM_MACRO(__VA_ARGS__), $lane)
+
+#define $CUDA_GENERIC_SHFL_BODY()                                       \
+  $assert (width <= warpSize);                                          \
+  for (int v = width; v > 1; v /= 2) {                                  \
+    $assert(v % 2 == 0);                                                \
+  }                                                                     \
+                                                                        \
+  int requestLane;                                                      \
+  switch(tag) {                                                         \
+    case $CUDA_WARP_TAG_shfl_sync:                                      \
+      requestLane = lane->laneID/width + laneParam % width;             \
+      break;                                                            \
+    case $CUDA_WARP_TAG_shfl_up_sync:                                   \
+      requestLane = lane->laneID - laneParam;                           \
+      break;                                                            \
+    case $CUDA_WARP_TAG_shfl_down_sync:                                 \
+      requestLane = lane->laneID + laneParam;                           \
+      break;                                                            \
+    case $CUDA_WARP_TAG_shfl_xor_sync:                                  \
+      requestLane = lane->laneID ^ laneParam;                           \
+      break;                                                            \
+  }                                                                     \
+  _Bool validSrcLane = requestLane >= 0 && requestLane < lane->warp->size; \
+  if (validSrcLane) {                                                   \
+    $comm_enqueue(lane->lane_comm, $message_pack(lane->laneID, requestLane, tag, NULL, 0)); \
+  }                                                                     \
+                                                                        \
+  $local_end();                                                         \
+  $cuda_warp_barrier_call(lane);                                        \
+  $local_start();                                                       \
+                                                                        \
+  while ($comm_probe(lane->lane_comm, $COMM_ANY_SOURCE, tag)) {         \
+    $message request = $comm_dequeue(lane->lane_comm, $COMM_ANY_SOURCE, tag); \
+                                                                        \
+    $comm_enqueue(lane->lane_comm, $message_pack(lane->laneID, $message_source(request), tag, &var, typeSize)); \
+  }                                                                     \
+                                                                        \
+  $local_end();                                                         \
+  $cuda_warp_barrier_call(lane);                                        \
+  $local_start();                                                       \
+                                                                        \
+  if (validSrcLane) {                                                   \
+    $message result = $comm_dequeue(lane->lane_comm, requestLane, tag); \
+    $message_unpack(result, &resultVal, typeSize);                      \
+  } else {                                                              \
+    $havoc(&resultVal);                                                 \
+  }
+
+#define $CUDA_DEFINE_SHFL(NAME, T, TAG)                                 \
+  T NAME(unsigned mask, T var, int laneParam, int width, $cuda_lane_t lane) { \
+    T resultVal;                                                        \
+    int typeSize = sizeof(T);                                           \
+    $cuda_warp_tag tag = TAG;                                           \
+                                                                        \
+    $CUDA_GENERIC_SHFL_BODY();                                          \
+                                                                        \
+    return resultVal;                                                   \
+  }
+
+$CUDA_DEFINE_SHFL($cuda__shfl_sync_int, int, $CUDA_WARP_TAG_shfl_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_sync_uint, unsigned int, $CUDA_WARP_TAG_shfl_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_sync_long, long, $CUDA_WARP_TAG_shfl_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_sync_ulong, unsigned long, $CUDA_WARP_TAG_shfl_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_sync_ll, long long, $CUDA_WARP_TAG_shfl_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_sync_ull, unsigned long long, $CUDA_WARP_TAG_shfl_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_sync_float, float, $CUDA_WARP_TAG_shfl_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_sync_double, double, $CUDA_WARP_TAG_shfl_sync)
+
+$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_int, int, $CUDA_WARP_TAG_shfl_up_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_uint, unsigned int, $CUDA_WARP_TAG_shfl_up_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_long, long, $CUDA_WARP_TAG_shfl_up_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_ulong, unsigned long, $CUDA_WARP_TAG_shfl_up_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_ll, long long, $CUDA_WARP_TAG_shfl_up_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_ull, unsigned long long, $CUDA_WARP_TAG_shfl_up_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_float, float, $CUDA_WARP_TAG_shfl_up_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_double, double, $CUDA_WARP_TAG_shfl_up_sync)
+
+$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_int, int, $CUDA_WARP_TAG_shfl_down_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_uint, unsigned int, $CUDA_WARP_TAG_shfl_down_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_long, long, $CUDA_WARP_TAG_shfl_down_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_ulong, unsigned long, $CUDA_WARP_TAG_shfl_down_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_ll, long long, $CUDA_WARP_TAG_shfl_down_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_ull, unsigned long long, $CUDA_WARP_TAG_shfl_down_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_float, float, $CUDA_WARP_TAG_shfl_down_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_double, double, $CUDA_WARP_TAG_shfl_down_sync)
+
+$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_int, int, $CUDA_WARP_TAG_shfl_xor_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_uint, unsigned int, $CUDA_WARP_TAG_shfl_xor_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_long, long, $CUDA_WARP_TAG_shfl_xor_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_ulong, unsigned long, $CUDA_WARP_TAG_shfl_xor_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_ll, long long, $CUDA_WARP_TAG_shfl_xor_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_ull, unsigned long long, $CUDA_WARP_TAG_shfl_xor_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_float, float, $CUDA_WARP_TAG_shfl_xor_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_double, double, $CUDA_WARP_TAG_shfl_xor_sync)
+
+#define __ballot_sync(mask, predicate) $cuda__ballot_sync(mask, predicate, $lane)
+#define __all_sync(mask, predicate) $cuda__all_sync(mask, predicate, $lane)
+#define __any_sync(mask, predicate) $cuda__any_sync(mask, predicate, $lane)
+
+#define $CUDA_GENERIC_COND_REDUCTION_BODY(COND, T_REDUCTION, F_REDUCTION)    \
+  $cuda_warp_t warp = lane->warp;                                       \
+  int laneID = lane->laneID;                                            \
+  $comm comm = lane->lane_comm;                                         \
+  if (warp->reductionLane == -1) {                                      \
+    warp->reductionLane = laneID;                                       \
+                                                                        \
+    result = initialValue;                                              \
+    for (int i = 0; i < warp->size; i++) {                              \
+      if (i == laneID) {                                                \
+        operand = value;                                                \
+      } else {                                                          \
+        $local_end();                                                   \
+        $when(!warp->alive[i] || $comm_probe(comm, i, tag)) $local_start(); \
+                                                                        \
+        if (!warp->alive[i]) {                                          \
+          operand = initialValue;                                       \
+        } else {                                                        \
+          $local_end();                                                 \
+          $message_unpack($comm_dequeue(comm, i, tag), &operand, typeSize); \
+          $local_start();                                               \
+        }                                                               \
+      }                                                                 \
+                                                                        \
+      if (COND) {                                                       \
+        result = T_REDUCTION;                                           \
+      } else {                                                          \
+        result = F_REDUCTION;                                           \
+      }                                                                 \
+    }                                                                   \
+                                                                        \
+    warp->reductionLane = -1;                                           \
+                                                                        \
+    for (int i = 0; i< warp->size; i++) {                               \
+      if (i != laneID && warp->alive[i]) {                              \
+        $comm_enqueue(comm, $message_pack(laneID, i, tag, &result, typeSize)); \
+      }                                                                 \
+    }                                                                   \
+  } else {                                                              \
+    int reductionLane = warp->reductionLane;                            \
+    $comm_enqueue(comm, $message_pack(laneID, reductionLane, tag, &value, typeSize)); \
+    $local_end();                                                       \
+    $message_unpack($comm_dequeue(comm, reductionLane, tag), &result, typeSize); \
+    $local_start();                                                     \
+  }
+
+#define $CUDA_GENERIC_REDUCTION_BODY(REDUCTION) $CUDA_GENERIC_COND_REDUCTION_BODY($true, REDUCTION, result)
+
+int $cuda__all_sync(unsigned mask, int value, $cuda_lane_t lane) {
+  $cuda_warp_tag tag = $CUDA_WARP_TAG_all_sync;
+  int typeSize = sizeof(int);
+  int initialValue = 1;
+  int result, operand;
+
+  $CUDA_GENERIC_COND_REDUCTION_BODY(result != 0 && operand != 0, 1, 0);
+
+  return result;
+}
+
+int $cuda__any_sync(unsigned mask, int value, $cuda_lane_t lane) {
+  $cuda_warp_tag tag = $CUDA_WARP_TAG_any_sync;
+  int typeSize = sizeof(int);
+  int initialValue = 0;
+  int result, operand;
+
+  $CUDA_GENERIC_COND_REDUCTION_BODY(result != 0 || operand != 0, 1, 0);
+
+  return result;
+}
+
+unsigned $cuda__ballot_sync(unsigned mask, int value, $cuda_lane_t lane) {
+  $cuda_warp_tag tag = $CUDA_WARP_TAG_ballot_sync;
+  int initialValue = 0;
+  int typeSize = sizeof(int);
+  unsigned result;
+  int operand;
+
+  $CUDA_GENERIC_COND_REDUCTION_BODY(operand == 0, 2 * result, 2 * result + 1);
+
+  return result;
+}
+
+/*
+int $cuda__ballot_sync(unsigned mask, int value, $cuda_lane_t lane) {
+  $cuda_warp_tag tag = $CUDA_WARP_TAG_ballot_sync;
+  int initialValue = 0;
+  int result;
+
+  if (warp->reductionLane == -1) {
+    warp->reductionLane = laneID;
+
+    result = initialValue;
+    for (int i = 0; i < warp->size; i++) {
+      int operand;
+      if (i == laneID) {
+        operand = value;
+      } else {
+        $local_end();
+        $when(!warp->alive[i] || $comm_probe(comm, i, tag)) $local_start();
+      
+        if (!warp->alive[i]) {
+          operand = initialValue;
+        } else {
+          $local_end();
+          $message_unpack($comm_dequeue(comm, i, tag), &operand, sizeof(int));
+          $local_start();
+        }
+      }
+
+      result = 2 * result + (operand == 0 ? 0 : 1);
+    }
+
+    warp->reductionLane = -1;
+
+    for (int i = 0; i< warp->size; i++) {
+      if (i != laneID && warp->alive[i]) {
+        $comm_enqueue(comm, $message_pack(laneID, i, tag, &result, sizeof(int)));
+      }
+    }
+  } else {
+    int reductionLane = warp->reductionLane;
+    $comm_enqueue(comm, $message_pack(laneID, reductionLane, tag, &value, sizeof(int)));
+    $local_end();
+    $message_unpack($comm_dequeue(comm, reductionLane, tag), &result, sizeof(int));
+    $local_start();
+  }
+
+  return result;
+}
+*/
+
 //////////////////////////////////
 // Generated code from kernel_1 //
 //////////////////////////////////
@@ -382,7 +879,7 @@ typedef struct {
   dim3 blockDim;
   size_t $cudaMemSize;
   cudaStream_t $cudaStream;
-  const float* A;
+  float* A;
   const float* B;
   float* C;
   int numElements;
@@ -396,7 +893,7 @@ void $cuda_reveal_kernel_1_args($cuda_kernel_1_data* args) {
 
 void $cuda_host_launch_kernel_1(dim3 gridDim, dim3 blockDim,
                                 size_t $cudaMemSize, cudaStream_t $cudaStream,
-                                const float* A, const float* B, float* C, int numElements) {
+                                float* A, const float* B, float* C, int numElements) {
   $cuda_kernel_1_data args;
   args.gridDim = gridDim;
   args.blockDim = blockDim;
@@ -412,34 +909,112 @@ void $cuda_host_launch_kernel_1(dim3 gridDim, dim3 blockDim,
 }
 
 void $cuda_kernel_1(dim3 gridDim, dim3 blockDim, size_t _cuda_mem_size,
-                    const float *A, const float *B, float *C, int numElements) {
-  $cuda_kernel_instance $kernel;
-  void _cuda_block(uint3 blockIdx) {
-    int numThreads = (blockDim.x * blockDim.y) * blockDim.z;
-    $scope _block_root = $here;
-    $gbarrier _cuda_block_barrier = $gbarrier_create($here, blockDim.x * blockDim.y * blockDim.z);
-    void _cuda_thread(uint3 threadIdx) {
+                    float *A, const float *B, float *C, int numElements) {
+  $cuda_kernel_instance_t $kernel = $create_kernel_instance($here, gridDim, blockDim);
+  void $cuda_block(uint3 blockIdx) {
+    int $numThreads = (blockDim.x * blockDim.y) * blockDim.z;
+    int $numWarps = ($numThreads - 1)/warpSize + 1;
+    $scope $block_root = $here;
+    $gbarrier $cuda_block_barrier = $gbarrier_create($block_root, $numThreads);
+    
+    $cuda_warp_t $warps[$numWarps];
+    for (int i = 0; i < $numWarps - 1; i++) {
+      $warps[i] = $create_cuda_warp($block_root, warpSize);
+    }
+    $warps[$numWarps-1] = $create_cuda_warp($block_root, (($numThreads - 1) % warpSize) + 1);
+      
+    void $cuda_thread(uint3 threadIdx) {
+      $local_start();
       int _cuda_tid = $dim3_index(blockDim, threadIdx);
       int _cuda_kid = $cuda_kernel_index(gridDim, blockDim, blockIdx, threadIdx);
-      $barrier _cuda_thread_barrier = $barrier_create($here, _cuda_block_barrier, _cuda_tid);
-      $local_start();
-      // Kernel definition start
-        
-      int i = blockDim.x * blockIdx.x + threadIdx.x;
-  
-      if (i < numElements)
-      {
-        C[i] = A[i] + B[i];
+      //$clear_mem_sets($kernel, _cuda_kid);
+      $barrier $cuda_thread_barrier = $barrier_create($here, $cuda_block_barrier, _cuda_tid);
+      $cuda_lane_t $lane = $create_cuda_lane($here, $warps[_cuda_tid / warpSize], _cuda_tid % warpSize);
+
+      //$read_set_push();
+      //$write_set_push();
+      
+      // Kernel REDUCTION start
+      /*
+      int lane = threadIdx.x % warpSize;
+      int thisWarpSize = warpSize;
+      if (threadIdx.x - lane + warpSize > blockDim.x) {
+        thisWarpSize = ((blockDim.x - 1) % warpSize) + 1;
       }
+
+      int i = blockDim.x * blockIdx.x + threadIdx.x;
+      int warpStart = i - lane;
+      printf("%d,%d - i: %d, warpStart: %d, thisWarpSize: %d\n", blockIdx.x, threadIdx.x,i, warpStart, thisWarpSize);
+      int remainingElements = numElements;
+
+      while (remainingElements > 1) {
+        //printf("%d,%d - remainingElements: %d\n", blockIdx.x, threadIdx.x, remainingElements);
+        if (remainingElements < numElements) {
+          // __syncThreads()
+          //printf("%d,%d - entering barrier\n", blockIdx.x, threadIdx.x);
+          
+          $cuda_barrier($kernel, _cuda_kid, $cuda_thread_barrier);
+          //printf("%d,%d - exiting barrier\n", blockIdx.x, threadIdx.x);
+        }
         
-      // Kernel definition end
+        if (warpStart + 1 < remainingElements) {
+          float val = i < numElements ? A[i] : 0;
+          
+          for (int offset = warpSize/2; offset > 0; offset /= 2) {
+            float tmp = __shfl_down_sync(0, val, offset);
+            if (lane + offset < thisWarpSize) {
+              val += tmp;
+            }
+          }
+
+          if (i < numElements) {
+            A[i] = val;
+          }
+        }
+
+        i *= warpSize;
+        //warpStart *= warpSize;
+        remainingElements = ((remainingElements - 1) / warpSize) + 1;
+      }
+      
+      if (i == 0) {
+        *C = A[0];
+      }
+      // Kernel REDUCTION end
+      */
+      // Kernel BALLOT TEST start
+
+      int i = threadIdx.x;
+      if (i < numElements) {
+        int result = __ballot_sync(~0, A[i] > 0);
+        if (i == 0) {
+          printf("Result: %d\n", result);
+          *C = 0;
+          while(result > 0) {
+            if (result % 2)
+              *C += 1;
+            result /= 2;
+          }
+          printf("done calculating result\n");
+        }
+      }
+      // Kernel BALLOT TEST end
+      //$check_data_race($kernel, _cuda_kid);
+      //$read_set_pop();
+      //$write_set_pop();
+      $barrier_destroy($cuda_thread_barrier);
+      $destroy_cuda_lane($lane);
       $local_end();
-      $barrier_destroy(_cuda_thread_barrier);
     }
-    $cuda_run_and_wait_on_procs(blockDim, _cuda_thread);
-    $gbarrier_destroy(_cuda_block_barrier);
+    $cuda_run_and_wait_on_procs(blockDim, $cuda_thread);
+    $gbarrier_destroy($cuda_block_barrier);
+    
+    for (int i = 0; i < $numWarps; i++) {
+      $destroy_cuda_warp($warps[i]);
+    }
   }
-  $cuda_run_and_wait_on_procs(gridDim, _cuda_block);
+  $cuda_run_and_wait_on_procs(gridDim, $cuda_block);
+  $destroy_kernel_instance($kernel);
 }
 
 void $cuda_kernel_1_proc ($message request, $cuda_op_state_t opState, cudaStream_t cudaStream) {
@@ -525,12 +1100,14 @@ void $cuda_main() {
 $input int N;
 $assume (N > 0);
 $input float A[N];
+// Currently unused but left in to save time
 $input float B[N];
 
 void $host_main() {
   int size = N * sizeof(float);
-  int numBlocks = 2;
-  int numThreads = N%2 == 0? N/2 : (N+1)/2;
+  int numBlocks = 1;
+  //int numThreads = N%2 == 0? N/2 : (N+1)/2;
+  int numThreads = warpSize;
 
   float* cuda_A;
   // cudaMalloc((void **)&cuda_A, size);
@@ -549,10 +1126,10 @@ void $host_main() {
   cudaMemcpy(cuda_B, B, size, cudaMemcpyHostToDevice);
 
   float* cuda_C;
-  // cudaMalloc((void **)&cuda_C, size);
+  // cudaMalloc((void **)&cuda_C, sizeof(float));
   {
     $scope deviceScope = $cuda_host_request_device_scope();
-    cuda_C = $hide((float*)$malloc(deviceScope, size));
+    cuda_C = $hide((float*)$malloc(deviceScope, sizeof(float)));
   }
 
   dim3 gridDim = {numBlocks, 1, 1};
@@ -563,10 +1140,23 @@ void $host_main() {
   // Checking correctness
   float* C = (float *)malloc(size);
   
-  cudaMemcpy(C, cuda_C, size, cudaMemcpyDeviceToHost);
-  
+  cudaMemcpy(C, cuda_C, sizeof(float), cudaMemcpyDeviceToHost);
+
+  // REDUCTION ASSERTION
+  /*
+  float sum = 0;
   for(int i = 0; i < N; i++)
-  	$assert(C[i] == A[i] + B[i]);
+    sum += A[i];
+  
+  $assert(*C == sum);
+  */
+  // BALLOT ASSERTION
+  float count = 0;
+  for (int i = 0; i < N; i++) {
+    if (A[i] > 0)
+      count++;
+  }
+  $assert(*C == count);
   
   free(C);
   
@@ -574,15 +1164,14 @@ void $host_main() {
   cudaFree(cuda_B);
   cudaFree(cuda_C);
 
-  // inserted by transformer
-  $comm_enqueue($cuda_host_comm, $message_pack($CUDA_PLACE_HOST, $CUDA_PLACE_DEVICE, $CUDA_TAG_TEARDOWN, NULL, 0));
-  $comm_destroy($cuda_host_comm);
 }
 
 int main() {
   $proc host = $spawn $host_main();
   $proc cuda = $spawn $cuda_main();
   $wait(host);
+  $comm_enqueue($cuda_host_comm, $message_pack($CUDA_PLACE_HOST, $CUDA_PLACE_DEVICE, $CUDA_TAG_TEARDOWN, NULL, 0));
+  $comm_destroy($cuda_host_comm);
   $wait(cuda);
   $gcomm_destroy($cuda_gcomm, NULL);
 }

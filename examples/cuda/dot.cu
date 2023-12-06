@@ -42,7 +42,7 @@ $input int N;
 $input int N_B;
 $assume((0 <= N && N <= N_B));
 $input int threadsPerBlock; // thread number per block: must be a power of 2, due to the while loop at the end of gpuThread();
-$input int threadsPerBlock_B; 
+$input int threadsPerBlock_B = N; 
 $assume((1 <= threadsPerBlock && threadsPerBlock <= threadsPerBlock_B));
 #else
 const int N = 33 * 1024;
