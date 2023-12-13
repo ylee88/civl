@@ -8,6 +8,8 @@ import java.util.List;
 
 import org.junit.Test;
 
+import dev.civl.abc.ast.IF.AST;
+import dev.civl.abc.ast.node.IF.declaration.AbstractFunctionDefinitionNode;
 import dev.civl.abc.config.IF.Configurations;
 import dev.civl.abc.err.IF.ABCException;
 import dev.civl.abc.main.ABCExecutor;
@@ -67,6 +69,34 @@ public class CTranslationTest {
 		executor.execute();
 	}
 
+	// Output AST for further checks
+	private void check(String filenameRoot, AST[] astOutput)
+			throws ABCException {
+		File file = new File(root, filenameRoot + ".c");
+		TranslationTask task = new TranslationTask(file);
+
+		task.addAllTransformCodes(codes);
+		task.setVerbose(debug);
+
+		ABCExecutor executor = ABCExecutor.newExecutor(fe, task);
+
+		executor.execute();
+		astOutput[0] = executor.getProgram().getAST();
+	}
+
+	@Test
+	public void attr() throws ABCException {
+		AST[] ast = new AST[1];
+
+		check("attr", ast);
+
+		AbstractFunctionDefinitionNode absFunDecl = (AbstractFunctionDefinitionNode) ast[0]
+				.getInternalOrExternalEntity("f").getFirstDeclaration();
+
+		assertTrue(absFunDecl.getAttribute().getStringRepresentation()
+				.equals("\"partial-order\""));
+	}
+
 	@Test
 	public void constants() throws ABCException {
 		check("constants");
@@ -106,7 +136,7 @@ public class CTranslationTest {
 	public void generic_selection1() throws ABCException {
 		check("generic_selection1");
 	}
-	
+
 	@Test
 	public void compound() throws ABCException {
 		check("compound");
@@ -261,7 +291,7 @@ public class CTranslationTest {
 	public void stringLiteralInitializeField() throws ABCException {
 		check("strLitInitField");
 	}
-	
+
 	@Test
 	public void simpleExternVar() throws ABCException {
 		check("simple_extern_var");

@@ -28,6 +28,7 @@ import dev.civl.sarl.IF.object.StringObject;
 import dev.civl.sarl.IF.type.SymbolicArrayType;
 import dev.civl.sarl.IF.type.SymbolicCompleteArrayType;
 import dev.civl.sarl.IF.type.SymbolicFunctionType;
+import dev.civl.sarl.IF.type.SymbolicFunctionType.SpeicalRelationKind;
 import dev.civl.sarl.IF.type.SymbolicIntegerType;
 import dev.civl.sarl.IF.type.SymbolicIntegerType.IntegerKind;
 import dev.civl.sarl.IF.type.SymbolicMapType;
@@ -193,6 +194,24 @@ public class CommonSymbolicTypeFactory implements SymbolicTypeFactory {
 	@Override
 	public SymbolicFunctionType functionType(SymbolicTypeSequence inputTypes,
 			SymbolicType outputType) {
+		return objectFactory.canonic(
+				new CommonSymbolicFunctionType(inputTypes, outputType));
+	}
+	
+	@Override
+	public SymbolicFunctionType functionType(SymbolicTypeSequence inputTypes,
+			SymbolicType outputType, SpeicalRelationKind relKind) {
+		if (relKind != SpeicalRelationKind.NONE) {
+			// Make sure the function represents a binary relation:
+			if (inputTypes.numTypes() == 2 && outputType.isBoolean()) {
+				if (inputTypes.getType(0).equals(inputTypes.getType(1))) {
+					return objectFactory.canonic(new CommonSymbolicFunctionType(
+							inputTypes, outputType, relKind));
+				}
+			}
+			// In case the function type is in an ill form w.r.t. the special
+			// relation, ignore the special relation hint.
+		}
 		return objectFactory.canonic(
 				new CommonSymbolicFunctionType(inputTypes, outputType));
 	}

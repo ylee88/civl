@@ -7,7 +7,6 @@ import java.util.List;
 
 import dev.civl.mc.model.IF.CIVLSource;
 import dev.civl.mc.model.IF.Identifier;
-import dev.civl.mc.model.IF.ModelFactory;
 import dev.civl.mc.model.IF.Scope;
 import dev.civl.mc.model.IF.SystemFunction;
 import dev.civl.mc.model.IF.location.Location;
@@ -35,10 +34,9 @@ public class CommonSystemFunction extends CommonFunction implements
 	public CommonSystemFunction(CIVLSource source, Identifier name,
 			Scope parameterScope, List<Variable> parameters,
 			CIVLType returnType, Scope containingScope, int fid,
-			Location startLocation, String libraryName, boolean needsEnabler,
-			ModelFactory factory) {
+			Location startLocation, String libraryName, boolean needsEnabler) {
 		super(source, true, name, parameterScope, parameters, returnType,
-				containingScope, fid, startLocation, factory);
+				containingScope, fid, startLocation);
 		this.isRoot = true;
 		this.library = libraryName;
 		this.needsEnabler = needsEnabler;

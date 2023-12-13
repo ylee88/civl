@@ -1970,12 +1970,16 @@ public interface NodeFactory {
 	 *            sequence of intervals whose Cartesian product specifies the
 	 *            domain on which this function is differentiable to the
 	 *            specified degree
+	 * @param attr
+	 *            nullable. The optional string literal representing the
+	 *            attribute attached to this abstract function.
 	 * @return An abstract function definition with the specified properties.
 	 */
 	AbstractFunctionDefinitionNode newAbstractFunctionDefinitionNode(
 			Source source, IdentifierNode name, TypeNode type,
 			SequenceNode<ContractNode> contract, int continuity,
-			SequenceNode<PairNode<ExpressionNode, ExpressionNode>> intervals);
+			SequenceNode<PairNode<ExpressionNode, ExpressionNode>> intervals, 
+			StringLiteralNode attr);
 
 	/**
 	 * Creates a new node representing an entire translation unit. The children

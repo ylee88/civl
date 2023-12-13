@@ -38,6 +38,7 @@ import dev.civl.sarl.IF.object.SymbolicObject;
 import dev.civl.sarl.IF.type.SymbolicArrayType;
 import dev.civl.sarl.IF.type.SymbolicCompleteArrayType;
 import dev.civl.sarl.IF.type.SymbolicFunctionType;
+import dev.civl.sarl.IF.type.SymbolicFunctionType.SpeicalRelationKind;
 import dev.civl.sarl.IF.type.SymbolicIntegerType;
 import dev.civl.sarl.IF.type.SymbolicMapType;
 import dev.civl.sarl.IF.type.SymbolicRealType;
@@ -398,6 +399,23 @@ public interface CoreUniverse {
 	SymbolicFunctionType functionType(
 			Iterable<? extends SymbolicType> inputTypes,
 			SymbolicType outputType);
+	
+	/**
+	 * Returns the specified function type. A function type is specified by a
+	 * sequence of input types, and an output type.
+	 * 
+	 * @param inputTypes
+	 *            sequence of input types
+	 * @param outputType
+	 *            the output type of the function
+	 * @param relKind
+	 *            the special relation kind if this function represents such a
+	 *            relation
+	 * @return the function type
+	 */
+	SymbolicFunctionType functionType(
+			Iterable<? extends SymbolicType> inputTypes,
+			SymbolicType outputType, SpeicalRelationKind relKind);
 
 	// 	@formatter:off
 

@@ -26,6 +26,7 @@ import dev.civl.sarl.IF.object.StringObject;
 import dev.civl.sarl.IF.type.SymbolicArrayType;
 import dev.civl.sarl.IF.type.SymbolicCompleteArrayType;
 import dev.civl.sarl.IF.type.SymbolicFunctionType;
+import dev.civl.sarl.IF.type.SymbolicFunctionType.SpeicalRelationKind;
 import dev.civl.sarl.IF.type.SymbolicIntegerType;
 import dev.civl.sarl.IF.type.SymbolicMapType;
 import dev.civl.sarl.IF.type.SymbolicRealType;
@@ -193,6 +194,22 @@ public interface SymbolicTypeFactory {
 	 */
 	SymbolicFunctionType functionType(SymbolicTypeSequence inputTypes,
 			SymbolicType outputType);
+	
+	/**
+	 * Creates a SymbolicFunctionType, which represents an abstract mathematical
+	 * function
+	 * 
+	 * @param inputTypes
+	 *            a SymbolicTypeSequence of SymbolicTypes.
+	 * @param outputType
+	 *            a SymbolicType that represents the output of the function
+	 * @param relKind
+	 *            the special relation kind if this function represents such a
+	 *            relation
+	 * @return a SymbolicFunctionType of sequence inputTypes and outputType.
+	 */
+	SymbolicFunctionType functionType(SymbolicTypeSequence inputTypes,
+			SymbolicType outputType, SpeicalRelationKind relKind);
 
 	SymbolicSetType setType(SymbolicType elementType);
 

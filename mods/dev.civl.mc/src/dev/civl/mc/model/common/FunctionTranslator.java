@@ -3011,8 +3011,15 @@ public class FunctionTranslator {
 			ArrayList<Variable> parameters, Identifier functionIdentifier,
 			FunctionType functionType, CIVLType returnType,
 			CIVLSource functionSource) {
-		int continuity = ((AbstractFunctionDefinitionNode) node).continuity();
-
+		AbstractFunctionDefinitionNode absFunNode = (AbstractFunctionDefinitionNode) node;
+		int continuity = absFunNode.continuity();
+		String attr = null;
+		
+		if (absFunNode.getAttribute() != null) {
+			attr = absFunNode.getAttribute().getStringRepresentation();
+			// trim the escaped double-quotes:
+			attr = attr.substring(1, attr.length() - 1);
+		}
 		if (parameters.isEmpty())
 			throw new CIVLSyntaxException(
 					"$abstract functions must have at least one input.\n"
@@ -3022,7 +3029,7 @@ public class FunctionTranslator {
 					node.getSource());
 		return modelFactory.abstractFunction(functionSource, functionIdentifier,
 				parameterScope, parameters, returnType, scope, continuity,
-				modelFactory);
+				attr);
 	}
 
 	/**

@@ -973,9 +973,7 @@ typeQualifier
  */
 functionSpecifier
     : INLINE | NORETURN
-    | ABSTRACT CONTIN LPAREN INTEGER_CONSTANT RPAREN
-      -> ^(ABSTRACT INTEGER_CONSTANT)
-    | ABSTRACT -> ^(ABSTRACT)
+    | abstractSpecifier
     | PURE -> ^(PURE)
     | STATE_F -> ^(STATE_F)
     | ((SYSTEM libraryName) => SYSTEM libraryName) -> ^(SYSTEM libraryName)
@@ -986,6 +984,14 @@ functionSpecifier
     | differentiableSpecifier
     ;
 
+abstractSpecifier
+    : ABSTRACT (  -> ^(ABSTRACT)
+                |  CONTIN LPAREN INTEGER_CONSTANT RPAREN
+                  -> ^(ABSTRACT INTEGER_CONSTANT)
+                | LPAREN STRING_LITERAL RPAREN
+                  -> ^(ABSTRACT STRING_LITERAL)
+               )
+    ;
 
 differentiableSpecifier
 	: DIFFERENTIABLE LPAREN INTEGER_CONSTANT COMMA intervalSeq RPAREN

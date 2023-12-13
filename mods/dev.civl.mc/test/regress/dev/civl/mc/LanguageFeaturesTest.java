@@ -57,6 +57,24 @@ public class LanguageFeaturesTest {
 		assertFalse(ui.run(VERIFY, QUIET, NO_PRINTF,
 				filename("abstractFunNoArg.cvl")));
 	}
+	
+	@Test
+	public void abstractFunAttr() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, NO_PRINTF,
+				filename("abstractFunAttr.cvl")));
+	}
+	
+	@Test
+	public void abstractFunAttrBad() throws ABCException {
+		assertFalse(ui.run(VERIFY, QUIET, "-errorBound=2",
+				filename("abstractFunAttr-bad.cvl")));
+	}
+
+	@Test
+	public void abstractFunAttrBad2() throws ABCException {
+		assertFalse(
+				ui.run(VERIFY, QUIET, filename("abstractFunAttr-bad2.cvl")));
+	}
 
 	@Test
 	public void arbitraryPointer() {

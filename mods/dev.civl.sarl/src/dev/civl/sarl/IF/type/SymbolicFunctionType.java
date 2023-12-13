@@ -43,4 +43,32 @@ public interface SymbolicFunctionType extends SymbolicType {
 	 */
 	SymbolicType outputType();
 
+	public enum SpeicalRelationKind {
+		/** Not special relation */
+		NONE,
+		/**
+		 * The function type represents a partial order binary relation
+		 */
+		PARTIAL_ORDER,
+		/**
+		 * The function type represents a linear order binary relation
+		 */
+		LINEAR_ORDER,
+		/**
+		 * The function type represents a tree order binary relation
+		 */
+		TREE_ORDER,
+		/**
+		 * The function type represents a piecewise linear order binary relation
+		 */
+		PIECEWISE_LINEAR_ORDER,
+	}
+
+	/**
+	 * @return the {@link SpeicalRelationKind} if this function type represents
+	 *         a special relation kind. Note {@link SpeicalRelationKind#NONE}
+	 *         means the function type is not representing a special relation.
+	 */
+	SpeicalRelationKind specialRelationKind();
+
 }

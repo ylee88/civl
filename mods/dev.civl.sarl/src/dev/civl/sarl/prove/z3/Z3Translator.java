@@ -29,6 +29,7 @@ import dev.civl.sarl.IF.object.SymbolicSequence;
 import dev.civl.sarl.IF.type.SymbolicArrayType;
 import dev.civl.sarl.IF.type.SymbolicCompleteArrayType;
 import dev.civl.sarl.IF.type.SymbolicFunctionType;
+import dev.civl.sarl.IF.type.SymbolicFunctionType.SpeicalRelationKind;
 import dev.civl.sarl.IF.type.SymbolicTupleType;
 import dev.civl.sarl.IF.type.SymbolicType;
 import dev.civl.sarl.IF.type.SymbolicType.SymbolicTypeKind;
@@ -712,18 +713,53 @@ public class Z3Translator {
 
 	private FastList<String> functionDeclaration(String name,
 			SymbolicFunctionType functionType) {
-		FastList<String> result = new FastList<>("(declare-fun ", name, " (");
+		String funDeclPrefix;
+		
+		if (functionType.specialRelationKind() != SpeicalRelationKind.NONE) {
+			funDeclPrefix = "(define-fun ";
+		} else
+			funDeclPrefix = "(declare-fun ";
+		
+		FastList<String> result = new FastList<>(funDeclPrefix, name, " (");
 		boolean first = true;
-
+        int i = 0;
+        
 		for (SymbolicType inputType : functionType.inputTypes()) {
 			if (first)
 				first = false;
 			else
 				result.add(" ");
-			result.append(translateType(inputType));
+			if (functionType
+					.specialRelationKind() != SpeicalRelationKind.NONE) {
+				result.add("(x" + i + " ");
+				result.append(translateType(inputType));
+				result.add(")");
+			} else
+				result.append(translateType(inputType));
+			i++;
 		}
 		result.add(") ");
 		result.append(translateType(functionType.outputType()));
+		if (functionType.specialRelationKind() != SpeicalRelationKind.NONE) {
+			switch (functionType.specialRelationKind()) {
+				case LINEAR_ORDER :
+					result.add("((_ linear-order 0) x0 x1)");
+					break;
+				case PIECEWISE_LINEAR_ORDER :
+					result.add("((_ piecewise-linear-order 0) x0 x1)");
+					break;
+				case PARTIAL_ORDER :
+					result.add("((_ partial-order 0) x0 x1)");
+					break;
+				case TREE_ORDER :
+					result.add("((_ tree-order 0) x0 x1)");
+					break;
+				case NONE :
+				default :
+					break;
+
+			}
+		}
 		result.add(")\n");
 
 		Pair<String, String> key = new Pair<>(name, result.toString());

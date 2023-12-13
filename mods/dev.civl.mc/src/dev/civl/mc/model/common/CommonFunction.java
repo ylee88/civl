@@ -112,13 +112,11 @@ public class CommonFunction extends CommonSourceable implements CIVLFunction {
 	 *            The scope containing this function.
 	 * @param startLocation
 	 *            The first location in the function.
-	 * @param factory
-	 *            The model factory
 	 */
 	public CommonFunction(CIVLSource source, boolean isAtomic, Identifier name,
 			Scope parameterScope, List<Variable> parameters,
 			CIVLType returnType, Scope containingScope, int fid,
-			Location startLocation, ModelFactory factory) {
+			Location startLocation) {
 		super(source);
 		this.name = name;
 		this.fid = fid;

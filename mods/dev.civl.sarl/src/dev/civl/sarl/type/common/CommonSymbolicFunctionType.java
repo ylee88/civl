@@ -37,6 +37,8 @@ public class CommonSymbolicFunctionType extends CommonSymbolicType
 	private SymbolicTypeSequence inputTypes;
 
 	private SymbolicType outputType;
+	
+	private SpeicalRelationKind relKind;
 
 	/**
 	 * Cache of the "pure" version of this type: the version that is recursively
@@ -51,19 +53,31 @@ public class CommonSymbolicFunctionType extends CommonSymbolicType
 		assert outputType != null;
 		this.inputTypes = inputTypes;
 		this.outputType = outputType;
+		this.relKind = SpeicalRelationKind.NONE;
+	}
+	
+	CommonSymbolicFunctionType(SymbolicTypeSequence inputTypes,
+			SymbolicType outputType, SpeicalRelationKind relKind) {
+		super(SymbolicTypeKind.FUNCTION);
+		assert inputTypes != null;
+		assert outputType != null;
+		this.inputTypes = inputTypes;
+		this.outputType = outputType;
+		this.relKind = relKind;
 	}
 
 	@Override
 	protected boolean typeEquals(CommonSymbolicType thatType) {
 		CommonSymbolicFunctionType that = (CommonSymbolicFunctionType) thatType;
 
-		return that.outputType.equals(outputType)
+		return relKind == that.relKind && that.outputType.equals(outputType)
 				&& that.inputTypes.equals(inputTypes);
 	}
 
 	@Override
 	protected int computeHashCode() {
-		return classCode ^ inputTypes.hashCode() ^ outputType.hashCode();
+		return classCode ^ inputTypes.hashCode() ^ outputType.hashCode()
+				^ relKind.getClass().hashCode();
 	}
 
 	@Override
@@ -120,6 +134,11 @@ public class CommonSymbolicFunctionType extends CommonSymbolicType
 	public boolean containsSubobject(SymbolicObject obj) {
 		return this == obj || inputTypes.containsSubobject(obj)
 				|| outputType.containsSubobject(obj);
+	}
+
+	@Override
+	public SpeicalRelationKind specialRelationKind() {
+		return relKind;
 	}
 
 }

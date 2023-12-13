@@ -358,7 +358,7 @@ public class AcslContractWorker {
                     funcTypeNode, null, returnExpr);
         } else
             result = nodeFactory.newAbstractFunctionDefinitionNode(source,
-                    identifier, funcTypeNode, null, 0, null);
+                    identifier, funcTypeNode, null, 0, null, null);
         return result;
     }
 

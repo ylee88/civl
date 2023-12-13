@@ -1,0 +1,24 @@
+#include <civlc.cvh>
+
+$abstract("partial-order") _Bool f(int, int );
+
+int test1() {
+  $assume(f(1, 2) && f(2, 3));
+  $assert(f(1, 3));
+}
+
+int test2() {
+  int x, y, z;
+
+  $havoc(&x);
+  $havoc(&y);
+  $havoc(&z);  
+  $assume(f(x, y) && f(y, z));
+  $assert(f(x, z));
+}
+
+
+int main() {
+  test1();
+  test2();
+}

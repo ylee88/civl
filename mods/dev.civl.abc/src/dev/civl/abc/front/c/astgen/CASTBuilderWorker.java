@@ -1196,7 +1196,8 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 				if (analysis.abstractSpecifier) {
 					int degree;
 					SequenceNode<PairNode<ExpressionNode, ExpressionNode>> intervals;
-
+					StringLiteralNode attr = null;
+					
 					if (analysis.differentiableNode != null) {
 						degree = analysis.differentiableDegree;
 						intervals = translateIntervalSequence(
@@ -1207,9 +1208,13 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 						degree = 0;
 						intervals = null;
 					}
+					if (analysis.abstractAttributeNode != null)
+						attr = translateStringLiteral(
+								newSource(analysis.abstractAttributeNode),
+								analysis.abstractAttributeNode);
 					declaration = nodeFactory.newAbstractFunctionDefinitionNode(
 							source, data.identifier, typeNode, getContract(),
-							degree, intervals);
+							degree, intervals, attr);
 
 				} else {
 					declaration = nodeFactory.newFunctionDeclarationNode(source,

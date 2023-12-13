@@ -1357,10 +1357,10 @@ public class CommonModelFactory implements ModelFactory {
 	public AbstractFunction abstractFunction(CIVLSource source, Identifier name,
 			Scope parameterScope, List<Variable> parameters,
 			CIVLType returnType, Scope containingScope, int continuity,
-			ModelFactory factory) {
+			String attribute) {
 		return new CommonAbstractFunction(source, name, parameterScope,
 				parameters, returnType, containingScope,
-				containingScope.numFunctions(), continuity, factory);
+				containingScope.numFunctions(), continuity, attribute);
 	}
 
 	@Override
@@ -1376,7 +1376,7 @@ public class CommonModelFactory implements ModelFactory {
 		return new CommonFunction(source, isAtomic, name, parameterScope,
 				parameters, returnType, containingScope,
 				containingScope != null ? containingScope.numFunctions() : -1,
-				startLocation, this);
+				startLocation);
 	}
 
 	@Override
@@ -1461,7 +1461,7 @@ public class CommonModelFactory implements ModelFactory {
 		return new CommonSystemFunction(source, name, parameterScope,
 				parameters, returnType, containingScope,
 				containingScope.numFunctions(), (Location) null, libraryName,
-				needsEnabler, this);
+				needsEnabler);
 	}
 
 	@Override
@@ -2166,8 +2166,7 @@ public class CommonModelFactory implements ModelFactory {
 			CIVLType returnType, Scope containingScope) {
 		return new CommonNondetFunction(source, name, returnType,
 				containingScope,
-				containingScope != null ? containingScope.numFunctions() : -1,
-				this);
+				containingScope != null ? containingScope.numFunctions() : -1);
 	}
 
 	@Override
@@ -2192,7 +2191,7 @@ public class CommonModelFactory implements ModelFactory {
 				parameterScope, parameters, outputType, pointerToHeap,
 				containingScope,
 				containingScope != null ? containingScope.numFunctions() : -1,
-				this, definition);
+				definition, location(source, parameterScope));
 		// add logic function to model:
 		modelBuilder.seenLogicFunctions.add(logicFunction);
 		logicFunction.setLogic(true);

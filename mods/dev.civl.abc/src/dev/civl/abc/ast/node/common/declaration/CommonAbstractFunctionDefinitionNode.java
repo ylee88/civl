@@ -8,6 +8,7 @@ import dev.civl.abc.ast.node.IF.SequenceNode;
 import dev.civl.abc.ast.node.IF.acsl.ContractNode;
 import dev.civl.abc.ast.node.IF.declaration.AbstractFunctionDefinitionNode;
 import dev.civl.abc.ast.node.IF.expression.ExpressionNode;
+import dev.civl.abc.ast.node.IF.expression.StringLiteralNode;
 import dev.civl.abc.ast.node.IF.type.TypeNode;
 import dev.civl.abc.token.IF.Source;
 
@@ -53,13 +54,26 @@ public class CommonAbstractFunctionDefinitionNode
 		addChild(intervals); // child 3
 	}
 
+	/**
+	 * Children: 0: identifier; 1: type; 2: contract; 3:intervals; 4:attribute
+	 */
+	public CommonAbstractFunctionDefinitionNode(Source source,
+			IdentifierNode identifier, TypeNode type,
+			SequenceNode<ContractNode> contract, int continuity,
+			SequenceNode<PairNode<ExpressionNode, ExpressionNode>> intervals,
+			StringLiteralNode attr) {
+		super(source, identifier, type, contract);
+		this.continuity = continuity;
+		addChild(intervals); // child 3
+		addChild(attr); // child 4
+	}
+
 	@Override
 	public AbstractFunctionDefinitionNode copy() {
 		CommonAbstractFunctionDefinitionNode result = new CommonAbstractFunctionDefinitionNode(
 				getSource(), duplicate(getIdentifier()),
 				duplicate(getTypeNode()), duplicate(getContract()), continuity,
-				duplicate(getIntervals()));
-
+				duplicate(getIntervals()), duplicate(getAttribute()));
 		result.setInlineFunctionSpecifier(hasInlineFunctionSpecifier());
 		result.setNoreturnFunctionSpecifier(hasNoreturnFunctionSpecifier());
 		copyStorage(result);
@@ -85,16 +99,27 @@ public class CommonAbstractFunctionDefinitionNode
 
 	@Override
 	public ASTNode setChild(int index, ASTNode child) {
-		if (index >= 4)
+		if (index > 5)
 			throw new ASTException(
-					"CommonAbstractFunctionDefinitionNode has only four children, but saw index "
+					"CommonAbstractFunctionDefinitionNode has at most five children, but saw index "
 							+ index);
 		if (index == 3 && !(child == null || child instanceof SequenceNode))
 			throw new ASTException(
 					"Child of CommonAbstractFunctionDefinitionNode at index "
 							+ index + " must be a SequenceNode, but saw "
 							+ child + " with type " + child.nodeKind());
-
+		if (index == 4 && !(child instanceof StringLiteralNode))
+			throw new ASTException(
+					"Child of CommonAbstractFunctionDefinitionNode at index "
+							+ index + " must be a StringLiteralNode, but saw "
+							+ child + " with type " + child.nodeKind());
 		return super.setChild(index, child);
+	}
+
+	@Override
+	public StringLiteralNode getAttribute() {
+		if (numChildren() == 5)
+			return (StringLiteralNode) child(4);
+		return null;
 	}
 }

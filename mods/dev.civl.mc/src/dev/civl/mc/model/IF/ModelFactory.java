@@ -1275,24 +1275,26 @@ public interface ModelFactory {
 	 * Generate an abstract function.
 	 * 
 	 * @param source
-	 *                            The CIVL source of the function.
+	 *            The CIVL source of the function.
 	 * @param name
-	 *                            The function name.
+	 *            The function name.
 	 * @param parameters
-	 *                            The parameters of the function.
+	 *            The parameters of the function.
 	 * @param returnType
-	 *                            The CIVL return type
+	 *            The CIVL return type
 	 * @param containingScope
-	 *                            The scope that contains the function.
+	 *            The scope that contains the function.
 	 * @param continuity
-	 *                            The total number of partial derivatives of
-	 *                            this function that may be taken.
+	 *            The total number of partial derivatives of this function that
+	 *            may be taken.
+	 * @param attribute
+	 *            Nullable. The optional attribute attached to the function
 	 * @return The abstract function.
 	 */
 	AbstractFunction abstractFunction(CIVLSource source, Identifier name,
 			Scope parameterScope, List<Variable> parameters,
 			CIVLType returnType, Scope containingScope, int continuity,
-			ModelFactory factory);
+			String attribute);
 
 	/**
 	 * Create a new function. When the function is constructed, its outermost

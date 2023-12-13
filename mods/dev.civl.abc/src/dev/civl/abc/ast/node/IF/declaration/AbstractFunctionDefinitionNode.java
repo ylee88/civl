@@ -3,6 +3,7 @@ package dev.civl.abc.ast.node.IF.declaration;
 import dev.civl.abc.ast.node.IF.PairNode;
 import dev.civl.abc.ast.node.IF.SequenceNode;
 import dev.civl.abc.ast.node.IF.expression.ExpressionNode;
+import dev.civl.abc.ast.node.IF.expression.StringLiteralNode;
 
 /**
  * <p>
@@ -40,5 +41,12 @@ public interface AbstractFunctionDefinitionNode
 
 	@Override
 	AbstractFunctionDefinitionNode copy();
+	
+	/**
+	 * @return the StringLiteralNode representing an optional attribute attached
+	 *         to the abstract function, if there is an attribute.
+	 *         <code>null</code>, otherwise.
+	 */
+	StringLiteralNode getAttribute();
 
 }

@@ -3,7 +3,6 @@ package dev.civl.mc.model.common;
 import dev.civl.mc.model.IF.CIVLFunction;
 import dev.civl.mc.model.IF.CIVLSource;
 import dev.civl.mc.model.IF.Identifier;
-import dev.civl.mc.model.IF.ModelFactory;
 import dev.civl.mc.model.IF.Scope;
 import dev.civl.mc.model.IF.type.CIVLType;
 
@@ -12,10 +11,9 @@ public class CommonNondetFunction extends CommonFunction
 			CIVLFunction {
 
 	public CommonNondetFunction(CIVLSource source, Identifier name,
-			CIVLType returnType, Scope containingScope, int fid,
-			ModelFactory factory) {
+			CIVLType returnType, Scope containingScope, int fid) {
 		super(source, false, name, containingScope, null, returnType,
-				containingScope, fid, null, factory);
+				containingScope, fid, null);
 	}
 
 	@Override

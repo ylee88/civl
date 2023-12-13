@@ -1,0 +1,9 @@
+#include <civlc.cvh>
+
+$abstract("partial-order") _Bool f(int, double);
+
+int main() {
+  $assume(f(1, 2));
+  $assume(f(2, 3));
+  $assert(f(1, 3));  // f is defined in an ill form so the attribute is ignored
+}

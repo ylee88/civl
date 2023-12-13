@@ -57,6 +57,7 @@ import org.antlr.runtime.tree.CommonTree;
 import dev.civl.abc.ast.node.IF.type.TypeNode.TypeNodeKind;
 import dev.civl.abc.ast.type.IF.StandardBasicType.BasicTypeKind;
 import dev.civl.abc.config.IF.Configuration;
+import dev.civl.abc.front.c.parse.CivlCParser;
 import dev.civl.abc.front.c.ptree.CParseTree;
 import dev.civl.abc.token.IF.SyntaxException;
 
@@ -200,6 +201,12 @@ public class SpecifierAnalysis {
 	 * on which the function has that many continuous derivatives.
 	 */
 	CommonTree differentiableNode = null;
+	
+	/**
+	 * An optional abstract function attribute attached to the abstract
+	 * function.  The attribute is a string literal.
+	 */
+	CommonTree abstractAttributeNode = null;
 
 	/**
 	 * If $differentiable is present, this is the conrete int n which is the
@@ -379,11 +386,16 @@ public class SpecifierAnalysis {
 					}
 					case ABSTRACT :
 						abstractSpecifier = true;
-						if (node.getChildCount() == 0) {
-							continuity = 0;
-						} else {
-							continuity = parseInt(
-									(CommonTree) node.getChild(0));
+						continuity = 0;
+						if (node.getChildCount() > 0) {
+							int childTy = node.getChild(0).getType();
+
+							if (childTy == CivlCParser.INTEGER_CONSTANT)
+								continuity = parseInt(
+										(CommonTree) node.getChild(0));
+							if (childTy == CivlCParser.STRING_LITERAL)
+								abstractAttributeNode = (CommonTree) node
+										.getChild(0);
 						}
 						break;
 					case DIFFERENTIABLE :
