@@ -79,6 +79,11 @@ import java.util.List;
 public interface NodeFactory {
 
 	/**
+	 * @return the AttributeKey which stores the number of temporary variables in an AST.
+	 */
+	AttributeKey getTempCountKey();
+	
+	/**
 	 * Creates an attribute slot for all AST nodes. This is a mechanism for
 	 * extending the functionality of nodes. This may be used to hang any kind
 	 * of data onto nodes. Initially, the attribute value associated to the new

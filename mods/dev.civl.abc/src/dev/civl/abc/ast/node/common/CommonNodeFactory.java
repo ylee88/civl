@@ -81,6 +81,8 @@ public class CommonNodeFactory implements NodeFactory {
 	private ObjectType scopeType;
 
 	private Configuration configuration;
+	
+	private AttributeKey tempCountKey;
 
 	public CommonNodeFactory(Configuration configuration,
 			TypeFactory typeFactory, ValueFactory valueFactory) {
@@ -93,11 +95,17 @@ public class CommonNodeFactory implements NodeFactory {
 		this.processType = typeFactory.processType();
 		this.scopeType = typeFactory.scopeType();
 		this.configuration = configuration;
+		this.tempCountKey = newAttribute("tempCount", Integer.class);
 	}
 
 	@Override
 	public ValueFactory getValueFactory() {
 		return valueFactory;
+	}
+	
+	@Override
+	public AttributeKey getTempCountKey() {
+		return tempCountKey;
 	}
 
 	@Override

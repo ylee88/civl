@@ -230,7 +230,7 @@ public class SideEffectRemover extends BaseTransformer {
 	/**
 	 * The number of temporary variables created by this transformer.
 	 */
-	private static int tempVariableCounter = 0;
+	private int tempVariableCounter = 0;
 
 	/**
 	 * A reference to {@link StringOrCompoundInitializerTranslateWorker} which
@@ -3605,6 +3605,12 @@ public class SideEffectRemover extends BaseTransformer {
 	@Override
 	public AST transform(AST ast) throws SyntaxException {
 		SequenceNode<BlockItemNode> rootNode = ast.getRootNode();
+		Integer rootTempCount = (Integer) rootNode.getAttribute(nodeFactory.getTempCountKey());
+		
+		if (rootTempCount != null) {
+			tempVariableCounter = rootTempCount;
+		}
+		
 		AST newAST;
 		List<BlockItemNode> newBlockItems = new ArrayList<>();
 
@@ -3631,6 +3637,7 @@ public class SideEffectRemover extends BaseTransformer {
 		}
 		rootNode = nodeFactory.newTranslationUnitNode(rootNode.getSource(),
 				newBlockItems);
+		rootNode.setAttribute(nodeFactory.getTempCountKey(), tempVariableCounter);
 		newAST = astFactory.newAST(rootNode, ast.getSourceFiles(),
 				ast.isWholeProgram());
 		// newAST.prettyPrint(System.out, true);
