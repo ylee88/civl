@@ -10,7 +10,6 @@ import dev.civl.abc.ast.entity.IF.Typedef;
 import dev.civl.abc.ast.node.IF.ASTNode;
 import dev.civl.abc.ast.node.IF.declaration.DeclarationNode;
 import dev.civl.abc.ast.node.IF.declaration.TypedefDeclarationNode;
-import dev.civl.abc.ast.node.IF.type.EnumerationTypeNode;
 import dev.civl.abc.ast.node.IF.type.TypeNode;
 import dev.civl.abc.ast.node.IF.type.TypeNode.TypeNodeKind;
 import dev.civl.abc.ast.type.IF.EnumerationType;
