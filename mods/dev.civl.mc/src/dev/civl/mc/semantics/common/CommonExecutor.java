@@ -1013,7 +1013,7 @@ public class CommonExecutor implements Executor {
 				// subsequence.
 				if (counter >= 0 && counter < ((IntegerNumber) universe
 						.extractNumber(universe.length(literalDomain)))
-								.intValue())
+						.intValue())
 					nextElement = universe.arrayRead(literalDomain,
 							universe.integer(counter));
 				else
@@ -1361,12 +1361,19 @@ public class CommonExecutor implements Executor {
 				case VOID :
 					printStream.print(formatString);
 					break;
-				default :
+				default : {
 					assert argIndex < numArguments;
-					printStream.printf("%s", arguments.get(argIndex++));
+					StringBuffer buf = arguments.get(argIndex++);
+					int len = buf.length();
+					if (len > 0) {
+						char lastChar = buf.charAt(len - 1);
+						if (lastChar == '\0')
+							buf.setLength(len - 1);
+					}
+					printStream.printf("%s", buf);
+				}
 			}
 		}
-
 	}
 
 	/**

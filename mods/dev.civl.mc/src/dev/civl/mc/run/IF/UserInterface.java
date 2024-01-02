@@ -186,6 +186,12 @@ public class UserInterface {
 	public UserInterface() {
 		parser = new CommandLineParser(definedOptions.values());
 	}
+	
+	public UserInterface(PrintStream out, PrintStream err) {
+		this();
+		this.out = out;
+		this.err = err;
+	}
 
 	/* ************************** Public Methods *************************** */
 
