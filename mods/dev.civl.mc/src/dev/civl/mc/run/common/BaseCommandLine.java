@@ -2,7 +2,6 @@ package dev.civl.mc.run.common;
 
 import java.io.Serializable;
 
-import dev.civl.mc.run.IF.CommandLine;
 import dev.civl.gmc.GMCConfiguration;
 
 public abstract class BaseCommandLine implements CommandLine, Serializable {

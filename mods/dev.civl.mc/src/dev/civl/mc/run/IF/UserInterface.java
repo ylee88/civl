@@ -44,7 +44,6 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
 import dev.civl.abc.ast.IF.AST;
-import dev.civl.abc.ast.node.IF.declaration.VariableDeclarationNode;
 import dev.civl.abc.config.IF.Configurations.Language;
 import dev.civl.abc.err.IF.ABCException;
 import dev.civl.abc.err.IF.ABCRuntimeException;
@@ -56,6 +55,13 @@ import dev.civl.abc.token.IF.SyntaxException;
 import dev.civl.abc.token.IF.Tokens;
 import dev.civl.abc.transform.IF.Combiner;
 import dev.civl.abc.transform.IF.Transform;
+import dev.civl.gmc.CommandLineException;
+import dev.civl.gmc.CommandLineParser;
+import dev.civl.gmc.GMCConfiguration;
+import dev.civl.gmc.GMCSection;
+import dev.civl.gmc.MisguidedExecutionException;
+import dev.civl.gmc.Option;
+import dev.civl.gmc.Trace;
 import dev.civl.mc.analysis.IF.Analysis;
 import dev.civl.mc.config.IF.CIVLConfiguration;
 import dev.civl.mc.config.IF.CIVLConstants;
@@ -71,11 +77,15 @@ import dev.civl.mc.model.IF.ModelBuilder;
 import dev.civl.mc.model.IF.Models;
 import dev.civl.mc.run.common.CIVLCommand;
 import dev.civl.mc.run.common.CIVLCommandFactory;
+import dev.civl.mc.run.common.CommandLine;
 import dev.civl.mc.run.common.CompareCommandLine;
 import dev.civl.mc.run.common.HelpCommandLine;
+import dev.civl.mc.run.common.ModelTranslator;
 import dev.civl.mc.run.common.NormalCommandLine;
+import dev.civl.mc.run.common.TracePlayer;
 import dev.civl.mc.run.common.NormalCommandLine.NormalCommandKind;
 import dev.civl.mc.run.common.VerificationStatus;
+import dev.civl.mc.run.common.Verifier;
 import dev.civl.mc.semantics.IF.SymbolicAnalyzer;
 import dev.civl.mc.semantics.IF.Transition;
 import dev.civl.mc.slice.IF.Slice;
@@ -83,13 +93,6 @@ import dev.civl.mc.slice.common.CommonSlice;
 import dev.civl.mc.state.IF.State;
 import dev.civl.mc.util.IF.BranchConstraints;
 import dev.civl.mc.util.IF.Pair;
-import dev.civl.gmc.CommandLineException;
-import dev.civl.gmc.CommandLineParser;
-import dev.civl.gmc.GMCConfiguration;
-import dev.civl.gmc.GMCSection;
-import dev.civl.gmc.MisguidedExecutionException;
-import dev.civl.gmc.Option;
-import dev.civl.gmc.Trace;
 import dev.civl.sarl.SARL;
 import dev.civl.sarl.IF.SymbolicUniverse;
 import dev.civl.sarl.IF.config.Configurations;
@@ -134,7 +137,7 @@ public class UserInterface {
 	/**
 	 * All options defined for CIVL. The key is the name of the option.
 	 */
-	public final static SortedMap<String, Option> definedOptions = new TreeMap<>();
+	private final static SortedMap<String, Option> definedOptions = new TreeMap<>();
 
 	/* ************************* Instance fields *************************** */
 
@@ -258,7 +261,7 @@ public class UserInterface {
 	 *                                         compatible with the specified
 	 *                                         program
 	 */
-	public boolean runNormalCommand(NormalCommandLine commandLine)
+	private boolean runNormalCommand(NormalCommandLine commandLine)
 			throws CommandLineException, ABCException, IOException,
 			MisguidedExecutionException {
 		this.startTime = System.currentTimeMillis();
@@ -362,7 +365,7 @@ public class UserInterface {
 	 *                                         compatible with the specified
 	 *                                         program
 	 */
-	public boolean runCompareCommand(CompareCommandLine compareCommand)
+	private boolean runCompareCommand(CompareCommandLine compareCommand)
 			throws CommandLineException, ABCException, IOException,
 			MisguidedExecutionException {
 		GMCConfiguration gmcConfig = compareCommand.gmcConfig();
@@ -434,7 +437,7 @@ public class UserInterface {
 					implWorker, gmcConfig, anonymousSection, traceFile);
 	}
 
-	/**
+	/*
 	 * The GUI will call this method to get the input variables of a given
 	 * program. Currently, it is taking a list of files (in fact, the paths of
 	 * files), parsing and linking the given list of files and finding out the
@@ -451,8 +454,8 @@ public class UserInterface {
 	 * @throws ABCException
 	 *                          if anything goes wrong with parsing or
 	 *                          constructing the AST
-	 */
-	public List<VariableDeclarationNode> getInputVariables(String[] files)
+	 *
+	private List<VariableDeclarationNode> getInputVariables(String[] files)
 			throws ABCException {
 		try {
 			GMCConfiguration gmcConfig = new GMCConfiguration(
@@ -466,6 +469,7 @@ public class UserInterface {
 			return new LinkedList<VariableDeclarationNode>();
 		}
 	}
+	*/
 
 	/* ************************* Private Methods *************************** */
 

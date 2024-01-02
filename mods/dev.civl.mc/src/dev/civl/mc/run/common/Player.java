@@ -1,4 +1,4 @@
-package dev.civl.mc.run.IF;
+package dev.civl.mc.run.common;
 
 import static dev.civl.mc.config.IF.CIVLConstants.errorBoundO;
 import static dev.civl.mc.config.IF.CIVLConstants.maxdepthO;
@@ -65,7 +65,7 @@ public abstract class Player {
 
 	protected MemoryUnitFactory memUnitFactory;
 
-	protected Evaluator evaluator;
+	public Evaluator evaluator;
 
 	protected EnablerIF<State, Transition> enabler;
 
@@ -79,7 +79,7 @@ public abstract class Player {
 
 	protected Executor executor;
 
-	protected CIVLStateManager stateManager;
+	public CIVLStateManager stateManager;
 
 	protected boolean random;
 
@@ -95,7 +95,7 @@ public abstract class Player {
 
 	protected SymbolicUtility symbolicUtil;
 
-	protected SymbolicAnalyzer symbolicAnalyzer;
+	public SymbolicAnalyzer symbolicAnalyzer;
 
 	protected CIVLErrorLogger log;
 

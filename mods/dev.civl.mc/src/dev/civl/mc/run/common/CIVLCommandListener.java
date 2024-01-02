@@ -12,8 +12,7 @@ import java.util.TreeMap;
 import org.antlr.v4.runtime.misc.NotNull;
 
 import dev.civl.mc.config.IF.CIVLConstants;
-import dev.civl.mc.run.IF.CommandLine;
-import dev.civl.mc.run.IF.CommandLine.CommandLineKind;
+import dev.civl.mc.run.common.CommandLine.CommandLineKind;
 import dev.civl.mc.run.common.NormalCommandLine.NormalCommandKind;
 import dev.civl.gmc.GMCConfiguration;
 import dev.civl.gmc.GMCSection;

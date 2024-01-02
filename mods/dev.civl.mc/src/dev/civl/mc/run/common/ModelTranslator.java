@@ -1,4 +1,4 @@
-package dev.civl.mc.run.IF;
+package dev.civl.mc.run.common;
 
 import static dev.civl.mc.config.IF.CIVLConstants.bar;
 import static dev.civl.mc.config.IF.CIVLConstants.macroO;
@@ -42,7 +42,6 @@ import dev.civl.mc.config.IF.CIVLConstants;
 import dev.civl.mc.model.IF.Model;
 import dev.civl.mc.model.IF.ModelBuilder;
 import dev.civl.mc.model.IF.Models;
-import dev.civl.mc.run.common.ParseSystemLibrary;
 import dev.civl.mc.transform.IF.ContractTransformer;
 import dev.civl.mc.transform.IF.LoopContractTransformer;
 import dev.civl.mc.transform.IF.TransformerFactory;
@@ -135,28 +134,28 @@ public class ModelTranslator {
 	/**
 	 * The GMC configuration that this model translator associates with.
 	 */
-	GMCConfiguration gmcConfig;
+	public GMCConfiguration gmcConfig;
 
 	/**
 	 * The command line section for this model translator.
 	 */
-	GMCSection cmdSection;
+	public GMCSection cmdSection;
 
 	/**
 	 * The CIVL configuration for this model translator, which is dependent on
 	 * the command line section.
 	 */
-	CIVLConfiguration config;
+	public CIVLConfiguration config;
 
 	/**
 	 * The symbolic universe.
 	 */
-	SymbolicUniverse universe;
+	public SymbolicUniverse universe;
 
 	/**
 	 * This is the main ABC class used to compile a program.
 	 */
-	FrontEnd frontEnd;
+	public FrontEnd frontEnd;
 
 	// private fields
 
@@ -216,7 +215,7 @@ public class ModelTranslator {
 	 *                                   if there is a problem processing any
 	 *                                   macros defined in the command line
 	 */
-	ModelTranslator(GMCConfiguration gmcConfig, GMCSection gmcSection,
+	public ModelTranslator(GMCConfiguration gmcConfig, GMCSection gmcSection,
 			String[] filenames, String coreName) throws PreprocessorException {
 		this(gmcConfig, gmcSection, filenames, coreName,
 				SARL.newStandardUniverse(), null);
@@ -249,7 +248,7 @@ public class ModelTranslator {
 	 *                                   if there is a problem processing any
 	 *                                   macros defined in the command line
 	 */
-	ModelTranslator(GMCConfiguration gmcConfig, GMCSection cmdSection,
+	public ModelTranslator(GMCConfiguration gmcConfig, GMCSection cmdSection,
 			String[] filenames, String coreName, SymbolicUniverse universe,
 			FileIndexer fileIndexer) throws PreprocessorException {
 		this.cmdSection = cmdSection;
@@ -273,9 +272,7 @@ public class ModelTranslator {
 		userIncludes = this.getUserIncludes(cmdSection);
 	}
 
-	// package private methods...
-
-	Program buildProgram() throws ABCException {
+	public Program buildProgram() throws ABCException {
 		TranslationTask task;
 		UnitTask[] unitTasks;
 		Map<String, String> macros = this.getMacros();
@@ -426,7 +423,8 @@ public class ModelTranslator {
 	 *                                  files.
 	 * @throws ABCException
 	 */
-	Model translate() throws CommandLineException, IOException, ABCException {
+	public Model translate()
+			throws CommandLineException, IOException, ABCException {
 		long startTime = System.currentTimeMillis();
 		Program program = this.buildProgram();
 		long endTime = System.currentTimeMillis();

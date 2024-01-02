@@ -4,7 +4,7 @@ module dev.civl.mc {
     requires dev.civl.gmc;
     requires antlr4runtime;
     requires antlr3runtime;
-    //    requires transitive junit;
     exports dev.civl.mc;
+    exports dev.civl.mc.run.IF;
     opens dev.civl.mc.src;
 }

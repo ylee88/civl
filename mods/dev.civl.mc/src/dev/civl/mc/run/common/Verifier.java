@@ -1,4 +1,4 @@
-package dev.civl.mc.run.IF;
+package dev.civl.mc.run.common;
 
 import static dev.civl.mc.config.IF.CIVLConstants.collectOutputO;
 import static dev.civl.mc.config.IF.CIVLConstants.maxdepthO;
@@ -30,7 +30,6 @@ import dev.civl.mc.model.IF.CIVLProperty;
 import dev.civl.mc.model.IF.CIVLSource;
 import dev.civl.mc.model.IF.Model;
 import dev.civl.mc.predicate.IF.Predicates;
-import dev.civl.mc.run.common.VerificationStatus;
 import dev.civl.mc.semantics.IF.Transition;
 import dev.civl.mc.state.IF.CIVLStateException;
 import dev.civl.mc.state.IF.State;
@@ -48,7 +47,7 @@ public class Verifier extends Player {
 
 	private String errorBoundExceeds;
 
-	VerificationStatus verificationStatus;
+	public VerificationStatus verificationStatus;
 
 	class SearchUpdater implements Printable {
 		@Override

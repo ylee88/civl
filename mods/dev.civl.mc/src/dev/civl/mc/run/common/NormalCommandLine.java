@@ -3,7 +3,6 @@ package dev.civl.mc.run.common;
 import java.io.File;
 import java.util.Collection;
 
-import dev.civl.mc.run.IF.CommandLine;
 import dev.civl.gmc.GMCSection;
 
 public class NormalCommandLine extends BaseCommandLine implements CommandLine{

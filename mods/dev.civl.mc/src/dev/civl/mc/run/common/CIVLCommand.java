@@ -70,8 +70,7 @@ import dev.civl.gmc.Option;
 import dev.civl.mc.model.IF.CIVLInternalException;
 import dev.civl.mc.model.IF.CIVLProperty;
 import dev.civl.mc.model.IF.CIVLSource;
-import dev.civl.mc.run.IF.CommandLine;
-import dev.civl.mc.run.IF.CommandLine.CommandLineKind;
+import dev.civl.mc.run.common.CommandLine.CommandLineKind;
 import dev.civl.mc.run.common.NormalCommandLine.NormalCommandKind;
 
 public class CIVLCommand {

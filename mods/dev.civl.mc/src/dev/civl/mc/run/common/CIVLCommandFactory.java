@@ -16,10 +16,9 @@ import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
-import dev.civl.mc.run.IF.CommandLine;
-import dev.civl.mc.run.IF.CommandLine.CommandLineKind;
 import dev.civl.gmc.CommandLineException;
 import dev.civl.gmc.Option;
+import dev.civl.mc.run.common.CommandLine.CommandLineKind;
 
 public class CIVLCommandFactory {
 

@@ -1,4 +1,4 @@
-package dev.civl.mc.run.IF;
+package dev.civl.mc.run.common;
 
 import static dev.civl.mc.config.IF.CIVLConstants.seedO;
 
