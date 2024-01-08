@@ -1,6 +1,7 @@
 package dev.civl.sarl.prove.cvc;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -314,7 +315,7 @@ public class CVCTranslator {
 	 * </p>
 	 * 
 	 * @param sc
-	 *               a symbolic consant
+	 *            a symbolic consant
 	 * @return the normalized name for the pass-in symbolic constant
 	 */
 	private String normalizeSymbolicConstantName(SymbolicConstant sc) {
@@ -332,10 +333,10 @@ public class CVCTranslator {
 	 * element of the index-th member type.
 	 * 
 	 * @param unionType
-	 *                      a union type
+	 *            a union type
 	 * @param index
-	 *                      integer in [0,n), where n is the number of member
-	 *                      types of the union type
+	 *            integer in [0,n), where n is the number of member types of the
+	 *            union type
 	 * @return the name of the index-th selector function
 	 */
 	private String selector(SymbolicUnionType unionType, int index) {
@@ -348,10 +349,10 @@ public class CVCTranslator {
 	 * member type and returns an element of the union type.
 	 * 
 	 * @param unionType
-	 *                      a union type
+	 *            a union type
 	 * @param index
-	 *                      an integer in [0,n), where n is the number of member
-	 *                      types of the union type
+	 *            an integer in [0,n), where n is the number of member types of
+	 *            the union type
 	 * @return the name of the index-th constructor function
 	 */
 	private String constructor(SymbolicUnionType unionType, int index) {
@@ -365,8 +366,8 @@ public class CVCTranslator {
 	 * TODO: type is not used. Figure out why and correct this method.
 	 * 
 	 * @param type
-	 *                 a CVC type; it is consumed, so cannot be used after
-	 *                 invoking this method
+	 *            a CVC type; it is consumed, so cannot be used after invoking
+	 *            this method
 	 * @return the new CVC variable
 	 */
 	private String newCvcAuxVar(FastList<String> type) {
@@ -397,11 +398,11 @@ public class CVCTranslator {
 	 * type which is the contents.
 	 * 
 	 * @param length
-	 *                   CVC expression yielding length of array; it is consumed
-	 *                   (so cannot be used after invoking this method)
+	 *            CVC expression yielding length of array; it is consumed (so
+	 *            cannot be used after invoking this method)
 	 * @param value
-	 *                   CVC expression of type "array-of-T"; it is consumed (so
-	 *                   cannot be used after invoking this method)
+	 *            CVC expression of type "array-of-T"; it is consumed (so cannot
+	 *            be used after invoking this method)
 	 * @return ordered pair (tuple), consisting of length and value
 	 */
 	private FastList<String> bigArray(FastList<String> length,
@@ -447,7 +448,7 @@ public class CVCTranslator {
 	 * </p>
 	 * 
 	 * @param array
-	 *                  a SARL expression of array type
+	 *            a SARL expression of array type
 	 * @return translation into CVC of length of that array
 	 */
 	private Translation lengthOfArray(SymbolicExpression array) {
@@ -673,10 +674,10 @@ public class CVCTranslator {
 	 * Translates a concrete SARL array into language of CVC.
 	 * 
 	 * @param arrayType
-	 *                      a SARL complete array type
+	 *            a SARL complete array type
 	 * @param elements
-	 *                      a sequence of elements whose types are all the
-	 *                      element type of the arrayType
+	 *            a sequence of elements whose types are all the element type of
+	 *            the arrayType
 	 * @return CVC translation of the concrete array
 	 */
 	private Translation translateConcreteArray(SymbolicExpression array) {
@@ -824,9 +825,9 @@ public class CVCTranslator {
 	 * constant.
 	 * 
 	 * @param symbolicConstant
-	 *                             a SARL symbolic constant
+	 *            a SARL symbolic constant
 	 * @param isBoundVariable
-	 *                             is this a bound variable?
+	 *            is this a bound variable?
 	 * @return the name of the symbolic constant as a fast string list
 	 */
 	private Translation translateSymbolicConstant(
@@ -842,11 +843,164 @@ public class CVCTranslator {
 			cvcDeclarations.append(type);
 			cvcDeclarations.add(";\n");
 		}
-		this.variableMap.put(symbolicConstant, result);
+
+		boolean seenBefore = variableMap.put(symbolicConstant, result) != null;
+
 		translation = new Translation(result.clone());
+		if (!seenBefore
+				&& symbolicType.typeKind() == SymbolicTypeKind.FUNCTION) {
+			SymbolicFunctionType funTy = (SymbolicFunctionType) symbolicType;
+
+			switch (funTy.specialRelationKind()) {
+				case LINEAR_ORDER :
+					addLinearOrderAssumption(symbolicConstant, funTy);
+					break;
+				case PARTIAL_ORDER :
+					addPartialOrderAssumption(symbolicConstant, funTy);
+					break;
+				case TREE_ORDER :
+					addTreeOrderAssumption(symbolicConstant, funTy);
+					break;
+				case PIECEWISE_LINEAR_ORDER :
+					addPiecewiseLinearOrderAssumption(symbolicConstant, funTy);
+					break;
+				case NONE :
+				default :
+			}
+		}
 		return translation;
 	}
+	
+	private BooleanExpression applyBinRel(SymbolicConstant fun,
+			Iterable<SymbolicExpression> args) {
+		return (BooleanExpression) universe.apply(fun, args);
+	}
+	
+	/**
+	 * <code>
+	 (declare-sort A 0)
+	 (declare-fun R (A A) Bool)
+	 (assert (forall ((x A)) (R x x)))
+	 (assert (forall ((x A) (y A)) (=> (and (R x y) (R y x)) (= x y))))
+	 (assert (forall ((x A) (y A) (z A)) (=> (and (R x y) (R y z)) (R x z))))
+	 </code>
+	 */
+	private void addPartialOrderAssumption(SymbolicConstant fun,
+			SymbolicFunctionType funTy) {
+		SymbolicType bvTy = funTy.inputTypes().getType(0);
+		SymbolicConstant x = universe
+				.symbolicConstant(universe.stringObject("x"), bvTy);
+		SymbolicConstant y = universe
+				.symbolicConstant(universe.stringObject("y"), bvTy);
+		SymbolicConstant z = universe
+				.symbolicConstant(universe.stringObject("z"), bvTy);
 
+		cvcDeclarations.append(translate(
+				universe.forall(x, applyBinRel(fun, Arrays.asList(x, x))))
+						.getResult());
+		cvcDeclarations
+				.append(translate(
+						universe.forall(x,
+								universe.forall(y,
+										universe.implies(
+												universe.and(
+														applyBinRel(fun,
+																Arrays.asList(x,
+																		y)),
+														applyBinRel(fun,
+																Arrays.asList(y,
+																		x))),
+												universe.equals(x, y)))))
+														.getResult());
+		cvcDeclarations
+				.append(translate(
+						universe.forall(x,
+								universe.forall(y,
+										universe.forall(z, universe.implies(
+												universe.and(
+														applyBinRel(fun,
+																Arrays.asList(x,
+																		y)),
+														applyBinRel(fun,
+																Arrays.asList(y,
+																		z))),
+												applyBinRel(fun, Arrays
+														.asList(x, z)))))))
+																.getResult());
+	}
+	
+	
+	/**
+	 * {@link #addPartialOrderAssumption(SymbolicConstant, SymbolicFunctionType)}
+	 * and <code>
+	 * (assert (forall ((x A) (y A)) (or (R x y) (R y x))))
+	 * </code>
+	 */
+	private void addLinearOrderAssumption(SymbolicConstant fun,
+			SymbolicFunctionType funTy) {
+		SymbolicType bvTy = funTy.inputTypes().getType(0);
+		SymbolicConstant x = universe
+				.symbolicConstant(universe.stringObject("x"), bvTy);
+		SymbolicConstant y = universe
+				.symbolicConstant(universe.stringObject("y"), bvTy);
+
+		cvcDeclarations.append(translate(universe.forall(x,
+				universe.forall(y,
+						universe.or(applyBinRel(fun, Arrays.asList(x, y)),
+								applyBinRel(fun, Arrays.asList(y, x))))))
+										.getResult());
+	}
+	
+	/**
+	 * {@link #addPartialOrderAssumption(SymbolicConstant, SymbolicFunctionType)}
+	 * and <code>
+	 * (assert (forall ((x A) (y A) (z A)) (=> (and (R y x) (R z x)) (or (R y z) (R z y)))))
+	 * </code>
+	 */
+	private void addTreeOrderAssumption(SymbolicConstant fun,
+			SymbolicFunctionType funTy) {
+		SymbolicType bvTy = funTy.inputTypes().getType(0);
+		SymbolicConstant x = universe
+				.symbolicConstant(universe.stringObject("x"), bvTy);
+		SymbolicConstant y = universe
+				.symbolicConstant(universe.stringObject("y"), bvTy);
+		SymbolicConstant z = universe
+				.symbolicConstant(universe.stringObject("z"), bvTy);
+
+		cvcDeclarations.append(translate(universe.forall(x,
+				universe.forall(y, universe.forall(z, universe.implies(
+						universe.and(applyBinRel(fun, Arrays.asList(y, x)),
+								applyBinRel(fun, Arrays.asList(z, x))),
+						universe.or(applyBinRel(fun, Arrays.asList(y, z)),
+								applyBinRel(fun, Arrays.asList(z, y))))))))
+										.getResult());
+	}
+	
+	/**
+	 * {@link #addTreeOrderAssumption(SymbolicConstant, SymbolicFunctionType)}
+	 * and <code>
+	 *    (assert (forall ((x A) (y A) (z A)) (=> (and (R x y) (R x z)) (or (R y z) (R z y)))))
+	 * </code>
+	 */
+	private void addPiecewiseLinearOrderAssumption(SymbolicConstant fun,
+			SymbolicFunctionType funTy) {
+		SymbolicType bvTy = funTy.inputTypes().getType(0);
+		SymbolicConstant x = universe
+				.symbolicConstant(universe.stringObject("x"), bvTy);
+		SymbolicConstant y = universe
+				.symbolicConstant(universe.stringObject("y"), bvTy);
+		SymbolicConstant z = universe
+				.symbolicConstant(universe.stringObject("z"), bvTy);
+
+		cvcDeclarations.append(translate(universe.forall(x,
+				universe.forall(y, universe.forall(z, universe.implies(
+						universe.and(applyBinRel(fun, Arrays.asList(x, y)),
+								applyBinRel(fun, Arrays.asList(x, z))),
+						universe.or(applyBinRel(fun, Arrays.asList(y, z)),
+								applyBinRel(fun, Arrays.asList(z, y))))))))
+										.getResult());
+	}
+		
 	/**
 	 * Translates a symbolic constant into the BIT-VECTOR. It is assumed that
 	 * this is the first time the symbolic constant has been seen. It returns
@@ -856,9 +1010,9 @@ public class CVCTranslator {
 	 * declaration of the symbolic constant.
 	 * 
 	 * @param symbolicConstant
-	 *                             a SARL symbolic constant
+	 *            a SARL symbolic constant
 	 * @param isBoundVariable
-	 *                             is this a bound variable?
+	 *            is this a bound variable?
 	 * @return the name of the symbolic constant as a fast string list
 	 */
 	private Translation translateSymbolicConstant_BV(
@@ -891,7 +1045,7 @@ public class CVCTranslator {
 	 * </pre>
 	 * 
 	 * @param expr
-	 *                 The lambda expression that is being translated.
+	 *            The lambda expression that is being translated.
 	 * @return The translation result.
 	 */
 	private Translation translateLambda(SymbolicExpression expr) {
@@ -921,7 +1075,7 @@ public class CVCTranslator {
 	 * Translates an array-read expression a[i] into equivalent CVC expression
 	 * 
 	 * @param expr
-	 *                 a SARL symbolic expression of form a[i]
+	 *            a SARL symbolic expression of form a[i]
 	 * @return an equivalent CVC expression
 	 */
 	private Translation translateArrayRead(SymbolicExpression expr) {
@@ -960,7 +1114,7 @@ public class CVCTranslator {
 	 * IntObject giving the index in the tuple.
 	 * 
 	 * @param expr
-	 *                 a SARL symbolic expression of form t.i
+	 *            a SARL symbolic expression of form t.i
 	 * @return an equivalent CVC expression
 	 */
 	private Translation translateTupleRead(SymbolicExpression expr) {
@@ -1000,7 +1154,7 @@ public class CVCTranslator {
 	 * equivalent CVC expression.
 	 * 
 	 * @param expr
-	 *                 a SARL array update expression "a WITH [i] := v"
+	 *            a SARL array update expression "a WITH [i] := v"
 	 * @return the result of translating to CVC
 	 */
 	private Translation translateArrayWrite(SymbolicExpression expr) {
@@ -1021,7 +1175,7 @@ public class CVCTranslator {
 	 * into the tuple.
 	 * 
 	 * @param expr
-	 *                 a SARL tuple update expression
+	 *            a SARL tuple update expression
 	 * @return the result of translating to CVC
 	 */
 	private Translation translateTupleWrite(SymbolicExpression expr) {
@@ -1070,7 +1224,7 @@ public class CVCTranslator {
 	 * expression to equivalent CVC expression.
 	 * 
 	 * @param expr
-	 *                 a SARL expression of kind DENSE_ARRAY_WRITE
+	 *            a SARL expression of kind DENSE_ARRAY_WRITE
 	 * @return the result of translating expr to CVC
 	 */
 	private Translation translateDenseArrayWrite(SymbolicExpression expr) {
@@ -1087,8 +1241,8 @@ public class CVCTranslator {
 	 * expression to equivalent CVC expression.
 	 * 
 	 * @param expr
-	 *                 a SARL expression of kind
-	 *                 {@link SymbolicOperator#DENSE_TUPLE_WRITE}
+	 *            a SARL expression of kind
+	 *            {@link SymbolicOperator#DENSE_TUPLE_WRITE}
 	 * @return result of translating to CVC
 	 */
 	private Translation translateDenseTupleWrite(SymbolicExpression expr) {
@@ -1175,7 +1329,7 @@ public class CVCTranslator {
 	 * CVC equivalent.
 	 * 
 	 * @param expr
-	 *                 a SARL "exists" or "forall" expression
+	 *            a SARL "exists" or "forall" expression
 	 * @return result of translating to CVC
 	 */
 	private Translation translateQuantifier(SymbolicExpression expr) {
@@ -1208,10 +1362,10 @@ public class CVCTranslator {
 	 * </pre>
 	 * 
 	 * @param expr1
-	 *                  a SARL symbolic expression
+	 *            a SARL symbolic expression
 	 * @param expr2
-	 *                  a SARL symbolic expression of type compatible with that
-	 *                  of <code>expr1</code>
+	 *            a SARL symbolic expression of type compatible with that of
+	 *            <code>expr1</code>
 	 * @return result of translating into CVC the assertion "expr1=expr2"
 	 */
 	private Translation processEquality(SymbolicExpression expr1,
@@ -1271,8 +1425,7 @@ public class CVCTranslator {
 	 * 
 	 * @param currentResult
 	 * @param translations
-	 *                          list of {@link Translation}s coming from
-	 *                          division or modulo
+	 *            list of {@link Translation}s coming from division or modulo
 	 * @return
 	 */
 	private FastList<String> postProcessForSideEffectsOfDivideOrModule(
@@ -1311,8 +1464,8 @@ public class CVCTranslator {
 	 * equivalent.
 	 * 
 	 * @param expr
-	 *                 SARL symbolic expression with kind
-	 *                 {@link SymbolicOperator.EQUALS}
+	 *            SARL symbolic expression with kind
+	 *            {@link SymbolicOperator.EQUALS}
 	 * @return the equivalent CVC
 	 */
 	private Translation translateEquality(SymbolicExpression expr) {
@@ -1367,7 +1520,7 @@ public class CVCTranslator {
 	 * </p>
 	 * 
 	 * @param expr
-	 *                 a "union extract" expression
+	 *            a "union extract" expression
 	 * @return result of translating to CVC
 	 */
 	private Translation translateUnionExtract(SymbolicExpression expr) {
@@ -1408,7 +1561,7 @@ public class CVCTranslator {
 	 * </p>
 	 * 
 	 * @param expr
-	 *                 a "union inject" expression
+	 *            a "union inject" expression
 	 * @return the CVC translation of that expression
 	 */
 	private Translation translateUnionInject(SymbolicExpression expr) {
@@ -1448,7 +1601,7 @@ public class CVCTranslator {
 	 * </p>
 	 * 
 	 * @param expr
-	 *                 a "union test" expression
+	 *            a "union test" expression
 	 * @return the CVC translation of that expression
 	 */
 	private Translation translateUnionTest(SymbolicExpression expr) {
@@ -1564,7 +1717,7 @@ public class CVCTranslator {
 		result.append(
 				processEquality((SymbolicExpression) expression.argument(0),
 						(SymbolicExpression) expression.argument(1))
-						.getResult());
+								.getResult());
 		result.add(")");
 		translation = new Translation(result);
 		return translation;
@@ -1602,7 +1755,7 @@ public class CVCTranslator {
 	 * Translating power operation where exponent is real type
 	 * 
 	 * @param expression
-	 *                       a power operation
+	 *            a power operation
 	 * @return the {@link Translation} of the given power operation
 	 */
 	private Translation translatePowerRealExp(SymbolicExpression expression) {
@@ -1643,7 +1796,7 @@ public class CVCTranslator {
 	 * Translating power operation where exponent is integer type
 	 * 
 	 * @param expression
-	 *                       a power operation
+	 *            a power operation
 	 * @return the {@link Translation} of the given power operation
 	 */
 	private Translation translatePowerIntExp(SymbolicExpression expression) {
@@ -1736,12 +1889,12 @@ public class CVCTranslator {
 	 * </p>
 	 * 
 	 * @param arg1
-	 *                     numerator
+	 *            numerator
 	 * @param arg2
-	 *                     denominator
+	 *            denominator
 	 * @param operator
-	 *                     either {@link SymbolicOperator.#INT_DIVIDE} or
-	 *                     {@link SymbolicOperator.#MODULO}
+	 *            either {@link SymbolicOperator.#INT_DIVIDE} or
+	 *            {@link SymbolicOperator.#MODULO}
 	 * 
 	 * @return A struct {@link Translation} encapsules 1. the value of the
 	 *         division or modulo 2. the generated auxiliary variables 3. the
@@ -1823,10 +1976,10 @@ public class CVCTranslator {
 
 	/**
 	 * @param operator
-	 *                     the operator can be {@link SymbolicOperator.#DIVIDE}
-	 *                     or {@link SymbolicOperator.#SUBTRACT} or
-	 *                     {@link SymbolicOperator.#LESS_THAN} or
-	 *                     {@link SymbolicOperator.#LESS_THAN_EQUALS}
+	 *            the operator can be {@link SymbolicOperator.#DIVIDE} or
+	 *            {@link SymbolicOperator.#SUBTRACT} or
+	 *            {@link SymbolicOperator.#LESS_THAN} or
+	 *            {@link SymbolicOperator.#LESS_THAN_EQUALS}
 	 * @param arg0
 	 * @param arg1
 	 * @return
@@ -1887,10 +2040,10 @@ public class CVCTranslator {
 
 	/**
 	 * @param operator
-	 *                     the operator can be {@link SymbolicOperator.#DIVIDE}
-	 *                     or {@link SymbolicOperator.#SUBTRACT} or
-	 *                     {@link SymbolicOperator.#LESS_THAN} or
-	 *                     {@link SymbolicOperator.#LESS_THAN_EQUALS}
+	 *            the operator can be {@link SymbolicOperator.#DIVIDE} or
+	 *            {@link SymbolicOperator.#SUBTRACT} or
+	 *            {@link SymbolicOperator.#LESS_THAN} or
+	 *            {@link SymbolicOperator.#LESS_THAN_EQUALS}
 	 * @param arg0
 	 * @param arg1
 	 * @return
@@ -1953,11 +2106,9 @@ public class CVCTranslator {
 
 	/**
 	 * @param operator
-	 *                         The operator can be
-	 *                         {@link SymbolicOperator.#MULTIPLY} or
-	 *                         {@link SymbolicOperator.#ADD} or
-	 *                         {@link SymbolicOperator.#AND}
-	 *                         {@link SymbolicOperator.#OR}
+	 *            The operator can be {@link SymbolicOperator.#MULTIPLY} or
+	 *            {@link SymbolicOperator.#ADD} or {@link SymbolicOperator.#AND}
+	 *            {@link SymbolicOperator.#OR}
 	 * @param defaultValue
 	 * @param expression
 	 * @return
@@ -2027,7 +2178,7 @@ public class CVCTranslator {
 	 * Translates a SARL symbolic expression to the language of CVC.
 	 * 
 	 * @param expression
-	 *                       a non-null SymbolicExpression
+	 *            a non-null SymbolicExpression
 	 * @return translation to CVC as a fast list of strings
 	 */
 	private Translation translateWork(SymbolicExpression expression)
@@ -2845,9 +2996,8 @@ public class CVCTranslator {
 
 	/**
 	 * @param operator
-	 *                         The operator can be
-	 *                         {@link SymbolicOperator.#MULTIPLY} or
-	 *                         {@link SymbolicOperator.#ADD}
+	 *            The operator can be {@link SymbolicOperator.#MULTIPLY} or
+	 *            {@link SymbolicOperator.#ADD}
 	 * @param defaultValue
 	 * @param expression
 	 * @return
