@@ -24,6 +24,11 @@ public class PORCommTest {
 	public void porCommBug() {
 		assertFalse(ui.run("verify", filename("porCommBug.cvl")));
 	}
+	
+	@Test
+	public void porDoubleBarrierBug() {
+		assertFalse(ui.run("verify", filename("doubleBarrierBad.cvl")));
+	}
 
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {

@@ -1,0 +1,28 @@
+#include <concurrency.cvh>
+
+$gbarrier gbarrier = $gbarrier_create($here, 2);
+
+typedef struct A {
+  int x;
+} A;
+
+int main() {
+  A a;
+  void foo(int id) {
+    $barrier b = $barrier_create($here, gbarrier, id);
+    
+    $barrier_call(b);
+    a.x = id;
+
+    $barrier_call(b);    
+    $assert(a.x == 1);
+    
+    $barrier_destroy(b);
+  }
+  $proc p0 = $spawn foo(0);
+  $proc p1 = $spawn foo(1);
+
+  $wait(p0);
+  $wait(p1);
+  $gbarrier_destroy(gbarrier);
+}
