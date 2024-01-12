@@ -2192,9 +2192,9 @@ public class SimpleEnablerWorker {
 			Scope scope = ds.lexicalScope();
 
 			for (Variable var : scope.variables()) {
-				addVariableInProc(reach, pid, var);
+				addVariable(reach, dyscopeID, var);
 				if (writeableVars.contains(var))
-					addVariableInProc(reachWrite, pid, var);
+					addVariable(reachWrite, dyscopeID, var);
 			}
 		}
 		try {

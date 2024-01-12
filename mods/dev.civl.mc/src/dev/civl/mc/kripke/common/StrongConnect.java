@@ -35,9 +35,9 @@ import dev.civl.mc.util.IF.SeqSet;
  * <li>t does not enable a disabled transition in p</li>
  * </ol>
  * then every transition in E commutes with every enabled transition in p. One
- * way to define these sets is to let p.reach consist of all objects that are
+ * way to define these sets is to let p.depend consist of all objects that are
  * accessed (read, modify, delete) by the guards (including the disabled ones)
- * and enabled statements of p, and p.reachWrite consist of the accesses in the
+ * and enabled statements of p, and p.dependWrite consist of the accesses in the
  * enabled statements which are modify or delete. For system functions this
  * information can be taken from the contract. In general, it is always "safe"
  * to over-approximate these sets. It is also possible to let p.depend =
