@@ -1795,15 +1795,30 @@ public class CommonExecutor implements Executor {
 					&& (civlConfig.svcomp() || civlConfig.simplify()))
 				state = this.stateFactory.simplify(state);
 		}
+		if (state.isMonitoringReads(pid))
+			// Read of guards should be recorded:
+			state = getReadSetCollectEvaluator().evaluate(state, pid,
+					transition.statement().guard()).state;
 		switch (transition.transitionKind()) {
 			case NORMAL :
 				state = this.executeStatement(state, pid,
 						transition.statement());
 				break;
-			case NOOP :
+			case NOOP : {
+				if (state.isMonitoringReads(pid) && transition.statement()
+						.statementKind() == StatementKind.NOOP) {
+					// In case of noop expressions, the read of the expression
+					// needs to be recorded:
+					NoopStatement noop = (NoopStatement) transition.statement();
+
+					if (noop.expression() != null)
+						state = getReadSetCollectEvaluator().evaluate(state,
+								pid, noop.expression()).state;
+				}
 				state = this.stateFactory.setLocation(state, pid,
-						((NoopTransition) transition).statement().target());
+						transition.statement().target());
 				break;
+			}
 			default :
 				throw new CIVLUnimplementedFeatureException(
 						"Executing a transition of kind "

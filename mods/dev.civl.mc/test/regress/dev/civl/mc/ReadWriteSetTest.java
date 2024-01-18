@@ -122,6 +122,12 @@ public class ReadWriteSetTest {
 	public void call2() throws ABCException {
 		assertTrue(ui.run(VERIFY, QUIET, filenameForReadsetTest("call2.cvl")));
 	}
+	
+	@Test
+	public void conditional() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET,
+				filenameForReadsetTest("conditional.cvl")));
+	}
 
 	@Test
 	public void array() throws ABCException {

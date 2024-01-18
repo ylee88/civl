@@ -321,6 +321,7 @@ public class ReadSetAnalyzer {
 			case UNDEFINED_PROC :
 			case WILDCARD :
 			case SYSTEM_GUARD :
+			case DOMAIN_GUARD :// TODO: what is this ?
 				break;
 			/* shall not happen section */
 			case STRUCT_OR_UNION_LITERAL :
@@ -329,7 +330,6 @@ public class ReadSetAnalyzer {
 				/* I don't know if ignor-able or not kinds section */
 			case DERIVATIVE :
 			case DIFFERENTIABLE :
-			case DOMAIN_GUARD :// what is this ?
 				throw new CIVLUnimplementedFeatureException(
 						"dynamic analysis of read set during evaluation of "
 								+ "expression of " + kind + " kind");

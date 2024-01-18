@@ -1,0 +1,89 @@
+#include<mem.cvh>
+
+int test1() {
+  int x,y,z;
+  int p;
+
+  x = 0, y = 0, z = 0;
+  $havoc(&p);
+  $read_set_push();
+
+  p ? x : y;
+
+  $mem m = $read_set_pop();
+
+  $assert($mem_contains(m, &p));
+  $assert($mem_contains(m, &x) || $mem_contains(m, &y));  
+}
+
+int test2() {
+  int x,y,z;
+  int p;
+
+  x = 0, y = 0, z = 0;
+  $havoc(&p);
+  $read_set_push();
+
+  if (p)
+    x;
+  else
+    y;
+
+  $mem m = $read_set_pop();
+
+  $assert($mem_contains(m, &p));
+  $assert($mem_contains(m, &x) || $mem_contains(m, &y));    
+}
+
+int test3() {
+  int x,y,z;
+  int p;
+
+  x = 0, y = 0, z = 0;
+  $havoc(&p);
+  $read_set_push();
+
+  do {
+    x;
+  } while (p);
+  y;
+  $mem m = $read_set_pop();
+  $mem oracle = ($mem)&x;
+
+  oracle = $mem_union(oracle, ($mem)&y);
+  oracle = $mem_union(oracle, ($mem)&p);
+  $assert($mem_equals(m, oracle));
+}
+
+int test4() {
+  int x,y,z;
+  int p;
+
+  x = 0, y = 0, z = 0;
+  $havoc(&p);
+  $read_set_push();
+
+  switch(p) {
+  case 1:
+    x;
+    break;  
+  case 2:
+    y;
+    break;  
+  default:
+    z;
+    break;
+  } 
+
+  $mem m = $read_set_pop();
+
+  $assert($mem_contains(m, &p));
+  $assert($mem_contains(m, &x) || $mem_contains(m, &y) ||
+	  $mem_contains(m, &z));
+}
+
+int main() {
+    test1();
+    test2();
+    test3();
+}
