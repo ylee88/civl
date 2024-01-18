@@ -71,19 +71,1070 @@ typedef struct $cuda_context {
 	int numStreams;
 } $cuda_context;
 
-typedef struct $cuda_kernel_instance* $cuda_kernel_instance_t;
-typedef struct $cuda_kernel_instance {
-  $mem* readSets;
-  $mem* writeSets;
-  int size;
-} $cuda_kernel_instance;
+typedef struct $cuda_mem_set* $cuda_mem_set_t;
+typedef struct $cuda_mem_set {
+  $mem reads;
+  $mem writes;
+} $cuda_mem_set;
 
-typedef struct $cuda_memcpy_data {
-  void* dst;
-  const void* src;
-  size_t count;
-  cudaMemcpyKind kind;
-} $cuda_memcpy_data;
+void $cuda_mem_set_clear($cuda_mem_set_t memSet) {
+  $mem emptyset = $mem_empty();
+  memSet->reads = emptyset;
+  memSet->writes = emptyset;
+}
+
+$cuda_mem_set_t $cuda_mem_set_create($scope scope) {
+  $cuda_mem_set_t newMemSet = ($cuda_mem_set_t) $malloc(scope, sizeof($cuda_mem_set));
+
+  $cuda_mem_set_clear(newMemSet);
+
+  return newMemSet;
+}
+
+void $cuda_mem_set_destroy($cuda_mem_set_t memSet) {
+  free(memSet);
+}
+
+void $cuda_mem_set_add($cuda_mem_set_t memSet, $mem reads, $mem writes) {
+  memSet->reads = $mem_union(memSet->reads, reads);
+  memSet->writes = $mem_union(memSet->writes, writes);
+}
+
+void $cuda_check_mems_disjoint($cuda_mem_set_t m1, int b1, int w1, int l1,
+                               $cuda_mem_set_t m2, int b2, int w2, int l2) {
+  $mem out1 = $mem_empty();
+  $mem out2 = $mem_empty();
+  
+  $assert($mem_no_intersect(m1->reads, m2->writes, &out1, &out2),
+          "Data-race detected: %p read by thread <%d, %d, %d> intersects %p written by thread <%d, %d, %d>\n",
+          out1, b1, w1, l1, out2, b2, w2, l2);
+  $assert($mem_no_intersect(m1->writes, m2->reads, &out1, &out2),
+          "Data-race detected: %p written by thread <%d, %d, %d> intersects %p read by thread <%d, %d, %d>\n",
+          out1, b1, w1, l1, out2, b2, w2, l2);
+  $assert($mem_no_intersect(m1->writes, m2->writes, &out1, &out2),
+          "Data-race detected: %p written by thread <%d, %d, %d> intersects %p written by thread <%d, %d, %d>\n",
+          out1, b1, w1, l1, out2, b2, w2, l2);
+}
+
+typedef enum {
+  $CUDA_WARP_TAG_EMPTY,
+  $CUDA_WARP_TAG_warpsync,
+  $CUDA_WARP_TAG_shfl_sync,
+  $CUDA_WARP_TAG_shfl_up_sync,
+  $CUDA_WARP_TAG_shfl_down_sync,
+  $CUDA_WARP_TAG_shfl_xor_sync,
+  $CUDA_WARP_TAG_all_sync,
+  $CUDA_WARP_TAG_any_sync,
+  $CUDA_WARP_TAG_ballot_sync
+} $cuda_warp_tag;
+
+$input int warpSize = 32;
+
+typedef struct $cuda_warp_data* $cuda_warp_data_t;
+typedef struct $cuda_warp_data {
+  int size;
+  $cuda_mem_set_t** memSets;
+  _Bool patching[];
+  int num_alive;
+  _Bool alive[];
+  int num_in_barrier;
+  _Bool in_barrier[];
+  $cuda_warp_tag currOp;
+  int reductionLane;
+  $gcomm gcomm;
+} $cuda_warp_data;
+
+/*@ depends_on \access(warp);
+  @ executes_when \true;
+  @ */
+$atomic_f void $cuda_warp_barrier_update($cuda_warp_data_t warp) {
+  if (warp->num_in_barrier == warp->num_alive) {
+    warp->num_in_barrier = 0;
+    warp->currOp = $CUDA_WARP_TAG_EMPTY;
+    for (int i = 0; i < warp->size; i++) {
+      warp->in_barrier[i] = $false;
+      $cuda_mem_set_clear(warp->memSets[i][i]);
+    }
+  }
+}
+
+$cuda_warp_data_t $create_cuda_warp_data($scope warpScope, int size) {
+  $cuda_warp_data_t newWarp = ($cuda_warp_data_t) malloc(sizeof($cuda_warp_data));
+  newWarp->size = size;
+  newWarp->memSets = ($cuda_mem_set_t**) $malloc(warpScope, size * sizeof($cuda_mem_set_t*));
+  for (int i = 0; i < size; i++) {
+    newWarp->memSets[i] = ($cuda_mem_set_t*) $malloc(warpScope, size * sizeof($cuda_mem_set_t));
+    for (int j = 0; j < size; j++) {
+      newWarp->memSets[i][j] = $cuda_mem_set_create(warpScope);
+    }
+  }
+  newWarp->patching = (_Bool[size])$lambda(int i) $false;
+  newWarp->num_alive = size;
+  newWarp->alive = (_Bool[size])$lambda(int i) $true;
+  newWarp->num_in_barrier = 0;
+  newWarp->in_barrier = (_Bool[size])$lambda(int i) $false;
+  newWarp->currOp = $CUDA_WARP_TAG_EMPTY;
+  newWarp->reductionLane = -1;
+  newWarp->gcomm = $gcomm_create(warpScope, size);
+  
+  return newWarp;
+}
+
+void $destroy_cuda_warp_data($cuda_warp_data_t warp) {
+  $assert(warp != NULL, "Attempt to destroy a NULL warp");
+
+  for (int i = 0; i < warp->size; i++) {
+    for (int j = 0; j < warp->size; j++) {
+      $cuda_mem_set_destroy(warp->memSets[i][j]);
+    }
+    free(warp->memSets[i]);
+  }
+  free(warp->memSets);
+  $gcomm_destroy(warp->gcomm, NULL);
+  free(warp);
+}
+
+typedef struct $cuda_block_data* $cuda_block_data_t;
+typedef struct $cuda_block_data {
+  int size;
+  $cuda_mem_set_t* memSets;
+  int predArray[];
+  $gbarrier gbarrier;
+  int currBarrierID;
+  int numWarps;
+  $cuda_warp_data_t* warps;
+} $cuda_block_data;
+
+$cuda_block_data_t $create_cuda_block_data($scope scope, int size) {
+  $cuda_block_data_t newBlock = ($cuda_block_data_t) $malloc(scope, sizeof($cuda_block_data));
+
+  newBlock->size = size;
+  newBlock->numWarps = (size - 1)/warpSize + 1;
+
+  newBlock->predArray = (int[size]) $lambda(int i) 0;
+
+  newBlock->gbarrier = $gbarrier_create(scope, size);
+  newBlock->currBarrierID = -1;
+  
+  newBlock->memSets = ($cuda_mem_set_t*) $malloc(scope, size * sizeof($cuda_mem_set_t));
+  for (int i = 0; i < size; i++) {
+    newBlock->memSets[i] = $cuda_mem_set_create(scope);
+  }
+  newBlock->warps = ($cuda_warp_data_t*) $malloc(scope, newBlock->numWarps * sizeof($cuda_warp_data_t));
+  for (int i = 0; i < newBlock->numWarps - 1; i++) {
+    newBlock->warps[i] = $create_cuda_warp_data(scope, warpSize);
+  }
+  int lastIndex = newBlock->numWarps - 1;
+  newBlock->warps[lastIndex] = $create_cuda_warp_data(scope, ((size - 1) % warpSize) + 1);
+
+  return newBlock;
+}
+
+void $destroy_cuda_block_data($cuda_block_data_t block) {
+  for (int i = 0; i < block->size; i++) {
+    $cuda_mem_set_destroy(block->memSets[i]);
+  }
+  free(block->memSets);
+
+  for (int i = 0; i < block->numWarps; i++) {
+    $destroy_cuda_warp_data(block->warps[i]);
+  }
+  free(block->warps);
+
+  $gbarrier_destroy(block->gbarrier);
+
+  free(block);
+}
+
+typedef struct $cuda_kernel_data* $cuda_kernel_data_t;
+typedef struct $cuda_kernel_data {
+  int size;
+  $cuda_mem_set_t* memSets;
+  int numBlocks;
+  $cuda_block_data_t* blocks;
+} $cuda_kernel_data;
+
+$cuda_kernel_data_t $create_cuda_kernel_data($scope scope, dim3 gridDim, dim3 blockDim){
+  int numBlocks = (gridDim.x * gridDim.y) * gridDim.z;
+  int threadsPerBlock = (blockDim.x * blockDim.y) * blockDim.z;
+
+  $cuda_kernel_data_t newKernel = ($cuda_kernel_data_t)$malloc(scope, sizeof($cuda_kernel_data));
+  
+  newKernel->size = threadsPerBlock * numBlocks;
+  newKernel->numBlocks = numBlocks;
+
+  newKernel->memSets = ($cuda_mem_set_t*) $malloc(scope, newKernel->size * sizeof($cuda_mem_set_t));
+  for (int i = 0; i < newKernel->size; i++) {
+    newKernel->memSets[i] = $cuda_mem_set_create(scope);
+  }
+  
+  newKernel->blocks = ($cuda_block_data_t*) $malloc(scope, newKernel->numBlocks * sizeof($cuda_block_data_t));
+  for (int i = 0; i < newKernel->numBlocks; i++) {
+    newKernel->blocks[i] = $create_cuda_block_data(scope, threadsPerBlock);
+  }
+	
+	return newKernel;
+}
+
+void $destroy_cuda_kernel_data($cuda_kernel_data_t kernel){
+  for (int i = 0; i < kernel->size; i++) {
+    $cuda_mem_set_destroy(kernel->memSets[i]);
+  }
+  free(kernel->memSets);
+
+  for (int i = 0; i < kernel->numBlocks; i++) {
+    $destroy_cuda_block_data(kernel->blocks[i]);
+  }
+  free(kernel->blocks);
+	free(kernel);
+}
+
+typedef struct $cuda_thread_data* $cuda_thread_data_t;
+typedef struct $cuda_thread_data {
+  $cuda_kernel_data_t kernel;
+  $cuda_block_data_t block;
+  $cuda_warp_data_t warp;
+  int blockID;
+  int warpID;
+  int laneID;
+  $comm lane_comm;
+  $barrier block_barrier;
+} $cuda_thread_data;
+
+/*@ depends_on \access(thread);
+  @ executes_when \true;
+  @*/
+$atomic_f void $cuda_check_warp_data_race($cuda_thread_data_t thread) {
+  int blockID = thread->blockID;
+  int warpID = thread->warpID;
+  int laneID = thread->laneID;
+  $cuda_mem_set_t** warpMems = thread->warp->memSets;
+  
+  for (int i = 0; i < thread->warp->size; i++) {
+    if (i != laneID) {
+      $cuda_check_mems_disjoint(warpMems[laneID][laneID], blockID, warpID, laneID,
+                                warpMems[i][i], blockID, warpID, i);
+    }
+  }
+}
+
+/*@ depends_on \access(thread);
+  @ executes_when \true;
+  @*/
+$atomic_f void $cuda_check_block_data_race($cuda_thread_data_t thread) {
+  int blockID = thread->blockID;
+  int warpID = thread->warpID;
+  int laneID = thread->laneID;
+  int indexInBlock = warpID * warpSize + laneID;
+  $cuda_mem_set_t* blockMems = thread->block->memSets;
+  
+  for (int i = 0; i < thread->block->numWarps; i++) {
+    if (i != warpID) {
+      int currWarpSize = thread->block->warps[i]->size;
+      for (int j = 0; j < currWarpSize; j++) {
+        $cuda_check_mems_disjoint(blockMems[indexInBlock], blockID, warpID, laneID,
+                                  blockMems[i * warpSize + j], blockID, i, j);
+      }
+    }
+  }
+}
+
+/*@ depends_on \access(thread);
+  @ executes_when \true;
+  @*/
+$atomic_f void $cuda_check_kernel_data_race($cuda_thread_data_t thread) {
+  int blockID = thread->blockID;
+  int warpID = thread->warpID;
+  int laneID = thread->laneID;
+  int threadsPerBlock = thread->block->size;
+  int indexInKernel = blockID * threadsPerBlock + warpID * warpSize + laneID;
+  $cuda_mem_set_t* kernelMems = thread->kernel->memSets;
+  //printf("%d, %d, %d - Checking kernel data race. km index %d.\n\n", thread->blockID, thread->warpID, thread->laneID, indexInKernel);
+  
+  for (int i = 0; i < thread->kernel->numBlocks; i++) {
+    if (i != blockID) {
+      $cuda_block_data_t block = thread->kernel->blocks[i];
+      for (int j = 0; j < block->numWarps; j++) {
+        int currWarpSize = block->warps[j]->size;
+        for (int k = 0; k < currWarpSize; k++) {
+          //printf("%d, %d, %d - Checking kdr against <%d,%d,%d> with km index %d.\n\n", thread->blockID, thread->warpID, thread->laneID, i,j,k, i * threadsPerBlock + j * warpSize + k);
+          $cuda_check_mems_disjoint(kernelMems[indexInKernel], blockID, warpID, laneID,
+                                    kernelMems[i * threadsPerBlock + j * warpSize + k], i, j, k);
+        }
+      }
+    }
+  }
+}
+
+/*@ depends_on \access(thread);
+  @ executes_when \true;
+  @*/
+$atomic_f void $cuda_start_mem_patching($cuda_thread_data_t thread) {
+  thread->warp->patching[thread->laneID] = $true;
+}
+
+/*@ depends_on \access(thread);
+  @ executes_when \true;
+  @*/
+$atomic_f void $cuda_update_patches($cuda_thread_data_t thread) {
+  $cuda_warp_data_t warp = thread->warp;
+  int lane = thread->laneID;
+  
+  for (int i = 0; i < warp->size; i++) {
+    if (warp->patching[i]) {
+      $cuda_mem_set_add(warp->memSets[i][lane], warp->memSets[lane][lane]->reads, warp->memSets[lane][lane]->writes);
+    }
+  }
+}
+
+/*@ depends_on \access(thread);
+  @ executes_when \true;
+  @*/
+$atomic_f void $cuda_end_mem_patching($cuda_thread_data_t thread) {
+  if (thread->warp->patching[thread->laneID]) {
+    int size = thread->warp->size;
+    int blockID = thread->blockID;
+    int warpID = thread->warpID;
+    int laneID = thread->laneID;
+    $cuda_mem_set_t* threadMems = thread->warp->memSets[laneID];
+    
+    thread->warp->patching[laneID] = $false;
+
+    for (int i = 0; i < size; i++) {
+      if (i != laneID) {
+        $cuda_check_mems_disjoint(threadMems[laneID], blockID, warpID, laneID,
+                                  threadMems[i], blockID, warpID, i);
+        $cuda_mem_set_clear(threadMems[i]);
+      }
+    }
+  }
+}
+
+/*@ depends_on \access(thread);
+  @ executes_when \true;
+  @*/
+$atomic_f void $cuda_start_kernel_region($cuda_thread_data_t thread) {
+  int lane = thread->laneID;
+  //printf("%d, %d, %d - Starting region.\n\n", thread->blockID, thread->warpID, thread->laneID);
+  $cuda_update_patches(thread);
+  $cuda_mem_set_clear(thread->warp->memSets[lane][lane]);
+  $cuda_mem_set_clear(thread->block->memSets[thread->warpID * warpSize + thread->laneID]);
+  $cuda_mem_set_clear(thread->kernel->memSets[thread->blockID * thread->block->size + thread->warpID * warpSize + thread->laneID]);
+  //$cuda_mem_set_t km = thread->kernel->memSets[thread->blockID];
+  //printf("%d, %d, %d - kernel mem set after clear:\n\tReads: %s\n\tWrites: %s\n\n", thread->blockID, thread->warpID, thread->laneID, km->reads, km->writes);
+  $read_set_push();
+  $write_set_push();
+}
+
+/*@ depends_on \access(thread);
+  @ executes_when \true;
+  @*/
+$atomic_f void $cuda_complete_warp_region($cuda_thread_data_t thread) {
+  $mem reads = $read_set_pop();
+  $mem writes = $write_set_pop();
+  int lane = thread->laneID;
+  $cuda_mem_set_t laneMem = thread->warp->memSets[lane][lane];
+  //printf("%d, %d, %d - completing warp region.\n\tReads: %s\n\tWrites: %s\n\n", thread->blockID, thread->warpID, thread->laneID, reads, writes);
+  
+  $cuda_mem_set_add(laneMem, reads, writes);
+  $cuda_mem_set_add(thread->block->memSets[thread->warpID * warpSize + thread->laneID], laneMem->reads, laneMem->writes);
+  $cuda_mem_set_add(thread->kernel->memSets[thread->blockID * thread->block->size + thread->warpID * warpSize + thread->laneID], laneMem->reads, laneMem->writes);
+  //$cuda_mem_set_t km = thread->kernel->memSets[thread->blockID];
+  //printf("%d, %d, %d - kernel mem set after add:\n\tReads: %s\n\tWrites: %s\n\n", thread->blockID, thread->warpID, thread->laneID, km->reads, km->writes);
+  $cuda_end_mem_patching(thread);
+  $cuda_check_warp_data_race(thread);
+}
+
+/*@ depends_on \access(thread);
+  @ executes_when \true;
+  @*/
+$atomic_f void $cuda_complete_block_region($cuda_thread_data_t thread) {
+  //printf("%d, %d, %d - completing block region\n\n", thread->blockID, thread->warpID, thread->laneID);
+  $cuda_complete_warp_region(thread);
+  $cuda_check_block_data_race(thread);
+}
+
+/*@ depends_on \access(thread);
+  @ executes_when \true;
+  @*/
+$atomic_f void $cuda_complete_kernel_region($cuda_thread_data_t thread) {
+  //printf("%d, %d, %d - completing kernel region\n\n", thread->blockID, thread->warpID, thread->laneID);
+  $cuda_complete_block_region(thread);
+  $cuda_check_kernel_data_race(thread);
+}
+
+$cuda_thread_data_t $create_cuda_thread_data($scope scope, $cuda_kernel_data_t kernel, int blockID, int warpID, int laneID) {
+  $cuda_thread_data_t newThread = ($cuda_thread_data_t) $malloc(scope, sizeof($cuda_thread_data));
+
+  newThread->kernel = kernel;
+  newThread->block = kernel->blocks[blockID];
+  newThread->warp = newThread->block->warps[warpID];
+  newThread->blockID = blockID;
+  newThread->warpID = warpID;
+  newThread->laneID = laneID;
+  newThread->lane_comm = $comm_create(scope, kernel->blocks[blockID]->warps[warpID]->gcomm, laneID);
+  newThread->block_barrier = $barrier_create(scope, kernel->blocks[blockID]->gbarrier, warpID * warpSize + laneID);
+
+  $read_set_push();
+  $write_set_push();
+
+  return newThread;
+}
+
+/*@ depends_on \access(thread);
+  @ executes_when \true;
+  @ */
+$atomic_f void $destroy_cuda_thread_data($cuda_thread_data_t thread) {
+  $assert(thread != NULL, "Attempt to destroy NULL cuda thread");
+  $cuda_complete_kernel_region(thread);
+  
+  $cuda_warp_data_t warp = thread->warp;
+  warp->alive[thread->laneID] = $false;
+  warp->num_alive--;
+  $cuda_warp_barrier_update(warp);
+
+  $barrier_destroy(thread->block_barrier);
+
+  $comm_destroy(thread->lane_comm);
+  free(thread);
+}
+
+/*@ depends_on \access(thread);
+  @ executes_when \true;
+  @ */
+$atomic_f void $cuda_warp_barrier_enter($cuda_thread_data_t thread, $cuda_warp_tag tag) {
+  $cuda_warp_data_t warp = thread->warp;
+  $assert(!warp->in_barrier[thread->laneID]);
+  $assert(warp->currOp == tag || warp->currOp == $CUDA_WARP_TAG_EMPTY);
+  
+  warp->in_barrier[thread->laneID] = $true;
+  warp->currOp = tag;
+  warp->num_in_barrier++;
+  $cuda_warp_barrier_update(warp);
+}
+
+// Seems this needs to be atomic to work. Why?
+/*@ depends_on \access(thread);
+  @*/
+$atomic_f void $cuda_warp_barrier_exit($cuda_thread_data_t thread) {
+  $when(!thread->warp->in_barrier[thread->laneID]);
+}
+
+void $cuda_warp_barrier_call($cuda_thread_data_t thread, $cuda_warp_tag tag) {
+  $cuda_warp_barrier_enter(thread, tag);
+  $cuda_warp_barrier_exit(thread);
+}
+
+void $cuda__syncthreads($cuda_thread_data_t thread, int barrierIndex) {
+  $cuda_complete_block_region(thread);
+  int indexInBlock = thread->warpID * warpSize + thread->laneID;
+
+  if (thread->block->currBarrierID == -1) {
+    thread->block->currBarrierID = barrierIndex;
+  }
+  $assert(thread->block->currBarrierID == barrierIndex,
+          "Divergent calls to __syncthreads.");
+  
+  $local_end();
+  $barrier_call(thread->block_barrier);
+  $local_start();
+  int lane = thread->laneID;
+  
+  $cuda_mem_set_clear(thread->warp->memSets[lane][lane]);
+  $cuda_mem_set_clear(thread->block->memSets[thread->warpID * warpSize + lane]);
+
+  if (indexInBlock == 0) {
+    thread->block->currBarrierID = -1;
+  }
+
+  $local_end();
+  $barrier_call(thread->block_barrier);
+  $local_start();
+  
+  $read_set_push();
+  $write_set_push();
+}
+
+#define $CUDA_DEFINE_SYNCTHREADS_VARIANT(NAME, INIT, REDUCTION)         \
+  int NAME(int predicate, $cuda_thread_data_t thread, int barrierIndex) { \
+    $cuda_complete_block_region(thread);                                \
+    int indexInBlock = thread->warpID * warpSize + thread->laneID;      \
+                                                                        \
+    if (thread->block->currBarrierID == -1) {                           \
+      thread->block->currBarrierID = barrierIndex;                      \
+    }                                                                   \
+    $assert(thread->block->currBarrierID == barrierIndex,               \
+            "Divergent calls to NAME.");                                \
+                                                                        \
+    if (predicate) {                                                    \
+      thread->block->predArray[indexInBlock] = 1;                       \
+    } else {                                                            \
+      thread->block->predArray[indexInBlock] = 0;                       \
+    }                                                                   \
+                                                                        \
+    $local_end();                                                       \
+    $barrier_call(thread->block_barrier);                               \
+    $local_start();                                                     \
+    int lane = thread->laneID;                                          \
+                                                                        \
+    $cuda_mem_set_clear(thread->warp->memSets[lane][lane]);             \
+    $cuda_mem_set_clear(thread->block->memSets[indexInBlock]);          \
+                                                                        \
+    if (indexInBlock == 0) {                                            \
+      int result = INIT;                                                \
+      for (int i = 0; i < thread->block->size; i++) {                   \
+        REDUCTION;                                                      \
+      }                                                                 \
+      thread->block->predArray[0] = result;                             \
+      thread->block->currBarrierID = -1;                                \
+    }                                                                   \
+                                                                        \
+    $local_end();                                                       \
+    $barrier_call(thread->block_barrier);                               \
+    $local_start();                                                     \
+    int result = thread->block->predArray[0];                           \
+                                                                        \
+    $local_end();                                                       \
+    $barrier_call(thread->block_barrier);                               \
+    $local_start();                                                     \
+                                                                        \
+    $read_set_push();                                                   \
+    $write_set_push();                                                  \
+    return result;                                                      \
+  }
+
+$CUDA_DEFINE_SYNCTHREADS_VARIANT($cuda__syncthreads_count, 0, result += thread->block->predArray[i])
+$CUDA_DEFINE_SYNCTHREADS_VARIANT($cuda__syncthreads_or, 0, if (thread->block->predArray[i]) {
+    result = 1;
+    continue;
+  })
+$CUDA_DEFINE_SYNCTHREADS_VARIANT($cuda__syncthreads_and, 1, if (!thread->block->predArray[i]) {
+    result = 0;
+    continue;
+  })
+
+#define $GET_ARG_1(_1, ...) _1
+#define $GET_ARG_2(_1, _2, ...) _2
+
+#define __syncwarp() $cuda__syncwarp($thread)
+void $cuda__syncwarp($cuda_thread_data_t thread) {
+  $cuda_complete_warp_region(thread);
+  $local_end();
+  $cuda_warp_barrier_call(thread, $CUDA_WARP_TAG_warpsync);
+  $local_start();
+  $read_set_push();
+  $write_set_push();
+}
+                    
+#define $CUDA_SHFL_PARAM_MACRO(...) $GET_ARG_1(__VA_ARGS__, warpSize, 0), $GET_ARG_2(__VA_ARGS__, warpSize, 0)
+
+#define __shfl_sync(mask, var, ...)                                     \
+  _Generic(var,                                                         \
+           default: $cuda__shfl_sync_int,                               \
+           unsigned int: $cuda__shfl_sync_uint,                         \
+           long: $cuda__shfl_sync_long,                                 \
+           unsigned long: $cuda__shfl_sync_ulong,                       \
+           long long: $cuda__shfl_sync_ll,                              \
+           unsigned long long: $cuda__shfl_sync_ull,                    \
+           float: $cuda__shfl_sync_float,                               \
+           double: $cuda__shfl_sync_double) (mask, var, $CUDA_SHFL_PARAM_MACRO(__VA_ARGS__), $thread)
+
+#define __shfl_up_sync(mask, var, ...)                                  \
+  _Generic(var,                                                         \
+           default: $cuda__shfl_up_sync_int,                            \
+           unsigned int: $cuda__shfl_up_sync_uint,                      \
+           long: $cuda__shfl_up_sync_long,                              \
+           unsigned long: $cuda__shfl_up_sync_ulong,                    \
+           long long: $cuda__shfl_up_sync_ll,                           \
+           unsigned long long: $cuda__shfl_up_sync_ull,                 \
+           float: $cuda__shfl_up_sync_float,                            \
+           double: $cuda__shfl_up_sync_double) (mask, var, $CUDA_SHFL_PARAM_MACRO(__VA_ARGS__), $thread)
+
+#define __shfl_down_sync(mask, var, ...)                                \
+  _Generic(var,                                                         \
+           default: $cuda__shfl_down_sync_int,                          \
+           unsigned int: $cuda__shfl_down_sync_uint,                    \
+           long: $cuda__shfl_down_sync_long,                            \
+           unsigned long: $cuda__shfl_down_sync_ulong,                  \
+           long long: $cuda__shfl_down_sync_ll,                         \
+           unsigned long long: $cuda__shfl_down_sync_ull,               \
+           float: $cuda__shfl_down_sync_float,                          \
+           double: $cuda__shfl_down_sync_double) (mask, var, $CUDA_SHFL_PARAM_MACRO(__VA_ARGS__), $thread)
+ 
+#define __shfl_xor_sync(mask, var, ...)                                 \
+  _Generic(var,                                                         \
+           default: $cuda__shfl_xor_sync_int,                           \
+           unsigned int: $cuda__shfl_xor_sync_uint,                     \
+           long: $cuda__shfl_xor_sync_long,                             \
+           unsigned long: $cuda__shfl_xor_sync_ulong,                   \
+           long long: $cuda__shfl_xor_sync_ll,                          \
+           unsigned long long: $cuda__shfl_xor_sync_ull,                \
+           float: $cuda__shfl_xor_sync_float,                           \
+           double: $cuda__shfl_xor_sync_double) (mask, var, $CUDA_SHFL_PARAM_MACRO(__VA_ARGS__), $thread)
+
+#define $CUDA_INTRINSIC_RACE_CHECK_PROTOCOL_PRE()                       \
+  $mem writes = $write_set_pop();                                       \
+  $mem reads = $read_set_pop();                                         \
+  $cuda_mem_set_add(thread->warp->memSets[thread->laneID][thread->laneID], \
+                    reads, writes);                                     \
+  thread->warp->patching[thread->laneID] = $true;
+
+#define $CUDA_INTRINSIC_RACE_CHECK_PROTOCOL_POST()  \
+  $read_set_push();                                 \
+  $write_set_push();
+
+#define $CUDA_GENERIC_SHFL_BODY()                                       \
+  $assert (width <= warpSize);                                          \
+  for (int v = width; v > 1; v /= 2) {                                  \
+    $assert(v % 2 == 0);                                                \
+  }                                                                     \
+                                                                        \
+  int requestLane;                                                      \
+  switch(tag) {                                                         \
+    case $CUDA_WARP_TAG_shfl_sync:                                      \
+      requestLane = thread->laneID/width + laneParam % width;           \
+      break;                                                            \
+    case $CUDA_WARP_TAG_shfl_up_sync:                                   \
+      requestLane = thread->laneID - laneParam;                         \
+      break;                                                            \
+    case $CUDA_WARP_TAG_shfl_down_sync:                                 \
+      requestLane = thread->laneID + laneParam;                         \
+      break;                                                            \
+    case $CUDA_WARP_TAG_shfl_xor_sync:                                  \
+      requestLane = thread->laneID ^ laneParam;                         \
+      break;                                                            \
+  }                                                                     \
+  $cuda_warp_data_t warp = thread->warp;                                \
+  _Bool validSrcLane = requestLane >= 0 && requestLane < warp->size;    \
+  if (validSrcLane) {                                                   \
+    $comm_enqueue(thread->lane_comm, $message_pack(thread->laneID, requestLane, tag, NULL, 0)); \
+  }                                                                     \
+                                                                        \
+  $local_end();                                                         \
+  $cuda_warp_barrier_call(thread, tag);                                 \
+  $local_start();                                                       \
+                                                                        \
+                                                                        \
+  _Bool requested[width] = (_Bool[width])$lambda(int i) $false;         \
+  int subWarpStart = thread->laneID/width;                              \
+  while ($comm_probe(thread->lane_comm, $COMM_ANY_SOURCE, tag)) {       \
+    $message request = $comm_dequeue(thread->lane_comm, $COMM_ANY_SOURCE, tag); \
+    requested[$message_source(request) - subWarpStart] = $true;         \
+  }                                                                     \
+                                                                        \
+  $local_end();                                                         \
+  $cuda_warp_barrier_call(thread, tag);                                 \
+  $local_start();                                                       \
+                                                                        \
+  for(int i = 0; i < width; i++) {                                      \
+    if (requested[i]) {                                                 \
+      $comm_enqueue(thread->lane_comm, $message_pack(thread->laneID, i + subWarpStart, tag, &var, typeSize)); \
+    }                                                                   \
+  }                                                                     \
+                                                                        \
+  $local_end();                                                         \
+  $cuda_warp_barrier_call(thread, tag);                                 \
+  $local_start();                                                       \
+                                                                        \
+  if (validSrcLane) {                                                   \
+    $message result = $comm_dequeue(thread->lane_comm, requestLane, tag); \
+    $message_unpack(result, &resultVal, typeSize);                      \
+  } else {                                                              \
+    $havoc(&resultVal);                                                 \
+  }
+
+#define $CUDA_DEFINE_SHFL(NAME, T, TAG)                                 \
+  T NAME(unsigned mask, T var, int laneParam, int width, $cuda_thread_data_t thread) { \
+    $CUDA_INTRINSIC_RACE_CHECK_PROTOCOL_PRE();                          \
+    T resultVal;                                                        \
+    int typeSize = sizeof(T);                                           \
+    $cuda_warp_tag tag = TAG;                                           \
+                                                                        \
+    $CUDA_GENERIC_SHFL_BODY();                                          \
+                                                                        \
+    $CUDA_INTRINSIC_RACE_CHECK_PROTOCOL_POST();                         \
+    return resultVal;                                                   \
+  }
+
+$CUDA_DEFINE_SHFL($cuda__shfl_sync_int, int, $CUDA_WARP_TAG_shfl_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_sync_uint, unsigned int, $CUDA_WARP_TAG_shfl_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_sync_long, long, $CUDA_WARP_TAG_shfl_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_sync_ulong, unsigned long, $CUDA_WARP_TAG_shfl_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_sync_ll, long long, $CUDA_WARP_TAG_shfl_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_sync_ull, unsigned long long, $CUDA_WARP_TAG_shfl_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_sync_float, float, $CUDA_WARP_TAG_shfl_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_sync_double, double, $CUDA_WARP_TAG_shfl_sync)
+
+$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_int, int, $CUDA_WARP_TAG_shfl_up_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_uint, unsigned int, $CUDA_WARP_TAG_shfl_up_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_long, long, $CUDA_WARP_TAG_shfl_up_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_ulong, unsigned long, $CUDA_WARP_TAG_shfl_up_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_ll, long long, $CUDA_WARP_TAG_shfl_up_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_ull, unsigned long long, $CUDA_WARP_TAG_shfl_up_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_float, float, $CUDA_WARP_TAG_shfl_up_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_double, double, $CUDA_WARP_TAG_shfl_up_sync)
+
+$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_int, int, $CUDA_WARP_TAG_shfl_down_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_uint, unsigned int, $CUDA_WARP_TAG_shfl_down_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_long, long, $CUDA_WARP_TAG_shfl_down_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_ulong, unsigned long, $CUDA_WARP_TAG_shfl_down_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_ll, long long, $CUDA_WARP_TAG_shfl_down_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_ull, unsigned long long, $CUDA_WARP_TAG_shfl_down_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_float, float, $CUDA_WARP_TAG_shfl_down_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_double, double, $CUDA_WARP_TAG_shfl_down_sync)
+
+$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_int, int, $CUDA_WARP_TAG_shfl_xor_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_uint, unsigned int, $CUDA_WARP_TAG_shfl_xor_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_long, long, $CUDA_WARP_TAG_shfl_xor_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_ulong, unsigned long, $CUDA_WARP_TAG_shfl_xor_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_ll, long long, $CUDA_WARP_TAG_shfl_xor_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_ull, unsigned long long, $CUDA_WARP_TAG_shfl_xor_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_float, float, $CUDA_WARP_TAG_shfl_xor_sync)
+$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_double, double, $CUDA_WARP_TAG_shfl_xor_sync)
+
+#define __ballot_sync(mask, predicate) $cuda__ballot_sync(mask, predicate, $thread)
+#define __all_sync(mask, predicate) $cuda__all_sync(mask, predicate, $thread)
+#define __any_sync(mask, predicate) $cuda__any_sync(mask, predicate, $thread)
+
+#define $CUDA_GENERIC_COND_REDUCTION_BODY(COND, T_REDUCTION, F_REDUCTION)    \
+  $cuda_warp_data_t warp = thread->warp;               \
+  int laneID = thread->laneID;                                          \
+  $comm comm = thread->lane_comm;                                       \
+  if (warp->reductionLane == -1) {                                      \
+    warp->reductionLane = laneID;                                       \
+                                                                        \
+    result = initialValue;                                              \
+    for (int i = 0; i < warp->size; i++) {                              \
+      if (i == laneID) {                                                \
+        operand = value;                                                \
+      } else {                                                          \
+        $local_end();                                                   \
+        $when(!warp->alive[i] || $comm_probe(comm, i, tag)) $local_start(); \
+                                                                        \
+        if (!warp->alive[i]) {                                          \
+          operand = initialValue;                                       \
+        } else {                                                        \
+          $local_end();                                                 \
+          $message_unpack($comm_dequeue(comm, i, tag), &operand, typeSize); \
+          $local_start();                                               \
+        }                                                               \
+      }                                                                 \
+                                                                        \
+      if (COND) {                                                       \
+        result = T_REDUCTION;                                           \
+      } else {                                                          \
+        result = F_REDUCTION;                                           \
+      }                                                                 \
+    }                                                                   \
+                                                                        \
+    warp->reductionLane = -1;                                           \
+                                                                        \
+    for (int i = 0; i< warp->size; i++) {                               \
+      if (i != laneID && warp->alive[i]) {                              \
+        $comm_enqueue(comm, $message_pack(laneID, i, tag, &result, typeSize)); \
+      }                                                                 \
+    }                                                                   \
+  } else {                                                              \
+    int reductionLane = warp->reductionLane;                            \
+    $comm_enqueue(comm, $message_pack(laneID, reductionLane, tag, &value, typeSize)); \
+    $local_end();                                                       \
+    $message_unpack($comm_dequeue(comm, reductionLane, tag), &result, typeSize); \
+    $local_start();                                                     \
+  }
+
+#define $CUDA_GENERIC_REDUCTION_BODY(REDUCTION) $CUDA_GENERIC_COND_REDUCTION_BODY($true, REDUCTION, result)
+
+int $cuda__all_sync(unsigned mask, int value, $cuda_thread_data_t thread) {
+  $CUDA_INTRINSIC_RACE_CHECK_PROTOCOL_PRE();
+  
+  $cuda_warp_tag tag = $CUDA_WARP_TAG_all_sync;
+  int typeSize = sizeof(int);
+  int initialValue = 1;
+  int result, operand;
+
+  $CUDA_GENERIC_COND_REDUCTION_BODY(result != 0 && operand != 0, 1, 0);
+
+  $CUDA_INTRINSIC_RACE_CHECK_PROTOCOL_POST();
+  
+  return result;
+}
+
+int $cuda__any_sync(unsigned mask, int value, $cuda_thread_data_t thread) {
+  $CUDA_INTRINSIC_RACE_CHECK_PROTOCOL_PRE();
+  
+  $cuda_warp_tag tag = $CUDA_WARP_TAG_any_sync;
+  int typeSize = sizeof(int);
+  int initialValue = 0;
+  int result, operand;
+
+  $CUDA_GENERIC_COND_REDUCTION_BODY(result != 0 || operand != 0, 1, 0);
+
+  $CUDA_INTRINSIC_RACE_CHECK_PROTOCOL_POST();
+    
+  return result;
+}
+
+unsigned $cuda__ballot_sync(unsigned mask, int value, $cuda_thread_data_t thread) {
+  $CUDA_INTRINSIC_RACE_CHECK_PROTOCOL_PRE();
+  
+  $cuda_warp_tag tag = $CUDA_WARP_TAG_ballot_sync;
+  int initialValue = 0;
+  int typeSize = sizeof(int);
+  unsigned result;
+  int operand;
+
+  $CUDA_GENERIC_COND_REDUCTION_BODY(operand == 0, 2 * result, 2 * result + 1);
+
+  $CUDA_INTRINSIC_RACE_CHECK_PROTOCOL_POST();
+
+  return result;
+}
+
+/* atomicAdd()
+ * Reads the 16-bit, 32-bit or 64-bit word old located at the address address in
+ * global or shared memory, computes (old + val), and stores the result back to
+ * memory at the same address. These three operations are performed in one atomic
+ * transaction. The function returns old.
+ */
+#define atomicAdd(X,Y) _Generic(X,                  \
+    default : $cuda_atomicAdd_int,                    \
+    unsigned int* : $cuda_atomicAdd_uint,             \
+    unsigned long long int* : $cuda_atomicAdd_ullint, \
+    float* : $cuda_atomicAdd_float,                   \
+    double* : $cuda_atomicAdd_double) (X, Y, $thread)
+
+/* atomicSub()
+ * reads the 32-bit word old located at the address address in global or shared
+ * memory, computes (old - val), and stores the result back to memory at the same
+ * address. These three operations are performed in one atomic transaction. The
+ * function returns old.
+ */
+#define atomicSub(X,Y) _Generic(X,     \
+    default : $cuda_atomicSub_int,       \
+    unsigned int* : $cuda_atomicSub_uint) (X, Y, $thread)
+
+/* atomicExch()
+ * reads the 32-bit or 64-bit word old located at the address address in global
+ * or shared memory and stores val back to memory at the same address. These two
+ * operations are performed in one atomic transaction. The function returns old. 
+ */
+#define atomicExch(X,Y) _Generic(X,             \
+    default : $cuda_atomicExch_int,                   \
+    unsigned int* : $cuda_atomicExch_uint,            \
+    unsigned long long int* : $cuda_atomicExch_ullint, \
+    float* : $cuda_atomicExch_float) (X, Y, $thread)
+
+/* atomicMin()
+ * reads the 32-bit or 64-bit word old located at the address address in global
+ * or shared memory, computes the minimum of old and val, and stores the result
+ * back to memory at the same address. These three operations are performed in one
+ * atomic transaction. The function returns old.
+ */
+#define atomicMin(X,Y) _Generic(X,  \
+    default : $cuda_atomicMin_int,        \
+    unsigned int* : $cuda_atomicMin_uint, \
+    unsigned long long int* : $cuda_atomicMin_ullint) (X, Y, $thread)
+
+/* atomicMax()
+ * reads the 32-bit or 64-bit word old located at the address address in global
+ * or shared memory, computes the maximum of old and val, and stores the result
+ * back to memory at the same address. These three operations are performed in one
+ * atomic transaction. The function returns old.
+ */
+#define atomicMax(X,Y) _Generic(X,  \
+    default : $cuda_atomicMax_int,        \
+    unsigned int* : $cuda_atomicMax_uint, \
+    unsigned long long int* : $cuda_atomicMax_ullint) (X, Y, $thread)
+
+/* atomicInc()
+ * reads the 32-bit word old located at the address address in global or shared
+ * memory, computes ((old >= val) ? 0 : (old+1)), and stores the result back to
+ * memory at the same address. These three operations are performed in one atomic
+ * transaction. The function returns old.
+ */
+#define atomicInc(address, val) $cuda_atomicInc(address, val, $thread)
+
+/* atomicDec()
+ * reads the 32-bit word old located at the address address in global or shared
+ * memory, computes (((old == 0) || (old > val)) ? val : (old-1) ), and stores
+ * the result back to memory at the same address. These three operations are
+ * performed in one atomic transaction. The function returns old.
+ */
+#define atomicDec(address, val) $cuda_atomicDec(address, val, $thread)
+
+/* atomicCAS()
+ * reads the 16-bit, 32-bit or 64-bit word old located at the address address in
+ * global or shared memory, computes (old == compare ? val : old) , and stores the
+ * result back to memory at the same address. These three operations are performed
+ * in one atomic transaction. The function returns old (Compare And Swap).
+ */
+#define atomicCAS(address, compare, val) _Generic(address, \
+    default : $cuda_atomicCAS_int,                               \
+    unsigned int* : $cuda_atomicCAS_uint,                        \
+    unsigned long long int* : $cuda_atomicCAS_ullint,            \
+    unsigned short int* : $cuda_atomicCAS_usint) (address, compare, val, $thread)
+
+/*
+ * reads the 32-bit or 64-bit word old located at the address address
+ * in global or shared memory, computes (old & val), and stores the
+ * result back to memory at the same address. These three operations
+ * are performed in one atomic transaction. The function returns old.
+ */
+#define atomicAnd(address, val) _Generic(address, \
+    default : $cuda_atomicAnd_int,                \
+    unsigned int* : $cuda_atomicAnd_uint,         \
+    unsigned long long int* : $cuda_atomicAnd_ullint) (address, val, $thread)
+
+/*
+ * reads the 32-bit or 64-bit word old located at the address address
+ * in global or shared memory, computes (old | val), and stores the
+ * result back to memory at the same address. These three operations
+ * are performed in one atomic transaction. The function returns old.
+ */
+#define atomicOr(address, val) _Generic(address, \
+    default : $cuda_atomicOr_int,                \
+    unsigned int* : $cuda_atomicOr_uint,         \
+    unsigned long long int* : $cuda_atomicOr_ullint) (address, val, $thread)
+
+/*
+ * reads the 32-bit or 64-bit word old located at the address address
+ * in global or shared memory, computes (old ^ val), and stores the
+ * result back to memory at the same address. These three operations
+ * are performed in one atomic transaction. The function returns old.
+ */
+#define atomicXor(address, val) _Generic(address, \
+    default : $cuda_atomicXor_int,                \
+    unsigned int* : $cuda_atomicXor_uint,         \
+    unsigned long long int* : $cuda_atomicXor_ullint) (address, val, $thread)
+
+#define $CUDA_ATOMIC_PRE_ACTION(T)              \
+  $cuda_complete_kernel_region(thread);         \
+  $yield();                                     \
+  $cuda_start_kernel_region(thread);            \
+  T old = *address;
+
+#define $CUDA_ATOMIC_POST_ACTION()              \
+  $cuda_complete_kernel_region(thread);         \
+  $cuda_start_kernel_region(thread);            \
+  return old;
+
+#define $CUDA_DEFINE_ATOMIC_ADD(NAME, T)                  \
+  T NAME(T* address, T val, $cuda_thread_data_t thread) { \
+    $CUDA_ATOMIC_PRE_ACTION(T)                            \
+    *address += val;                                      \
+    $CUDA_ATOMIC_POST_ACTION()                            \
+  }
+
+$CUDA_DEFINE_ATOMIC_ADD($cuda_atomicAdd_int, int)
+$CUDA_DEFINE_ATOMIC_ADD($cuda_atomicAdd_uint, unsigned int)
+$CUDA_DEFINE_ATOMIC_ADD($cuda_atomicAdd_ullint, unsigned long long int)
+$CUDA_DEFINE_ATOMIC_ADD($cuda_atomicAdd_float, float)
+$CUDA_DEFINE_ATOMIC_ADD($cuda_atomicAdd_double, double)
+
+#define $CUDA_DEFINE_ATOMIC_SUB(NAME, T)                  \
+  T NAME(T* address, T val, $cuda_thread_data_t thread) { \
+    $CUDA_ATOMIC_PRE_ACTION(T)                            \
+    *address -= val;                                      \
+    $CUDA_ATOMIC_POST_ACTION()                            \
+  }
+
+$CUDA_DEFINE_ATOMIC_SUB($cuda_atomicSub_int, int)
+$CUDA_DEFINE_ATOMIC_SUB($cuda_atomicSub_uint, unsigned int)
+
+#define $CUDA_DEFINE_ATOMIC_EXCH(NAME, T)                 \
+  T NAME(T* address, T val, $cuda_thread_data_t thread) { \
+    $CUDA_ATOMIC_PRE_ACTION(T)                            \
+    *address = val;                                       \
+    $CUDA_ATOMIC_POST_ACTION()                            \
+  }
+
+$CUDA_DEFINE_ATOMIC_EXCH($cuda_atomicExch_int, int)
+$CUDA_DEFINE_ATOMIC_EXCH($cuda_atomicExch_uint, unsigned int)
+$CUDA_DEFINE_ATOMIC_EXCH($cuda_atomicExch_ullint, unsigned long long int)
+$CUDA_DEFINE_ATOMIC_EXCH($cuda_atomicExch_float, float)
+
+#define $CUDA_DEFINE_ATOMIC_MIN(NAME, T)                  \
+  T NAME(T* address, T val, $cuda_thread_data_t thread) { \
+    $CUDA_ATOMIC_PRE_ACTION(T)                            \
+    if (old <= val) *address = old;                       \
+    else *address = val;                                  \
+    $CUDA_ATOMIC_POST_ACTION()                            \
+  }
+
+$CUDA_DEFINE_ATOMIC_MIN($cuda_atomicMin_int, int)
+$CUDA_DEFINE_ATOMIC_MIN($cuda_atomicMin_uint, unsigned int)
+$CUDA_DEFINE_ATOMIC_MIN($cuda_atomicMin_ullint, unsigned long long int)
+
+#define $CUDA_DEFINE_ATOMIC_MAX(NAME, T)                  \
+  T NAME(T* address, T val, $cuda_thread_data_t thread) { \
+    $CUDA_ATOMIC_PRE_ACTION(T)                            \
+    if (old >= val) *address = old;                       \
+    else *address = val;                                  \
+    $CUDA_ATOMIC_POST_ACTION()                            \
+  }
+
+$CUDA_DEFINE_ATOMIC_MAX($cuda_atomicMax_int, int)
+$CUDA_DEFINE_ATOMIC_MAX($cuda_atomicMax_uint, unsigned int)
+$CUDA_DEFINE_ATOMIC_MAX($cuda_atomicMax_ullint, unsigned long long int)
+
+unsigned int $cuda_atomicInc(unsigned int* address, unsigned int val, $cuda_thread_data_t thread) {
+  $CUDA_ATOMIC_PRE_ACTION(unsigned int);
+  if (old >= val) *address = 0;
+  else *address = old + 1;
+  $CUDA_ATOMIC_POST_ACTION()
+}
+
+unsigned int $cuda_atomicDec(unsigned int* address, unsigned int val, $cuda_thread_data_t thread) {
+  $CUDA_ATOMIC_PRE_ACTION(unsigned int);
+  if (old == 0 || old > val) *address = val;
+  else *address = old - 1;
+  $CUDA_ATOMIC_POST_ACTION()  
+}
+
+#define $CUDA_DEFINE_ATOMIC_CAS(NAME, T)                               \
+  T NAME(T* address, T compare, T val, $cuda_thread_data_t thread) {   \
+    $CUDA_ATOMIC_PRE_ACTION(T)                                         \
+    if (old == compare) *address = val;                                \
+    $CUDA_ATOMIC_POST_ACTION()                                         \
+  }
+
+$CUDA_DEFINE_ATOMIC_CAS($cuda_atomicCAS_int, int)
+$CUDA_DEFINE_ATOMIC_CAS($cuda_atomicCAS_uint, unsigned int)
+$CUDA_DEFINE_ATOMIC_CAS($cuda_atomicCAS_ullint, unsigned long long int)
+$CUDA_DEFINE_ATOMIC_CAS($cuda_atomicCAS_usint, unsigned short int)
+
+#define $CUDA_DEFINE_ATOMIC_AND(NAME, T)                               \
+  T NAME(T* address, T val, $cuda_thread_data_t thread) {              \
+    $CUDA_ATOMIC_PRE_ACTION(T)                                         \
+    *address = old & val;                                              \
+    $CUDA_ATOMIC_POST_ACTION()                                         \
+  }
+
+$CUDA_DEFINE_ATOMIC_AND($cuda_atomicAnd_int, int)
+$CUDA_DEFINE_ATOMIC_AND($cuda_atomicAnd_uint, unsigned int)
+$CUDA_DEFINE_ATOMIC_AND($cuda_atomicAnd_ullint, unsigned long long int)
+
+#define $CUDA_DEFINE_ATOMIC_OR(NAME, T)                                \
+  T NAME(T* address, T val, $cuda_thread_data_t thread) {              \
+    $CUDA_ATOMIC_PRE_ACTION(T)                                         \
+    *address = old | val;                                              \
+    $CUDA_ATOMIC_POST_ACTION()                                         \
+  }
+
+$CUDA_DEFINE_ATOMIC_OR($cuda_atomicOr_int, int)
+$CUDA_DEFINE_ATOMIC_OR($cuda_atomicOr_uint, unsigned int)
+$CUDA_DEFINE_ATOMIC_OR($cuda_atomicOr_ullint, unsigned long long int)
+
+#define $CUDA_DEFINE_ATOMIC_XOR(NAME, T)                               \
+  T NAME(T* address, T val, $cuda_thread_data_t thread) {              \
+    $CUDA_ATOMIC_PRE_ACTION(T)                                         \
+    *address = old ^ val;                                              \
+    $CUDA_ATOMIC_POST_ACTION()                                         \
+  }
+
+$CUDA_DEFINE_ATOMIC_XOR($cuda_atomicXor_int, int)
+$CUDA_DEFINE_ATOMIC_XOR($cuda_atomicXor_uint, unsigned int)
+$CUDA_DEFINE_ATOMIC_XOR($cuda_atomicXor_ullint, unsigned long long int)
 
 //////////////////////
 // Global Variables //
@@ -120,6 +1171,13 @@ $scope $cuda_host_request_device_scope() {
 
   return result;
 }
+
+typedef struct $cuda_memcpy_data {
+  void* dst;
+  const void* src;
+  size_t count;
+  cudaMemcpyKind kind;
+} $cuda_memcpy_data;
 
 void $cuda_host_memcpy(void* dst, const void* src, size_t count, cudaMemcpyKind kind, _Bool async) {
   if (kind == cudaMemcpyHostToHost) {
@@ -302,102 +1360,6 @@ $message $cuda_free($message request) {
   return $message_pack($CUDA_PLACE_DEVICE, $CUDA_PLACE_HOST, $CUDA_TAG_cudaFree, NULL, 0);
 }
 
-$cuda_kernel_instance_t $create_kernel_instance($scope cudaScope, dim3 gridDim, dim3 blockDim){
-	int threadsPerBlock = (blockDim.x * blockDim.y) * blockDim.z;
-	int numBlocks = (gridDim.x * gridDim.y) * gridDim.z;
-	int numThreads = threadsPerBlock * numBlocks;
-	
-  $cuda_kernel_instance_t $kernel = ($cuda_kernel_instance_t)$malloc(cudaScope, sizeof($cuda_kernel_instance));
-	$mem* readSets = ($mem*)$malloc(cudaScope, sizeof($mem) * numThreads);
-	$mem* writeSets = ($mem*)$malloc(cudaScope, sizeof($mem) * numThreads);
-	//Is this meant to be the number of threads in the grid?
-	int size = numThreads;
-	
-	$kernel->readSets = readSets;
-	$kernel->writeSets = writeSets;
-	$kernel->size = size;
-	
-	return $kernel;
-}
-
-void $destroy_kernel_instance($cuda_kernel_instance_t $kernel){
-	free($kernel->readSets);
-	free($kernel->writeSets);
-	free($kernel);
-	return;
-}
-
-void $clear_mem_sets($cuda_kernel_instance_t k, int cur_tid) {
-	k->writeSets[cur_tid] = $mem_empty();
-    k->readSets[cur_tid] = $mem_empty();
-}
-
-void $clear_all_mem_sets($cuda_kernel_instance_t k){
-    for(int i = 0; i < k->size; i++)
-      $clear_mem_sets(k, i);
-}
-
-$atomic_f void $check_data_race($cuda_kernel_instance_t k, int cur_tid) {
-  //printf("Current id: %d\n", cur_tid);
-  $mem out_s0 = $mem_empty();
-  $mem out_s1 = $mem_empty();
-  $mem cur_mw = $write_set_pop();
-  $mem cur_mr = $read_set_pop();
-  
-  // Update current R/W sets
-  k->writeSets[cur_tid] = cur_mw;
-  k->readSets[cur_tid] = cur_mr;
-  
-  /*
-  printf("CHECKING DATA RACE %d [\n", cur_tid);
-  for (int tmp_tid = 0; tmp_tid < k->size; tmp_tid++) {
-    printf("  RS %d: %s\n", tmp_tid, k->read_sets[tmp_tid]);
-    printf("  WS %d: %s\n", tmp_tid, k->write_sets[tmp_tid]);
-  }
-  printf("]\n");
-  */
-  
-  // Check data race
-  for (int tmp_tid = 0; tmp_tid < k->size; tmp_tid++) {
-    if (tmp_tid == cur_tid) continue;
-    
-    $mem tmp_mr = k->readSets[tmp_tid];
-    $mem tmp_mw = k->writeSets[tmp_tid];
-    
-    $assert($mem_no_intersect(cur_mr, tmp_mw, &out_s0, &out_s1), 
-              "Data-race detected: %p read by thread %d intersects %p written by thread %d\n",
-	          out_s0, cur_tid, out_s1, tmp_tid);
-    $assert($mem_no_intersect(cur_mw, tmp_mr, &out_s0, &out_s1), 
-              "Data-race detected: %p read by thread %d intersects %p written by thread %d\n",
-	          out_s0, cur_tid, out_s1, tmp_tid);
-    $assert($mem_no_intersect(cur_mw, tmp_mw, &out_s0, &out_s1), 
-              "Data-race detected: %p written by thread %d intersects %p written by thread %d\n",
-	          out_s0, cur_tid, out_s1, tmp_tid);
-  }
-  // Update current R/W sets
-  //k->writeSets[cur_tid] = $mem_empty();
-  //k->readSets[cur_tid] = $mem_empty();
-  $read_set_push();
-  $write_set_push();
-}
-
-void $cuda_barrier($cuda_kernel_instance_t k, int kernel_id, $barrier g) {
-  /*$check_data_race(k, kernel_id);
-   We have to push a new read and write set before the barrier call to ignore it's reads and writes
-  $read_set_push();
-  $write_set_push();
-  void captured_clear_mems(){
-    $clear_all_mem_sets(k);
-  }  
-  */
-  //$barrier_call_execute(g, captured_clear_mems);
-  $local_end();
-  $barrier_call(g);
-  $local_start();
-  //$read_set_pop();
-  //$write_set_pop();
-}
-
 
 
 ////////////////////////////////////////////
@@ -477,399 +1439,6 @@ cudaError_t cudaDeviceSynchronize() {
 }
 */
 
-////////////////
-// Warp stuff //
-////////////////
-
-// TODO: Handle thread termination!
-
-$input int warpSize = 32;
-
-typedef struct $cuda_warp* $cuda_warp_t;
-typedef struct $cuda_warp {
-  int size;
-  int num_alive;
-  _Bool alive[];
-  int num_in_barrier;
-  _Bool in_barrier[];
-  int reductionLane;
-  $gcomm warp_gcomm;
-} $cuda_warp;
-
-$cuda_warp_t $create_cuda_warp($scope warpScope, int size) {
-  $cuda_warp_t newWarp = ($cuda_warp_t) malloc(sizeof($cuda_warp));
-  newWarp->size = size;
-  newWarp->num_alive = size;
-  newWarp->alive = (_Bool[size])$lambda(int i) $true;
-  newWarp->num_in_barrier = 0;
-  newWarp->in_barrier = (_Bool[size])$lambda(int i) $false;
-  newWarp->reductionLane = -1;
-  newWarp->warp_gcomm = $gcomm_create(warpScope, size);
-  
-  return newWarp;
-}
-
-void $destroy_cuda_warp($cuda_warp_t warp) {
-  $assert(warp != NULL, "Attempt to destroy a NULL warp");
-
-  $gcomm_destroy(warp->warp_gcomm, NULL);
-  free(warp);
-}
-
-/*@ depends_on \access(warp);
-  @ executes_when \true;
-  @ */
-$atomic_f void $cuda_warp_barrier_update($cuda_warp_t warp) {
-  if (warp->num_in_barrier == warp->num_alive) {
-    warp->num_in_barrier = 0;
-    for (int i = 0; i < warp->size; i++) {
-      warp->in_barrier[i] = $false;
-    }
-  }
-}
-
-typedef struct $cuda_lane* $cuda_lane_t;
-typedef struct $cuda_lane {
-  int laneID;
-  $cuda_warp_t warp;
-  $comm lane_comm;
-} $cuda_lane;
-
-$cuda_lane_t $create_cuda_lane($scope laneScope, $cuda_warp_t warp, int laneID) {
-  $assert(warp != NULL, "Attempt to create lane from NULL warp");
-  
-  $cuda_lane_t newLane = ($cuda_lane_t) malloc(sizeof($cuda_lane));
-  newLane->laneID = laneID;
-  newLane->warp = warp;
-  newLane->lane_comm = $comm_create(laneScope, warp->warp_gcomm, laneID);
-
-  return newLane;
-};
-
-/*@ depends_on \access(lane);
-  @ executes_when \true;
-  @ */
-$atomic_f void $destroy_cuda_lane($cuda_lane_t lane) {
-  $assert(lane != NULL, "Attempt to destroy NULL lane");
-
-  lane->warp->alive[lane->laneID] = $false;
-  lane->warp->num_alive--;
-  $cuda_warp_barrier_update(lane->warp);
-  $comm_destroy(lane->lane_comm);
-  free(lane);
-}
-
-/*@ depends_on \access(lane);
-  @ executes_when \true;
-  @ */
-$atomic_f void $cuda_warp_barrier_enter($cuda_lane_t lane) {
-  $cuda_warp_t warp = lane->warp;
-  int place = lane->laneID;
-  $assert(!warp->in_barrier[place]);
-  
-  warp->in_barrier[place] = $true;
-  warp->num_in_barrier++;
-  $cuda_warp_barrier_update(warp);
-}
-
-/*@ depends_on \access(lane);
-  @ */
-$atomic_f void $cuda_warp_barrier_exit($cuda_lane_t lane) {
-  $when(!lane->warp->in_barrier[lane->laneID]);
-}
-
-void $cuda_warp_barrier_call($cuda_lane_t lane) {
-  $cuda_warp_barrier_enter(lane);
-  $cuda_warp_barrier_exit(lane);
-}
-
-typedef enum {
-  $CUDA_WARP_TAG_shfl_sync,
-  $CUDA_WARP_TAG_shfl_up_sync,
-  $CUDA_WARP_TAG_shfl_down_sync,
-  $CUDA_WARP_TAG_shfl_xor_sync,
-  $CUDA_WARP_TAG_all_sync,
-  $CUDA_WARP_TAG_any_sync,
-  $CUDA_WARP_TAG_ballot_sync
-} $cuda_warp_tag;
-
-#define $GET_ARG_1(_1, ...) _1
-#define $GET_ARG_2(_1, _2, ...) _2
-#define $CUDA_SHFL_PARAM_MACRO(...) $GET_ARG_1(__VA_ARGS__, warpSize, 0), $GET_ARG_2(__VA_ARGS__, warpSize, 0)
-
-#define __shfl_sync(mask, var, ...)                                     \
-  _Generic(var,                                                         \
-           default: $cuda__shfl_sync_int,                               \
-           unsigned int: $cuda__shfl_sync_uint,                         \
-           long: $cuda__shfl_sync_long,                                 \
-           unsigned long: $cuda__shfl_sync_ulong,                       \
-           long long: $cuda__shfl_sync_ll,                              \
-           unsigned long long: $cuda__shfl_sync_ull,                    \
-           float: $cuda__shfl_sync_float,\
-           double: $cuda__shfl_sync_double) (mask, var, $CUDA_SHFL_PARAM_MACRO(__VA_ARGS__), $lane)
-
-#define __shfl_up_sync(mask, var, ...)                                  \
-  _Generic(var,                                                         \
-           default: $cuda__shfl_up_sync_int,                            \
-           unsigned int: $cuda__shfl_up_sync_uint,                      \
-           long: $cuda__shfl_up_sync_long,                              \
-           unsigned long: $cuda__shfl_up_sync_ulong,                    \
-           long long: $cuda__shfl_up_sync_ll,                           \
-           unsigned long long: $cuda__shfl_up_sync_ull,                 \
-           float: $cuda__shfl_up_sync_float,                            \
-           double: $cuda__shfl_up_sync_double) (mask, var, $CUDA_SHFL_PARAM_MACRO(__VA_ARGS__), $lane)
-
-#define __shfl_down_sync(mask, var, ...)                                \
-  _Generic(var,                                                         \
-           default: $cuda__shfl_down_sync_int,                          \
-           unsigned int: $cuda__shfl_down_sync_uint,                    \
-           long: $cuda__shfl_down_sync_long,                            \
-           unsigned long: $cuda__shfl_down_sync_ulong,                  \
-           long long: $cuda__shfl_down_sync_ll,                         \
-           unsigned long long: $cuda__shfl_down_sync_ull,               \
-           float: $cuda__shfl_down_sync_float,                          \
-           double: $cuda__shfl_down_sync_double) (mask, var, $CUDA_SHFL_PARAM_MACRO(__VA_ARGS__), $lane)
- 
-#define __shfl_xor_sync(mask, var, ...)                                 \
-  _Generic(var,                                                         \
-           default: $cuda__shfl_xor_sync_int,                           \
-           unsigned int: $cuda__shfl_xor_sync_uint,                     \
-           long: $cuda__shfl_xor_sync_long,                             \
-           unsigned long: $cuda__shfl_xor_sync_ulong,                   \
-           long long: $cuda__shfl_xor_sync_ll,                          \
-           unsigned long long: $cuda__shfl_xor_sync_ull,                \
-           float: $cuda__shfl_xor_sync_float,                           \
-           double: $cuda__shfl_xor_sync_double) (mask, var, $CUDA_SHFL_PARAM_MACRO(__VA_ARGS__), $lane)
-
-#define $CUDA_GENERIC_SHFL_BODY()                                       \
-  $assert (width <= warpSize);                                          \
-  for (int v = width; v > 1; v /= 2) {                                  \
-    $assert(v % 2 == 0);                                                \
-  }                                                                     \
-                                                                        \
-  int requestLane;                                                      \
-  switch(tag) {                                                         \
-    case $CUDA_WARP_TAG_shfl_sync:                                      \
-      requestLane = lane->laneID/width + laneParam % width;             \
-      break;                                                            \
-    case $CUDA_WARP_TAG_shfl_up_sync:                                   \
-      requestLane = lane->laneID - laneParam;                           \
-      break;                                                            \
-    case $CUDA_WARP_TAG_shfl_down_sync:                                 \
-      requestLane = lane->laneID + laneParam;                           \
-      break;                                                            \
-    case $CUDA_WARP_TAG_shfl_xor_sync:                                  \
-      requestLane = lane->laneID ^ laneParam;                           \
-      break;                                                            \
-  }                                                                     \
-  _Bool validSrcLane = requestLane >= 0 && requestLane < lane->warp->size; \
-  if (validSrcLane) {                                                   \
-    $comm_enqueue(lane->lane_comm, $message_pack(lane->laneID, requestLane, tag, NULL, 0)); \
-  }                                                                     \
-                                                                        \
-  $local_end();                                                         \
-  $cuda_warp_barrier_call(lane);                                        \
-  $local_start();                                                       \
-                                                                        \
-  while ($comm_probe(lane->lane_comm, $COMM_ANY_SOURCE, tag)) {         \
-    $message request = $comm_dequeue(lane->lane_comm, $COMM_ANY_SOURCE, tag); \
-                                                                        \
-    $comm_enqueue(lane->lane_comm, $message_pack(lane->laneID, $message_source(request), tag, &var, typeSize)); \
-  }                                                                     \
-                                                                        \
-  $local_end();                                                         \
-  $cuda_warp_barrier_call(lane);                                        \
-  $local_start();                                                       \
-                                                                        \
-  if (validSrcLane) {                                                   \
-    $message result = $comm_dequeue(lane->lane_comm, requestLane, tag); \
-    $message_unpack(result, &resultVal, typeSize);                      \
-  } else {                                                              \
-    $havoc(&resultVal);                                                 \
-  }
-
-#define $CUDA_DEFINE_SHFL(NAME, T, TAG)                                 \
-  T NAME(unsigned mask, T var, int laneParam, int width, $cuda_lane_t lane) { \
-    T resultVal;                                                        \
-    int typeSize = sizeof(T);                                           \
-    $cuda_warp_tag tag = TAG;                                           \
-                                                                        \
-    $CUDA_GENERIC_SHFL_BODY();                                          \
-                                                                        \
-    return resultVal;                                                   \
-  }
-
-$CUDA_DEFINE_SHFL($cuda__shfl_sync_int, int, $CUDA_WARP_TAG_shfl_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_sync_uint, unsigned int, $CUDA_WARP_TAG_shfl_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_sync_long, long, $CUDA_WARP_TAG_shfl_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_sync_ulong, unsigned long, $CUDA_WARP_TAG_shfl_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_sync_ll, long long, $CUDA_WARP_TAG_shfl_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_sync_ull, unsigned long long, $CUDA_WARP_TAG_shfl_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_sync_float, float, $CUDA_WARP_TAG_shfl_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_sync_double, double, $CUDA_WARP_TAG_shfl_sync)
-
-$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_int, int, $CUDA_WARP_TAG_shfl_up_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_uint, unsigned int, $CUDA_WARP_TAG_shfl_up_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_long, long, $CUDA_WARP_TAG_shfl_up_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_ulong, unsigned long, $CUDA_WARP_TAG_shfl_up_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_ll, long long, $CUDA_WARP_TAG_shfl_up_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_ull, unsigned long long, $CUDA_WARP_TAG_shfl_up_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_float, float, $CUDA_WARP_TAG_shfl_up_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_up_sync_double, double, $CUDA_WARP_TAG_shfl_up_sync)
-
-$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_int, int, $CUDA_WARP_TAG_shfl_down_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_uint, unsigned int, $CUDA_WARP_TAG_shfl_down_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_long, long, $CUDA_WARP_TAG_shfl_down_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_ulong, unsigned long, $CUDA_WARP_TAG_shfl_down_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_ll, long long, $CUDA_WARP_TAG_shfl_down_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_ull, unsigned long long, $CUDA_WARP_TAG_shfl_down_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_float, float, $CUDA_WARP_TAG_shfl_down_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_down_sync_double, double, $CUDA_WARP_TAG_shfl_down_sync)
-
-$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_int, int, $CUDA_WARP_TAG_shfl_xor_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_uint, unsigned int, $CUDA_WARP_TAG_shfl_xor_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_long, long, $CUDA_WARP_TAG_shfl_xor_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_ulong, unsigned long, $CUDA_WARP_TAG_shfl_xor_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_ll, long long, $CUDA_WARP_TAG_shfl_xor_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_ull, unsigned long long, $CUDA_WARP_TAG_shfl_xor_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_float, float, $CUDA_WARP_TAG_shfl_xor_sync)
-$CUDA_DEFINE_SHFL($cuda__shfl_xor_sync_double, double, $CUDA_WARP_TAG_shfl_xor_sync)
-
-#define __ballot_sync(mask, predicate) $cuda__ballot_sync(mask, predicate, $lane)
-#define __all_sync(mask, predicate) $cuda__all_sync(mask, predicate, $lane)
-#define __any_sync(mask, predicate) $cuda__any_sync(mask, predicate, $lane)
-
-#define $CUDA_GENERIC_COND_REDUCTION_BODY(COND, T_REDUCTION, F_REDUCTION)    \
-  $cuda_warp_t warp = lane->warp;                                       \
-  int laneID = lane->laneID;                                            \
-  $comm comm = lane->lane_comm;                                         \
-  if (warp->reductionLane == -1) {                                      \
-    warp->reductionLane = laneID;                                       \
-                                                                        \
-    result = initialValue;                                              \
-    for (int i = 0; i < warp->size; i++) {                              \
-      if (i == laneID) {                                                \
-        operand = value;                                                \
-      } else {                                                          \
-        $local_end();                                                   \
-        $when(!warp->alive[i] || $comm_probe(comm, i, tag)) $local_start(); \
-                                                                        \
-        if (!warp->alive[i]) {                                          \
-          operand = initialValue;                                       \
-        } else {                                                        \
-          $local_end();                                                 \
-          $message_unpack($comm_dequeue(comm, i, tag), &operand, typeSize); \
-          $local_start();                                               \
-        }                                                               \
-      }                                                                 \
-                                                                        \
-      if (COND) {                                                       \
-        result = T_REDUCTION;                                           \
-      } else {                                                          \
-        result = F_REDUCTION;                                           \
-      }                                                                 \
-    }                                                                   \
-                                                                        \
-    warp->reductionLane = -1;                                           \
-                                                                        \
-    for (int i = 0; i< warp->size; i++) {                               \
-      if (i != laneID && warp->alive[i]) {                              \
-        $comm_enqueue(comm, $message_pack(laneID, i, tag, &result, typeSize)); \
-      }                                                                 \
-    }                                                                   \
-  } else {                                                              \
-    int reductionLane = warp->reductionLane;                            \
-    $comm_enqueue(comm, $message_pack(laneID, reductionLane, tag, &value, typeSize)); \
-    $local_end();                                                       \
-    $message_unpack($comm_dequeue(comm, reductionLane, tag), &result, typeSize); \
-    $local_start();                                                     \
-  }
-
-#define $CUDA_GENERIC_REDUCTION_BODY(REDUCTION) $CUDA_GENERIC_COND_REDUCTION_BODY($true, REDUCTION, result)
-
-int $cuda__all_sync(unsigned mask, int value, $cuda_lane_t lane) {
-  $cuda_warp_tag tag = $CUDA_WARP_TAG_all_sync;
-  int typeSize = sizeof(int);
-  int initialValue = 1;
-  int result, operand;
-
-  $CUDA_GENERIC_COND_REDUCTION_BODY(result != 0 && operand != 0, 1, 0);
-
-  return result;
-}
-
-int $cuda__any_sync(unsigned mask, int value, $cuda_lane_t lane) {
-  $cuda_warp_tag tag = $CUDA_WARP_TAG_any_sync;
-  int typeSize = sizeof(int);
-  int initialValue = 0;
-  int result, operand;
-
-  $CUDA_GENERIC_COND_REDUCTION_BODY(result != 0 || operand != 0, 1, 0);
-
-  return result;
-}
-
-unsigned $cuda__ballot_sync(unsigned mask, int value, $cuda_lane_t lane) {
-  $cuda_warp_tag tag = $CUDA_WARP_TAG_ballot_sync;
-  int initialValue = 0;
-  int typeSize = sizeof(int);
-  unsigned result;
-  int operand;
-
-  $CUDA_GENERIC_COND_REDUCTION_BODY(operand == 0, 2 * result, 2 * result + 1);
-
-  return result;
-}
-
-/*
-int $cuda__ballot_sync(unsigned mask, int value, $cuda_lane_t lane) {
-  $cuda_warp_tag tag = $CUDA_WARP_TAG_ballot_sync;
-  int initialValue = 0;
-  int result;
-
-  if (warp->reductionLane == -1) {
-    warp->reductionLane = laneID;
-
-    result = initialValue;
-    for (int i = 0; i < warp->size; i++) {
-      int operand;
-      if (i == laneID) {
-        operand = value;
-      } else {
-        $local_end();
-        $when(!warp->alive[i] || $comm_probe(comm, i, tag)) $local_start();
-      
-        if (!warp->alive[i]) {
-          operand = initialValue;
-        } else {
-          $local_end();
-          $message_unpack($comm_dequeue(comm, i, tag), &operand, sizeof(int));
-          $local_start();
-        }
-      }
-
-      result = 2 * result + (operand == 0 ? 0 : 1);
-    }
-
-    warp->reductionLane = -1;
-
-    for (int i = 0; i< warp->size; i++) {
-      if (i != laneID && warp->alive[i]) {
-        $comm_enqueue(comm, $message_pack(laneID, i, tag, &result, sizeof(int)));
-      }
-    }
-  } else {
-    int reductionLane = warp->reductionLane;
-    $comm_enqueue(comm, $message_pack(laneID, reductionLane, tag, &value, sizeof(int)));
-    $local_end();
-    $message_unpack($comm_dequeue(comm, reductionLane, tag), &result, sizeof(int));
-    $local_start();
-  }
-
-  return result;
-}
-*/
-
 //////////////////////////////////
 // Generated code from kernel_1 //
 //////////////////////////////////
@@ -883,9 +1452,9 @@ typedef struct {
   const float* B;
   float* C;
   int numElements;
-} $cuda_kernel_1_data;
+} $cuda_kernel_1_params;
 
-void $cuda_reveal_kernel_1_args($cuda_kernel_1_data* args) {
+void $cuda_reveal_kernel_1_args($cuda_kernel_1_params* args) {
   args->A = $reveal(args->A);
   args->B = $reveal(args->B);
   args->C = $reveal(args->C);
@@ -894,7 +1463,7 @@ void $cuda_reveal_kernel_1_args($cuda_kernel_1_data* args) {
 void $cuda_host_launch_kernel_1(dim3 gridDim, dim3 blockDim,
                                 size_t $cudaMemSize, cudaStream_t $cudaStream,
                                 float* A, const float* B, float* C, int numElements) {
-  $cuda_kernel_1_data args;
+  $cuda_kernel_1_params args;
   args.gridDim = gridDim;
   args.blockDim = blockDim;
   args.$cudaMemSize = $cudaMemSize;
@@ -904,35 +1473,26 @@ void $cuda_host_launch_kernel_1(dim3 gridDim, dim3 blockDim,
   args.C = C;
   args.numElements = numElements;
 
-  $comm_enqueue($cuda_host_comm, $message_pack($CUDA_PLACE_HOST, $CUDA_PLACE_DEVICE, $CUDA_TAG_LAUNCH_kernel_1, &args, sizeof($cuda_kernel_1_data)));
+  $comm_enqueue($cuda_host_comm, $message_pack($CUDA_PLACE_HOST, $CUDA_PLACE_DEVICE, $CUDA_TAG_LAUNCH_kernel_1, &args, sizeof($cuda_kernel_1_params)));
   $comm_dequeue($cuda_host_comm, $CUDA_PLACE_DEVICE, $CUDA_TAG_LAUNCH_kernel_1);
 }
 
 void $cuda_kernel_1(dim3 gridDim, dim3 blockDim, size_t _cuda_mem_size,
                     float *A, const float *B, float *C, int numElements) {
-  $cuda_kernel_instance_t $kernel = $create_kernel_instance($here, gridDim, blockDim);
+  $cuda_kernel_data_t $kernel = $create_cuda_kernel_data($here, gridDim, blockDim);
   void $cuda_block(uint3 blockIdx) {
-    int $numThreads = (blockDim.x * blockDim.y) * blockDim.z;
-    int $numWarps = ($numThreads - 1)/warpSize + 1;
-    $scope $block_root = $here;
-    $gbarrier $cuda_block_barrier = $gbarrier_create($block_root, $numThreads);
-    
-    $cuda_warp_t $warps[$numWarps];
-    for (int i = 0; i < $numWarps - 1; i++) {
-      $warps[i] = $create_cuda_warp($block_root, warpSize);
-    }
-    $warps[$numWarps-1] = $create_cuda_warp($block_root, (($numThreads - 1) % warpSize) + 1);
-      
     void $cuda_thread(uint3 threadIdx) {
       $local_start();
-      int _cuda_tid = $dim3_index(blockDim, threadIdx);
-      int _cuda_kid = $cuda_kernel_index(gridDim, blockDim, blockIdx, threadIdx);
+      // cudaMemSet currently not supported so this is small hack to initialize C ahead of time
+      if (blockIdx.x == 0 && threadIdx.x == 0) {
+        for (int i = 0; i < gridDim.x; i++) {
+          C[i] = 0;
+        }
+      }
       //$clear_mem_sets($kernel, _cuda_kid);
-      $barrier $cuda_thread_barrier = $barrier_create($here, $cuda_block_barrier, _cuda_tid);
-      $cuda_lane_t $lane = $create_cuda_lane($here, $warps[_cuda_tid / warpSize], _cuda_tid % warpSize);
-
-      //$read_set_push();
-      //$write_set_push();
+      int $cuda_tid = $dim3_index(blockDim, threadIdx);
+      int $cuda_kid = $cuda_kernel_index(gridDim, blockDim, blockIdx,  threadIdx);
+      $cuda_thread_data_t $thread = $create_cuda_thread_data($here, $kernel, $cuda_kid/(blockDim.x * blockDim.y * blockDim.z), $cuda_tid/warpSize, $cuda_tid % warpSize);
       
       // Kernel REDUCTION start
       /*
@@ -944,27 +1504,30 @@ void $cuda_kernel_1(dim3 gridDim, dim3 blockDim, size_t _cuda_mem_size,
 
       int i = blockDim.x * blockIdx.x + threadIdx.x;
       int warpStart = i - lane;
-      printf("%d,%d - i: %d, warpStart: %d, thisWarpSize: %d\n", blockIdx.x, threadIdx.x,i, warpStart, thisWarpSize);
+      //printf("%d,%d - i: %d, warpStart: %d, thisWarpSize: %d\n", blockIdx.x, threadIdx.x,i, warpStart, thisWarpSize);
       int remainingElements = numElements;
 
       while (remainingElements > 1) {
-        //printf("%d,%d - remainingElements: %d\n", blockIdx.x, threadIdx.x, remainingElements);
+        //printf("%d,%d - remainingElements: %d - numElements: %d\n", blockIdx.x, threadIdx.x, remainingElements, numElements);
         if (remainingElements < numElements) {
           // __syncThreads()
           //printf("%d,%d - entering barrier\n", blockIdx.x, threadIdx.x);
           
-          $cuda_barrier($kernel, _cuda_kid, $cuda_thread_barrier);
+          $cuda__syncthreads($thread, 0);
           //printf("%d,%d - exiting barrier\n", blockIdx.x, threadIdx.x);
         }
         
         if (warpStart + 1 < remainingElements) {
           float val = i < numElements ? A[i] : 0;
+          //printf("%d,%d - val: %d\n", blockIdx.x, threadIdx.x, val);
           
           for (int offset = warpSize/2; offset > 0; offset /= 2) {
+            //__syncwarp();
             float tmp = __shfl_down_sync(0, val, offset);
             if (lane + offset < thisWarpSize) {
               val += tmp;
             }
+            //printf("%d,%d - offset: %d - val: %d\n", blockIdx.x, threadIdx.x, offset, val);
           }
 
           if (i < numElements) {
@@ -980,10 +1543,59 @@ void $cuda_kernel_1(dim3 gridDim, dim3 blockDim, size_t _cuda_mem_size,
       if (i == 0) {
         *C = A[0];
       }
-      // Kernel REDUCTION end
       */
+      // Kernel REDUCTION end
+
+      // Kernel REDUCTION 2 start
+      
+      int lane = threadIdx.x % warpSize;
+      int thisWarpSize = warpSize;
+      if (threadIdx.x - lane + warpSize > blockDim.x) {
+        thisWarpSize = ((blockDim.x - 1) % warpSize) + 1;
+      }
+      
+      int i = blockDim.x * blockIdx.x + threadIdx.x;
+      int warpStart = i - lane;
+
+      if (warpStart + 1 < numElements) {
+        float val = i < numElements ? A[i] : 0;
+        for (int offset = warpSize/2; offset > 0; offset /= 2) {
+          float tmp = __shfl_down_sync(0, val, offset);
+          //float tmp = i + offset < numElements ? A[i + offset] : 0;
+          if (lane + offset < thisWarpSize) {
+            val += tmp;
+          }
+        }
+
+        if (i < numElements) {
+          A[i] = val;
+        }
+      }
+
+      $cuda__syncthreads($thread, 0);
+      if (threadIdx.x == 0) {
+        int blockEnd = blockDim.x * (blockIdx.x + 1);
+        if (blockEnd > numElements) {
+          blockEnd = numElements;
+        }
+        for (int j = i + warpSize; j < blockEnd; j += warpSize) {
+          A[i] += A[j];
+        }
+        atomicAdd(C + blockIdx.x, 1);
+      }
+
+      if (i == 0) {
+        C[0] = A[0];
+        for (int j = 1; j < gridDim.x; j++) {
+          while(atomicAdd(C+j,0) == 0) {}
+          C[0] += A[j * blockDim.x];
+        }
+      }
+      // Kernel REDUCTION 2 end
+      
       // Kernel BALLOT TEST start
 
+      /*
       int i = threadIdx.x;
       if (i < numElements) {
         int result = __ballot_sync(~0, A[i] > 0);
@@ -998,30 +1610,25 @@ void $cuda_kernel_1(dim3 gridDim, dim3 blockDim, size_t _cuda_mem_size,
           printf("done calculating result\n");
         }
       }
+      */
       // Kernel BALLOT TEST end
       //$check_data_race($kernel, _cuda_kid);
       //$read_set_pop();
       //$write_set_pop();
-      $barrier_destroy($cuda_thread_barrier);
-      $destroy_cuda_lane($lane);
+      $destroy_cuda_thread_data($thread);
       $local_end();
     }
     $cuda_run_and_wait_on_procs(blockDim, $cuda_thread);
-    $gbarrier_destroy($cuda_block_barrier);
-    
-    for (int i = 0; i < $numWarps; i++) {
-      $destroy_cuda_warp($warps[i]);
-    }
   }
   $cuda_run_and_wait_on_procs(gridDim, $cuda_block);
-  $destroy_kernel_instance($kernel);
+  $destroy_cuda_kernel_data($kernel);
 }
 
 void $cuda_kernel_1_proc ($message request, $cuda_op_state_t opState, cudaStream_t cudaStream) {
   $when(opState->start);
 
-  $cuda_kernel_1_data args;
-  $message_unpack(request, &args, sizeof($cuda_kernel_1_data));
+  $cuda_kernel_1_params args;
+  $message_unpack(request, &args, sizeof($cuda_kernel_1_params));
   $cuda_reveal_kernel_1_args(&args);
 
   $cuda_kernel_1(args.gridDim, args.blockDim, args.$cudaMemSize, args.A, args.B, args.C, args.numElements);
@@ -1097,17 +1704,17 @@ void $cuda_main() {
 // Host file //
 ///////////////
 
-$input int N;
-$assume (N > 0);
+$input int N = 16;
+$input int threadsPerBlock = N%2 == 0 ? N/2 : (N+1)/2;
+//$input int threadsPerBlock = N;
 $input float A[N];
 // Currently unused but left in to save time
 $input float B[N];
 
 void $host_main() {
   int size = N * sizeof(float);
-  int numBlocks = 1;
-  //int numThreads = N%2 == 0? N/2 : (N+1)/2;
-  int numThreads = warpSize;
+  int numBlocks = (N-1)/threadsPerBlock + 1;
+  //int numBlocks = 1;
 
   float* cuda_A;
   // cudaMalloc((void **)&cuda_A, size);
@@ -1126,14 +1733,14 @@ void $host_main() {
   cudaMemcpy(cuda_B, B, size, cudaMemcpyHostToDevice);
 
   float* cuda_C;
-  // cudaMalloc((void **)&cuda_C, sizeof(float));
+  // cudaMalloc((void **)&cuda_C, sizeof(float) * numBlocks);
   {
     $scope deviceScope = $cuda_host_request_device_scope();
-    cuda_C = $hide((float*)$malloc(deviceScope, sizeof(float)));
+    cuda_C = $hide((float*)$malloc(deviceScope, sizeof(float) * numBlocks));
   }
 
   dim3 gridDim = {numBlocks, 1, 1};
-  dim3 blockDim = {numThreads, 1, 1};
+  dim3 blockDim = {threadsPerBlock, 1, 1};
   // kernel_1<<<gridDim, blockDim>>>(cuda_A, cuda_B, cuda_C, N);
   $cuda_host_launch_kernel_1(gridDim, blockDim, 0, NULL, cuda_A, cuda_B, cuda_C, N);
   
@@ -1143,20 +1750,22 @@ void $host_main() {
   cudaMemcpy(C, cuda_C, sizeof(float), cudaMemcpyDeviceToHost);
 
   // REDUCTION ASSERTION
-  /*
+  
   float sum = 0;
   for(int i = 0; i < N; i++)
     sum += A[i];
   
   $assert(*C == sum);
-  */
+  
   // BALLOT ASSERTION
+  /*
   float count = 0;
   for (int i = 0; i < N; i++) {
     if (A[i] > 0)
       count++;
   }
   $assert(*C == count);
+  */
   
   free(C);
   

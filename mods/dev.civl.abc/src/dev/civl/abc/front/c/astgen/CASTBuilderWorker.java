@@ -1583,6 +1583,8 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 			declaration.setNoreturnFunctionSpecifier(true);
 		if (analysis.globalSpecifier)
 			declaration.setGlobalFunctionSpecifier(true);
+		if (analysis.deviceSpecifier)
+			declaration.setDeviceFunctionSpecifier(true);
 		if (analysis.pureSpecifier)
 			declaration.setPureFunctionSpecifier(true);
 		if (analysis.fatomicSpecifier)

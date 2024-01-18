@@ -23,6 +23,7 @@ public class CommonFunctionDeclarationNode extends CommonOrdinaryDeclarationNode
 	private boolean noreturnFunctionSpecifier = false;
 
 	private boolean globalFunctionSpecifier = false;
+	private boolean deviceFunctionSpecifier = false;
 
 	private boolean atomicFunctionSpecifier = false;// $atomic_f
 	private boolean stateFunctionSpecifier = false;
@@ -75,6 +76,16 @@ public class CommonFunctionDeclarationNode extends CommonOrdinaryDeclarationNode
 	@Override
 	public void setGlobalFunctionSpecifier(boolean value) {
 		this.globalFunctionSpecifier = value;
+	}
+	
+	@Override
+	public boolean hasDeviceFunctionSpecifier() {
+		return this.deviceFunctionSpecifier;
+	}
+	
+	@Override
+	public void setDeviceFunctionSpecifier(boolean value) {
+		this.deviceFunctionSpecifier = value;
 	}
 
 	protected void printKind(PrintStream out) {
@@ -130,6 +141,7 @@ public class CommonFunctionDeclarationNode extends CommonOrdinaryDeclarationNode
 		result.setInlineFunctionSpecifier(hasInlineFunctionSpecifier());
 		result.setNoreturnFunctionSpecifier(hasNoreturnFunctionSpecifier());
 		result.setGlobalFunctionSpecifier(hasGlobalFunctionSpecifier());
+		result.setDeviceFunctionSpecifier(hasDeviceFunctionSpecifier());
 		result.setAtomicFunctionSpecifier(this.hasAtomicFunctionSpecifier());
 		result.setSystemFunctionSpecifier(this.hasSystemFunctionSpecifier());
 		result.setPureFunctionSpecifier(this.hasPureFunctionSpecifier());

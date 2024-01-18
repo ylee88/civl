@@ -92,6 +92,27 @@ public interface FunctionDeclarationNode extends OrdinaryDeclarationNode {
 	void setGlobalFunctionSpecifier(boolean value);
 
 	/**
+	 * Does the declaration include the <code>__device__</code> CUDA function
+	 * specifier?
+	 * 
+	 * @return <code>true</code> iff declaration contains
+	 *         <code>__device__</code>
+	 *         @see #setDeviceFunctionSpecifier(boolean)
+	 */
+	boolean hasDeviceFunctionSpecifier();
+	
+	/**
+	 * Set the device function specifier bit to the given value.
+	 * 
+	 * @param value
+	 *            if <code>true</code>, says that this function declaration
+	 *            contains the <code>__device__</code> specifier, if
+	 *            <code>false</code>, it doesn't
+	 * @see #hasDeviceFunctionSpecifier()
+	 */
+	void setDeviceFunctionSpecifier(boolean value);
+
+	/**
 	 * Does the declaration include the <code>$pure</code> function specifier? A
 	 * $pure function is a function whose return value is only determined by its
 	 * input values, without observable side effects.

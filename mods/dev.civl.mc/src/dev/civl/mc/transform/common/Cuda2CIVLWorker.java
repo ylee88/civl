@@ -81,11 +81,13 @@ public class Cuda2CIVLWorker extends BaseWorker {
 	private Map<String, KernelInfo> kernelMap = new HashMap<String, KernelInfo>();
 	private Set<ExpressionStatementNode> kernelCalls = new HashSet<ExpressionStatementNode>();
 
+	private Map<String, Function> deviceFunctionMap = new HashMap<String, Function>();
+
+	private int numSyncthreads = 0;
+
 	protected class KernelInfo {
-		private static final String NUM_THREADS_NAME = "$numThreads";
 
 		public Function entity;
-		public int numSyncthreads = 0;
 
 		public KernelInfo(Function entity) {
 			this.entity = entity;
@@ -117,28 +119,8 @@ public class Cuda2CIVLWorker extends BaseWorker {
 			return "$cuda_host_launch_" + entity.getName();
 		}
 
-		public String getTransformedKernelName() {
-			return "$cuda_" + entity.getName();
-		}
-
-		public String getSyncthreadsGBarrierName(int index) {
-			return "$cuda_syncthreads_gb_" + index;
-		}
-
-		public String getSyncthreadsBarrierName(int index) {
-			return "$cuda_syncthreads_b_" + index;
-		}
-
 		public FunctionDefinitionNode getDefinition() {
 			return entity.getDefinition();
-		}
-
-		// Each pair is param name followed by named type
-		private List<Pair<String, String>> contextParams() {
-			return Arrays.asList(new Pair<String, String>("gridDim", "dim3"),
-					new Pair<String, String>("blockDim", "dim3"),
-					new Pair<String, String>("_cuda_mem_size", "size_t"),
-					new Pair<String, String>("_cuda_stream", "cudaStream_t"));
 		}
 
 		/**
@@ -151,7 +133,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		 */
 		public TypedefDeclarationNode generateParameterStruct() {
 			String srcMethod = entity.getName() + ".generateParameterStruct";
-			List<Pair<String, String>> contextParams = contextParams();
+			List<Pair<String, String>> contextParams = contextParams(false);
 			List<FieldDeclarationNode> fieldList = new ArrayList<FieldDeclarationNode>(
 					entity.getType().getNumParameters() + contextParams.size());
 
@@ -183,7 +165,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 			List<BlockItemNode> bodyList = new LinkedList<>();
 
 			for (VariableDeclarationNode formalDecl : generateFormalParameters(
-					srcMethod)) {
+					entity.getName(), getDefinition().getTypeNode(), false)) {
 				if (formalDecl.getTypeNode() instanceof PointerTypeNode) {
 					ExpressionNode argNode = nodeExprArrow(srcMethod,
 							nodeExprId(srcMethod, "args"),
@@ -202,73 +184,6 @@ public class Cuda2CIVLWorker extends BaseWorker {
 											nodeTypeNamed(srcMethod,
 													getParamStructName())))),
 					bodyList);
-		}
-
-		/**
-		 * Generates a list of {@link VariableDeclarationNode}s which are the
-		 * full list of formal parameters to the kernel. This includes the
-		 * implicit context parameters that all CUDA kernels have.
-		 * 
-		 * @param srcMethod
-		 *            The name of the method generating these parameters. Used
-		 *            for source generation purposes.
-		 * @return
-		 */
-		public List<VariableDeclarationNode> generateFormalParameters(
-				String srcMethod) {
-			List<Pair<String, String>> contextParams = contextParams();
-			List<VariableDeclarationNode> formals = new ArrayList<VariableDeclarationNode>(
-					entity.getType().getNumParameters() + contextParams.size());
-
-			for (Pair<String, String> contextParam : contextParams) {
-				formals.add(nodeDeclVar(srcMethod, contextParam.left,
-						nodeTypeNamed(srcMethod, contextParam.right)));
-			}
-
-			for (VariableDeclarationNode param : getDefinition().getTypeNode()
-					.getParameters()) {
-				if (param.getTypeNode().kind() == TypeNodeKind.VOID)
-					continue;
-
-				formals.add(param.copy());
-			}
-
-			return formals;
-		}
-
-		private void transformKernelBody(ASTNode node) {
-			String srcMethod = entity.getName() + ".transformKernelBody";
-
-			for (ASTNode child : node.children()) {
-				if (child == null)
-					continue;
-
-				if (child instanceof ExpressionNode) {
-					ExpressionNode exprNode = (ExpressionNode) child;
-					if (exprNode instanceof FunctionCallNode) {
-						ExpressionNode function = ((FunctionCallNode) exprNode)
-								.getFunction();
-						if (function instanceof IdentifierExpressionNode) {
-							String functionName = ((IdentifierExpressionNode) function)
-									.getIdentifier().name();
-							if (functionName.equals("__syncthreads")) {
-								FunctionCallNode cudaBarrier = nodeExprCall(
-										srcMethod, "$cuda_syncthreads",
-										nodeExprId(srcMethod, "$kernel"),
-										nodeExprId(srcMethod, "$cuda_kid"),
-										nodeExprId(srcMethod,
-												getSyncthreadsBarrierName(
-														numSyncthreads)));
-								numSyncthreads++;
-
-								node.setChild(child.childIndex(), cudaBarrier);
-								continue;
-							}
-						}
-					}
-				}
-				transformKernelBody(child);
-			}
 		}
 
 		private FunctionDefinitionNode generateKernelThreadDefinition() {
@@ -290,25 +205,33 @@ public class Cuda2CIVLWorker extends BaseWorker {
 							nodeExprId(srcMethod, "blockDim"),
 							nodeExprId(srcMethod, "blockIdx"),
 							nodeExprId(srcMethod, "threadIdx"))));
-			for (int i = 0; i < numSyncthreads; i++) {
-				bodyList.add(
-						nodeDeclVarInit(srcMethod, getSyncthreadsBarrierName(i),
-								nodeTypeNamed(srcMethod, "$barrier"),
-								nodeExprCall(srcMethod, "$barrier_create",
-										nodeExprHere(srcMethod),
-										nodeExprId(srcMethod,
-												getSyncthreadsGBarrierName(i)),
-										nodeExprId(srcMethod, "$cuda_tid"))));
-			}
-			bodyList.add(nodeDeclVarInit(srcMethod, "$lane",
-					nodeTypeNamed(srcMethod, "$cuda_lane_t"),
-					nodeExprCall(srcMethod, "$create_cuda_lane",
+			bodyList.add(nodeDeclVarInit(srcMethod, "$thread",
+					nodeTypeNamed(srcMethod, "$cuda_thread_data_t"),
+					nodeExprCall(srcMethod, "$create_cuda_thread_data",
 							nodeExprHere(srcMethod),
-							nodeExprOp(srcMethod, Operator.SUBSCRIPT,
-									nodeExprId(srcMethod, "$warps"),
-									nodeExprOp(srcMethod, Operator.DIV,
-											nodeExprId(srcMethod, "$cuda_tid"),
-											nodeExprId(srcMethod, "warpSize"))),
+							nodeExprId(srcMethod, "$kernel"),
+							nodeExprOp(srcMethod, Operator.DIV,
+									nodeExprId(srcMethod, "$cuda_kid"),
+									nodeExprOp(srcMethod, Operator.TIMES,
+											nodeExprDot(srcMethod,
+													nodeExprId(srcMethod,
+															"blockDim"),
+													"x"),
+											nodeExprOp(srcMethod,
+													Operator.TIMES,
+													nodeExprDot(srcMethod,
+															nodeExprId(
+																	srcMethod,
+																	"blockDim"),
+															"y"),
+													nodeExprDot(srcMethod,
+															nodeExprId(
+																	srcMethod,
+																	"blockDim"),
+															"z")))),
+							nodeExprOp(srcMethod, Operator.DIV,
+									nodeExprId(srcMethod, "$cuda_tid"),
+									nodeExprId(srcMethod, "warpSize")),
 							nodeExprOp(srcMethod, Operator.MOD,
 									nodeExprId(srcMethod, "$cuda_tid"),
 									nodeExprId(srcMethod, "warpSize")))));
@@ -319,12 +242,8 @@ public class Cuda2CIVLWorker extends BaseWorker {
 				}
 			}
 
-			for (int i = 0; i < numSyncthreads; i++) {
-				bodyList.add(nodeStmtCall(srcMethod, "$barrier_destroy",
-						nodeExprId(srcMethod, getSyncthreadsBarrierName(i))));
-			}
-			bodyList.add(nodeStmtCall(srcMethod, "$destroy_cuda_lane",
-					nodeExprId(srcMethod, "$lane")));
+			bodyList.add(nodeStmtCall(srcMethod, "$destroy_cuda_thread_data",
+					nodeExprId(srcMethod, "$thread")));
 			bodyList.add(nodeStmtCall(srcMethod, "$local_end"));
 
 			return nodeDefnFunction(srcMethod, "$cuda_thread", voidType(),
@@ -339,82 +258,6 @@ public class Cuda2CIVLWorker extends BaseWorker {
 
 			List<BlockItemNode> bodyList = new LinkedList<>();
 
-			bodyList.add(nodeDeclVarInit(srcMethod, NUM_THREADS_NAME,
-					nodeTypeInt(srcMethod),
-					nodeExprOp(srcMethod, Operator.TIMES, nodeExprOp(srcMethod,
-							Operator.TIMES,
-							nodeExprDot(srcMethod,
-									nodeExprId(srcMethod, "blockDim"), "x"),
-							nodeExprDot(srcMethod,
-									nodeExprId(srcMethod, "blockDim"), "y")),
-							nodeExprDot(srcMethod,
-									nodeExprId(srcMethod, "blockDim"), "z"))));
-			bodyList.add(nodeDeclVarInit(srcMethod, "$numWarps",
-					nodeTypeInt(srcMethod),
-					nodeExprOp(srcMethod, Operator.PLUS,
-							nodeExprOp(srcMethod, Operator.DIV,
-									nodeExprOp(srcMethod, Operator.MINUS,
-											nodeExprId(srcMethod,
-													NUM_THREADS_NAME),
-											nodeExprInt(srcMethod, 1)),
-									nodeExprId(srcMethod, "warpSize")),
-							nodeExprInt(srcMethod, 1))));
-			bodyList.add(nodeDeclVarInit(srcMethod, "$block_root",
-					nodeTypeScope(srcMethod), nodeExprHere(srcMethod)));
-			for (int i = 0; i < numSyncthreads; i++) {
-				bodyList.add(nodeDeclVarInit(srcMethod,
-						getSyncthreadsGBarrierName(i),
-						nodeTypeNamed(srcMethod, "$gbarrier"),
-						nodeExprCall(srcMethod, "$gbarrier_create",
-								nodeExprHere(srcMethod),
-								nodeExprId(srcMethod, NUM_THREADS_NAME))));
-			}
-
-			// Initializing warp array
-			bodyList.add(nodeDeclVar(srcMethod, "$warps",
-					nodeTypeArray(srcMethod,
-							nodeTypeNamed(srcMethod, "$cuda_warp_t"),
-							nodeExprId(srcMethod, "$numWarps"))));
-			bodyList.add(nodeFactory.newForLoopNode(
-					newSource(srcMethod, CivlcTokenConstant.FOR),
-					nodeFactory.newForLoopInitializerNode(
-							newSource(srcMethod,
-									CivlcTokenConstant.INITIALIZER_LIST),
-							Arrays.asList(nodeDeclVarInit(srcMethod, "i",
-									nodeTypeInt(srcMethod),
-									nodeExprInt(srcMethod, 0)))),
-					nodeExprOp(srcMethod, Operator.LT,
-							nodeExprId(srcMethod, "i"),
-							nodeExprOp(srcMethod, Operator.MINUS,
-									nodeExprId(srcMethod, "$numWarps"),
-									nodeExprInt(srcMethod, 1))),
-					nodeExprOp(srcMethod, Operator.POSTINCREMENT,
-							nodeExprId(srcMethod, "i")),
-					nodeStmtAssign(srcMethod,
-							nodeExprOp(srcMethod, Operator.SUBSCRIPT,
-									nodeExprId(srcMethod, "$warps"),
-									nodeExprId(srcMethod, "i")),
-							nodeExprCall(srcMethod, "$create_cuda_warp",
-									nodeExprId(srcMethod, "$block_root"),
-									nodeExprId(srcMethod, "warpSize"))),
-					null));
-			bodyList.add(nodeStmtAssign(srcMethod,
-					nodeExprOp(srcMethod, Operator.SUBSCRIPT,
-							nodeExprId(srcMethod, "$warps"),
-							nodeExprOp(srcMethod, Operator.MINUS,
-									nodeExprId(srcMethod, "$numWarps"),
-									nodeExprInt(srcMethod, 1))),
-					nodeExprCall(srcMethod, "$create_cuda_warp",
-							nodeExprId(srcMethod, "$block_root"),
-							nodeExprOp(srcMethod, Operator.PLUS, nodeExprOp(
-									srcMethod, Operator.MOD,
-									nodeExprOp(srcMethod, Operator.MINUS,
-											nodeExprId(srcMethod,
-													NUM_THREADS_NAME),
-											nodeExprInt(srcMethod, 1)),
-									nodeExprId(srcMethod, "warpSize")),
-									nodeExprInt(srcMethod, 1)))));
-
 			List<VariableDeclarationNode> sharedVars = extractSharedVariableDeclarations(
 					entity.getDefinition().getBody());
 			completeSharedExternArrays(sharedVars);
@@ -425,30 +268,6 @@ public class Cuda2CIVLWorker extends BaseWorker {
 			bodyList.add(nodeStmtCall(srcMethod, "$cuda_run_and_wait_on_procs",
 					nodeExprId(srcMethod, "blockDim"),
 					nodeExprId(srcMethod, "$cuda_thread")));
-			for (int i = 0; i < numSyncthreads; i++) {
-				bodyList.add(nodeStmtCall(srcMethod, "$gbarrier_destroy",
-						nodeExprId(srcMethod, getSyncthreadsGBarrierName(i))));
-			}
-
-			// Cleanup warp array
-			bodyList.add(nodeFactory.newForLoopNode(
-					newSource(srcMethod, CivlcTokenConstant.FOR),
-					nodeFactory.newForLoopInitializerNode(
-							newSource(srcMethod,
-									CivlcTokenConstant.INITIALIZER_LIST),
-							Arrays.asList(nodeDeclVarInit(srcMethod, "i",
-									nodeTypeInt(srcMethod),
-									nodeExprInt(srcMethod, 0)))),
-					nodeExprOp(srcMethod, Operator.LT,
-							nodeExprId(srcMethod, "i"),
-							nodeExprId(srcMethod, "$numWarps")),
-					nodeExprOp(srcMethod, Operator.POSTINCREMENT,
-							nodeExprId(srcMethod, "i")),
-					nodeStmtCall(srcMethod, "$destroy_cuda_warp",
-							nodeExprOp(srcMethod, Operator.SUBSCRIPT,
-									nodeExprId(srcMethod, "$warps"),
-									nodeExprId(srcMethod, "i"))),
-					null));
 
 			return nodeDefnFunction(srcMethod, "$cuda_block", voidType(),
 					Arrays.asList(nodeDeclVar(srcMethod, "blockIdx",
@@ -470,14 +289,14 @@ public class Cuda2CIVLWorker extends BaseWorker {
 			// We transform the kernel body first because it also scans the body
 			// for information we need ahead of time like the number of
 			// __syncthreads() calls.
-			transformKernelBody(kernelBody);
+			transformBodyOfCudaFunction(kernelBody);
 
 			List<BlockItemNode> bodyList = new LinkedList<>();
 
 			// Need to initialize in order to pass in to $cuda_syncthreads
 			bodyList.add(nodeDeclVarInit(srcMethod, "$kernel",
-					nodeTypeNamed(srcMethod, "$cuda_kernel_instance_t"),
-					nodeExprCall(srcMethod, "$create_kernel_instance",
+					nodeTypeNamed(srcMethod, "$cuda_kernel_data_t"),
+					nodeExprCall(srcMethod, "$create_cuda_kernel_data",
 							nodeExprHere(srcMethod),
 							nodeExprId(srcMethod, "gridDim"),
 							nodeExprId(srcMethod, "blockDim"))));
@@ -487,11 +306,14 @@ public class Cuda2CIVLWorker extends BaseWorker {
 					nodeExprId(srcMethod, "gridDim"),
 					nodeExprId(srcMethod, "$cuda_block")));
 
-			bodyList.add(nodeStmtCall(srcMethod, "$destroy_kernel_instance",
+			bodyList.add(nodeStmtCall(srcMethod, "$destroy_cuda_kernel_data",
 					nodeExprId(srcMethod, "$kernel")));
 
-			return nodeDefnFunction(srcMethod, getTransformedKernelName(),
-					voidType(), generateFormalParameters(srcMethod), bodyList);
+			return nodeDefnFunction(srcMethod,
+					transformCudaFunctionName(entity.getName()), voidType(),
+					generateFormalParameters(entity.getName(),
+							getDefinition().getTypeNode(), false),
+					bodyList);
 		}
 
 		/**
@@ -503,8 +325,10 @@ public class Cuda2CIVLWorker extends BaseWorker {
 			String srcMethod = entity.getName()
 					+ ".generateTransformedKernelDeclaration";
 
-			return nodeDeclFunction(srcMethod, getTransformedKernelName(),
-					voidType(), generateFormalParameters(srcMethod));
+			return nodeDeclFunction(srcMethod,
+					transformCudaFunctionName(entity.getName()), voidType(),
+					generateFormalParameters(entity.getName(),
+							getDefinition().getTypeNode(), false));
 		}
 
 		public FunctionDefinitionNode generateKernelProcDefinition() {
@@ -528,7 +352,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 							nodeExprId(srcMethod, "args"))));
 
 			List<VariableDeclarationNode> formals = generateFormalParameters(
-					srcMethod);
+					entity.getName(), getDefinition().getTypeNode(), false);
 			ExpressionNode kernelArgs[] = new ExpressionNode[formals.size()];
 
 			int i = 0;
@@ -538,8 +362,8 @@ public class Cuda2CIVLWorker extends BaseWorker {
 				i++;
 			}
 
-			bodyList.add(nodeStmtCall(srcMethod, getTransformedKernelName(),
-					kernelArgs));
+			bodyList.add(nodeStmtCall(srcMethod,
+					transformCudaFunctionName(entity.getName()), kernelArgs));
 			bodyList.add(nodeStmtCall(srcMethod, "$stream_dequeue",
 					nodeExprId(srcMethod, "cudaStream")));
 
@@ -571,7 +395,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 			String srcMethod = entity.getName()
 					+ ".generateKernelLaunchFunction";
 			List<VariableDeclarationNode> formals = generateFormalParameters(
-					srcMethod);
+					entity.getName(), getDefinition().getTypeNode(), false);
 
 			List<BlockItemNode> bodyList = new LinkedList<>();
 
@@ -625,6 +449,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		scanTree(root);
 		assert cudaTagEnumType != null;
 		addEnumTags();
+		translateDeviceFunctions();
 		executeKernelTransformations();
 		executeKernelCallTransformations();
 
@@ -681,6 +506,17 @@ public class Cuda2CIVLWorker extends BaseWorker {
 				case FUNCTION_DEFINITION :
 					FunctionDefinitionNode definition = (FunctionDefinitionNode) child;
 
+					if (definition.hasDeviceFunctionSpecifier() && definition
+							.getTypeNode() instanceof FunctionTypeNode) {
+						String funcName = definition.getName();
+
+						if (funcName == null) {
+							throw new CIVLSyntaxException(
+									"__device__ functions cannot be anonymous",
+									definition.getSource());
+						}
+						addDeviceFunction(funcName, definition.getEntity());
+					}
 					if (definition.hasGlobalFunctionSpecifier()) {
 						String kernelName = definition.getName();
 
@@ -695,6 +531,17 @@ public class Cuda2CIVLWorker extends BaseWorker {
 				case FUNCTION_DECLARATION :
 					FunctionDeclarationNode declaration = (FunctionDeclarationNode) child;
 
+					if (declaration.hasDeviceFunctionSpecifier() && declaration
+							.getTypeNode() instanceof FunctionTypeNode) {
+						String funcName = declaration.getName();
+
+						if (funcName == null) {
+							throw new CIVLSyntaxException(
+									"__device__ functions cannot be anonymous",
+									declaration.getSource());
+						}
+						addDeviceFunction(funcName, declaration.getEntity());
+					}
 					if (declaration.hasGlobalFunctionSpecifier() && declaration
 							.getTypeNode() instanceof FunctionTypeNode) {
 						String kernelName = declaration.getName();
@@ -771,12 +618,188 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		return kernelEntry;
 	}
 
+	private Function addDeviceFunction(String funcName, Function entity) {
+		return deviceFunctionMap.put(funcName, entity);
+	}
+
 	private void addEnumTags() {
 		SequenceNode<EnumeratorDeclarationNode> enumValues = ((EnumerationTypeNode) cudaTagEnumType
 				.getDefinition()).enumerators();
 		for (KernelInfo kernel : kernelMap.values()) {
 			enumValues.addSequenceChild(
 					nodeDeclEnumerator("addEnumTags", kernel.getTagName()));
+		}
+	}
+
+	private void translateDeviceFunctions() {
+		for (Function devFunc : deviceFunctionMap.values()) {
+			FunctionDefinitionNode definition = devFunc.getDefinition();
+
+			for (DeclarationNode decl : devFunc.getDeclarations()) {
+				FunctionDeclarationNode funcDecl = (FunctionDeclarationNode) decl;
+				if (funcDecl == definition)
+					continue;
+
+				ASTNode declParent = funcDecl.parent();
+				int index = funcDecl.childIndex();
+				funcDecl.remove();
+				declParent.setChild(index, transformDeviceFunctionDeclaration(
+						funcDecl, definition.getTypeNode()));
+			}
+
+			ASTNode parentNode = definition.parent();
+			int index = definition.childIndex();
+			definition.remove();
+			parentNode.setChild(index,
+					transformDeviceFunctionDefinition(definition));
+		}
+	}
+
+	private DeclarationNode transformDeviceFunctionDeclaration(
+			FunctionDeclarationNode declNode, FunctionTypeNode funcTypeNode) {
+		String srcMethod = declNode.getName()
+				+ ".transformDeviceFunctionDeclaration";
+		return nodeDeclFunction(srcMethod,
+				transformCudaFunctionName(declNode.getName()),
+				funcTypeNode.getReturnType().copy(), generateFormalParameters(
+						declNode.getName(), funcTypeNode, true));
+	}
+
+	// Each pair is param name followed by named type
+	private List<Pair<String, String>> contextParams(
+			boolean includeDeviceParams) {
+		List<Pair<String, String>> params = new LinkedList<>();
+		params.addAll(Arrays.asList(new Pair<String, String>("gridDim", "dim3"),
+				new Pair<String, String>("blockDim", "dim3"),
+				new Pair<String, String>("_cuda_mem_size", "size_t"),
+				new Pair<String, String>("_cuda_stream", "cudaStream_t")));
+		if (includeDeviceParams) {
+			params.addAll(
+					Arrays.asList(new Pair<String, String>("blockIdx", "dim3"),
+							new Pair<String, String>("threadIdx", "dim3"),
+							new Pair<String, String>("$thread",
+									"$cuda_thread_data_t")));
+		}
+		return params;
+	}
+
+	/**
+	 * Generates a list of {@link VariableDeclarationNode}s which are the full
+	 * list of formal parameters to the kernel. This includes the implicit
+	 * context parameters that all CUDA kernels have.
+	 * 
+	 * @param srcMethod
+	 *            The name of the method generating these parameters. Used for
+	 *            source generation purposes.
+	 * @return
+	 */
+	public List<VariableDeclarationNode> generateFormalParameters(
+			String funcName, FunctionTypeNode funcTypeNode, boolean isDevice) {
+		String srcMethod = funcName + ".generateFormalParameters";
+
+		List<Pair<String, String>> contextParams = contextParams(isDevice);
+		List<VariableDeclarationNode> formals = new LinkedList<VariableDeclarationNode>();
+
+		for (Pair<String, String> contextParam : contextParams) {
+			formals.add(nodeDeclVar(srcMethod, contextParam.left,
+					nodeTypeNamed(srcMethod, contextParam.right)));
+		}
+
+		for (VariableDeclarationNode param : funcTypeNode.getParameters()) {
+			if (param.getTypeNode().kind() == TypeNodeKind.VOID)
+				continue;
+
+			formals.add(param.copy());
+		}
+
+		return formals;
+	}
+
+	private FunctionDefinitionNode transformDeviceFunctionDefinition(
+			FunctionDefinitionNode defNode) {
+		String funcName = defNode.getName();
+		String srcMethod = funcName + ".transformDeviceFunctionDefinition";
+
+		CompoundStatementNode body = defNode.getBody();
+		transformBodyOfCudaFunction(body);
+
+		List<BlockItemNode> bodyList = new LinkedList<>();
+
+		for (BlockItemNode stmt : body) {
+			if (stmt != null) {
+				bodyList.add(stmt.copy());
+			}
+		}
+
+		return nodeDefnFunction(srcMethod, transformCudaFunctionName(funcName),
+				defNode.getTypeNode().getReturnType().copy(),
+				generateFormalParameters(funcName, defNode.getTypeNode(), true),
+				bodyList);
+	}
+
+	private String transformCudaFunctionName(String funcName) {
+		return "$cuda_" + funcName;
+	}
+
+	private void transformBodyOfCudaFunction(ASTNode node) {
+		String srcMethod = "transformBodyOfCudaFunction";
+
+		for (ASTNode child : node.children()) {
+			if (child == null)
+				continue;
+
+			if (child instanceof ExpressionNode) {
+				ExpressionNode exprNode = (ExpressionNode) child;
+				if (exprNode instanceof FunctionCallNode) {
+					FunctionCallNode funcCallNode = (FunctionCallNode) exprNode;
+					ExpressionNode function = funcCallNode.getFunction();
+					if (function instanceof IdentifierExpressionNode) {
+						String functionName = ((IdentifierExpressionNode) function)
+								.getIdentifier().name();
+						if (functionName.startsWith("__syncthreads")) {
+							List<ExpressionNode> args = new LinkedList<>();
+							for (ExpressionNode arg : funcCallNode
+									.getArguments()) {
+								args.add(arg.copy());
+							}
+							args.add(nodeExprId(srcMethod, "$thread"));
+							args.add(nodeExprInt(srcMethod, numSyncthreads));
+
+							FunctionCallNode newSyncthreads = nodeExprCall(
+									srcMethod, "$cuda" + functionName,
+									args.toArray(new ExpressionNode[0]));
+							numSyncthreads++;
+
+							int index = funcCallNode.childIndex();
+							funcCallNode.remove();
+							node.setChild(index, newSyncthreads);
+							continue;
+						}
+
+						Function devFunction = deviceFunctionMap
+								.get(functionName);
+						if (devFunction != null) {
+							List<ExpressionNode> args = new LinkedList<>();
+							for (Pair<String, String> contextParam : contextParams(
+									true)) {
+								args.add(nodeExprId(srcMethod,
+										contextParam.left));
+							}
+							for (ExpressionNode arg : funcCallNode
+									.getArguments()) {
+								args.add(arg.copy());
+							}
+
+							int index = funcCallNode.childIndex();
+							funcCallNode.remove();
+							node.setChild(index, nodeExprCall(srcMethod,
+									transformCudaFunctionName(functionName),
+									args.toArray(new ExpressionNode[0])));
+						}
+					}
+				}
+			}
+			transformBodyOfCudaFunction(child);
 		}
 	}
 

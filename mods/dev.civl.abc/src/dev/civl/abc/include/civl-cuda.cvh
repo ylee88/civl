@@ -10,12 +10,264 @@
 #include <concurrency.cvh>
 #include <comm.cvh>
 
+extern $input int warpSize;
+
+typedef struct {
+  unsigned int x, y, z;
+} dim3;
+
+typedef struct {
+  unsigned int x, y, z;
+} uint3;
+
+typedef struct $cuda_mem_set* $cuda_mem_set_t;
+typedef struct $cuda_mem_set {
+  $mem reads;
+  $mem writes;
+} $cuda_mem_set;
+
+$cuda_mem_set_t $cuda_mem_set_create($scope scope);
+void $cuda_mem_set_destroy($cuda_mem_set_t memSet);
+void $cuda_mem_set_clear($cuda_mem_set_t memSet);
+void $cuda_mem_set_add($cuda_mem_set_t memSet, $mem reads, $mem writes);
+
+typedef enum {
+  $CUDA_WARP_TAG_EMPTY,
+  $CUDA_WARP_TAG_warpsync,
+  $CUDA_WARP_TAG_shfl_sync,
+  $CUDA_WARP_TAG_shfl_up_sync,
+  $CUDA_WARP_TAG_shfl_down_sync,
+  $CUDA_WARP_TAG_shfl_xor_sync,
+  $CUDA_WARP_TAG_all_sync,
+  $CUDA_WARP_TAG_any_sync,
+  $CUDA_WARP_TAG_ballot_sync
+} $cuda_warp_tag;
+
+typedef struct $cuda_warp_data* $cuda_warp_data_t;
+typedef struct $cuda_warp_data {
+  int size;
+  $cuda_mem_set_t** memSets;
+  _Bool patching[];
+  int num_alive;
+  _Bool alive[];
+  int num_in_barrier;
+  _Bool in_barrier[];
+  $cuda_warp_tag currOp;
+  int reductionLane;
+  $gcomm gcomm;
+} $cuda_warp_data;
+
+$cuda_warp_data_t $create_cuda_warp_data($scope warpScope, int size);
+void $destroy_cuda_warp_data($cuda_warp_data_t warp);
+
+typedef struct $cuda_block_data* $cuda_block_data_t;
+typedef struct $cuda_block_data {
+  int size;
+  $cuda_mem_set_t* memSets;
+  int predArray[];
+  $gbarrier gbarrier;
+  int currBarrierID;
+  int numWarps;
+  $cuda_warp_data_t* warps;
+} $cuda_block_data;
+
+$cuda_block_data_t $create_cuda_block_data($scope scope, int size);
+void $destroy_cuda_block_data($cuda_block_data_t block);
+
+typedef struct $cuda_kernel_data* $cuda_kernel_data_t;
+typedef struct $cuda_kernel_data {
+  int size;
+  $cuda_mem_set_t* memSets;
+  int numBlocks;
+  $cuda_block_data_t* blocks;
+} $cuda_kernel_data;
+
+$cuda_kernel_data_t $create_cuda_kernel_data($scope scope, dim3 gridDim, dim3 blockDim);
+void $destroy_cuda_kernel_data($cuda_kernel_data_t kernel);
+
+typedef struct $cuda_thread_data* $cuda_thread_data_t;
+typedef struct $cuda_thread_data {
+  $cuda_kernel_data_t kernel;
+  $cuda_block_data_t block;
+  $cuda_warp_data_t warp;
+  int blockID;
+  int warpID;
+  int laneID;
+  $comm lane_comm;
+  $barrier block_barrier;
+} $cuda_thread_data;
+
+// Dummy variable which will be shadowed by transformation code
+$cuda_thread_data_t $thread;
+
+$cuda_thread_data_t $create_cuda_thread_data($scope scope, $cuda_kernel_data_t kernel, int blockID, int warpID, int laneID);
+/*@ depends_on \access(thread);
+  @ executes_when \true;
+  @ */
+$atomic_f void $destroy_cuda_thread_data($cuda_thread_data_t thread);
+
+/*@ depends_on \access(thread);
+  @ executes_when \true;
+  @*/
+$atomic_f void $cuda_start_mem_patching($cuda_thread_data_t thread);
+/*@ depends_on \access(thread);
+  @ executes_when \true;
+  @*/
+$atomic_f void $cuda_update_patches($cuda_thread_data_t thread);
+/*@ depends_on \access(thread);
+  @ executes_when \true;
+  @*/
+$atomic_f void $cuda_end_mem_patching($cuda_thread_data_t thread);
+
+/*@ depends_on \access(thread);
+  @ executes_when \true;
+  @*/
+$atomic_f void $cuda_start_kernel_region($cuda_thread_data_t thread);
+/*@ depends_on \access(thread);
+  @ executes_when \true;
+  @*/
+$atomic_f void $cuda_complete_warp_region($cuda_thread_data_t thread);
+/*@ depends_on \access(thread);
+  @ executes_when \true;
+  @*/
+$atomic_f void $cuda_complete_block_region($cuda_thread_data_t thread);
+/*@ depends_on \access(thread);
+  @ executes_when \true;
+  @*/
+$atomic_f void $cuda_complete_kernel_region($cuda_thread_data_t thread);
+
+/*@ depends_on \access(thread);
+  @ executes_when \true;
+  @ */
+$atomic_f void $cuda_warp_barrier_enter($cuda_thread_data_t thread, $cuda_warp_tag tag);
+/*@ depends_on \access(thread);
+  @*/
+$atomic_f void $cuda_warp_barrier_exit($cuda_thread_data_t thread);
+void $cuda_warp_barrier_call($cuda_thread_data_t thread, $cuda_warp_tag tag);
+void $cuda__syncthreads($cuda_thread_data_t thread, int barrierIndex);
+int $cuda__syncthreads_count(int predicate, $cuda_thread_data_t thread, int barrierIndex);
+int $cuda__syncthreads_or(int predicate, $cuda_thread_data_t thread, int barrierIndex);
+int $cuda__syncthreads_and(int predicate, $cuda_thread_data_t thread, int barrierIndex);
+void $cuda__syncwarp($cuda_thread_data_t thread);
+
+int $cuda__shfl_sync_int(unsigned mask, int var, int laneParam, int width, $cuda_thread_data_t thread);
+unsigned int $cuda__shfl_sync_uint(unsigned mask, unsigned int var, int laneParam, int width, $cuda_thread_data_t thread);
+long $cuda__shfl_sync_long(unsigned mask, long var, int laneParam, int width, $cuda_thread_data_t thread);
+unsigned long $cuda__shfl_sync_ulong(unsigned mask, unsigned long var, int laneParam, int width, $cuda_thread_data_t thread);
+long long $cuda__shfl_sync_ll(unsigned mask, long long var, int laneParam, int width, $cuda_thread_data_t thread);
+unsigned long long $cuda__shfl_sync_ull(unsigned mask, unsigned long long var, int laneParam, int width, $cuda_thread_data_t thread);
+float $cuda__shfl_sync_float(unsigned mask, float var, int laneParam, int width, $cuda_thread_data_t thread);
+double $cuda__shfl_sync_double(unsigned mask, double var, int laneParam, int width, $cuda_thread_data_t thread);
+
+int $cuda__shfl_up_sync_int(unsigned mask, int var, int laneParam, int width, $cuda_thread_data_t thread);
+unsigned int $cuda__shfl_up_sync_uint(unsigned mask, unsigned int var, int laneParam, int width, $cuda_thread_data_t thread);
+long $cuda__shfl_up_sync_long(unsigned mask, long var, int laneParam, int width, $cuda_thread_data_t thread);
+unsigned long $cuda__shfl_up_sync_ulong(unsigned mask, unsigned long var, int laneParam, int width, $cuda_thread_data_t thread);
+long long $cuda__shfl_up_sync_ll(unsigned mask, long long var, int laneParam, int width, $cuda_thread_data_t thread);
+unsigned long long $cuda__shfl_up_sync_ull(unsigned mask, unsigned long long var, int laneParam, int width, $cuda_thread_data_t thread);
+float $cuda__shfl_up_sync_float(unsigned mask, float var, int laneParam, int width, $cuda_thread_data_t thread);
+double $cuda__shfl_up_sync_double(unsigned mask, double var, int laneParam, int width, $cuda_thread_data_t thread);
+
+int $cuda__shfl_down_sync_int(unsigned mask, int var, int laneParam, int width, $cuda_thread_data_t thread);
+unsigned int $cuda__shfl_down_sync_uint(unsigned mask, unsigned int var, int laneParam, int width, $cuda_thread_data_t thread);
+long $cuda__shfl_down_sync_long(unsigned mask, long var, int laneParam, int width, $cuda_thread_data_t thread);
+unsigned long $cuda__shfl_down_sync_ulong(unsigned mask, unsigned long var, int laneParam, int width, $cuda_thread_data_t thread);
+long long $cuda__shfl_down_sync_ll(unsigned mask, long long var, int laneParam, int width, $cuda_thread_data_t thread);
+unsigned long long $cuda__shfl_down_sync_ull(unsigned mask, unsigned long long var, int laneParam, int width, $cuda_thread_data_t thread);
+float $cuda__shfl_down_sync_float(unsigned mask, float var, int laneParam, int width, $cuda_thread_data_t thread);
+double $cuda__shfl_down_sync_double(unsigned mask, double var, int laneParam, int width, $cuda_thread_data_t thread);
+
+int $cuda__shfl_xor_sync_int(unsigned mask, int var, int laneParam, int width, $cuda_thread_data_t thread);
+unsigned int $cuda__shfl_xor_sync_uint(unsigned mask, unsigned int var, int laneParam, int width, $cuda_thread_data_t thread);
+long $cuda__shfl_xor_sync_long(unsigned mask, long var, int laneParam, int width, $cuda_thread_data_t thread);
+unsigned long $cuda__shfl_xor_sync_ulong(unsigned mask, unsigned long var, int laneParam, int width, $cuda_thread_data_t thread);
+long long $cuda__shfl_xor_sync_ll(unsigned mask, long long var, int laneParam, int width, $cuda_thread_data_t thread);
+unsigned long long $cuda__shfl_xor_sync_ull(unsigned mask, unsigned long long var, int laneParam, int width, $cuda_thread_data_t thread);
+float $cuda__shfl_xor_sync_float(unsigned mask, float var, int laneParam, int width, $cuda_thread_data_t thread);
+double $cuda__shfl_xor_sync_double(unsigned mask, double var, int laneParam, int width, $cuda_thread_data_t thread);
+
+int $cuda__all_sync(unsigned mask, int value, $cuda_thread_data_t thread);
+int $cuda__any_sync(unsigned mask, int value, $cuda_thread_data_t thread);
+unsigned $cuda__ballot_sync(unsigned mask, int value, $cuda_thread_data_t thread);
+
+int $cuda_atomicAdd_int(int* address, int val, $cuda_thread_data_t thread);
+unsigned int $cuda_atomicAdd_uint(unsigned int* address, unsigned int val, $cuda_thread_data_t thread);
+unsigned long long int $cuda_atomicAdd_ullint(unsigned long long int* address,
+                                        unsigned long long int val,
+                                        $cuda_thread_data_t thread);
+float $cuda_atomicAdd_float(float* address, float val, $cuda_thread_data_t thread);
+double $cuda_atomicAdd_double(double* address, double val, $cuda_thread_data_t thread);
+
+int $cuda_atomicSub_int(int* address, int val, $cuda_thread_data_t thread);
+unsigned int $cuda_atomicSub_uint(unsigned int* address, unsigned int val, $cuda_thread_data_t thread);
+
+int $cuda_atomicExch_int(int* address, int val, $cuda_thread_data_t thread);
+unsigned int $cuda_atomicExch_uint(unsigned int* address, unsigned int val, $cuda_thread_data_t thread);
+unsigned long long int $cuda_atomicExch_ullint(unsigned long long int* address,
+                                  unsigned long long int val,
+                                  $cuda_thread_data_t thread);
+float $cuda_atomicExch_float(float* address, float val, $cuda_thread_data_t thread);
+
+int $cuda_atomicMin_int(int* address, int val, $cuda_thread_data_t thread);
+unsigned int $cuda_atomicMin_uint(unsigned int* address, unsigned int val, $cuda_thread_data_t thread);
+unsigned long long int $cuda_atomicMin_ullint(unsigned long long int* address,
+                                        unsigned long long int val,
+                                        $cuda_thread_data_t thread);
+
+int $cuda_atomicMax_int(int* address, int val, $cuda_thread_data_t thread);
+unsigned int $cuda_atomicMax_uint(unsigned int* address, unsigned int val, $cuda_thread_data_t thread);
+unsigned long long int $cuda_atomicMax_ullint(unsigned long long int* address,
+                                        unsigned long long int val,
+                                        $cuda_thread_data_t thread);
+
+unsigned int $cuda_atomicInc(unsigned int* address, unsigned int val, $cuda_thread_data_t thread);
+
+unsigned int $cuda_atomicDec(unsigned int* address, unsigned int val, $cuda_thread_data_t thread);
+
+int $cuda_atomicCAS_int(int* address, int compare, int val, $cuda_thread_data_t thread);
+unsigned int $cuda_atomicCAS_uint(unsigned int* address,
+                            unsigned int compare,
+                            unsigned int val,
+                            $cuda_thread_data_t thread);
+unsigned long long int $cuda_atomicCAS_ullint(unsigned long long int* address,
+                                        unsigned long long int compare,
+                                        unsigned long long int val,
+                                        $cuda_thread_data_t thread);
+unsigned short int $cuda_atomicCAS_usint(unsigned short int* address,
+                                   unsigned short int compare,
+                                   unsigned short int val,
+                                   $cuda_thread_data_t thread);
+
+int $cuda_atomicAnd_int(int* address, int val, $cuda_thread_data_t thread);
+unsigned int $cuda_atomicAnd_uint(unsigned int* address,
+                                 unsigned int val,
+                                 $cuda_thread_data_t thread);
+unsigned long long int $cuda_atomicAnd_ullint(unsigned long long int* address,
+                                 unsigned long long int val,
+                                 $cuda_thread_data_t thread);
+
+int $cuda_atomicOr_int(int* address, int val, $cuda_thread_data_t thread);
+unsigned int $cuda_atomicOr_uint(unsigned int* address,
+                                 unsigned int val,
+                                 $cuda_thread_data_t thread);
+unsigned long long int $cuda_atomicOr_ullint(unsigned long long int* address,
+                                 unsigned long long int val,
+                                 $cuda_thread_data_t thread);
+
+int $cuda_atomicXor_int(int* address, int val, $cuda_thread_data_t thread);
+unsigned int $cuda_atomicXor_uint(unsigned int* address,
+                                 unsigned int val,
+                                 $cuda_thread_data_t thread);
+unsigned long long int $cuda_atomicXor_ullint(unsigned long long int* address,
+                                 unsigned long long int val,
+                                 $cuda_thread_data_t thread);
+
+// ------------------------------------------------
+
 $gcomm $cuda_gcomm;
 int $CUDA_PLACE_HOST;
 int $CUDA_PLACE_DEVICE;
 $comm $cuda_host_comm;
-
-extern $input int warpSize;
 
 typedef struct $cuda_op_state* $cuda_op_state_t;
 typedef struct $cuda_op_state {
@@ -87,25 +339,6 @@ typedef enum $cuda_tag {
   $CUDA_TAG_cudaDeviceSynchronize
 } $cuda_tag;
 
-/* type that bundles kernel-wide info
- */
-typedef struct $cuda_kernel_instance* $cuda_kernel_instance_t;
-typedef struct $cuda_kernel_instance {
-  // Read and Write sets
-  $mem* read_sets;
-  $mem* write_sets;
-  // Number of threads in kernel
-  int size;
-} $cuda_kernel_instance;
-
-typedef struct {
-  unsigned int x, y, z;
-} dim3;
-
-typedef struct {
-  unsigned int x, y, z;
-} uint3;
-
 typedef enum {
   cudaMemcpyHostToHost,
   cudaMemcpyHostToDevice,
@@ -113,9 +346,6 @@ typedef enum {
   cudaMemcpyDeviceToDevice,
   cudaMemcpyDefault
 } cudaMemcpyKind;
-
-$cuda_kernel_instance_t $create_kernel_instance($scope cudaScope, dim3 gridDim, dim3 blockDim);
-void $destroy_kernel_instance($cuda_kernel_instance_t $kernel);
 
 typedef struct $cuda_memcpy_data {
   void* dst;
@@ -145,19 +375,19 @@ void $cuda_run_and_wait_on_procs(dim3 dim, void spawningFunction(uint3));
 
 // ------------------------------------------------
 
-/* Checks data races
- */
-$atomic_f void $check_data_race($cuda_kernel_instance_t k, int cur_tid);
+/* /\* Checks data races */
+/*  *\/ */
+/* $atomic_f void $check_data_race($cuda_kernel_instance_t k, int cur_tid); */
 
-/* Clears read and write memory sets of the given thread
-*/
-void $clear_mem_sets($cuda_kernel_instance_t k, int cur_tid);
+/* /\* Clears read and write memory sets of the given thread */
+/* *\/ */
+/* void $clear_mem_sets($cuda_kernel_instance_t k, int cur_tid); */
 
-void $clear_all_mem_sets($cuda_kernel_instance_t k);
+/* void $clear_all_mem_sets($cuda_kernel_instance_t k); */
 
-/* Publishes current read a write sets to global arrays. Local sets are not cleared
-*/
-void $publish($cuda_kernel_instance_t k, int cur_tid);
+/* /\* Publishes current read a write sets to global arrays. Local sets are not cleared */
+/* *\/ */
+/* void $publish($cuda_kernel_instance_t k, int cur_tid); */
 
 // ------------------------------------------------
 
@@ -171,79 +401,6 @@ $atomic_f $message $cuda_device_synchronize($cuda_context_t context);
 void $cuda_host_device_synchronize();
 
 $scope $cuda_host_request_device_scope();
-
-// ------------------------------------------------
-
-/* A barrier wrapper around barrier call that checks data races
- */
-void $cuda_syncthreads($cuda_kernel_instance_t k, int kernel_id, $barrier g);
-
-typedef struct $cuda_warp* $cuda_warp_t;
-typedef struct $cuda_warp {
-  int size;
-  int num_alive;
-  _Bool alive[];
-  int num_in_barrier;
-  _Bool in_barrier[];
-  int reductionLane;
-  $gcomm warp_gcomm;
-} $cuda_warp;
-
-$cuda_warp_t $create_cuda_warp($scope warpScope, int size);
-void $destroy_cuda_warp($cuda_warp_t warp);
-
-typedef struct $cuda_lane* $cuda_lane_t;
-typedef struct $cuda_lane {
-  int laneID;
-  $cuda_warp_t warp;
-  $comm lane_comm;
-} $cuda_lane;
-
-// Dummy variable which will be shadowed by transformation code
-$cuda_lane_t $lane;
-
-$cuda_lane_t $create_cuda_lane($scope laneScope, $cuda_warp_t warp, int laneID);
-void $destroy_cuda_lane($cuda_lane_t lane);
-
-int $cuda__shfl_sync_int(unsigned mask, int var, int laneParam, int width, $cuda_lane_t lane);
-unsigned int $cuda__shfl_sync_uint(unsigned mask, unsigned int var, int laneParam, int width, $cuda_lane_t lane);
-long $cuda__shfl_sync_long(unsigned mask, long var, int laneParam, int width, $cuda_lane_t lane);
-unsigned long $cuda__shfl_sync_ulong(unsigned mask, unsigned long var, int laneParam, int width, $cuda_lane_t lane);
-long long $cuda__shfl_sync_ll(unsigned mask, long long var, int laneParam, int width, $cuda_lane_t lane);
-unsigned long long $cuda__shfl_sync_ull(unsigned mask, unsigned long long var, int laneParam, int width, $cuda_lane_t lane);
-float $cuda__shfl_sync_float(unsigned mask, float var, int laneParam, int width, $cuda_lane_t lane);
-double $cuda__shfl_sync_double(unsigned mask, double var, int laneParam, int width, $cuda_lane_t lane);
-
-int $cuda__shfl_up_sync_int(unsigned mask, int var, int laneParam, int width, $cuda_lane_t lane);
-unsigned int $cuda__shfl_up_sync_uint(unsigned mask, unsigned int var, int laneParam, int width, $cuda_lane_t lane);
-long $cuda__shfl_up_sync_long(unsigned mask, long var, int laneParam, int width, $cuda_lane_t lane);
-unsigned long $cuda__shfl_up_sync_ulong(unsigned mask, unsigned long var, int laneParam, int width, $cuda_lane_t lane);
-long long $cuda__shfl_up_sync_ll(unsigned mask, long long var, int laneParam, int width, $cuda_lane_t lane);
-unsigned long long $cuda__shfl_up_sync_ull(unsigned mask, unsigned long long var, int laneParam, int width, $cuda_lane_t lane);
-float $cuda__shfl_up_sync_float(unsigned mask, float var, int laneParam, int width, $cuda_lane_t lane);
-double $cuda__shfl_up_sync_double(unsigned mask, double var, int laneParam, int width, $cuda_lane_t lane);
-
-int $cuda__shfl_down_sync_int(unsigned mask, int var, int laneParam, int width, $cuda_lane_t lane);
-unsigned int $cuda__shfl_down_sync_uint(unsigned mask, unsigned int var, int laneParam, int width, $cuda_lane_t lane);
-long $cuda__shfl_down_sync_long(unsigned mask, long var, int laneParam, int width, $cuda_lane_t lane);
-unsigned long $cuda__shfl_down_sync_ulong(unsigned mask, unsigned long var, int laneParam, int width, $cuda_lane_t lane);
-long long $cuda__shfl_down_sync_ll(unsigned mask, long long var, int laneParam, int width, $cuda_lane_t lane);
-unsigned long long $cuda__shfl_down_sync_ull(unsigned mask, unsigned long long var, int laneParam, int width, $cuda_lane_t lane);
-float $cuda__shfl_down_sync_float(unsigned mask, float var, int laneParam, int width, $cuda_lane_t lane);
-double $cuda__shfl_down_sync_double(unsigned mask, double var, int laneParam, int width, $cuda_lane_t lane);
-
-int $cuda__shfl_xor_sync_int(unsigned mask, int var, int laneParam, int width, $cuda_lane_t lane);
-unsigned int $cuda__shfl_xor_sync_uint(unsigned mask, unsigned int var, int laneParam, int width, $cuda_lane_t lane);
-long $cuda__shfl_xor_sync_long(unsigned mask, long var, int laneParam, int width, $cuda_lane_t lane);
-unsigned long $cuda__shfl_xor_sync_ulong(unsigned mask, unsigned long var, int laneParam, int width, $cuda_lane_t lane);
-long long $cuda__shfl_xor_sync_ll(unsigned mask, long long var, int laneParam, int width, $cuda_lane_t lane);
-unsigned long long $cuda__shfl_xor_sync_ull(unsigned mask, unsigned long long var, int laneParam, int width, $cuda_lane_t lane);
-float $cuda__shfl_xor_sync_float(unsigned mask, float var, int laneParam, int width, $cuda_lane_t lane);
-double $cuda__shfl_xor_sync_double(unsigned mask, double var, int laneParam, int width, $cuda_lane_t lane);
-
-int $cuda__all_sync(unsigned mask, int value, $cuda_lane_t lane);
-int $cuda__any_sync(unsigned mask, int value, $cuda_lane_t lane);
-unsigned $cuda__ballot_sync(unsigned mask, int value, $cuda_lane_t lane);
 
 #endif
 

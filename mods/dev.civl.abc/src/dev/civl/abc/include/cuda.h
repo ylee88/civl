@@ -214,12 +214,18 @@ cudaError_t cudaGetLastError(void);
  */
 cudaError_t cudaThreadExit(void);
 
-/* Not implemented. Prototype provided for compatibilty purposes
+/* Dummy declaration for the complier. Implemented via transformation.
  */
 void __syncthreads( void );
+int __syncthreads_count(int pred);
+int __syncthreads_or(int pred);
+int __syncthreads_and(int pred);
 
 int __popc(unsigned int x);
 int __popcll(unsigned long long int x);
+
+int max(int x, int y);
+int min(int x, int y);
 
 uint3 threadIdx;
 uint3 blockIdx;
@@ -228,6 +234,9 @@ dim3 blockDim;
 
 #define $GET_ARG_1(_1, ...) _1
 #define $GET_ARG_2(_1, _2, ...) _2
+
+#define __syncwarp() $cuda__syncwarp($thread)
+
 #define $CUDA_SHFL_PARAM_MACRO(...) $GET_ARG_1(__VA_ARGS__, warpSize, 0), $GET_ARG_2(__VA_ARGS__, warpSize, 0)
 
 #define __shfl_sync(mask, var, ...)                                     \
@@ -239,7 +248,7 @@ dim3 blockDim;
            long long: $cuda__shfl_sync_ll,                              \
            unsigned long long: $cuda__shfl_sync_ull,                    \
            float: $cuda__shfl_sync_float,                               \
-           double: $cuda__shfl_sync_double) (mask, var, $CUDA_SHFL_PARAM_MACRO(__VA_ARGS__), $lane)
+           double: $cuda__shfl_sync_double) (mask, var, $CUDA_SHFL_PARAM_MACRO(__VA_ARGS__), $thread)
 
 #define __shfl_up_sync(mask, var, ...)                                  \
   _Generic(var,                                                         \
@@ -250,7 +259,7 @@ dim3 blockDim;
            long long: $cuda__shfl_up_sync_ll,                           \
            unsigned long long: $cuda__shfl_up_sync_ull,                 \
            float: $cuda__shfl_up_sync_float,                            \
-           double: $cuda__shfl_up_sync_double) (mask, var, $CUDA_SHFL_PARAM_MACRO(__VA_ARGS__), $lane)
+           double: $cuda__shfl_up_sync_double) (mask, var, $CUDA_SHFL_PARAM_MACRO(__VA_ARGS__), $thread)
 
 #define __shfl_down_sync(mask, var, ...)                                \
   _Generic(var,                                                         \
@@ -261,7 +270,7 @@ dim3 blockDim;
            long long: $cuda__shfl_down_sync_ll,                         \
            unsigned long long: $cuda__shfl_down_sync_ull,               \
            float: $cuda__shfl_down_sync_float,                          \
-           double: $cuda__shfl_down_sync_double) (mask, var, $CUDA_SHFL_PARAM_MACRO(__VA_ARGS__), $lane)
+           double: $cuda__shfl_down_sync_double) (mask, var, $CUDA_SHFL_PARAM_MACRO(__VA_ARGS__), $thread)
  
 #define __shfl_xor_sync(mask, var, ...)                                 \
   _Generic(var,                                                         \
@@ -272,11 +281,11 @@ dim3 blockDim;
            long long: $cuda__shfl_xor_sync_ll,                          \
            unsigned long long: $cuda__shfl_xor_sync_ull,                \
            float: $cuda__shfl_xor_sync_float,                           \
-           double: $cuda__shfl_xor_sync_double) (mask, var, $CUDA_SHFL_PARAM_MACRO(__VA_ARGS__), $lane)
+           double: $cuda__shfl_xor_sync_double) (mask, var, $CUDA_SHFL_PARAM_MACRO(__VA_ARGS__), $thread)
 
-#define __ballot_sync(mask, predicate) $cuda__ballot_sync(mask, predicate, $lane)
-#define __all_sync(mask, predicate) $cuda__all_sync(mask, predicate, $lane)
-#define __any_sync(mask, predicate) $cuda__any_sync(mask, predicate, $lane)
+#define __ballot_sync(mask, predicate) $cuda__ballot_sync(mask, predicate, $thread)
+#define __all_sync(mask, predicate) $cuda__all_sync(mask, predicate, $thread)
+#define __any_sync(mask, predicate) $cuda__any_sync(mask, predicate, $thread)
 
 /** C++ Language Extensions **/
 
@@ -286,18 +295,12 @@ dim3 blockDim;
  * memory at the same address. These three operations are performed in one atomic
  * transaction. The function returns old.
  */
-int cudaAtomicAdd_int(int* address, int val);
-unsigned int cudaAtomicAdd_uint(unsigned int* address, unsigned int val);
-unsigned long long int cudaAtomicAdd_ullint(unsigned long long int* address,
-                                        unsigned long long int val);
-float cudaAtomicAdd_float(float* address, float val);
-double cudaAtomicAdd_double(double* address, double val);
-#define atomicAdd(X,Y) _Generic(X,                  \
-    default : cudaAtomicAdd_int,                    \
-    unsigned int* : cudaAtomicAdd_uint,             \
-    unsigned long long int* : cudaAtomicAdd_ullint, \
-    float* : cudaAtomicAdd_float,                   \
-    double* : cudaAtomicAdd_double) (X,Y)
+#define atomicAdd(X,Y) _Generic(X,                    \
+    default : $cuda_atomicAdd_int,                    \
+    unsigned int* : $cuda_atomicAdd_uint,             \
+    unsigned long long int* : $cuda_atomicAdd_ullint, \
+    float* : $cuda_atomicAdd_float,                   \
+    double* : $cuda_atomicAdd_double) (X, Y, $thread)
 
 /* atomicSub()
  * reads the 32-bit word old located at the address address in global or shared
@@ -305,27 +308,20 @@ double cudaAtomicAdd_double(double* address, double val);
  * address. These three operations are performed in one atomic transaction. The
  * function returns old.
  */
-int cudaAtomicSub_int(int* address, int val);
-unsigned int cudaAtomicSub_uint(unsigned int* address, unsigned int val);
-#define atomicSub(X,Y) _Generic(X,     \
-    default : cudaAtomicSub_int,       \
-    unsigned int* : cudaAtomicSub_uint) (X,Y)
+#define atomicSub(X,Y) _Generic(X,       \
+    default : $cuda_atomicSub_int,       \
+    unsigned int* : $cuda_atomicSub_uint) (X, Y, $thread)
 
 /* atomicExch()
  * reads the 32-bit or 64-bit word old located at the address address in global
  * or shared memory and stores val back to memory at the same address. These two
  * operations are performed in one atomic transaction. The function returns old. 
  */
-int cudaAtomicExch_int(int* address, int val);
-unsigned int cudaAtomicExch_uint(unsigned int* address, unsigned int val);
-unsigned long long int cudaAtomicExch_ullint(unsigned long long int* address,
-                                  unsigned long long int val);
-float cudaAtomicExch_float(float* address, float val);
-#define atomicExch(X,Y) _Generic(X,             \
-    default : cudaAtomicExch_int,                   \
-    unsigned int* : cudaAtomicExch_uint,            \
-    unsigned long long int* : cudaAtomicExch_ullint, \
-    float* : cudaAtomicExch_float) (X,Y)
+#define atomicExch(X,Y) _Generic(X,                    \
+    default : $cuda_atomicExch_int,                    \
+    unsigned int* : $cuda_atomicExch_uint,             \
+    unsigned long long int* : $cuda_atomicExch_ullint, \
+    float* : $cuda_atomicExch_float) (X, Y, $thread)
 
 /* atomicMin()
  * reads the 32-bit or 64-bit word old located at the address address in global
@@ -333,14 +329,10 @@ float cudaAtomicExch_float(float* address, float val);
  * back to memory at the same address. These three operations are performed in one
  * atomic transaction. The function returns old.
  */
-int cudaAtomicMin_int(int* address, int val);
-unsigned int cudaAtomicMin_uint(unsigned int* address, unsigned int val);
-unsigned long long int cudaAtomicMin_ullint(unsigned long long int* address,
-                                        unsigned long long int val);
-#define atomicMin(X,Y) _Generic(X,  \
-    default : cudaAtomicMin_int,        \
-    unsigned int* : cudaAtomicMin_uint, \
-    unsigned long long int* : cudaAtomicMin_ullint) (X,Y)
+#define atomicMin(X,Y) _Generic(X,        \
+    default : $cuda_atomicMin_int,        \
+    unsigned int* : $cuda_atomicMin_uint, \
+    unsigned long long int* : $cuda_atomicMin_ullint) (X, Y, $thread)
 
 /* atomicMax()
  * reads the 32-bit or 64-bit word old located at the address address in global
@@ -348,14 +340,10 @@ unsigned long long int cudaAtomicMin_ullint(unsigned long long int* address,
  * back to memory at the same address. These three operations are performed in one
  * atomic transaction. The function returns old.
  */
-int cudaAtomicMax_int(int* address, int val);
-unsigned int cudaAtomicMax_uint(unsigned int* address, unsigned int val);
-unsigned long long int cudaAtomicMax_ullint(unsigned long long int* address,
-                                        unsigned long long int val);
-#define atomicMax(X,Y) _Generic(X,  \
-    default : cudaAtomicMax_int,        \
-    unsigned int* : cudaAtomicMax_uint, \
-    unsigned long long int* : cudaAtomicMax_ullint) (X,Y)
+#define atomicMax(X,Y) _Generic(X,        \
+    default : $cuda_atomicMax_int,        \
+    unsigned int* : $cuda_atomicMax_uint, \
+    unsigned long long int* : $cuda_atomicMax_ullint) (X, Y, $thread)
 
 /* atomicInc()
  * reads the 32-bit word old located at the address address in global or shared
@@ -363,7 +351,7 @@ unsigned long long int cudaAtomicMax_ullint(unsigned long long int* address,
  * memory at the same address. These three operations are performed in one atomic
  * transaction. The function returns old.
  */
-unsigned int atomicInc(unsigned int* address, unsigned int val);
+#define atomicInc(address, val) $cuda_atomicInc(address, val, $thread)
 
 /* atomicDec()
  * reads the 32-bit word old located at the address address in global or shared
@@ -371,7 +359,7 @@ unsigned int atomicInc(unsigned int* address, unsigned int val);
  * the result back to memory at the same address. These three operations are
  * performed in one atomic transaction. The function returns old.
  */
-unsigned int atomicDec(unsigned int* address, unsigned int val);
+#define atomicDec(address, val) $cuda_atomicDec(address, val, $thread)
 
 /* atomicCAS()
  * reads the 16-bit, 32-bit or 64-bit word old located at the address address in
@@ -379,20 +367,43 @@ unsigned int atomicDec(unsigned int* address, unsigned int val);
  * result back to memory at the same address. These three operations are performed
  * in one atomic transaction. The function returns old (Compare And Swap).
  */
-int cudaAtomicCAS_int(int* address, int compare, int val);
-unsigned int cudaAtomicCAS_uint(unsigned int* address,
-                            unsigned int compare,
-                            unsigned int val);
-unsigned long long int cudaAtomicCAS_ullint(unsigned long long int* address,
-                                        unsigned long long int compare,
-                                        unsigned long long int val);
-unsigned short int cudaAtomicCAS_usint(unsigned short int* address,
-                                   unsigned short int compare,
-                                   unsigned short int val);
 #define atomicCAS(address, compare, val) _Generic(address, \
-    default : cudaAtomicCAS_int,                               \
-    unsigned int* : cudaAtomicCAS_uint,                        \
-    unsigned long long int* : cudaAtomicCAS_ullint,            \
-    unsigned short int* : cudaAtomicCAS_usint) (address, compare, val)
+    default : $cuda_atomicCAS_int,                               \
+    unsigned int* : $cuda_atomicCAS_uint,                        \
+    unsigned long long int* : $cuda_atomicCAS_ullint,            \
+    unsigned short int* : $cuda_atomicCAS_usint) (address, compare, val, $thread)
+    
+/*
+ * reads the 32-bit or 64-bit word old located at the address address
+ * in global or shared memory, computes (old & val), and stores the
+ * result back to memory at the same address. These three operations
+ * are performed in one atomic transaction. The function returns old.
+ */
+#define atomicAnd(address, val) _Generic(address, \
+    default : $cuda_atomicAnd_int,                \
+    unsigned int* : $cuda_atomicAnd_uint,         \
+    unsigned long long int* : $cuda_atomicAnd_ullint) (address, val, $thread)
+
+/*
+ * reads the 32-bit or 64-bit word old located at the address address
+ * in global or shared memory, computes (old | val), and stores the
+ * result back to memory at the same address. These three operations
+ * are performed in one atomic transaction. The function returns old.
+ */
+#define atomicOr(address, val) _Generic(address, \
+    default : $cuda_atomicOr_int,                \
+    unsigned int* : $cuda_atomicOr_uint,         \
+    unsigned long long int* : $cuda_atomicOr_ullint) (address, val, $thread)
+
+/*
+ * reads the 32-bit or 64-bit word old located at the address address
+ * in global or shared memory, computes (old ^ val), and stores the
+ * result back to memory at the same address. These three operations
+ * are performed in one atomic transaction. The function returns old.
+ */
+#define atomicXor(address, val) _Generic(address, \
+    default : $cuda_atomicXor_int,                \
+    unsigned int* : $cuda_atomicXor_uint,         \
+    unsigned long long int* : $cuda_atomicXor_ullint) (address, val, $thread)
 
 #endif

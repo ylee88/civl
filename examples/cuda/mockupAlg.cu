@@ -16,14 +16,10 @@ __global__ void kernel_1(float* A, float* C, int numElements) {
   int remainingElements = numElements;
 
   while (remainingElements > 1) {
-    //printf("%d,%d - remainingElements: %d\n", blockIdx.x, threadIdx.x, remainingElements);
     if (remainingElements < numElements) {
       __syncthreads();
-      //printf("%d,%d - entering barrier\n", blockIdx.x, threadIdx.x);
-      //$cuda_barrier($kernel, _cuda_kid, _cuda_thread_barrier);
-      //printf("%d,%d - exiting barrier\n", blockIdx.x, threadIdx.x);
     }
-        
+
     if (warpStart + 1 < remainingElements) {
       float val = i < numElements ? A[i] : 0;
           
@@ -45,61 +41,41 @@ __global__ void kernel_1(float* A, float* C, int numElements) {
     //warpStart *= warpSize;
     remainingElements = ((remainingElements - 1) / warpSize) + 1;
   }
-      
+
   if (i == 0) {
     *C = A[0];
   }
 }
 
-/*
-__global__ void kernel_1(float* A, float* C, int numElements) {
-  if (blockDim.x * blockIdx.x + threadIdx.x == 0) {
-    *C = 0;
-    for (int i = 0; i < numElements; i++) {
-      *C += A[i];
-    }
-  }
-}
-*/
 $input int N = 64;
+$input float A[N];
+
+int threadsPerBlock = N;
+int numBlocks = 1;
 
 int main() {
-  float A[N];
-  float sum = 0;
-  
-  for (int i = 0; i < N; i++) {
-    A[i] = i;
-    sum += A[i];
-    printf("sum: %f, A[i]: %f\n", sum, A[i]);
-  }
-
   int size = N * sizeof(float);
-  int numBlocks = 1;
-  //int numThreads = N%2 == 0? N/2 : (N+1)/2;
-  int numThreads = N;
 
   float* cuda_A;
   cudaMalloc((void **)&cuda_A, size);
   cudaMemcpy(cuda_A, A, size, cudaMemcpyHostToDevice);
 
   float* cuda_C;
-  cudaMalloc((void **)&cuda_C, sizeof(float));
+  cudaMalloc((void **)&cuda_C, numBlocks * sizeof(float));
 
-  kernel_1<<<numBlocks, numThreads>>>(cuda_A, cuda_C, N);
-  //kernel_1<<<1, N>>>(cuda_A, cuda_C, N);
-  
-  // Checking correctness
+  kernel_1<<<numBlocks, threadsPerBlock>>>(cuda_A, cuda_C, N);
+
   float* C = (float *)malloc(sizeof(float));
-  
   cudaMemcpy(C, cuda_C, sizeof(float), cudaMemcpyDeviceToHost);
 
-  printf("sum: %f, C: %f", sum, *C);
+  float sum = 0;
+  for(int i = 0; i < N; i++)
+    sum += A[i];
   
-  assert(*C == sum);
+  $assert(*C == sum);
   
   free(C);
   
   cudaFree(cuda_A); 
   cudaFree(cuda_C);
-
 }
