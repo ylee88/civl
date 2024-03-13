@@ -67,8 +67,8 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 
 	/**
 	 * The list of formations corresponding to {@link #theStreams}. The
-	 * {@link Formation} corresponding to a {@link CharStream} provides information
-	 * on where the stream came from.
+	 * {@link Formation} corresponding to a {@link CharStream} provides
+	 * information on where the stream came from.
 	 */
 	private Formation[] theFormations;
 
@@ -86,11 +86,18 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 
 	/**
 	 * The source files used to build this token stream only. These do not
-	 * necessarily include all of the source files seen by the preprocessor creating
-	 * this token source, because the preprocessor can be re-used multiple times to
-	 * create many token sources.
+	 * necessarily include all of the source files seen by the preprocessor
+	 * creating this token source, because the preprocessor can be re-used
+	 * multiple times to create many token sources.
 	 */
 	private Set<SourceFile> sourceFiles = new LinkedHashSet<>();
+
+	/**
+	 * Subset of {@link #sourceFiles} consisting of those source files that
+	 * contained <code>#pragma once</code>. Subsequence includes of these files
+	 * will be ignored.
+	 */
+	private Set<SourceFile> onceFiles = new LinkedHashSet<>();
 
 	/**
 	 * Factory used to produce new {@link CivlcToken}s.
@@ -98,15 +105,16 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	private TokenFactory tokenFactory;
 
 	/**
-	 * Stack of included source file information objects. When a #include directive
-	 * is executed, an element is pushed on to this stack. When the EOF of a file is
-	 * reached, the stack is popped. The stack is initialized with the initial given
-	 * source file.
+	 * Stack of included source file information objects. When a #include
+	 * directive is executed, an element is pushed on to this stack. When the
+	 * EOF of a file is reached, the stack is popped. The stack is initialized
+	 * with the initial given source file.
 	 */
 	private Stack<PreprocessorSourceFileInfo> sourceStack = new Stack<PreprocessorSourceFileInfo>();
 
 	/**
-	 * The directories which should be searched for files that are included using
+	 * The directories which should be searched for files that are included
+	 * using
 	 * 
 	 * <pre>
 	 * #include &lt;filename&gt;
@@ -117,7 +125,8 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	private File[] systemIncludePaths;
 
 	/**
-	 * The directories which should be searched for files that are included using
+	 * The directories which should be searched for files that are included
+	 * using
 	 * 
 	 * <pre>
 	 * #include "filename"
@@ -139,8 +148,8 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	private ArrayList<CivlcToken> theTokens = null;
 
 	/**
-	 * Adjacent string literal tokens will be accumulated in a buffer before being
-	 * added to the output stream because adjacent string literal must be
+	 * Adjacent string literal tokens will be accumulated in a buffer before
+	 * being added to the output stream because adjacent string literal must be
 	 * concatenated to form one token.
 	 */
 	private LinkedList<CivlcToken> stringLiteralBuffer = new LinkedList<CivlcToken>();
@@ -151,15 +160,15 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	private CivlcToken finalToken = null;
 
 	/**
-	 * The expression analyzer is used to analyze and evaluate integer expressions
-	 * in preprocessor conditionals.
+	 * The expression analyzer is used to analyze and evaluate integer
+	 * expressions in preprocessor conditionals.
 	 */
 	private PreprocessorExpressionAnalyzer expressionAnalyzer;
 
 	/**
-	 * A mapping of macro names to the Macro object. An entry is created and added
-	 * to this map whenever a '#define' directive is processed. An entry is removed
-	 * by a '#undef'
+	 * A mapping of macro names to the Macro object. An entry is created and
+	 * added to this map whenever a '#define' directive is processed. An entry
+	 * is removed by a '#undef'
 	 */
 	Map<String, Macro> macroMap;
 
@@ -168,10 +177,10 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 
 	/**
 	 * <p>
-	 * A stack of "ACSL" pragmas (under the CIVL command-universe). An "ACSL" pragma
-	 * denotes that all the annotations, in the same source file and coming after
-	 * this pragma, will be parsed and be a part of the final AST if they are
-	 * written in ACSL syntax.
+	 * A stack of "ACSL" pragmas (under the CIVL command-universe). An "ACSL"
+	 * pragma denotes that all the annotations, in the same source file and
+	 * coming after this pragma, will be parsed and be a part of the final AST
+	 * if they are written in ACSL syntax.
 	 * </p>
 	 * 
 	 * <p>
@@ -185,31 +194,31 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	private Stack<Boolean> parseACSLPragmaStack = new Stack<>();
 
 	/**
-	 * Is the current node inside a pragma line? We need to know this because then
-	 * closing NEWLINE that terminates the pragma must be made VISIBLE (usually all
-	 * white space is rendered invisible).
+	 * Is the current node inside a pragma line? We need to know this because
+	 * then closing NEWLINE that terminates the pragma must be made VISIBLE
+	 * (usually all white space is rendered invisible).
 	 */
 	private boolean inPragma = false;
 
 	/**
-	 * Is the current node inside an inline annotation, i.e., one that starts with
-	 * "//@"? We need to know this for two reasons: (1) the NEWLINE that terminates
-	 * the annotation must be made visible, (2) inside annotations, "@" tokens are
-	 * rendered invisible.
+	 * Is the current node inside an inline annotation, i.e., one that starts
+	 * with "//@"? We need to know this for two reasons: (1) the NEWLINE that
+	 * terminates the annotation must be made visible, (2) inside annotations,
+	 * "@" tokens are rendered invisible.
 	 */
 	private boolean inInlineAnnotation = false;
 
 	/**
-	 * Is the current node inside a block annotation, i.e., one delimited by "/*@"
-	 * and "*" "/"? We need to know this because inside annotations, "@" tokens are
-	 * rendered invisible.
+	 * Is the current node inside a block annotation, i.e., one delimited by
+	 * "/*@" and "*" "/"? We need to know this because inside annotations, "@"
+	 * tokens are rendered invisible.
 	 */
 	private boolean inBlockAnnotation = false;
 
 	/**
-	 * First and last elements of the output buffer, which forms a linked list. This
-	 * is where tokens stay temporarily until they are removed by an invocation of
-	 * nextToken().
+	 * First and last elements of the output buffer, which forms a linked list.
+	 * This is where tokens stay temporarily until they are removed by an
+	 * invocation of nextToken().
 	 */
 	private CivlcToken firstOutput, lastOutput;
 
@@ -222,35 +231,46 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 
 	/**
 	 * 
-	 * Instantiates new CTokenSource object. The given source file is parsed, a file
-	 * info object is created for it and pushed onto the stack. The output tokens
-	 * are not generated; this does not begin until "getToken" is called.
+	 * Instantiates new CTokenSource object. The given source file is parsed, a
+	 * file info object is created for it and pushed onto the stack. The output
+	 * tokens are not generated; this does not begin until "getToken" is called.
 	 * 
-	 * @param config             the ABC configuration
-	 * @param FileIndexer        indexer the file indexer that will be used to index
-	 *                           all source files encountered by this preprocessing
-	 *                           session
-	 * @param streams            the input character streams that will be
-	 *                           concatenated to form a single stream that will be
-	 *                           the input to the preprocessing algorithm
-	 * @param formations         an array specifying the formation history of each
-	 *                           input stream, basically used to give a name to that
-	 *                           stream
-	 * @param systemIncludePaths the directories where files included with angle
-	 *                           brackets are searched
-	 * @param userIncludePaths   the directories where files included with double
-	 *                           quotes are searched
-	 * @param macroMap           the predefined macros; maps a macro name to its
-	 *                           definition body
-	 * @param tokenFactory       the token factory to be used for producing new
-	 *                           {@link CivlcToken}s
-	 * @throws PreprocessorException if and IOException or RecognitionException
-	 *                               occurs while scanning and parsing the source
-	 *                               file
+	 * @param config
+	 *                               the ABC configuration
+	 * @param FileIndexer
+	 *                               indexer the file indexer that will be used
+	 *                               to index all source files encountered by
+	 *                               this preprocessing session
+	 * @param streams
+	 *                               the input character streams that will be
+	 *                               concatenated to form a single stream that
+	 *                               will be the input to the preprocessing
+	 *                               algorithm
+	 * @param formations
+	 *                               an array specifying the formation history
+	 *                               of each input stream, basically used to
+	 *                               give a name to that stream
+	 * @param systemIncludePaths
+	 *                               the directories where files included with
+	 *                               angle brackets are searched
+	 * @param userIncludePaths
+	 *                               the directories where files included with
+	 *                               double quotes are searched
+	 * @param macroMap
+	 *                               the predefined macros; maps a macro name to
+	 *                               its definition body
+	 * @param tokenFactory
+	 *                               the token factory to be used for producing
+	 *                               new {@link CivlcToken}s
+	 * @throws PreprocessorException
+	 *                                   if and IOException or
+	 *                                   RecognitionException occurs while
+	 *                                   scanning and parsing the source file
 	 */
-	public PreprocessorTokenSource(FileIndexer indexer, CharStream[] streams, Formation[] formations,
-			File[] systemIncludePaths, File[] userIncludePaths, Map<String, Macro> macroMap, TokenFactory tokenFactory)
-			throws PreprocessorException {
+	public PreprocessorTokenSource(FileIndexer indexer, CharStream[] streams,
+			Formation[] formations, File[] systemIncludePaths,
+			File[] userIncludePaths, Map<String, Macro> macroMap,
+			TokenFactory tokenFactory) throws PreprocessorException {
 		int numStreams = streams.length;
 
 		assert systemIncludePaths != null;
@@ -262,7 +282,8 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 		this.theFormations = formations;
 		this.systemIncludePaths = systemIncludePaths;
 		this.userIncludePaths = userIncludePaths;
-		this.expressionAnalyzer = new PreprocessorExpressionAnalyzer(new MacroDefinedPredicate(macroMap));
+		this.expressionAnalyzer = new PreprocessorExpressionAnalyzer(
+				new MacroDefinedPredicate(macroMap));
 		this.macroMap = macroMap;
 		if (saveTokens)
 			theTokens = new ArrayList<CivlcToken>();
@@ -278,21 +299,26 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	// Helpers...
 
 	/**
-	 * Searches for an internal file, i.e., one which is stored in a directory in
-	 * the ABC class path. Returns a new character stream obtained by reading the
-	 * file, or <code>null</code> if the file cannot be found.
+	 * Searches for an internal file, i.e., one which is stored in a directory
+	 * in the ABC class path. Returns a new character stream obtained by reading
+	 * the file, or <code>null</code> if the file cannot be found.
 	 * 
-	 * @param path     the path leading to the file; this path is relative to the
-	 *                 class path e.g., "include/abc".
-	 * @param filename the name of the file proper, e.g., "stdlib.h"
-	 * @return a new character stream obtained from the file or <code>null</code>
+	 * @param path
+	 *                     the path leading to the file; this path is relative
+	 *                     to the class path e.g., "include/abc".
+	 * @param filename
+	 *                     the name of the file proper, e.g., "stdlib.h"
+	 * @return a new character stream obtained from the file or
+	 *         <code>null</code>
 	 */
-	private Pair<File, CharStream> findInternalSystemFile(File path, String filename) {
+	private Pair<File, CharStream> findInternalSystemFile(File path,
+			String filename) {
 		File file = new File(path, filename);
 		String resource = file.getPath();
 
 		try {
-			CharStream stream = PreprocessorUtils.newFilteredCharStreamFromResource(resource, resource);
+			CharStream stream = PreprocessorUtils
+					.newFilteredCharStreamFromResource(resource, resource);
 
 			if (stream != null)
 				return new Pair<File, CharStream>(file, stream);
@@ -305,13 +331,15 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	 * Finds an internal system file in the default ABC include path,
 	 * {@link Preprocessor#ABC_INCLUDE_PATH}.
 	 * 
-	 * @param filename name of file, e.g., "stdlib.h"
-	 * @return new character stream obtained from the file or <code>null</code> if
-	 *         no such file is found in the default include paths
+	 * @param filename
+	 *                     name of file, e.g., "stdlib.h"
+	 * @return new character stream obtained from the file or <code>null</code>
+	 *         if no such file is found in the default include paths
 	 */
 	private Pair<File, CharStream> findInternalSystemFile(String filename) {
 		for (File systemPath : systemIncludePaths) {
-			Pair<File, CharStream> result = findInternalSystemFile(systemPath, filename);
+			Pair<File, CharStream> result = findInternalSystemFile(systemPath,
+					filename);
 
 			if (result != null)
 				return result;
@@ -322,24 +350,30 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	/**
 	 * Pushes a new character stream onto the {@link #sourceStack}.
 	 * 
-	 * @param charStream the new character stream to push
-	 * @param formation  a formation which specifies the origin of the character
-	 *                   stream
-	 * @throws PreprocessorException if something goes wrong parsing the character
-	 *                               stream
+	 * @param charStream
+	 *                       the new character stream to push
+	 * @param formation
+	 *                       a formation which specifies the origin of the
+	 *                       character stream
+	 * @throws PreprocessorException
+	 *                                   if something goes wrong parsing the
+	 *                                   character stream
 	 */
-	private void pushStream(CharStream charStream, Formation formation) throws PreprocessorException {
+	private void pushStream(CharStream charStream, Formation formation)
+			throws PreprocessorException {
 		String name = formation.getLastFile().getName();
 
 		try {
 			PreprocessorLexer lexer = new PreprocessorLexer(charStream);
-			PreprocessorParser parser = new PreprocessorParser(new CommonTokenStream(lexer));
+			PreprocessorParser parser = new PreprocessorParser(
+					new CommonTokenStream(lexer));
 			file_return fileReturn = parser.file();
 			int numErrors = parser.getNumberOfSyntaxErrors();
 
 			if (numErrors != 0)
-				throw new PreprocessorException(
-						numErrors + " syntax errors occurred while scanning included file " + name);
+				throw new PreprocessorException(numErrors
+						+ " syntax errors occurred while scanning included file "
+						+ name);
 
 			Tree tree = (Tree) fileReturn.getTree();
 
@@ -347,7 +381,8 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 			parseACSLPragmaStack.push(false);
 			incrementNextNode(); // skip root "FILE" node
 		} catch (RecognitionException e) {
-			throw new PreprocessorException("Preprocessing " + formation.toString() + " failed: " + e);
+			throw new PreprocessorException(
+					"Preprocessing " + formation.toString() + " failed: " + e);
 		} catch (RuntimeException e) {
 			throw new PreprocessorException(e.getMessage());
 		}
@@ -356,8 +391,8 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	/**
 	 * Returns current file being processed.
 	 * 
-	 * @return current file or <code>null</code> if the source stack is currently
-	 *         empty
+	 * @return current file or <code>null</code> if the source stack is
+	 *         currently empty
 	 */
 	private SourceFile getCurrentSource() {
 		if (sourceStack.isEmpty())
@@ -367,9 +402,9 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	}
 
 	/**
-	 * Process the next node in the CPP AST. This may actually involve processing
-	 * more nodes, but it will at least involve processing one node and incrementing
-	 * the current position by at least one token.
+	 * Process the next node in the CPP AST. This may actually involve
+	 * processing more nodes, but it will at least involve processing one node
+	 * and incrementing the current position by at least one token.
 	 * 
 	 * @throws PreprocessorException
 	 */
@@ -385,45 +420,45 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 			int type = token.getType();
 
 			switch (type) {
-			case PreprocessorParser.EOF:
-				processEOF(node);
-				break;
-			case PreprocessorParser.TEXT_BLOCK:
-				processTextBlock(node);
-				break;
-			case PreprocessorParser.DEFINE:
-				processMacroDefinition(node);
-				break;
-			case PreprocessorParser.ERROR:
-				processError(node);
-				break;
-			case PreprocessorParser.ELIF:
-			case PreprocessorParser.PIF:
-				processIf(node);
-				break;
-			case PreprocessorParser.IFDEF:
-				processIfdef(node);
-				break;
-			case PreprocessorParser.IFNDEF:
-				processIfndef(node);
-				break;
-			case PreprocessorParser.INCLUDE:
-				processInclude(node);
-				break;
-			case PreprocessorParser.PPRAGMA:
-				processPragma(node);
-				break;
-			case PreprocessorParser.UNDEF:
-				processUndef(node);
-				break;
-			case PreprocessorParser.HASH:
-				processNondirective(node);
-				break;
-			case PreprocessorParser.LINE:
-				processLine(node);
-				break;
-			default:
-				processText(node);
+				case PreprocessorParser.EOF :
+					processEOF(node);
+					break;
+				case PreprocessorParser.TEXT_BLOCK :
+					processTextBlock(node);
+					break;
+				case PreprocessorParser.DEFINE :
+					processMacroDefinition(node);
+					break;
+				case PreprocessorParser.ERROR :
+					processError(node);
+					break;
+				case PreprocessorParser.ELIF :
+				case PreprocessorParser.PIF :
+					processIf(node);
+					break;
+				case PreprocessorParser.IFDEF :
+					processIfdef(node);
+					break;
+				case PreprocessorParser.IFNDEF :
+					processIfndef(node);
+					break;
+				case PreprocessorParser.INCLUDE :
+					processInclude(node);
+					break;
+				case PreprocessorParser.PPRAGMA :
+					processPragma(node);
+					break;
+				case PreprocessorParser.UNDEF :
+					processUndef(node);
+					break;
+				case PreprocessorParser.HASH :
+					processNondirective(node);
+					break;
+				case PreprocessorParser.LINE :
+					processLine(node);
+					break;
+				default :
+					processText(node);
 			}
 		}
 	}
@@ -432,30 +467,35 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 
 	/**
 	 * <p>
-	 * Processes a text node, i.e., a node for a token which is not a preprocessor
-	 * directive and does not have any special meaning to the preprocessor, though
-	 * it may be a macro invocation. This node may or may not be in a text block.
+	 * Processes a text node, i.e., a node for a token which is not a
+	 * preprocessor directive and does not have any special meaning to the
+	 * preprocessor, though it may be a macro invocation. This node may or may
+	 * not be in a text block.
 	 * </p>
 	 * 
 	 * <p>
-	 * Precondition: This method should be called only from the outermost scope of
-	 * expansion, i.e., we are not currently in a macro expansion.
+	 * Precondition: This method should be called only from the outermost scope
+	 * of expansion, i.e., we are not currently in a macro expansion.
 	 * </p>
 	 * 
 	 * <p>
 	 * Postcondition: if the node is not an identifier for a macro, a
-	 * {@link CivlcToken} for it is created and added to the output buffer. If it is
-	 * a macro, macro expansion takes place. For a function macro, this involves
-	 * consuming more input tokens (the tokens comprising the left parenthesis, the
-	 * arguments, and the final right parenthesis). The current position in the
-	 * input AST is moved to the point just after that last token. The tokens
-	 * resulting from the expansion are added to the output buffer.
+	 * {@link CivlcToken} for it is created and added to the output buffer. If
+	 * it is a macro, macro expansion takes place. For a function macro, this
+	 * involves consuming more input tokens (the tokens comprising the left
+	 * parenthesis, the arguments, and the final right parenthesis). The current
+	 * position in the input AST is moved to the point just after that last
+	 * token. The tokens resulting from the expansion are added to the output
+	 * buffer.
 	 * </p>
 	 * 
-	 * @param textNode the text node to process
-	 * @throws PreprocessorException if something goes wrong with macro expansion,
-	 *                               or if a ppnumber token does not have the form
-	 *                               of a CIVL-C range expression (a..b)
+	 * @param textNode
+	 *                     the text node to process
+	 * @throws PreprocessorException
+	 *                                   if something goes wrong with macro
+	 *                                   expansion, or if a ppnumber token does
+	 *                                   not have the form of a CIVL-C range
+	 *                                   expression (a..b)
 	 */
 	private void processText(Tree textNode) throws PreprocessorException {
 		Token token = ((CommonTree) textNode).getToken();
@@ -467,49 +507,49 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 			boolean parseACSL = parseACSLPragmaStack.peek();
 
 			switch (token.getType()) {
-			case PreprocessorLexer.INLINE_ANNOTATION_START:
-				assert (inTextBlock);
-				inInlineAnnotation = true;
-				// will be set to false at next NEWLINE
-				break;
-			case PreprocessorLexer.NEWLINE:
-				assert (inTextBlock);
-				if (inInlineAnnotation) {
-					// if parse ACSL, NEWLINE in an annotation line must be
-					// added to output when "inInlineAnnotation" flag is
-					// true: Otherwise, nothing in annotation line goes to
-					// output
+				case PreprocessorLexer.INLINE_ANNOTATION_START :
+					assert (inTextBlock);
+					inInlineAnnotation = true;
+					// will be set to false at next NEWLINE
+					break;
+				case PreprocessorLexer.NEWLINE :
+					assert (inTextBlock);
+					if (inInlineAnnotation) {
+						// if parse ACSL, NEWLINE in an annotation line must be
+						// added to output when "inInlineAnnotation" flag is
+						// true: Otherwise, nothing in annotation line goes to
+						// output
+						if (parseACSL)
+							shiftToOutput(textNode);
+						inInlineAnnotation = false;
+						incrementNextNode();
+						return;
+					}
+					break;
+				case PreprocessorLexer.ANNOTATION_START :
+					assert (inTextBlock);
+					inBlockAnnotation = true;
+					break;
+				case PreprocessorLexer.ANNOTATION_END :
+					assert (inTextBlock && inBlockAnnotation);
+					inBlockAnnotation = false;
+					// if parse ACSL, ANNOTATION_END in an annotation block must
+					// be added to output when "inBlockAnnotation" flag is true;
+					// Otherwise, nothing in annotation block goes to output:
 					if (parseACSL)
 						shiftToOutput(textNode);
-					inInlineAnnotation = false;
 					incrementNextNode();
 					return;
-				}
-				break;
-			case PreprocessorLexer.ANNOTATION_START:
-				assert (inTextBlock);
-				inBlockAnnotation = true;
-				break;
-			case PreprocessorLexer.ANNOTATION_END:
-				assert (inTextBlock && inBlockAnnotation);
-				inBlockAnnotation = false;
-				// if parse ACSL, ANNOTATION_END in an annotation block must
-				// be added to output when "inBlockAnnotation" flag is true;
-				// Otherwise, nothing in annotation block goes to output:
-				if (parseACSL)
-					shiftToOutput(textNode);
-				incrementNextNode();
-				return;
-			case PreprocessorLexer.PP_NUMBER:
-				String sourceName = token.getInputStream().getSourceName();
-				Boolean isFortran = sourceName.toUpperCase().contains(".F");
+				case PreprocessorLexer.PP_NUMBER :
+					String sourceName = token.getInputStream().getSourceName();
+					Boolean isFortran = sourceName.toUpperCase().contains(".F");
 
-				if (isFortran) {
-					processIdentifier(textNode);
-				} else
-					processPPNumber(token);
-				return;
-			default:
+					if (isFortran) {
+						processIdentifier(textNode);
+					} else
+						processPPNumber(token);
+					return;
+				default :
 			}
 			// If current control is NOT in block annotation and line
 			// annotation, or ACSL will be parsed anyway, put the node to
@@ -522,17 +562,19 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 
 	/**
 	 * Processes a "PPNumber", which is any preprocessor number that is not a
-	 * standard integer or floating constant. The only possibility currently is the
-	 * CIVL-C range or fragment thereof, which has the form "a..b", or "a..", or
-	 * "..b", where a and b are integer constants. Ideally we would like to have
-	 * been parsed as 3 (or 2) separate tokens, but we just couldn't find any way to
-	 * do that with ANTLR. So we fix it here.
+	 * standard integer or floating constant. The only possibility currently is
+	 * the CIVL-C range or fragment thereof, which has the form "a..b", or
+	 * "a..", or "..b", where a and b are integer constants. Ideally we would
+	 * like to have been parsed as 3 (or 2) separate tokens, but we just
+	 * couldn't find any way to do that with ANTLR. So we fix it here.
 	 * 
-	 * @param token the ppnumber token which should be a CIVL-C range expression or
-	 *              part thereof
-	 * @throws PreprocessorException if the text of that token does not have the
-	 *                               form of a CIVL-C range expression or part
-	 *                               thereof
+	 * @param token
+	 *                  the ppnumber token which should be a CIVL-C range
+	 *                  expression or part thereof
+	 * @throws PreprocessorException
+	 *                                   if the text of that token does not have
+	 *                                   the form of a CIVL-C range expression
+	 *                                   or part thereof
 	 */
 	private void processPPNumber(Token token) throws PreprocessorException {
 		String text = token.getText();
@@ -547,10 +589,13 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 		Formation formation = getIncludeHistory();
 
 		if (index < 0)
-			throw new PreprocessorException("Unknown preprocessor number", token);
+			throw new PreprocessorException("Unknown preprocessor number",
+					token);
 		if (index > 0) {
-			CivlcToken leftToken = tokenFactory.newCivlcToken(stream, PreprocessorLexer.INTEGER_CONSTANT, chan,
-					startIndex, startIndex + index - 1, formation, line, pos, TokenVocabulary.PREPROC);
+			CivlcToken leftToken = tokenFactory.newCivlcToken(stream,
+					PreprocessorLexer.INTEGER_CONSTANT, chan, startIndex,
+					startIndex + index - 1, formation, line, pos,
+					TokenVocabulary.PREPROC);
 
 			// should not be necessary since the text is obtained from the
 			// stream by default, using the start and stop indexes:
@@ -558,19 +603,24 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 			addOutput(leftToken);
 		}
 
-		CivlcToken dotdot = tokenFactory.newCivlcToken(stream, PreprocessorLexer.DOTDOT, chan, startIndex + index,
-				startIndex + index + 1, formation, line, pos + index, TokenVocabulary.PREPROC);
+		CivlcToken dotdot = tokenFactory.newCivlcToken(stream,
+				PreprocessorLexer.DOTDOT, chan, startIndex + index,
+				startIndex + index + 1, formation, line, pos + index,
+				TokenVocabulary.PREPROC);
 
 		addOutput(dotdot);
 		if (index + 2 < length) {
-			CivlcToken rightToken = tokenFactory.newCivlcToken(stream, PreprocessorLexer.INTEGER_CONSTANT, chan,
-					startIndex + index + 2, stopIndex, formation, line, pos + index + 2, TokenVocabulary.PREPROC);
+			CivlcToken rightToken = tokenFactory.newCivlcToken(stream,
+					PreprocessorLexer.INTEGER_CONSTANT, chan,
+					startIndex + index + 2, stopIndex, formation, line,
+					pos + index + 2, TokenVocabulary.PREPROC);
 			String rightText = rightToken.getText();
 			char firstChar = rightText.charAt(0);
 
 			// rightText should be either an integer literal or
 			// identifier ... how to tell
-			if (firstChar == '+' || firstChar == '-' || (firstChar >= '0' && firstChar <= '9')) {
+			if (firstChar == '+' || firstChar == '-'
+					|| (firstChar >= '0' && firstChar <= '9')) {
 				// OK: should be integer
 			} else {
 				rightToken.setType(PreprocessorLexer.IDENTIFIER);
@@ -584,7 +634,8 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	 * Is this one of the special macros __LINE__ or __FILE__, predefined macros
 	 * whose values change automatically.
 	 * 
-	 * @param name an identifier string
+	 * @param name
+	 *                 an identifier string
 	 * @return <code>true</code> iff name is one of the special macro names
 	 */
 	private boolean isSpecialMacro(String name) {
@@ -592,21 +643,23 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	}
 
 	/**
-	 * If the identifier is a macro, do macro expansion. Else, it's just a regular
-	 * token that gets shifted to output.
+	 * If the identifier is a macro, do macro expansion. Else, it's just a
+	 * regular token that gets shifted to output.
 	 * 
 	 * @throws PreprocessorException
 	 */
-	private void processIdentifier(Tree identifierNode) throws PreprocessorException {
+	private void processIdentifier(Tree identifierNode)
+			throws PreprocessorException {
 		String name = identifierNode.getText();
 		Macro macro = macroMap.get(name);
 
 		// If the control is in block annotation or inline annotation but ACSL
 		// shall not be parsed, skip:
-		if ((inBlockAnnotation || inInlineAnnotation) && !parseACSLPragmaStack.peek()) {
+		if ((inBlockAnnotation || inInlineAnnotation)
+				&& !parseACSLPragmaStack.peek()) {
 			incrementNextNode();
-		} else if (macro != null
-				&& (macro instanceof ObjectMacro || peekAheadSkipWSHasType(PreprocessorLexer.LPAREN))) {
+		} else if (macro != null && (macro instanceof ObjectMacro
+				|| peekAheadSkipWSHasType(PreprocessorLexer.LPAREN))) {
 			processInvocation(macro, identifierNode);
 		} else if (isSpecialMacro(name)) {
 			addOutput(processSpecialInvocation(identifierNode));
@@ -619,12 +672,12 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 
 	/**
 	 * <p>
-	 * Processes an object or function-like macro invocation node. Continues walking
-	 * the input tree to find the macro arguments (if the macro is a function
-	 * macro). Then expands the macro using the macro's definition. The resulting
-	 * token sequence is added to the end of the outputBuffer and the position in
-	 * the input sequence is moved to the point just after the complete macro
-	 * invocation.
+	 * Processes an object or function-like macro invocation node. Continues
+	 * walking the input tree to find the macro arguments (if the macro is a
+	 * function macro). Then expands the macro using the macro's definition. The
+	 * resulting token sequence is added to the end of the outputBuffer and the
+	 * position in the input sequence is moved to the point just after the
+	 * complete macro invocation.
 	 * </p>
 	 * 
 	 * <p>
@@ -639,44 +692,55 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	 * {@link #processInvocation(FunctionMacro, CivlcToken, CivlcToken[])}.
 	 * </p>
 	 * 
-	 * @param macro          a Macro object
-	 * @param invocationNode the node containing the identifier token whose string
-	 *                       value is the name of the macro
-	 * @throws PreprocessorException if something goes wrong expanding the macro,
-	 *                               such as the wrong number of arguments is
-	 *                               provided
+	 * @param macro
+	 *                           a Macro object
+	 * @param invocationNode
+	 *                           the node containing the identifier token whose
+	 *                           string value is the name of the macro
+	 * @throws PreprocessorException
+	 *                                   if something goes wrong expanding the
+	 *                                   macro, such as the wrong number of
+	 *                                   arguments is provided
 	 */
-	private void processInvocation(Macro macro, Tree invocationNode) throws PreprocessorException {
+	private void processInvocation(Macro macro, Tree invocationNode)
+			throws PreprocessorException {
 		Token token = ((CommonTree) invocationNode).getToken();
-		CivlcToken cToken = tokenFactory.newCivlcToken(token, getIncludeHistory(), TokenVocabulary.PREPROC);
+		CivlcToken cToken = tokenFactory.newCivlcToken(token,
+				getIncludeHistory(), TokenVocabulary.PREPROC);
 		Pair<CivlcToken, CivlcToken> result;
 
 		if (macro instanceof ObjectMacro) {
 			result = processInvocation((ObjectMacro) macro, cToken);
 			incrementNextNode();
 		} else {
-			Iterator<CivlcToken> argumentIter = getArgumentIterator((FunctionMacro) macro);
+			Iterator<CivlcToken> argumentIter = getArgumentIterator(
+					(FunctionMacro) macro);
 
 			// note the call to findInvocationArguments updated
 			// position correctly.
-			result = processInvocation((FunctionMacro) macro, cToken, argumentIter);
+			result = processInvocation((FunctionMacro) macro, cToken,
+					argumentIter);
 		}
 		addOutputList(result);
 	}
 
 	/**
-	 * Processes the invocation of a "special" macro, one of the built-ins, such as
-	 * "__LINE__" or "__FILE__".
+	 * Processes the invocation of a "special" macro, one of the built-ins, such
+	 * as "__LINE__" or "__FILE__".
 	 * 
-	 * @param invocationNode the parse tree node corresponding to the use of the
-	 *                       macro name
-	 * @throws PreprocessorException if something goes wrong adding the new string
-	 *                               or integer constant token to the current output
-	 *                               buffer
+	 * @param invocationNode
+	 *                           the parse tree node corresponding to the use of
+	 *                           the macro name
+	 * @throws PreprocessorException
+	 *                                   if something goes wrong adding the new
+	 *                                   string or integer constant token to the
+	 *                                   current output buffer
 	 */
-	private CivlcToken processSpecialInvocation(Tree invocationNode) throws PreprocessorException {
+	private CivlcToken processSpecialInvocation(Tree invocationNode)
+			throws PreprocessorException {
 		Token token = ((CommonTree) invocationNode).getToken();
-		CivlcToken cToken = tokenFactory.newCivlcToken(token, getIncludeHistory(), TokenVocabulary.PREPROC);
+		CivlcToken cToken = tokenFactory.newCivlcToken(token,
+				getIncludeHistory(), TokenVocabulary.PREPROC);
 
 		return expandSpecial(cToken);
 	}
@@ -687,30 +751,35 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 		CivlcToken newToken;
 
 		switch (name) {
-		case "__LINE__":
-			newToken = tokenFactory.newCivlcToken(PreprocessorLexer.INTEGER_CONSTANT, "" + origin.getLine(), formation,
-					TokenVocabulary.PREPROC);
-			break;
-		case "__FILE__":
-			newToken = tokenFactory.newCivlcToken(PreprocessorLexer.STRING_LITERAL,
-					'"' + getCurrentSource().getFile().getAbsolutePath() + '"', formation, TokenVocabulary.PREPROC);
-			break;
-		default:
-			throw new PreprocessorRuntimeException("unreachable");
+			case "__LINE__" :
+				newToken = tokenFactory.newCivlcToken(
+						PreprocessorLexer.INTEGER_CONSTANT,
+						"" + origin.getLine(), formation,
+						TokenVocabulary.PREPROC);
+				break;
+			case "__FILE__" :
+				newToken = tokenFactory
+						.newCivlcToken(PreprocessorLexer.STRING_LITERAL,
+								'"' + getCurrentSource().getFile()
+										.getAbsolutePath() + '"',
+								formation, TokenVocabulary.PREPROC);
+				break;
+			default :
+				throw new PreprocessorRuntimeException("unreachable");
 		}
 		return newToken;
 	}
 
 	/**
 	 * <p>
-	 * Performs expansion of an object macro. Returns a list of tokens obtained from
-	 * the macro's replacement list.
+	 * Performs expansion of an object macro. Returns a list of tokens obtained
+	 * from the macro's replacement list.
 	 * </p>
 	 * 
 	 * <p>
-	 * The list of tokens returned consists entirely of newly created tokens (i.e.,
-	 * tokens which did not exist upon entry to this method). They will have correct
-	 * include and expansion histories.
+	 * The list of tokens returned consists entirely of newly created tokens
+	 * (i.e., tokens which did not exist upon entry to this method). They will
+	 * have correct include and expansion histories.
 	 * </p>
 	 * 
 	 * <p>
@@ -719,73 +788,78 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	 * identifier as "do not expand".
 	 * </p>
 	 * 
-	 * @param macro  the object macro
-	 * @param origin the expansion history of the identifier before getting to the
-	 *               current expansion.
-	 * @return a pair consisting of the first and last elements of the new list of
-	 *         tokens
-	 * @throws PreprocessorException if something goes wrong while expanding the
-	 *                               list of replacement tokens (i.e., the second
-	 *                               expansion)
+	 * @param macro
+	 *                   the object macro
+	 * @param origin
+	 *                   the expansion history of the identifier before getting
+	 *                   to the current expansion.
+	 * @return a pair consisting of the first and last elements of the new list
+	 *         of tokens
+	 * @throws PreprocessorException
+	 *                                   if something goes wrong while expanding
+	 *                                   the list of replacement tokens (i.e.,
+	 *                                   the second expansion)
 	 */
-	private Pair<CivlcToken, CivlcToken> processInvocation(ObjectMacro macro, CivlcToken origin)
-			throws PreprocessorException {
+	private Pair<CivlcToken, CivlcToken> processInvocation(ObjectMacro macro,
+			CivlcToken origin) throws PreprocessorException {
 		return performSecondExpansion(instantiate(macro, origin), macro);
 	}
 
 	/**
 	 * <p>
 	 * Processes a function macro invocation, given the macro and the actual
-	 * arguments. Each actual argument is given as a null-terminated list of tokens.
-	 * This returns the list of tokens which is the result of expanding the macros.
-	 * This procedure is recursive: if any macro invocations occur within the
-	 * arguments, they are also expanded.
+	 * arguments. Each actual argument is given as a null-terminated list of
+	 * tokens. This returns the list of tokens which is the result of expanding
+	 * the macros. This procedure is recursive: if any macro invocations occur
+	 * within the arguments, they are also expanded.
 	 * </p>
 	 * 
 	 * <p>
-	 * It is assumed that the input argument tokens will have the correct expansion
-	 * histories, i.e., for all expansions up to but not including the current one.
+	 * It is assumed that the input argument tokens will have the correct
+	 * expansion histories, i.e., for all expansions up to but not including the
+	 * current one.
 	 * </p>
 	 * 
 	 * <p>
-	 * The list of tokens returned consists entirely of newly created tokens (i.e.,
-	 * tokens which did not exist upon entry to this method). They will have correct
-	 * include and expansion histories.
+	 * The list of tokens returned consists entirely of newly created tokens
+	 * (i.e., tokens which did not exist upon entry to this method). They will
+	 * have correct include and expansion histories.
 	 * </p>
 	 * 
 	 * <p>
-	 * NOTE: in a function-like macro replacement list, each '#' must be immediately
-	 * followed by a parameter name, else error --- C11 6.10.3.2(1). The '#' may
-	 * also occur in an object-like macro replacement list, but has no special
-	 * meaning or restrictions.
+	 * NOTE: in a function-like macro replacement list, each '#' must be
+	 * immediately followed by a parameter name, else error --- C11 6.10.3.2(1).
+	 * The '#' may also occur in an object-like macro replacement list, but has
+	 * no special meaning or restrictions.
 	 * </p>
 	 * 
 	 * <p>
 	 * NOTE: if "# A" occurs in the replacement sequence, where A is one of the
-	 * parameter names, then the actual argument corresponding to A is NOT expanded.
-	 * Instead, the exact actual argument is stringified, and the resulting string
-	 * token replaces the "# A". Stringification involves escaping characters such
-	 * as " and \. See C11 6.10.3.2.
+	 * parameter names, then the actual argument corresponding to A is NOT
+	 * expanded. Instead, the exact actual argument is stringified, and the
+	 * resulting string token replaces the "# A". Stringification involves
+	 * escaping characters such as " and \. See C11 6.10.3.2.
 	 * </p>
 	 * 
 	 * <p>
 	 * NOTE: The "##" may be used in object and function-like macro replacement
-	 * lists. Also, "[a] ## preprocessing token shall not occur at the beginning or
-	 * at the end of a replacement list for either form of macro definition." C11
-	 * 6.10.3.3(1).
+	 * lists. Also, "[a] ## preprocessing token shall not occur at the beginning
+	 * or at the end of a replacement list for either form of macro definition."
+	 * C11 6.10.3.3(1).
 	 * </p>
 	 * 
 	 * <p>
 	 * NOTE: if "A ##" or "## A" occurs, then A is replaced by the non-expanded
-	 * actual argument token list UNLESS actual is empty (no tokens), in which case
-	 * A is replaced by PLACEMARKER, a special symbol. After that and before second
-	 * expansion: each "X ## Y" --- if the ## is from the replacement list and NOT
-	 * from an argument --- is replaced by concatenation of X and Y, where
-	 * PLACEMARKER is the identity element for concatenation. Then all PLACEMARKERs
-	 * are removed. Hence before second expansion all placemarkers and all of the
-	 * original ## tokens should be gone. ISN'T THIS THE SAME as saying: if actual
-	 * argument is empty then delete "A ##" or "## A" from the replacement list.
-	 * What about "B ## A ## C"? It becomes "B ## C".
+	 * actual argument token list UNLESS actual is empty (no tokens), in which
+	 * case A is replaced by PLACEMARKER, a special symbol. After that and
+	 * before second expansion: each "X ## Y" --- if the ## is from the
+	 * replacement list and NOT from an argument --- is replaced by
+	 * concatenation of X and Y, where PLACEMARKER is the identity element for
+	 * concatenation. Then all PLACEMARKERs are removed. Hence before second
+	 * expansion all placemarkers and all of the original ## tokens should be
+	 * gone. ISN'T THIS THE SAME as saying: if actual argument is empty then
+	 * delete "A ##" or "## A" from the replacement list. What about "B ## A ##
+	 * C"? It becomes "B ## C".
 	 * </p>
 	 * 
 	 * 
@@ -794,48 +868,60 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	 * After all of this, second expansion.
 	 * </p>
 	 * 
-	 * @param macro     the function-like macro which is being invoked
-	 * @param arguments the actual arguments in the invocation of the macro
-	 * @return a pair consisting of the first and last elements of the linked list
-	 *         which is the new token sequence produced by the expansion
+	 * @param macro
+	 *                      the function-like macro which is being invoked
+	 * @param arguments
+	 *                      the actual arguments in the invocation of the macro
+	 * @return a pair consisting of the first and last elements of the linked
+	 *         list which is the new token sequence produced by the expansion
 	 * @throws PreprocessorException
 	 */
-	private Pair<CivlcToken, CivlcToken> processInvocation(FunctionMacro macro, CivlcToken origin,
-			Iterator<CivlcToken> argumentIter) throws PreprocessorException {
-		return performSecondExpansion(instantiate(macro, origin, argumentIter), macro);
+	private Pair<CivlcToken, CivlcToken> processInvocation(FunctionMacro macro,
+			CivlcToken origin, Iterator<CivlcToken> argumentIter)
+			throws PreprocessorException {
+		return performSecondExpansion(instantiate(macro, origin, argumentIter),
+				macro);
 	}
 
 	/**
 	 * In the second expansion of a macro, the result of the first expansion is
-	 * first scanned for instances of the macro being expanded. Any such instances
-	 * are marked to not be re-expanded, to prevent an infinite recursion. See C11
-	 * 6.10.3.4(2): "If the name of the macro being replaced is found during this
-	 * scan of the replacement list (not including the rest of the source file’s
-	 * preprocessing tokens), it is not replaced."
+	 * first scanned for instances of the macro being expanded. Any such
+	 * instances are marked to not be re-expanded, to prevent an infinite
+	 * recursion. See C11 6.10.3.4(2): "If the name of the macro being replaced
+	 * is found during this scan of the replacement list (not including the rest
+	 * of the source file’s preprocessing tokens), it is not replaced."
 	 * 
-	 * @param tokenList a list of tokens to be expanded given as pair consisting of
-	 *                  first and last elements
-	 * @param macro     the macro being expanded
-	 * @return result of second expansion of tokenList (first and last elements of
-	 *         the linked list of tokens)
-	 * @throws PreprocessorException any improper macro invocations occur in the
-	 *                               token list
+	 * @param tokenList
+	 *                      a list of tokens to be expanded given as pair
+	 *                      consisting of first and last elements
+	 * @param macro
+	 *                      the macro being expanded
+	 * @return result of second expansion of tokenList (first and last elements
+	 *         of the linked list of tokens)
+	 * @throws PreprocessorException
+	 *                                   any improper macro invocations occur in
+	 *                                   the token list
 	 */
-	private Pair<CivlcToken, CivlcToken> performSecondExpansion(Pair<CivlcToken, CivlcToken> tokenList, Macro macro)
+	private Pair<CivlcToken, CivlcToken> performSecondExpansion(
+			Pair<CivlcToken, CivlcToken> tokenList, Macro macro)
 			throws PreprocessorException {
 		String name = macro.getName();
 
 		// mark all occurrences of identifier M as "do not expand"...
-		for (CivlcToken token = tokenList.left; token != null; token = token.getNext()) {
-			if (PreprocessorUtils.isIdentifier(token) && name.equals(token.getText()))
+		for (CivlcToken token = tokenList.left; token != null; token = token
+				.getNext()) {
+			if (PreprocessorUtils.isIdentifier(token)
+					&& name.equals(token.getText()))
 				token.makeNonExpandable();
 		}
 		return expandList(tokenList.left);
 	}
 
-	private Pair<CivlcToken, CivlcToken> instantiate(FunctionMacro macro, CivlcToken origin,
-			Iterator<CivlcToken> argumentIter) throws PreprocessorException {
-		MacroExpander expander = new MacroExpander(this, macro, origin, argumentIter);
+	private Pair<CivlcToken, CivlcToken> instantiate(FunctionMacro macro,
+			CivlcToken origin, Iterator<CivlcToken> argumentIter)
+			throws PreprocessorException {
+		MacroExpander expander = new MacroExpander(this, macro, origin,
+				argumentIter);
 		Pair<CivlcToken, CivlcToken> result = expander.expand();
 
 		return result;
@@ -846,17 +932,20 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	 * CTokens corresponding to the sequence of input tokens in the macro's
 	 * replacement list.
 	 * 
-	 * The result is a linked list of CToken using the "next" field of CToken. The
-	 * elements of the Pair returned are the first and last element of the list.
+	 * The result is a linked list of CToken using the "next" field of CToken.
+	 * The elements of the Pair returned are the first and last element of the
+	 * list.
 	 * 
-	 * @param macro  any object macro
-	 * @param origin the original expansion history for the identifier which is the
-	 *               macro's name and led to its expansion
+	 * @param macro
+	 *                   any object macro
+	 * @param origin
+	 *                   the original expansion history for the identifier which
+	 *                   is the macro's name and led to its expansion
 	 * @return first and last element in a null-terminated linked list of fresh
 	 *         CTokens obtained from the macro's body
 	 */
-	private Pair<CivlcToken, CivlcToken> instantiate(ObjectMacro macro, CivlcToken origin)
-			throws PreprocessorException {
+	private Pair<CivlcToken, CivlcToken> instantiate(ObjectMacro macro,
+			CivlcToken origin) throws PreprocessorException {
 		MacroExpander expander = new MacroExpander(this, macro, origin);
 		Pair<CivlcToken, CivlcToken> result = expander.expand();
 
@@ -866,26 +955,27 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	/**
 	 * <p>
 	 * Expands all macro invocations in a null-terminated linked list of
-	 * {@link CivlcToken}, modifying the list in the process. Does not care about
-	 * preprocessor directives, or anything else other than macro invocations. Even
-	 * if this method comes across a directive, it does not treat the directive as a
-	 * directive---it is treated as just another token.
+	 * {@link CivlcToken}, modifying the list in the process. Does not care
+	 * about preprocessor directives, or anything else other than macro
+	 * invocations. Even if this method comes across a directive, it does not
+	 * treat the directive as a directive---it is treated as just another token.
 	 * </p>
 	 * 
 	 * <p>
-	 * Exception: do not expand macros if they occur within a "defined" operator!
+	 * Exception: do not expand macros if they occur within a "defined"
+	 * operator!
 	 * </p>
 	 * 
 	 * <p>
-	 * Note that the left token in the pair returned by this method MAY be the first
-	 * token in the given list. It also may NOT be the first token in the given
-	 * list, because that token was a macro invocation and was replaced.
+	 * Note that the left token in the pair returned by this method MAY be the
+	 * first token in the given list. It also may NOT be the first token in the
+	 * given list, because that token was a macro invocation and was replaced.
 	 * </p>
 	 * 
 	 * <p>
-	 * Implementation: iterate over the tokens looking for macro invocations. When
-	 * you find one, call processInvocation and insert its output into list, in
-	 * place of the the invocation.
+	 * Implementation: iterate over the tokens looking for macro invocations.
+	 * When you find one, call processInvocation and insert its output into
+	 * list, in place of the the invocation.
 	 * 
 	 * <pre>
 	 * ... X X X M ( A0 A0 A1 A2 A2 A2 ) X X X ... ->
@@ -893,15 +983,19 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	 * </pre>
 	 * </p>
 	 * 
-	 * @param token the first element in a null-terminated list of tokens; may be
-	 *              <code>null</code> for empty list
-	 * @return pair consisting of the first and last elements of the expanded list;
-	 *         the two components of this pair will be <code>null</node> if the
-	 *         expanded list is empty
-	 * @throws PreprocessorException if something goes wrong in a macro expansion
-	 *                               (e.g., the wrong number of arguments)
+	 * @param token
+	 *                  the first element in a null-terminated list of tokens;
+	 *                  may be <code>null</code> for empty list
+	 * @return pair consisting of the first and last elements of the expanded
+	 *         list; the two components of this pair will be <code>null</node>
+	 *         if the expanded list is empty
+	 * @throws PreprocessorException
+	 *                                   if something goes wrong in a macro
+	 *                                   expansion (e.g., the wrong number of
+	 *                                   arguments)
 	 */
-	Pair<CivlcToken, CivlcToken> expandList(CivlcToken first) throws PreprocessorException {
+	Pair<CivlcToken, CivlcToken> expandList(CivlcToken first)
+			throws PreprocessorException {
 		CivlcToken current = first, previous = null;
 
 		while (current != null) {
@@ -939,7 +1033,8 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 					while (next != null && PreprocessorUtils.isWhiteSpace(next))
 						next = next.getNext();
 
-					isInvocation = (next != null && next.getType() == PreprocessorLexer.LPAREN);
+					isInvocation = (next != null
+							&& next.getType() == PreprocessorLexer.LPAREN);
 				}
 			}
 			if (!isInvocation) { // ignore it
@@ -965,11 +1060,13 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 				replacements = processInvocation((ObjectMacro) macro, current);
 				current = current.getNext();
 			} else {
-				Iterator<CivlcToken> iter = new CTokenIterator(current.getNext());
+				Iterator<CivlcToken> iter = new CTokenIterator(
+						current.getNext());
 				// CivlcToken[] arguments = findInvocationArguments(
 				// (FunctionMacro) macro, iter);
 
-				replacements = processInvocation((FunctionMacro) macro, current, iter);
+				replacements = processInvocation((FunctionMacro) macro, current,
+						iter);
 				// move current to the token just after the closing ')'
 				// of the invocation, or null if the ')' was the last token:
 				if (iter.hasNext())
@@ -996,13 +1093,13 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 
 	/**
 	 * <p>
-	 * When current position in preprocessor parse tree is at a macro application
-	 * node, this method will continue walking through the tree from that point in
-	 * order to find the macro invocation arguments. It creates new
-	 * {@link CivlcToken}s for the tokens occurring in those arguments. Returns an
-	 * array (whose length is the number of inputs to the macro) in which element i
-	 * is first element in the list of {@link CivlcToken}s for the tokens which
-	 * comprise argument i.
+	 * When current position in preprocessor parse tree is at a macro
+	 * application node, this method will continue walking through the tree from
+	 * that point in order to find the macro invocation arguments. It creates
+	 * new {@link CivlcToken}s for the tokens occurring in those arguments.
+	 * Returns an array (whose length is the number of inputs to the macro) in
+	 * which element i is first element in the list of {@link CivlcToken}s for
+	 * the tokens which comprise argument i.
 	 * </p>
 	 * 
 	 * <p>
@@ -1022,24 +1119,28 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	 * </p>
 	 * 
 	 * <p>
-	 * Implementation notes: creates an {@link Iterator} of {@link CivlcToken} by
-	 * iterating over the {@link Tree} nodes starting from the node immediately
-	 * following the <code>invocationNode</code> in DFS order and creating new
-	 * tokens. Feeds this to method
+	 * Implementation notes: creates an {@link Iterator} of {@link CivlcToken}
+	 * by iterating over the {@link Tree} nodes starting from the node
+	 * immediately following the <code>invocationNode</code> in DFS order and
+	 * creating new tokens. Feeds this to method
 	 * {@link #findInvocationArguments(FunctionMacro, Iterator)}.
 	 * </p>
 	 * 
-	 * @param macro          the function-like macro which is being applied
-	 * @param invocationNode the node in the preprocessor parse tree representing an
-	 *                       invocation of the macro
-	 * @return array of length number of formal parameters of macro; i-th element of
-	 *         array is the first element of a list of tokens that comprise the i-th
-	 *         argument
-	 * @throws PreprocessorException if a sequence of tokens that would otherwise
-	 *                               act as preprocessing directives occurs in the
-	 *                               argument list
+	 * @param macro
+	 *                           the function-like macro which is being applied
+	 * @param invocationNode
+	 *                           the node in the preprocessor parse tree
+	 *                           representing an invocation of the macro
+	 * @return array of length number of formal parameters of macro; i-th
+	 *         element of array is the first element of a list of tokens that
+	 *         comprise the i-th argument
+	 * @throws PreprocessorException
+	 *                                   if a sequence of tokens that would
+	 *                                   otherwise act as preprocessing
+	 *                                   directives occurs in the argument list
 	 */
-	private Iterator<CivlcToken> getArgumentIterator(FunctionMacro macro) throws PreprocessorException {
+	private Iterator<CivlcToken> getArgumentIterator(FunctionMacro macro)
+			throws PreprocessorException {
 		Iterator<CivlcToken> iter;
 
 		incrementNextNode();
@@ -1053,8 +1154,8 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 			public CivlcToken next() {
 				Tree node = getNextInputNode();
 				Token inputToken = ((CommonTree) node).getToken();
-				CivlcToken result = tokenFactory.newCivlcToken(inputToken, getIncludeHistory(),
-						TokenVocabulary.PREPROC);
+				CivlcToken result = tokenFactory.newCivlcToken(inputToken,
+						getIncludeHistory(), TokenVocabulary.PREPROC);
 
 				if (node.getChildCount() > 0)
 					throw new IllegalMacroArgumentException(result);
@@ -1071,9 +1172,9 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	}
 
 	/**
-	 * Process and End-of-file token. If this is the root file, you are all done,
-	 * and the EOF token is moved to the output buffer. Otherwise, you pop stack and
-	 * throw away the EOF token---it does not get output.
+	 * Process and End-of-file token. If this is the root file, you are all
+	 * done, and the EOF token is moved to the output buffer. Otherwise, you pop
+	 * stack and throw away the EOF token---it does not get output.
 	 * 
 	 * @throws PreprocessorException
 	 */
@@ -1085,7 +1186,8 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 		assert parseACSLPragmaStack.size() == sourceStack.size();
 		if (sourceStack.isEmpty()) {
 			if (currentSource == theStreams.length - 1) {
-				CivlcToken myEof = tokenFactory.newCivlcToken(eof, o.getIncludeHistory(), TokenVocabulary.PREPROC);
+				CivlcToken myEof = tokenFactory.newCivlcToken(eof,
+						o.getIncludeHistory(), TokenVocabulary.PREPROC);
 
 				addOutput(myEof);
 			} else {
@@ -1094,7 +1196,8 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 				inPragma = false;
 				inInlineAnnotation = false;
 				inBlockAnnotation = false;
-				pushStream(theStreams[currentSource], theFormations[currentSource]);
+				pushStream(theStreams[currentSource],
+						theFormations[currentSource]);
 				processNextNode();
 			}
 		} else {
@@ -1106,8 +1209,8 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 
 	/**
 	 * <p>
-	 * Processes a text block node by moving the current position to the first child
-	 * (the first token in the text block).
+	 * Processes a text block node by moving the current position to the first
+	 * child (the first token in the text block).
 	 * </p>
 	 * 
 	 * <p>
@@ -1116,7 +1219,8 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	 * invocations which need to be expanded.
 	 * </p>
 	 * 
-	 * @param node a node in the tree with TEXT_BLOCK token
+	 * @param node
+	 *                 a node in the tree with TEXT_BLOCK token
 	 */
 	private void processTextBlock(Tree textBlockNode) {
 		int numChildren = textBlockNode.getChildCount();
@@ -1127,44 +1231,54 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	}
 
 	/**
-	 * Processes a '#define' for an (object or function) macro. For an object macro,
-	 * child 0 is the identifier being defined. Child 1 is the "body" node, whose
-	 * children form a (possibly empty) list of tokens.
+	 * Processes a '#define' for an (object or function) macro. For an object
+	 * macro, child 0 is the identifier being defined. Child 1 is the "body"
+	 * node, whose children form a (possibly empty) list of tokens.
 	 * 
-	 * For a function macro. Child 0 is the identifier being defined. Child 1 is the
-	 * formal parameter list node. Child 2 is the body.
+	 * For a function macro. Child 0 is the identifier being defined. Child 1 is
+	 * the formal parameter list node. Child 2 is the body.
 	 * 
-	 * @param node A node in the tree with token of type PDEFINE.
-	 * @throws PreprocessorException if the macro has already been defined
-	 *                               differently
+	 * @param node
+	 *                 A node in the tree with token of type PDEFINE.
+	 * @throws PreprocessorException
+	 *                                   if the macro has already been defined
+	 *                                   differently
 	 */
-	private void processMacroDefinition(Tree node) throws PreprocessorException {
+	private void processMacroDefinition(Tree node)
+			throws PreprocessorException {
 		SourceFile sourceFile = getCurrentSource();
 
 		if (node.getChildCount() == 3)
-			processMacroDefinition(tokenFactory.newFunctionMacro(node, sourceFile));
+			processMacroDefinition(
+					tokenFactory.newFunctionMacro(node, sourceFile));
 		else
-			processMacroDefinition(tokenFactory.newObjectMacro(node, sourceFile));
+			processMacroDefinition(
+					tokenFactory.newObjectMacro(node, sourceFile));
 	}
 
 	/**
 	 * Takes a newly created Macro object and checks whether it has been defined
-	 * previously. If it has, checks that the two definitions are equivalent. If the
-	 * checks pass, an entry for the macro is added to the macroMap.
+	 * previously. If it has, checks that the two definitions are equivalent. If
+	 * the checks pass, an entry for the macro is added to the macroMap.
 	 * 
-	 * @param newMacro a new Macro object
-	 * @throws PreprocessorException if a macro with the same name has been defined
-	 *                               previously (and not undefined) in a different
-	 *                               way
+	 * @param newMacro
+	 *                     a new Macro object
+	 * @throws PreprocessorException
+	 *                                   if a macro with the same name has been
+	 *                                   defined previously (and not undefined)
+	 *                                   in a different way
 	 */
-	private void processMacroDefinition(Macro newMacro) throws PreprocessorException {
+	private void processMacroDefinition(Macro newMacro)
+			throws PreprocessorException {
 		String name = newMacro.getName();
 		Macro oldMacro = macroMap.get(name);
 
 		if (oldMacro != null) {
 			if (!oldMacro.equals(newMacro))
-				throw new PreprocessorException("Attempt to redefine macro in new way: " + newMacro
-						+ "\nOriginal defintion was at: " + oldMacro.getDefinitionNode());
+				throw new PreprocessorException(
+						"Attempt to redefine macro in new way: " + newMacro
+								+ "\nOriginal defintion was at: "
+								+ oldMacro.getDefinitionNode());
 		} else {
 			macroMap.put(name, newMacro);
 		}
@@ -1172,18 +1286,21 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	}
 
 	/**
-	 * Processes a "#error" node. Always throws an exception with a message formed
-	 * from the error node's list of tokens.
+	 * Processes a "#error" node. Always throws an exception with a message
+	 * formed from the error node's list of tokens.
 	 * 
-	 * @param errorNode a node of type "#error"
-	 * @throws PreprocessorException always, with a message formed from the #error
-	 *                               line's tokens
+	 * @param errorNode
+	 *                      a node of type "#error"
+	 * @throws PreprocessorException
+	 *                                   always, with a message formed from the
+	 *                                   #error line's tokens
 	 */
 	private void processError(Tree errorNode) throws PreprocessorException {
 		String message = "Preprocessor #error directive encountered:\n";
 		int numChildren = errorNode.getChildCount();
 		Token errorToken = ((CommonTree) errorNode).getToken();
-		Token betterErrorToken = tokenFactory.newCivlcToken(errorToken, getIncludeHistory(), TokenVocabulary.PREPROC);
+		Token betterErrorToken = tokenFactory.newCivlcToken(errorToken,
+				getIncludeHistory(), TokenVocabulary.PREPROC);
 		PreprocessorException e = null;
 
 		for (int i = 0; i < numChildren; i++) {
@@ -1252,16 +1369,19 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	}
 
 	/**
-	 * Given a node in the tree, this method creates a list of new CTokens formed
-	 * from children of the given node. It returns the first element in the list.
-	 * White space tokens (including new lines) are filtered out.
+	 * Given a node in the tree, this method creates a list of new CTokens
+	 * formed from children of the given node. It returns the first element in
+	 * the list. White space tokens (including new lines) are filtered out.
 	 * 
-	 * @param root a node in the AST of a preprocessor source file
-	 * @return the first node in a list of new CTokens formed from the children of
-	 *         root, or null if the root has 0 children
-	 * @throws PreprocessorException if one of the children has a null token
+	 * @param root
+	 *                 a node in the AST of a preprocessor source file
+	 * @return the first node in a list of new CTokens formed from the children
+	 *         of root, or null if the root has 0 children
+	 * @throws PreprocessorException
+	 *                                   if one of the children has a null token
 	 */
-	private CivlcToken nonWhiteSpaceTokenListFromChildren(CommonTree root) throws PreprocessorException {
+	private CivlcToken nonWhiteSpaceTokenListFromChildren(CommonTree root)
+			throws PreprocessorException {
 		int numChildren = root.getChildCount();
 		CivlcToken first = null, prev = null;
 
@@ -1269,9 +1389,12 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 			Token token = ((CommonTree) root.getChild(i)).getToken();
 
 			if (token == null)
-				throw new PreprocessorException("Encountered null token as child " + i + " of node " + root);
+				throw new PreprocessorException(
+						"Encountered null token as child " + i + " of node "
+								+ root);
 			if (!PreprocessorUtils.isWhiteSpace(token)) {
-				CivlcToken newToken = tokenFactory.newCivlcToken(token, getIncludeHistory(), TokenVocabulary.PREPROC);
+				CivlcToken newToken = tokenFactory.newCivlcToken(token,
+						getIncludeHistory(), TokenVocabulary.PREPROC);
 
 				if (prev == null)
 					first = newToken;
@@ -1284,21 +1407,28 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	}
 
 	/**
-	 * Processes a #include directive. Locates the file by searching the appropriate
-	 * paths, parses it, creates a source file info for it and pushes it onto the
-	 * sourceStack.
+	 * Processes a #include directive. Locates the file by searching the
+	 * appropriate paths, parses it, creates a source file info for it and
+	 * pushes it onto the sourceStack.
 	 * 
-	 * @param includeNode node in source tree of type PINCLUDE
-	 * @throws PreprocessorException if the file can't be found, or if it does not
-	 *                               conform to the Preprocessor grammar
+	 * @param includeNode
+	 *                        node in source tree of type PINCLUDE
+	 * @throws PreprocessorException
+	 *                                   if the file can't be found, or if it
+	 *                                   does not conform to the Preprocessor
+	 *                                   grammar
 	 */
 	private void processInclude(Tree includeNode) throws PreprocessorException {
 		int numChildren = includeNode.getChildCount();
-		CommonToken firstToken = (CommonToken) ((CommonTree) includeNode.getChild(0)).getToken();
-		CommonToken lastToken = (CommonToken) ((CommonTree) includeNode.getChild(numChildren - 1)).getToken();
-		CivlcToken filenameToken = tokenFactory.newCivlcToken(firstToken.getInputStream(),
-				PreprocessorLexer.STRING_LITERAL, firstToken.getChannel(), firstToken.getStartIndex(),
-				lastToken.getStopIndex(), getIncludeHistory(), firstToken.getLine(), firstToken.getCharPositionInLine(),
+		CommonToken firstToken = (CommonToken) ((CommonTree) includeNode
+				.getChild(0)).getToken();
+		CommonToken lastToken = (CommonToken) ((CommonTree) includeNode
+				.getChild(numChildren - 1)).getToken();
+		CivlcToken filenameToken = tokenFactory.newCivlcToken(
+				firstToken.getInputStream(), PreprocessorLexer.STRING_LITERAL,
+				firstToken.getChannel(), firstToken.getStartIndex(),
+				lastToken.getStopIndex(), getIncludeHistory(),
+				firstToken.getLine(), firstToken.getCharPositionInLine(),
 				TokenVocabulary.PREPROC);
 		String fullName = filenameToken.getText();
 		int numChars = fullName.length();
@@ -1306,22 +1436,31 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 		boolean system;
 
 		if (numChars < 3)
-			throw new PreprocessorException("Improper file name in #include: " + fullName, filenameToken);
+			throw new PreprocessorException(
+					"Improper file name in #include: " + fullName,
+					filenameToken);
 
-		int firstChar = fullName.charAt(0), lastChar = fullName.charAt(numChars - 1);
+		int firstChar = fullName.charAt(0),
+				lastChar = fullName.charAt(numChars - 1);
 
 		if (firstChar == '<') {
 			if (lastChar != '>')
-				throw new PreprocessorException("Improper file name in #include: " + fullName, filenameToken);
+				throw new PreprocessorException(
+						"Improper file name in #include: " + fullName,
+						filenameToken);
 			name = fullName.substring(1, numChars - 1);
 			system = true;
 		} else if (firstChar == '"') {
 			if (lastChar != '"')
-				throw new PreprocessorException("Improper file name in #include: " + fullName, filenameToken);
+				throw new PreprocessorException(
+						"Improper file name in #include: " + fullName,
+						filenameToken);
 			name = fullName.substring(1, numChars - 1);
 			system = false;
 		} else {
-			throw new PreprocessorException("Improper file name in #include: " + fullName, filenameToken);
+			throw new PreprocessorException(
+					"Improper file name in #include: " + fullName,
+					filenameToken);
 		}
 
 		Pair<File, CharStream> pair;
@@ -1329,37 +1468,56 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 		try {
 			pair = findIncludeStream(name, system);
 		} catch (IOException e) {
-			throw new PreprocessorException("I/O error when attempting to include " + name + ":\n" + e, filenameToken);
+			throw new PreprocessorException(
+					"I/O error when attempting to include " + name + ":\n" + e,
+					filenameToken);
 		}
 		if (pair == null)
-			throw new PreprocessorException("Cannot find included file " + name, filenameToken);
+			throw new PreprocessorException("Cannot find included file " + name,
+					filenameToken);
 
 		SourceFile sourceFile = indexer.getOrAdd(pair.left);
 
-		sourceFiles.add(sourceFile);
-		pushStream(pair.right, tokenFactory.newInclusion(sourceFile, filenameToken));
+		// if this file is in onceFiles, it was already loaded and should
+		// only be loaded once (it has #pragma once) so ignore it
+		if (!onceFiles.contains(sourceFile)) {
+			sourceFiles.add(sourceFile);
+			pushStream(pair.right,
+					tokenFactory.newInclusion(sourceFile, filenameToken));
+		} else {
+			System.out.println("Skipping once file " + sourceFile);
+			jumpNextNode();
+		}
 	}
 
 	/**
-	 * Locates an include file, opens it, and creates a {@link CharStream} from it.
+	 * Locates an include file, opens it, and creates a {@link CharStream} from
+	 * it.
 	 * 
-	 * @param filename the name of the file, as extracted from the token
-	 * @param system   <code>true</code> if angular brackets were used around the
-	 *                 filename in the <code>#include</code> directive,
-	 *                 <code>false</code> if double quotes were used
+	 * @param filename
+	 *                     the name of the file, as extracted from the token
+	 * @param system
+	 *                     <code>true</code> if angular brackets were used
+	 *                     around the filename in the <code>#include</code>
+	 *                     directive, <code>false</code> if double quotes were
+	 *                     used
 	 * @return if the file can't be found, returns <code>null</code>, otherwise,
-	 *         returns a pair consisting of the {@link File} object which wraps the
-	 *         file name and the {@link CharStream} generated from the file
-	 * @throws IOException if something goes wrong trying to read or open the file
+	 *         returns a pair consisting of the {@link File} object which wraps
+	 *         the file name and the {@link CharStream} generated from the file
+	 * @throws IOException
+	 *                         if something goes wrong trying to read or open
+	 *                         the file
 	 */
-	private Pair<File, CharStream> findIncludeStream(String filename, boolean system) throws IOException {
+	private Pair<File, CharStream> findIncludeStream(String filename,
+			boolean system) throws IOException {
 		File file = null;
 		CharStream charStream = null;
 
 		if (!system) {
 			// first look in dir containing current file, then
 			// user's include paths
-			File currentDir = sourceStack.peek().getFile().getFile().getParentFile();
+			File currentDir = sourceStack.peek().getFile().getFile()
+					.getParentFile();
 
 			file = new File(currentDir, filename);
 			if (!file.isFile())
@@ -1381,46 +1539,66 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	/**
 	 * <p>
 	 * Processes a <code>#pragma</code> node. For now, the whole pragma is just
-	 * going to be sent to the output stream. Macro replacement will take place in
-	 * the pragma tokens as usual.
+	 * going to be sent to the output stream. Macro replacement will take place
+	 * in the pragma tokens as usual.
 	 * </p>
 	 * 
 	 * <p>
-	 * This method sends the <code>#pragma</code> node to the output list, and moves
-	 * the current position to the first child (or the next token if there are no
-	 * children).
+	 * This method sends the <code>#pragma</code> node to the output list, and
+	 * moves the current position to the first child (or the next token if there
+	 * are no children).
 	 * </p>
 	 * 
 	 * <p>
-	 * This sets <code>inPragma</code> to <code>true</code>. This is so that when
-	 * the newline is reached that terminates the pragma, that newline will not have
-	 * its channel set to the hidden channel. Hence the newline will be visible to
-	 * an ANTLR parser that consumes from this source. The newline is necessary to
-	 * know where the pragma ends.
+	 * This sets <code>inPragma</code> to <code>true</code>. This is so that
+	 * when the newline is reached that terminates the pragma, that newline will
+	 * not have its channel set to the hidden channel. Hence the newline will be
+	 * visible to an ANTLR parser that consumes from this source. The newline is
+	 * necessary to know where the pragma ends.
 	 * </p>
 	 * 
 	 * <p>
-	 * Also sets <code>inTextBlock</code> to <code>true</code>, to avoid the expense
-	 * of checking for preprocessor directives in the body of the pragma. It will
-	 * get set back to <code>false</code> after leaving the pragma body.
+	 * Also sets <code>inTextBlock</code> to <code>true</code>, to avoid the
+	 * expense of checking for preprocessor directives in the body of the
+	 * pragma. It will get set back to <code>false</code> after leaving the
+	 * pragma body.
 	 * </p>
 	 * 
-	 * @param pragmaNode A <code>#pragma</code> node in the preprocessor tree
-	 * @throws PreprocessorException should not happen
+	 * @param pragmaNode
+	 *                       A <code>#pragma</code> node in the preprocessor
+	 *                       tree
+	 * @throws PreprocessorException
+	 *                                   should not happen
 	 */
 	private void processPragma(Tree pragmaNode) throws PreprocessorException {
 		Token token = ((CommonTree) pragmaNode).getToken();
-		CivlcToken pragmaToken = tokenFactory.newCivlcToken(token, getIncludeHistory(), TokenVocabulary.PREPROC);
-		Token pragmaUniverseName = ((CommonTree) pragmaNode.getChild(1)).getToken();
+		CivlcToken pragmaToken = tokenFactory.newCivlcToken(token,
+				getIncludeHistory(), TokenVocabulary.PREPROC);
+		Token pragmaUniverseName = ((CommonTree) pragmaNode.getChild(1))
+				.getToken();
 
 		// Assign the top ACSL parse mark to true:
 		if (pragmaUniverseName.getText().equals("CIVL")) {
-			Token pragmaCommandName = ((CommonTree) pragmaNode.getChild(3)).getToken();
+			Token pragmaCommandName = ((CommonTree) pragmaNode.getChild(3))
+					.getToken();
 
 			if (pragmaCommandName.getText().equals("ACSL")) {
 				parseACSLPragmaStack.pop();
 				parseACSLPragmaStack.push(true);
 			}
+		} else if (pragmaUniverseName.getText().equals("once")) {
+			int n = pragmaNode.getChildCount();
+
+			for (int i = 2; i < n; i++) {
+				Token t = ((CommonTree) pragmaNode.getChild(i)).getToken();
+				if (!PreprocessorUtils.isWhiteSpace(t)) {
+					throw new PreprocessorException(
+							"non-white space token following #pragma once is not allowed");
+				}
+			}
+			onceFiles.add(getCurrentSource());
+			jumpNextNode();
+			return;
 		}
 		addOutput(pragmaToken);
 		inPragma = true;
@@ -1430,12 +1608,13 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 
 	/**
 	 * Processes a <code>#undef</code> node. This node has 1 child, which is the
-	 * identifier of the macro which is to be undefined. This removes the macro from
-	 * the {@link #macroMap}. According to C11 Sec. 6.10.3.5.2, the operation is
-	 * just ignored if the macro is not already defined, so this cannot lead to an
-	 * error.
+	 * identifier of the macro which is to be undefined. This removes the macro
+	 * from the {@link #macroMap}. According to C11 Sec. 6.10.3.5.2, the
+	 * operation is just ignored if the macro is not already defined, so this
+	 * cannot lead to an error.
 	 * 
-	 * @param undefNode the <code>#undef</code> node
+	 * @param undefNode
+	 *                      the <code>#undef</code> node
 	 */
 	private void processUndef(Tree undefNode) {
 		Tree identifierNode = undefNode.getChild(0);
@@ -1446,10 +1625,11 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	}
 
 	/**
-	 * Processes a preprocessor "nondirective" (which, yes, is a kind of directive).
-	 * For now, a no-op.
+	 * Processes a preprocessor "nondirective" (which, yes, is a kind of
+	 * directive). For now, a no-op.
 	 * 
-	 * @param nondirectiveNode a preprocessor nondirective node
+	 * @param nondirectiveNode
+	 *                             a preprocessor nondirective node
 	 */
 	private void processNondirective(Tree nondirectiveNode) {
 		jumpNextNode();
@@ -1460,7 +1640,9 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	 * 
 	 * Ignored, for now.
 	 * 
-	 * @param lineNode preprocessor parse tree node for <code>#line</code> directive
+	 * @param lineNode
+	 *                     preprocessor parse tree node for <code>#line</code>
+	 *                     directive
 	 */
 	private void processLine(Tree lineNode) {
 		// TODO
@@ -1500,9 +1682,10 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	 * Determines whether a node in the preprocessor parse tree is one of the
 	 * conditional nodes "#if", "#ifdef", "#ifndef", "#elif".
 	 * 
-	 * @param node a non-<code>null</code> node in a preprocessor parse tree
-	 * @return <code>true</code> iff the node is one of the preprocessor conditional
-	 *         nodes, else <code>false</code>
+	 * @param node
+	 *                 a non-<code>null</code> node in a preprocessor parse tree
+	 * @return <code>true</code> iff the node is one of the preprocessor
+	 *         conditional nodes, else <code>false</code>
 	 */
 	private static boolean isConditional(CommonTree node) {
 		Token token = node.getToken();
@@ -1512,14 +1695,16 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 		else {
 			int type = token.getType();
 
-			return type == PreprocessorParser.PIF || type == PreprocessorParser.IFDEF
-					|| type == PreprocessorParser.IFNDEF || type == PreprocessorParser.ELIF;
+			return type == PreprocessorParser.PIF
+					|| type == PreprocessorParser.IFDEF
+					|| type == PreprocessorParser.IFNDEF
+					|| type == PreprocessorParser.ELIF;
 		}
 	}
 
 	/**
-	 * Returns next input tree node, or <code>null</code> if end of file has been
-	 * reached. Does not modify anything.
+	 * Returns next input tree node, or <code>null</code> if end of file has
+	 * been reached. Does not modify anything.
 	 * 
 	 * @return tree position for top entry of <code>sourceStack</code> or
 	 *         <code>null</code> if <code>sourceStack</code> is empty
@@ -1535,17 +1720,19 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	}
 
 	/**
-	 * Move next node to next node in Tree in DFS order, or null if at last node.
+	 * Move next node to next node in Tree in DFS order, or null if at last
+	 * node.
 	 * 
-	 * When backtracking through a conditional node, this method will skip over the
-	 * alternative branch. In other words, if we start in the "true" branch and then
-	 * backtrack, we will NOT go down the false branch. This is because we only want
-	 * to traverse one of the two branches when we preprocess a file.
+	 * When backtracking through a conditional node, this method will skip over
+	 * the alternative branch. In other words, if we start in the "true" branch
+	 * and then backtrack, we will NOT go down the false branch. This is because
+	 * we only want to traverse one of the two branches when we preprocess a
+	 * file.
 	 * 
 	 * The inTextBlock flag is turned off when we exit a block.
 	 * 
-	 * If given null this method is a no-op. If we are at the last node, it returns
-	 * null. It should never throw an exception.
+	 * If given null this method is a no-op. If we are at the last node, it
+	 * returns null. It should never throw an exception.
 	 */
 	private void incrementNextNode() {
 		Tree node = getNextInputNode();
@@ -1560,16 +1747,17 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 
 	/**
 	 * <p>
-	 * Move next node to the next sibling. If there is no next sibling, proceed as
-	 * in DFS. In other words, this is the same as DFS after removing all children
-	 * of the current next node.
+	 * Move next node to the next sibling. If there is no next sibling, proceed
+	 * as in DFS. In other words, this is the same as DFS after removing all
+	 * children of the current next node.
 	 * </p>
 	 * 
 	 * <p>
-	 * When backtracking through a conditional node, this method will skip over the
-	 * alternative branch. In other words, if we start in the "true" branch and then
-	 * backtrack, we will NOT go down the false branch. This is because we only want
-	 * to traverse one of the two branches when we preprocess a file.
+	 * When backtracking through a conditional node, this method will skip over
+	 * the alternative branch. In other words, if we start in the "true" branch
+	 * and then backtrack, we will NOT go down the false branch. This is because
+	 * we only want to traverse one of the two branches when we preprocess a
+	 * file.
 	 * </p>
 	 * 
 	 * <p>
@@ -1623,11 +1811,12 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	}
 
 	/**
-	 * Returns the node that follows the given node in DFS order without modifying
-	 * the state. Alternative conditional branches are skipped, as usual. It is
-	 * useful for peeking ahead.
+	 * Returns the node that follows the given node in DFS order without
+	 * modifying the state. Alternative conditional branches are skipped, as
+	 * usual. It is useful for peeking ahead.
 	 * 
-	 * @param node any node in the tree.
+	 * @param node
+	 *                 any node in the tree.
 	 * @return the next node in the DFS traversal
 	 */
 	private Tree getSuccessorNode(Tree node) {
@@ -1644,7 +1833,8 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 				node = node.getParent();
 				if (node == null)
 					return null;
-				if (!isConditional((CommonTree) node) && index < node.getChildCount()) {
+				if (!isConditional((CommonTree) node)
+						&& index < node.getChildCount()) {
 					return node.getChild(index);
 				}
 			}
@@ -1659,22 +1849,24 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 
 	/**
 	 * <p>
-	 * Empties the string literal buffer. The buffer contains a sequence of string
-	 * literal tokens and possibly some white space tokens at the end. The string
-	 * literals are concatenated to from a single string token which is inserted
-	 * into the output buffer by method {@link #addOutputHelper(CivlcToken)}. Then
-	 * the white space tokens are all added to the output buffer as well. Note that
-	 * any white space between two string literals was already removed from this
-	 * buffer, so only the white space after the last string literal in the sequence
-	 * is actually sent to the output stream.
+	 * Empties the string literal buffer. The buffer contains a sequence of
+	 * string literal tokens and possibly some white space tokens at the end.
+	 * The string literals are concatenated to from a single string token which
+	 * is inserted into the output buffer by method
+	 * {@link #addOutputHelper(CivlcToken)}. Then the white space tokens are all
+	 * added to the output buffer as well. Note that any white space between two
+	 * string literals was already removed from this buffer, so only the white
+	 * space after the last string literal in the sequence is actually sent to
+	 * the output stream.
 	 * </p>
 	 * 
 	 * <p>
 	 * Precondition: <code>stringLiteralBuffer</code> is not empty.
 	 * </p>
 	 * 
-	 * @throws PreprocessorException if the strings cannot be concatenated for some
-	 *                               reason
+	 * @throws PreprocessorException
+	 *                                   if the strings cannot be concatenated
+	 *                                   for some reason
 	 */
 	private void emptyStringLiteralBuffer() throws PreprocessorException {
 		assert !stringLiteralBuffer.isEmpty();
@@ -1690,12 +1882,14 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 		}
 		stringLiteralBuffer.clear();
 		try {
-			StringToken result = pureStringTokens.size() != 1 ? tokenFactory.newStringToken(pureStringTokens)
+			StringToken result = pureStringTokens.size() != 1
+					? tokenFactory.newStringToken(pureStringTokens)
 					: tokenFactory.newStringToken(pureStringTokens.get(0));
 
 			addOutputHelper(result);
 		} catch (SyntaxException e) {
-			throw new PreprocessorException(e.getMessage(), pureStringTokens.get(0));
+			throw new PreprocessorException(e.getMessage(),
+					pureStringTokens.get(0));
 		}
 		for (CivlcToken ws : extraWhiteSpaces)
 			addOutputHelper(ws);
@@ -1703,29 +1897,32 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 
 	/**
 	 * <p>
-	 * Adds a single token to output buffer. Special handling is needed for string
-	 * literals and some other cases.
+	 * Adds a single token to output buffer. Special handling is needed for
+	 * string literals and some other cases.
 	 * </p>
 	 * 
 	 * <p>
-	 * The string literals may be separated by some white space tokens. All of these
-	 * consecutive literals (ignoring the possible white space) must be concatenated
-	 * into a single string literal token. Therefore they are inserted into a
-	 * separate buffer, the string literal buffer, until a token is reached that is
-	 * not a string literal or white space and the buffer should be processed to
-	 * form a single token which is inserted into the output stream.
+	 * The string literals may be separated by some white space tokens. All of
+	 * these consecutive literals (ignoring the possible white space) must be
+	 * concatenated into a single string literal token. Therefore they are
+	 * inserted into a separate buffer, the string literal buffer, until a token
+	 * is reached that is not a string literal or white space and the buffer
+	 * should be processed to form a single token which is inserted into the
+	 * output stream.
 	 * </p>
 	 * 
 	 * <p>
 	 * White space is made invisible, with the following exception: a NEWLINE
-	 * terminating an inline annotation or a pragma. Such a NEWLINE is part of the
-	 * grammar of the CIVL-C language and is needed to delineate the end of the
-	 * annotation/pragma.
+	 * terminating an inline annotation or a pragma. Such a NEWLINE is part of
+	 * the grammar of the CIVL-C language and is needed to delineate the end of
+	 * the annotation/pragma.
 	 * </p>
 	 * 
-	 * @param token a token to add to output buffer
-	 * @throws PreprocessorException if something goes wrong concatenating strings
-	 *                               or forming a character
+	 * @param token
+	 *                  a token to add to output buffer
+	 * @throws PreprocessorException
+	 *                                   if something goes wrong concatenating
+	 *                                   strings or forming a character
 	 */
 	private void addOutput(CivlcToken token) throws PreprocessorException {
 		int type = token.getType();
@@ -1734,10 +1931,12 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 			// first remove any white space tokens at the end of the list, as
 			// we throw away any white space between two adjacent string
 			// literals. Then add the literal to the SLB.
-			while (!stringLiteralBuffer.isEmpty() && PreprocessorUtils.isWhiteSpace(stringLiteralBuffer.getLast()))
+			while (!stringLiteralBuffer.isEmpty() && PreprocessorUtils
+					.isWhiteSpace(stringLiteralBuffer.getLast()))
 				stringLiteralBuffer.removeLast();
 			stringLiteralBuffer.add(token);
-		} else if (type == PreprocessorParser.NEWLINE && (inInlineAnnotation || inPragma)) {
+		} else if (type == PreprocessorParser.NEWLINE
+				&& (inInlineAnnotation || inPragma)) {
 			// a NEWLINE while in an inlineAnnotation or pragma always
 			// ends that annotation or pragma and clears the string literal
 			// buffer...
@@ -1746,7 +1945,8 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 			addOutputHelper(token); // keep that NEWLINE visible
 			inInlineAnnotation = false;
 			inPragma = false;
-		} else if (type == PreprocessorParser.AT && (inInlineAnnotation || inBlockAnnotation)) {
+		} else if (type == PreprocessorParser.AT
+				&& (inInlineAnnotation || inBlockAnnotation)) {
 			// ignore @s in annotations (that is the ACSL way)
 			token.setChannel(Token.HIDDEN_CHANNEL);
 			addOutputHelper(token);
@@ -1776,14 +1976,16 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	 * @param token
 	 * @throws PreprocessorException
 	 */
-	private void addOutputHelper(CivlcToken token) throws PreprocessorException {
+	private void addOutputHelper(CivlcToken token)
+			throws PreprocessorException {
 		int type = token.getType();
 
 		if (type == PreprocessorParser.CHARACTER_CONSTANT) {
 			try {
 				token = tokenFactory.characterToken(token);
 			} catch (SyntaxException e) {
-				throw new PreprocessorException(e.getMessage(), e.getSource().getFirstToken());
+				throw new PreprocessorException(e.getMessage(),
+						e.getSource().getFirstToken());
 			}
 		}
 		token.setIndex(outputTokenCount);
@@ -1799,7 +2001,8 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 		}
 	}
 
-	private void addOutputList(Pair<CivlcToken, CivlcToken> list) throws PreprocessorException {
+	private void addOutputList(Pair<CivlcToken, CivlcToken> list)
+			throws PreprocessorException {
 		CivlcToken previous = null, current = list.left;
 
 		while (current != null) {
@@ -1810,20 +2013,24 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	}
 
 	/**
-	 * Creates a new {@link CivlcToken} from the given {@link Tree} node and adds
-	 * the token to the end of the output list. Tokens for preprocessor keywords
-	 * (e.g., "define") have their types changed to IDENTIFIER.
+	 * Creates a new {@link CivlcToken} from the given {@link Tree} node and
+	 * adds the token to the end of the output list. Tokens for preprocessor
+	 * keywords (e.g., "define") have their types changed to IDENTIFIER.
 	 * 
-	 * @param node a {@link CommonTree} node
-	 * @throws PreprocessorException if something goes wrong concatenating strings
-	 *                               when the token is shifted to output buffer
+	 * @param node
+	 *                 a {@link CommonTree} node
+	 * @throws PreprocessorException
+	 *                                   if something goes wrong concatenating
+	 *                                   strings when the token is shifted to
+	 *                                   output buffer
 	 */
 	private void shiftToOutput(Tree node) throws PreprocessorException {
 		Token token = ((CommonTree) node).getToken();
 
 		PreprocessorUtils.convertPreprocessorIdentifiers(token);
 
-		CivlcToken output = tokenFactory.newCivlcToken(token, getIncludeHistory(), TokenVocabulary.PREPROC);
+		CivlcToken output = tokenFactory.newCivlcToken(token,
+				getIncludeHistory(), TokenVocabulary.PREPROC);
 
 		addOutput(output);
 	}
@@ -1837,7 +2044,8 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 		CivlcToken result = firstOutput;
 
 		if (result == null)
-			throw new PreprocessorRuntimeException("Internal error: no output to remove");
+			throw new PreprocessorRuntimeException(
+					"Internal error: no output to remove");
 		firstOutput = result.getNext();
 		if (firstOutput == null)
 			lastOutput = null;
@@ -1862,8 +2070,8 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	}
 
 	/**
-	 * Returns name of current file being scanned. I.e., the name returned by this
-	 * method will change dynamically as new files are included.
+	 * Returns name of current file being scanned. I.e., the name returned by
+	 * this method will change dynamically as new files are included.
 	 */
 	@Override
 	public String getSourceName() {
@@ -1899,36 +2107,42 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	 * </p>
 	 * 
 	 * <p>
-	 * EOF will be the last token returned, and if subsequent calls to this method
-	 * are made, it will continue to return EOF forever. This seems to be what
-	 * ANTLR's parsers expect.
+	 * EOF will be the last token returned, and if subsequent calls to this
+	 * method are made, it will continue to return EOF forever. This seems to be
+	 * what ANTLR's parsers expect.
 	 * </p>
 	 * 
-	 * @exception PreprocessorRuntimeException if anything goes wrong in trying to
-	 *                                         find the next token. Note that this
-	 *                                         method cannot throw a
-	 *                                         {@link PreprocessorException} because
-	 *                                         the interface that it implements does
-	 *                                         not specify any exception being
-	 *                                         thrown
+	 * @exception PreprocessorRuntimeException
+	 *                                             if anything goes wrong in
+	 *                                             trying to find the next
+	 *                                             token. Note that this method
+	 *                                             cannot throw a
+	 *                                             {@link PreprocessorException}
+	 *                                             because the interface that it
+	 *                                             implements does not specify
+	 *                                             any exception being thrown
 	 */
 	@Override
 	public CivlcToken nextToken() {
 		// nextToken_calls++;
 		if (finalToken != null)
 			return finalToken;
-		while (firstOutput == null || firstOutput.getType() != PreprocessorLexer.EOF && firstOutput == lastOutput)
+		while (firstOutput == null
+				|| firstOutput.getType() != PreprocessorLexer.EOF
+						&& firstOutput == lastOutput)
 			try {
 				processNextNode();
 			} catch (PreprocessorException e) {
-				PreprocessorRuntimeException pre = new PreprocessorRuntimeException(e);
-				
+				PreprocessorRuntimeException pre = new PreprocessorRuntimeException(
+						e);
+
 				pre.setStackTrace(e.getStackTrace());
 				throw pre;
 			} catch (PreprocessorRuntimeException e) {
 				throw e;
 			} catch (RuntimeException e) {
-				PreprocessorRuntimeException pre = new PreprocessorRuntimeException(e.toString(), firstOutput);
+				PreprocessorRuntimeException pre = new PreprocessorRuntimeException(
+						e.toString(), firstOutput);
 
 				pre.setStackTrace(e.getStackTrace());
 				throw pre;

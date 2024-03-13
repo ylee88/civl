@@ -502,6 +502,11 @@ public class PreprocessorTest {
 	public void variadic2() throws PreprocessorException {
 		checkPair("variadic2");
 	}
+	
+	@Test
+	public void once() throws PreprocessorException {
+		checkPair("once");
+	}
 
 	@Test
 	public void lex_test() throws IOException {
