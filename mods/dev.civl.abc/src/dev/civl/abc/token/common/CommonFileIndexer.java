@@ -1,6 +1,7 @@
 package dev.civl.abc.token.common;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -20,8 +21,11 @@ import dev.civl.sarl.util.EmptySet;
 public class CommonFileIndexer implements FileIndexer {
 
 	/**
-	 * Mapping from {@link File}s to {@link SourceFile}s for the files
-	 * maintained by this indexer. There is a 1-1 correspondence between them.
+	 * Mapping from canonicalized {@link File}s to {@link SourceFile}s for the
+	 * files maintained by this indexer. There is a 1-1 correspondence between
+	 * them. Invariant: the keys in this map are all canonical, i.e., they were
+	 * returned by method {@link File#getCanonicalFile()}. The File occurring in
+	 * the value is not necessarily canonical, but is equivalent to its key.
 	 */
 	private Map<File, SourceFile> sourceFileMap = new LinkedHashMap<>();
 
@@ -51,7 +55,17 @@ public class CommonFileIndexer implements FileIndexer {
 
 	@Override
 	public SourceFile getOrAdd(File file) {
-		SourceFile result = sourceFileMap.get(file);
+		File canonicalFile;
+
+		try {
+			canonicalFile = file.getCanonicalFile();
+		} catch (IOException e) {
+			// this should only happen for some very weird reason
+			// and in this case we will assume the file name is canonical
+			canonicalFile = file;
+		}
+
+		SourceFile result = sourceFileMap.get(canonicalFile);
 
 		if (result == null) {
 			String filename = file.getName();
@@ -67,7 +81,7 @@ public class CommonFileIndexer implements FileIndexer {
 			}
 			result = new SourceFile(file, sourceFiles.size(), nickname);
 			sourceFiles.add(result);
-			sourceFileMap.put(file, result);
+			sourceFileMap.put(canonicalFile, result);
 			sublist.add(result);
 		}
 		return result;
@@ -80,7 +94,16 @@ public class CommonFileIndexer implements FileIndexer {
 
 	@Override
 	public SourceFile get(File file) {
-		return sourceFileMap.get(file);
+		File canonicalFile;
+
+		try {
+			canonicalFile = file.getCanonicalFile();
+		} catch (IOException e) {
+			// this should only happen for some very weird reason
+			// and in this case we will assume the file name is canonical
+			canonicalFile = file;
+		}
+		return sourceFileMap.get(canonicalFile);
 	}
 
 	@Override

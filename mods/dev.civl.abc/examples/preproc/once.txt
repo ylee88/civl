@@ -3,5 +3,5 @@ Line A
 #include "header.txt"
 #include "header2.txt"
 Line B
-#include "header.txt"
+#include "../preproc/header.txt"
 #include "header2.txt"
