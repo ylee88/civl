@@ -76,6 +76,33 @@ void $barrier_call_subset($barrier barrier, int nprocs);
 
 void $barrier_call_execute($barrier barrier, void foo(void));
 
+// IBarriers...
+
+typedef struct _gibarrier * $gibarrier;
+
+typedef struct _ibarrier * $ibarrier;
+
+/*@ depends_on \nothing; */
+$atomic_f $gibarrier $gibarrier_create($scope scope, int size);
+
+/*@ depends_on \nothing; */
+$atomic_f void $gibarrier_destroy($gibarrier gibarrier);
+
+/*@ depends_on \nothing; */
+$atomic_f $ibarrier $ibarrier_create($scope scope, $gibarrier gibarrier, int place);
+
+/*@ depends_on \access(ibarrier); */
+$atomic_f void $ibarrier_destroy($ibarrier ibarrier);
+
+/*@ depends_on \access(ibarrier); */
+$atomic_f void $ibarrier_arrive($ibarrier ibarrier);
+
+/*@ depends_on \access(ibarrier); */
+$atomic_f void $ibarrier_wait($ibarrier ibarrier);
+
+
+
+
 #endif
 
 

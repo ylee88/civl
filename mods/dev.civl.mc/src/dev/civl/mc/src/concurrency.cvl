@@ -135,4 +135,72 @@ $atomic_f void $barrier_destroy($barrier barrier) {
   $free(barrier);
 }
 
+// ibarriers...
+
+struct _gibarrier {
+  /* The number of processes that will participate in this ibarrier. */
+  int nprocs;
+  /* Array of length nprocs, initially $proc_null. */
+  $proc proc_map[];
+  /* Status of each proc.  Array of length nprocs.  status[i] is 0, 1,
+     or 2.  Interpretation: 0: outside the ibarrier.  1: arrived at
+     ibarrier but not yet released (given permission to leave).  2:
+     released, but not yet departed (called ibarrier_wait). */
+  int status[];
+  /* number of procs with status 1 */
+  int n1;
+};
+
+struct _ibarrier {
+  int place;
+  $gibarrier gibarrier;
+};
+
+$atomic_f $gibarrier $gibarrier_create($scope scope, int size) {
+  $gibarrier gibarrier = ($gibarrier)$malloc(scope, sizeof(struct _gibarrier));
+  gibarrier->nprocs = size;
+  gibarrier->proc_map = ($proc[size])$lambda(int i) $proc_null;
+  gibarrier->status = (int[size])$lambda(int i) 0;
+  gibarrier->n1 = 0;
+  return gibarrier;
+};
+
+$atomic_f void $gibarrier_destroy($gibarrier gibarrier) {
+  $free(gibarrier);
+};
+
+$atomic_f $ibarrier $ibarrier_create($scope scope, $gibarrier gibarrier, int place) {
+  $assert(gibarrier->proc_map[place] == $proc_null,
+	  "the place %d in the global ibarrier has already been taken.",
+	  place);
+  $ibarrier ibarrier = ($ibarrier)$malloc(scope, sizeof(struct _ibarrier));
+  ibarrier->place = place;
+  ibarrier->gibarrier = gibarrier;
+  gibarrier->proc_map[place] = $self;
+  return ibarrier;
+};
+
+$atomic_f void $ibarrier_destroy($ibarrier ibarrier) {
+  $free(ibarrier);
+};
+
+$atomic_f void $ibarrier_arrive($ibarrier ibarrier) {
+  $gibarrier gibarrier = ibarrier->gibarrier;
+  int myplace=ibarrier->place, nprocs = gibarrier->nprocs;
+  $assert(gibarrier->status[myplace] == 0);
+  gibarrier->status[myplace] = 1;
+  gibarrier->n1++;
+  if (gibarrier->n1 == nprocs) {
+    // last to arrive: release everyone
+    for (int i=0; i<nprocs; i++)
+      gibarrier->status[i] = 2;
+    gibarrier->n1 = 0;
+  }
+}
+
+$atomic_f void $ibarrier_wait($ibarrier ibarrier) {
+  $when(ibarrier->gibarrier->status[ibarrier->place] == 2);
+  ibarrier->gibarrier->status[ibarrier->place] = 0;
+}
+
 #endif

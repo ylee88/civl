@@ -1,0 +1,27 @@
+#include <stdio.h>
+#include "concurrency.cvh"
+
+$scope root = $here;
+
+int main() {
+  int n = 3, m = 3;
+  int time[n];
+  for (int i=0; i<n; i++) time[i] = 0;
+  $gibarrier gs = $gibarrier_create(root, n);
+  $parfor (int i:0..n-1) {
+    $ibarrier s = $ibarrier_create($here, gs, i);
+    for (int j=0; j<m; j++) {
+      printf("Iter %d: Thread %d in region %d\n", j, i, 0);
+      // other threads may get past ibarrier_arrive but never past
+      // ibarrier_wait because I have not yet done ibarrier_arrive...
+      $assert($forall (int k:0..n-1) time[k] <= 1 + time[i]);      
+      $ibarrier_arrive(s);
+      time[i]++;
+      printf("Iter %d: Thread %d in region %d\n", j, i, 1);
+      $ibarrier_wait(s);
+      time[i]++;
+    }
+    $ibarrier_destroy(s);
+  }
+  $gibarrier_destroy(gs);
+}
