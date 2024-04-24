@@ -16,6 +16,7 @@ import org.antlr.runtime.tree.CommonTree;
 
 import dev.civl.abc.ast.IF.ASTFactory;
 import dev.civl.abc.ast.node.IF.ASTNode;
+import dev.civl.abc.ast.node.IF.AttributeKey;
 import dev.civl.abc.ast.node.IF.GenericAssociationNode;
 import dev.civl.abc.ast.node.IF.IdentifierNode;
 import dev.civl.abc.ast.node.IF.NodeFactory;
@@ -81,6 +82,7 @@ import dev.civl.abc.config.IF.Configuration;
 import dev.civl.abc.err.IF.ABCUnsupportedException;
 import dev.civl.abc.front.IF.ParseException;
 import dev.civl.abc.front.c.astgen.AcslContractWorker.ACSLSpecTranslation;
+import dev.civl.abc.front.c.parse.CivlCParser;
 import dev.civl.abc.front.c.ptree.CParseTree;
 import dev.civl.abc.front.common.astgen.ASTBuilderWorker;
 import dev.civl.abc.front.common.astgen.PragmaFactory;
@@ -122,6 +124,8 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	 */
 	private static String CIVLC_STATE_TYPEDEF_NAME = "$state";
 
+	private final String PRAGMA_ID_NAME_CIVL = "civl";
+
 	private boolean debug = false;
 
 	/* ************************** Instance Fields ************************* */
@@ -158,17 +162,29 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	 */
 	private Stack<Pair<SimpleScope, SequenceNode<ContractNode>>> scopeAndContracts = new Stack<>();
 
+	/*
+	 * The attribute key representing the expression is a civl omp dependency
+	 * source, which shall be depended by a target with a same tag.
+	 */
+	private AttributeKey civlDependSource;
+
+	/*
+	 * The attribute key representing the expression is a civl omp dependency
+	 * target, which depends on a source with a same tag.
+	 */
+	private AttributeKey civlDependTarget;
+
 	/* *************************** Constructors *************************** */
 
 	/**
 	 * Constructs a new ASTBuilder for the given ANTLR tree.
 	 * 
 	 * @param factory
-	 *            an ASTFactory to use
+	 *                        an ASTFactory to use
 	 * @param rootTree
-	 *            the root of the ANTLR tree
+	 *                        the root of the ANTLR tree
 	 * @param tokenSource
-	 *            the CTokenSource used to produce the ANTLR tree
+	 *                        the CTokenSource used to produce the ANTLR tree
 	 * 
 	 */
 	public CASTBuilderWorker(Configuration config, CParseTree parseTree,
@@ -181,6 +197,10 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 		this.config = config;
 		acslHandler = new AcslContractHandler(this.nodeFactory,
 				this.tokenFactory);
+		this.civlDependSource = nodeFactory
+				.newAttribute(AttributeKey.CIVL_DEPEND_SORUCE, Set.class);
+		this.civlDependTarget = nodeFactory
+				.newAttribute(AttributeKey.CIVL_DEPEND_TARGET, Set.class);
 	}
 
 	/* ************************* Private Methods ************************** */
@@ -398,12 +418,12 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	 * Translates a derivative expression
 	 * 
 	 * @param source
-	 *            The source information.
+	 *                           The source information.
 	 * @param expressionTree
-	 *            CommonTree of type DERIV, representing a derivative
-	 *            expression.
+	 *                           CommonTree of type DERIV, representing a
+	 *                           derivative expression.
 	 * @param scope
-	 *            The scope containing this expression.
+	 *                           The scope containing this expression.
 	 * @return A DerivativeExpressionNode corresponding to the ANTLR tree.
 	 * @throws SyntaxException
 	 */
@@ -489,7 +509,8 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	 * Translates a function call expression.
 	 * 
 	 * @param callTree
-	 *            CommonTree node of type CALL, representing a function call
+	 *                     CommonTree node of type CALL, representing a function
+	 *                     call
 	 * @return a FunctionCallNode corresponding to the ANTLR tree
 	 * @throws SyntaxException
 	 */
@@ -745,7 +766,7 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	 * 
 	 * @param source
 	 * @param expressionTree
-	 *            has the format: (, COMPOUND_STATEMENT, )
+	 *                           has the format: (, COMPOUND_STATEMENT, )
 	 * @param scope
 	 * @return
 	 * @throws SyntaxException
@@ -770,7 +791,7 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	 * Translates an expression.
 	 * 
 	 * @param expressionTree
-	 *            any CommonTree node representing an expression
+	 *                           any CommonTree node representing an expression
 	 * @return an ExpressionNode
 	 * @throws SyntaxException
 	 */
@@ -927,15 +948,16 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	 * are expressions.
 	 * 
 	 * @param intervalTree
-	 *            the ANTLR tree node for the interval, which has 2 children,
-	 *            one for a and one for b
+	 *                         the ANTLR tree node for the interval, which has 2
+	 *                         children, one for a and one for b
 	 * @param scope
-	 *            the scope in which this interval occurs
+	 *                         the scope in which this interval occurs
 	 * @return a new {@link PairNode} consisting of an expression node for the
 	 *         left endpoint and an expression node for the right end point of
 	 *         the interval
 	 * @throws SyntaxException
-	 *             if either or both expressions contain syntax errors
+	 *                             if either or both expressions contain syntax
+	 *                             errors
 	 */
 	private PairNode<ExpressionNode, ExpressionNode> translateInterval(
 			CommonTree intervalTree, SimpleScope scope) throws SyntaxException {
@@ -952,13 +974,14 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	 * [a1,b1] [a2,b2] ... [an,bn]. These are used in the $uniform expression.
 	 * 
 	 * @param intervalSequenceTree
-	 *            ANTLR tree representing interval sequence
+	 *                                 ANTLR tree representing interval sequence
 	 * @param scope
-	 *            the scope in which the $uniform expression occurs
+	 *                                 the scope in which the $uniform
+	 *                                 expression occurs
 	 * @return a new sequence node consisting of the result of translating the
 	 *         intervals
 	 * @throws SyntaxException
-	 *             if any interval contains a syntax error
+	 *                             if any interval contains a syntax error
 	 */
 	private SequenceNode<PairNode<ExpressionNode, ExpressionNode>> translateIntervalSequence(
 			CommonTree intervalSequenceTree, SimpleScope scope)
@@ -983,14 +1006,15 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	 * expression beginning with one of $exists, $forall, or $uniform.
 	 * 
 	 * @param source
-	 *            the source for this expression
+	 *                           the source for this expression
 	 * @param quantifiedTree
-	 *            the ANTLR tree representing the entire quantified expression
+	 *                           the ANTLR tree representing the entire
+	 *                           quantified expression
 	 * @param scope
-	 *            the scope in which the expression occurs
+	 *                           the scope in which the expression occurs
 	 * @return the new node which roots the new AST tree
 	 * @throws SyntaxException
-	 *             if any syntax error occurs in the tree
+	 *                             if any syntax error occurs in the tree
 	 */
 	private QuantifiedExpressionNode translateQuantifiedExpressionNew(
 			Source source, CommonTree quantifiedTree, SimpleScope scope)
@@ -1080,7 +1104,7 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	 * is present. Otherwise, a no-op.
 	 * 
 	 * @param typeNode
-	 *            any type node
+	 *                     any type node
 	 */
 	private TypeNode makeIncomplete(TypeNode typeNode) {
 		if (typeNode instanceof StructureOrUnionTypeNode) {
@@ -1115,10 +1139,12 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	 * </ul>
 	 * 
 	 * @param declarationTree
-	 *            CommonTree node of type DECLARATION (not static assertions)
+	 *                            CommonTree node of type DECLARATION (not
+	 *                            static assertions)
 	 * @return list of external definitions
 	 * @throws SyntaxException
-	 *             if the declaration does not conform to the C11 Standard
+	 *                             if the declaration does not conform to the
+	 *                             C11 Standard
 	 */
 	private List<BlockItemNode> translateDeclaration(CommonTree declarationTree,
 			SimpleScope scope) throws SyntaxException {
@@ -1197,7 +1223,7 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 					int degree;
 					SequenceNode<PairNode<ExpressionNode, ExpressionNode>> intervals;
 					StringLiteralNode attr = null;
-					
+
 					if (analysis.differentiableNode != null) {
 						degree = analysis.differentiableDegree;
 						intervals = translateIntervalSequence(
@@ -1392,7 +1418,7 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	/**
 	 * 
 	 * @param structTree
-	 *            CommonTree of type STRUCT or UNION
+	 *                       CommonTree of type STRUCT or UNION
 	 * @return
 	 * @throws SyntaxException
 	 */
@@ -1702,10 +1728,11 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	 * be null in the case of an abstract declarator.
 	 * 
 	 * @param declarator
-	 *            CommonTree node of type DECLARATOR, ABSTRACT_DECLARATOR, or
-	 *            ABSENT
+	 *                       CommonTree node of type DECLARATOR,
+	 *                       ABSTRACT_DECLARATOR, or ABSENT
 	 * @param type
-	 *            the start type before applying declarator operations
+	 *                       the start type before applying declarator
+	 *                       operations
 	 * 
 	 * @return new DeclaratorData with type derived from given type and
 	 *         identifier
@@ -1730,10 +1757,10 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	 * and base type. The direct declarator may be abstract.
 	 * 
 	 * @param directDeclarator
-	 *            CommonTree node of type DIRECT_DECLARATOR,
-	 *            DIRECT_ABSTRACT_DECLARATOR, or ABSENT
+	 *                             CommonTree node of type DIRECT_DECLARATOR,
+	 *                             DIRECT_ABSTRACT_DECLARATOR, or ABSENT
 	 * @param type
-	 *            base type
+	 *                             base type
 	 * @return new DeclaratorData with derived type and identifier
 	 * @throws SyntaxException
 	 */
@@ -1846,12 +1873,12 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	 * pointerTree is "*", the result is the type "pointer to int".
 	 * 
 	 * @param pointerTree
-	 *            CommonTree node of type POINTER or ABSENT
+	 *                        CommonTree node of type POINTER or ABSENT
 	 * @param type
-	 *            base type
+	 *                        base type
 	 * @return modified type
 	 * @throws SyntaxException
-	 *             if an unknown kind of type qualifier appears
+	 *                             if an unknown kind of type qualifier appears
 	 */
 	private TypeNode translatePointers(CommonTree pointerTree, TypeNode type,
 			SimpleScope scope) throws SyntaxException {
@@ -1875,11 +1902,13 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	 * int of length 10".
 	 * 
 	 * @param suffix
-	 *            a CommonTree node of type ARRAY_SUFFIX or FUNCTION_SUFFIX
+	 *                   a CommonTree node of type ARRAY_SUFFIX or
+	 *                   FUNCTION_SUFFIX
 	 * @param type
 	 * @return new type
 	 * @throws SyntaxException
-	 *             if the kind of suffix is not function or array
+	 *                             if the kind of suffix is not function or
+	 *                             array
 	 */
 	private TypeNode translateDeclaratorSuffix(CommonTree suffix,
 			TypeNode baseType, SimpleScope scope) throws SyntaxException {
@@ -1898,12 +1927,13 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	 * Modifies the type accordingly.
 	 * 
 	 * @param qualifierList
-	 *            CommonTree node which is root of list of qualifier nodes, or
-	 *            ABSENT
+	 *                          CommonTree node which is root of list of
+	 *                          qualifier nodes, or ABSENT
 	 * @param type
-	 *            the type to modify by applying qualifiers
+	 *                          the type to modify by applying qualifiers
 	 * @throws SyntaxException
-	 *             if a child of the qualifierList is not a type qualifier
+	 *                             if a child of the qualifierList is not a type
+	 *                             qualifier
 	 */
 	private void applyQualifiers(CommonTree qualifierList, TypeNode type)
 			throws SyntaxException {
@@ -2436,6 +2466,7 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	 * @return
 	 * @throws SyntaxException
 	 */
+	@SuppressWarnings("unchecked")
 	private CompoundStatementNode translateCompoundStatement(
 			CommonTree compoundStatementTree, SimpleScope scope)
 			throws SyntaxException {
@@ -2444,6 +2475,7 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 		CommonTree blockItems = (CommonTree) compoundStatementTree.getChild(1);
 		int numChildren = blockItems.getChildCount();
 		List<BlockItemNode> items = new LinkedList<BlockItemNode>();
+		List<BlockItemNode> civlPragmaNodes = new LinkedList<BlockItemNode>();
 		OmpExecutableNode ompStatementNode = null;
 
 		scopeAndContracts.push(new Pair<>(null, null));
@@ -2452,24 +2484,71 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 			List<BlockItemNode> newBlockItems = this
 					.translateBlockItemNode(childTree, newScope, false);
 
-			if (newBlockItems.size() == 1 && newBlockItems.get(0)
-					.blockItemKind() == BlockItemKind.STATEMENT) {
-				StatementNode statementNode = (StatementNode) newBlockItems
-						.get(0);
+			if (newBlockItems.size() == 1) {
+				BlockItemNode itemNode = newBlockItems.get(0);
 
-				if (ompStatementNode != null) {
-					ompStatementNode.setStatementNode(statementNode);
-					ompStatementNode = null;
-				} else {
-					items.add(statementNode);
-					if (statementNode.statementKind() == StatementKind.OMP) {
-						ompStatementNode = (OmpExecutableNode) statementNode;
-						if (ompStatementNode.isComplete())
-							ompStatementNode = null;
+				if (itemNode.blockItemKind() == BlockItemKind.STATEMENT) {
+					StatementNode statementNode = (StatementNode) newBlockItems
+							.get(0);
+
+					if (civlPragmaNodes.size() > 0) {
+						for (BlockItemNode node : civlPragmaNodes) {
+							Object pragmaDSAttrVal = node
+									.getAttribute(civlDependSource);
+							Object pragmaDTAttrVal = node
+									.getAttribute(civlDependTarget);
+
+							if (pragmaDSAttrVal != null) {
+								Object stmtDSAttrVal = statementNode
+										.getAttribute(civlDependSource);
+
+								if (stmtDSAttrVal == null) {
+									statementNode.setAttribute(civlDependSource,
+											pragmaDSAttrVal);
+								} else {
+									((Set<String>) stmtDSAttrVal).addAll(
+											(Set<String>) pragmaDSAttrVal);
+								}
+							}
+							if (pragmaDTAttrVal != null) {
+								Object stmtDTAttrVal = statementNode
+										.getAttribute(civlDependTarget);
+
+								if (stmtDTAttrVal == null) {
+									statementNode.setAttribute(civlDependSource,
+											pragmaDTAttrVal);
+								} else {
+									((Set<String>) stmtDTAttrVal).addAll(
+											(Set<String>) pragmaDTAttrVal);
+								}
+							}
+						}
+						civlPragmaNodes.clear();
+					}
+					if (ompStatementNode != null) {
+						ompStatementNode.setStatementNode(statementNode);
+						ompStatementNode = null;
+					} else {
+						items.add(statementNode);
+						if (statementNode
+								.statementKind() == StatementKind.OMP) {
+							ompStatementNode = (OmpExecutableNode) statementNode;
+							if (ompStatementNode.isComplete())
+								ompStatementNode = null;
+						}
+					}
+					continue;
+				} else if (itemNode.blockItemKind() == BlockItemKind.PRAGMA) {
+					PragmaNode pragmaNode = (PragmaNode) itemNode;
+
+					if (pragmaNode.getPragmaIdentifier().name()
+							.equals(PRAGMA_ID_NAME_CIVL)) {
+						civlPragmaNodes.add(pragmaNode);
+						continue;
 					}
 				}
-			} else
-				items.addAll(newBlockItems);
+			}
+			items.addAll(newBlockItems);
 		}
 		scopeAndContracts.pop();
 
@@ -2948,6 +3027,84 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 				definitions);
 	}
 
+	private void attachAttributeToPragmaNode(PragmaNode pragmaNode)
+			throws SyntaxException {
+		final String PRAGMA_CIVL_KEYWORD_DEPEND = "depend";
+		String pragmaIdStr = pragmaNode.getPragmaIdentifier().name();
+
+		if (pragmaIdStr.equals(PRAGMA_ID_NAME_CIVL)) {
+			// Convert `#pragma civl xxx` as attribute
+			int tokenIndex = 0;
+			while (tokenIndex < pragmaNode.getNumTokens() && pragmaNode
+					.getToken(tokenIndex).getType() == CivlCParser.WS) {
+				tokenIndex++;
+			}
+			if (tokenIndex >= pragmaNode.getNumTokens())
+				throw new SyntaxException("pragma 'civl' has no keyword", null);
+			switch (pragmaNode.getToken(tokenIndex++).getText().toLowerCase()) {
+				case PRAGMA_CIVL_KEYWORD_DEPEND :
+					final String PRAGMA_CIVL_DEPEND_TYPE_SOURCE = "source";
+					final String PRAGMA_CIVL_DEPEND_TYPE_TARGET = "target";
+
+					while (tokenIndex < pragmaNode.getNumTokens() && pragmaNode
+							.getToken(tokenIndex).getType() == CivlCParser.WS) {
+						tokenIndex++;
+					}
+					if (tokenIndex >= pragmaNode.getNumTokens())
+						throw new SyntaxException(
+								"pragma 'civl depend' has no type", null);
+					String civlDependTypeName = pragmaNode
+							.getToken(tokenIndex++).getText().toLowerCase();
+					AttributeKey attrKey = null;
+					Set<String> attrVal = null;
+					int nLP = 0;
+					int nRP = 0;
+
+					if (civlDependTypeName
+							.equals(PRAGMA_CIVL_DEPEND_TYPE_SOURCE))
+						attrKey = this.civlDependSource;
+					else if (civlDependTypeName
+							.equals(PRAGMA_CIVL_DEPEND_TYPE_TARGET))
+						attrKey = this.civlDependTarget;
+					for (; tokenIndex < pragmaNode
+							.getNumTokens(); tokenIndex++) {
+
+						switch (pragmaNode.getToken(tokenIndex).getType()) {
+							case CivlCParser.LPAREN :
+								nLP++;
+							case CivlCParser.WS :
+								continue;
+							case CivlCParser.RPAREN :
+								nRP++;
+								tokenIndex = pragmaNode.getNumTokens();
+								break;
+							case CivlCParser.IDENTIFIER :
+								if (nLP == 1) {
+									Set<String> tagSet = new HashSet<String>();
+
+									tagSet.add(pragmaNode.getToken(tokenIndex)
+											.getText());
+									attrVal = tagSet;
+									continue;
+								}
+							default :
+						}
+					}
+					if (nLP == nRP && attrKey != null && attrVal != null) {
+						// The syntax is correct
+						pragmaNode.setAttribute(attrKey, attrVal);
+						return;
+					} else
+						throw new SyntaxException(
+								"'civl' pragma with 'depend' type has invalid format, please use: #pragma civl depend source(TAG) or #pragma civl depend target(TAG)",
+								null);
+				default :
+					throw new SyntaxException(
+							"'civl' pragma has an unknown keyword", null);
+			}
+		}
+	}
+
 	/**
 	 * Translates a block item node.
 	 * 
@@ -2976,8 +3133,12 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 			case PPRAGMA :
 				ASTNode pragmaNode = translatePragma(blockItemTree, scope);
 
-				if (pragmaNode != null)
+				if (pragmaNode != null) {
+					if (pragmaNode instanceof PragmaNode) {
+						attachAttributeToPragmaNode((PragmaNode) pragmaNode);
+					}
 					items.add((BlockItemNode) pragmaNode);
+				}
 				break;
 			case STATEMENT :
 				if (checkCExternalDefs) {
@@ -3009,12 +3170,13 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	 * nothing. Else will interprete it as an ACSL annotation.
 	 * 
 	 * @param annotationTree
-	 *            the ANTLR tree node representing the annotation; it is a flat
-	 *            list of tokens
+	 *                           the ANTLR tree node representing the
+	 *                           annotation; it is a flat list of tokens
 	 * @param scope
-	 *            the scope in which this construct occurs
+	 *                           the scope in which this construct occurs
 	 * @throws SyntaxException
-	 *             if something goes wrong in translating the annotation
+	 *                             if something goes wrong in translating the
+	 *                             annotation
 	 */
 	private List<BlockItemNode> translateAnnotation(CommonTree annotationTree,
 			SimpleScope scope) throws SyntaxException {
@@ -3037,11 +3199,11 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	 * The main method: given an ANTLR tree, produces a TranslationUnit.
 	 * 
 	 * @param tree
-	 *            an ANTLR syntax tree
+	 *                 an ANTLR syntax tree
 	 * @return a TranslationUnit representing the given syntax tree
 	 * @throws SyntaxException
-	 *             if there is something in the tree that does not conform to
-	 *             the C11 standard
+	 *                             if there is something in the tree that does
+	 *                             not conform to the C11 standard
 	 */
 	@Override
 	public SequenceNode<BlockItemNode> translateRoot() throws SyntaxException {
