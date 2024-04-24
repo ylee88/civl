@@ -16,18 +16,6 @@ package dev.civl.abc.ast.node.IF;
 public interface AttributeKey {
 
 	/**
-	 * The attribute key name used for representing a civl omp dependency
-	 * source(TAG)
-	 */
-	public static String CIVL_DEPEND_SORUCE = "civl_depend_source";
-
-	/**
-	 * The attribute key name used for representing a civl omp dependency
-	 * target(TAG), which depends on the source with a same TAG identifier.
-	 */
-	public static String CIVL_DEPEND_TARGET = "civl_depend_target";
-
-	/**
 	 * Returns the name of this attribute.
 	 * 
 	 * @return the name of the attribute

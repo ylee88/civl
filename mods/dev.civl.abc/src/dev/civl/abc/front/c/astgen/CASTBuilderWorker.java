@@ -126,6 +126,18 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 
 	private final String PRAGMA_ID_NAME_CIVL = "civl";
 
+	/**
+	 * The attribute key name used for representing a civl omp dependency
+	 * source(TAG)
+	 */
+	public static String CIVL_DEPEND_SORUCE = "civl_depend_source";
+
+	/**
+	 * The attribute key name used for representing a civl omp dependency
+	 * target(TAG), which depends on the source with a same TAG identifier.
+	 */
+	public static String CIVL_DEPEND_TARGET = "civl_depend_target";
+
 	private boolean debug = false;
 
 	/* ************************** Instance Fields ************************* */
@@ -166,13 +178,13 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	 * The attribute key representing the expression is a civl omp dependency
 	 * source, which shall be depended by a target with a same tag.
 	 */
-	private AttributeKey civlDependSource;
+	public AttributeKey civlDependSource;
 
 	/*
 	 * The attribute key representing the expression is a civl omp dependency
 	 * target, which depends on a source with a same tag.
 	 */
-	private AttributeKey civlDependTarget;
+	public AttributeKey civlDependTarget;
 
 	/* *************************** Constructors *************************** */
 
@@ -197,10 +209,10 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 		this.config = config;
 		acslHandler = new AcslContractHandler(this.nodeFactory,
 				this.tokenFactory);
-		this.civlDependSource = nodeFactory
-				.newAttribute(AttributeKey.CIVL_DEPEND_SORUCE, Set.class);
-		this.civlDependTarget = nodeFactory
-				.newAttribute(AttributeKey.CIVL_DEPEND_TARGET, Set.class);
+		this.civlDependSource = nodeFactory.newAttribute(CIVL_DEPEND_SORUCE,
+				Set.class);
+		this.civlDependTarget = nodeFactory.newAttribute(CIVL_DEPEND_TARGET,
+				Set.class);
 	}
 
 	/* ************************* Private Methods ************************** */
