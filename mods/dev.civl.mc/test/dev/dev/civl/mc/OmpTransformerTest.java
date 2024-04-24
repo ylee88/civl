@@ -30,8 +30,6 @@ public class OmpTransformerTest {
 
 	private PrintStream out = System.out;
 
-	private File root = new File(new File("examples"), "omp");
-
 	// private static List<String> codes = Arrays.asList("prune", "sef");
 
 	/* *************************** Helper Methods ************************** */
@@ -60,7 +58,7 @@ public class OmpTransformerTest {
 	private void check(String filenameRoot, boolean debug) throws ABCException,
 			IOException {
 		ABCExecutor executor = new ABCExecutor(new TranslationTask(new File(
-				root, filenameRoot + ".c")));
+				rootDir, filenameRoot + ".c")));
 		FrontEnd frontEnd = executor.getFrontEnd();
 		TransformerFactory transformerFactory = Transforms
 				.newTransformerFactory(frontEnd.getASTFactory());
@@ -204,6 +202,11 @@ public class OmpTransformerTest {
 	@Test
 	public void quad() throws ABCException, IOException {
 		check("quad_openmp", false);
+	}
+
+	@Test
+	public void simd_simple() throws ABCException, IOException {
+		check("simd_simple", false);
 	}
 
 	@AfterClass
