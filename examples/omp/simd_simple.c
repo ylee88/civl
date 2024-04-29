@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <assert.h>
+#include <concurrency.cvh>
 #define N 6
 
 void func(int n, double A[restrict]) {
