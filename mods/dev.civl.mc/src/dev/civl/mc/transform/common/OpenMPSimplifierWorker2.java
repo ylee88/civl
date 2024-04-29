@@ -840,6 +840,8 @@ public class OpenMPSimplifierWorker2 extends BaseWorker {
 		boolean independent = true;
 		// For each entity in writeVars, if it is not in the local-declaration
 		// collection, add it to sharedWrites (modified by Ziqing):
+		if (loopPrivateIDs == null)
+			loopPrivateIDs = new ArrayList<Entity>();
 		for (Variable writeVar : writeVars) {
 			boolean localContains = false;
 

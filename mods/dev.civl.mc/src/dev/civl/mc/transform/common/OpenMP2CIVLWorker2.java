@@ -17,6 +17,7 @@ import dev.civl.abc.ast.entity.IF.Function;
 import dev.civl.abc.ast.entity.IF.Variable;
 import dev.civl.abc.ast.node.IF.ASTNode;
 import dev.civl.abc.ast.node.IF.ASTNode.NodeKind;
+import dev.civl.abc.ast.node.IF.AttributeKey;
 import dev.civl.abc.ast.node.IF.IdentifierNode;
 import dev.civl.abc.ast.node.IF.NodePredicate;
 import dev.civl.abc.ast.node.IF.PairNode;
@@ -40,6 +41,7 @@ import dev.civl.abc.ast.node.IF.omp.OmpNode;
 import dev.civl.abc.ast.node.IF.omp.OmpParallelNode;
 import dev.civl.abc.ast.node.IF.omp.OmpReductionNode;
 import dev.civl.abc.ast.node.IF.omp.OmpReductionNode.OmpReductionOperator;
+import dev.civl.abc.ast.node.IF.omp.OmpSimdNode;
 import dev.civl.abc.ast.node.IF.omp.OmpSymbolReductionNode;
 import dev.civl.abc.ast.node.IF.omp.OmpSyncNode;
 import dev.civl.abc.ast.node.IF.omp.OmpWorksharingNode;
@@ -96,6 +98,8 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 	static private final String _OMP_ = "_omp_";
 	static private final String ATOMIC_ = _OMP_ + "atomic_";
 	static private final String FIRSTPRIVATE_ = _OMP_ + "fstpvt_";
+	static private final String GIBAR_ = _OMP_ + "gibar_";
+	static private final String IBAR_ = _OMP_ + "ibar_";
 	static private final String LASTPRIVATE_ = _OMP_ + "lstpvt_";
 	static private final String REDUCTION_ = _OMP_ + "reduction_";
 	static private final String CRITICAL_ = _OMP_ + "critical_";
@@ -103,11 +107,16 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 	static private final String _NEXT = "_next";
 	// commonly used variable identifiers
 	static private final String DOM = _OMP_ + "dom";
+	static private final String SIMD_LANE_DOM = _OMP_ + "simd_lane_dom";
 	static private final String GTEAM = _OMP_ + "gteam";
 	static private final String RANGE = _OMP_ + "range";
+	static private final String LANE_RANGE = _OMP_ + "lane_range";
+	static private final String LID = _OMP_ + "lid";
+	static private final String NLANES = _OMP_ + "civl_nlanes";
 	static private final String NTHREADS = _OMP_ + "nthreads";
 	static private final String NUM_THREADS = _OMP_ + "num_threads";
 	/** CIVL input variable for the maximum number of OpenMP threads */
+	static private final String SIMD_LANE_MAX = _OMP_ + "simd_lane_max";
 	static private final String TEAM = _OMP_ + "team";
 	static private final String THREAD_LAST = _OMP_ + "thread_last";
 	static private final String THREAD_LAST_ITER = _OMP_ + "thread_last_iter";
@@ -144,6 +153,12 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 	static private final String OMP_UNSET_NEST_LOCK = "omp_unset_nest_lock";
 	/* CIVL OpenMP verification helper function identifiers */
 	static private final String CHECK_DATA_RACE = "$check_data_race";
+	static private final String GIBARRIER_CREATE = "$gibarrier_create";
+	static private final String GIBARRIER_DESTROY = "$gibarrier_destroy";
+	static private final String IBARRIER_ARRIVE = "$ibarrier_arrive";
+	static private final String IBARRIER_CREATE = "$ibarrier_create";
+	static private final String IBARRIER_DESTROY = "$ibarrier_destroy";
+	static private final String IBARRIER_WAIT = "$ibarrier_wait";
 	static private final String LOCAL_START = "$local_start";
 	static private final String LOCAL_END = "$local_end";
 	static private final String OMP_ARRIVE_SECTIONS = "$omp_arrive_sections";
@@ -254,6 +269,10 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 
 	private OmpOrphanFunctions ompOrphanFuncs;
 
+	private AttributeKey dependSourceKey;
+
+	private AttributeKey dependTargetKey;
+
 	// Constructors
 	/**
 	 * Constructs a new instance of {@link OpenMP2CIVLWorker2}
@@ -269,6 +288,8 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		super(OpenMP2CIVLTransformer.LONG_NAME, astFactory);
 		this.identifierPrefix = "$omp_";
 		this.config = config;
+		this.dependSourceKey = nodeFactory.getCivlOmpDependKey(true);
+		this.dependTargetKey = nodeFactory.getCivlOmpDependKey(false);
 	}
 
 	// Helper Functions or methods
@@ -476,6 +497,31 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 	}
 
 	/**
+	 * Return a function call statement representing either
+	 * <code>$ibarrier_arrive(_omp_ibar_{tag});</code> or
+	 * <code>$ibarrier_wait(_omp_ibar_{tag});</code>
+	 * 
+	 * @param srcMethod
+	 *                      Dummy {@link Source} information based on caller
+	 *                      name
+	 * @param tag
+	 *                      A specific tag as a suffix indicating an unique
+	 *                      ibarrier instance
+	 * @param isSource
+	 *                      if <code>true</code> the function invoked is
+	 *                      <code>ibarrier_arrive</code>; otherwise,
+	 *                      <code>ibarrier_wait</code>
+	 * @return see above
+	 */
+	private BlockItemNode callIbarrier(String srcMethod, String tag,
+			Boolean isSource) {
+		ExpressionNode ibarTagIdExpr = nodeExprId(srcMethod, IBAR_ + tag);
+
+		return nodeStmtCall(srcMethod,
+				isSource ? IBARRIER_ARRIVE : IBARRIER_WAIT, ibarTagIdExpr);
+	}
+
+	/**
 	 * Return {@link VariableDeclarationNode} representing:<br>
 	 * <code>$domain(collapse) _omp_loop_dist = ($domain(collapse))
 	 * $omp_arrive_loop(team, loop_id++, _omp_loop_domain, STRATEGY);</code>
@@ -630,6 +676,32 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 
 	/**
 	 * Return {@link VariableDeclarationNode} representing:<br>
+	 * <code>$gibarrier _omp_gibar_{tag} = $gibarrier_create($here, _omp_civl_nlanes);</code>
+	 * 
+	 * @param srcMethod
+	 *                      Dummy {@link Source} information based on caller
+	 *                      name
+	 * @param tag
+	 *                      The suffix appended to the variable name.
+	 * @return See above
+	 */
+	private VariableDeclarationNode declOmpGibarrier(String srcMethod,
+			String tag) {
+		// type: $gibarrier
+		TypeNode typeGibarrier = nodeTypeNamed(srcMethod, "$gibarrier");
+		// id: _omp_gibar_{tag}
+		IdentifierNode gibarTag = nodeIdent(srcMethod, GIBAR_ + tag);
+		// init: $gibarrier_create($here, _omp_civl_nlanes)
+		InitializerNode init = nodeExprCall(srcMethod, GIBARRIER_CREATE,
+				nodeExprHere(srcMethod), nodeExprId(srcMethod, NLANES));
+
+		return nodeFactory.newVariableDeclarationNode(
+				newSource(srcMethod, CivlcTokenConstant.DECLARATION), //
+				gibarTag, typeGibarrier, init);
+	}
+
+	/**
+	 * Return {@link VariableDeclarationNode} representing:<br>
 	 * <code>$omp_gteam gteam = $omp_gteam_create($here, nthreads);</code>
 	 * 
 	 * @param srcMethod
@@ -708,43 +780,62 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 	/**
 	 * Return {@link VariableDeclarationNode} representing:<br>
 	 * <code>int _omp_nthreads = 1+$choose_int(_omp_num_threads);</code> (if
-	 * there is no explicit num_threads clause declared)<br>
+	 * there is no explicit num_threads clause declared for non-simd)<br>
 	 * <code>int _omp_nthreads = _omp_num_threads;</code> (if an explicit
-	 * num_threads clause is declared.)
+	 * num_threads clause is declared for non-simd.)<br>
+	 * <code>int _omp_civl_nlanes = 1+$choose_int($civl_omp_simd_lane_max(0));</code>
+	 * (if no safelen clause declared for simd.)
 	 * 
 	 * @param srcMethod
 	 *                       Dummy {@link Source} information based on caller
 	 *                       name
 	 * @param numThds
 	 *                       The {@link ExpressionNode} for
-	 *                       <code>_omp_num_threads</code>
+	 *                       <code>_omp_num_threads</code>; if <code>null</code>
+	 *                       then the variable declaration node of
+	 *                       `_omp_civl_nlanes` shall be created and returned
 	 * @param isDeclared
 	 *                       <code>true</code> iff an explicit num_threads
 	 *                       clause is declared with an exact constant value
 	 *                       defining the number of threads.
 	 * @return see above
+	 * @throws SyntaxException
 	 */
-	private VariableDeclarationNode declOmpNthreads(String srcMethod,
-			ExpressionNode numThds, Boolean isDeclared) {
+	private VariableDeclarationNode declOmpNthreadsOrNlanes(String srcMethod,
+			ExpressionNode numThds, Boolean isDeclared) throws SyntaxException {
+		Boolean isThread = numThds != null;
+		String varName = isThread ? NTHREADS : NLANES;
 		// type: int
 		TypeNode typeInt = nodeTypeInt(srcMethod);
-		// id: _omp_nthreads
-		IdentifierNode _omp_nthreads = nodeIdent(srcMethod, NTHREADS);
-		// init: _omp_num_threads
-		// OR
-		// init: 1+$choose_int(_omp_num_threads)
-		InitializerNode init = isDeclared
-				? numThds
-				: nodeFactory.newOperatorNode(
+		// id: _omp_nthreads or _omp_civl_nlanes
+		IdentifierNode ompNumThreadsOrLanes = nodeIdent(srcMethod, varName);
+		InitializerNode init = null;
+
+		if (isThread) {
+			if (isDeclared)
+				// init: _omp_num_threads
+				init = numThds;
+			else
+				// init: 1+$choose_int(_omp_num_threads)
+				init = nodeFactory.newOperatorNode(
 						/* src */ newSource(srcMethod, CivlcTokenConstant.EXPR),
 						/* op */ Operator.PLUS,
 						/* arg0 */ nodeExprInt(srcMethod, 1),
 						/* arg1 */ nodeExprCall(srcMethod, "$choose_int",
 								numThds));
-
+		} else {
+			// init: 1+$choose_int($civl_omp_simd_lane_max())
+			// NOTE: $civl_omp_simd_lane_max is defined in civl-omp.cvl
+			init = nodeFactory.newOperatorNode(
+					/* src */ newSource(srcMethod, CivlcTokenConstant.EXPR),
+					/* op */ Operator.PLUS,
+					/* arg0 */ nodeExprInt(srcMethod, 1),
+					/* arg1 */ nodeExprCall(srcMethod, "$choose_int",
+							nodeExprId(srcMethod, SIMD_LANE_MAX)));
+		}
 		return nodeFactory.newVariableDeclarationNode(
 				newSource(srcMethod, CivlcTokenConstant.DECLARATION), //
-				_omp_nthreads, typeInt, init);
+				ompNumThreadsOrLanes, typeInt, init);
 	}
 
 	/**
@@ -843,6 +934,42 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 
 	/**
 	 * Return {@link VariableDeclarationNode} representing:<br>
+	 * <code>$domain(1) _omp_simd_lane_dom = ($domain){_omp_lane_range};</code>
+	 * 
+	 * @param srcMethod
+	 *                      Dummy {@link Source} information based on caller
+	 *                      name
+	 * @return See above
+	 */
+	private BlockItemNode declOmpSimdLaneDomain(String srcMethod) {
+		// type: $domain(1)
+		TypeNode typeDom = nodeTypeDom(srcMethod, 1);
+		// id: _omp_simd_lane_dom
+		IdentifierNode laneDom = nodeIdent(srcMethod, SIMD_LANE_DOM);
+		// initialList: {_omp_civl_lanes}
+		CompoundInitializerNode initialList = nodeFactory
+				.newCompoundInitializerNode(
+						newSource(srcMethod,
+								CivlcTokenConstant.INITIALIZER_LIST),
+						Arrays.asList(nodeFactory.newPairNode(
+								/* src */ newSource(srcMethod,
+										CivlcTokenConstant.STRUCT),
+								/* dsgn */(DesignationNode) null, //
+								/* init */ nodeExprId(srcMethod, LANE_RANGE))));
+		// init: ($domain){_omp_civl_lanes}
+		InitializerNode init = nodeFactory.newCompoundLiteralNode(
+				/* src */ newSource(srcMethod,
+						CivlcTokenConstant.COMPOUND_LITERAL),
+				/* type */ nodeTypeDom(srcMethod, 0),
+				/* initials */ initialList);
+
+		return nodeFactory.newVariableDeclarationNode(
+				newSource(srcMethod, CivlcTokenConstant.DECLARATION), //
+				laneDom, typeDom, init);
+	}
+
+	/**
+	 * Return {@link VariableDeclarationNode} representing:<br>
 	 * <code>$omp_team _omp_team = $omp_team_create($here, _omp_gteam, _omp_tid);</code>
 	 * 
 	 * @param srcMethod
@@ -910,32 +1037,76 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 				_omp_thread_max, type);
 	}
 
+	private VariableDeclarationNode declOmpSimdLaneMax(String srcMethod) {
+		// type: int
+		TypeNode type = nodeTypeInt(srcMethod);
+		// id: _omp_simd_lane_max
+		IdentifierNode ompSimdLaneMax = nodeIdent(srcMethod, SIMD_LANE_MAX);
+
+		// set $input
+		type.setInputQualified(true);
+		return nodeFactory.newVariableDeclarationNode(
+				newSource(srcMethod, CivlcTokenConstant.DECLARATION), //
+				ompSimdLaneMax, type);
+	}
+
 	/**
 	 * Return {@link VariableDeclarationNode} representing:<br>
-	 * <code>$range _omp_thread_range = {0 .. _omp_nthreads-1};</code>
+	 * <code>$range _omp_thread_range = {0 .. _omp_nthreads-1};</code> or
+	 * <code>$range _omp_lane_range = {0 .. _omp_civl_nlanes-1}; </code>
 	 * 
 	 * @param srcMethod
 	 *                      Dummy {@link Source} information based on caller
 	 *                      name
+	 * @param isThread
+	 *                      if <code>true</code> then a thread range shall be
+	 *                      created and returned; otherwise, a lane range shall
+	 *                      be created and returned.
 	 * @return See above
 	 */
-	private VariableDeclarationNode declOmpThreadRange(String srcMethod) {
+	private VariableDeclarationNode declOmpThreadOrLaneRange(String srcMethod,
+			boolean isThread) {
 		// type: $range
 		TypeNode typeInt = nodeTypeRange(srcMethod);
-		// id: _omp_thread_range
-		IdentifierNode _omp_thread_range = nodeIdent(srcMethod, THREAD_RANGE);
-		// init: {0 .. _omp_nthreads-1}
+		// id: _omp_thread_range or _omp_lane_range
+		IdentifierNode _omp_thread_range = nodeIdent(srcMethod,
+				isThread ? THREAD_RANGE : LANE_RANGE);
+		// init: {0 .. _omp_nthreads-1} or {0 .. _omp_civl_nlanes-1}
 		InitializerNode init = nodeExprRange(srcMethod,
 				/* lb */ nodeExprInt(srcMethod, 0),
 				/* ub */ nodeFactory.newOperatorNode(
 						newSource(srcMethod, CivlcTokenConstant.SUB),
-						Operator.MINUS, nodeExprId(srcMethod, NTHREADS),
+						Operator.MINUS,
+						nodeExprId(srcMethod, isThread ? NTHREADS : NLANES),
 						nodeExprInt(srcMethod, 1)),
 				/* step */ null);
 
 		return nodeFactory.newVariableDeclarationNode(
 				newSource(srcMethod, CivlcTokenConstant.DECLARATION), //
 				_omp_thread_range, typeInt, init);
+	}
+
+	/**
+	 * Return {@link VariableDeclarationNode} representing:<br>
+	 * <code>$ibarrier _omp_ibar_{tag} = $ibarrier_create($here, _omp_gibar_{tag}, _omp_lid); </code>
+	 * 
+	 * @param srcMethod
+	 *                      Dummy {@link Source} information based on caller
+	 *                      name
+	 * @param tag
+	 *                      The suffix appended to the variable name.
+	 * @return See above
+	 */
+	private VariableDeclarationNode declSimdIBarrier(String srcMethod,
+			String tag) {
+		// type: "$ibarrier"
+		TypeNode typeIbar = nodeTypeNamed(srcMethod, "$ibarrier");
+		// init: $ibarrier_create($here, _omp_gibar_{tag}, _omp_lid);
+		ExpressionNode init = nodeExprCall(srcMethod, IBARRIER_CREATE,
+				nodeExprHere(srcMethod), nodeExprId(srcMethod, GIBAR_ + tag),
+				nodeExprId(srcMethod, LID));
+
+		return variableDeclaration(IBAR_ + tag, typeIbar, init);
 	}
 
 	/**
@@ -1314,6 +1485,33 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 				(DeclarationListNode) loopInit,
 				nodeExprId(srcMethod, domainVarName),
 				nodeBlock(srcMethod, loopBodyItems), null);
+	}
+
+	private BlockItemNode genIdleLaneBehaviors(String srcMethod,
+			ExpressionNode loopVarExpr, ExpressionNode boundExpr)
+			throws SyntaxException {
+		// boundExpr + _omp_civl_nlanes
+		ExpressionNode opExprNode = nodeExprOp(srcMethod, Operator.PLUS,
+				boundExpr, nodeExprId(srcMethod, NLANES));
+
+		// (boundExpr + _omp_civl_nlanes) - 1
+		opExprNode = nodeExprOp(srcMethod, Operator.MINUS, opExprNode,
+				integerConstant(1));
+		// ((boundExpr + _omp_civl_nlanes) - 1) / _omp_civl_nlanes
+		opExprNode = nodeExprOp(srcMethod, Operator.DIV, opExprNode,
+				nodeExprId(srcMethod, NLANES));
+		// (((boundExpr + _omp_civl_nlanes) - 1) / _omp_civl_nlanes) *
+		// _omp_civl_nlanes
+		opExprNode = nodeExprOp(srcMethod, Operator.TIMES, opExprNode,
+				nodeExprId(srcMethod, NLANES));
+		// i < ((((boundExpr + _omp_civl_nlanes) - 1) / _omp_civl_nlanes) *
+		// _omp_civl_nlanes)
+		opExprNode = nodeExprOp(srcMethod, Operator.LT, loopVarExpr,
+				opExprNode);
+
+		return nodeFactory.newIfNode(
+				newSource(srcMethod, CivlcTokenConstant.STATEMENT), opExprNode,
+				nodeBlock(srcMethod, idelLaneIbarBehaviors));
 	}
 
 	/**
@@ -1835,14 +2033,15 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 			_omp_num_threads = nodeExprId(srcMethod, _OMP_ + "num_threads");
 		ompBlockItems.add(elaborateExpression(_omp_num_threads).copy());
 		// ADD: int _omp_nthreads = 1+$choose_int(_omp_num_threads);
-		ompBlockItems.add(declOmpNthreads(srcMethod, _omp_num_threads,
+		ompBlockItems.add(declOmpNthreadsOrNlanes(srcMethod, _omp_num_threads,
 				hasExplicitNumThreadsClause));
 		// ADD: temporary variable declarations for firstprivate variables
 		ompBlockItems.addAll(fstpvtDeclsList.get(INDEX_TMP_DECLS));
 		// ADD: temporary variable declarations for lastprivate variables
 		ompBlockItems.addAll(lstpvtDeclsList.get(INDEX_TMP_DECLS));
 		// ADD: $range _omp_thread_range = {0 .. _omp_nthreads-1};
-		ompBlockItems.add(declOmpThreadRange(srcMethod));
+		ompBlockItems
+				.add(declOmpThreadOrLaneRange(srcMethod, true /* thread */));
 		// ADD: $domain(1) dom = ($domain){thread_range};
 		ompBlockItems.add(declOmpDomain(srcMethod, 0)); // 0 for parallel region
 		// ADD: $omp_gteam gteam = $omp_gteam_create($here, nthreads);
@@ -1863,7 +2062,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		parForBodyItems.addAll(pvtDeclsList.get(INDEX_PVT_DECLS));
 		// first private items: dummy decl. and init. for pvt. var.
 		parForBodyItems.addAll(fstpvtDeclsList.get(INDEX_PVT_DECLS));
-		// first private items: dummy decl. and init. for pvt. var.
+		// last private items: dummy decl. and init. for pvt. var.
 		parForBodyItems.addAll(lstpvtDeclsList.get(INDEX_PVT_DECLS));
 		// $read_set_push();
 		// $write_set_push();
@@ -2013,6 +2212,126 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 			ompBlockItems.add(callOmpBarrier(srcMethod));
 		// TRANS: replace sections region with transformed block
 		replaceOmpNode(srcMethod, ompSectionsNode, ompBlockItems);
+		ompRgn.pop();
+	}
+
+	private void procOmpSimdNode(OmpSimdNode ompSimdNode)
+			throws SyntaxException {
+		String srcMethod = SRC_INFO + ".procOmpSimdNode";
+		List<BlockItemNode> ompBlockItems = new LinkedList<>();
+
+		ompOrphanFuncs.init();
+		// PRE: Record the current OpenMP region info
+		ompRgn.push(new OmpRegion(OmpRgnKind.SIMD));
+		// ADD: int _omp_civl_nlanes = 1+$choose_int($civl_omp_simd_lane_max());
+		ompBlockItems.add(declOmpNthreadsOrNlanes(srcMethod, null,
+				false /* hasExplicitNumThreadsClause */));
+		// ADD: printf("number of SIMD lanes = %d\n", _nlane);
+		ompBlockItems.add(nodeStmtCall(srcMethod, "printf",
+				stringLiteral("number of SIMD lanes = %d\\n"),
+				nodeExprId(srcMethod, NLANES)));
+		// ADD: $range _omp_lane_range = {0 .. _omp_civl_nlanes-1};
+		ompBlockItems
+				.add(declOmpThreadOrLaneRange(srcMethod, false /* lane */));
+		// ADD: $domain(1) _omp_simd_lane_dom = ($domain){_omp_lane_range};
+		ompBlockItems.add(declOmpSimdLaneDomain(srcMethod));
+
+		// TRANS: OMP SIMD Struct -> CIVL $parfor construct
+		List<BlockItemNode> simdForBodyItems = new LinkedList<>();
+		List<BlockItemNode> parForBodyItems = new LinkedList<>();
+		StatementNode bodyStatement = ompSimdNode.statementNode();
+		ExpressionNode boundExpr = null;
+		ExpressionNode loopVarExpr = null;
+		ForLoopInitializerNode loopVarInit = null;
+		VariableDeclarationNode loopVarDecl = null;
+		Boolean hasBoundExpr = false;
+
+		// Retrive the loop bound expression
+		if (bodyStatement != null && bodyStatement instanceof ForLoopNode) {
+			ForLoopNode loopNode = (ForLoopNode) bodyStatement;
+			loopVarInit = loopNode.getInitializer();
+			boundExpr = loopNode.getCondition();
+		}
+		if (loopVarInit != null) {
+			ForLoopNode loopNode = (ForLoopNode) bodyStatement;
+
+			loopVarInit.remove();
+			if (loopVarInit != null && loopVarInit
+					.child(0) instanceof VariableDeclarationNode) {
+				loopVarDecl = (VariableDeclarationNode) loopVarInit.child(0);
+				loopVarDecl.remove();
+				loopNode.setIncrementer(nodeExprOp(srcMethod, Operator.PLUSEQ,
+						nodeExprId(srcMethod,
+								loopVarDecl.getIdentifier().name()),
+						nodeExprId(srcMethod, NLANES)));
+
+			}
+		}
+		if (boundExpr != null && boundExpr instanceof OperatorNode) {
+			assert ((OperatorNode) boundExpr).getOperator() == Operator.LT;
+			loopVarExpr = ((OperatorNode) boundExpr).getArgument(0).copy();
+			boundExpr = ((OperatorNode) boundExpr).getArgument(1).copy();
+			hasBoundExpr = true;
+		}
+		if (!hasBoundExpr || loopVarDecl == null)
+			throw new CIVLSyntaxException(
+					"CIVL only supports simd for loop using "
+							+ "(int var = init_expr; var < bound_expr; var++)"
+							+ "as loop conditions, and cannot "
+							+ "process the following part with omp simd pragma:"
+							+ ompSimdNode.prettyRepresentation());
+
+		// Reset the list recording ibarrier behaviors done by an idle lane.
+		idelLaneIbarBehaviors = new LinkedList<BlockItemNode>();
+		ibarTags = new HashSet<String>();
+		// ADD to $parfor:
+		searchOmpInstructions(bodyStatement);
+		bodyStatement.remove();
+		simdForBodyItems.add(bodyStatement);
+		// Orphan Functions
+		for (BlockItemNode n : parForBodyItems) {
+			ompOrphanFuncs.searchOmpOrphanFunctions(n);
+		}
+		for (FunctionDefinitionNode n : ompOrphanFuncs.getOrphanFuncDefs()) {
+			simdForBodyItems.add(2, n.copy());
+		}
+
+		// . Fill $parfor body
+		// ADD all: $ibarrier _omp_ibar_{tag} = $ibarrier_create(
+		// $here, _omp_gibar_{tag}, _omp_lid);
+		for (String tag : ibarTags)
+			parForBodyItems.add(declSimdIBarrier(srcMethod, tag));
+		// ADD: loop var
+		parForBodyItems.add(variableDeclaration(loopVarDecl.getName(),
+				loopVarDecl.getTypeNode().copy(), nodeExprId(srcMethod, LID)));
+		// ADD: loop to $parfor
+		parForBodyItems.addAll(simdForBodyItems);
+		// ADD: No-op for specific idle lanes
+		parForBodyItems
+				.add(genIdleLaneBehaviors(srcMethod, loopVarExpr, boundExpr));
+		idelLaneIbarBehaviors.clear();
+		// ADD all: $ibarrier_destroy(_omp_ibar_{tag});
+		for (String tag : ibarTags)
+			parForBodyItems.add(nodeStmtCall(srcMethod, IBARRIER_DESTROY,
+					nodeExprId(srcMethod, IBAR_ + tag)));
+		// . Wrap $parfor
+		// ADD all: $gibarrier _omp_gibar_{tag} =
+		// $gibarrier_create($here, _omp_civl_nlanes);
+		for (String tag : ibarTags)
+			ompBlockItems.add(declOmpGibarrier(srcMethod, tag));
+		// ADD: $parfor (int _omp_lid : _omp_simd_lane_dom) { .. }
+		ompBlockItems
+				.add(genCivlFor(srcMethod, true, /* domName */ SIMD_LANE_DOM,
+						/* loopVarDecls */ Arrays.asList(//
+								nodeDeclVarInt(srcMethod, LID)),
+						parForBodyItems));
+		// ADD all: $gibarrier_destroy(_omp_gibar_{tag});
+		for (String tag : ibarTags)
+			ompBlockItems.add(nodeStmtCall(srcMethod, GIBARRIER_DESTROY,
+					nodeExprId(srcMethod, GIBAR_ + tag)));
+		ibarTags.clear();
+		// TRANS: replace sections region with transformed block
+		replaceOmpNode(srcMethod, ompSimdNode, ompBlockItems);
 		ompRgn.pop();
 	}
 
@@ -2194,7 +2513,8 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 						procOmpParallelNode((OmpParallelNode) ompExecNode);
 						return;
 					case SIMD :
-						assert false;
+						procOmpSimdNode((OmpSimdNode) ompExecNode);
+						return;
 					case SYNCHRONIZATION :
 						OmpSyncNode ompSyncNode = (OmpSyncNode) ompExecNode;
 
@@ -2249,6 +2569,37 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		}
 		// DFS: recursively search for OmpNode among successors of this OmpNode
 		searchOmpInstructions(ompNode);
+	}
+
+	private List<BlockItemNode> idelLaneIbarBehaviors = null;
+	private Set<String> ibarTags = null;
+
+	@SuppressWarnings("unchecked")
+	private List<BlockItemNode> procDependAttrKey(StatementNode stmtNode) {
+		String srcMethod = SRC_INFO + ".procDependAttrKey";
+		List<BlockItemNode> newItemNodes = new LinkedList<>();
+		Object dependSourceVal = stmtNode.getAttribute(dependSourceKey);
+		Object dependTargetVal = stmtNode.getAttribute(dependTargetKey);
+		BlockItemNode functionCallNode = null;
+
+		if (dependTargetVal != null && dependTargetVal instanceof Set)
+			for (String tag : (Set<String>) dependTargetVal) {
+				functionCallNode = callIbarrier(srcMethod, tag,
+						/* isSource */false);
+				newItemNodes.add(functionCallNode.copy());
+				idelLaneIbarBehaviors.add(functionCallNode);
+				ibarTags.add(tag);
+			}
+		newItemNodes.add(stmtNode);
+		if (dependSourceVal != null && dependSourceVal instanceof Set)
+			for (String tag : (Set<String>) dependSourceVal) {
+				functionCallNode = callIbarrier(srcMethod, tag,
+						/* isSource */true);
+				newItemNodes.add(functionCallNode.copy());
+				idelLaneIbarBehaviors.add(functionCallNode);
+				ibarTags.add(tag);
+			}
+		return newItemNodes;
 	}
 
 	private final static int MAX_EXPR_IN_OMP_ATOMIC_BLOCK = 2;
@@ -2522,8 +2873,34 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 				recognizeOmpInstructions((OmpNode) child);
 			else if (child instanceof FunctionCallNode)
 				recognizeOmpFunctionCalls((FunctionCallNode) child);
-			else // Explore non null omp node
+			else { // Explore non null omp node
 				searchOmpInstructions(child);
+			}
+		}
+		if (!ompRgn.isEmpty() && ompRgn.peek().hasKind(OmpRgnKind.SIMD)) {
+			// If in a SIMD block, then check and process possible civl omp simd
+			// depend source/target attribute key for adding ibarrier behaviors
+			List<ASTNode> newChildren = new ArrayList<>();
+
+			// Build the new children list
+			for (ASTNode child : root.children()) {
+				if (child == null) {
+					newChildren.add(null);
+					continue;
+				}
+				if (child instanceof StatementNode) {
+					List<BlockItemNode> newNodes = procDependAttrKey(
+							(StatementNode) child);
+
+					newChildren.addAll(newNodes);
+				} else {
+					newChildren.add(child);
+				}
+				child.remove();
+			}
+			// Update the children list of the root node.
+			for (int i = 0; i < newChildren.size(); i++)
+				root.setChild(i, newChildren.get(i));
 		}
 	}
 
@@ -2884,7 +3261,9 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		assert super.astFactory == oldAst.getASTFactory();
 		assert super.nodeFactory == astFactory.getNodeFactory();
 		// Check the inclusion of CIVL's OpenMP Implementation file.
-		if (!super.hasHeader(oldAst, CIVLConstants.CIVL_OMP_SRC))
+		if (!super.hasHeader(oldAst, CIVLConstants.CIVL_OMP_SRC)
+				&& !super.hasHeader(oldAst, CIVLConstants.CIVL_OMP)
+				&& !super.hasHeader(oldAst, CIVLConstants.OMP))
 			return oldAst;
 		root = oldAst.getRootNode();
 		oldAst.release();
@@ -2938,6 +3317,8 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		newItems.addAll(importedItems);
 		// ADD: Nodes of input/output var. dec. and their assumptions
 		newItems.addAll(declaredItems);
+		// ADD: $input int _omp_simd_land_max
+		newItems.add(declOmpSimdLaneMax(srcMethod));
 		// ADD: $input int _omp_thread_max
 		newItems.add(declOmpThreadMax(srcMethod));
 		// ADD: int last_tid
@@ -2999,6 +3380,14 @@ class OmpRegion {
 
 	OmpRgnKind[] getOmpRegions() {
 		return this.ompRgns;
+	}
+
+	Boolean hasKind(OmpRgnKind kind) {
+		for (OmpRgnKind thisKind : ompRgns) {
+			if (thisKind.equals(kind))
+				return true;
+		}
+		return false;
 	}
 }
 
