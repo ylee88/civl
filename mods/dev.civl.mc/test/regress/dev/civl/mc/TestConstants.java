@@ -72,6 +72,8 @@ public class TestConstants {
 
 	public static String OMP_THREAD_TWO = "-input_omp_thread_max=2";
 
+	public static String OMP_SIMD_LANE_FOUR = "-input_omp_simd_lane_max=4";
+
 	public static String OMP_THREAD_TEN = "-input_omp_thread_max=10";
 
 	public static String OMP_NO_SIMP = "-ompNoSimplify";
