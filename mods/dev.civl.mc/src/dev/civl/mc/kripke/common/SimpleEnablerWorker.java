@@ -1790,7 +1790,7 @@ public class SimpleEnablerWorker {
 			case SUBSCRIPT : {
 				SubscriptExpression se = (SubscriptExpression) expr;
 
-				findObjectsLHS(result, state, pid, se.array());
+				findObjects(result, state, pid, se.array());
 				findObjects(result, state, pid, se.index());
 				break;
 			}

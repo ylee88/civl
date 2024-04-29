@@ -2227,9 +2227,11 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		ompBlockItems.add(declOmpNthreadsOrNlanes(srcMethod, null,
 				false /* hasExplicitNumThreadsClause */));
 		// ADD: printf("number of SIMD lanes = %d\n", _nlane);
+		/*
 		ompBlockItems.add(nodeStmtCall(srcMethod, "printf",
 				stringLiteral("number of SIMD lanes = %d\\n"),
 				nodeExprId(srcMethod, NLANES)));
+		*/
 		// ADD: $range _omp_lane_range = {0 .. _omp_civl_nlanes-1};
 		ompBlockItems
 				.add(declOmpThreadOrLaneRange(srcMethod, false /* lane */));
