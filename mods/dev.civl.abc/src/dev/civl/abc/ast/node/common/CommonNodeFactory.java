@@ -58,6 +58,7 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import static dev.civl.abc.ast.node.IF.acsl.MPIContractAbsentEventNode.MPIAbsentEventKind.SENDFROM;
 import static dev.civl.abc.ast.node.IF.acsl.MPIContractAbsentEventNode.MPIAbsentEventKind.SENDTO;
@@ -81,8 +82,12 @@ public class CommonNodeFactory implements NodeFactory {
 	private ObjectType scopeType;
 
 	private Configuration configuration;
-	
+
 	private AttributeKey tempCountKey;
+
+	private AttributeKey civlOmpDependSourceKey;
+
+	private AttributeKey civlOmpDependTargetKey;
 
 	public CommonNodeFactory(Configuration configuration,
 			TypeFactory typeFactory, ValueFactory valueFactory) {
@@ -96,13 +101,20 @@ public class CommonNodeFactory implements NodeFactory {
 		this.scopeType = typeFactory.scopeType();
 		this.configuration = configuration;
 		this.tempCountKey = newAttribute("tempCount", Integer.class);
+		this.civlOmpDependSourceKey = newAttribute("dependSource", Set.class);
+		this.civlOmpDependTargetKey = newAttribute("dependTarget", Set.class);
+	}
+
+	@Override
+	public AttributeKey getCivlOmpDependKey(Boolean isSource) {
+		return isSource ? civlOmpDependSourceKey : civlOmpDependTargetKey;
 	}
 
 	@Override
 	public ValueFactory getValueFactory() {
 		return valueFactory;
 	}
-	
+
 	@Override
 	public AttributeKey getTempCountKey() {
 		return tempCountKey;

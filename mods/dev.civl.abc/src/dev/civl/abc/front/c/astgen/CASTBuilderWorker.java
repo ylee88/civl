@@ -126,18 +126,6 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 
 	private final String PRAGMA_ID_NAME_CIVL = "civl";
 
-	/**
-	 * The attribute key name used for representing a civl omp dependency
-	 * source(TAG)
-	 */
-	public static String CIVL_DEPEND_SORUCE = "civl_depend_source";
-
-	/**
-	 * The attribute key name used for representing a civl omp dependency
-	 * target(TAG), which depends on the source with a same TAG identifier.
-	 */
-	public static String CIVL_DEPEND_TARGET = "civl_depend_target";
-
 	private boolean debug = false;
 
 	/* ************************** Instance Fields ************************* */
@@ -178,13 +166,13 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	 * The attribute key representing the expression is a civl omp dependency
 	 * source, which shall be depended by a target with a same tag.
 	 */
-	public AttributeKey civlDependSource;
+	private AttributeKey attrKeyDependSource = null;
 
 	/*
 	 * The attribute key representing the expression is a civl omp dependency
 	 * target, which depends on a source with a same tag.
 	 */
-	public AttributeKey civlDependTarget;
+	private AttributeKey attrKeyDependTarget = null;
 
 	/* *************************** Constructors *************************** */
 
@@ -209,10 +197,8 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 		this.config = config;
 		acslHandler = new AcslContractHandler(this.nodeFactory,
 				this.tokenFactory);
-		this.civlDependSource = nodeFactory.newAttribute(CIVL_DEPEND_SORUCE,
-				Set.class);
-		this.civlDependTarget = nodeFactory.newAttribute(CIVL_DEPEND_TARGET,
-				Set.class);
+		attrKeyDependSource = nodeFactory.getCivlOmpDependKey(true);
+		attrKeyDependTarget = nodeFactory.getCivlOmpDependKey(false);
 	}
 
 	/* ************************* Private Methods ************************** */
@@ -2506,16 +2492,17 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 					if (civlPragmaNodes.size() > 0) {
 						for (BlockItemNode node : civlPragmaNodes) {
 							Object pragmaDSAttrVal = node
-									.getAttribute(civlDependSource);
+									.getAttribute(attrKeyDependSource);
 							Object pragmaDTAttrVal = node
-									.getAttribute(civlDependTarget);
+									.getAttribute(attrKeyDependTarget);
 
 							if (pragmaDSAttrVal != null) {
 								Object stmtDSAttrVal = statementNode
-										.getAttribute(civlDependSource);
+										.getAttribute(attrKeyDependSource);
 
 								if (stmtDSAttrVal == null) {
-									statementNode.setAttribute(civlDependSource,
+									statementNode.setAttribute(
+											attrKeyDependSource,
 											pragmaDSAttrVal);
 								} else {
 									((Set<String>) stmtDSAttrVal).addAll(
@@ -2524,10 +2511,11 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 							}
 							if (pragmaDTAttrVal != null) {
 								Object stmtDTAttrVal = statementNode
-										.getAttribute(civlDependTarget);
+										.getAttribute(attrKeyDependTarget);
 
 								if (stmtDTAttrVal == null) {
-									statementNode.setAttribute(civlDependSource,
+									statementNode.setAttribute(
+											attrKeyDependTarget,
 											pragmaDTAttrVal);
 								} else {
 									((Set<String>) stmtDTAttrVal).addAll(
@@ -3074,10 +3062,10 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 
 					if (civlDependTypeName
 							.equals(PRAGMA_CIVL_DEPEND_TYPE_SOURCE))
-						attrKey = this.civlDependSource;
+						attrKey = attrKeyDependSource;
 					else if (civlDependTypeName
 							.equals(PRAGMA_CIVL_DEPEND_TYPE_TARGET))
-						attrKey = this.civlDependTarget;
+						attrKey = attrKeyDependTarget;
 					for (; tokenIndex < pragmaNode
 							.getNumTokens(); tokenIndex++) {
 

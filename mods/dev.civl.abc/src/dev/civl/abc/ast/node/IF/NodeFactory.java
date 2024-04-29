@@ -79,10 +79,20 @@ import java.util.List;
 public interface NodeFactory {
 
 	/**
-	 * @return the AttributeKey which stores the number of temporary variables in an AST.
+	 * @param isSource
+	 *                     if <code>true</code> then returns the
+	 *                     {@link AttributeKey} of CIVL OpenMP depend source;
+	 *                     otherwise depend target
+	 * @return the AttributeKey which stores CIVL OpenMP dependency relationship
+	 */
+	AttributeKey getCivlOmpDependKey(Boolean isSource);
+
+	/**
+	 * @return the AttributeKey which stores the number of temporary variables
+	 *         in an AST.
 	 */
 	AttributeKey getTempCountKey();
-	
+
 	/**
 	 * Creates an attribute slot for all AST nodes. This is a mechanism for
 	 * extending the functionality of nodes. This may be used to hang any kind
@@ -90,10 +100,11 @@ public interface NodeFactory {
 	 * key will be null in every node.
 	 * 
 	 * @param attributeName
-	 *            a name for the new attribute, unique among all attribute names
+	 *                           a name for the new attribute, unique among all
+	 *                           attribute names
 	 * @param attributeClass
-	 *            the class to which attribute values of the new kind will
-	 *            belong
+	 *                           the class to which attribute values of the new
+	 *                           kind will belong
 	 * @return a new attribute key which can be used to assign attribute values
 	 *         to nodes
 	 */
@@ -105,12 +116,12 @@ public interface NodeFactory {
 	 * sequence of children belonging to a particular class.
 	 * 
 	 * @param source
-	 *            source information for the whole sequence
+	 *                   source information for the whole sequence
 	 * @param name
-	 *            a name to use when printing this sequence node
+	 *                   a name to use when printing this sequence node
 	 * @param nodes
-	 *            a list of nodes that will form the children of the new
-	 *            sequence node
+	 *                   a list of nodes that will form the children of the new
+	 *                   sequence node
 	 * @return the new sequence node with the children set
 	 */
 	<T extends ASTNode> SequenceNode<T> newSequenceNode(Source source,
@@ -121,9 +132,9 @@ public interface NodeFactory {
 	 * belonging to two specific classes.
 	 * 
 	 * @param node1
-	 *            the first child node
+	 *                  the first child node
 	 * @param node2
-	 *            the second child node
+	 *                  the second child node
 	 * @return the new pair node with the children set
 	 */
 	<S extends ASTNode, T extends ASTNode> PairNode<S, T> newPairNode(
@@ -136,9 +147,9 @@ public interface NodeFactory {
 	 * name.
 	 * 
 	 * @param source
-	 *            source information for the identifier use
+	 *                   source information for the identifier use
 	 * @param name
-	 *            the name of this identifier
+	 *                   the name of this identifier
 	 * @return a new identifier node
 	 */
 	IdentifierNode newIdentifierNode(Source source, String name);
@@ -149,9 +160,9 @@ public interface NodeFactory {
 	 * Returns a new type node for a basic type.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the basic type
+	 *                   source information for the occurrence of the basic type
 	 * @param kind
-	 *            the kind of the basic type
+	 *                   the kind of the basic type
 	 * @return the new basic type node
 	 */
 	BasicTypeNode newBasicTypeNode(Source source, BasicTypeKind kind);
@@ -160,7 +171,7 @@ public interface NodeFactory {
 	 * Returns a new void type node.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of "void"
+	 *                   source information for the occurrence of "void"
 	 * @return the new void type node
 	 */
 	TypeNode newVoidTypeNode(Source source);
@@ -169,10 +180,12 @@ public interface NodeFactory {
 	 * Constructs and returns a new enumeration type node.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the enumeration type
+	 *                        source information for the occurrence of the
+	 *                        enumeration type
 	 * @param tag
-	 *            the enumeration tag, i.e., the name of the enumeration, the
-	 *            string that follows <code>enum</code>
+	 *                        the enumeration tag, i.e., the name of the
+	 *                        enumeration, the string that follows
+	 *                        <code>enum</code>
 	 * @param enumerators
 	 * @return the new enumeration type node
 	 */
@@ -184,12 +197,13 @@ public interface NodeFactory {
 	 * Constructs and returns a new array type node.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the array type
+	 *                        source information for the occurrence of the array
+	 *                        type
 	 * @param elementType
-	 *            the node representing the element type
+	 *                        the node representing the element type
 	 * @param extent
-	 *            the node representing the expression in square brackets, i.e.,
-	 *            the array length or "extent"
+	 *                        the node representing the expression in square
+	 *                        brackets, i.e., the array length or "extent"
 	 * @return the new array type node
 	 */
 	ArrayTypeNode newArrayTypeNode(Source source, TypeNode elementType,
@@ -199,15 +213,16 @@ public interface NodeFactory {
 	 * Constructs and returns a new array type node.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the array type
+	 *                        source information for the occurrence of the array
+	 *                        type
 	 * @param elementType
-	 *            the node representing the element type
+	 *                        the node representing the element type
 	 * @param extent
-	 *            the node representing the expression in square brackets, i.e.,
-	 *            the array length or "extent"
+	 *                        the node representing the expression in square
+	 *                        brackets, i.e., the array length or "extent"
 	 * @param startIndex
-	 *            the node representing the expression in square brackets, i.e,
-	 *            the array starting index
+	 *                        the node representing the expression in square
+	 *                        brackets, i.e, the array starting index
 	 * @return the new array type node
 	 */
 	ArrayTypeNode newArrayTypeNode(Source source, TypeNode elementType,
@@ -217,9 +232,11 @@ public interface NodeFactory {
 	 * Constructs and returns a new atomic type node.
 	 * 
 	 * @param source
-	 *            the source information for the occurrence of the atomic type
+	 *                     the source information for the occurrence of the
+	 *                     atomic type
 	 * @param baseType
-	 *            the base type, i.e., the type modified by the "atomic"
+	 *                     the base type, i.e., the type modified by the
+	 *                     "atomic"
 	 * @return the new atomic type node
 	 */
 	AtomicTypeNode newAtomicTypeNode(Source source, TypeNode baseType);
@@ -228,9 +245,10 @@ public interface NodeFactory {
 	 * Constructs and returns a new pointer type node.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the pointer type
+	 *                           source information for the occurrence of the
+	 *                           pointer type
 	 * @param referencedType
-	 *            the type pointed to
+	 *                           the type pointed to
 	 * @return the new pointer type node
 	 */
 	PointerTypeNode newPointerTypeNode(Source source, TypeNode referencedType);
@@ -239,17 +257,18 @@ public interface NodeFactory {
 	 * Constructs and returns a new structure or union type node.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the structure or
-	 *            union type node
+	 *                           source information for the occurrence of the
+	 *                           structure or union type node
 	 * @param isStruct
-	 *            <code>true</code> for a structure type, <code>false</code> for
-	 *            a union type
+	 *                           <code>true</code> for a structure type,
+	 *                           <code>false</code> for a union type
 	 * @param tag
-	 *            the tag of the structure or union, i.e., the string that
-	 *            follows <code>struct</code> or <code>union</code>. Maybe
-	 *            <code>null</code>.
+	 *                           the tag of the structure or union, i.e., the
+	 *                           string that follows <code>struct</code> or
+	 *                           <code>union</code>. Maybe <code>null</code>.
 	 * @param structDeclList
-	 *            the sequence of field declarations; may be <code>null</code>
+	 *                           the sequence of field declarations; may be
+	 *                           <code>null</code>
 	 * @return the new structure or union type node
 	 */
 	StructureOrUnionTypeNode newStructOrUnionTypeNode(Source source,
@@ -260,19 +279,23 @@ public interface NodeFactory {
 	 * Constructs and returns a new function type node.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the function type
+	 *                              source information for the occurrence of the
+	 *                              function type
 	 * @param returnType
-	 *            the node representing the return type of the function type
+	 *                              the node representing the return type of the
+	 *                              function type
 	 * @param formals
-	 *            the sequence of formal parameter declaration nodes for the
-	 *            function type. TODO: if there is no parameter, can this be
-	 *            NULL or it has to be sequence node with an empty list as its
-	 *            children?
+	 *                              the sequence of formal parameter declaration
+	 *                              nodes for the function type. TODO: if there
+	 *                              is no parameter, can this be NULL or it has
+	 *                              to be sequence node with an empty list as
+	 *                              its children?
 	 * @param hasIdentifierList
-	 *            <code>true</code> if the function is declared using an
-	 *            identifier list (i.e., without types associated to the
-	 *            parameters); <code>false</code> if the function is declared
-	 *            with a parameter declaration list
+	 *                              <code>true</code> if the function is
+	 *                              declared using an identifier list (i.e.,
+	 *                              without types associated to the parameters);
+	 *                              <code>false</code> if the function is
+	 *                              declared with a parameter declaration list
 	 * @return the function type node
 	 */
 	FunctionTypeNode newFunctionTypeNode(Source source, TypeNode returnType,
@@ -284,7 +307,8 @@ public interface NodeFactory {
 	 * type.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of <code>$scope</code>
+	 *                   source information for the occurrence of
+	 *                   <code>$scope</code>
 	 * @return the new instance of scope type
 	 */
 	TypeNode newScopeTypeNode(Source source);
@@ -294,7 +318,8 @@ public interface NodeFactory {
 	 * type.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of <code>$state</code>
+	 *                   source information for the occurrence of
+	 *                   <code>$state</code>
 	 * @return the new instance of state type node
 	 */
 	TypeNode newStateTypeNode(Source source);
@@ -303,7 +328,8 @@ public interface NodeFactory {
 	 * Returns a new mem type node ("<code>$mem</code>"). This is a CIVL-C type.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of <code>$mem</code>
+	 *                   source information for the occurrence of
+	 *                   <code>$mem</code>
 	 * @return the new instance of mem type node
 	 */
 	TypeNode newMemTypeNode(Source source);
@@ -313,10 +339,11 @@ public interface NodeFactory {
 	 * name. The source is the same as that of the identifier name.
 	 * 
 	 * @param name
-	 *            the identifier node representing the use of the typedef name
+	 *                      the identifier node representing the use of the
+	 *                      typedef name
 	 * @param scopeList
-	 *            optional CIVL-C construct: list of scope parameters used to
-	 *            instantiate a scope-parameterized typedef
+	 *                      optional CIVL-C construct: list of scope parameters
+	 *                      used to instantiate a scope-parameterized typedef
 	 * @return the new typedef name node wrapping the given identifier node
 	 */
 	// TODO get rid of scopeList
@@ -328,7 +355,8 @@ public interface NodeFactory {
 	 * <code>$range</code>.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of <code>$domain</code>
+	 *                   source information for the occurrence of
+	 *                   <code>$domain</code>
 	 * @return the new range type node
 	 */
 	TypeNode newRangeTypeNode(Source source);
@@ -338,7 +366,8 @@ public interface NodeFactory {
 	 * this is the CIVL-C type <code>$domain</code>.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of <code>$domain</code>
+	 *                   source information for the occurrence of
+	 *                   <code>$domain</code>
 	 * @return the new domain type node instance
 	 */
 	DomainTypeNode newDomainTypeNode(Source source);
@@ -353,10 +382,11 @@ public interface NodeFactory {
 	 * <code>$domain</code>.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of <code>$domain</code>
+	 *                      source information for the occurrence of
+	 *                      <code>$domain</code>
 	 * @param dimension
-	 *            the dimension of the domain, i.e., the arity of the tuples
-	 *            which comprise the domain
+	 *                      the dimension of the domain, i.e., the arity of the
+	 *                      tuples which comprise the domain
 	 * @return the new domain type node instance
 	 */
 	DomainTypeNode newDomainTypeNode(Source source, ExpressionNode dimension);
@@ -375,7 +405,7 @@ public interface NodeFactory {
 	 * non-null value.
 	 * 
 	 * @param expression
-	 *            an expression node
+	 *                       an expression node
 	 * @return the constant value obtained by evaluating this expression, or
 	 *         null if the expression cannot be evaluated
 	 */
@@ -386,10 +416,11 @@ public interface NodeFactory {
 	 * to be, tell it by invoking this method.
 	 * 
 	 * @param expression
-	 *            the expression node that has been determined to have a
-	 *            constant value
+	 *                       the expression node that has been determined to
+	 *                       have a constant value
 	 * @param value
-	 *            the constant vale to associate to that expression node
+	 *                       the constant vale to associate to that expression
+	 *                       node
 	 */
 	void setConstantValue(ExpressionNode expression, Value value);
 
@@ -403,13 +434,14 @@ public interface NodeFactory {
 	 * can all be encoded using appropriate escape sequences.
 	 * 
 	 * @param source
-	 *            the source information for the occurrence of the character
-	 *            constant
+	 *                           the source information for the occurrence of
+	 *                           the character constant
 	 * @param representation
-	 *            the way the character literal actually appears in the program
-	 *            source code
+	 *                           the way the character literal actually appears
+	 *                           in the program source code
 	 * @param character
-	 *            the execution character represented by the character constant
+	 *                           the execution character represented by the
+	 *                           character constant
 	 * @return the new character constant node
 	 */
 	CharacterConstantNode newCharacterConstantNode(Source source,
@@ -420,14 +452,16 @@ public interface NodeFactory {
 	 * program source code as <code>"..."</code>.
 	 * 
 	 * @param source
-	 *            the source information for the occurrence of the string
-	 *            literal. The string literal is usually a single token.
+	 *                           the source information for the occurrence of
+	 *                           the string literal. The string literal is
+	 *                           usually a single token.
 	 * @param representation
-	 *            the way the string literal actually appears in the program
-	 *            source code, with escape sequences intact
+	 *                           the way the string literal actually appears in
+	 *                           the program source code, with escape sequences
+	 *                           intact
 	 * @param literal
-	 *            the string literal object obtained by interpreting the
-	 *            representation
+	 *                           the string literal object obtained by
+	 *                           interpreting the representation
 	 * @return the new string literal node
 	 */
 	StringLiteralNode newStringLiteralNode(Source source, String representation,
@@ -442,14 +476,14 @@ public interface NodeFactory {
 	 * constructed by interpreting the representation.
 	 * 
 	 * @param source
-	 *            the source information for the integer constant
+	 *                           the source information for the integer constant
 	 * @param representation
-	 *            the way the integer actually appears in the program source
-	 *            code
+	 *                           the way the integer actually appears in the
+	 *                           program source code
 	 * @return the new integer constant node
 	 * @throws SyntaxException
-	 *             if the representation does not conform to the format
-	 *             specified in the C11 Standard
+	 *                             if the representation does not conform to the
+	 *                             format specified in the C11 Standard
 	 */
 	IntegerConstantNode newIntegerConstantNode(Source source,
 			String representation) throws SyntaxException;
@@ -460,9 +494,9 @@ public interface NodeFactory {
 	 * {@link IntegerConstantNode} is int.
 	 * 
 	 * @param source
-	 *            The source information for the integer constant
+	 *                   The source information for the integer constant
 	 * @param value
-	 *            The value of the integer constant.
+	 *                   The value of the integer constant.
 	 * @return The new integer constant node
 	 */
 	IntegerConstantNode newIntConstantNode(Source source, int value);
@@ -476,14 +510,15 @@ public interface NodeFactory {
 	 * constant value is constructed by interpreting the representation.
 	 * 
 	 * @param source
-	 *            the source information for the floating constant
+	 *                           the source information for the floating
+	 *                           constant
 	 * @param representation
-	 *            the way the floating constant actually appears in the program
-	 *            source code
+	 *                           the way the floating constant actually appears
+	 *                           in the program source code
 	 * @return the new floating constant node
 	 * @throws SyntaxException
-	 *             if the representation does not conform to the format
-	 *             specified in the C11 Standard
+	 *                             if the representation does not conform to the
+	 *                             format specified in the C11 Standard
 	 */
 	FloatingConstantNode newFloatingConstantNode(Source source,
 			String representation) throws SyntaxException;
@@ -495,8 +530,8 @@ public interface NodeFactory {
 	 * source is same as that of identifier.
 	 * 
 	 * @param name
-	 *            the identifier node which is the occurrence of the enumeration
-	 *            constant
+	 *                 the identifier node which is the occurrence of the
+	 *                 enumeration constant
 	 * @return the new enumeration constant node
 	 */
 	EnumerationConstantNode newEnumerationConstantNode(IdentifierNode name);
@@ -538,13 +573,14 @@ public interface NodeFactory {
 	 * 
 	 * 
 	 * @param source
-	 *            source information for the entire compound literal construct
+	 *                            source information for the entire compound
+	 *                            literal construct
 	 * @param typeNode
-	 *            node representing the type name portion of the compound
-	 *            literal
+	 *                            node representing the type name portion of the
+	 *                            compound literal
 	 * @param initializerList
-	 *            node representing the initializer list portion of the compound
-	 *            literal
+	 *                            node representing the initializer list portion
+	 *                            of the compound literal
 	 * @return the new compound literal node
 	 */
 	CompoundLiteralNode newCompoundLiteralNode(Source source, TypeNode typeNode,
@@ -555,10 +591,11 @@ public interface NodeFactory {
 	 * <code>$true</code>" or "<code>$false</code>".
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the boolean constant
+	 *                   source information for the occurrence of the boolean
+	 *                   constant
 	 * @param value
-	 *            <code>true</code> for <code>$true</code>, <code>false</code>
-	 *            for <code>$false</code>
+	 *                   <code>true</code> for <code>$true</code>,
+	 *                   <code>false</code> for <code>$false</code>
 	 * @return the new boolean constant node
 	 */
 	ConstantNode newBooleanConstantNode(Source source, boolean value);
@@ -568,8 +605,8 @@ public interface NodeFactory {
 	 * process constant, written "<code>$self</code>".
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the constant
-	 *            <code>$self</code>
+	 *                   source information for the occurrence of the constant
+	 *                   <code>$self</code>
 	 * @return the new expression node representing the constant
 	 */
 	ExpressionNode newSelfNode(Source source);
@@ -579,8 +616,8 @@ public interface NodeFactory {
 	 * process" constant, written <code>$proc_null</code>.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the constant
-	 *            <code>$proc_null</code>
+	 *                   source information for the occurrence of the constant
+	 *                   <code>$proc_null</code>
 	 * @return the new expression node representing the constant
 	 */
 	ExpressionNode newProcnullNode(Source source);
@@ -590,8 +627,8 @@ public interface NodeFactory {
 	 * state" constant, written <code>$state_null</code>
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the constant
-	 *            <code>$state_null</code>
+	 *                   source information for the occurrence of the constant
+	 *                   <code>$state_null</code>
 	 * @return the new expression node representing the constant
 	 */
 	ExpressionNode newStatenullNode(Source source);
@@ -602,8 +639,8 @@ public interface NodeFactory {
 	 * result returned by the function.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the expression
-	 *            <code>$result</code>
+	 *                   source information for the occurrence of the expression
+	 *                   <code>$result</code>
 	 * @return the new expression node
 	 */
 	ExpressionNode newResultNode(Source source);
@@ -619,7 +656,7 @@ public interface NodeFactory {
 	 * might want to include surrounding parentheses in the expression.
 	 * 
 	 * @param identifier
-	 *            the identifier node being wrapped
+	 *                       the identifier node being wrapped
 	 * @return the new identifier expression node
 	 */
 	IdentifierExpressionNode newIdentifierExpressionNode(Source source,
@@ -632,9 +669,9 @@ public interface NodeFactory {
 	 * compile-time.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the expression
+	 *                   source information for the occurrence of the expression
 	 * @param type
-	 *            the type name portion of the expression
+	 *                   the type name portion of the expression
 	 * @return the new align-of node
 	 */
 	AlignOfNode newAlignOfNode(Source source, TypeNode type);
@@ -644,12 +681,12 @@ public interface NodeFactory {
 	 * expression <code>(typename)argument</code>.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the complete cast
-	 *            expression
+	 *                     source information for the occurrence of the complete
+	 *                     cast expression
 	 * @param type
-	 *            node representing the type name
+	 *                     node representing the type name
 	 * @param argument
-	 *            the argument part of the expression
+	 *                     the argument part of the expression
 	 * @return the new cast node
 	 */
 	CastNode newCastNode(Source source, TypeNode type, ExpressionNode argument);
@@ -660,19 +697,20 @@ public interface NodeFactory {
 	 * <code>f(arg0, arg1, ...)</code>.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the entire function
-	 *            call expression
+	 *                      source information for the occurrence of the entire
+	 *                      function call expression
 	 * @param function
-	 *            the expression of function type which evaluates to the
-	 *            function being called. Typically this is just an identifier
-	 *            expression (naming the function), but it can be a function
-	 *            pointer or any expression evaluating to a function type or
-	 *            pointer to function type
+	 *                      the expression of function type which evaluates to
+	 *                      the function being called. Typically this is just an
+	 *                      identifier expression (naming the function), but it
+	 *                      can be a function pointer or any expression
+	 *                      evaluating to a function type or pointer to function
+	 *                      type
 	 * @param arguments
-	 *            the list of actual arguments to be evaluated and passed to the
-	 *            function in this function call
+	 *                      the list of actual arguments to be evaluated and
+	 *                      passed to the function in this function call
 	 * @param scopeList
-	 *            the optional scope list (to be deprecated)
+	 *                      the optional scope list (to be deprecated)
 	 * @return the new function call node
 	 */
 	// TODO get rid of scopeList
@@ -687,22 +725,26 @@ public interface NodeFactory {
 	 * represents the enqueueing of a kernel to execute on the Cuda device.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the entire function
-	 *            call expression
+	 *                             source information for the occurrence of the
+	 *                             entire function call expression
 	 * @param function
-	 *            the expression of function type which evaluates to the
-	 *            function being called. Typically this is just an identifier
-	 *            expression (naming the function), but it can be a function
-	 *            pointer or any expression evaluating to a function type or
-	 *            pointer to function type
+	 *                             the expression of function type which
+	 *                             evaluates to the function being called.
+	 *                             Typically this is just an identifier
+	 *                             expression (naming the function), but it can
+	 *                             be a function pointer or any expression
+	 *                             evaluating to a function type or pointer to
+	 *                             function type
 	 * @param contextArguments
-	 *            the list of arguments passed as the execution context
-	 *            (appearing between <<< and >>>) [It is only for CUDA programs]
+	 *                             the list of arguments passed as the execution
+	 *                             context (appearing between <<< and >>>) [It
+	 *                             is only for CUDA programs]
 	 * @param arguments
-	 *            the list of actual arguments to be evaluated and passed to the
-	 *            function in this function call
+	 *                             the list of actual arguments to be evaluated
+	 *                             and passed to the function in this function
+	 *                             call
 	 * @param scopeList
-	 *            the optional scope list (to be deprecated)
+	 *                             the optional scope list (to be deprecated)
 	 * @return the new function call node
 	 */
 	// TODO get rid of scopeList
@@ -716,19 +758,24 @@ public interface NodeFactory {
 	 * evaluate at compile time based on the type of the controlling expression.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the entire generic
-	 *            selection expression
+	 *                                   source information for the occurrence
+	 *                                   of the entire generic selection
+	 *                                   expression
 	 * @param controllingExpression
-	 *            the (unevaluated) expression whose type determines which
-	 *            expression in the association list this generic selection
-	 *            expression evaluates to
+	 *                                   the (unevaluated) expression whose type
+	 *                                   determines which expression in the
+	 *                                   association list this generic selection
+	 *                                   expression evaluates to
 	 * @param defaultExpression
-	 *            the expression that this generic selection evaluates to if the
-	 *            type of the controlling expression is not compatible with any
-	 *            of the types in the association list. This may be null.
+	 *                                   the expression that this generic
+	 *                                   selection evaluates to if the type of
+	 *                                   the controlling expression is not
+	 *                                   compatible with any of the types in the
+	 *                                   association list. This may be null.
 	 * @param genericAssociationList
-	 *            the list of (non-default) associations between a typenode and
-	 *            an expression node
+	 *                                   the list of (non-default) associations
+	 *                                   between a typenode and an expression
+	 *                                   node
 	 * @return the new generic selection node
 	 */
 	GenericSelectionNode newGenericSelectionNode(Source source,
@@ -742,14 +789,16 @@ public interface NodeFactory {
 	 * node
 	 * 
 	 * @param source
-	 *            source information for the occurrence of this generic
-	 *            association node
+	 *                                 source information for the occurrence of
+	 *                                 this generic association node
 	 * @param typeLabel
-	 *            the type node which acts as a "key" for which a generic
-	 *            selection to determine whether to pick this association or not
+	 *                                 the type node which acts as a "key" for
+	 *                                 which a generic selection to determine
+	 *                                 whether to pick this association or not
 	 * @param associatedExpression
-	 *            the expression associated with the type label that, if
-	 *            selected, will be evaluated
+	 *                                 the expression associated with the type
+	 *                                 label that, if selected, will be
+	 *                                 evaluated
 	 * @return the new generic association node
 	 */
 	GenericAssociationNode newGenericAssociationNode(Source source,
@@ -760,13 +809,13 @@ public interface NodeFactory {
 	 * union field navigation, as in <code>myStruct.field</code>.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the entire dot
-	 *            expression
+	 *                      source information for the occurrence of the entire
+	 *                      dot expression
 	 * @param structure
-	 *            the expression of either structure or union type
+	 *                      the expression of either structure or union type
 	 * @param fieldName
-	 *            an identifier which is the name of a field in the structure or
-	 *            union
+	 *                      an identifier which is the name of a field in the
+	 *                      structure or union
 	 * @return the new dot expression node
 	 */
 	DotNode newDotNode(Source source, ExpressionNode structure,
@@ -778,14 +827,14 @@ public interface NodeFactory {
 	 * <code>myStructPtr->field</code>.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the entire arrow
-	 *            expression
+	 *                             source information for the occurrence of the
+	 *                             entire arrow expression
 	 * @param structurePointer
-	 *            the expression which has type of the form pointer-to-structure
-	 *            or pointer-to-union
+	 *                             the expression which has type of the form
+	 *                             pointer-to-structure or pointer-to-union
 	 * @param fieldName
-	 *            an identifier which is the name of a field in the structure or
-	 *            union
+	 *                             an identifier which is the name of a field in
+	 *                             the structure or union
 	 * @return the new arrow expression node
 	 */
 	ArrowNode newArrowNode(Source source, ExpressionNode structurePointer,
@@ -808,14 +857,15 @@ public interface NodeFactory {
 	 * </p>
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the entire operator
-	 *            expression, including the operator itself and its arguments
+	 *                      source information for the occurrence of the entire
+	 *                      operator expression, including the operator itself
+	 *                      and its arguments
 	 * @param operator
-	 *            the operator
+	 *                      the operator
 	 * @param arguments
-	 *            the ordered list of arguments to the operator. For binary
-	 *            operators, the left operand comes first, followed by the right
-	 *            operator
+	 *                      the ordered list of arguments to the operator. For
+	 *                      binary operators, the left operand comes first,
+	 *                      followed by the right operator
 	 * @return the new operator expression node
 	 */
 	OperatorNode newOperatorNode(Source source, Operator operator,
@@ -827,12 +877,13 @@ public interface NodeFactory {
 	 * the singleton list containing <code>argument</code>.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the entire operator
-	 *            expression, including the operator itself and its arguments
+	 *                     source information for the occurrence of the entire
+	 *                     operator expression, including the operator itself
+	 *                     and its arguments
 	 * @param operator
-	 *            the unary operator
+	 *                     the unary operator
 	 * @param argument
-	 *            the sole argument to the operator
+	 *                     the sole argument to the operator
 	 * @return the new operator expression node
 	 */
 	OperatorNode newOperatorNode(Source source, Operator operator,
@@ -844,14 +895,15 @@ public interface NodeFactory {
 	 * the list consisting of <code>arg0</code> and <code>arg1</code>.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the entire operator
-	 *            expression, including the operator itself and its arguments
+	 *                     source information for the occurrence of the entire
+	 *                     operator expression, including the operator itself
+	 *                     and its arguments
 	 * @param operator
-	 *            the binary operator
+	 *                     the binary operator
 	 * @param arg0
-	 *            the first argument to the binary operator
+	 *                     the first argument to the binary operator
 	 * @param arg1
-	 *            the second argument to the binary operator
+	 *                     the second argument to the binary operator
 	 * @return the new operator expression node
 	 */
 	OperatorNode newOperatorNode(Source source, Operator operator,
@@ -864,16 +916,17 @@ public interface NodeFactory {
 	 * <code>arg2</code>.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the entire operator
-	 *            expression, including the operator itself and its arguments
+	 *                     source information for the occurrence of the entire
+	 *                     operator expression, including the operator itself
+	 *                     and its arguments
 	 * @param operator
-	 *            the ternary operator
+	 *                     the ternary operator
 	 * @param arg0
-	 *            the first argument to the ternary operator
+	 *                     the first argument to the ternary operator
 	 * @param arg1
-	 *            the second argument to the ternary operator
+	 *                     the second argument to the ternary operator
 	 * @param arg2
-	 *            the third argument to the ternary operator
+	 *                     the third argument to the ternary operator
 	 * @return the new operator expression node
 	 */
 	OperatorNode newOperatorNode(Source source, Operator operator,
@@ -884,10 +937,11 @@ public interface NodeFactory {
 	 * which can be either a type name or an expression.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the entire
-	 *            <code>sizeof</code> expression, including the argument
+	 *                     source information for the occurrence of the entire
+	 *                     <code>sizeof</code> expression, including the
+	 *                     argument
 	 * @param argument
-	 *            the argument to the <code>sizeof</code> operator
+	 *                     the argument to the <code>sizeof</code> operator
 	 * @return the new expression node
 	 */
 	SizeofNode newSizeofNode(Source source, SizeableNode argument);
@@ -898,11 +952,11 @@ public interface NodeFactory {
 	 * node has one argument, which is a function call node.
 	 * 
 	 * @param source
-	 *            source information for the occurrence of the entire
-	 *            <code>$spawn</code> expression, including the entire function
-	 *            call
+	 *                     source information for the occurrence of the entire
+	 *                     <code>$spawn</code> expression, including the entire
+	 *                     function call
 	 * @param callNode
-	 *            the function call node
+	 *                     the function call node
 	 * @return the new spawn expression node
 	 */
 	SpawnNode newSpawnNode(Source source, FunctionCallNode callNode);
@@ -915,13 +969,15 @@ public interface NodeFactory {
 	 * will be evaluated in a dynamic state in <code>p</code>'s context.
 	 * 
 	 * @param source
-	 *            source information for the entire remove expression, including
-	 *            both arguments
+	 *                   source information for the entire remove expression,
+	 *                   including both arguments
 	 * @param left
-	 *            the left argument, which is an expression of integer type.
+	 *                   the left argument, which is an expression of integer
+	 *                   type.
 	 * @param right
-	 *            the right argument, which is a foreign expression that will
-	 *            evaluates on the process represented by the left expression.
+	 *                   the right argument, which is a foreign expression that
+	 *                   will evaluates on the process represented by the left
+	 *                   expression.
 	 */
 	RemoteOnExpressionNode newRemoteOnExpressionNode(Source source,
 			ExpressionNode left, ExpressionNode right);
@@ -934,10 +990,10 @@ public interface NodeFactory {
 	 * variable.
 	 * 
 	 * @param source
-	 *            source information for the entire <code>$scopeof</code>
-	 *            expression
+	 *                               source information for the entire
+	 *                               <code>$scopeof</code> expression
 	 * @param variableExpression
-	 *            the variable argument
+	 *                               the variable argument
 	 * @return the new <code>$scopeof</code> expression
 	 */
 	ScopeOfNode newScopeOfNode(Source source,
@@ -947,24 +1003,35 @@ public interface NodeFactory {
 	 * Constructs a new quantified expression.
 	 * 
 	 * @param source
-	 *            The source code information for the entire expression
+	 *                                         The source code information for
+	 *                                         the entire expression
 	 * @param quantifier
-	 *            The quantifier, one of (1) {@link Quantifier#EXISTS}, the
-	 *            standard existential quantifier, (2) {@link Quantifier#FORALL}
-	 *            , the standard universal quantifier, or (3)
-	 *            {@link Quantifier#UNIFORM}, the CIVL-C quantifier representing
-	 *            a uniform universal condition
+	 *                                         The quantifier, one of (1)
+	 *                                         {@link Quantifier#EXISTS}, the
+	 *                                         standard existential quantifier,
+	 *                                         (2) {@link Quantifier#FORALL} ,
+	 *                                         the standard universal
+	 *                                         quantifier, or (3)
+	 *                                         {@link Quantifier#UNIFORM}, the
+	 *                                         CIVL-C quantifier representing a
+	 *                                         uniform universal condition
 	 * @param boundVariableDeclarationList
-	 *            The list of bound variable declarations.
+	 *                                         The list of bound variable
+	 *                                         declarations.
 	 * @param restriction
-	 *            A boolean-valued expression that holds true when the
-	 *            quantified variables is in the domain
+	 *                                         A boolean-valued expression that
+	 *                                         holds true when the quantified
+	 *                                         variables is in the domain
 	 * @param expression
-	 *            The quantified expression.
+	 *                                         The quantified expression.
 	 * @param intervalSequence
-	 *            field for the <code>$uniform</code> operator---a sequence of
-	 *            real closed intervals that specify the domain of uniform
-	 *            convergence of a big-O expression; may be <code>null</code>
+	 *                                         field for the
+	 *                                         <code>$uniform</code>
+	 *                                         operator---a sequence of real
+	 *                                         closed intervals that specify the
+	 *                                         domain of uniform convergence of
+	 *                                         a big-O expression; may be
+	 *                                         <code>null</code>
 	 * @return The new quantified expression with the given children.
 	 */
 	QuantifiedExpressionNode newQuantifiedExpressionNode(Source source,
@@ -977,16 +1044,19 @@ public interface NodeFactory {
 	 * Constructs a new array lambda expression.
 	 * 
 	 * @param source
-	 *            The source code information for the entire expression
+	 *                                         The source code information for
+	 *                                         the entire expression
 	 * @param type
-	 *            the type of this array lambda
+	 *                                         the type of this array lambda
 	 * @param boundVariableDeclarationList
-	 *            The list of bound variable declarations.
+	 *                                         The list of bound variable
+	 *                                         declarations.
 	 * @param restriction
-	 *            A boolean-valued expression that holds true when the
-	 *            quantified variables is in the domain
+	 *                                         A boolean-valued expression that
+	 *                                         holds true when the quantified
+	 *                                         variables is in the domain
 	 * @param expression
-	 *            The body-expression
+	 *                                         The body-expression
 	 * @return The new array lambda expression with the given children.
 	 */
 	ArrayLambdaNode newArrayLambdaNode(Source source, TypeNode type,
@@ -997,16 +1067,19 @@ public interface NodeFactory {
 	 * Constructs a new array lambda expression.
 	 * 
 	 * @param source
-	 *            The source code information for the entire expression
+	 *                                         The source code information for
+	 *                                         the entire expression
 	 * @param type
-	 *            the type of this array lambda
+	 *                                         the type of this array lambda
 	 * @param boundVariableDeclarationList
-	 *            The list of bound variable declarations.
+	 *                                         The list of bound variable
+	 *                                         declarations.
 	 * @param restriction
-	 *            A boolean-valued expression that holds true when the
-	 *            quantified variables is in the domain
+	 *                                         A boolean-valued expression that
+	 *                                         holds true when the quantified
+	 *                                         variables is in the domain
 	 * @param expression
-	 *            The body-expression
+	 *                                         The body-expression
 	 * @return The new array lambda expression with the given children.
 	 */
 	ArrayLambdaNode newArrayLambdaNode(Source source, TypeNode type,
@@ -1018,11 +1091,12 @@ public interface NodeFactory {
 	 * bound variable) variable.
 	 * 
 	 * @param source
-	 *            The source code information for the entire expression
+	 *                                     The source code information for the
+	 *                                     entire expression
 	 * @param boundVariableDeclaration
-	 *            The bound variable declaration.
+	 *                                     The bound variable declaration.
 	 * @param expression
-	 *            The body-expression
+	 *                                     The body-expression
 	 * @return The new array lambda expression with the given children.
 	 */
 	LambdaNode newLambdaNode(Source source,
@@ -1034,13 +1108,15 @@ public interface NodeFactory {
 	 * variable.
 	 * 
 	 * @param source
-	 *            The source code information for the entire expression
+	 *                                     The source code information for the
+	 *                                     entire expression
 	 * @param boundVariableDeclaration
-	 *            The bound variable declaration.
+	 *                                     The bound variable declaration.
 	 * @param restriction
-	 *            A boolean restriction on the bound variable
+	 *                                     A boolean restriction on the bound
+	 *                                     variable
 	 * @param expression
-	 *            The body-expression
+	 *                                     The body-expression
 	 * @return The new array lambda expression with the given children.
 	 */
 	LambdaNode newLambdaNode(Source source,
@@ -1050,19 +1126,19 @@ public interface NodeFactory {
 	/**
 	 * 
 	 * @param source
-	 *            The source code elements.
+	 *                       The source code elements.
 	 * @param quantifier
-	 *            The quantifier. One of {EXISTS, FORALL, UNIFORM}.
+	 *                       The quantifier. One of {EXISTS, FORALL, UNIFORM}.
 	 * @param variable
-	 *            The quantified variable.
+	 *                       The quantified variable.
 	 * @param lower
-	 *            Integer-valued expression for the lower bound on the
-	 *            quantified variable.
+	 *                       Integer-valued expression for the lower bound on
+	 *                       the quantified variable.
 	 * @param upper
-	 *            Integer-valued expression for the upper bound on the
-	 *            quantified variable.
+	 *                       Integer-valued expression for the upper bound on
+	 *                       the quantified variable.
 	 * @param expression
-	 *            The quantified expression.
+	 *                       The quantified expression.
 	 * @return The new quantified expression with the given children.
 	 */
 	// QuantifiedExpressionNode newQuantifiedExpressionNode(Source source,
@@ -1076,13 +1152,15 @@ public interface NodeFactory {
 	 * variables, evaluated at a point.
 	 * 
 	 * @param source
-	 *            The source code elements.
+	 *                      The source code elements.
 	 * @param function
-	 *            The abstract function whose derivative is being taken.
+	 *                      The abstract function whose derivative is being
+	 *                      taken.
 	 * @param partials
-	 *            The list of partial derivatives.
+	 *                      The list of partial derivatives.
 	 * @param arguments
-	 *            The arguments to the uninterpreted function evaluation.
+	 *                      The arguments to the uninterpreted function
+	 *                      evaluation.
 	 * @return The new derivative expression with the given children.
 	 */
 	DerivativeExpressionNode newDerivativeExpressionNode(Source source,
@@ -1109,11 +1187,11 @@ public interface NodeFactory {
 	 * </p>
 	 * 
 	 * @param source
-	 *            source information for the entire expression
+	 *                   source information for the entire expression
 	 * @param low
-	 *            the lower bound of the range (inclusive)
+	 *                   the lower bound of the range (inclusive)
 	 * @param high
-	 *            the upper bound of the range (inclusive)
+	 *                   the upper bound of the range (inclusive)
 	 * @return the new range expression
 	 */
 	RegularRangeNode newRegularRangeNode(Source source, ExpressionNode low,
@@ -1142,14 +1220,14 @@ public interface NodeFactory {
 	 * </p>
 	 * 
 	 * @param source
-	 *            source information for the entire expression
+	 *                   source information for the entire expression
 	 * @param low
-	 *            the lower bound of the range (inclusive)
+	 *                   the lower bound of the range (inclusive)
 	 * @param high
-	 *            the upper bound of the range (inclusive)
+	 *                   the upper bound of the range (inclusive)
 	 * @param step
-	 *            the step, i.e., the (positive or negative) distance between
-	 *            two consecutive elements in the range
+	 *                   the step, i.e., the (positive or negative) distance
+	 *                   between two consecutive elements in the range
 	 * @return the new range expression
 	 */
 	RegularRangeNode newRegularRangeNode(Source source, ExpressionNode low,
@@ -1161,12 +1239,12 @@ public interface NodeFactory {
 	 * Creates a new declaration of an "object" variable with no initializer.
 	 * 
 	 * @param source
-	 *            the source information for the variable declaration
+	 *                   the source information for the variable declaration
 	 * @param name
-	 *            the identifier node corresponding to the name of the variable
-	 *            in its declaration
+	 *                   the identifier node corresponding to the name of the
+	 *                   variable in its declaration
 	 * @param type
-	 *            the node corresponding to the type in the declaration
+	 *                   the node corresponding to the type in the declaration
 	 * @return the new variable declaration node with the given chidren
 	 */
 	VariableDeclarationNode newVariableDeclarationNode(Source source,
@@ -1176,11 +1254,11 @@ public interface NodeFactory {
 	 * Creates a new declaration for an "object" variable with an initializer.
 	 * 
 	 * @param name
-	 *            identifier being declared
+	 *                        identifier being declared
 	 * @param type
-	 *            the type
+	 *                        the type
 	 * @param initializer
-	 *            optional initializer (for variables only) or null
+	 *                        optional initializer (for variables only) or null
 	 * @return a new declaration for an "ordinary identifier"
 	 */
 	VariableDeclarationNode newVariableDeclarationNode(Source source,
@@ -1191,13 +1269,13 @@ public interface NodeFactory {
 	 * "definition").
 	 * 
 	 * @param source
-	 *            source information for this declaration
+	 *                     source information for this declaration
 	 * @param name
-	 *            the identifier node for the name of this function
+	 *                     the identifier node for the name of this function
 	 * @param type
-	 *            node representing the type of the function
+	 *                     node representing the type of the function
 	 * @param contract
-	 *            sequence of contract elements or <code>null</code>
+	 *                     sequence of contract elements or <code>null</code>
 	 * @return the new function declaration node formed from given children
 	 */
 	FunctionDeclarationNode newFunctionDeclarationNode(Source source,
@@ -1210,13 +1288,13 @@ public interface NodeFactory {
 	 * an identifier, and may or may not contain an optional integer value.
 	 * 
 	 * @param source
-	 *            source information for the entire enumerator declaration,
-	 *            including the value node if present
+	 *                   source information for the entire enumerator
+	 *                   declaration, including the value node if present
 	 * @param name
-	 *            the identifier which is the name of the enumerator
+	 *                   the identifier which is the name of the enumerator
 	 * @param value
-	 *            the (optional) value to be assigned to this enumerator; if
-	 *            absent, use <code>null</code>
+	 *                   the (optional) value to be assigned to this enumerator;
+	 *                   if absent, use <code>null</code>
 	 * @return the new enumerator declaration
 	 */
 	EnumeratorDeclarationNode newEnumeratorDeclarationNode(Source source,
@@ -1228,11 +1306,12 @@ public interface NodeFactory {
 	 * declaration is similar to an ordinary variable declaration.
 	 * 
 	 * @param source
-	 *            source information for the entire field declaration
+	 *                   source information for the entire field declaration
 	 * @param name
-	 *            the identifier which is the name of the field being declared
+	 *                   the identifier which is the name of the field being
+	 *                   declared
 	 * @param type
-	 *            the type of the field
+	 *                   the type of the field
 	 * @return the new field declaration node
 	 * 
 	 * @see {@link #newFieldDeclarationNode(Source, IdentifierNode, TypeNode, ExpressionNode)
@@ -1249,14 +1328,16 @@ public interface NodeFactory {
 	 * ordinary variable declaration, but may include a bit width parameter.
 	 * 
 	 * @param source
-	 *            source information for the entire field declaration
+	 *                          source information for the entire field
+	 *                          declaration
 	 * @param name
-	 *            the identifier which is the name of the field being declared
+	 *                          the identifier which is the name of the field
+	 *                          being declared
 	 * @param type
-	 *            the type of the field
+	 *                          the type of the field
 	 * @param bitFieldWidth
-	 *            the constant expression of integer type which specifies the
-	 *            number of bits in the field
+	 *                          the constant expression of integer type which
+	 *                          specifies the number of bits in the field
 	 * @return the new field declaration node
 	 */
 	FieldDeclarationNode newFieldDeclarationNode(Source source,
@@ -1290,12 +1371,12 @@ public interface NodeFactory {
 	 * </p>
 	 * 
 	 * @param source
-	 *            source information for the label only (not the statement that
-	 *            follows)
+	 *                      source information for the label only (not the
+	 *                      statement that follows)
 	 * @param name
-	 *            the name of the label
+	 *                      the name of the label
 	 * @param statement
-	 *            the statement that follows the label and colon
+	 *                      the statement that follows the label and colon
 	 * @return the new label declaration node
 	 */
 	OrdinaryLabelNode newStandardLabelDeclarationNode(Source source,
@@ -1307,15 +1388,18 @@ public interface NodeFactory {
 	 * inside a <code>switch</code> statement body.
 	 * 
 	 * @param source
-	 *            source information spanning the <code>case</code> and
-	 *            <code>expr</code> tokens
+	 *                               source information spanning the
+	 *                               <code>case</code> and <code>expr</code>
+	 *                               tokens
 	 * @param constantExpression
-	 *            the expression <code>expr</code> following <code>case</code>;
-	 *            must be a constant expression whose type is consistent with
-	 *            that of the argument to <code>switch</code>
+	 *                               the expression <code>expr</code> following
+	 *                               <code>case</code>; must be a constant
+	 *                               expression whose type is consistent with
+	 *                               that of the argument to <code>switch</code>
 	 * @param statement
-	 *            the statement following the colon; that statement is
-	 *            <strong>not</strong> made a child of this node
+	 *                               the statement following the colon; that
+	 *                               statement is <strong>not</strong> made a
+	 *                               child of this node
 	 * @return the new case-labeled declaration node
 	 */
 	SwitchLabelNode newCaseLabelDeclarationNode(Source source,
@@ -1327,10 +1411,12 @@ public interface NodeFactory {
 	 * body.
 	 * 
 	 * @param source
-	 *            the source information spanning the <code>default</code> token
+	 *                      the source information spanning the
+	 *                      <code>default</code> token
 	 * @param statement
-	 *            the statement following the colon; this is
-	 *            <strong>not</strong> made a child of the new switch label node
+	 *                      the statement following the colon; this is
+	 *                      <strong>not</strong> made a child of the new switch
+	 *                      label node
 	 * @return the new switch label node
 	 */
 	SwitchLabelNode newDefaultLabelDeclarationNode(Source source,
@@ -1342,12 +1428,12 @@ public interface NodeFactory {
 	 * ScopeParameterizedTypeNode.
 	 * 
 	 * @param source
-	 *            source code reference
+	 *                   source code reference
 	 * @param name
-	 *            the name of the typedef as an IdentifierNode
+	 *                   the name of the typedef as an IdentifierNode
 	 * @param type
-	 *            the type node being bound to the identifier (this may be scope
-	 *            parameterized)
+	 *                   the type node being bound to the identifier (this may
+	 *                   be scope parameterized)
 	 * @return a new typedef declaration node
 	 */
 	TypedefDeclarationNode newTypedefDeclarationNode(Source source,
@@ -1370,10 +1456,11 @@ public interface NodeFactory {
 	 * </p>
 	 * 
 	 * @param source
-	 *            source information spanning the entire compound initializer,
-	 *            from the opening curly brace to the closing curly brace
+	 *                     source information spanning the entire compound
+	 *                     initializer, from the opening curly brace to the
+	 *                     closing curly brace
 	 * @param initList
-	 *            the list of designation-initializer pairs.
+	 *                     the list of designation-initializer pairs.
 	 * @return the new compound initializer nodes
 	 */
 	CompoundInitializerNode newCompoundInitializerNode(Source source,
@@ -1386,9 +1473,9 @@ public interface NodeFactory {
 	 * navigate to a particular point inside a complex structure or array.
 	 * 
 	 * @param source
-	 *            source information spanning the entire designation
+	 *                        source information spanning the entire designation
 	 * @param designators
-	 *            the sequence of designators
+	 *                        the sequence of designators
 	 * @return the new designation node
 	 */
 	DesignationNode newDesignationNode(Source source,
@@ -1401,9 +1488,9 @@ public interface NodeFactory {
 	 * structure or union. It essentially wraps a field name.
 	 * 
 	 * @param source
-	 *            source information spanning this field designator
+	 *                   source information spanning this field designator
 	 * @param name
-	 *            the identifier which is the name of the field
+	 *                   the identifier which is the name of the field
 	 * @return the new field designator node
 	 */
 	FieldDesignatorNode newFieldDesignatorNode(Source source,
@@ -1417,9 +1504,10 @@ public interface NodeFactory {
 	 * index.
 	 * 
 	 * @param source
-	 *            source information spanning the array designator
+	 *                   source information spanning the array designator
 	 * @param index
-	 *            the integer expression specifying an index into the array
+	 *                   the integer expression specifying an index into the
+	 *                   array
 	 * @return the new array designator node
 	 */
 	ArrayDesignatorNode newArrayDesignatorNode(Source source,
@@ -1434,10 +1522,12 @@ public interface NodeFactory {
 	 * {@link BlockItermNode}.
 	 * 
 	 * @param source
-	 *            source information encompassing the entire compound statement,
-	 *            from the opening curly brace to the closing curly brace
+	 *                   source information encompassing the entire compound
+	 *                   statement, from the opening curly brace to the closing
+	 *                   curly brace
 	 * @param items
-	 *            the list of block items comprising the compound statement
+	 *                   the list of block items comprising the compound
+	 *                   statement
 	 * @return the new compound statement node
 	 */
 	CompoundStatementNode newCompoundStatementNode(Source source,
@@ -1448,7 +1538,7 @@ public interface NodeFactory {
 	 * wraps an expression. The source is the same as that of the expression.
 	 * 
 	 * @param expression
-	 *            the expression node
+	 *                       the expression node
 	 * @return the new expression statement node wrapping that expression
 	 */
 	ExpressionStatementNode newExpressionStatementNode(
@@ -1459,8 +1549,8 @@ public interface NodeFactory {
 	 * "no-op" statement, and written as just a semicolon.
 	 * 
 	 * @param source
-	 *            source specification encompassing the single semicolon
-	 *            character
+	 *                   source specification encompassing the single semicolon
+	 *                   character
 	 * @return the new null statement node
 	 */
 	StatementNode newNullStatementNode(Source source);
@@ -1469,21 +1559,22 @@ public interface NodeFactory {
 	 * Constructs a new <code>for</code> loop node.
 	 * 
 	 * @param source
-	 *            source information for the entire loop construct (including
-	 *            body)
+	 *                        source information for the entire loop construct
+	 *                        (including body)
 	 * @param initializer
-	 *            the initializer part of the <code>for</code> loop, an
-	 *            {@link Expression} or another instance of
-	 *            {@link ForLoopInitializerNode}, such as one produced from a
-	 *            list of delcarations; may be <code>null</code>
+	 *                        the initializer part of the <code>for</code> loop,
+	 *                        an {@link Expression} or another instance of
+	 *                        {@link ForLoopInitializerNode}, such as one
+	 *                        produced from a list of delcarations; may be
+	 *                        <code>null</code>
 	 * @param condition
-	 *            the condition part of the <code>for</code> loop
+	 *                        the condition part of the <code>for</code> loop
 	 * @param incrementer
-	 *            the incrementer part of the <code>for</code> loop
+	 *                        the incrementer part of the <code>for</code> loop
 	 * @param body
-	 *            the body of the <code>for</code> loop
+	 *                        the body of the <code>for</code> loop
 	 * @param invariant
-	 *            loop invariant: may be <code>null</code>
+	 *                        loop invariant: may be <code>null</code>
 	 * @return the new <code>for</code> loop node
 	 */
 	ForLoopNode newForLoopNode(Source source,
@@ -1498,10 +1589,10 @@ public interface NodeFactory {
 	 * <code>$for</code> or <code>$parfor</code> statement.
 	 * 
 	 * @param source
-	 *            source specification encompassing the entire list of
-	 *            declarations
+	 *                         source specification encompassing the entire list
+	 *                         of declarations
 	 * @param declarations
-	 *            list of variable declarations
+	 *                         list of variable declarations
 	 * @return the new declaration list node
 	 */
 	DeclarationListNode newForLoopInitializerNode(Source source,
@@ -1513,16 +1604,17 @@ public interface NodeFactory {
 	 * optional CIVL-C loop invariant.
 	 * 
 	 * @param source
-	 *            source specification spanning the entire loop and all its
-	 *            components, including the invariant (if present) and the body
+	 *                      source specification spanning the entire loop and
+	 *                      all its components, including the invariant (if
+	 *                      present) and the body
 	 * @param condition
-	 *            the boolean expression which determines whether control stays
-	 *            in the loop
+	 *                      the boolean expression which determines whether
+	 *                      control stays in the loop
 	 * @param body
-	 *            the loop body, a statement
+	 *                      the loop body, a statement
 	 * @param invariant
-	 *            a boolean expression which is a loop invariant; may be
-	 *            <code>null</code>
+	 *                      a boolean expression which is a loop invariant; may
+	 *                      be <code>null</code>
 	 * @return the new <code>while</code> loop node
 	 */
 	LoopNode newWhileLoopNode(Source source, ExpressionNode condition,
@@ -1538,16 +1630,17 @@ public interface NodeFactory {
 	 * @see #newWhileLoopNode(Source, ExpressionNode, StatementNode,
 	 *      ExpressionNode)
 	 * @param source
-	 *            source specification spanning the entire loop, including the
-	 *            body, the invariant, and the condition
+	 *                      source specification spanning the entire loop,
+	 *                      including the body, the invariant, and the condition
 	 * @param condition
-	 *            the boolean condition which determines whether control should
-	 *            return to the top of the loop body
+	 *                      the boolean condition which determines whether
+	 *                      control should return to the top of the loop body
 	 * @param body
-	 *            the loop body
+	 *                      the loop body
 	 * @param invariant
-	 *            an optional boolean expression loop invariant which may be
-	 *            associated to this node; may be <code>null</code>
+	 *                      an optional boolean expression loop invariant which
+	 *                      may be associated to this node; may be
+	 *                      <code>null</code>
 	 * @return the new <code>do</code> loop node
 	 */
 	LoopNode newDoLoopNode(Source source, ExpressionNode condition,
@@ -1557,11 +1650,11 @@ public interface NodeFactory {
 	 * Constructs a new node representing a <code>goto</code> statement.
 	 * 
 	 * @param source
-	 *            source specification spanning the whole <code>goto</code>
-	 *            statement, including the label
+	 *                   source specification spanning the whole
+	 *                   <code>goto</code> statement, including the label
 	 * @param label
-	 *            identifier which is the name of the label to which control
-	 *            should "go"
+	 *                   identifier which is the name of the label to which
+	 *                   control should "go"
 	 * @return the new <code>goto</code> node
 	 */
 	GotoNode newGotoNode(Source source, IdentifierNode label);
@@ -1571,12 +1664,12 @@ public interface NodeFactory {
 	 * ("else") branch.
 	 * 
 	 * @param source
-	 *            source specification spanning the entire statement, including
-	 *            the entire "true" branch
+	 *                       source specification spanning the entire statement,
+	 *                       including the entire "true" branch
 	 * @param condition
-	 *            the condition expression
+	 *                       the condition expression
 	 * @param trueBranch
-	 *            the body of the <code>if</code> statement
+	 *                       the body of the <code>if</code> statement
 	 * @return the new <code>if</code> statement node formed from given children
 	 */
 	IfNode newIfNode(Source source, ExpressionNode condition,
@@ -1587,14 +1680,15 @@ public interface NodeFactory {
 	 * there is no "else" clause.
 	 * 
 	 * @param source
-	 *            source specification spanning the entire statement, including
-	 *            both branches in their entirety
+	 *                        source specification spanning the entire
+	 *                        statement, including both branches in their
+	 *                        entirety
 	 * @param condition
-	 *            the branch condition
+	 *                        the branch condition
 	 * @param trueBranch
-	 *            the statement for the "true" branch
+	 *                        the statement for the "true" branch
 	 * @param falseBranch
-	 *            the statement for the "false" branch
+	 *                        the statement for the "false" branch
 	 * @return the new <code>if</code> statement node
 	 */
 	IfNode newIfNode(Source source, ExpressionNode condition,
@@ -1605,7 +1699,8 @@ public interface NodeFactory {
 	 * used in a loop body to direct control to the next loop iteration.
 	 * 
 	 * @param source
-	 *            source specification for the <code>continue</code> token
+	 *                   source specification for the <code>continue</code>
+	 *                   token
 	 * @return the new new <code>continue</code> node
 	 */
 	JumpNode newContinueNode(Source source);
@@ -1616,7 +1711,7 @@ public interface NodeFactory {
 	 * just after the loop or <code>switch</code> construct.
 	 * 
 	 * @param source
-	 *            source specification for the <code>break</code> token
+	 *                   source specification for the <code>break</code> token
 	 * @return the new new <code>break</code> node
 	 */
 	JumpNode newBreakNode(Source source);
@@ -1626,8 +1721,8 @@ public interface NodeFactory {
 	 * <code>null</code>.
 	 * 
 	 * @param argument
-	 *            the expression being returned or <code>null</code> if there is
-	 *            none
+	 *                     the expression being returned or <code>null</code> if
+	 *                     there is none
 	 * @return the new <code>return</code> statement node
 	 */
 	ReturnNode newReturnNode(Source source, ExpressionNode argument);
@@ -1638,12 +1733,13 @@ public interface NodeFactory {
 	 * to this method.
 	 * 
 	 * @param source
-	 *            source specification spanning the entire labeled statement,
-	 *            including the label and the statement being labeled
+	 *                      source specification spanning the entire labeled
+	 *                      statement, including the label and the statement
+	 *                      being labeled
 	 * @param label
-	 *            the node representing the label
+	 *                      the node representing the label
 	 * @param statement
-	 *            the statement to be labeled
+	 *                      the statement to be labeled
 	 * @return the new labeled statement node
 	 * 
 	 * @see #newStandardLabelDeclarationNode(Source, IdentifierNode,
@@ -1662,13 +1758,14 @@ public interface NodeFactory {
 	 * <code>swich</code> statement, such as an integer type.
 	 * 
 	 * @param source
-	 *            source specification spanning the entire <code>switch</code>
-	 *            statement, including the entire body
+	 *                      source specification spanning the entire
+	 *                      <code>switch</code> statement, including the entire
+	 *                      body
 	 * @param condition
-	 *            the expression that is evaluated to determine which case to
-	 *            switch to
+	 *                      the expression that is evaluated to determine which
+	 *                      case to switch to
 	 * @param body
-	 *            the body of the <code>switch</code> statement
+	 *                      the body of the <code>switch</code> statement
 	 * @return the new <code>switch</code> statement node
 	 */
 	SwitchNode newSwitchNode(Source source, ExpressionNode condition,
@@ -1679,21 +1776,22 @@ public interface NodeFactory {
 	 * <code>$parfor</code> node.
 	 * 
 	 * @param source
-	 *            source information for the entire loop construct (including
-	 *            body)
+	 *                         source information for the entire loop construct
+	 *                         (including body)
 	 * @param isParallel
-	 *            if <code>true</code> create a <code>$parfor</code> statement,
-	 *            else create a <code>$for</code> statement
+	 *                         if <code>true</code> create a
+	 *                         <code>$parfor</code> statement, else create a
+	 *                         <code>$for</code> statement
 	 * @param variables
-	 *            the list of loop variables or variable decls
+	 *                         the list of loop variables or variable decls
 	 * @param domain
-	 *            the expression of domain type defining the iteration domain;
-	 *            the dimension of the domain must equal the number of loop
-	 *            variables
+	 *                         the expression of domain type defining the
+	 *                         iteration domain; the dimension of the domain
+	 *                         must equal the number of loop variables
 	 * @param body
-	 *            the body of the loop statement
+	 *                         the body of the loop statement
 	 * @param loopContract
-	 *            optional loop contracts node
+	 *                         optional loop contracts node
 	 * @return the new node
 	 */
 	CivlForNode newCivlForNode(Source source, boolean isParallel,
@@ -1706,11 +1804,12 @@ public interface NodeFactory {
 	 * or verification of the CIVL model.
 	 * 
 	 * @param source
-	 *            source specification spanning the entire <code>$assume</code>
-	 *            statement, including the expression argument
+	 *                       source specification spanning the entire
+	 *                       <code>$assume</code> statement, including the
+	 *                       expression argument
 	 * @param expression
-	 *            a boolean expression which is to be evaluated and added to the
-	 *            current context
+	 *                       a boolean expression which is to be evaluated and
+	 *                       added to the current context
 	 * @return the new <code>$assume</code> statement node
 	 */
 	// AssumeNode newAssumeNode(Source source, ExpressionNode expression);
@@ -1719,14 +1818,15 @@ public interface NodeFactory {
 	 * Creates a new node representing a CIVL-C <code>$assert</code> statement.
 	 * 
 	 * @param source
-	 *            source specification spanning the entire <code>$assert</code>
-	 *            statement, including the expression argument
+	 *                        source specification spanning the entire
+	 *                        <code>$assert</code> statement, including the
+	 *                        expression argument
 	 * @param expression
-	 *            a boolean expression which is to be evaluated and expected to
-	 *            be true
+	 *                        a boolean expression which is to be evaluated and
+	 *                        expected to be true
 	 * @param explanation
-	 *            the list of expressions for explaining the assertion if it is
-	 *            violated.
+	 *                        the list of expressions for explaining the
+	 *                        assertion if it is violated.
 	 * @return the new <code>$assert</code> statement node
 	 */
 	// AssertNode newAssertNode(Source source, ExpressionNode expression,
@@ -1740,13 +1840,14 @@ public interface NodeFactory {
 	 * <code>true</code> of the guard.
 	 * 
 	 * @param source
-	 *            source specification spanning the entire <code>$when</code>
-	 *            statement, including the guard and the entire body
+	 *                   source specification spanning the entire
+	 *                   <code>$when</code> statement, including the guard and
+	 *                   the entire body
 	 * @param guard
-	 *            a boolean expression which determines when the statement is
-	 *            enabled
+	 *                   a boolean expression which determines when the
+	 *                   statement is enabled
 	 * @param body
-	 *            a statement that may be executed once the guard holds
+	 *                   a statement that may be executed once the guard holds
 	 * @return the new <code>$when</code> statement node
 	 */
 	WhenNode newWhenNode(Source source, ExpressionNode guard,
@@ -1771,11 +1872,12 @@ public interface NodeFactory {
 	 * the entire statement blocks. The order of these clauses is irrelevant.
 	 * 
 	 * @param source
-	 *            source specification spanning the entire <code>$choose</code>
-	 *            statement, including the entire body
+	 *                       source specification spanning the entire
+	 *                       <code>$choose</code> statement, including the
+	 *                       entire body
 	 * @param statements
-	 *            the guarded commands which form the clauses of the
-	 *            <code>$choose</code> statement
+	 *                       the guarded commands which form the clauses of the
+	 *                       <code>$choose</code> statement
 	 * @return the new <code>$choose</code> statement node
 	 */
 	ChooseStatementNode newChooseStatementNode(Source source,
@@ -1792,15 +1894,17 @@ public interface NodeFactory {
 	 * </pre>
 	 * 
 	 * @param source
-	 *            source specification spanning the entire static assertion
-	 *            statement
+	 *                       source specification spanning the entire static
+	 *                       assertion statement
 	 * @param expression
-	 *            the integer constant expression which, if it evaluates to 0,
-	 *            yields an assertion violation. Note that the boolean type
-	 *            <code>_Bool</code> is an integer type in C, so a value of this
-	 *            type may be used.
+	 *                       the integer constant expression which, if it
+	 *                       evaluates to 0, yields an assertion violation. Note
+	 *                       that the boolean type <code>_Bool</code> is an
+	 *                       integer type in C, so a value of this type may be
+	 *                       used.
 	 * @param message
-	 *            the message to be printed if the assertion is violated
+	 *                       the message to be printed if the assertion is
+	 *                       violated
 	 * @return the new static assertion node
 	 */
 	StaticAssertionNode newStaticAssertionNode(Source source,
@@ -1818,21 +1922,23 @@ public interface NodeFactory {
 	 * newline is also specified.
 	 * 
 	 * @param source
-	 *            source specification spanning the entire pragma line, from the
-	 *            <code>#pragma</code> up to and including the
-	 *            <code>newline</code>.
+	 *                         source specification spanning the entire pragma
+	 *                         line, from the <code>#pragma</code> up to and
+	 *                         including the <code>newline</code>.
 	 * 
 	 * @param identifier
-	 *            the first token after the <code>#pragma</code> token
-	 *            specifying the pragma domain (e.g., <code>omp</code>)
+	 *                         the first token after the <code>#pragma</code>
+	 *                         token specifying the pragma domain (e.g.,
+	 *                         <code>omp</code>)
 	 * @param producer
-	 *            a producer for producing new {@link CivlcTokenSource} objects
-	 *            which are essentially iterators over the tokens comprising the
-	 *            body, i.e., the sequence of tokens comprising the rest of the
-	 *            pragma body after the identifier, and not including the
-	 *            newline
+	 *                         a producer for producing new
+	 *                         {@link CivlcTokenSource} objects which are
+	 *                         essentially iterators over the tokens comprising
+	 *                         the body, i.e., the sequence of tokens comprising
+	 *                         the rest of the pragma body after the identifier,
+	 *                         and not including the newline
 	 * @param newlineToken
-	 *            the newlinen token at the end of the pragma
+	 *                         the newlinen token at the end of the pragma
 	 * @return the new pragma node
 	 */
 	PragmaNode newPragmaNode(Source source, IdentifierNode identifier,
@@ -1844,10 +1950,12 @@ public interface NodeFactory {
 	 * It is currently not used.
 	 * 
 	 * @param source
-	 *            source specification spanning the entire
-	 *            <code>$requires</code> clause, including the entire expression
+	 *                       source specification spanning the entire
+	 *                       <code>$requires</code> clause, including the entire
+	 *                       expression
 	 * @param expression
-	 *            the boolean expression which specifies a pre-condition
+	 *                       the boolean expression which specifies a
+	 *                       pre-condition
 	 * @return the new <code>$requires</code> clause node
 	 */
 	RequiresNode newRequiresNode(Source source, ExpressionNode expression);
@@ -1858,10 +1966,12 @@ public interface NodeFactory {
 	 * It is currently not used.
 	 * 
 	 * @param source
-	 *            source specification spanning the entire <code>$ensures</code>
-	 *            clause, including the entire expression
+	 *                       source specification spanning the entire
+	 *                       <code>$ensures</code> clause, including the entire
+	 *                       expression
 	 * @param expression
-	 *            the boolean expression which specifies a post-condition
+	 *                       the boolean expression which specifies a
+	 *                       post-condition
 	 * @return the new <code>$ensures</code> clause node
 	 */
 	EnsuresNode newEnsuresNode(Source source, ExpressionNode expression);
@@ -1872,11 +1982,12 @@ public interface NodeFactory {
 	 * between processes for a function.
 	 * 
 	 * @param source
-	 *            source specification spanning the entire <code>$depends</code>
-	 *            clause, including the entire expression
+	 *                       source specification spanning the entire
+	 *                       <code>$depends</code> clause, including the entire
+	 *                       expression
 	 * @param expression
-	 *            the boolean expression which specifies a condition of
-	 *            dependency
+	 *                       the boolean expression which specifies a condition
+	 *                       of dependency
 	 * @return the new <code>$depends</code> clause node
 	 */
 	DependsNode newDependsNode(Source source, ExpressionNode condition,
@@ -1887,10 +1998,12 @@ public interface NodeFactory {
 	 * clause. This is used to specify the guard of a function.
 	 * 
 	 * @param source
-	 *            source specification spanning the entire <code>$guard</code>
-	 *            clause, including the entire expression
+	 *                       source specification spanning the entire
+	 *                       <code>$guard</code> clause, including the entire
+	 *                       expression
 	 * @param expression
-	 *            the boolean expression which specifies the the guard
+	 *                       the boolean expression which specifies the the
+	 *                       guard
 	 * @return the new <code>$guard</code> clause node
 	 */
 	GuardsNode newGuardNode(Source source, ExpressionNode expression);
@@ -1900,11 +2013,13 @@ public interface NodeFactory {
 	 * clause.
 	 * 
 	 * @param source
-	 *            source specification spanning the entire <code>$assigns</code>
-	 *            clause, including the entire expression
+	 *                           source specification spanning the entire
+	 *                           <code>$assigns</code> clause, including the
+	 *                           entire expression
 	 * @param expressionList
-	 *            the expression list which specifies the memory units
-	 *            associated with the <code>assigns</code> clause
+	 *                           the expression list which specifies the memory
+	 *                           units associated with the <code>assigns</code>
+	 *                           clause
 	 * @return the new <code>assigns</code> clause node
 	 */
 	AssignsOrReadsNode newAssignsNode(Source source,
@@ -1915,11 +2030,13 @@ public interface NodeFactory {
 	 * clause.
 	 * 
 	 * @param source
-	 *            source specification spanning the entire <code>reads</code>
-	 *            clause, including the entire expression
+	 *                           source specification spanning the entire
+	 *                           <code>reads</code> clause, including the entire
+	 *                           expression
 	 * @param expressionList
-	 *            the expression list which specifies the memory units
-	 *            associated with the <code>reads</code> clause
+	 *                           the expression list which specifies the memory
+	 *                           units associated with the <code>reads</code>
+	 *                           clause
 	 * @return the new <code>reads</code> clause node
 	 */
 	AssignsOrReadsNode newReadsNode(Source source,
@@ -1932,17 +2049,20 @@ public interface NodeFactory {
 	 * function declaration with body.
 	 * 
 	 * @param source
-	 *            source specification spanning the entire function definition,
-	 *            including the entire function body
+	 *                     source specification spanning the entire function
+	 *                     definition, including the entire function body
 	 * @param name
-	 *            the identifier which is the name of the function being defined
+	 *                     the identifier which is the name of the function
+	 *                     being defined
 	 * @param type
-	 *            the type of the function; note that a function type comprises
-	 *            a return type and some sequence of input types
+	 *                     the type of the function; note that a function type
+	 *                     comprises a return type and some sequence of input
+	 *                     types
 	 * @param contract
-	 *            the (optional) function contract; may be <code>null</code>
+	 *                     the (optional) function contract; may be
+	 *                     <code>null</code>
 	 * @param body
-	 *            the function body
+	 *                     the function body
 	 * @return the new function definition node
 	 */
 	FunctionDefinitionNode newFunctionDefinitionNode(Source source,
@@ -1960,30 +2080,32 @@ public interface NodeFactory {
 	 * create instead an input variable (<code>$input</code>).
 	 * 
 	 * @param source
-	 *            The source information for the abstract function definition.
+	 *                       The source information for the abstract function
+	 *                       definition.
 	 * @param name
-	 *            The name of the abstract function.
+	 *                       The name of the abstract function.
 	 * @param type
-	 *            The function type with the appropriate parameters and return
-	 *            type.
+	 *                       The function type with the appropriate parameters
+	 *                       and return type.
 	 * @param contract
-	 *            Any code contract associated with the function.
+	 *                       Any code contract associated with the function.
 	 * @param continuity
-	 *            The number of derivatives that may be taken; this applies to
-	 *            real valued functions of real variables only
+	 *                       The number of derivatives that may be taken; this
+	 *                       applies to real valued functions of real variables
+	 *                       only
 	 * @param intervals
-	 *            sequence of intervals whose Cartesian product specifies the
-	 *            domain on which this function is differentiable to the
-	 *            specified degree
+	 *                       sequence of intervals whose Cartesian product
+	 *                       specifies the domain on which this function is
+	 *                       differentiable to the specified degree
 	 * @param attr
-	 *            nullable. The optional string literal representing the
-	 *            attribute attached to this abstract function.
+	 *                       nullable. The optional string literal representing
+	 *                       the attribute attached to this abstract function.
 	 * @return An abstract function definition with the specified properties.
 	 */
 	AbstractFunctionDefinitionNode newAbstractFunctionDefinitionNode(
 			Source source, IdentifierNode name, TypeNode type,
 			SequenceNode<ContractNode> contract, int continuity,
-			SequenceNode<PairNode<ExpressionNode, ExpressionNode>> intervals, 
+			SequenceNode<PairNode<ExpressionNode, ExpressionNode>> intervals,
 			StringLiteralNode attr);
 
 	/**
@@ -1991,12 +2113,12 @@ public interface NodeFactory {
 	 * of this node will be external definitions.
 	 * 
 	 * @param source
-	 *            source specification spanning the entire translation unit,
-	 *            which is typically the entire token sequence emanating from
-	 *            the preprocessor
+	 *                        source specification spanning the entire
+	 *                        translation unit, which is typically the entire
+	 *                        token sequence emanating from the preprocessor
 	 * @param definitions
-	 *            the list of external definitions which form the children of
-	 *            the translation unit
+	 *                        the list of external definitions which form the
+	 *                        children of the translation unit
 	 * @return the new translation unit node
 	 */
 	SequenceNode<BlockItemNode> newTranslationUnitNode(Source source,
@@ -2007,12 +2129,13 @@ public interface NodeFactory {
 	 * node will be external definitions.
 	 * 
 	 * @param source
-	 *            source specification for the whole program; typically a "fake"
-	 *            source
+	 *                        source specification for the whole program;
+	 *                        typically a "fake" source
 	 * @param definitions
-	 *            the list of external definitions which form the children of
-	 *            the new node; typically obtained by concatenating those from
-	 *            the translation units, perhaps after some modifications
+	 *                        the list of external definitions which form the
+	 *                        children of the new node; typically obtained by
+	 *                        concatenating those from the translation units,
+	 *                        perhaps after some modifications
 	 * @return the new program node
 	 */
 	SequenceNode<BlockItemNode> newProgramNode(Source source,
@@ -2031,10 +2154,10 @@ public interface NodeFactory {
 	 * Creates a new CIVL-C <code>$atomic</code> statement node.
 	 * 
 	 * @param statementSource
-	 *            source specification spanning the entire statement, including
-	 *            the body
+	 *                            source specification spanning the entire
+	 *                            statement, including the body
 	 * @param body
-	 *            The body statement node of the atomic node
+	 *                            The body statement node of the atomic node
 	 * @return The new atomic statement node
 	 */
 	AtomicNode newAtomicStatementNode(Source statementSource,
@@ -2044,7 +2167,7 @@ public interface NodeFactory {
 	 * Creates a new constant expression node representing <code>$here</code>.
 	 * 
 	 * @param source
-	 *            The source code element of the new node
+	 *                   The source code element of the new node
 	 * @return a new constant expression node representing <code>$here</code>
 	 */
 	ExpressionNode newHereNode(Source source);
@@ -2053,7 +2176,7 @@ public interface NodeFactory {
 	 * Creates a new constant expression node representing <code>$root</code>.
 	 * 
 	 * @param source
-	 *            The source code element of the new node
+	 *                   The source code element of the new node
 	 * @return a new constant expression node representing <code>$root</code>
 	 */
 	ExpressionNode newRootNode(Source source);
@@ -2062,9 +2185,10 @@ public interface NodeFactory {
 	 * Creates a new expression node representing <code>$scopeof(expr)</code>.
 	 * 
 	 * @param source
-	 *            The source code element of the new node.
+	 *                     The source code element of the new node.
 	 * @param argument
-	 *            The argument of the <code>$scopeof(expr)</code> expression.
+	 *                     The argument of the <code>$scopeof(expr)</code>
+	 *                     expression.
 	 * @return a new constant expression node representing <code>$here</code>
 	 */
 	ScopeOfNode newScopeOfNode(Source source, ExpressionNode argument);
@@ -2076,9 +2200,9 @@ public interface NodeFactory {
 	 * setPrivateList(), etc.
 	 * 
 	 * @param source
-	 *            The source code element of the new node.
+	 *                      The source code element of the new node.
 	 * @param statement
-	 *            The statement node of the parallel construct.
+	 *                      The statement node of the parallel construct.
 	 * @return The new OpenMP parallel statement node created.
 	 */
 	OmpParallelNode newOmpParallelNode(Source source, StatementNode statement);
@@ -2090,9 +2214,9 @@ public interface NodeFactory {
 	 * setPrivateList(), etc.
 	 * 
 	 * @param source
-	 *            The source code element of the new node.
+	 *                      The source code element of the new node.
 	 * @param statement
-	 *            The statement node of the parallel construct.
+	 *                      The statement node of the parallel construct.
 	 * @return The new OpenMP for node created.
 	 */
 	OmpForNode newOmpForNode(Source source, StatementNode statement);
@@ -2106,9 +2230,9 @@ public interface NodeFactory {
 	 * structured-block</code>
 	 * 
 	 * @param source
-	 *            The source code element of the new node.
+	 *                      The source code element of the new node.
 	 * @param statement
-	 *            The statement node of the master construct.
+	 *                      The statement node of the master construct.
 	 * @return The new OpenMP master node created.
 	 */
 	OmpSyncNode newOmpMasterNode(Source source, StatementNode statement);
@@ -2122,15 +2246,16 @@ public interface NodeFactory {
 	 * structured-block</code>
 	 * 
 	 * @param source
-	 *            The source code element of the new node.
+	 *                          The source code element of the new node.
 	 * @param statement
-	 *            The statement node of the master construct.
+	 *                          The statement node of the master construct.
 	 * @param clause
-	 *            the atomic clause associated with this atomic construct,
-	 *            either "read", "write", "update" or "capture". Absent of
-	 *            clause means "update"
+	 *                          the atomic clause associated with this atomic
+	 *                          construct, either "read", "write", "update" or
+	 *                          "capture". Absent of clause means "update"
 	 * @param seqConsistent
-	 *            true if this atomic construct is sequentially consistent
+	 *                          true if this atomic construct is sequentially
+	 *                          consistent
 	 * @return The new OpenMP atomic node created.
 	 */
 	OmpSyncNode newOmpAtomicNode(Source source, StatementNode statement,
@@ -2146,11 +2271,11 @@ public interface NodeFactory {
 	 * structured-block</code>
 	 * 
 	 * @param source
-	 *            The source code element of the new node.
+	 *                      The source code element of the new node.
 	 * @param name
-	 *            The name of the critical section.
+	 *                      The name of the critical section.
 	 * @param statement
-	 *            The statement node of the critical construct.
+	 *                      The statement node of the critical construct.
 	 * @return The new OpenMP critical node created.
 	 */
 	OmpSyncNode newOmpCriticalNode(Source source, IdentifierNode name,
@@ -2163,7 +2288,7 @@ public interface NodeFactory {
 	 * <code>#pragma omp barrier new-line</code>
 	 * 
 	 * @param source
-	 *            The source code element of the new node.
+	 *                   The source code element of the new node.
 	 * @return The new OpenMP barrier node created.
 	 */
 	OmpSyncNode newOmpBarrierNode(Source source);
@@ -2176,9 +2301,9 @@ public interface NodeFactory {
 	 * <code>#pragma omp flush [(list)] new-line</code>
 	 * 
 	 * @param source
-	 *            The source code element of the new node.
+	 *                      The source code element of the new node.
 	 * @param variables
-	 *            The list of variables of the flush operation.
+	 *                      The list of variables of the flush operation.
 	 * @return The new OpenMP flush node created.
 	 */
 	OmpSyncNode newOmpFlushNode(Source source,
@@ -2188,7 +2313,7 @@ public interface NodeFactory {
 	 * Creates a new OpenMP flush node with no variable list
 	 * 
 	 * @param source
-	 *            The source code element of the new node.
+	 *                   The source code element of the new node.
 	 * @return The new OpenMP flush node created.
 	 */
 	OmpSyncNode newOmpFlushNode(Source source);
@@ -2202,9 +2327,9 @@ public interface NodeFactory {
 	 * structured-block</code>
 	 * 
 	 * @param source
-	 *            The source code element of the new node.
+	 *                      The source code element of the new node.
 	 * @param statement
-	 *            The statement node of the ordered construct.
+	 *                      The statement node of the ordered construct.
 	 * @return The new OpenMP ordered node created.
 	 */
 	OmpSyncNode newOmpOrederedNode(Source source, StatementNode statement);
@@ -2216,9 +2341,9 @@ public interface NodeFactory {
 	 * setPrivateList(), etc.
 	 * 
 	 * @param source
-	 *            The source code element of the new node.
+	 *                      The source code element of the new node.
 	 * @param statement
-	 *            The statement node of the ordered construct.
+	 *                      The statement node of the ordered construct.
 	 * @return The new OpenMP sections statement node created.
 	 */
 	OmpWorksharingNode newOmpSectionsNode(Source source,
@@ -2233,9 +2358,9 @@ public interface NodeFactory {
 	 * structured-block</code>
 	 * 
 	 * @param source
-	 *            The source code element of the new node.
+	 *                      The source code element of the new node.
 	 * @param statement
-	 *            The statement node of the section construct.
+	 *                      The statement node of the section construct.
 	 * @return The new OpenMP section node created.
 	 */
 	OmpWorksharingNode newOmpSectionNode(Source source,
@@ -2254,9 +2379,9 @@ public interface NodeFactory {
 	 * <code>nowait</code>
 	 * 
 	 * @param source
-	 *            The source code element of the new node.
+	 *                      The source code element of the new node.
 	 * @param statement
-	 *            The statement node of the section construct.
+	 *                      The statement node of the section construct.
 	 * @return The new OpenMP single node created.
 	 */
 	OmpWorksharingNode newOmpSingleNode(Source source, StatementNode statement);
@@ -2276,9 +2401,9 @@ public interface NodeFactory {
 	 * <code>nowait</code>
 	 * 
 	 * @param source
-	 *            The source code element of the new node.
+	 *                      The source code element of the new node.
 	 * @param statement
-	 *            The statement node of the simd construct.
+	 *                      The statement node of the simd construct.
 	 * @return The new OpenMP simd node created.
 	 */
 	OmpSimdNode newOmpSimdNode(Source source, StatementNode statement);
@@ -2287,9 +2412,9 @@ public interface NodeFactory {
 	 * Creates a new OpenMP threadprivate node.
 	 * 
 	 * @param source
-	 *            The source code element of the new node.
+	 *                      The source code element of the new node.
 	 * @param variables
-	 *            The list of variables declared by the clause.
+	 *                      The list of variables declared by the clause.
 	 * @return The new OpenMP threadprivate node created.
 	 */
 	OmpDeclarativeNode newOmpThreadprivateNode(Source source,
@@ -2301,9 +2426,9 @@ public interface NodeFactory {
 	 * previous OpenMP executable struct should end.
 	 * 
 	 * @param source
-	 *            The source code element of the new node.
+	 *                    The source code element of the new node.
 	 * @param endType
-	 *            The end type of the new END node.
+	 *                    The end type of the new END node.
 	 * @return The new OpenMP END node created.
 	 */
 	OmpEndNode newOmpFortranEndNode(Source source, OmpEndType endType);
@@ -2312,11 +2437,12 @@ public interface NodeFactory {
 	 * Creates a new OpenMP reduction node with a standard operator.
 	 * 
 	 * @param source
-	 *            The source code element of the new node.
+	 *                      The source code element of the new node.
 	 * @param operator
-	 *            The {@link OmpReductionOperator} of the reduction node.
+	 *                      The {@link OmpReductionOperator} of the reduction
+	 *                      node.
 	 * @param variables
-	 *            The variables of the reduction clause.
+	 *                      The variables of the reduction clause.
 	 * @return The new OpenMP reduction node.
 	 */
 	OmpSymbolReductionNode newOmpSymbolReductionNode(Source source,
@@ -2328,11 +2454,11 @@ public interface NodeFactory {
 	 * function names).
 	 * 
 	 * @param source
-	 *            The source code element of the new node.
+	 *                      The source code element of the new node.
 	 * @param function
-	 *            The name of the function of the reduction node.
+	 *                      The name of the function of the reduction node.
 	 * @param variables
-	 *            The variables of the reduction clause.
+	 *                      The variables of the reduction clause.
 	 * @return The new OpenMP reduction node.
 	 */
 	OmpFunctionReductionNode newOmpFunctionReductionNode(Source source,
@@ -2350,10 +2476,10 @@ public interface NodeFactory {
 	 * </ul>
 	 * 
 	 * @param source
-	 *            The source code element of the new node.
+	 *                   The source code element of the new node.
 	 * @param kind
-	 *            The kind of the worksharing node, either FOR, SECTIONS,
-	 *            SECTION or SINGLE.
+	 *                   The kind of the worksharing node, either FOR, SECTIONS,
+	 *                   SECTION or SINGLE.
 	 * @return The new OpenMP worksharing node.
 	 */
 	OmpWorksharingNode newWorksharingNode(Source source,
@@ -2378,10 +2504,10 @@ public interface NodeFactory {
 	 * creates a new statement expression node (GNU C extension).
 	 * 
 	 * @param source
-	 *            the source of the node
+	 *                      the source of the node
 	 * @param statement
-	 *            the statement enclosed by the expression excluding the
-	 *            expression at end
+	 *                      the statement enclosed by the expression excluding
+	 *                      the expression at end
 	 * @return the new statement expression node (GNU C extension)
 	 */
 	StatementExpressionNode newStatementExpressionNode(Source source,
@@ -2447,8 +2573,8 @@ public interface NodeFactory {
 	 * 
 	 * @param source
 	 * @param isComplete
-	 *            true if to create a complete clause node, otherwise, a
-	 *            disjoint clause node
+	 *                       true if to create a complete clause node,
+	 *                       otherwise, a disjoint clause node
 	 * @param idList
 	 * @return
 	 */
@@ -2507,11 +2633,11 @@ public interface NodeFactory {
 	 * 
 	 * @param source
 	 * @param mpiComm
-	 *            The corresponding MPI communicator
+	 *                    The corresponding MPI communicator
 	 * @param kind
-	 *            The corresponding collective kind
+	 *                    The corresponding collective kind
 	 * @param body
-	 *            The body of the MPI collective block
+	 *                    The body of the MPI collective block
 	 * @return
 	 */
 	MPICollectiveBlockNode newMPICollectiveBlockNode(Source source,
@@ -2523,11 +2649,12 @@ public interface NodeFactory {
 	 * 
 	 * @param source
 	 * @param stringRepresetation
-	 *            The text of the constant
+	 *                                The text of the constant
 	 * @param kind
-	 *            The {@link MPIConstantKind} of this constant
+	 *                                The {@link MPIConstantKind} of this
+	 *                                constant
 	 * @param constKind
-	 *            The {@link ConstantKind} of this constant
+	 *                                The {@link ConstantKind} of this constant
 	 * @return
 	 */
 	MPIContractConstantNode newMPIConstantNode(Source source,
@@ -2539,11 +2666,12 @@ public interface NodeFactory {
 	 * 
 	 * @param source
 	 * @param arguments
-	 *            A list of arguments of an MPI expression
+	 *                      A list of arguments of an MPI expression
 	 * @param kind
-	 *            The {@link MPIContractExpressionKind} of this MPI expression
+	 *                      The {@link MPIContractExpressionKind} of this MPI
+	 *                      expression
 	 * @param exprName
-	 *            The String of the name of the MPI expression
+	 *                      The String of the name of the MPI expression
 	 * @return
 	 */
 	MPIContractExpressionNode newMPIExpressionNode(Source source,
@@ -2554,11 +2682,12 @@ public interface NodeFactory {
 	 * Creates a new {@link MPIContractAbsentEventNode}
 	 *
 	 * @param source
-	 *            the {@link Source} of the parse tree of the creating node
+	 *                      the {@link Source} of the parse tree of the creating
+	 *                      node
 	 * @param arguments
-	 *            the list of arguments
+	 *                      the list of arguments
 	 * @param kind
-	 *            the kind of the creating absent event node
+	 *                      the kind of the creating absent event node
 	 * @return the created absent event node
 	 */
 	MPIContractAbsentEventNode newMPIAbsentEventNode(Source source,
@@ -2575,14 +2704,15 @@ public interface NodeFactory {
 	 * Create a new {@link WithNode}
 	 * 
 	 * @param source
-	 *            The {@link Source} attached to the $with statement
+	 *                       The {@link Source} attached to the $with statement
 	 * @param stateRef
-	 *            The expression represents a reference to a collate state
+	 *                       The expression represents a reference to a collate
+	 *                       state
 	 * @param statement
-	 *            The statement attached with the $with statement
+	 *                       The statement attached with the $with statement
 	 * @param isParallel
-	 *            If the $with statement represented by this node will not
-	 *            affect the outside environment
+	 *                       If the $with statement represented by this node
+	 *                       will not affect the outside environment
 	 * @return A new {@link WithNode}
 	 */
 	WithNode newWithNode(Source source, ExpressionNode stateRef,
@@ -2592,11 +2722,12 @@ public interface NodeFactory {
 	 * Create a new {@link WithNode}
 	 * 
 	 * @param source
-	 *            The {@link Source} attached to the $with statement
+	 *                      The {@link Source} attached to the $with statement
 	 * @param stateRef
-	 *            The expression represents a reference to a collate state
+	 *                      The expression represents a reference to a collate
+	 *                      state
 	 * @param statement
-	 *            The statement attached with the $with statement
+	 *                      The statement attached with the $with statement
 	 * @return A new {@link WithNode}
 	 */
 	WithNode newWithNode(Source source, ExpressionNode stateRef,
@@ -2606,11 +2737,12 @@ public interface NodeFactory {
 	 * Create a new {@link UpdateNode}
 	 * 
 	 * @param source
-	 *            The {@link Source} attached to the $update expression
+	 *                     The {@link Source} attached to the $update expression
 	 * @param collator
-	 *            The expression has the $collator type
+	 *                     The expression has the $collator type
 	 * @param call
-	 *            The {@link FunctionCallNode} attached with this expression.
+	 *                     The {@link FunctionCallNode} attached with this
+	 *                     expression.
 	 * @return A new {@link UpdateNode}
 	 */
 	UpdateNode newUpdateNode(Source source, ExpressionNode collator,
@@ -2620,9 +2752,9 @@ public interface NodeFactory {
 	 * Create a new {@link RunNode}
 	 * 
 	 * @param source
-	 *            The {@link Source} attached to the $run statement
+	 *                      The {@link Source} attached to the $run statement
 	 * @param statement
-	 *            The statement attached with the $run statement
+	 *                      The statement attached with the $run statement
 	 * @return A new {@link RunNode}
 	 */
 	RunNode newRunNode(Source source, StatementNode statement);
@@ -2642,10 +2774,10 @@ public interface NodeFactory {
 	 * Creates a new <code>$object_of</code> node
 	 * 
 	 * @param source
-	 *            the source of the <code>$object_of</code> node
+	 *                    the source of the <code>$object_of</code> node
 	 * @param operand
-	 *            the operand of the <code>$object_of</code> node, which shall
-	 *            have pointer type
+	 *                    the operand of the <code>$object_of</code> node, which
+	 *                    shall have pointer type
 	 * @return the new <code>$object_of</code> node
 	 */
 	ObjectOrRegionOfNode newObjectofNode(Source source, ExpressionNode operand);
@@ -2654,10 +2786,10 @@ public interface NodeFactory {
 	 * Creates a new <code>$region_of</code> node
 	 * 
 	 * @param source
-	 *            the source of the <code>$region_of</code> node
+	 *                    the source of the <code>$region_of</code> node
 	 * @param operand
-	 *            the operand of the <code>$region_of</code> node, which shall
-	 *            have pointer type
+	 *                    the operand of the <code>$region_of</code> node, which
+	 *                    shall have pointer type
 	 * @return the new <code>$region_of</code> node
 	 */
 	ObjectOrRegionOfNode newRegionofNode(Source source, ExpressionNode operand);
@@ -2667,12 +2799,12 @@ public interface NodeFactory {
 	 * <code>allocates</code> or <code>frees</code> clause.
 	 * 
 	 * @param source
-	 *            the source of the allocation clause
+	 *                        the source of the allocation clause
 	 * @param isAllocates
-	 *            true if this is an <code>allocates</code> clause, otherwise, a
-	 *            <code>frees</code> clause
+	 *                        true if this is an <code>allocates</code> clause,
+	 *                        otherwise, a <code>frees</code> clause
 	 * @param memoryList
-	 *            the list of memory units of the allocation clause
+	 *                        the list of memory units of the allocation clause
 	 * @return the new allocation node
 	 */
 	AllocationNode newAllocationNode(Source source, boolean isAllocates,
@@ -2682,16 +2814,16 @@ public interface NodeFactory {
 	 * Creates a new extended quantified expression node.
 	 * 
 	 * @param source
-	 *            the source of the node
+	 *                     the source of the node
 	 * @param quant
-	 *            the extended quantifier, which could be one of
-	 *            <code>\sum, \max, \min, \numof, \product</code>.
+	 *                     the extended quantifier, which could be one of
+	 *                     <code>\sum, \max, \min, \numof, \product</code>.
 	 * @param lo
-	 *            the lower bound argument
+	 *                     the lower bound argument
 	 * @param hi
-	 *            the upper bound argument
+	 *                     the upper bound argument
 	 * @param function
-	 *            the function argument
+	 *                     the function argument
 	 * @return the new extended quantified expression node.
 	 */
 	ExtendedQuantifiedExpressionNode newExtendedQuantifiedExpressionNode(
@@ -2703,13 +2835,14 @@ public interface NodeFactory {
 	 * an expression at a given state (instead of the current state).
 	 * 
 	 * @param source
-	 *            the source of the expression
+	 *                       the source of the expression
 	 * @param state
-	 *            the state to be used for evaluation
+	 *                       the state to be used for evaluation
 	 * @param pid
-	 *            the process in whose context the expression is to be evaluated
+	 *                       the process in whose context the expression is to
+	 *                       be evaluated
 	 * @param expression
-	 *            the expression to be evaluated
+	 *                       the expression to be evaluated
 	 * @return the new <code>$value_at</code> expression node
 	 */
 	ValueAtNode newValueAtNode(Source source, ExpressionNode state,
@@ -2719,13 +2852,14 @@ public interface NodeFactory {
 	 * Creates a new {@link PredicateNode} for ACSL predicates
 	 * 
 	 * @param source
-	 *            the source of the new node
+	 *                       the source of the new node
 	 * @param identifier
-	 *            the {@link IdentifierNode} of the predicate identifier
+	 *                       the {@link IdentifierNode} of the predicate
+	 *                       identifier
 	 * @param parameters
-	 *            parameters used in the predicate definition
+	 *                       parameters used in the predicate definition
 	 * @param body
-	 *            the predicate body expression
+	 *                       the predicate body expression
 	 * @return
 	 */
 	PredicateNode newPredicateNode(Source source, IdentifierNode identifier,
