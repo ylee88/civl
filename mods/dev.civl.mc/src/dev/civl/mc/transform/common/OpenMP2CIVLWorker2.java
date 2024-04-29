@@ -1047,7 +1047,7 @@ public class OpenMP2CIVLWorker2 extends BaseWorker {
 		type.setInputQualified(true);
 		return nodeFactory.newVariableDeclarationNode(
 				newSource(srcMethod, CivlcTokenConstant.DECLARATION), //
-				ompSimdLaneMax, type);
+				ompSimdLaneMax, type, nodeExprInt(srcMethod, 4));
 	}
 
 	/**
