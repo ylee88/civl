@@ -345,6 +345,10 @@ public class DeclarationAnalyzer {
 			throw error("declaring variable " + name + " as void type", node);
 
 		Scope scope = identifier.getScope();
+		if (typeNode.isInputQualified() && scope.getScopeKind() != ScopeKind.FILE) {
+			throw error("$input variable " + name + " must be declared at file scope", node);
+		}
+		
 		LinkageKind linkage = computeLinkage(node, isParameter, type);
 		OrdinaryEntity entity = scope.getOrdinaryEntity(false, name);
 		boolean oldInScope = entity != null;
