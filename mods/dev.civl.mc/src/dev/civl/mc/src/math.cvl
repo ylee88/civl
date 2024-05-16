@@ -941,26 +941,24 @@ long double hypotl(long double x, long double y) {
  * A domain error or pole error may occur if x is zero and y is less than zero.
  */
 double pow(double x, double y) {
-   $assert(x != 0 || y > 0, 
-    "pow(double x, double y): "
-    "It's invalid that argument x is 0 "
-    "and y is no greater than 0.");
-  $assert(x >= 0 || (y==rint(y)), 
-    "pow(double x, double y): "
-    "It's invalid that argument x is infinite "
-    "and negative and y is not an integer value.");
+  $assert(x != 0 || y > 0, 
+	  "pow(double x, double y): "
+	  "It's invalid that argument x is 0 "
+	  "and y is not greater than 0.");
+  $assert(x >= 0 || (y==(double)(int)y), 
+	  "pow(double x, double y): "
+	  "argument x is negative and y is not an integer.");
   return $pow(x, y);
 }
 
 float powf(float x, float y) {
   $assert(x != 0 || y > 0, 
-    "powf(float x, float y): "
-    "It's invalid that argument x is 0 "
-    "and y is no greater than 0.");
-  $assert(x >= 0 || (y==rintf(y)), 
-    "powf(float x, float y): "
-    "It's invalid that argument x is infinite "
-    "and negative and y is not an integer value.");
+	  "powf(float x, float y): "
+	  "It's invalid that argument x is 0 "
+	  "and y is no greater than 0.");
+  $assert(x >= 0 || (y==(float)(int)y), 
+	  "powf(float x, float y): "
+	  "argument x is negative and y is not an integer.");
   return $pow(x, y);
 }
 
