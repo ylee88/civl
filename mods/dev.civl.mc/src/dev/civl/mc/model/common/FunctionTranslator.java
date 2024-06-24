@@ -2716,9 +2716,11 @@ public class FunctionTranslator {
 		if (contract != null) {
 			if (result.functionContract() != null) {
 				// TODO: eventually, find a way to combine contracts
+				/*
 				System.err
 						.println("Warning: ignoring new contract for function "
 								+ function.name());
+								*/
 			} else {
 				FunctionContractTranslator contractTranslator = new FunctionContractTranslator(
 						modelBuilder, modelFactory, typeFactory, result,
