@@ -1265,6 +1265,12 @@ public class UserInterface {
 				case CommandLine.RUN :
 					out.println("RUN a program randomly.");
 					out.println("\nUsage: civl run [options] filename+");
+					out.println();
+					printMpiSpecificInputs(out);
+					out.println();
+					printOpenMpSpecificInputs(out);
+					out.println();
+					printCudaSpecificInputs(out);
 					out.println("\nOptions:");
 					break;
 				case CommandLine.SHOW :
@@ -1281,6 +1287,12 @@ public class UserInterface {
 				case CommandLine.VERIFY :
 					out.println("VERIFY a certain program.");
 					out.println("\nUsage: civl verify [options] filename+");
+					out.println();
+					printMpiSpecificInputs(out);
+					out.println();
+					printOpenMpSpecificInputs(out);
+					out.println();
+					printCudaSpecificInputs(out);
 					out.println("\nOptions:");
 					break;
 				default :
@@ -1316,13 +1328,43 @@ public class UserInterface {
 				"  show   : show result of preprocessing and parsing filename(s)");
 		out.println("  verify : verify program filename");
 		out.println("  gui    : launch civl in gui mode (beta)");
+		out.println();
 		out.println("Options:");
 		for (Option option : definedOptions.values()) {
 			option.print(out);
 		}
+		out.println();
+		printMpiSpecificInputs(out);
+		out.println();
+		printOpenMpSpecificInputs(out);
+		out.println();
+		printCudaSpecificInputs(out);
+		out.println();
 		out.println("Type \'civl help command\' for usage and options");
 		out.println("for a particular command, e.g., \'civl help compare\'");
 		out.flush();
+	}
+	
+	private void printMpiSpecificInputs(PrintStream out) {
+		out.println("MPI Specific Inputs:");
+		out.println("  -input_mpi_nprocs=INTEGER (default: none)");
+		out.println("    sets the number of mpi processes");
+		out.println("  -input_mpi_nprocs_lo=INTEGER (default: none)");
+		out.println("    sets a lower bound for number of mpi processes");
+		out.println("  -input_mpi_nprocs_hi=INTEGER (default: none)");
+		out.println("    sets an upper bound for number of mpi processes");
+	}
+	
+	private void printOpenMpSpecificInputs(PrintStream out) {
+		out.println("OpenMP Specific Inputs:");
+		out.println("  -input_omp_thread_max=INTEGER (default: none)");
+		out.println("    caps the number of threads spawned by an OpenMP parallel region");
+	}
+	
+	private void printCudaSpecificInputs(PrintStream out) {
+		out.println("CUDA Specific Inputs:");
+		out.println("  -inputwarpSize=INTEGER (default: 32)");
+		out.println("    sets the number of threads in a CUDA warp");
 	}
 
 	/**
