@@ -1041,7 +1041,8 @@ void $cuda_run_and_wait_on_procs(dim3 dim, void spawningFunction(uint3)) {
 $message $cuda_free($message request) {
   void* devPtr;
   $message_unpack(request, &devPtr, sizeof(void*));
-  free($reveal(devPtr));
+  $reveal(&devPtr);
+  free(devPtr);
 
   return $message_pack($CUDA_PLACE_DEVICE, $CUDA_PLACE_HOST, $CUDA_TAG_cudaFree, NULL, 0);
 }
@@ -1053,10 +1054,10 @@ void $cuda_memcpy_proc($message m, $cuda_op_state_t opState, $cuda_stream_t stre
   $message_unpack(m, &args, sizeof($cuda_memcpy_data));
     
   if (args.kind == cudaMemcpyHostToDevice || cudaMemcpyDeviceToDevice) {
-    args.dst = $reveal(args.dst);
+    $reveal(&args.dst);
   }
   if (args.kind == cudaMemcpyDeviceToHost || cudaMemcpyDeviceToDevice) {
-    args.src = $reveal(args.src);
+    $reveal(&args.src);
   }
   memcpy(args.dst, args.src, args.count);
     

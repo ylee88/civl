@@ -401,8 +401,24 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 	private Evaluation executeReveal(State state, int pid, String process,
 			Expression[] arguments, SymbolicExpression[] argumentValues,
 			CIVLSource source) throws UnsatisfiablePathConditionException {
-		return new Evaluation(state,
-				(SymbolicExpression) revealObject(argumentValues[0]));
+		SymbolicExpression pointer = argumentValues[0];
+		Pair<BooleanExpression, ResultType> checkPointer = symbolicAnalyzer
+				.isDerefablePointer(state, pointer);
+
+		if (checkPointer.right != ResultType.YES)
+			state = this.errorLogger.logError(source, state, pid,
+					this.symbolicAnalyzer.stateInformation(state),
+					checkPointer.left, checkPointer.right,
+					CIVLProperty.MEMORY_MANAGE,
+					"can't call $reveal on a pointer that can't be dereferenced.\n"
+							+ "pointer: "
+							+ this.symbolicAnalyzer.symbolicExpressionToString(
+									source, state, null, pointer));
+		Evaluation eval = evaluator.dereference(source, state, pid, process,
+				pointer, false, true);
+
+		return new Evaluation(primaryExecutor.assign(source, eval.state, pid,
+				pointer, revealObject(eval.value)), null);
 	}
 
 	private SymbolicExpression revealObject(SymbolicExpression expr) {

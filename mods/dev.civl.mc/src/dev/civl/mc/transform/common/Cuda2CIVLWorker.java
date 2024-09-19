@@ -39,7 +39,6 @@ import dev.civl.abc.ast.node.IF.statement.StatementNode.StatementKind;
 import dev.civl.abc.ast.node.IF.type.ArrayTypeNode;
 import dev.civl.abc.ast.node.IF.type.EnumerationTypeNode;
 import dev.civl.abc.ast.node.IF.type.FunctionTypeNode;
-import dev.civl.abc.ast.node.IF.type.PointerTypeNode;
 import dev.civl.abc.ast.node.IF.type.TypeNode;
 import dev.civl.abc.ast.node.IF.type.TypeNode.TypeNodeKind;
 import dev.civl.abc.ast.type.IF.EnumerationType;
@@ -75,6 +74,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 	private static final String HOST_PLACE_NAME = "$CUDA_PLACE_HOST";
 	private static final String DEVICE_PLACE_NAME = "$CUDA_PLACE_DEVICE";
 	private static final String DEVICE_GLOB_CONTEXT_NAME = "$cuda_global_context";
+	private static final String HOST_MAIN = "$host_main";
 	private static final String CUDA_MAIN = "$cuda_main";
 	private EnumerationType cudaTagEnumType = null;
 
@@ -82,7 +82,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 	private Set<ExpressionStatementNode> kernelCalls = new HashSet<ExpressionStatementNode>();
 
 	private Map<String, Function> deviceFunctionMap = new HashMap<String, Function>();
-
+	
 	private int numSyncthreads = 0;
 
 	protected class KernelInfo {
@@ -166,14 +166,12 @@ public class Cuda2CIVLWorker extends BaseWorker {
 
 			for (VariableDeclarationNode formalDecl : generateFormalParameters(
 					entity.getName(), getDefinition().getTypeNode(), false)) {
-				if (formalDecl.getTypeNode() instanceof PointerTypeNode) {
-					ExpressionNode argNode = nodeExprArrow(srcMethod,
-							nodeExprId(srcMethod, "args"),
-							formalDecl.getName());
-					bodyList.add(
-							nodeStmtAssign(srcMethod, argNode, nodeExprCall(
-									srcMethod, "$reveal", argNode.copy())));
-				}
+				ExpressionNode argNode = nodeExprArrow(srcMethod,
+						nodeExprId(srcMethod, "args"),
+						formalDecl.getName());
+				
+				bodyList.add(nodeStmtCall(srcMethod, "$reveal", nodeExprOp(
+						srcMethod, OperatorNode.Operator.ADDRESSOF, argNode)));
 			}
 
 			return nodeDefnFunction(srcMethod, getArgRevealFunctionName(),
@@ -454,7 +452,6 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		executeKernelCallTransformations();
 
 		translateCudaMallocCalls(root);
-		createCudaMain(root);
 		if (!has_gen_mainFunction(root)) {
 			transformMainFunction(root);
 			createNewMainFunction(root);
@@ -1100,7 +1097,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		return finalExpression;
 	}
 
-	private void createCudaMain(SequenceNode<BlockItemNode> root) {
+	private FunctionDefinitionNode createCudaMain() {
 		String srcMethod = "createCudaMain";
 
 		List<BlockItemNode> cudaMainBody = new ArrayList<BlockItemNode>();
@@ -1108,9 +1105,9 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		createCudaMainGlobalVariables(cudaMainBody);
 		createDefaultStreamIfNullFunc(cudaMainBody);
 		createCudaMainWhileLoop(cudaMainBody);
-
-		root.addSequenceChild(nodeDefnFunction(srcMethod, CUDA_MAIN, voidType(),
-				Arrays.asList(), cudaMainBody));
+		
+		return nodeDefnFunction(srcMethod, CUDA_MAIN, voidType(),
+				Arrays.asList(), cudaMainBody);
 	}
 
 	private void createCudaMainGlobalVariables(List<BlockItemNode> body) {
@@ -1459,7 +1456,8 @@ public class Cuda2CIVLWorker extends BaseWorker {
 	 * @param root
 	 *            the root node of an Abstract Syntax Tree
 	 */
-	private void translateMainDefinition(ASTNode root) {
+	private void translateMainDefinition(SequenceNode<BlockItemNode> root) {
+		String srcMethod = "translateMainDefinition";
 		for (ASTNode child : root.children()) {
 			if (child == null)
 				continue;
@@ -1468,7 +1466,23 @@ public class Cuda2CIVLWorker extends BaseWorker {
 				FunctionDefinitionNode definition = (FunctionDefinitionNode) child;
 
 				if (definition.getName() != null
-						&& definition.getName().equals("main")) {
+						&& definition.getName().equals(GEN_MAIN)) {
+					FunctionDefinitionNode cudaDefinition = createCudaMain();
+					FunctionTypeNode cudaMainType = cudaDefinition.getTypeNode();
+					List<VariableDeclarationNode> cudaMainParams = new LinkedList<>();
+					for (VariableDeclarationNode param : cudaMainType.getParameters()) {
+						cudaMainParams.add(param.copy());
+					}
+					FunctionDeclarationNode cudaMainDecl = nodeDeclFunction(
+							srcMethod, cudaDefinition.getName(),
+							cudaMainType.getReturnType().copy(),
+							cudaMainParams);
+					FunctionDefinitionNode hostDefinition = definition.copy();
+					hostDefinition.setIdentifier(
+							nodeIdent(srcMethod, HOST_MAIN));
+					root.insertChildren(definition.childIndex(),
+							Arrays.asList(cudaMainDecl, hostDefinition));
+					root.addSequenceChild(cudaDefinition);
 					transformMainFunctionDefinition(definition);
 					return;
 				}
@@ -1484,18 +1498,23 @@ public class Cuda2CIVLWorker extends BaseWorker {
 	 * @param mainFunction
 	 *            the function definition node for the main function
 	 */
-	private void transformMainFunctionDefinition(
-			FunctionDefinitionNode mainFunction) {
+	private void transformMainFunctionDefinition(FunctionDefinitionNode mainFunction) {
 		String srcMethod = "transformMainFunctionDefinition";
 		String hostProcName = "$host_proc" + newTemporaryVariableName();
 		String deviceProcName = "$cuda_proc" + newTemporaryVariableName();
 		List<BlockItemNode> newBody = new LinkedList<BlockItemNode>();
 
+		List<ExpressionNode> hostParams = new LinkedList<>();
+		for (VariableDeclarationNode mainParam : mainFunction.getTypeNode()
+				.getParameters()) {
+			hostParams.add(nodeExprId(srcMethod, mainParam.getName()));
+		}
 		newBody.add(nodeDeclVarInit(srcMethod, hostProcName,
 				nodeTypeNamed(srcMethod, "$proc"),
 				nodeFactory.newSpawnNode(
 						newSource(srcMethod, CivlcTokenConstant.SPAWN),
-						nodeExprCall(srcMethod, GEN_MAIN))));
+						nodeExprCall(srcMethod, HOST_MAIN,
+								hostParams.toArray(new ExpressionNode[] {})))));
 		newBody.add(nodeDeclVarInit(srcMethod, deviceProcName,
 				nodeTypeNamed(srcMethod, "$proc"),
 				nodeFactory.newSpawnNode(

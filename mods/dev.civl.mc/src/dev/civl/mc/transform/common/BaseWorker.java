@@ -429,12 +429,6 @@ public abstract class BaseWorker {
 
 				if (funcDecl.getName().equals(MAIN)) {
 					funcDecl.getIdentifier().setName(GEN_MAIN);
-					// FunctionTypeNode funcType = funcDecl.getTypeNode();
-					//
-					// VariableDeclarationNode secondPara = funcType
-					// .getParameters().getSequenceChild(1);
-
-					// secondPara.getTypeNode().setConstQualified(true);
 				}
 			}
 			transformMainCall(child);
@@ -444,7 +438,6 @@ public abstract class BaseWorker {
 	protected void createNewMainFunction(SequenceNode<BlockItemNode> root) {
 		String srcMethod = "createNewMainFunction";
 		List<BlockItemNode> blockItems = new LinkedList<>();
-
 		blockItems.add(nodeStmtCall(srcMethod, GEN_MAIN));
 
 		FunctionDefinitionNode newMainFunction = nodeDefnFunction(srcMethod,
@@ -1153,6 +1146,11 @@ public abstract class BaseWorker {
 		return nodeFactory.newBasicTypeNode(
 				newSource(srcMethod, CivlcTokenConstant.INT),
 				BasicTypeKind.INT);
+	}
+	
+	protected TypeNode nodeTypeBasic(String srcMethod, BasicTypeKind typeKind) {
+		return nodeFactory.newBasicTypeNode(
+				newSource(srcMethod, CivlcTokenConstant.TYPE), typeKind);
 	}
 
 	/** @return named_type_def {@link TypeNode} w/ given <code>name</code> */

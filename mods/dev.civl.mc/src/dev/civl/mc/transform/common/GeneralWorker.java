@@ -84,9 +84,10 @@ public class GeneralWorker extends BaseWorker {
 	@SuppressWarnings("unused")
 	private static final String CIVL_SET_DEFAULT = "$set_default";
 	private int static_var_count = 0;
-	private String CIVL_argc_name;
-	private String CIVL_argv_name;
 	private Source mainSource;
+	
+	private final static String CIVL_ARGC_NAME = "_civl_argc";
+	private final static String CIVL_ARGV_NAME = "_civl_argv";
 	/**
 	 * static variable declaration nodes of this AST
 	 */
@@ -170,7 +171,7 @@ public class GeneralWorker extends BaseWorker {
 		// $input char _argv[_argc][];
 		for (VariableDeclarationNode inputVar : inputVars) {
 			newExternalList.add(inputVar);
-			if (inputVar.getName().equals(CIVL_argc_name)
+			if (inputVar.getName().equals(CIVL_ARGC_NAME)
 					&& argcAssumption != null) {
 				newExternalList.add(
 						assumeFunctionDeclaration(argcAssumption.getSource()));
@@ -362,53 +363,6 @@ public class GeneralWorker extends BaseWorker {
 		}
 	}
 
-	private ExpressionNode argv_value_node() throws SyntaxException {
-		TypeNode arrayOfCharPointer = nodeFactory.newArrayTypeNode(
-				this.newSource("new main function", CivlcTokenConstant.TYPE),
-				nodeFactory.newPointerTypeNode(
-						this.newSource("new main function",
-								CivlcTokenConstant.POINTER),
-						this.basicType(BasicTypeKind.CHAR)),
-				this.identifierExpression(CIVL_argc_name));
-		// ExpressionNode body =
-		// this.nodeFactory.newOperatorNode(this.newSource(
-		// "address of", CivlcTokenConstant.SUB), Operator.ADDRESSOF,
-		// this.nodeFactory.newOperatorNode(this.newSource("subscript",
-		// CivlcTokenConstant.SUB), Operator.SUBSCRIPT,
-		// this.nodeFactory.newOperatorNode(this.newSource(
-		// "subscript", CivlcTokenConstant.SUB),
-		// Operator.SUBSCRIPT, this
-		// .identifierExpression(CIVL_argv_name),
-		// this.identifierExpression("i")), this
-		// .integerConstant(0)));
-
-		ExpressionNode body = this.nodeFactory.newOperatorNode(
-				this.newSource("subscript", CivlcTokenConstant.SUB),
-				Operator.SUBSCRIPT, this.identifierExpression(CIVL_argv_name),
-				this.identifierExpression("i"));
-
-		ArrayLambdaNode arrayLambda = this.nodeFactory
-				.newArrayLambdaNode(
-						this.newSource(
-								"array lambda", CivlcTokenConstant.LAMBDA),
-						arrayOfCharPointer,
-						Arrays.asList(this.variableDeclaration("i",
-								this.basicType(BasicTypeKind.INT))),
-						null, body);
-
-		// ExpressionNode addressOf_argv0 = nodeFactory.newOperatorNode(this
-		// .newSource("new main function", CivlcTokenConstant.OPERATOR),
-		// Operator.SUBSCRIPT, Arrays.asList(arrayLambda, nodeFactory
-		// .newIntegerConstantNode(this.newSource(
-		// "new main function",
-		// CivlcTokenConstant.INTEGER_CONSTANT), "0")));
-		// addressOf_argv0 = nodeFactory.newOperatorNode(this.newSource(
-		// "new main function", CivlcTokenConstant.OPERATOR),
-		// Operator.ADDRESSOF, Arrays.asList(addressOf_argv0));
-
-		return arrayLambda;
-	}
-
 	// private VariableDeclarationNode create_argv_tmp() throws SyntaxException
 	// {
 	// TypeNode arrayOfCharPointer = nodeFactory.newArrayTypeNode(this
@@ -485,7 +439,7 @@ public class GeneralWorker extends BaseWorker {
 		callMain = nodeFactory.newFunctionCallNode(
 				this.newSource("new main function", CivlcTokenConstant.CALL),
 				this.identifierExpression(GEN_MAIN),
-				Arrays.asList(this.identifierExpression(CIVL_argc_name),
+				Arrays.asList(this.identifierExpression(CIVL_ARGC_NAME),
 						argv_value_node()),
 				null);
 		blockItems.add(nodeFactory.newExpressionStatementNode(callMain));
@@ -501,6 +455,32 @@ public class GeneralWorker extends BaseWorker {
 		return nodeFactory.newFunctionDefinitionNode(this.mainSource,
 				this.identifier(MAIN), mainFuncType, null,
 				nodeFactory.newCompoundStatementNode(mainSource, blockItems));
+	}
+	
+	private ExpressionNode argv_value_node() {
+		TypeNode arrayOfCharPointer = nodeFactory.newArrayTypeNode(
+				this.newSource("new main function", CivlcTokenConstant.TYPE),
+				nodeFactory.newPointerTypeNode(
+						this.newSource("new main function",
+								CivlcTokenConstant.POINTER),
+						this.basicType(BasicTypeKind.CHAR)),
+				this.identifierExpression(CIVL_ARGC_NAME));
+
+		ExpressionNode body = this.nodeFactory.newOperatorNode(
+				this.newSource("subscript", CivlcTokenConstant.SUB),
+				Operator.SUBSCRIPT, this.identifierExpression(CIVL_ARGV_NAME),
+				this.identifierExpression("i"));
+
+		ArrayLambdaNode arrayLambda = this.nodeFactory
+				.newArrayLambdaNode(
+						this.newSource(
+								"array lambda", CivlcTokenConstant.LAMBDA),
+						arrayOfCharPointer,
+						Arrays.asList(this.variableDeclaration("i",
+								this.basicType(BasicTypeKind.INT))),
+						null, body);
+
+		return arrayLambda;
 	}
 
 	private VariableDeclarationNode generalRootScopeNode() {
@@ -786,18 +766,13 @@ public class GeneralWorker extends BaseWorker {
 			VariableDeclarationNode argv = parameters.getSequenceChild(1);
 			VariableDeclarationNode CIVL_argc = argc.copy();
 			VariableDeclarationNode CIVL_argv;
-			String argcName = argc.getIdentifier().name();
-			String argvName = argv.getIdentifier().name();
-
-			this.CIVL_argc_name = identifierPrefix + argcName;
-			this.CIVL_argv_name = identifierPrefix + argvName;
 			CIVL_argc.getTypeNode().setInputQualified(true);
-			CIVL_argc.getIdentifier().setName(this.CIVL_argc_name);
+			CIVL_argc.getIdentifier().setName(CIVL_ARGC_NAME);
 			inputVars.add(CIVL_argc);
-			CIVL_argv = inputArgvDeclaration(argv, CIVL_argv_name);
+			CIVL_argv = inputArgvDeclaration(argv, CIVL_ARGV_NAME);
 			inputVars.add(CIVL_argv);
 			this.argcAssumption = this.argcAssumption(argc.getSource(),
-					this.CIVL_argc_name);
+					CIVL_ARGC_NAME);
 		} else if (count == 2) {
 			functionType.setParameters(this.nodeFactory.newSequenceNode(
 					parameters.getSource(), "Formal Parameter List",
@@ -821,7 +796,7 @@ public class GeneralWorker extends BaseWorker {
 		TypeNode arrayOfString = nodeFactory.newArrayTypeNode(source,
 				nodeFactory.newArrayTypeNode(oldArgv.getSource(),
 						this.basicType(BasicTypeKind.CHAR), null),
-				this.identifierExpression(CIVL_argc_name));
+				this.identifierExpression(CIVL_ARGC_NAME));
 
 		__argv.getIdentifier().setName(argvNewName);
 		arrayOfString.setInputQualified(true);

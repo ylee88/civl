@@ -112,6 +112,7 @@ cudaError_t cudaMemcpyAsync(void* dst, const void* src, size_t count,
  * with the constant byte value value
  */
 cudaError_t cudaMemset(void * devPtr, int value, size_t count) {
+  $reveal(&devPtr);
   memset(devPtr, value, count);
   return cudaSuccess;
 }
