@@ -2790,16 +2790,6 @@ public class ASTPrettyPrinter {
 		String varName = variable.getName();
 
 		result.append(prefix);
-		if (typeNode.isInputQualified())
-			result.append("$input ");
-		if (typeNode.isOutputQualified())
-			result.append("$output ");
-		if (typeNode.isAtomicQualified())
-			result.append("_Atomic ");
-		if (typeNode.isConstQualified())
-			result.append("const ");
-		if (typeNode.isVolatileQualified())
-			result.append("volatile ");
 		if (variable.hasExternStorage())
 			result.append("extern ");
 		if (variable.hasAutoStorage())
@@ -3749,6 +3739,16 @@ public class ASTPrettyPrinter {
 		TypeNodeKind kind = type.kind();
 
 		result.append(prefix);
+		
+		if (type.isInputQualified())
+			result.append("$input ");
+		if (type.isOutputQualified())
+			result.append("$output ");
+		if (type.isAtomicQualified())
+			result.append("_Atomic ");
+		if (type.isVolatileQualified())
+			result.append("volatile ");
+		
 		switch (kind) {
 			case ARRAY : {
 				ArrayTypeNode arrayType = (ArrayTypeNode) type;
@@ -3808,8 +3808,9 @@ public class ASTPrettyPrinter {
 						isTypeDeclaration, maxLength);
 			}
 			case POINTER :
+				PointerTypeNode ptrType = ((PointerTypeNode) type);
 				result.append(type2Pretty("",
-						((PointerTypeNode) type).referencedType(),
+						ptrType.referencedType(),
 						isTypeDeclaration, maxLength));
 				result.append("*");
 				break;
@@ -3857,6 +3858,10 @@ public class ASTPrettyPrinter {
 				throw new ABCUnsupportedException(
 						"pretty print of type node of " + kind + " kind");
 		}
+		
+		if (type.isConstQualified())
+			result.append(" const");
+		
 		return trimStringBuffer(result, maxLength);
 	}
 

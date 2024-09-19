@@ -150,6 +150,10 @@ public class Cuda2CIVLWorker extends BaseWorker {
 				fieldList.add(nodeDeclField(srcMethod, param.getName(),
 						param.getTypeNode().copy()));
 			}
+			
+			for (FieldDeclarationNode field : fieldList) {
+				field.getTypeNode().setConstQualified(false);
+			}
 
 			return nodeTypeDefStruct(srcMethod, getParamStructName(),
 					fieldList);
@@ -166,12 +170,15 @@ public class Cuda2CIVLWorker extends BaseWorker {
 
 			for (VariableDeclarationNode formalDecl : generateFormalParameters(
 					entity.getName(), getDefinition().getTypeNode(), false)) {
-				ExpressionNode argNode = nodeExprArrow(srcMethod,
+				ExpressionNode argNode = nodeExprOp(
+						srcMethod, OperatorNode.Operator.ADDRESSOF, nodeExprArrow(srcMethod,
 						nodeExprId(srcMethod, "args"),
-						formalDecl.getName());
-				
-				bodyList.add(nodeStmtCall(srcMethod, "$reveal", nodeExprOp(
-						srcMethod, OperatorNode.Operator.ADDRESSOF, argNode)));
+						formalDecl.getName()));
+
+				bodyList.add(nodeStmtCall(srcMethod, "$reveal",
+						nodeExprCast(srcMethod,
+								nodeTypePointer(srcMethod, voidType()),
+								argNode)));
 			}
 
 			return nodeDefnFunction(srcMethod, getArgRevealFunctionName(),
@@ -461,7 +468,7 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		// translateKernelDeclarations(root);
 		AST newAST = astFactory.newAST(root, ast.getSourceFiles(),
 				ast.isWholeProgram());
-		// newAST.prettyPrint(System.out, false);
+		//newAST.prettyPrint(System.out, false);
 		return newAST;
 	}
 

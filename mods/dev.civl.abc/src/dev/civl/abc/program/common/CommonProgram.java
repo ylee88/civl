@@ -58,6 +58,7 @@ public class CommonProgram implements Program {
 	public void apply(Transformer transformer) throws SyntaxException {
 		ast = transformer.transform(ast);
 		standardAnalyzer.clear(ast);
+		//ast.prettyPrint(System.out, false);
 		standardAnalyzer.analyze(ast);
 	}
 
