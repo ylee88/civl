@@ -1,9 +1,8 @@
+#ifndef _COMPLEX_
+#define _COMPLEX_  
 /* The header complex.h defines macros and declares functions that support complex
  * arithmetic.
  */
-
-#ifndef _COMPLEX_
-#define _COMPLEX_  
 
 /* Macros */
 #define _Complex   
@@ -13,12 +12,12 @@
 #define imaginary _Imaginary
 #define _Imaginary_I ((const float _Imaginary)0)
 #ifdef _Imaginary_I
- #define I _Imaginary_I
+#define I _Imaginary_I
 #else
- #define I _Complex_I 
+#define I _Complex_I 
 #endif
 
-/* Funciton */
+/* Functions */
 double               cabs(double complex);
 float                cabsf(float complex);
 long double          cabsl(long double complex);
