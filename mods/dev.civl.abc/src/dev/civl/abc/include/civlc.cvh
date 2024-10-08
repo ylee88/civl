@@ -285,6 +285,13 @@ $system $state_f void * $array_base_address_of(const void *ptr);
   @*/
 $system void $yield();
 
+/*@ depends_on \nothing;
+  @ executes_when \true;
+  @*/
+$system void $print_helper(const char * dummy, ...);
+
+#define $print(...) $print_helper("", __VA_ARGS__)
+
 #endif
 
 

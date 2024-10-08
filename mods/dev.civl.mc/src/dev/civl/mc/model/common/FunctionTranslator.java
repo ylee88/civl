@@ -359,6 +359,7 @@ public class FunctionTranslator {
 	 *                                 in the rootNode's children.
 	 */
 	public void translateRootFunction(Scope systemScope, ASTNode rootNode) {
+		
 		Fragment initialization = new CommonFragment();
 		Fragment body;
 
@@ -2483,10 +2484,14 @@ public class FunctionTranslator {
 		CIVLType[] types = null;
 		int typesLen = 0;
 		int numOfArgs = functionCallNode.getNumberOfArguments();
+		// For $print_helper we do not apply conversions to arguments
+		boolean isPrintHelper = false;
 
-		if (functionExpression instanceof IdentifierExpressionNode)
+		if (functionExpression instanceof IdentifierExpressionNode) {
 			civlFunction = getFunction(
 					(IdentifierExpressionNode) functionExpression).right;
+			isPrintHelper = civlFunction.name().name().equals("$print_helper");
+		}
 		if (civlFunction != null) {
 			// for $local_start or $local_end functions, translate them to
 			// ATOMIC_ENTER and ATOMIC_END
@@ -2499,7 +2504,7 @@ public class FunctionTranslator {
 		}
 		for (int i = 0; i < numOfArgs; i++) {
 			Expression actual = translateExpressionNode(
-					functionCallNode.getArgument(i), scope, true);
+					functionCallNode.getArgument(i), scope, i == 0 || !isPrintHelper);
 
 			/*
 			 * for each actual argument of a function call, if the formal type
@@ -2512,7 +2517,9 @@ public class FunctionTranslator {
 					actual = modelFactory.castExpression(actual.getSource(),
 							typeFactory.integerType(), actual);
 			}
-			actual = arrayToPointer(actual);
+			if (i == 0 || !isPrintHelper) {
+				actual = arrayToPointer(actual);
+			}
 			arguments.add(actual);
 		}
 		location = modelFactory.location(

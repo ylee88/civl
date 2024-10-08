@@ -131,6 +131,12 @@ public class ExpressionAnalyzer {
 	 */
 	static final String REMOTE_EXPR = "\\on";
 
+	/**
+	 * Function used for $print. Don't want to add array conversions
+	 * to this function's arguments.
+	 */
+	static final String PRINT_FUNCTION_NAME = "$print_helper";
+	
 	// ***************************** Fields *******************************
 
 	private EntityAnalyzer entityAnalyzer;
@@ -899,7 +905,11 @@ public class ExpressionAnalyzer {
 			ExpressionNode argument = node.getArgument(i);
 
 			processExpression(argument);
-			addStandardConversions(argument);
+			if (i == 0 || !functionName.equals(PRINT_FUNCTION_NAME))
+				addStandardConversions(argument);
+			else {
+				int x = 0;
+			}
 			if ((functionType != null && functionType.parametersKnown()
 					&& (!hasVariableNumArgs || i < expectedNumArgs))
 					|| isSpecialFunction) {
@@ -2636,7 +2646,6 @@ public class ExpressionAnalyzer {
 				&& isArrayType((ObjectType) oldType)) {
 			Conversion conversion = conversionFactory
 					.arrayConversion((ObjectType) oldType);
-
 			node.addConversion(conversion);
 		}
 	}
