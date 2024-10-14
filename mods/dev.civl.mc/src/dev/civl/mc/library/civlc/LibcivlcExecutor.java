@@ -17,6 +17,7 @@ import dev.civl.mc.model.IF.expression.Expression;
 import dev.civl.mc.model.IF.expression.LHSExpression;
 import dev.civl.mc.model.IF.location.Location;
 import dev.civl.mc.model.IF.statement.CallOrSpawnStatement;
+import dev.civl.mc.model.IF.type.CIVLArrayType;
 import dev.civl.mc.model.IF.type.CIVLPointerType;
 import dev.civl.mc.model.IF.type.CIVLType;
 import dev.civl.mc.model.IF.variable.Variable;
@@ -300,6 +301,10 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 				state = concreteString.first;
 				if (!civlConfig.isQuiet())
 					out.print(concreteString.second);
+			} else if (argumentValue.operator() == SymbolicOperator.ARRAY
+					&& ((CIVLArrayType)argumentType).elementType().isCharType()) {
+				out.print(symbolicUtil.charArrayToString(
+						arguments[i].getSource(), argumentValue, 0, true));
 			} else if (!civlConfig.isQuiet())
 				out.print(this.symbolicAnalyzer
 						.symbolicExpressionToString(arguments[i].getSource(),
