@@ -304,7 +304,7 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 			} else if (argumentValue.operator() == SymbolicOperator.ARRAY
 					&& ((CIVLArrayType)argumentType).elementType().isCharType()) {
 				out.print(symbolicUtil.charArrayToString(
-						arguments[i].getSource(), argumentValue, 0, true));
+						arguments[i].getSource(), argumentValue, 0, false));
 			} else if (!civlConfig.isQuiet())
 				out.print(this.symbolicAnalyzer
 						.symbolicExpressionToString(arguments[i].getSource(),
