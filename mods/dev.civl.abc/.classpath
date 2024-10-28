@@ -16,7 +16,7 @@
 			<attribute name="module" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="var" path="VSL/mods/antlr3/antlr3runtime.jar">
+	<classpathentry kind="var" path="VSL/mods/antlr3/antlr3runtime.jar" sourcepath="/VSL/src/antlr-runtime-3.5.2-sources.jar">
 		<attributes>
 			<attribute name="module" value="true"/>
 		</attributes>

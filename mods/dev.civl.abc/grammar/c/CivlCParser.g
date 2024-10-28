@@ -135,6 +135,9 @@ import dev.civl.abc.front.IF.RuntimeParseException;
 			Symbols_stack.add(mySymbols);
 		}
 	}
+	
+	@Override
+	public String getSourceName() { return null; }
 
 	@Override
 	public void displayRecognitionError(String[] tokenNames, RecognitionException e) {

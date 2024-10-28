@@ -1,8 +1,6 @@
 package dev.civl.mc.library.civlc;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.List;
 
 import dev.civl.mc.config.IF.CIVLConfiguration;
 import dev.civl.mc.dynamic.IF.SymbolicUtility;
@@ -11,7 +9,6 @@ import dev.civl.mc.library.common.BaseLibraryExecutor;
 import dev.civl.mc.model.IF.CIVLInternalException;
 import dev.civl.mc.model.IF.CIVLProperty;
 import dev.civl.mc.model.IF.CIVLSource;
-import dev.civl.mc.model.IF.CIVLSyntaxException;
 import dev.civl.mc.model.IF.ModelFactory;
 import dev.civl.mc.model.IF.expression.Expression;
 import dev.civl.mc.model.IF.expression.LHSExpression;
@@ -24,14 +21,12 @@ import dev.civl.mc.model.IF.variable.Variable;
 import dev.civl.mc.semantics.IF.Evaluation;
 import dev.civl.mc.semantics.IF.Evaluator;
 import dev.civl.mc.semantics.IF.Executor;
-import dev.civl.mc.semantics.IF.Format;
 import dev.civl.mc.semantics.IF.LibraryEvaluatorLoader;
 import dev.civl.mc.semantics.IF.LibraryExecutor;
 import dev.civl.mc.semantics.IF.LibraryExecutorLoader;
 import dev.civl.mc.semantics.IF.Semantics;
 import dev.civl.mc.semantics.IF.SymbolicAnalyzer;
 import dev.civl.mc.semantics.IF.TypeEvaluation;
-import dev.civl.mc.semantics.IF.Format.ConversionType;
 import dev.civl.mc.semantics.common.ReservedLogicFunctionCallEvaluator;
 import dev.civl.mc.state.IF.DynamicScope;
 import dev.civl.mc.state.IF.State;
