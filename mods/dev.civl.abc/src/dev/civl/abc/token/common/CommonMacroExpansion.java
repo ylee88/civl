@@ -59,7 +59,7 @@ public class CommonMacroExpansion implements MacroExpansion {
 
 	@Override
 	public SourceFile getLastFile() {
-		return startToken.getSourceFile();
+		return macro.getFile();
 	}
 
 }

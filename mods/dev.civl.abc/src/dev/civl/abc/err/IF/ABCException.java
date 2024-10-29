@@ -35,7 +35,7 @@ public class ABCException extends Exception {
 		String result = "Error: " + getMessage();
 
 		if (location != null)
-			result += "\nat " + location;
+			result += "\nInput: " + location;
 		return result;
 	}
 

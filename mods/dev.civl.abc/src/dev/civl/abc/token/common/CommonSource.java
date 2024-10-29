@@ -67,8 +67,10 @@ public class CommonSource implements Source {
 
 	@Override
 	public String getSummary(boolean abbreviated, boolean isException) {
-		return TokenUtils.summarizeRange(firstToken, lastToken, abbreviated,
+		/*return TokenUtils.summarizeRange(firstToken, lastToken, abbreviated,
 				isException);
+				*/
+		return TokenUtils.rangeToString(firstToken, lastToken);
 	}
 
 	@Override

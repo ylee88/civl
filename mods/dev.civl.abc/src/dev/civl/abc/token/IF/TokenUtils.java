@@ -203,6 +203,50 @@ public class TokenUtils {
 		}
 		return result;
 	}
+	
+	public static String rangeToString(CivlcToken first, CivlcToken last) {
+		StringBuffer buf = new StringBuffer();
+		int firstIndex = first.getIndex();
+		int lastIndex = last.getIndex();
+		assert (firstIndex >= 0 && lastIndex >= 0);
+		if (firstIndex > lastIndex) return "";
+		
+		CivlcToken token = first;
+		for (int i = firstIndex; i <= lastIndex; i++) {
+			assert(token != null);
+			
+			buf.append(token.getText());
+			//if (i < lastIndex) buf.append(" ");
+			
+			token = token.getNext();
+		}
+		
+		token = first;
+		buf.append("\nFrom ");
+		boolean empty = true;
+		for (int i = firstIndex; i <= lastIndex; i++) {
+			if (token.getChannel() != Token.HIDDEN_CHANNEL) {
+				if (empty) 
+					empty = false;
+				else
+					buf.append(",\n");
+
+				Formation form = token.getFormation();
+				// buf.append(token.getText());
+				int col0 = token.getCharPositionInLine();
+				int col1 = col0 + token.getText().length() - 1;
+				buf.append(token.getSourceFile().getName() + ": "
+						+ token.getLine() + ":" + col0 + "-" + col1);
+				if (form != null) {
+					buf.append(form.suffix());
+				}
+			}
+			token = token.getNext();
+		}
+		buf.append("\n");
+		
+		return buf.toString();
+	}
 
 	/**
 	 * A utility function to return the text of a token surrounded by double
