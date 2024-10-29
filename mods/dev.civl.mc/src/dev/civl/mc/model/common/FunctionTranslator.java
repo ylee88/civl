@@ -2490,7 +2490,8 @@ public class FunctionTranslator {
 		if (functionExpression instanceof IdentifierExpressionNode) {
 			civlFunction = getFunction(
 					(IdentifierExpressionNode) functionExpression).right;
-			isPrintHelper = civlFunction.name().name().equals("$print_helper");
+			isPrintHelper = civlFunction != null && 
+					civlFunction.name().name().equals("$print_helper");
 		}
 		if (civlFunction != null) {
 			// for $local_start or $local_end functions, translate them to
