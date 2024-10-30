@@ -907,9 +907,7 @@ public class ExpressionAnalyzer {
 			processExpression(argument);
 			if (i == 0 || !functionName.equals(PRINT_FUNCTION_NAME))
 				addStandardConversions(argument);
-			else {
-				int x = 0;
-			}
+			
 			if ((functionType != null && functionType.parametersKnown()
 					&& (!hasVariableNumArgs || i < expectedNumArgs))
 					|| isSpecialFunction) {
