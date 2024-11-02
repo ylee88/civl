@@ -25,11 +25,22 @@ public interface Formation {
 	String suffix();
 
 	/**
-	 * In the sequence of files that led, through inclusion, to the creation of
-	 * the token, this returns the last file. Hence it is the file that is
-	 * closest to the final token.
+	 * In the sequence of files that led, through inclusions and macro
+	 * expansions, to the creation of the token, this returns the last file. The
+	 * last file should be the file that contains the actual sequence of
+	 * characters that comprise the text of the token.
 	 * 
-	 * @return last file in inclusion sequence
+	 * I.e., if F1 includes F2, and F2 includes F3, ..., and Fn-1 includes Fn,
+	 * this returns Fn. Hence it is the file that is closest to the final token.
+	 * For a macro expansion, the last file is the file of the macro definition
+	 * (if the token is from the macro definition replacement list) or the file
+	 * of the macro invocation (if the macro is a function macro and the token
+	 * originates in an argument to the macro invocation).
+	 * 
+	 * TODO: define last file for concatenation, stringification, and other
+	 * formations.
+	 * 
+	 * @return last file in inclusion/expansion sequence
 	 */
 	SourceFile getLastFile();
 }

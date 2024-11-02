@@ -58,4 +58,28 @@ public class CommonStringification implements Stringification {
 				+ "]";
 	}
 
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!(obj instanceof CommonStringification))
+			return false;
+		CommonStringification that = (CommonStringification) obj;
+		if (macro == null) {
+			if (that.macro != null)
+				return false;
+		} else if (!macro.equals(that.macro))
+			return false;
+		if (index != that.index)
+			return false;
+		if (argument == null) {
+			if (that.argument != null)
+				return false;
+		} else {
+			if (!argument.equals(that.argument))
+				return false;
+		}
+		return true;
+	}
+
 }

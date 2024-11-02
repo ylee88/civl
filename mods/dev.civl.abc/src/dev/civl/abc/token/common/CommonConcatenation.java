@@ -41,4 +41,14 @@ public class CommonConcatenation implements Concatenation {
 		return constituents.get(index);
 	}
 
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!(obj instanceof CommonConcatenation))
+			return false;
+		CommonConcatenation that = (CommonConcatenation) obj;
+		return constituents.equals(that.constituents);
+	}
+
 }

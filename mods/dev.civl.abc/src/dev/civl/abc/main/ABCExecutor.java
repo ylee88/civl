@@ -71,11 +71,12 @@ public class ABCExecutor {
 	 * then returns that executor.
 	 * 
 	 * @param task
-	 *            the translation task
+	 *                 the translation task
 	 * @return the {@link ABCExecutor} used to execute that task
 	 * @throws ABCException
-	 *             if any preprocessing, parsing, syntax or semantic errors are
-	 *             found in the process of carrying out the translation task
+	 *                          if any preprocessing, parsing, syntax or
+	 *                          semantic errors are found in the process of
+	 *                          carrying out the translation task
 	 */
 	public final static ABCExecutor execute(TranslationTask task)
 			throws ABCException {
@@ -90,16 +91,17 @@ public class ABCExecutor {
 	 * front end; executes the task; and returns that executor
 	 * 
 	 * @param frontEnd
-	 *            the front end that will be used to carry out the translation
-	 *            task steps
+	 *                     the front end that will be used to carry out the
+	 *                     translation task steps
 	 * @param task
-	 *            the translation task
+	 *                     the translation task
 	 * @return the {@link ABCExecutor} created and used to execute the task
 	 * @throws ABCException
-	 *             if any preprocessing, parsing, syntax or semantic errors are
-	 *             found in the process of carrying out the translation task, or
-	 *             if <code>frontEnd</code> is incompatible with
-	 *             <code>task</code>
+	 *                          if any preprocessing, parsing, syntax or
+	 *                          semantic errors are found in the process of
+	 *                          carrying out the translation task, or if
+	 *                          <code>frontEnd</code> is incompatible with
+	 *                          <code>task</code>
 	 */
 	public final static ABCExecutor execute(FrontEnd frontEnd,
 			TranslationTask task) throws ABCException {
@@ -114,15 +116,15 @@ public class ABCExecutor {
 	 * that uses the given <code>frontEnd</code>.
 	 * 
 	 * @param frontEnd
-	 *            an existing front end that will be (re-)used by the new
-	 *            executor to perform all translation tasks
+	 *                     an existing front end that will be (re-)used by the
+	 *                     new executor to perform all translation tasks
 	 * @param task
-	 *            the translation task to be executed
+	 *                     the translation task to be executed
 	 * @return the new executor
 	 * @throws ABCException
-	 *             if <code>task</code> is incompatible with
-	 *             <code>frontEnd</code> due to differing values on SVCOMP or
-	 *             Architecture fields.
+	 *                          if <code>task</code> is incompatible with
+	 *                          <code>frontEnd</code> due to differing values on
+	 *                          SVCOMP or Architecture fields.
 	 */
 	public final static ABCExecutor newExecutor(FrontEnd frontEnd,
 			TranslationTask task) throws ABCException {
@@ -155,8 +157,8 @@ public class ABCExecutor {
 	 * translation unit.
 	 * 
 	 * @param sourceUnit
-	 *            sequence of files which will be preprocessed to create a
-	 *            single translation unit
+	 *                       sequence of files which will be preprocessed to
+	 *                       create a single translation unit
 	 * @return a name for the sequence of files derived from their file names
 	 */
 	private final static String getName(File[] sourceUnit) {
@@ -175,7 +177,7 @@ public class ABCExecutor {
 	 * Prints file scope functions that are used but not defined.
 	 * 
 	 * @param program
-	 *            a non-<code>null</code> {@link Program}
+	 *                    a non-<code>null</code> {@link Program}
 	 */
 	private final static void printUnknownFunctions(PrintStream out,
 			Program program) {
@@ -326,9 +328,10 @@ public class ABCExecutor {
 	 * </p>
 	 * 
 	 * @param frontEnd
-	 *            the front end that will be used by the new executor
+	 *                     the front end that will be used by the new executor
 	 * @param task
-	 *            the task that the new executor will be asked to perform
+	 *                     the task that the new executor will be asked to
+	 *                     perform
 	 */
 	private ABCExecutor(FrontEnd frontEnd, TranslationTask task) {
 		this.frontEnd = frontEnd;
@@ -345,7 +348,7 @@ public class ABCExecutor {
 	 * {@link FileIndexer} is created.
 	 * 
 	 * @param task
-	 *            a translation task to execute
+	 *                 a translation task to execute
 	 */
 	public ABCExecutor(TranslationTask task) {
 		this.configuration = Configurations.newMinimalConfiguration();
@@ -365,10 +368,10 @@ public class ABCExecutor {
 	 * {@link #execute()}.
 	 * 
 	 * @param task
-	 *            a translation task to execute
+	 *                        a translation task to execute
 	 * @param fileIndexer
-	 *            an existing non-{@code null} {@link FileIndexer} to use for
-	 *            keeping track of all openened files
+	 *                        an existing non-{@code null} {@link FileIndexer}
+	 *                        to use for keeping track of all openened files
 	 */
 	public ABCExecutor(TranslationTask task, FileIndexer fileIndexer) {
 		this.configuration = Configurations.newMinimalConfiguration();
@@ -386,9 +389,9 @@ public class ABCExecutor {
 	 * Adds <code>n</code> <code>null</code> values to <code>vec</code>.
 	 * 
 	 * @param n
-	 *            nonnegative integer
+	 *                nonnegative integer
 	 * @param vec
-	 *            any array list
+	 *                any array list
 	 */
 	private static <T> void addNulls(int n, ArrayList<T> vec) {
 		for (int i = 0; i < n; i++)
@@ -400,7 +403,7 @@ public class ABCExecutor {
 	 * {@link #tokenSources}, {@link #parseTrees}, and {@link #asts}.
 	 * 
 	 * @param n
-	 *            a nonnegative integer
+	 *              a nonnegative integer
 	 */
 	private void addNulls(int n) {
 		addNulls(n, tokenSources);
@@ -412,8 +415,8 @@ public class ABCExecutor {
 	 * Initializes internal data structures. To be used by constructors.
 	 * 
 	 * @param task
-	 *            the translation task that was used as the argument to one of
-	 *            the constructors
+	 *                 the translation task that was used as the argument to one
+	 *                 of the constructors
 	 */
 	private void initialize(TranslationTask task) {
 		this.task = task;
@@ -463,7 +466,7 @@ public class ABCExecutor {
 	 * and the two ASTs are available.
 	 * 
 	 * @throws ABCException
-	 *             if {@link #numUnits} is not exactly 2
+	 *                          if {@link #numUnits} is not exactly 2
 	 */
 	private void executeComparison() throws ABCException {
 		assert task.getShowDiff();
@@ -490,11 +493,12 @@ public class ABCExecutor {
 	 * Executes a single unit task.
 	 * 
 	 * @param index
-	 *            the index of the unit task in the array of unit tasks
-	 *            associated to this task
+	 *                  the index of the unit task in the array of unit tasks
+	 *                  associated to this task
 	 * @throws ABCException
-	 *             if any I/O, syntax, or semantic problem arises in processing
-	 *             the translation unit as specified in the unit task
+	 *                          if any I/O, syntax, or semantic problem arises
+	 *                          in processing the translation unit as specified
+	 *                          in the unit task
 	 */
 	private void executeUnit(int index) throws ABCException {
 		TranslationStage stage = task.getStage();
@@ -553,7 +557,8 @@ public class ABCExecutor {
 						out.print(" ");
 					else {
 						if (task.getPreprocTokens()) {
-							out.println(token);
+							out.print(token);
+							out.println();
 						} else {
 							out.print(token.getText());
 						}
@@ -636,8 +641,9 @@ public class ABCExecutor {
 	 * Executes the complete translation task.
 	 * 
 	 * @throws ABCException
-	 *             if there are any problems with preprocessing or parsing, or
-	 *             syntax or semantics violations in the source code
+	 *                          if there are any problems with preprocessing or
+	 *                          parsing, or syntax or semantics violations in
+	 *                          the source code
 	 */
 	public void execute() throws ABCException {
 		while (numUnitTasksDone < numUnits) {
@@ -720,7 +726,7 @@ public class ABCExecutor {
 	 * extends beyond preprocessing only.
 	 * 
 	 * @param index
-	 *            the index of the unit task
+	 *                  the index of the unit task
 	 * @return the preprocessing output token source for that translation unit
 	 */
 	public CivlcTokenSource getTokenSource(int index) {
@@ -732,7 +738,7 @@ public class ABCExecutor {
 	 * <code>null</code> if the task did not involve creating the parse tree.
 	 * 
 	 * @param index
-	 *            the index of the unit task
+	 *                  the index of the unit task
 	 * @return the parse tree for the <code>index</code>-th translation unit
 	 */
 	public ParseTree getParseTree(int index) {
@@ -744,7 +750,7 @@ public class ABCExecutor {
 	 * <code>null</code> if the task did not involve AST construction.
 	 * 
 	 * @param index
-	 *            the index of the unit task
+	 *                  the index of the unit task
 	 * @return the AST for the <code>index</code>-th translation unit
 	 */
 	public AST getAST(int index) {
@@ -785,7 +791,7 @@ public class ABCExecutor {
 	 * {@link #getNumUnitTasks()} - 1.
 	 * 
 	 * @param index
-	 *            index of unit task
+	 *                  index of unit task
 	 * @return that unit task
 	 */
 	public UnitTask getUnitTask(int index) {

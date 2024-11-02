@@ -7,6 +7,7 @@ import org.antlr.runtime.Token;
 import dev.civl.abc.token.IF.CivlcToken;
 import dev.civl.abc.token.IF.Formation;
 import dev.civl.abc.token.IF.SourceFile;
+import dev.civl.abc.token.IF.SourceFormatter;
 import dev.civl.abc.token.IF.TokenUtils;
 import dev.civl.abc.token.IF.CivlcToken.TokenVocabulary;
 
@@ -79,7 +80,7 @@ public class CommonCivlcToken extends CommonToken implements CivlcToken {
 	 * are set to the given arguments. Both must be non-null.
 	 * 
 	 * @param token
-	 *            any kind of Token
+	 *                  any kind of Token
 	 */
 	public CommonCivlcToken(Token token, Formation formation,
 			TokenVocabulary tokenVocab) {
@@ -126,9 +127,13 @@ public class CommonCivlcToken extends CommonToken implements CivlcToken {
 	 */
 	@Override
 	public String toString() {
-		String result = TokenUtils.summarizeRangeLocation(this, this, false)
-				+ " " + TokenUtils.quotedText(this);
-
+		int start = this.getCharPositionInLine();
+		String text = this.getText();
+		int stop = start + text.length() - 1;
+		String result = SourceFormatter.locator(
+				TokenUtils.getShortFilename(this, false), this.getLine(), start,
+				stop);
+		result += " " + SourceFormatter.quoteSource(this.getText());
 		if (formation != null)
 			result += formation.suffix();
 		return result;

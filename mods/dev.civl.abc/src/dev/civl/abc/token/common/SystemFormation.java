@@ -32,4 +32,28 @@ public class SystemFormation implements Formation {
 		return file;
 	}
 
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!(obj instanceof SystemFormation))
+			return false;
+		SystemFormation that = (SystemFormation) obj;
+		if (identifier == null) {
+			if (that.identifier != null)
+				return false;
+		} else {
+			if (!identifier.equals(that.identifier))
+				return false;
+		}
+		if (file == null) {
+			if (that.file != null)
+				return false;
+		} else {
+			if (!file.equals(that.file))
+				return false;
+		}
+		return true;
+	}
+
 }

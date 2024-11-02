@@ -3,7 +3,6 @@ package dev.civl.abc.front.IF;
 import org.antlr.runtime.Token;
 
 import dev.civl.abc.err.IF.ABCException;
-import dev.civl.abc.token.IF.TokenUtils;
 
 public class PreprocessorException extends ABCException {
 
@@ -36,8 +35,7 @@ public class PreprocessorException extends ABCException {
 		String result = "Preprocessor error: " + super.getMessage();
 
 		if (token != null)
-			result += "\nat " + TokenUtils.location(token, false) + ": "
-					+ TokenUtils.quotedText(token);
+			result += "\nat " + token;
 		return result;
 	}
 }

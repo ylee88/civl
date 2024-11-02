@@ -23,4 +23,20 @@ public class BuiltinMacroExpansion implements Formation {
 		return macroToken.getSourceFile();
 	}
 
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!(obj instanceof BuiltinMacroExpansion))
+			return false;
+		BuiltinMacroExpansion that = (BuiltinMacroExpansion) obj;
+		if (macroToken == null) {
+			if (that.macroToken != null)
+				return false;
+		} else if (!macroToken.equals(that.macroToken)) {
+			return false;
+		}
+		return true;
+	}
+
 }

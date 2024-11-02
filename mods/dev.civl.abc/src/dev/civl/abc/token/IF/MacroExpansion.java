@@ -2,22 +2,54 @@ package dev.civl.abc.token.IF;
 
 /**
  * A MacroExpansion represents an instance of the expansion of a preprocessor
- * (object or function) macro, which replaces one token by a sequence of new
- * tokens. This object represents the result of a macro expansion as it relates
- * to two tokens: the original (or "start") token before substitution, and the
- * resulting replacement token.
+ * (object or function) macro.
+ * 
+ * A new token resulting from a macro expansion has two values associated to it:
+ * a start token (a token from the macro invocation), and a replacement token
+ * index. The following examples illustrate this mapping from final token to
+ * (macro invocation token in f2, macro definition replacement token index in
+ * f1)
+ * 
+ * <pre>
+f1: #define X R1 R2
+f2: #include "f1"
+    X
+Result: R1 R2
+
+Token R1: (X,0)
+Token R2: (X,1)
+ * </pre>
+ * 
+ * <pre>
+f1: #define MAX(X,Y) X > Y ? X : Y
+f2: #include "f1"
+    MAX(a, b*c)
+Result: a > b*c ? a : b*c 
+
+Token a: (a, 0)
+Token >: (MAX, 1)
+Token b: (b, 2)
+Token *: (*, 2)
+Token c: (c, 2)
+Token ?: (MAX, 3)
+Token a: (a, 4)
+Token :: (MAX, 5)
+Token b: (b, 6)
+Token *: (*, 6)
+Token c: (c, 6)
+ * </pre>
  * 
  * @author siegel
- * 
  */
 public interface MacroExpansion extends Formation {
 
 	/**
-	 * Gets the original token which was replaced. For an object macro, there is
-	 * only one such possible token in each instance of macro expansion; it is
-	 * the token which is an identifier with the name of the macro. For a
-	 * function macro, it is one of the tokens in one of the arguments to the
-	 * macro or the function macro identifier itself.
+	 * Gets the token from the macro invocation which led to the construction of
+	 * the new token. The start token is either the macro name occurring in the
+	 * invocation (in the case of an object macro or the case of a function
+	 * macro in which the new token is a replacement token that is not an
+	 * argument), or a token occurring in an argument of a function macro
+	 * invocation.
 	 * 
 	 * @return the original token which is replaced
 	 */
@@ -37,14 +69,4 @@ public interface MacroExpansion extends Formation {
 	 * @return the replacement token index
 	 */
 	int getReplacementTokenIndex();
-
-	// /**
-	// * Returns the replacement token that was substituted for the original
-	// start
-	// * token.
-	// *
-	// * @return the replacement token
-	// */
-	// Token getReplacementToken();
-
 }

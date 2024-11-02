@@ -36,11 +36,11 @@ public class CommonTransformFormation implements TransformFormation {
 	 * {@link #postToken}.
 	 * 
 	 * @param transformer
-	 *            "fake" source file object for the transformer (must be
-	 *            non-null)
+	 *                        "fake" source file object for the transformer
+	 *                        (must be non-null)
 	 * @param method
-	 *            any string identifying specific part of transformer (must be
-	 *            non-null)
+	 *                        any string identifying specific part of
+	 *                        transformer (must be non-null)
 	 */
 	public CommonTransformFormation(SourceFile transformer, String method) {
 		this.transformer = transformer;
@@ -57,7 +57,7 @@ public class CommonTransformFormation implements TransformFormation {
 
 	/**
 	 * @param preToken
-	 *            the preToken to set
+	 *                     the preToken to set
 	 */
 	@Override
 	public void setPreToken(CivlcToken preToken) {
@@ -74,7 +74,7 @@ public class CommonTransformFormation implements TransformFormation {
 
 	/**
 	 * @param postToken
-	 *            the postToken to set
+	 *                      the postToken to set
 	 */
 	@Override
 	public void setPostToken(CivlcToken postToken) {
@@ -95,5 +95,39 @@ public class CommonTransformFormation implements TransformFormation {
 	@Override
 	public SourceFile getLastFile() {
 		return transformer;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!(obj instanceof CommonTransformFormation))
+			return false;
+		CommonTransformFormation that = (CommonTransformFormation) obj;
+		if (transformer == null) {
+			if (that.transformer != null)
+				return false;
+		} else if (!transformer.equals(that.transformer)) {
+			return false;
+		}
+		if (method == null) {
+			if (that.method != null)
+				return false;
+		} else if (!method.equals(that.method)) {
+			return false;
+		}
+		if (preToken == null) {
+			if (that.preToken != null)
+				return false;
+		} else if (!preToken.equals(that.preToken)) {
+			return false;
+		}
+		if (postToken == null) {
+			if (that.postToken != null)
+				return false;
+		} else if (!postToken.equals(that.postToken)) {
+			return false;
+		}
+		return true;
 	}
 }

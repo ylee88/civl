@@ -5,7 +5,7 @@ import java.util.Iterator;
 
 import dev.civl.abc.token.IF.CivlcToken;
 import dev.civl.abc.token.IF.Source;
-import dev.civl.abc.token.IF.TokenUtils;
+import dev.civl.abc.token.IF.SourceFormatter;
 
 public class CommonSource implements Source {
 
@@ -61,21 +61,39 @@ public class CommonSource implements Source {
 
 	@Override
 	public String getLocation(boolean abbreviated) {
-		return TokenUtils.summarizeRangeLocation(firstToken, lastToken,
-				abbreviated);
+		if (firstToken.getIndex() < 0)
+			return "";
+		SourceFormatter formatter = new SourceFormatter(firstToken, lastToken);
+		return formatter.getLocator(abbreviated);
+		// return TokenUtils.rangeToString(firstToken, lastToken);
+		/*
+		 * return TokenUtils.summarizeRangeLocation(firstToken, lastToken,
+		 * abbreviated);
+		 */
 	}
 
 	@Override
-	public String getSummary(boolean abbreviated, boolean isException) {
-		/*return TokenUtils.summarizeRange(firstToken, lastToken, abbreviated,
-				isException);
-				*/
-		return TokenUtils.rangeToString(firstToken, lastToken);
+	public String getSummary(boolean abbreviated, boolean multiline) {
+		/*
+		 * return TokenUtils.summarizeRange(firstToken, lastToken, abbreviated,
+		 * isException);
+		 */
+		SourceFormatter formatter = new SourceFormatter(firstToken, lastToken);
+		if (!multiline)
+			return formatter.getShortString(abbreviated);
+		else {
+			StringBuffer buf = new StringBuffer();
+			formatter.getDetailedReport(buf);
+			return buf.toString();
+		}
 	}
 
 	@Override
 	public String getContent(boolean abbreviated) {
-		return TokenUtils.contentOfRange(firstToken, lastToken, abbreviated);
+		SourceFormatter formatter = new SourceFormatter(firstToken, lastToken);
+		return formatter.getContent();
+		// return TokenUtils.rangeToString(firstToken, lastToken);
+		// return TokenUtils.contentOfRange(firstToken, lastToken, abbreviated);
 	}
 }
 

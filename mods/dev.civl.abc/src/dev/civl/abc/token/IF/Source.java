@@ -75,7 +75,7 @@ public interface Source {
 	 *            exception.
 	 * @return summary of location and text
 	 */
-	String getSummary(boolean abbreviated, boolean isException);
+	String getSummary(boolean abbreviated, boolean multiline);
 
 	String getContent(boolean abbreviated);
 

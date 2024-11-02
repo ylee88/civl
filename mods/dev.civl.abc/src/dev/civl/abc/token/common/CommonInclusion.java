@@ -3,6 +3,7 @@ package dev.civl.abc.token.common;
 import dev.civl.abc.token.IF.CivlcToken;
 import dev.civl.abc.token.IF.Inclusion;
 import dev.civl.abc.token.IF.SourceFile;
+import dev.civl.abc.token.IF.SourceFormatter;
 
 public class CommonInclusion implements Inclusion {
 
@@ -33,8 +34,9 @@ public class CommonInclusion implements Inclusion {
 	@Override
 	public String suffix() {
 		if (includeToken != null)
-			return " included from " + includeToken.getSourceFile().getName()
-					+ ":" + includeToken.getLine();
+			return " included from " + SourceFormatter.locator(
+					includeToken.getSourceFile().getName(),
+					includeToken.getLine());
 		else
 			return "";
 	}
@@ -54,4 +56,26 @@ public class CommonInclusion implements Inclusion {
 		return includeToken;
 	}
 
+	@Override
+	public String toString() {
+		return "Inclusion[" + file + ", " + includeToken + "]";
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!(obj instanceof CommonInclusion))
+			return false;
+		CommonInclusion that = (CommonInclusion) obj;
+		if (!file.equals(that.file))
+			return false;
+		if (includeToken == null) {
+			if (that.includeToken != null)
+				return false;
+		} else if (!includeToken.equals(that.includeToken)) {
+			return false;
+		}
+		return true;
+	}
 }
