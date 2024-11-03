@@ -92,6 +92,27 @@ public class SourceFormatter {
 		return buf.toString();
 	}
 
+	/**
+	 * Length of string excluding hidden characters.
+	 * 
+	 * @param str
+	 *                a non-null String
+	 * @return apparent length
+	 */
+	private static int apparentLength(String str) {
+		int n = str.length();
+		int result = 0;
+		for (int i = 0; i < n; i++) {
+			char c = str.charAt(i);
+			if (c == '\u001B') {
+				i += 3;
+				continue;
+			}
+			result++;
+		}
+		return result;
+	}
+
 	public SourceFormatter(CivlcToken first, CivlcToken last) {
 		int firstIndex = first.getIndex();
 		int lastIndex = last.getIndex();
@@ -104,23 +125,29 @@ public class SourceFormatter {
 		CivlcToken token = first;
 		SourceSegment seg = null;
 		int mass = 0;
-		for (int i = firstIndex; i <= lastIndex; i++) {
-			if (token == null || (i < lastIndex && mass >= MAX_SOURCE_CHARS)) {
+		for (int i = firstIndex; i < lastIndex; i++) {
+			if (token == null) { // stream ended early
 				segments.add(null); // eliding i .. lastIndex-1
-				if (last != null) {
-					seg = new SourceSegment();
-					seg.add(last);
-					segments.add(seg);
-				}
+				seg = null;
 				break;
 			}
 			if (seg == null || !seg.add(token)) {
+				if (mass >= MAX_SOURCE_CHARS) {
+					segments.add(null);
+					seg = null;
+					break;
+				}
 				seg = new SourceSegment();
 				seg.add(token);
 				segments.add(seg);
 			}
 			mass += token.getText().length();
 			token = token.getNext();
+		}
+		if (seg == null || !seg.add(last)) {
+			seg = new SourceSegment();
+			seg.add(last);
+			segments.add(seg);
 		}
 	}
 
@@ -152,16 +179,18 @@ public class SourceFormatter {
 				seg0.theStartCol);
 	}
 
-	public void getDetailedReport(StringBuffer buf) {
+	public void getDetailedReport1(StringBuffer buf) {
 		if (segments.isEmpty())
 			return;
 		addContent(buf);
 		buf.append("\n");
 		for (SourceSegment seg : segments) {
 			if (seg == null) {
-				buf.append("\n...\n");
+				buf.append(".\n.\n.\n");
 			} else {
-				buf.append(quoteSource(seg.theText));
+				String text = seg.theText;
+				text = text.stripTrailing();
+				buf.append(quoteSource(text));
 				buf.append("\n  from ");
 				addLocator(buf, seg.theFilename, seg.theLineno, seg.theStartCol,
 						seg.theStopCol);
@@ -170,6 +199,56 @@ public class SourceFormatter {
 				buf.append("\n");
 			}
 		}
+	}
+
+	public void getDetailedReport(StringBuffer buf) {
+		if (segments.isEmpty())
+			return;
+		addContent(buf);
+		buf.append("\n");
+		// pass 1: get maximum column width of locators...
+		int nseg = segments.size();
+		int[] widths = new int[nseg];
+		int locWidth = 0;
+		for (int i = 0; i < nseg; i++) {
+			SourceSegment seg = segments.get(i);
+			if (seg != null) {
+				String locator = locator(seg.theFilename, seg.theLineno,
+						seg.theStartCol, seg.theStopCol);
+				int width = apparentLength(locator);
+				if (width > locWidth)
+					locWidth = width;
+				widths[i] = width;
+			}
+		}
+		System.out.println("locWidth = " + locWidth);
+		// pass 2: print...
+		for (int i = 0; i < nseg; i++) {
+			SourceSegment seg = segments.get(i);
+			if (seg == null) {
+				for (int j = 0; j < 3; j++)
+					buf.append("     .\n");
+			} else {
+				addLocator(buf, seg.theFilename, seg.theLineno, seg.theStartCol,
+						seg.theStopCol);
+				for (int j = widths[i]; j < locWidth; j++)
+					buf.append(" ");
+				buf.append(" | ");
+				String text = seg.theText;
+				text = text.stripTrailing();
+				buf.append(quoteSource(text));
+				buf.append("\n");
+				if (seg.theFormation != null) {
+					String suffix = seg.theFormation.suffix();
+					if (!suffix.isBlank()) {
+						buf.append(" ");
+						buf.append(suffix);
+						buf.append("\n");
+					}
+				}
+			}
+		}
+
 	}
 
 	/**
