@@ -65,19 +65,10 @@ public class CommonSource implements Source {
 			return "";
 		SourceFormatter formatter = new SourceFormatter(firstToken, lastToken);
 		return formatter.getLocator(abbreviated);
-		// return TokenUtils.rangeToString(firstToken, lastToken);
-		/*
-		 * return TokenUtils.summarizeRangeLocation(firstToken, lastToken,
-		 * abbreviated);
-		 */
 	}
 
 	@Override
 	public String getSummary(boolean abbreviated, boolean multiline) {
-		/*
-		 * return TokenUtils.summarizeRange(firstToken, lastToken, abbreviated,
-		 * isException);
-		 */
 		SourceFormatter formatter = new SourceFormatter(firstToken, lastToken);
 		if (!multiline)
 			return formatter.getShortString(abbreviated);
@@ -92,8 +83,6 @@ public class CommonSource implements Source {
 	public String getContent(boolean abbreviated) {
 		SourceFormatter formatter = new SourceFormatter(firstToken, lastToken);
 		return formatter.getContent();
-		// return TokenUtils.rangeToString(firstToken, lastToken);
-		// return TokenUtils.contentOfRange(firstToken, lastToken, abbreviated);
 	}
 }
 

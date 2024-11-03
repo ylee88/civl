@@ -53,7 +53,7 @@ public class CommonMacroExpansion implements MacroExpansion {
 				return " substituted for "
 						+ SourceFormatter.locator(macroDefFile, line, startCol,
 								stopCol)
-						+ " " + SourceFormatter.quoteSource(text);
+						+ " " + SourceFormatter.quoteSource(text, true);
 			}
 		}
 		return " expanded from " + startToken.toString();

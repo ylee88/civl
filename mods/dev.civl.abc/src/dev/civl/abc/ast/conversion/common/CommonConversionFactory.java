@@ -296,9 +296,8 @@ public class CommonConversionFactory implements ConversionFactory {
 		if (newType.kind() == TypeKind.MEM
 				&& rhs.getType().kind() == TypeKind.MEM)
 			return null;
-		throw error(
-				"No conversion from type of right hand side to that of left:\n"
-						+ oldType + "\n" + newType);
+		throw error("No conversion from type '" + oldType + "' to type '"
+				+ newType + "'");
 	}
 
 	@Override

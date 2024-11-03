@@ -1,5 +1,7 @@
 package dev.civl.abc.err.IF;
 
+import dev.civl.abc.token.IF.SourceFormatter;
+
 /**
  * The root of the ABC non-runtime-exception hierarchy. These are exceptions
  * that must be caught.
@@ -12,7 +14,7 @@ public class ABCException extends Exception {
 	private String location;
 
 	/**
-	 * Generated if for serialization.
+	 * Generated id for serialization.
 	 */
 	private static final long serialVersionUID = -915898726262293701L;
 
@@ -20,7 +22,7 @@ public class ABCException extends Exception {
 	 * Constructs a new ABCException with given message
 	 * 
 	 * @param message
-	 *            a message that will be reported to user
+	 *                    a message that will be reported to user
 	 */
 	public ABCException(String message) {
 		super(message);
@@ -32,10 +34,9 @@ public class ABCException extends Exception {
 	}
 
 	public String toString() {
-		String result = "Error: " + getMessage();
-
+		String result = SourceFormatter.errorify("Error: " + getMessage());
 		if (location != null)
-			result += "\nInput: " + location;
+			result += " at\n" + location;
 		return result;
 	}
 

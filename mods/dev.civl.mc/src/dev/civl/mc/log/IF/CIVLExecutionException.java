@@ -1,5 +1,6 @@
 package dev.civl.mc.log.IF;
 
+import dev.civl.abc.token.IF.SourceFormatter;
 import dev.civl.mc.config.IF.CIVLConstants;
 import dev.civl.mc.model.IF.CIVLException;
 import dev.civl.mc.model.IF.CIVLProperty;
@@ -40,20 +41,22 @@ public class CIVLExecutionException extends CIVLException {
 	 * Constructs a new CIVLExecutionException with an associated process.
 	 * 
 	 * @param property
-	 *            the CIVLProperty that has been violated
+	 *                      the CIVLProperty that has been violated
 	 * @param certainty
-	 *            the certainty with which this is known to be an error in the
-	 *            program being verified
+	 *                      the certainty with which this is known to be an
+	 *                      error in the program being verified
 	 * @param process
-	 *            process name, i.e., "p"+process identifier
+	 *                      process name, i.e., "p"+process identifier
 	 * @param message
-	 *            a message explaining the error
+	 *                      a message explaining the error
 	 * @param state
-	 *            the state the exception appears in
+	 *                      the state the exception appears in
 	 * @param pid
-	 *            the process id of the process which triggered the exception
+	 *                      the process id of the process which triggered the
+	 *                      exception
 	 * @param source
-	 *            the source code element associated to the error; may be null
+	 *                      the source code element associated to the error; may
+	 *                      be null
 	 */
 	public CIVLExecutionException(CIVLProperty property, Certainty certainty,
 			String process, String message, State state, int pid,
@@ -67,23 +70,25 @@ public class CIVLExecutionException extends CIVLException {
 	 * stateString.
 	 * 
 	 * @param property
-	 *            the CIVLProperty that has been violated
+	 *                        the CIVLProperty that has been violated
 	 * @param certainty
-	 *            the certainty with which this is known to be an error in the
-	 *            program being verified
+	 *                        the certainty with which this is known to be an
+	 *                        error in the program being verified
 	 * @param process
-	 *            process name, i.e., "p"+process identifier
+	 *                        process name, i.e., "p"+process identifier
 	 * @param message
-	 *            a message explaining the error
+	 *                        a message explaining the error
 	 * @param state
-	 *            the state the exception appears in
+	 *                        the state the exception appears in
 	 * @param pid
-	 *            the process id of the process which triggered the exception
+	 *                        the process id of the process which triggered the
+	 *                        exception
 	 * @param source
-	 *            the source code element associated to the error; may be null
+	 *                        the source code element associated to the error;
+	 *                        may be null
 	 * @param stateString
-	 *            the string representation of the state where the error occurs;
-	 *            may be null
+	 *                        the string representation of the state where the
+	 *                        error occurs; may be null
 	 */
 	public CIVLExecutionException(CIVLProperty property, Certainty certainty,
 			String process, String message, State state, int pid,
@@ -96,14 +101,14 @@ public class CIVLExecutionException extends CIVLException {
 	 * Constructs new CIVLExecutionException with no associated process.
 	 * 
 	 * @param property
-	 *            the CIVLProperty that has been violated
+	 *                      the CIVLProperty that has been violated
 	 * @param certainty
-	 *            the certainty with which this is known to be an error in the
-	 *            program being verified
+	 *                      the certainty with which this is known to be an
+	 *                      error in the program being verified
 	 * @param message
-	 *            a message explaining the error
+	 *                      a message explaining the error
 	 * @param state
-	 *            the state the exception appears in
+	 *                      the state the exception appears in
 	 */
 	public CIVLExecutionException(CIVLProperty property, Certainty certainty,
 			String message, State state) {
@@ -115,16 +120,17 @@ public class CIVLExecutionException extends CIVLException {
 	 * Constructs new CIVLExecutionException with no associated process.
 	 * 
 	 * @param property
-	 *            the CIVLProperty that has been violated
+	 *                      the CIVLProperty that has been violated
 	 * @param certainty
-	 *            the certainty with which this is known to be an error in the
-	 *            program being verified
+	 *                      the certainty with which this is known to be an
+	 *                      error in the program being verified
 	 * @param message
-	 *            a message explaining the error
+	 *                      a message explaining the error
 	 * @param state
-	 *            the state the exception appears in
+	 *                      the state the exception appears in
 	 * @param source
-	 *            the source code element associated to the error; may be null
+	 *                      the source code element associated to the error; may
+	 *                      be null
 	 */
 	public CIVLExecutionException(CIVLProperty property, Certainty certainty,
 			String message, State state, CIVLSource source) {
@@ -193,13 +199,13 @@ public class CIVLExecutionException extends CIVLException {
 		String sysResourcePrefix = "/include";
 		String transformersuffix = "Transformer";
 
+		result.append(SourceFormatter.OPEN_ERR);
 		result.append("CIVL execution violation ");
 		if (process != null) {
 			result.append("in ");
 			result.append(process);
 			result.append(" ");
 		}
-
 		if (pid >= 0) {
 			String libraryString = "";
 			for (StackEntry se : state.getProcessState(pid).getStackEntries()) {
@@ -213,16 +219,16 @@ public class CIVLExecutionException extends CIVLException {
 			if (libraryString != "")
 				result.append("[" + libraryString + "] ");
 		}
-
-		result.append("(property violated: ");
+		result.append("(property: ");
 		result.append(property);
 		result.append(", certainty: ");
 		result.append(certainty);
 		result.append(")");
+		result.append(SourceFormatter.CLOSE_ERR);
 		// The violation source
 		if (source != null && !(source instanceof SystemCIVLSource)
 				&& !sourceAbsPathName.startsWith(sysResourcePrefix)) {
-			result.append("\nat ");
+			result.append(" at\n");
 			if (sourceAbsPathName.endsWith(transformersuffix)) {
 				result.append(this.source.getSummary(false));
 			} else {

@@ -133,7 +133,7 @@ public class CommonCivlcToken extends CommonToken implements CivlcToken {
 		String result = SourceFormatter.locator(
 				TokenUtils.getShortFilename(this, false), this.getLine(), start,
 				stop);
-		result += " " + SourceFormatter.quoteSource(this.getText());
+		result += " " + SourceFormatter.quoteSource(this.getText(), true);
 		if (formation != null)
 			result += formation.suffix();
 		return result;
