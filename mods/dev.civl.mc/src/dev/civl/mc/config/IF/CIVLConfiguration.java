@@ -642,7 +642,7 @@ public class CIVLConfiguration {
 	public String getCheckedPropertiesSummary() {
 		String summary = "";
 		String yes = " + ";
-		String no = " - ";
+		String no = "   ";
 
 		List<CIVLProperty> unconfigProps = CIVLProperty
 				.getAllUnconfigurableProperties();
