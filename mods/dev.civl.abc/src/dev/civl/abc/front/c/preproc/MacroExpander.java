@@ -576,8 +576,8 @@ public class MacroExpander {
 	 *         double quote in <code>s</code>
 	 */
 	private String escape(String s) {
-		s = s.replaceAll("\\", "\\\\");
-		s = s.replaceAll("\"", "\\\"");
+		s = s.replaceAll("\\\\", "\\\\\\\\");
+		s = s.replaceAll("\\\"", "\\\\\"");
 		return s;
 	}
 

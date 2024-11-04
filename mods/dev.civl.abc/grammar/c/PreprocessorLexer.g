@@ -15,7 +15,7 @@ lexer grammar PreprocessorLexer;
  * Those keywords are defined in 
  *   dev.civl.abc.front.c.parse.PP2CivlcTokenCConverter
  * A private function named as `initCKeywordMap` shall identify 
- * and set tokens in proprocessed streams as its corresponding 
+ * and set tokens in preprocessed streams as its corresponding 
  * token-types.
  */
 
@@ -26,10 +26,101 @@ package dev.civl.abc.front.c.preproc;
 
 @members
 {
+
+/* Are we currently parsing ACSL annotations?  If yes, the comments that
+   begin with '@' will be parsed as a sequence of ordinary preprocessor
+   tokens.  If no, they will be parsed as ordinary comments, i.e., as a
+   single token consisting of one big string.   This option is controled
+   by the presence of the #pragma CIVL ACSL in the source file.  */
+public boolean parseAnnotations = false;
+
+/* States in a DFS looking for "#pragma CIVL ACSL" which informs the
+   lexer to start scanning annotations as preprocessor tokens rather
+   than as one big comment.  Start state: 1.
+
+  0: waiting for NEWLINE: anything other than NEWLINE self loops.
+     on NEWLINE goto 1.
+  1: waiting for #: whitespace self-loops, 
+     on # goto 2.
+     anything else: goto 0.
+  2: waiting for pragma: non-NEWLINE white space self-loops.
+     on NEWLINE: goto 1.
+     on pragma: goto 3.
+     on anything else: goto 0 
+  3: waiting for CIVL: non-NEWLINE white space self-loops.
+     on NEWLINE: goto 1.
+     on CIVL: goto 4
+     on anything else: goto 0
+  4: waiting for ACSL: non-NEWLINE white space self-loops.
+     on NEWLINE: goto 1
+     on ACSL: BINGO. set parseAnnotations to true.  Goto 0.
+     on anything else: goto 0.
+ */
+private int annoteState = 1;
+
 @Override
 public void emitErrorMessage(String msg) { // don't try to recover!
     throw new RuntimeException(msg);
 }
+
+@Override
+public void emit(Token token) {
+  if (parseAnnotations && token.getType() == COMMENT) {
+    String text = token.getText();
+    if ("/*@".equals(text))
+      token.setType(ANNOTATION_START);
+    else if ("//@".equals(text))
+      token.setType(INLINE_ANNOTATION_START);
+  }
+  super.emit(token);
+  //System.out.println("Token: "+token); // DEBUGGING....
+}
+
+/* Looks for the sequence #pragma CIVL ACSL.  As soon as that is detected
+   sets parseAnnotations to true.  This causes annotations to be parsed
+   as preprocessor tokens rather than as text (as a normal comment would be).
+ */
+@Override
+public Token nextToken() {
+	Token token = super.nextToken();
+	if (parseAnnotations)
+	  return token;
+	int type = token.getType();
+	switch (annoteState) {
+	case 0:
+	  if (type == NEWLINE) annoteState = 1;
+	  break;
+	case 1: // at beginning of line.  this is the start state. 
+	  if (type == HASH) annoteState = 2;
+	  else if (type != NEWLINE && type != WS) annoteState = 0;
+	  break;
+	case 2:
+	  if (type == NEWLINE) annoteState = 1;
+	  else if (type == PRAGMA) annoteState = 3;
+	  else if (type != WS) annoteState = 0;
+	  break;
+	case 3:
+	  if (type == NEWLINE) annoteState = 1;
+	  else if (type == IDENTIFIER && 
+	           "CIVL".equals(token.getText().toUpperCase()))
+	    annoteState = 4;
+	  else if (type != WS) annoteState = 0;
+	  break;
+	case 4:
+	  if (type == NEWLINE) annoteState = 1;
+	  else if (type == IDENTIFIER && 
+	           "ACSL".equals(token.getText().toUpperCase())) {
+	    parseAnnotations = true;
+	    //System.out.println("PARSING ANNOTATIONS NOW.");
+	  }
+	  else if (type != WS) annoteState = 0;
+	  break;
+	default:
+	  assert false; // unreachable
+	}
+	return token;
+}
+
 }
 
 /****** White space ******/
@@ -105,13 +196,12 @@ SUBEQ		:	'-='		;
 TILDE		:	'~'		;
 
 /* CIVL-C and ACSL Punctuators */
-ANNOTATION_START	:	'/*@'	;
-ANNOTATION_END		:	'*/'	;
+
+
 AT			:	'@'	;
 EQUIV_ACSL		:	'<==>'	;
 IMPLIES			:	'=>'	;
 IMPLIES_ACSL		:	'==>'	;
-INLINE_ANNOTATION_START :	'//@'	;
 // LSLIST and RSLIST enclose a scope list
 LSLIST			:	'<|'	;
 RSLIST			:	'|>'	;
@@ -120,6 +210,7 @@ XOR_ACSL		:	'^^'	;
 /* CUDA Punctuators */
 LEXCON			:	'<<<'	;
 REXCON			:	'>>>'	;
+
 
 /****** Identifiers: C11 Sec. 6.4.2 ******/
 IDENTIFIER	:	IdentifierNonDigit
@@ -288,25 +379,44 @@ SChar		:	~('"' | '\\' | '\n') | EscapeSequence ;
 
 /* ***** Comments: C11 Sec 6.4.9 ******/
 
+fragment
+INLINE_COMMENT : '//' INLINE_COMMENT_TAIL ;
+
+fragment
+INLINE_COMMENT_TAIL
+  : NEWLINE
+  | EOF
+  | ~('@' | '\n' | '\r') ( options {greedy=true;} : ~('\n'|'\r') )*
+  | {!parseAnnotations}?=> '@' ( options {greedy=true;} : ~('\n'|'\r') )*
+  | {parseAnnotations}?=> '@'
+  ;
+       
+// the following rule is never activated but no problem, we capture the token
+// in INLINE_COMMENT and then change the token type in emit()...        
+INLINE_ANNOTATION_START :	'//@'	;
+
 // the following is not quite perfect because in the case of the \n or \r
 // immediately following the // it counts that white space as part of the
 // comment, otherwise it doesn't.  Would like to make the \n or \r NOT
 // part of the comment always, but how --- need to look ahead one character?
 
 fragment
-INLINE_COMMENT : '//'
-                 (  (~('@' | '\n' | '\r') ( options {greedy=true;} : ~('\n'|'\r') )*)
-                 |  NEWLINE
-                 |  EOF
-                 )
-               ;
+BLOCK_COMMENT : '/*' BLOCK_COMMENT_TAIL ;
 
-fragment
-BLOCK_COMMENT : '/*'
-                ( '*/' | ~('@') ( options {greedy=false;} : . )* '*/')
-              ;
+fragment BLOCK_COMMENT_TAIL
+  : '*/'
+  | ~('@') ( options {greedy=false;} : . )* '*/'
+  | {!parseAnnotations}?=> '@' ( options {greedy=false;} : . )* '*/'
+  | {parseAnnotations}?=> '@'
+  ;
               
 COMMENT : INLINE_COMMENT | BLOCK_COMMENT ;
+
+// For some reason, ANNNOTATION_START is never invoked.  No problem,
+// we will catch it on emit as a COMMENT and change its type.
+ANNOTATION_START	: {parseAnnotations}?=> '/*' '@' ;
+ANNOTATION_END		: {parseAnnotations}?=> '*/'  ;
+
 
 /* Special keywords starting with backslash reserved for extensions
  * such as ACSL */

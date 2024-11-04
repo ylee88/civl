@@ -503,7 +503,7 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 		if (PreprocessorUtils.isIdentifier(token)) {
 			processIdentifier(textNode);
 		} else {
-			// Wether parse ACSL annotation or not:
+			// Whether parse ACSL annotation or not:
 			boolean parseACSL = parseACSLPragmaStack.peek();
 
 			switch (token.getType()) {
