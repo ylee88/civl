@@ -117,7 +117,7 @@ public class CPreprocessor implements Preprocessor {
 			formationVector.add(formation);
 		} catch (IOException e) {
 			throw new PreprocessorException(
-					"Error in opening civlc.cvh: " + e.getMessage());
+					"Error in opening "+libraryFilename+": " + e.getMessage());
 		}
 	}
 
@@ -166,6 +166,8 @@ public class CPreprocessor implements Preprocessor {
 			ArrayList<CharStream> streamVector,
 			ArrayList<Formation> formationVector) throws PreprocessorException {
 		addMacros(predefinedMacros, streamVector, formationVector);
+		// implicit_defs.h contains standard macro definitions always needed:
+		addLibrary("implicit_defs.h", streamVector, formationVector);
 		// note that svcomp.h #includes gnuc.h so no need to include both:
 		if (config.getSVCOMP())
 			addLibrary("svcomp.h", streamVector, formationVector);

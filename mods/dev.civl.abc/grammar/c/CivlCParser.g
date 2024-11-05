@@ -111,7 +111,6 @@ scope Symbols {
 
 scope DeclarationScope {
     boolean isTypedef; // is the current declaration a typedef
-    boolean typedefNameUsed;
 }
 
 @header
@@ -156,7 +155,9 @@ import dev.civl.abc.front.IF.RuntimeParseException;
     // Look through the symbol stack to find out.
 	boolean isTypeName(String name) {
 		for (Object scope : Symbols_stack)
-			if (((Symbols_scope)scope).types.contains(name)) return true;
+			if (((Symbols_scope)scope).types.contains(name)) {
+			  return true;
+			}
 		return false;
 	}
 
@@ -173,6 +174,35 @@ import dev.civl.abc.front.IF.RuntimeParseException;
 		}
 		return answer;
 	}
+
+    /* This function returns true iff the current sequence of tokens has
+       the form X1 X2 X3, where 
+
+         (1) X1 is an identifier, '*', or '(',
+         (2) if X1 is an identifier then X2 is a ';', ',' '[', or '(', and
+         (3) if X1 is an identifier and X2 is '(' then X3 is not '(' or '*'
+
+       Assume this token sequence begins either a
+       type-specifier-or-qualifier or the first declarator in a
+       typedef declaration.  Then this function returns true iff the
+       sequence begins the first declarator.  Hence it can be used to
+       determine when the type-specifier-or-qualifier list ends and
+       the declarator list begins.
+     */
+    boolean indicatesDeclarator() {
+        Token token1 = input.LT(1);
+        int type1 = token1.getType();
+        if (type1 == STAR || type1 == LPAREN) return true;
+        if (type1 != IDENTIFIER) return false;
+        Token token2 = input.LT(2);
+        int type2 = token2.getType();
+        if (type2 == SEMI || type2 == COMMA || type2 == LSQUARE)
+            return true;
+        if (type2 != LPAREN) return false;
+        Token token3 = input.LT(3);
+        int type3 = token3.getType();
+        return type3 != LPAREN && type3 != STAR;
+    }
 }
 
 /* ************************* A.2.1: Expressions ************************* */
@@ -370,7 +400,6 @@ unaryExpression
 scope DeclarationScope;
 @init {
   $DeclarationScope::isTypedef = false;
-  $DeclarationScope::typedefNameUsed=false;
 }
 	: postfixExpression
 	| p=PLUSPLUS unaryExpression
@@ -429,7 +458,6 @@ castExpression
 scope DeclarationScope;
 @init{
 	$DeclarationScope::isTypedef = false;
-	$DeclarationScope::typedefNameUsed=false;
 }
 	: (LPAREN typeName RPAREN ~LCURLY)=>
         l=LPAREN typeName RPAREN castExpression
@@ -713,7 +741,6 @@ declaration
 scope DeclarationScope;
 @init {
   $DeclarationScope::isTypedef = false;
-  $DeclarationScope::typedefNameUsed=false;
 }
 	: d=declarationSpecifiers
 	  (
@@ -736,10 +763,14 @@ declarationSpecifiers
 	;
 
 /* Tree: flat list of declarationSpecifier
+   In a typedef declaration scope, a declaration specifier cannot be
+   immediately followed by a ; , ( or [.    An idenitifer that is
+   immediately followed by one of those tokens is an/the identifier being
+   defined by the typedef.
  */
 declarationSpecifierList
 	: (
-	    {!$DeclarationScope::isTypedef || input.LT(2).getType() != SEMI }?
+	    {!$DeclarationScope::isTypedef || !indicatesDeclarator() }?
 	    s=declarationSpecifier
 	  )+
 	;
@@ -871,7 +902,6 @@ structDeclaration
 scope DeclarationScope;
 @init {
   $DeclarationScope::isTypedef = false;
-  $DeclarationScope::typedefNameUsed = false;
 }
     : s=specifierQualifierList
       ( -> ^(STRUCT_DECLARATION $s ABSENT)
@@ -949,7 +979,6 @@ enumerator
 	: IDENTIFIER
     	  {
     		$Symbols::enumerationConstants.add($IDENTIFIER.text);
-		// System.err.println("define enum constant "+$IDENTIFIER.text);
     	  }
     	  (  -> ^(ENUMERATOR IDENTIFIER ABSENT)
     	  | (ASSIGN constantExpression)
@@ -1055,10 +1084,7 @@ directDeclaratorPrefix
 		{
 			if ($DeclarationScope::isTypedef) {
 				$Symbols::types.add($IDENTIFIER.text);
-                //System.err.println("define type "+$IDENTIFIER.text);
-			}else{
-                //$Symbols::types.remove($IDENTIFIER.text);
-            }
+			}
 		}
 	| LPAREN! declarator RPAREN!
 	;
@@ -1105,7 +1131,6 @@ directDeclaratorFunctionSuffix
 scope DeclarationScope;
 @init {
     $DeclarationScope::isTypedef = false;
-    $DeclarationScope::typedefNameUsed = false;
 }
 	: LPAREN
 	  ( parameterTypeList RPAREN
@@ -1209,8 +1234,6 @@ parameterDeclaration
 scope DeclarationScope;
 @init {
     $DeclarationScope::isTypedef = false;
-    $DeclarationScope::typedefNameUsed = false;
-    //System.err.println("parameter declaration start");
 }
     : declarationSpecifiers
       ( -> ^(PARAMETER_DECLARATION declarationSpecifiers ABSENT)
@@ -1309,12 +1332,7 @@ directAbstractDeclarator
  * to be present in a typedef.  See declarationSpecifierList.
  */
 typedefName
-@after{
-    if(!$DeclarationScope::typedefNameUsed)
-    	$DeclarationScope::typedefNameUsed=true;
-}
-    : {!$DeclarationScope::typedefNameUsed && isTypeName(input.LT(1).getText())}?
-      IDENTIFIER
+    : {isTypeName(input.LT(1).getText())}? IDENTIFIER
       -> ^(TYPEDEF_NAME IDENTIFIER)
     ;
 
@@ -1478,9 +1496,8 @@ scope DeclarationScope;
 @init {
 	$Symbols::types = new HashSet<String>();
 	$Symbols::enumerationConstants = new HashSet<String>();
-        $Symbols::isFunctionDefinition = false;
-        $DeclarationScope::isTypedef = false;
-        $DeclarationScope::typedefNameUsed = false;
+    $Symbols::isFunctionDefinition = false;
+    $DeclarationScope::isTypedef = false;
 }
     : LCURLY
       ( RCURLY
@@ -1758,7 +1775,6 @@ scope DeclarationScope;
     $Symbols::enumerationConstants = new HashSet<String>();
     $Symbols::isFunctionDefinition = true;
     $DeclarationScope::isTypedef = false;
-    $DeclarationScope::typedefNameUsed=false;
 }
 	: declarator
 	  contract
@@ -1828,7 +1844,6 @@ blockItemWithScope
 scope DeclarationScope;
 @init {
   $DeclarationScope::isTypedef = false;
-  $DeclarationScope::typedefNameUsed = false;
 }
 	: blockItem;
 
@@ -1867,7 +1882,6 @@ scope DeclarationScope; // just to have an outermost one with isTypedef false
     $Symbols::enumerationConstants = new HashSet<String>();
     $Symbols::isFunctionDefinition = false;
     $DeclarationScope::isTypedef = false;
-    $DeclarationScope::typedefNameUsed = false;
 }
 	:	blockItem* EOF
 		-> ^(TRANSLATION_UNIT blockItem*)

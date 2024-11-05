@@ -79,8 +79,8 @@ public class ABC {
 	public final static File[] DEFAULT_USER_INCLUDE_PATHS = Preprocessor.defaultUserIncludes;
 
 	/**
-	 * The default list of pre-defined macros, specifies as a mapping from
-	 * Strings (macro name) to macros.
+	 * The default list of pre-defined object macros, specifies as a mapping
+	 * from String (macro name) to String (replacement tokens).
 	 */
 	public final static Map<String, String> DEFAULT_IMPLICIT_MACROS = new TreeMap<>();
 
@@ -89,7 +89,7 @@ public class ABC {
 	 * CIVL_C, else it's C.
 	 * 
 	 * @param name
-	 *            filename
+	 *                 filename
 	 * @return CIVL_C or C
 	 */
 	private static Language getLanguageFromName(String name) {
@@ -110,7 +110,7 @@ public class ABC {
 	 * Prints a message to the output stream specifying the command line syntax.
 	 * 
 	 * @param out
-	 *            the stream to which the output should be printed
+	 *                the stream to which the output should be printed
 	 */
 	private static void help(PrintStream out) {
 		out.println("Usage: abc (option* filename)+ option*");
@@ -384,12 +384,12 @@ public class ABC {
 	 * Executes the commands specified by the command line.
 	 * 
 	 * @param args
-	 *            the command line arguments
+	 *                 the command line arguments
 	 * @throws ABCException
-	 *             if something goes wrong when processing the file, such as a
-	 *             syntax exception
+	 *                          if something goes wrong when processing the
+	 *                          file, such as a syntax exception
 	 * @throws IOException
-	 *             if the file cannot be opened
+	 *                          if the file cannot be opened
 	 */
 	public static void main(String[] args) {
 		TranslationTask task = null;
