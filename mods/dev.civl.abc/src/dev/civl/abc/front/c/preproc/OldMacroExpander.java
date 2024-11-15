@@ -1,7 +1,7 @@
 package dev.civl.abc.front.c.preproc;
 
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -13,6 +13,7 @@ import org.antlr.runtime.Token;
 import dev.civl.abc.front.IF.CivlcTokenConstant;
 import dev.civl.abc.front.IF.PreprocessorException;
 import dev.civl.abc.token.IF.CivlcToken;
+import dev.civl.abc.token.IF.CivlcToken.TokenVocabulary;
 import dev.civl.abc.token.IF.Formation;
 import dev.civl.abc.token.IF.FunctionMacro;
 import dev.civl.abc.token.IF.FunctionMacro.FunctionReplacementUnit;
@@ -20,7 +21,6 @@ import dev.civl.abc.token.IF.Macro;
 import dev.civl.abc.token.IF.Macro.ReplacementUnit;
 import dev.civl.abc.token.IF.ObjectMacro;
 import dev.civl.abc.token.IF.TokenFactory;
-import dev.civl.abc.token.IF.CivlcToken.TokenVocabulary;
 import dev.civl.abc.util.IF.Pair;
 
 /**
@@ -54,7 +54,7 @@ import dev.civl.abc.util.IF.Pair;
  * history of the argument token.
  * </p>
  */
-public class MacroExpander {
+public class OldMacroExpander {
 
 	// Static constants...
 
@@ -99,7 +99,7 @@ public class MacroExpander {
 	 * The given iterator over the tokens that comprise the arguments of a
 	 * function macro. Not used for object macro.
 	 */
-	private Iterator<CivlcToken> argumentIter;
+	private TokenIterator argumentIter;
 
 	/**
 	 * For {@link FunctionMacro}s, the number of formal parameters, including
@@ -143,6 +143,11 @@ public class MacroExpander {
 	 */
 	private CivlcToken placemarker;
 
+	/**
+	 * Stack of macros that should not be expanded.
+	 */
+	private Deque<Macro> doNotExpand;
+
 	// Constructor...
 
 	/**
@@ -151,20 +156,22 @@ public class MacroExpander {
 	 * {@link #expand()} is invoked.
 	 * 
 	 * @param ts
-	 *            the preprocessor token source that will be used to macro
-	 *            expand the arguments
+	 *                      the preprocessor token source that will be used to
+	 *                      macro expand the arguments
 	 * @param macro
-	 *            the function-like macro that is being applied
+	 *                      the function-like macro that is being applied
 	 * @param origin
-	 *            the original {@link CivlcToken} which is an identifier
-	 *            spelling the macro's name and which led to its expansion.
+	 *                      the original {@link CivlcToken} which is an
+	 *                      identifier spelling the macro's name and which led
+	 *                      to its expansion.
 	 * @param arguments
-	 *            actual arguments to macro invocation. Element i is a
-	 *            null-terminated linked list of tokens. Element i may be null,
-	 *            indicating an empty argument.
+	 *                      actual arguments to macro invocation. Element i is a
+	 *                      null-terminated linked list of tokens. Element i may
+	 *                      be null, indicating an empty argument.
 	 */
-	public MacroExpander(PreprocessorTokenSource ts, FunctionMacro macro,
-			CivlcToken origin, Iterator<CivlcToken> argumentIter) {
+	public OldMacroExpander(PreprocessorTokenSource ts, FunctionMacro macro,
+			CivlcToken origin, TokenIterator argumentIter,
+			Deque<Macro> doNotExpand) {
 		this.ts = ts;
 		this.tokenFactory = ts.getTokenFactory();
 		this.macro = macro;
@@ -176,22 +183,24 @@ public class MacroExpander {
 			this.numParameters = ((FunctionMacro) macro).getNumFormals();
 		else
 			this.numParameters = 0;
+		this.doNotExpand = doNotExpand;
 	}
 
 	/**
 	 * Constructs new expander for an invocation of an {@link ObjectMacro}.
 	 * 
 	 * @param ts
-	 *            the preprocessor token source that will be used to macro
-	 *            expand the arguments
+	 *                   the preprocessor token source that will be used to
+	 *                   macro expand the arguments
 	 * @param macro
-	 *            the object-like macro that is being applied
+	 *                   the object-like macro that is being applied
 	 * @param origin
-	 *            the original {@link CivlcToken} which is an identifier
-	 *            spelling the macro's name and which led to its expansion.
+	 *                   the original {@link CivlcToken} which is an identifier
+	 *                   spelling the macro's name and which led to its
+	 *                   expansion.
 	 */
-	public MacroExpander(PreprocessorTokenSource ts, ObjectMacro macro,
-			CivlcToken origin) {
+	public OldMacroExpander(PreprocessorTokenSource ts, ObjectMacro macro,
+			CivlcToken origin, Deque<Macro> doNotExpand) {
 		this.ts = ts;
 		this.tokenFactory = ts.getTokenFactory();
 		this.macro = macro;
@@ -239,11 +248,13 @@ public class MacroExpander {
 		 * Constructs new instance from the given fields. Nothing is copied.
 		 * 
 		 * @param prews
-		 *            the whitespace preceding the token; non-<code>null</code>
+		 *                   the whitespace preceding the token;
+		 *                   non-<code>null</code>
 		 * @param token
-		 *            the token itself; may be <code>null</code>
+		 *                   the token itself; may be <code>null</code>
 		 * @param postws
-		 *            the whitespace following the token; non-<code>null</code>
+		 *                   the whitespace following the token;
+		 *                   non-<code>null</code>
 		 */
 		ExpandedToken(ArrayList<CivlcToken> prews, CivlcToken token,
 				ArrayList<CivlcToken> postws) {
@@ -256,9 +267,10 @@ public class MacroExpander {
 		 * Constructs new instance with no preceding whitespace.
 		 * 
 		 * @param token
-		 *            the token itself; may be <code>null</code>
+		 *                   the token itself; may be <code>null</code>
 		 * @param postws
-		 *            the whitespace following the token; non-<code>null</code>
+		 *                   the whitespace following the token;
+		 *                   non-<code>null</code>
 		 */
 		ExpandedToken(CivlcToken token, ArrayList<CivlcToken> postws) {
 			this(new ArrayList<CivlcToken>(), token, postws);
@@ -268,7 +280,7 @@ public class MacroExpander {
 		 * Constructs new instance with no preceding or following whitespace.
 		 * 
 		 * @param token
-		 *            the token itself; may be <code>null</code>
+		 *                  the token itself; may be <code>null</code>
 		 */
 		ExpandedToken(CivlcToken token) {
 			this(new ArrayList<CivlcToken>(), token,
@@ -293,8 +305,8 @@ public class MacroExpander {
 		 * should be executed. Default is <code>false</code>.
 		 * 
 		 * @param flag
-		 *            Is this a concatenation operator ("##") which should be
-		 *            executed?
+		 *                 Is this a concatenation operator ("##") which should
+		 *                 be executed?
 		 */
 		void setConcat(boolean flag) {
 			this.concat = flag;
@@ -358,8 +370,9 @@ public class MacroExpander {
 	 * </p>
 	 * 
 	 * @exception PreprocessorException
-	 *                if the number of actual arguments does not match the
-	 *                number of formals in the macro definition
+	 *                                      if the number of actual arguments
+	 *                                      does not match the number of formals
+	 *                                      in the macro definition
 	 */
 	private void findInvocationArguments() throws PreprocessorException {
 		int argCount = 0, type, parenDepth;
@@ -460,7 +473,7 @@ public class MacroExpander {
 	 * Creates clone of null-terminated linked list of {@link CivlcToken}.
 	 * 
 	 * @param token
-	 *            first element in linked list; could be <code>null</code>
+	 *                  first element in linked list; could be <code>null</code>
 	 * @return first element in cloned list
 	 */
 	private CivlcToken cloneList(CivlcToken token) {
@@ -484,18 +497,21 @@ public class MacroExpander {
 	 * expansions.
 	 * 
 	 * @param index
-	 *            index into {@link #arguments} array
+	 *                  index into {@link #arguments} array
 	 * @return the result of macro-expanding the token sequence which is the
 	 *         link list headed by the index-th argument
 	 * @throws PreprocessorException
-	 *             if an error occurs in expansion, such as wrong number of
-	 *             arguments in a macro invocation
+	 *                                   if an error occurs in expansion, such
+	 *                                   as wrong number of arguments in a macro
+	 *                                   invocation
 	 */
 	private CivlcToken getExpandedArgument(int index)
 			throws PreprocessorException {
-		if (expandedArguments[index] == null)
-			expandedArguments[index] = ts
-					.expandList(cloneList(arguments[index]));
+		if (expandedArguments[index] == null) {
+			expandedArguments[index] = ts.expandList(
+					cloneList(arguments[index]), new EmptyTokenIterator(),
+					doNotExpand);
+		}
 		return expandedArguments[index].left;
 	}
 
@@ -507,7 +523,7 @@ public class MacroExpander {
 	 * placemarker token is used.
 	 * 
 	 * @param index
-	 *            integer in [0,numArgs-1]
+	 *                  integer in [0,numArgs-1]
 	 * @return first token in index-th argument's token sequence, or placemarker
 	 */
 	private CivlcToken getSpecialArgument(int index) {
@@ -524,13 +540,14 @@ public class MacroExpander {
 	 * element for concatenation.
 	 * 
 	 * @param tokens
-	 *            list of tokens, all of which are non-whitespace. List may
-	 *            contain placemarkers. List may be empty.
+	 *                   list of tokens, all of which are non-whitespace. List
+	 *                   may contain placemarkers. List may be empty.
 	 * @return a single token whose text is obtained by concatenating the text
 	 *         of the give tokens; result may be placemarker
 	 * @throws PreprocessorException
-	 *             if the text resulting from concatenation is does not spell a
-	 *             token name
+	 *                                   if the text resulting from
+	 *                                   concatenation is does not spell a token
+	 *                                   name
 	 */
 	private CivlcToken concatenate(List<CivlcToken> tokens)
 			throws PreprocessorException {
@@ -571,7 +588,7 @@ public class MacroExpander {
 	 * Places a backslash before every backslash and double quote in a string.
 	 * 
 	 * @param s
-	 *            the given string
+	 *              the given string
 	 * @return the result of placing a backslash before every backslash and
 	 *         double quote in <code>s</code>
 	 */
@@ -621,13 +638,14 @@ public class MacroExpander {
 	 * </p>
 	 * 
 	 * @param tokenIndex
-	 *            the index of the occurrence of the parameter in the macro body
-	 *            token sequence
+	 *                       the index of the occurrence of the parameter in the
+	 *                       macro body token sequence
 	 * @return the string literal token formed by concatenating the token text
 	 *         as specified in C11 6.10.3.2 (2)
 	 * @throws PreprocessException
-	 *             if the tokenIndex-th replacement token in the macro
-	 *             definition is not an occurrence of a formal parameter
+	 *                                 if the tokenIndex-th replacement token in
+	 *                                 the macro definition is not an occurrence
+	 *                                 of a formal parameter
 	 */
 	private CivlcToken stringifyTokenSequence(int tokenIndex)
 			throws PreprocessorException {
@@ -702,8 +720,8 @@ public class MacroExpander {
 	 * precedes or follows a "##" token in the replacement token sequence.
 	 * 
 	 * @param index
-	 *            an index in the macro body token sequence for a replacement
-	 *            token
+	 *                  an index in the macro body token sequence for a
+	 *                  replacement token
 	 * @return <code>true</code> iff the replacement token immediately preceding
 	 *         or following this position is "##"
 	 */
@@ -722,11 +740,11 @@ public class MacroExpander {
 	 * Adds a token to an expansion list. Deals with white space properly.
 	 * 
 	 * @param elist
-	 *            an expansion list. Non-<code>null</code>. May be empty. If not
-	 *            empty, then only the last element may have a <code>null</code>
-	 *            token field.
+	 *                  an expansion list. Non-<code>null</code>. May be empty.
+	 *                  If not empty, then only the last element may have a
+	 *                  <code>null</code> token field.
 	 * @param token
-	 *            token that should be added to the <code>elist</code>
+	 *                  token that should be added to the <code>elist</code>
 	 * @return the entry that contains the newly added token; may be an existing
 	 *         entry or a newly created one
 	 */
@@ -770,7 +788,7 @@ public class MacroExpander {
 	 * token sequence from the macro definition body.
 	 * 
 	 * @param ru
-	 *            a replacement unit in a macro definition
+	 *               a replacement unit in a macro definition
 	 * @return new array of white space tokens formed by cloning the whitespace
 	 *         immediately following the replacement token specified by ru in
 	 *         the macro definition; the formation used will be a macro
@@ -797,9 +815,9 @@ public class MacroExpander {
 	 * Adds a clone of the replacement unit to an expansion list.
 	 * 
 	 * @param elist
-	 *            an expansion list
+	 *                  an expansion list
 	 * @param ru
-	 *            a replacement unit
+	 *                  a replacement unit
 	 * @return the entry containing the token added; may be an existing entry
 	 *         (which must be the last one in the list) or a newly created one
 	 */
@@ -851,9 +869,10 @@ public class MacroExpander {
 	 *         instantiating macro replacement list, substituting arguments for
 	 *         formals, and executing stringification operators
 	 * @throws PreprocessorException
-	 *             if the stringification operator '#' is not followed
-	 *             immediately (except for white space) by an occurrence of a
-	 *             formal parameter
+	 *                                   if the stringification operator '#' is
+	 *                                   not followed immediately (except for
+	 *                                   white space) by an occurrence of a
+	 *                                   formal parameter
 	 */
 	private ArrayList<ExpandedToken> instantiateFunctionMacro()
 			throws PreprocessorException {
@@ -891,15 +910,21 @@ public class MacroExpander {
 					CivlcToken argument = isSpecial(i)
 							? getSpecialArgument(formalIndex)
 							: getExpandedArgument(formalIndex);
-
 					while (argument != null) {
 						CivlcToken newToken = tokenFactory.newCivlcToken(
 								argument, tokenFactory
 										.newMacroExpansion(argument, macro, i),
 								TokenVocabulary.PREPROC);
-
 						add(result, newToken);
 						argument = argument.getNext();
+					}
+					for (Token ws : ru.whitespace) {
+						CivlcToken newToken = tokenFactory
+								.newCivlcToken(ws,
+										tokenFactory.newMacroExpansion(origin,
+												macro, i),
+										TokenVocabulary.PREPROC);
+						add(result, newToken);
 					}
 				}
 			}
@@ -938,12 +963,12 @@ public class MacroExpander {
 	 * acts as the identity for concatenation.
 	 * 
 	 * @param input
-	 *            a list of expanded tokens
+	 *                  a list of expanded tokens
 	 * @returns the result of executing all concatenation operators in the given
 	 *          list
 	 * @throws PreprocessorException
-	 *             if the result of a concatenation does not spell a valid token
-	 *             name
+	 *                                   if the result of a concatenation does
+	 *                                   not spell a valid token name
 	 */
 	private ArrayList<ExpandedToken> processConcatenations(
 			ArrayList<ExpandedToken> input) throws PreprocessorException {
@@ -989,7 +1014,7 @@ public class MacroExpander {
 	 * Removes any placemarkers from a list.
 	 * 
 	 * @param input
-	 *            list of expanded tokens
+	 *                  list of expanded tokens
 	 * @return list obtained by removing any placemarker entries from given list
 	 */
 	private ArrayList<ExpandedToken> removePlacemarkers(
@@ -1012,7 +1037,7 @@ public class MacroExpander {
 	 * {@link CivlcToken}s, which is the form of the final output of this class.
 	 * 
 	 * @param input
-	 *            list of expanded tokens
+	 *                  list of expanded tokens
 	 * @return flat list of {@link CivlcToken}s
 	 */
 	private Pair<CivlcToken, CivlcToken> expansionToTokenList(
@@ -1054,7 +1079,8 @@ public class MacroExpander {
 	 *         {@link CivlcToken} which results from performing the macro
 	 *         expansion
 	 * @throws PreprocessorException
-	 *             if anything goes wrong in the expansion process
+	 *                                   if anything goes wrong in the expansion
+	 *                                   process
 	 */
 	public Pair<CivlcToken, CivlcToken> expand() throws PreprocessorException {
 		boolean isFunction = macro instanceof FunctionMacro;

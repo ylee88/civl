@@ -2,7 +2,7 @@
 #define _GNU_C_
 
 /**************************** macros *****************************/
-#define __attribute__(X)
+//#define __attribute__(X)
 #define __const const
 #define __inline inline
 #define __inline__ inline

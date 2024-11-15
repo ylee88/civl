@@ -278,6 +278,8 @@ public class PreprocessorUtils {
 	 * @param token
 	 *            any preprocessing token (including whitespace)
 	 */
+	
+	/*
 	public static void convertPreprocessorIdentifiers(Token token) {
 		int tokenType = token.getType();
 
@@ -297,6 +299,7 @@ public class PreprocessorUtils {
 			default :
 		}
 	}
+	*/
 
 	/**
 	 * Prints the stream of tokens emanating from a token source. Used mainly

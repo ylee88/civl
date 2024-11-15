@@ -22,8 +22,6 @@ public class CommonCharacterToken extends CommonCivlcToken
 		this.character = character;
 		this.setNext(token.getNext());
 		this.setTokenIndex(token.getTokenIndex());
-		if (!token.isExpandable())
-			this.makeNonExpandable();
 	}
 
 	@Override

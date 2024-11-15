@@ -13,7 +13,7 @@ public class SourceFormatter {
 	 * most Unix-like terminals). They don't work in Eclipse debugger. This
 	 * could be made a command line option.
 	 */
-	public final static boolean PLAIN = false;
+	public final static boolean PLAIN = true;
 
 	/**
 	 * After quoted source exceeds this number of characters, the quote will be

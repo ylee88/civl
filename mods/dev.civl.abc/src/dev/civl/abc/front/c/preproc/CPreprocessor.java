@@ -165,6 +165,8 @@ public class CPreprocessor implements Preprocessor {
 	private void addAuxStreams(Map<String, String> predefinedMacros,
 			ArrayList<CharStream> streamVector,
 			ArrayList<Formation> formationVector) throws PreprocessorException {
+		// NOTE: these will be found in the jar so you have to rebuild jar
+		// if they change...
 		addMacros(predefinedMacros, streamVector, formationVector);
 		// implicit_defs.h contains standard macro definitions always needed:
 		addLibrary("implicit_defs.h", streamVector, formationVector);

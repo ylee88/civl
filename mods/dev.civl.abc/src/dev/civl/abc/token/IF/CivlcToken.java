@@ -94,21 +94,40 @@ public interface CivlcToken extends Token {
 	int getIndex();
 
 	/**
+	 * <p>
 	 * Is this token expandable? This is used only for identifiers that could be
 	 * macro invocations. The macro expansion procedure is complex and at a
 	 * certain phase, a macro identifier becomes non-expandable. It is mostly to
 	 * support self-referential macros.
+	 * </p>
 	 * 
+	 * <p>
 	 * Initially, every token is expandable.
+	 * </p>
+	 * 
+	 * <p>
+	 * TODO: this needs to be changed. Expandable is a function of the macro.
+	 * There should be a set of macros for which this token is not expandable.
+	 * On the second scan:
+	 * 
+	 * <blockquote> If the name of the macro being replaced is found during this
+	 * scan of the replacement list (not including the rest of the source file’s
+	 * preprocessing tokens), it is not replaced. Furthermore, if any nested
+	 * replacements encounter the name of the macro being replaced, it is not
+	 * replaced. These nonreplaced macro name preprocessing tokens are no longer
+	 * available for further replacement even if they are later (re)examined in
+	 * contexts in which that macro name preprocessing token would otherwise
+	 * have been replaced. </blockquote>
+	 * </p>
 	 * 
 	 * @return value of expandable bit
 	 */
-	boolean isExpandable();
+	//boolean isExpandable();
 
 	/**
 	 * Sets this token's expandable bit to false.
 	 */
-	void makeNonExpandable();
+	//void makeNonExpandable();
 
 	int getStartIndex();
 

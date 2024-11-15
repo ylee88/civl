@@ -120,7 +120,7 @@ public class PreprocessorTest {
 			} while (PreprocessorUtils.isWhiteSpace(token1));
 			do {
 				token2 = expectedSource.nextToken();
-				PreprocessorUtils.convertPreprocessorIdentifiers(token2);
+				//PreprocessorUtils.convertPreprocessorIdentifiers(token2);
 				type2 = token2.getType();
 			} while (PreprocessorUtils.isWhiteSpace(token2));
 			if (debug) {

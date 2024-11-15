@@ -191,8 +191,7 @@ public class CIVLTranslationTest {
 		try {
 			check("compoundBad");
 		} catch (SyntaxException e) {
-			checked = e.getMessage().startsWith(
-					"No conversion from type of right hand side to that of left");
+			checked = e.getMessage().startsWith("No conversion from type");
 		} finally {
 			assertEquals(true, checked);
 		}

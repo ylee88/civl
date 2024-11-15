@@ -40,14 +40,6 @@ public class CommonCivlcToken extends CommonToken implements CivlcToken {
 	private Formation formation;
 
 	/**
-	 * If this is an identifier node and that identifier is for a macro, setting
-	 * this bit to false means that the macro will not be expanded. This is
-	 * needed for the complex macro expansion policy described in the C99
-	 * Standard.
-	 */
-	private boolean expandable = true;
-
-	/**
 	 * The CppTokens emanating from a CppTokenSource form a linked list. This is
 	 * the next element in the list.
 	 */
@@ -137,29 +129,6 @@ public class CommonCivlcToken extends CommonToken implements CivlcToken {
 		if (formation != null)
 			result += formation.suffix();
 		return result;
-	}
-
-	/**
-	 * Is this token expandable? This is used only for identifiers that could be
-	 * macro invocations. The macro expansion procedure is complex and at a
-	 * certain phase, a macro identifier becomes non-expandable. It is mostly to
-	 * support self-referential macros.
-	 * 
-	 * Initially, every token is expandable.
-	 * 
-	 * @return value of expandable bit
-	 */
-	@Override
-	public boolean isExpandable() {
-		return expandable;
-	}
-
-	/**
-	 * Sets this token's expandable bit to false.
-	 */
-	@Override
-	public void makeNonExpandable() {
-		expandable = false;
 	}
 
 	/**

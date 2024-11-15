@@ -1,5 +1,18 @@
 package dev.civl.abc.token.common;
 
+import static dev.civl.abc.front.c.preproc.PreprocessorParser.DEFINE;
+import static dev.civl.abc.front.c.preproc.PreprocessorParser.DEFINED;
+import static dev.civl.abc.front.c.preproc.PreprocessorParser.ELIF;
+import static dev.civl.abc.front.c.preproc.PreprocessorParser.ENDIF;
+import static dev.civl.abc.front.c.preproc.PreprocessorParser.ERROR;
+import static dev.civl.abc.front.c.preproc.PreprocessorParser.IDENTIFIER;
+import static dev.civl.abc.front.c.preproc.PreprocessorParser.IFDEF;
+import static dev.civl.abc.front.c.preproc.PreprocessorParser.IFNDEF;
+import static dev.civl.abc.front.c.preproc.PreprocessorParser.INCLUDE;
+import static dev.civl.abc.front.c.preproc.PreprocessorParser.LINE;
+import static dev.civl.abc.front.c.preproc.PreprocessorParser.PRAGMA;
+import static dev.civl.abc.front.c.preproc.PreprocessorParser.UNDEF;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -47,25 +60,47 @@ public class CommonTokenFactory implements TokenFactory {
 		sourceFactory = new CommonSourceFactory();
 	}
 
+	private int convertType(int type) {
+		switch (type) {
+			case DEFINE :
+			case DEFINED :
+			case ELIF :
+			case ENDIF :
+			case ERROR :
+			case IFDEF :
+			case IFNDEF :
+			case INCLUDE :
+			case LINE :
+			case PRAGMA :
+			case UNDEF :
+				return IDENTIFIER;
+			default :
+				return type;
+		}
+	}
+
 	@Override
 	public CivlcToken newCivlcToken(Token token, Formation formation,
 			TokenVocabulary tokenVocab) {
-		return new CommonCivlcToken(token, formation, tokenVocab);
+		CivlcToken result = new CommonCivlcToken(token, formation, tokenVocab);
+		result.setType(convertType(token.getType()));
+		return result;
 	}
 
 	@Override
 	public CivlcToken newCivlcToken(int type, String text, Formation formation,
 			TokenVocabulary tokenVocab) {
-		return new CommonCivlcToken(type, text, formation, tokenVocab);
+		return new CommonCivlcToken(convertType(type), text, formation,
+				tokenVocab);
 	}
 
 	@Override
 	public CivlcToken newCivlcToken(CharStream input, int type, int channel,
 			int start, int stop, Formation formation, int line,
 			int charPositionInLine, TokenVocabulary tokenVocab) {
-		CivlcToken result = new CommonCivlcToken(input, type, channel, start,
-				stop, formation, tokenVocab);
 
+		CivlcToken result = new CommonCivlcToken(input, convertType(type),
+				channel, start, stop, formation, tokenVocab);
 		result.setLine(line);
 		result.setCharPositionInLine(charPositionInLine);
 		return result;
@@ -118,7 +153,7 @@ public class CommonTokenFactory implements TokenFactory {
 	/**
 	 * 
 	 * @param type
-	 *            usually PreprocessorParser.STRING_LITERAL
+	 *                 usually PreprocessorParser.STRING_LITERAL
 	 * @return
 	 * @throws SyntaxException
 	 */
