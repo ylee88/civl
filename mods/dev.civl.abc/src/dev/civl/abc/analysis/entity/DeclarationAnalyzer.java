@@ -332,8 +332,14 @@ public class DeclarationAnalyzer {
 	Variable processVariableDeclaration(VariableDeclarationNode node,
 			boolean isParameter) throws SyntaxException {
 		TypeNode typeNode = node.getTypeNode();
-		ObjectType type = (ObjectType) entityAnalyzer.typeAnalyzer
-				.processTypeNode(typeNode, isParameter);
+		Type theType = entityAnalyzer.typeAnalyzer.processTypeNode(typeNode,
+				isParameter);
+		if (!(theType instanceof ObjectType)) {
+			throw error(
+					"Saw something of function type where object type was expected",
+					node);
+		}
+		ObjectType type = (ObjectType) theType;
 		IdentifierNode identifier = node.getIdentifier();
 
 		if (identifier == null)
@@ -345,10 +351,12 @@ public class DeclarationAnalyzer {
 			throw error("declaring variable " + name + " as void type", node);
 
 		Scope scope = identifier.getScope();
-		if (typeNode.isInputQualified() && scope.getScopeKind() != ScopeKind.FILE) {
-			throw error("$input variable " + name + " must be declared at file scope", node);
+		if (typeNode.isInputQualified()
+				&& scope.getScopeKind() != ScopeKind.FILE) {
+			throw error("$input variable " + name
+					+ " must be declared at file scope", node);
 		}
-		
+
 		LinkageKind linkage = computeLinkage(node, isParameter, type);
 		OrdinaryEntity entity = scope.getOrdinaryEntity(false, name);
 		boolean oldInScope = entity != null;
@@ -881,7 +889,7 @@ public class DeclarationAnalyzer {
 				.typeAlignmentSpecifiers();
 		SequenceNode<ExpressionNode> constantAlignmentSpecifiers = declaration
 				.constantAlignmentSpecifiers();
-		
+
 		if (initializer != null) {
 			InitializerNode oldInitializer = variable.getInitializer();
 

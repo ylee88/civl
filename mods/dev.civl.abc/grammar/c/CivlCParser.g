@@ -754,13 +754,10 @@ declarationSpecifiers
 	;
 
 /* Tree: flat list of declarationSpecifier
-   In a typedef declaration scope, a declaration specifier cannot be
-   immediately followed by a ; , ( or [.    An identifier that is
-   immediately followed by one of those tokens is an/the identifier being
-   defined by the typedef.
  */ 
 declarationSpecifierList
-	: ( { !indicatesDeclarator() }? declarationSpecifier )+
+	: declarationSpecifier
+      ( { !indicatesDeclarator() }? declarationSpecifier )*
 	;
 
 declarationSpecifier
@@ -1183,7 +1180,7 @@ typeQualifierList
 
 parameterTypeList
 	: {$Symbols::isFunctionDefinition}? parameterTypeListWithoutScope
-	| parameterTypeListWithScope
+	| {!$Symbols::isFunctionDefinition}? parameterTypeListWithScope
 	;
 
 parameterTypeListWithScope
@@ -1225,10 +1222,10 @@ scope DeclarationScope;
 	$DeclarationScope::hasTypeSpec = false;
 }
     : declarationSpecifiers
-      ( -> ^(PARAMETER_DECLARATION declarationSpecifiers ABSENT)
-      | declaratorOrAbstractDeclarator
-        -> ^(PARAMETER_DECLARATION
-             declarationSpecifiers declaratorOrAbstractDeclarator)
+      (   -> ^(PARAMETER_DECLARATION declarationSpecifiers ABSENT)
+        | declaratorOrAbstractDeclarator
+          -> ^(PARAMETER_DECLARATION declarationSpecifiers
+               declaratorOrAbstractDeclarator)
       )
     ;
 

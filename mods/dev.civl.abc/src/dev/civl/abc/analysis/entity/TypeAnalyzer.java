@@ -294,9 +294,13 @@ public class TypeAnalyzer {
 		typedef = (Typedef) entity;
 		typeNode.getName().setEntity(typedef);
 		result = typedef.getType();
-		if (isParameter && result.kind() == TypeKind.ARRAY) {
-			result = typeFactory
-					.pointerType(((ArrayType) result).getElementType());
+		if (isParameter) {
+			TypeKind typeKind = result.kind();
+			if (typeKind == TypeKind.ARRAY)
+				result = typeFactory
+						.pointerType(((ArrayType) result).getElementType());
+			else if (typeKind == TypeKind.FUNCTION)
+				result = typeFactory.pointerType(result);
 		}
 		return result;
 	}
@@ -428,7 +432,7 @@ public class TypeAnalyzer {
 	 * given node.
 	 * 
 	 * @param node
-	 *            an enumeration type node with non-null enumerators
+	 *                 an enumeration type node with non-null enumerators
 	 * @return the new enumeration entity
 	 * @throws SyntaxException
 	 */
@@ -497,10 +501,10 @@ public class TypeAnalyzer {
 	 * such entity exists.
 	 * 
 	 * @param node
-	 *            a structure or union node
+	 *                 a structure or union node
 	 * @return the resulting structure or union entity
 	 * @throws SyntaxException
-	 *             if already exists in scope
+	 *                             if already exists in scope
 	 */
 	private StructureOrUnionType createStructureOrUnion(
 			StructureOrUnionTypeNode node) throws SyntaxException {
@@ -537,11 +541,12 @@ public class TypeAnalyzer {
 	 * </ul>
 	 * 
 	 * @param old
-	 *            an existing tagged entity (non-<code>null</code>)
+	 *                 an existing tagged entity (non-<code>null</code>)
 	 * @param node
-	 *            a structure or union type node (non-<code>null</code>)
+	 *                 a structure or union type node (non-<code>null</code>)
 	 * @throws SyntaxException
-	 *             if the existing entity and the node are inconsistent
+	 *                             if the existing entity and the node are
+	 *                             inconsistent
 	 */
 	private void checkConsistency(TaggedEntity old,
 			StructureOrUnionTypeNode node) throws SyntaxException {
@@ -579,14 +584,17 @@ public class TypeAnalyzer {
 	 * provided by the node.
 	 * 
 	 * @param structureOrUnion
-	 *            an incomplete structure or union entity (non-<code>null</code>
-	 *            )
+	 *                             an incomplete structure or union entity
+	 *                             (non-<code>null</code> )
 	 * @param node
-	 *            a complete structure or union type node consistent with the
-	 *            <code>structureOrUnion</code> (non-<code>null</code>)
+	 *                             a complete structure or union type node
+	 *                             consistent with the
+	 *                             <code>structureOrUnion</code>
+	 *                             (non-<code>null</code>)
 	 * @throws SyntaxException
-	 *             if a field is declared with a non-object type or bit width is
-	 *             specified with a non-constant expression
+	 *                             if a field is declared with a non-object type
+	 *                             or bit width is specified with a non-constant
+	 *                             expression
 	 * @see {@link #checkConsistency(TaggedEntity, StructureOrUnionTypeNode)}
 	 */
 	private void completeStructOrUnion(
@@ -650,11 +658,12 @@ public class TypeAnalyzer {
 	 * <code>expr</code> is a constant expression of integer type
 	 * 
 	 * @param node
-	 *            a domain type node (non-<code>null</code>)
+	 *                 a domain type node (non-<code>null</code>)
 	 * @return the domain type specified by the node
 	 * @throws SyntaxException
-	 *             if the dimension expression is present but does not have
-	 *             integer type or is not a constant expression
+	 *                             if the dimension expression is present but
+	 *                             does not have integer type or is not a
+	 *                             constant expression
 	 */
 	private DomainType processDomainType(DomainTypeNode node)
 			throws SyntaxException {
@@ -686,10 +695,12 @@ public class TypeAnalyzer {
 	 * type computed from the type node.
 	 * 
 	 * @param typeNode
-	 *            a type node which may or may not have been processed already
+	 *                     a type node which may or may not have been processed
+	 *                     already
 	 * @return the type computed from the type node
 	 * @throws SyntaxException
-	 *             if there is a syntax problem with the type node
+	 *                             if there is a syntax problem with the type
+	 *                             node
 	 */
 	Type processTypeNode(TypeNode typeNode) throws SyntaxException {
 		return processTypeNode(typeNode, false);
@@ -709,11 +720,11 @@ public class TypeAnalyzer {
 	 * </p>
 	 * 
 	 * @param typeNode
-	 *            a non-<code>null</code> type node
+	 *                     a non-<code>null</code> type node
 	 * @return the type specified by that node
 	 * @throws SyntaxException
-	 *             if any static errors are detected in the processing of the
-	 *             type node
+	 *                             if any static errors are detected in the
+	 *                             processing of the type node
 	 */
 	Type processTypeNode(TypeNode typeNode, boolean isParameter)
 			throws SyntaxException {
@@ -951,10 +962,11 @@ public class TypeAnalyzer {
 	 * </p>
 	 * 
 	 * @param node
-	 *            a structure or union type node
+	 *                 a structure or union type node
 	 * @return the structure or union type obtained by processing the node
 	 * @throws SyntaxException
-	 *             if any of the consistency checks defined above fails
+	 *                             if any of the consistency checks defined
+	 *                             above fails
 	 */
 	Type processStructureOrUnionType(StructureOrUnionTypeNode node)
 			throws SyntaxException {
