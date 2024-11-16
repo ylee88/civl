@@ -10,10 +10,11 @@ public class SourceFormatter {
 	/**
 	 * Plain text output, or we can use special ASCI sequences for color and
 	 * bold? The special sequences only work in certain terminals (including
-	 * most Unix-like terminals). They don't work in Eclipse debugger. This
-	 * could be made a command line option.
+	 * most Unix-like terminals). They don't work in Eclipse debugger.
+	 * 
+	 * TODO: make this a command line option.
 	 */
-	public final static boolean PLAIN = true;
+	public final static boolean PLAIN = false;
 
 	/**
 	 * After quoted source exceeds this number of characters, the quote will be

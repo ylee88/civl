@@ -54,7 +54,7 @@ import dev.civl.abc.util.IF.Pair;
  * history of the argument token.
  * </p>
  */
-public class OldMacroExpander {
+public class MacroExpander {
 
 	// Static constants...
 
@@ -169,7 +169,7 @@ public class OldMacroExpander {
 	 *                      null-terminated linked list of tokens. Element i may
 	 *                      be null, indicating an empty argument.
 	 */
-	public OldMacroExpander(PreprocessorTokenSource ts, FunctionMacro macro,
+	public MacroExpander(PreprocessorTokenSource ts, FunctionMacro macro,
 			CivlcToken origin, TokenIterator argumentIter,
 			Deque<Macro> doNotExpand) {
 		this.ts = ts;
@@ -199,7 +199,7 @@ public class OldMacroExpander {
 	 *                   spelling the macro's name and which led to its
 	 *                   expansion.
 	 */
-	public OldMacroExpander(PreprocessorTokenSource ts, ObjectMacro macro,
+	public MacroExpander(PreprocessorTokenSource ts, ObjectMacro macro,
 			CivlcToken origin, Deque<Macro> doNotExpand) {
 		this.ts = ts;
 		this.tokenFactory = ts.getTokenFactory();
@@ -528,7 +528,6 @@ public class OldMacroExpander {
 	 */
 	private CivlcToken getSpecialArgument(int index) {
 		CivlcToken result = arguments[index];
-
 		if (result == null)
 			return placemarker;
 		return result;
@@ -553,28 +552,23 @@ public class OldMacroExpander {
 			throws PreprocessorException {
 		StringBuffer concatBuffer = new StringBuffer();
 		Formation formation = tokenFactory.newConcatenation(tokens);
-
 		for (CivlcToken t : tokens) {
 			int type = t.getType();
-
 			if (type != placemarkerType)
 				concatBuffer.append(t.getText());
 		}
 		if (concatBuffer.length() == 0)
 			return placemarker;
-
 		String concatString = concatBuffer.toString();
 		CharStream charStream = new ANTLRStringStream(concatString);
 		PreprocessorLexer lexer = new PreprocessorLexer(charStream);
 		Token newToken = null;
-
 		try {
 			newToken = lexer.nextToken();
 		} catch (Exception e) {
 		}
 		if (newToken != null) {
 			Token nextToken = lexer.nextToken();
-
 			if (nextToken != null && nextToken.getType() == Token.EOF)
 				return tokenFactory.newCivlcToken(newToken, formation,
 						TokenVocabulary.PREPROC);
@@ -651,26 +645,20 @@ public class OldMacroExpander {
 			throws PreprocessorException {
 		FunctionReplacementUnit ru = ((FunctionMacro) macro)
 				.getReplacementUnit(tokenIndex);
-
 		if (ru.formalIndex < 0)
 			throw new PreprocessorException(
 					"# must be followed by macro parameter in function-like macro definition",
 					ru.token);
-
 		CivlcToken token = arguments[ru.formalIndex];
-
 		StringBuffer concatBuffer = new StringBuffer();
 		boolean first = true;
 		ArrayList<CivlcToken> tokenList = new ArrayList<>();
-
 		concatBuffer.append('"'); // open " of new string literal
 		for (CivlcToken t = token; t != null; t = t.getNext()) {
 			if (PreprocessorUtils.isWhiteSpace(t))
 				continue;
-
 			String tokenText = t.getText();
 			int type = t.getType();
-
 			if (type == PreprocessorLexer.STRING_LITERAL
 					|| type == PreprocessorLexer.CHARACTER_CONSTANT)
 				tokenText = escape(tokenText);
@@ -682,7 +670,6 @@ public class OldMacroExpander {
 			tokenList.add(t);
 		}
 		concatBuffer.append('"'); // close " of new string literal
-
 		String text = concatBuffer.toString();
 		Formation formation = tokenFactory.newStringification(
 				(FunctionMacro) macro, tokenIndex, tokenList);
@@ -690,7 +677,7 @@ public class OldMacroExpander {
 		CivlcToken delimiter = delimiters[ru.formalIndex];
 		int start, stop, line, charPositionInLine;
 
-		// RETHINk THIS...
+		// TODO: RETHINK THIS...
 
 		if (token == null) { // empty argument
 			start = ((CommonToken) delimiter).getStartIndex() + 1;
@@ -705,12 +692,10 @@ public class OldMacroExpander {
 			line = token.getLine();
 			charPositionInLine = token.getCharPositionInLine();
 		}
-
 		CivlcToken newToken = tokenFactory.newCivlcToken(
 				delimiter.getInputStream(), CivlcTokenConstant.STRING_LITERAL,
 				delimiter.getChannel(), start, stop, formation, line,
 				charPositionInLine, TokenVocabulary.PREPROC);
-
 		newToken.setText(text);
 		return newToken;
 	}
@@ -750,7 +735,6 @@ public class OldMacroExpander {
 	 */
 	ExpandedToken add(ArrayList<ExpandedToken> elist, CivlcToken token) {
 		ExpandedToken result;
-
 		if (PreprocessorUtils.isWhiteSpace(token)) {
 			if (elist.isEmpty()) {
 				ArrayList<CivlcToken> prews = new ArrayList<CivlcToken>(),
@@ -801,10 +785,8 @@ public class OldMacroExpander {
 				wstokens.length);
 		Formation formation = tokenFactory.newMacroExpansion(origin, macro,
 				index);
-
 		for (int i = 0; i < wstokens.length; i++) {
 			Token token = wstokens[i];
-
 			result.add(tokenFactory.newCivlcToken(token, formation,
 					TokenVocabulary.PREPROC));
 		}
@@ -828,7 +810,6 @@ public class OldMacroExpander {
 				TokenVocabulary.PREPROC);
 		ArrayList<CivlcToken> whitespace = cloneWhitespace(ru);
 		ExpandedToken result;
-
 		if (elist.isEmpty()) {
 			result = new ExpandedToken(newToken, whitespace);
 			elist.add(result);
@@ -942,12 +923,10 @@ public class OldMacroExpander {
 	private ArrayList<ExpandedToken> instantiateObjectMacro() {
 		int numTokens = macro.getNumReplacements();
 		ArrayList<ExpandedToken> result = new ArrayList<>(numTokens);
-
 		for (int i = 0; i < numTokens; i++) {
 			ReplacementUnit ru = macro.getReplacementUnit(i);
 			Token token = ru.token;
 			int type = token.getType();
-
 			if (type == PreprocessorParser.HASHHASH) {
 				addClone(result, ru).setConcat(true);
 			} else {
@@ -974,17 +953,13 @@ public class OldMacroExpander {
 			ArrayList<ExpandedToken> input) throws PreprocessorException {
 		ArrayList<ExpandedToken> output = new ArrayList<>(input.size());
 		int numIn = input.size();
-
 		for (int i = 0; i < numIn; i++) {
 			ExpandedToken et = input.get(i);
-
 			if (et.isConcat()) {
 				assert i > 0;
 				assert !output.isEmpty();
-
 				LinkedList<CivlcToken> concatBuf = new LinkedList<>();
 				ExpandedToken concatOutput = output.get(output.size() - 1);
-
 				assert (concatOutput.token != null);
 				concatBuf.add(concatOutput.token);
 				do { // invariant: i, et point to a ## token
@@ -1021,10 +996,8 @@ public class OldMacroExpander {
 			ArrayList<ExpandedToken> input) {
 		int n = input.size();
 		ArrayList<ExpandedToken> output = new ArrayList<>(n);
-
 		for (int i = 0; i < n; i++) {
 			ExpandedToken et = input.get(i);
-
 			if (et.token == null || et.token.getType() != placemarkerType)
 				output.add(et);
 		}
@@ -1043,7 +1016,6 @@ public class OldMacroExpander {
 	private Pair<CivlcToken, CivlcToken> expansionToTokenList(
 			ArrayList<ExpandedToken> input) {
 		CivlcToken firstToken = null, previousToken = null;
-
 		for (ExpandedToken et : input) {
 			for (CivlcToken token : et.prews) {
 				if (previousToken == null)
@@ -1087,11 +1059,9 @@ public class OldMacroExpander {
 		ArrayList<ExpandedToken> expansion = isFunction
 				? instantiateFunctionMacro()
 				: instantiateObjectMacro();
-
 		expansion = processConcatenations(expansion);
 		if (isFunction)
 			expansion = removePlacemarkers(expansion);
 		return expansionToTokenList(expansion);
 	}
-
 }

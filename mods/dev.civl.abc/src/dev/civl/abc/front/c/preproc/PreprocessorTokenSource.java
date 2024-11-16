@@ -395,10 +395,9 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	 *         currently empty
 	 */
 	private SourceFile getCurrentSource() {
-		if (sourceStack.isEmpty())
-			return theFormations[currentSource].getLastFile();
-		else
-			return sourceStack.peek().getFile();
+		return sourceStack.isEmpty()
+				? theFormations[currentSource].getLastFile()
+				: sourceStack.peek().getFile();
 	}
 
 	/**
@@ -415,9 +414,7 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 			// directives.
 			processText(node);
 		} else {
-			Token token = node.getToken();
-			int type = token.getType();
-			switch (type) {
+			switch (node.getToken().getType()) {
 				case PreprocessorParser.EOF :
 					processEOF(node);
 					break;
@@ -716,17 +713,10 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 		Pair<CivlcToken, CivlcToken> result;
 		// the stack of macros that should not be expanded.
 		// Deque is what Java wants you to use for a Stack now.
-		// push = addFirst, pop = removeFirst(), peek = getFirst().
 		Deque<Macro> doNotExpand = new ArrayDeque<Macro>();
 		// iterator over tokens following the identifier token
 		TokenIterator tail = getArgumentIterator();
-		if (macro instanceof ObjectMacro) {
-			result = processInvocation((ObjectMacro) macro, cToken, tail,
-					doNotExpand);
-		} else {
-			result = processInvocation((FunctionMacro) macro, cToken, tail,
-					doNotExpand);
-		}
+		result = processInvocation(macro, cToken, tail, doNotExpand);
 		addOutputList(result);
 	}
 
@@ -784,114 +774,8 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	}
 
 	/**
-	 * <p>
-	 * Performs expansion of an object macro. This involves the first expansion,
-	 * and a second expansion, which may draw in more tokens from the input
-	 * stream. It returns the final list of tokens resulting from the expansion.
-	 * It does not modify the output list.
-	 * </p>
-	 * 
-	 * <p>
-	 * The list of tokens returned consists entirely of newly created tokens
-	 * (i.e., tokens which did not exist upon entry to this method). They will
-	 * have correct include and expansion histories.
-	 * </p>
-	 * 
-	 * <p>
-	 * Following the C Standard, the list of replacement tokens are expanded a
-	 * second time, but if the current macro is encountered in this second
-	 * expansion, it will not be expanded.
-	 * </p>
-	 * 
-	 * @param macro
-	 *                        the object macro
-	 * @param origin
-	 *                        the token which names the macro in the macro
-	 *                        invocation
-	 * @param tail
-	 *                        iterator over all tokens that follow the origin,
-	 *                        which may be consumed in the second expansion
-	 * @param doNotExpand
-	 *                        stack of macros that should not be expanded; note
-	 *                        the given macro will be pushed onto this stack
-	 *                        before the second expansion, and then popped after
-	 *                        the second expansion returns
-	 * @return a pair consisting of the first and last elements of the new list
-	 *         of tokens
-	 * @throws PreprocessorException
-	 *                                   if something goes wrong while expanding
-	 *                                   the list of replacement tokens (i.e.,
-	 *                                   the second expansion)
-	 */
-	private Pair<CivlcToken, CivlcToken> processInvocation(ObjectMacro macro,
-			CivlcToken origin, TokenIterator tail, Deque<Macro> doNotExpand)
-			throws PreprocessorException {
-		Pair<CivlcToken, CivlcToken> result = instantiate(macro, origin,
-				doNotExpand);
-		Deque<Macro> doNotExpand2 = new ArrayDeque<>(doNotExpand);
-		doNotExpand2.push(macro);
-		result = performSecondExpansion(result, tail, doNotExpand2);
-		return result;
-	}
-
-	/**
-	 * <p>
-	 * Processes a function-like macro invocation. This entails: (1) expanding
-	 * each argument in isolation, (2) instantiating a copy of the macro's
-	 * replacement tokens, but substituting arguments for formal parameters, and
-	 * (3) performing a second expansion. The final newly created tokens are
-	 * returned as a linked list.
-	 * </p>
-	 * 
-	 * <p>
-	 * It is assumed that the input argument tokens will have the correct
-	 * expansion histories, i.e., for all expansions up to but not including the
-	 * current one.
-	 * </p>
-	 * 
-	 * <p>
-	 * The list of tokens returned consists entirely of newly created tokens
-	 * (i.e., tokens which did not exist upon entry to this method). They will
-	 * have correct include and expansion histories.
-	 * </p>
-	 * 
-	 * <p>
-	 * NOTE: in a function-like macro replacement list, each '#' must be
-	 * immediately followed by a parameter name, else error --- C11 6.10.3.2(1).
-	 * The '#' may also occur in an object-like macro replacement list, but has
-	 * no special meaning or restrictions.
-	 * </p>
-	 * 
-	 * <p>
-	 * NOTE: if "# A" occurs in the replacement sequence, where A is one of the
-	 * parameter names, then the actual argument corresponding to A is NOT
-	 * expanded. Instead, the exact actual argument is stringified, and the
-	 * resulting string token replaces the "# A". Stringification involves
-	 * escaping characters such as " and \. See C11 6.10.3.2.
-	 * </p>
-	 * 
-	 * <p>
-	 * NOTE: The "##" may be used in object and function-like macro replacement
-	 * lists. Also, "[a] ## preprocessing token shall not occur at the beginning
-	 * or at the end of a replacement list for either form of macro definition."
-	 * C11 6.10.3.3(1).
-	 * </p>
-	 * 
-	 * <p>
-	 * NOTE: if "A ##" or "## A" occurs (where A is a formal parameter), then A
-	 * is replaced by the non-expanded actual argument token list UNLESS actual
-	 * is empty (no tokens), in which case A is replaced by PLACEMARKER, a
-	 * special symbol. After that and before second expansion: each "X ## Y" ---
-	 * if the ## is from the replacement list and NOT from an argument --- is
-	 * replaced by concatenation of X and Y, where PLACEMARKER is the identity
-	 * element for concatenation. Then all PLACEMARKERs are removed. Hence
-	 * before second expansion all placemarkers and all of the original ##
-	 * tokens should be gone.
-	 * 
-	 * [ISN'T THIS THE SAME as saying: if actual argument is empty then delete
-	 * "A ##" or "## A" from the replacement list. What about "B ## A ## C"? It
-	 * becomes "B ## C".]
-	 * </p>
+	 * Processes a macro invocation. This may be either an object or function
+	 * macro.
 	 * 
 	 * @param macro
 	 *                        the function-like macro which is being invoked
@@ -900,7 +784,8 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	 *                        invocation
 	 * @param tail
 	 *                        iterator over all tokens that follow the origin;
-	 *                        the first such non-whitespace token should be '('
+	 *                        for a function-like macro, the first such
+	 *                        non-whitespace token should be '('
 	 * @param doNotExpand
 	 *                        stack of macros that should not be expanded
 	 * 
@@ -908,170 +793,22 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	 *         list which is the new token sequence produced by the expansion
 	 * @throws PreprocessorException
 	 */
-	private Pair<CivlcToken, CivlcToken> processInvocation(FunctionMacro macro,
+	private Pair<CivlcToken, CivlcToken> processInvocation(Macro macro,
 			CivlcToken origin, TokenIterator tail, Deque<Macro> doNotExpand)
 			throws PreprocessorException {
-		Pair<CivlcToken, CivlcToken> result = instantiate(macro, origin, tail,
-				doNotExpand);
+		MacroExpander expander = macro instanceof FunctionMacro
+				? new MacroExpander(this, (FunctionMacro) macro, origin, tail,
+						doNotExpand)
+				: new MacroExpander(this, (ObjectMacro) macro, origin,
+						doNotExpand);
+		Pair<CivlcToken, CivlcToken> result = expander.expand();
+		// perform the second expansion
 		// the doNotExpands will be shared, so should be immutable
 		Deque<Macro> doNotExpand2 = new ArrayDeque<>(doNotExpand);
 		doNotExpand2.push(macro);
-		result = performSecondExpansion(result, tail, doNotExpand2);
+		result = expandList(result.left, tail, doNotExpand2);
 		return result;
 	}
-
-	/**
-	 * Performs the second expansion: i.e., applies macro expansion to the given
-	 * list of tokens. However, this expansion may consume additional tokens
-	 * from the input stream.
-	 * 
-	 * See C11 6.10.3.4(2): "If the name of the macro being replaced is found
-	 * during this scan of the replacement list (not including the rest of the
-	 * source file’s preprocessing tokens), it is not replaced."
-	 * 
-	 * @param tokenList
-	 *                        a list of tokens to be expanded given as pair
-	 *                        consisting of first and last elements
-	 * @param doNotExpand
-	 *                        stack of macros that should not be expanded
-	 * @return result of second expansion of tokenList (first and last elements
-	 *         of the linked list of tokens)
-	 * @throws PreprocessorException
-	 *                                   any improper macro invocations occur in
-	 *                                   the token list
-	 */
-	private Pair<CivlcToken, CivlcToken> performSecondExpansion(
-			Pair<CivlcToken, CivlcToken> tokenList, TokenIterator tail,
-			Deque<Macro> doNotExpand) throws PreprocessorException {
-		return expandList(tokenList.left, tail, doNotExpand);
-	}
-
-	/**
-	 * Applies a function-like macro to arguments. The arguments to the macro
-	 * are obtained from an iterator over tokens that begins with the '('
-	 * following the macro identifier. This method will consume from that
-	 * iterator until it finds the matching ')'. It then expands all macros in
-	 * each argument, in isolation. The replacement token list for the macro is
-	 * then instantiated, and the (expanded) arguments substituted for the
-	 * formal parameters to yield the list of tokens returned by this method.
-	 * 
-	 * @param macro
-	 *                         the function macro being applied
-	 * @param origin
-	 *                         the token containing the macro name in the
-	 *                         invocation
-	 * @param argumentIter
-	 *                         iterator over tokens starting from '('
-	 * @param doNotExpand
-	 *                         set of macros that should not be expanded in the
-	 *                         calls to expand each argument
-	 * @return the linked list of tokens, specified as a pair consisting of the
-	 *         first and last token, after substituting the expanded arguments
-	 *         for the formal parameters in the macro's replacement token list
-	 * @throws PreprocessorException
-	 */
-	private Pair<CivlcToken, CivlcToken> instantiate(FunctionMacro macro,
-			CivlcToken origin, TokenIterator tail, Deque<Macro> doNotExpand)
-			throws PreprocessorException {
-		OldMacroExpander expander = new OldMacroExpander(this, macro, origin,
-				tail, doNotExpand);
-		Pair<CivlcToken, CivlcToken> result = expander.expand();
-		return result;
-	}
-
-	/**
-	 * Creates a new instance of the object macro's body. Creates a sequence of
-	 * {@link CivlcToken}s corresponding to the sequence of input tokens in the
-	 * macro's replacement list.
-	 * 
-	 * The result is a linked list of {@link CivlcToken} using the "next" field
-	 * of {@link CivlcToken}. The elements of the Pair returned are the first
-	 * and last element of the list.
-	 * 
-	 * @param macro
-	 *                        any object macro
-	 * @param origin
-	 *                        the original expansion history for the identifier
-	 *                        which is the macro's name and led to its expansion
-	 * @param doNotExpand
-	 *                        stack of Macros that should not be expanded
-	 * @return first and last element in a null-terminated linked list of fresh
-	 *         CTokens obtained from the macro's body
-	 */
-	private Pair<CivlcToken, CivlcToken> instantiate(ObjectMacro macro,
-			CivlcToken origin, Deque<Macro> doNotExpand)
-			throws PreprocessorException {
-		OldMacroExpander expander = new OldMacroExpander(this, macro, origin,
-				doNotExpand);
-		Pair<CivlcToken, CivlcToken> result = expander.expand();
-		return result;
-	}
-
-	/**
-	 * Gets the next token from a given token in a linked list. However, if the
-	 * given token is the last element in the list (i.e., if its next token
-	 * field is null), this method consumes a token T from the input stream
-	 * (incrementing the position of the stream), assuming that T is in a text
-	 * block. In that case, it appends T to the list, and returns T.
-	 * 
-	 * @param token
-	 *                  a non-null CivlcToken
-	 * @return the next token, assuming the conditions described above hold, or
-	 *         <code>null</code>
-	 */
-
-	/*
-	 * private CivlcToken getExtend1(CivlcToken token) { CivlcToken result =
-	 * token.getNext(); if (result != null) return result; CommonTree tree =
-	 * (CommonTree) getNextInputNode(); incrementNextNode(); while (tree !=
-	 * null) { Token curr = tree.getToken(); if (curr.getType() ==
-	 * PreprocessorParser.TEXT_BLOCK) { tree = (CommonTree) getNextInputNode();
-	 * // descend into block incrementNextNode(); } else if (!inTextBlock) {
-	 * return null; } else {
-	 * PreprocessorUtils.convertPreprocessorIdentifiers(curr); result =
-	 * tokenFactory.newCivlcToken(curr, getIncludeHistory(),
-	 * TokenVocabulary.PREPROC); token.setNext(result); return result; } }
-	 * return null; }
-	 */
-
-	/**
-	 * <p>
-	 * Given a token in a linked list of tokens, this method searches forward
-	 * for the first '(' and then continues searching forward for the matching
-	 * ')'. The list is extended if necessary by drawing in new tokens from the
-	 * input stream.
-	 * </p>
-	 * 
-	 * <p>
-	 * The search starts at the first token after the given token
-	 * <code>first</code>. It is expected that there will be possible white
-	 * space and then the first non-white-space token found will be '('. If that
-	 * is not the case, this method returns false. If the matching ')' is not
-	 * found before running out of text tokens, this method returns false.
-	 * </p>
-	 * 
-	 * <p>
-	 * Typically, <code>first</code> is the token for an identifier of a
-	 * function-like macro.
-	 * </p>
-	 * 
-	 * @param first
-	 *                  token from which to start the search
-	 * @return <code>true</code> iff the search succeeds, i.e, the matching pair
-	 *         of parentheses are found
-	 */
-
-	/*
-	 * private boolean extendIfNecessary(CivlcToken first) { boolean lparenFound
-	 * = false; int parenDepth = 0; for (CivlcToken token = getExtend1( first);
-	 * token != null; token = getExtend1(token)) { int type = token.getType();
-	 * if (!lparenFound) { if (type == PreprocessorParser.LPAREN) { lparenFound
-	 * = true; parenDepth = 1; } else if
-	 * (!PreprocessorUtils.isWhiteSpace(token)) { return false; } } else { if
-	 * (type == PreprocessorParser.LPAREN) parenDepth++; else if (type ==
-	 * PreprocessorParser.RPAREN) { parenDepth--; if (parenDepth == 0) return
-	 * true; } } } return false; }
-	 */
 
 	/**
 	 * <p>
@@ -1091,17 +828,6 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 	 * Note that the left token in the pair returned by this method MAY be the
 	 * first token in the given list. It also may NOT be the first token in the
 	 * given list, because that token was a macro invocation and was replaced.
-	 * </p>
-	 * 
-	 * <p>
-	 * Implementation: iterate over the tokens looking for macro invocations.
-	 * When you find one, call processInvocation and insert its output into
-	 * list, in place of the the invocation.
-	 * 
-	 * <pre>
-	 * ... X X X M ( A0 A0 A1 A2 A2 A2 ) X X X ... ->
-	 * ... X X X R R R ... R X X X ...
-	 * </pre>
 	 * </p>
 	 * 
 	 * @param first
@@ -1133,8 +859,7 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 				continue;
 			}
 			Macro macro = null;
-			boolean isInvocation = false;
-			boolean isSpecial = false;
+			boolean isInvocation = false, isSpecial = false;
 			if (PreprocessorUtils.isIdentifier(current)) {
 				macro = macroMap.get(current.getText());
 				if (macro == null) {
@@ -1171,17 +896,8 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 			ListTokenIterator listIter = new ListTokenIterator(
 					current.getNext());
 			TokenIterator tail2 = new ChainedTokenIterator(listIter, tail);
-			Pair<CivlcToken, CivlcToken> replacements;
-			if (macro instanceof ObjectMacro) {
-				// the following will consume from tail2 as needed
-				// tail2: will join iterator over remaining tokens in list
-				// with tail
-				replacements = processInvocation((ObjectMacro) macro, current,
-						tail2, doNotExpand);
-			} else {
-				replacements = processInvocation((FunctionMacro) macro, current,
-						tail2, doNotExpand);
-			}
+			Pair<CivlcToken, CivlcToken> replacements = processInvocation(macro,
+					current, tail2, doNotExpand);
 			// splice in replacements and update current and previous...
 			// current is first token not consumed in listIter (which may be
 			// null).
@@ -1416,13 +1132,10 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 		int result;
 		assert expressionNode.getType() == PreprocessorParser.EXPR;
 		// form a list of new non-whitespace tokens from the expression node...
-
-		// TODO: problem: don't change type of "defined"
-
+		// Note: this method does not change type DEFINED to IDENTIFIER:
 		first = nonWhiteSpaceTokenListFromChildren(expressionNode);
 		// expand all macro invocations in the expression...
 		Deque<Macro> doNotExpand = new ArrayDeque<Macro>();
-
 		expandedFirst = expandList(first, new EmptyTokenIterator(),
 				doNotExpand).left;
 		// form a TokenSource from this list...
@@ -1489,7 +1202,6 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 						"Encountered null token as child " + i + " of node "
 								+ root);
 			if (!PreprocessorUtils.isWhiteSpace(token)) {
-
 				// Keep type of DEFINED token, don't change to IDENTIFIER...
 				int type = token.getType();
 				CivlcToken newToken = tokenFactory.newCivlcToken(token,

@@ -46,7 +46,6 @@ import static dev.civl.abc.front.c.preproc.PreprocessorParser.GLOBAL;
 import static dev.civl.abc.front.c.preproc.PreprocessorParser.GOTO;
 import static dev.civl.abc.front.c.preproc.PreprocessorParser.GUARD;
 import static dev.civl.abc.front.c.preproc.PreprocessorParser.HERE;
-import static dev.civl.abc.front.c.preproc.PreprocessorParser.IDENTIFIER;
 import static dev.civl.abc.front.c.preproc.PreprocessorParser.IF;
 import static dev.civl.abc.front.c.preproc.PreprocessorParser.IFDEF;
 import static dev.civl.abc.front.c.preproc.PreprocessorParser.IFNDEF;
@@ -158,7 +157,7 @@ public class PreprocessorUtils {
 	 * (type IDENTIFIER) or any keyword.
 	 * 
 	 * @param token
-	 *            any token
+	 *                  any token
 	 * @return true iff the token's type is either IDENTIFIER or any of the
 	 *         types in the list of C keywords.
 	 */
@@ -184,7 +183,7 @@ public class PreprocessorUtils {
 	 * newlines, comments are all white space.
 	 * 
 	 * @param token
-	 *            any token defined in the PreprocessorParser
+	 *                  any token defined in the PreprocessorParser
 	 * @return true iff token is a form of white space
 	 */
 	public static boolean isWhiteSpace(Token token) {
@@ -202,7 +201,7 @@ public class PreprocessorUtils {
 	 * have been removed.
 	 * 
 	 * @param oldSource
-	 *            a token source that might have white space
+	 *                      a token source that might have white space
 	 * @return a new token source equivalent to old but with white space tokens
 	 *         removed
 	 */
@@ -271,48 +270,18 @@ public class PreprocessorUtils {
 	}
 
 	/**
-	 * If the token has type which is one of the preprocessor keywords (e.g.,
-	 * DEFINE, which is the type of the token "define"), it is changed to the
-	 * IDENTIFIER type. Otherwise, the token is unchanged.
-	 * 
-	 * @param token
-	 *            any preprocessing token (including whitespace)
-	 */
-	
-	/*
-	public static void convertPreprocessorIdentifiers(Token token) {
-		int tokenType = token.getType();
-
-		switch (tokenType) {
-			case DEFINE :
-			case DEFINED :
-			case ELIF :
-			case ENDIF :
-			case ERROR :
-			case IFDEF :
-			case IFNDEF :
-			case INCLUDE :
-			case LINE :
-			case PRAGMA :
-			case UNDEF :
-				token.setType(IDENTIFIER);
-			default :
-		}
-	}
-	*/
-
-	/**
 	 * Prints the stream of tokens emanating from a token source. Used mainly
 	 * for debugging. Uses the tokens' "toString" method.
 	 * 
 	 * @param out
-	 *            a print stream to which the output is sent
+	 *                   a print stream to which the output is sent
 	 * @param source
-	 *            any instance of TokenSource
+	 *                   any instance of TokenSource
 	 * @throws PreprocessorException
-	 *             if any exception is thrown while printing a token or getting
-	 *             the next token. CommonToken's toString method can throw all
-	 *             manner of exceptions
+	 *                                   if any exception is thrown while
+	 *                                   printing a token or getting the next
+	 *                                   token. CommonToken's toString method
+	 *                                   can throw all manner of exceptions
 	 */
 	public static void printTokenSource(PrintStream out, TokenSource source)
 			throws PreprocessorException {
@@ -379,19 +348,20 @@ public class PreprocessorUtils {
 	 * (including inside a jar file).
 	 * 
 	 * @param name
-	 *            a name to assign to the stream; used only for reporting
-	 *            errors, referring to the stream, etc.
+	 *                     a name to assign to the stream; used only for
+	 *                     reporting errors, referring to the stream, etc.
 	 * @param resource
-	 *            the actual name of the resource, which is absolute path
-	 *            relative to the class path
+	 *                     the actual name of the resource, which is absolute
+	 *                     path relative to the class path
 	 * @return the character stream or <code>null</code> if the resource could
 	 *         not be found
 	 * @throws IOException
-	 *             if something goes wrong reading from the stream
+	 *                         if something goes wrong reading from the stream
 	 */
 	public static CharStream newFilteredCharStreamFromResource(String name,
 			String resource) throws IOException {
-		InputStream inputStream = ClassLoader.getSystemResourceAsStream(resource);
+		InputStream inputStream = ClassLoader
+				.getSystemResourceAsStream(resource);
 
 		if (inputStream == null)
 			return null;
@@ -411,9 +381,9 @@ public class PreprocessorUtils {
 	 * "sys/stdio.h".
 	 * 
 	 * @param paths
-	 *            list of directories to search
+	 *                     list of directories to search
 	 * @param filename
-	 *            name of file
+	 *                     name of file
 	 * @return file named filename, or null if not found
 	 */
 	public static File findFile(File[] paths, String filename) {
@@ -435,7 +405,7 @@ public class PreprocessorUtils {
 	 * newline-terminated lines of the form "#define NAME BODY"
 	 * 
 	 * @param macroMap
-	 *            map from macro names to bodies
+	 *                     map from macro names to bodies
 	 * @return character stream defining macros in the C preprocessor format
 	 */
 	public static CharStream macroMapToCharStream(

@@ -19,7 +19,6 @@ options
 	language=Java;
 	tokenVocab=PreprocessorParser;
 	output=AST;
-    //backtrack=true;
 }
 
 tokens
@@ -176,21 +175,17 @@ import dev.civl.abc.front.IF.RuntimeParseException;
 	}
 
     /* This function returns true iff the current token is
-       the first token X in the init-declarator-list of a typedef
+       the first token X in the init-declarator-list of a 
        declaration.  This holds iff (1) X is '*', '(', or an identifier,
        and (2) if X is an identifier then a type specifier has already
        been encountered in this declaration.
        
        Rationale: a declaration must have at least one type specifier,
        and that must occur before the init-declarator list.
-       A typedef must have at least one declarator.
      */
     boolean indicatesDeclarator() {
         Token token1 = input.LT(1);
         int type1 = token1.getType();
-        
-        //System.out.println("indicatesDeclarator: "+token1);
-        
         if (type1 == STAR || type1 == LPAREN) return true;
         if (type1 != IDENTIFIER) return false;
         return $DeclarationScope::hasTypeSpec;
@@ -267,8 +262,8 @@ constant
 /* Enumeration constants: an identifier that occurs in the current symbol
  * stack's enumerationConstants fields */
 enumerationConstant
-	: {isEnumerationConstant(input.LT(1).getText())}? IDENTIFIER ->
-	  ^(ENUMERATION_CONSTANT IDENTIFIER)
+	: {isEnumerationConstant(input.LT(1).getText())}? IDENTIFIER 
+	  -> ^(ENUMERATION_CONSTANT IDENTIFIER)
 	;
 
 /* 6.5.1. C primary expressions.  */
@@ -295,9 +290,9 @@ genericSelection
  */
 derivativeExpression
 	: DERIV LSQUARE IDENTIFIER COMMA partialList RSQUARE
-        LPAREN argumentExpressionList RPAREN
-        -> ^(DERIVATIVE_EXPRESSION IDENTIFIER partialList
-            argumentExpressionList RPAREN)
+      LPAREN argumentExpressionList RPAREN
+      -> ^(DERIVATIVE_EXPRESSION IDENTIFIER partialList
+           argumentExpressionList RPAREN)
 	;
 
 /* A list of partial derivative operators.  This is a CIVL-C addition.
@@ -754,7 +749,7 @@ scope DeclarationScope;
  * function prototypes, and function definitions.
  */
 declarationSpecifiers
-	: l=declarationSpecifierList
+	: declarationSpecifierList
 	  -> ^(DECLARATION_SPECIFIERS declarationSpecifierList)
 	;
 
@@ -763,19 +758,13 @@ declarationSpecifiers
    immediately followed by a ; , ( or [.    An identifier that is
    immediately followed by one of those tokens is an/the identifier being
    defined by the typedef.
- */
- 
- // !$DeclarationScope::isTypedef ||
- 
+ */ 
 declarationSpecifierList
-	: (
-	    { !indicatesDeclarator() }?
-	    s=declarationSpecifier
-	  )+
+	: ( { !indicatesDeclarator() }? declarationSpecifier )+
 	;
 
 declarationSpecifier
-	: s=storageClassSpecifier
+	: storageClassSpecifier
 	| typeSpecifierOrQualifier
 	| functionSpecifier
 	| alignmentSpecifier
@@ -791,7 +780,7 @@ declarationSpecifier
  */
 typeSpecifierOrQualifier
 	: (typeSpecifier)=> typeSpecifier {$DeclarationScope::hasTypeSpec = true;}
-        | typeQualifier
+    | typeQualifier
 	;
 
 /* 6.7
@@ -1018,22 +1007,21 @@ functionSpecifier
 
 abstractSpecifier
     : ABSTRACT (  -> ^(ABSTRACT)
-                |  CONTIN LPAREN INTEGER_CONSTANT RPAREN
-                  -> ^(ABSTRACT INTEGER_CONSTANT)
-                | LPAREN STRING_LITERAL RPAREN
-                  -> ^(ABSTRACT STRING_LITERAL)
+               | CONTIN LPAREN INTEGER_CONSTANT RPAREN
+                 -> ^(ABSTRACT INTEGER_CONSTANT)
+               | LPAREN STRING_LITERAL RPAREN
+                 -> ^(ABSTRACT STRING_LITERAL)
                )
     ;
 
 differentiableSpecifier
 	: DIFFERENTIABLE LPAREN INTEGER_CONSTANT COMMA intervalSeq RPAREN
-	  ->
-	  ^(DIFFERENTIABLE INTEGER_CONSTANT intervalSeq)
+	  -> ^(DIFFERENTIABLE INTEGER_CONSTANT intervalSeq)
 	;
 
 libraryName
 	: LSQUARE i0=IDENTIFIER i1+=(SUB | IDENTIFIER)* RSQUARE
-	->^(LIB_NAME $i0 $i1*)
+	  -> ^(LIB_NAME $i0 $i1*)
 	;
 
 
@@ -1072,7 +1060,7 @@ declarator
 directDeclarator
 	: p=directDeclaratorPrefix
 	  ( -> ^(DIRECT_DECLARATOR $p)
-	  | s+=directDeclaratorSuffix+ ->^(DIRECT_DECLARATOR $p $s+)
+	  | s+=directDeclaratorSuffix+ -> ^(DIRECT_DECLARATOR $p $s+)
 	  )
 	;
 
@@ -1171,8 +1159,7 @@ pointer
  * child 0: TYPE_QUALIFIER_LIST
  */
 pointer_part
-	: STAR typeQualifierList_opt
-	-> ^(STAR typeQualifierList_opt)
+	: STAR typeQualifierList_opt -> ^(STAR typeQualifierList_opt)
 	;
 
 /* 6.7.6
@@ -1259,8 +1246,7 @@ declaratorOrAbstractDeclarator
  * children: IDENTIFIER (at least 1)
  */
 identifierList
-    : IDENTIFIER ( COMMA IDENTIFIER )*
-      -> ^(IDENTIFIER_LIST IDENTIFIER+)
+    : IDENTIFIER ( COMMA IDENTIFIER )* -> ^(IDENTIFIER_LIST IDENTIFIER+)
     ;
 
 /* 6.7.6.  This is how a type is described without attaching
@@ -1317,21 +1303,23 @@ directAbstractDeclarator
  * Root: TYPEDEF_NAME
  * Child 0: IDENTIFIER
  *
- * Ambiguity: example:
+ * A typedef name is an identifier which has been entered into
+ * the the type name table by an earlier typedef.  However note
+ * the following exceptional scenario:
+ *
  * typedef int foo;
  * typedef int foo;
  *
  * This is perfectly legal: you can define a typedef twice
  * as long as both definitions are equivalent.  However,
  * the first definition causes foo to be entered into the type name
- * table, so when parsing the second definition, foo is
+ * table, so when parsing the second definition, foo could be
  * interpreted as a typedefName (a type specifier), and the
  * declaration would have empty declarator.   This is not
- * what you want, so you have to forbid it somehow.  I do this
- * by requiring that if you are "in" a typedef, a typedef name
- * cannot be immediately followed by a semicolon.  This is sound
- * because the C11 Standard requires at least one declarator
- * to be present in a typedef.  See declarationSpecifierList.
+ * what you want, so you have to forbid it somehow.  See
+ * the rule for declarationSpecifiers, which uses a special
+ * function to determine whether an identifier occurring in a
+ * declaration can be considered a typedef.
  */
 typedefName
     : {isTypeName(input.LT(1).getText())}? IDENTIFIER
@@ -1455,7 +1443,7 @@ scope Symbols;
 @init {
 	$Symbols::types = new HashSet<String>();
 	$Symbols::enumerationConstants = new HashSet<String>();
-        $Symbols::isFunctionDefinition = false;
+    $Symbols::isFunctionDefinition = false;
 }
 	: statement
 	| pragma+ statement -> ^(STATEMENT ^(COMPOUND_STATEMENT ABSENT ^(BLOCK_ITEM_LIST pragma+ statement) ABSENT))
@@ -1514,8 +1502,6 @@ scope DeclarationScope;
 blockItemList
     : blockItem+ -> ^(BLOCK_ITEM_LIST blockItem+)
     ;
-
-
 
 /* 6.8.3
  * Root: EXPRESSION_STATEMENT
@@ -1579,7 +1565,7 @@ scope Symbols;
 @init {
 	$Symbols::types = new HashSet<String>();
 	$Symbols::enumerationConstants = new HashSet<String>();
-        $Symbols::isFunctionDefinition = false;
+    $Symbols::isFunctionDefinition = false;
 }
 	: WHILE LPAREN expression RPAREN invariant_opt
 	  s=statementWithScope
@@ -1663,7 +1649,6 @@ pragma
 /* inlineList : nonempty list of tokens not including NEWLINE */
 inlineList : (~ NEWLINE)+ ;
 
-
 /* Annotations
  * Root: ANNOTATION
  * child 0 : INLINE_ANNOTATION_START or ANNOTATION_START
@@ -1686,7 +1671,6 @@ annotation
 
 annotationBody : (~ ANNOTATION_END)+ ;
 
-
 /* CIVL-C $run statement. This statement invokes an
  * asynchronous exeuction on the given statement.
  * Syntax: $run stmt.
@@ -1695,7 +1679,7 @@ annotationBody : (~ ANNOTATION_END)+ ;
  * Child 0: statement
  */
 runStatement
-    	: RUN statement -> ^(RUN statement)
+   	: RUN statement -> ^(RUN statement)
     ;
 
 /* CIVL-C $with statement.    This statement is used to execute
@@ -1703,14 +1687,14 @@ runStatement
  */
 withStatement
 	: WITH LPAREN assignmentExpression RPAREN statement
-            -> ^(WITH assignmentExpression statement)
+      -> ^(WITH assignmentExpression statement)
 	;
 
 updateStatement
 	: UPDATE LPAREN assignmentExpression RPAREN
 	  postfixExpressionRoot LPAREN argumentExpressionList RPAREN SEMI
 	  -> ^(UPDATE assignmentExpression
-	  	^(CALL ABSENT postfixExpressionRoot ABSENT argumentExpressionList RPAREN)
+	  	   ^(CALL ABSENT postfixExpressionRoot ABSENT argumentExpressionList RPAREN)
 	      )
 	;
 
@@ -1746,8 +1730,7 @@ whenStatement
  * Children: 1 or more statement
  */
 chooseStatement
-	:	CHOOSE LCURLY statement+ RCURLY
-		-> ^(CHOOSE statement+)
+	:	CHOOSE LCURLY statement+ RCURLY -> ^(CHOOSE statement+)
 	;
 
 /* CIVL-C $atomic statement.  Syntax:
@@ -1757,8 +1740,7 @@ chooseStatement
  * Child 0: statement
  */
 atomicStatement
-	:	CIVLATOMIC s=statementWithScope
-		-> ^(CIVLATOMIC $s)
+	:	CIVLATOMIC s=statementWithScope -> ^(CIVLATOMIC $s)
 	;
 
 /* 6.9.1
@@ -1824,10 +1806,14 @@ separationLogicItem
     ;
 porItem
     :
-      DEPENDS (LSQUARE expression RSQUARE)? LCURLY argumentExpressionList RCURLY -> ^(DEPENDS expression? argumentExpressionList)
-    | GUARD (LSQUARE expression RSQUARE)? LCURLY argumentExpressionList RCURLY -> ^(GUARD expression? argumentExpressionList)
-    | ASSIGNS (LSQUARE expression RSQUARE)? LCURLY argumentExpressionList RCURLY -> ^(ASSIGNS expression? argumentExpressionList)
-    | READS (LSQUARE expression RSQUARE)? LCURLY argumentExpressionList RCURLY -> ^(READS expression? argumentExpressionList )
+      DEPENDS (LSQUARE expression RSQUARE)? LCURLY argumentExpressionList RCURLY
+      -> ^(DEPENDS expression? argumentExpressionList)
+    | GUARD (LSQUARE expression RSQUARE)? LCURLY argumentExpressionList RCURLY
+      -> ^(GUARD expression? argumentExpressionList)
+    | ASSIGNS (LSQUARE expression RSQUARE)? LCURLY argumentExpressionList RCURLY
+      -> ^(ASSIGNS expression? argumentExpressionList)
+    | READS (LSQUARE expression RSQUARE)? LCURLY argumentExpressionList RCURLY
+      -> ^(READS expression? argumentExpressionList )
     ;
 
 /* A CIVL-C contract: sequence of 0 or more
@@ -1857,7 +1843,7 @@ scope DeclarationScope;
  * is not a block item, but in CIVL-C it is.
  */
 blockItem
-	:(declarator contract declarationList_opt LCURLY)=>
+	: (declarator contract declarationList_opt LCURLY)=>
 	  functionDefinition
 	| (declarationSpecifiers declarator contract declarationList_opt LCURLY)=>
 	  functionDefinition
@@ -1889,6 +1875,5 @@ scope DeclarationScope; // just to have an outermost one with isTypedef false
     $DeclarationScope::isTypedef = false;
     $DeclarationScope::hasTypeSpec = false;
 }
-	:	blockItem* EOF
-		-> ^(TRANSLATION_UNIT blockItem*)
+	:	blockItem* EOF -> ^(TRANSLATION_UNIT blockItem*)
 	;
