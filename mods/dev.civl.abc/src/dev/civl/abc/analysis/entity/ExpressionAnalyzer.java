@@ -132,11 +132,11 @@ public class ExpressionAnalyzer {
 	static final String REMOTE_EXPR = "\\on";
 
 	/**
-	 * Function used for $print. Don't want to add array conversions
-	 * to this function's arguments.
+	 * Function used for $print. Don't want to add array conversions to this
+	 * function's arguments.
 	 */
 	static final String PRINT_FUNCTION_NAME = "$print_helper";
-	
+
 	// ***************************** Fields *******************************
 
 	private EntityAnalyzer entityAnalyzer;
@@ -905,9 +905,9 @@ public class ExpressionAnalyzer {
 			ExpressionNode argument = node.getArgument(i);
 
 			processExpression(argument);
-			if (i == 0 || !functionName.equals(PRINT_FUNCTION_NAME))
+			if (i == 0 || !PRINT_FUNCTION_NAME.equals(functionName))
 				addStandardConversions(argument);
-			
+
 			if ((functionType != null && functionType.parametersKnown()
 					&& (!hasVariableNumArgs || i < expectedNumArgs))
 					|| isSpecialFunction) {
@@ -1623,6 +1623,13 @@ public class ExpressionAnalyzer {
 			type = type1;
 		} else if (type1 instanceof PointerType
 				&& type2 instanceof PointerType) {
+			// If both the second and third operands are pointers, the result
+			// type is a pointer to a type qualified with all the type
+			// qualifiers of the types referenced by both operands;
+			// ... Furthermore, if both operands are pointers to compatible
+			// types or to differently qualified versions of compatible types,
+			// the result type is a pointer to an appropriately qualified
+			// version of the composite type;
 			PointerType p0 = (PointerType) type1;
 			PointerType p1 = (PointerType) type2;
 			boolean atomicQ = false, constQ = false, volatileQ = false,
@@ -1661,12 +1668,11 @@ public class ExpressionAnalyzer {
 			else
 				throw error("Incompatible pointer types in conditional:\n"
 						+ type1 + "\n" + type2, node);
-
+			type = typeFactory.qualify((ObjectType) type, constQ, volatileQ,
+					restrictQ, false, false);
 			type = typeFactory.pointerType(type);
 			if (atomicQ)
 				type = typeFactory.atomicType((PointerType) type);
-			type = typeFactory.qualify((ObjectType) type, constQ, volatileQ,
-					restrictQ, false, false);
 		} else {
 			if (this.config == null || !config.getSVCOMP()
 					|| (type1.kind() != TypeKind.VOID

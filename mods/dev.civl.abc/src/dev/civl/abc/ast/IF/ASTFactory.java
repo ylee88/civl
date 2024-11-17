@@ -6,11 +6,13 @@ import java.util.Collection;
 import dev.civl.abc.ast.node.IF.ASTNode;
 import dev.civl.abc.ast.node.IF.NodeFactory;
 import dev.civl.abc.ast.node.IF.SequenceNode;
+import dev.civl.abc.ast.node.IF.expression.StringLiteralNode;
 import dev.civl.abc.ast.node.IF.statement.BlockItemNode;
 import dev.civl.abc.ast.type.IF.Type;
 import dev.civl.abc.ast.type.IF.TypeFactory;
 import dev.civl.abc.config.IF.Configurations.Language;
 import dev.civl.abc.err.IF.ABCException;
+import dev.civl.abc.token.IF.Formation;
 import dev.civl.abc.token.IF.Inclusion;
 import dev.civl.abc.token.IF.Source;
 import dev.civl.abc.token.IF.SourceFile;
@@ -62,14 +64,14 @@ public interface ASTFactory {
 	 * </ul>
 	 * 
 	 * @param root
-	 *            the root node of the new AST
+	 *                           the root node of the new AST
 	 * @param isWholeprogram
-	 *            is this AST representing a whole program (see
-	 *            {@link AST#isWholeProgram()} )
+	 *                           is this AST representing a whole program (see
+	 *                           {@link AST#isWholeProgram()} )
 	 * @return the new AST
 	 * @throws SyntaxException
-	 *             if something violating the syntax rules is found while
-	 *             traversing this AST
+	 *                             if something violating the syntax rules is
+	 *                             found while traversing this AST
 	 */
 	AST newAST(SequenceNode<BlockItemNode> root,
 			Collection<SourceFile> sourceFiles, boolean isWholeprogram)
@@ -105,15 +107,36 @@ public interface ASTFactory {
 	 * a standard library file name.
 	 * 
 	 * @param file
-	 *            the file of the system library file, including the path to the
-	 *            file but not including a directory; e.g.,
-	 *            "/include/abc/stdlib.h"
+	 *                     the file of the system library file, including the
+	 *                     path to the file but not including a directory; e.g.,
+	 *                     "/include/abc/stdlib.h"
 	 * @param language
-	 *            the language of the library
+	 *                     the language of the library
 	 * @return the raw AST for the specified translation unit
 	 * @throws ABCException
-	 *             if something goes wrong while preprocessing, parsing and
-	 *             translating the library file
+	 *                          if something goes wrong while preprocessing,
+	 *                          parsing and translating the library file
 	 */
 	AST getASTofLibrary(File file, Language language) throws ABCException;
+
+	/**
+	 * Produces a new {@link StringLiteralNode}.
+	 * 
+	 * @param formation
+	 *                           formation describing how this node was
+	 *                           produced; consider using
+	 *                           {@link TokenFactory#newSystemFormation(String)}
+	 * @param representation
+	 *                           the text of the string literal exactly as it
+	 *                           would appear in a program source; this must
+	 *                           include the surrounding (single or double)
+	 *                           quotes
+	 * @return new string literal node
+	 * @throws SyntaxException
+	 *                             if the <code>representation</code> does not
+	 *                             conform to the C11 specification of string
+	 *                             literals
+	 */
+	StringLiteralNode newStringLiteralNode(Formation formation,
+			String representation) throws SyntaxException;
 }

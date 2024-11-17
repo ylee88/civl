@@ -3,6 +3,7 @@ package dev.civl.abc.front.c.astgen;
 import static dev.civl.abc.front.IF.CivlcTokenConstant.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -76,6 +77,7 @@ import dev.civl.abc.ast.node.IF.type.StructureOrUnionTypeNode;
 import dev.civl.abc.ast.node.IF.type.TypeNode;
 import dev.civl.abc.ast.node.IF.type.TypeNode.TypeNodeKind;
 import dev.civl.abc.ast.node.IF.type.TypedefNameNode;
+import dev.civl.abc.ast.type.IF.StandardBasicType.BasicTypeKind;
 import dev.civl.abc.ast.type.IF.Type;
 import dev.civl.abc.ast.type.IF.Type.TypeKind;
 import dev.civl.abc.config.IF.Configuration;
@@ -131,6 +133,8 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	/* ************************** Instance Fields ************************* */
 
 	private CParseTree parseTree;
+
+	private ASTFactory astFactory;
 
 	private NodeFactory nodeFactory;
 
@@ -190,6 +194,7 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	public CASTBuilderWorker(Configuration config, CParseTree parseTree,
 			ASTFactory astFactory, PragmaFactory pragmaFactory) {
 		this.parseTree = parseTree;
+		this.astFactory = astFactory;
 		this.nodeFactory = astFactory.getNodeFactory();
 		this.tokenFactory = astFactory.getTokenFactory();
 		this.rootTree = parseTree.getRoot();
@@ -2459,12 +2464,37 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	}
 
 	/**
+	 * Is any node in the tree rooted at <code>tree</code> an identifier node
+	 * whose name is <code>name</code>?
+	 * 
+	 * @param tree
+	 *                 a non-null parse tree node
+	 * @param name
+	 *                 a non-null string
+	 * @return <code>true</code> iff such a node exists
+	 */
+	private boolean containsIdentifier(CommonTree tree, String name) {
+		if (tree.getType() == CivlCParser.IDENTIFIER) {
+			if (name.equals(tree.getText()))
+				return true;
+		} else {
+			int n = tree.getChildCount();
+			for (int i = 0; i < n; i++) {
+				CommonTree child = (CommonTree) tree.getChild(i);
+				if (containsIdentifier(child, name))
+					return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * 
 	 * @param compoundStatementTree
 	 * @return
 	 * @throws SyntaxException
 	 */
-	@SuppressWarnings("unchecked")
+	// @SuppressWarnings("unchecked")
 	private CompoundStatementNode translateCompoundStatement(
 			CommonTree compoundStatementTree, SimpleScope scope)
 			throws SyntaxException {
@@ -2505,8 +2535,11 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 											attrKeyDependSource,
 											pragmaDSAttrVal);
 								} else {
-									((Set<String>) stmtDSAttrVal).addAll(
-											(Set<String>) pragmaDSAttrVal);
+									@SuppressWarnings("unchecked")
+									Set<String> set1 = (Set<String>) stmtDSAttrVal;
+									@SuppressWarnings("unchecked")
+									Set<String> set2 = (Set<String>) pragmaDSAttrVal;
+									set1.addAll(set2);
 								}
 							}
 							if (pragmaDTAttrVal != null) {
@@ -2518,8 +2551,11 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 											attrKeyDependTarget,
 											pragmaDTAttrVal);
 								} else {
-									((Set<String>) stmtDTAttrVal).addAll(
-											(Set<String>) pragmaDTAttrVal);
+									@SuppressWarnings("unchecked")
+									Set<String> set1 = (Set<String>) stmtDTAttrVal;
+									@SuppressWarnings("unchecked")
+									Set<String> set2 = (Set<String>) pragmaDTAttrVal;
+									set1.addAll(set2);
 								}
 							}
 						}
@@ -2766,8 +2802,6 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 		TypeNode baseType = newSpecifierType(analysis, newScope);
 		DeclaratorData data = processDeclarator(declarator, baseType, newScope);
 		FunctionTypeNode functionType = (FunctionTypeNode) data.type;
-		CompoundStatementNode body;
-		FunctionDefinitionNode result;
 
 		if (functionType.hasIdentifierList()) {
 			SequenceNode<VariableDeclarationNode> formalSequenceNode = functionType
@@ -2839,12 +2873,32 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 				functionType.setParameters(newFormalSequenceNode);
 			}
 		}
-		body = translateCompoundStatement(compoundStatementTree, newScope);
-		// result = nodeFactory.newFunctionDefinitionNode(
-		// newSource(functionDefinitionTree), data.identifier,
-		// (FunctionTypeNode) data.type,
-		// getContract(contractTree, newScope), body);
-		result = nodeFactory.newFunctionDefinitionNode(
+		CompoundStatementNode body = translateCompoundStatement(
+				compoundStatementTree, newScope);
+		// According to the C Spec, the implicity identifier __func__
+		// is defined in every function...
+		boolean containsFunc = containsIdentifier(compoundStatementTree,
+				"__func__");
+		//System.out.println("Contains __func__: " + containsFunc);
+		if (containsFunc) {
+			CommonTree lcurlyNode = (CommonTree) compoundStatementTree
+					.getChild(0);
+			Source lcurlySource = newSource(lcurlyNode);
+			IdentifierNode id__func__ = nodeFactory
+					.newIdentifierNode(lcurlySource, "__func__");
+			TypeNode charTypeNode = nodeFactory.newBasicTypeNode(lcurlySource,
+					BasicTypeKind.CHAR);
+			TypeNode stringTypeNode = nodeFactory.newArrayTypeNode(lcurlySource,
+					charTypeNode, null);
+			InitializerNode initNode = astFactory.newStringLiteralNode(
+					tokenFactory.newSystemFormation("Predefined identifiers"),
+					"\"" + data.identifier.name() + "\"");
+			VariableDeclarationNode funcDecl = nodeFactory
+					.newVariableDeclarationNode(lcurlySource, id__func__,
+							stringTypeNode, initNode);
+			body.insertChildren(0, Arrays.asList(funcDecl));
+		}
+		FunctionDefinitionNode result = nodeFactory.newFunctionDefinitionNode(
 				newSource(functionDefinitionTree), data.identifier,
 				(FunctionTypeNode) data.type, getContract(), body);
 		// TODO: Should function specifiers actually be set here? I added this

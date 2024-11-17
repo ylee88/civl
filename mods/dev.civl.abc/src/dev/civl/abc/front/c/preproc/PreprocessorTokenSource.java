@@ -962,7 +962,6 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 				if (node.getChildCount() > 0)
 					throw new IllegalMacroArgumentException(result);
 				incrementNextNode();
-				// System.out.println("Argument iterator returns: "+result);
 				return result;
 			}
 
@@ -1290,7 +1289,7 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 			pushStream(pair.right,
 					tokenFactory.newInclusion(sourceFile, filenameToken));
 		} else {
-			System.out.println("Skipping once file " + sourceFile);
+			//System.out.println("Skipping once file " + sourceFile);
 			jumpNextNode();
 		}
 	}
