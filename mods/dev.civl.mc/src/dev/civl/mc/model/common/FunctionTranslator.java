@@ -359,7 +359,7 @@ public class FunctionTranslator {
 	 *                                 in the rootNode's children.
 	 */
 	public void translateRootFunction(Scope systemScope, ASTNode rootNode) {
-		
+
 		Fragment initialization = new CommonFragment();
 		Fragment body;
 
@@ -2490,8 +2490,8 @@ public class FunctionTranslator {
 		if (functionExpression instanceof IdentifierExpressionNode) {
 			civlFunction = getFunction(
 					(IdentifierExpressionNode) functionExpression).right;
-			isPrintHelper = civlFunction != null && 
-					civlFunction.name().name().equals("$print_helper");
+			isPrintHelper = civlFunction != null
+					&& civlFunction.name().name().equals("$print_helper");
 		}
 		if (civlFunction != null) {
 			// for $local_start or $local_end functions, translate them to
@@ -2505,7 +2505,8 @@ public class FunctionTranslator {
 		}
 		for (int i = 0; i < numOfArgs; i++) {
 			Expression actual = translateExpressionNode(
-					functionCallNode.getArgument(i), scope, i == 0 || !isPrintHelper);
+					functionCallNode.getArgument(i), scope,
+					i == 0 || !isPrintHelper);
 
 			/*
 			 * for each actual argument of a function call, if the formal type
@@ -2725,10 +2726,10 @@ public class FunctionTranslator {
 			if (result.functionContract() != null) {
 				// TODO: eventually, find a way to combine contracts
 				/*
-				System.err
-						.println("Warning: ignoring new contract for function "
-								+ function.name());
-								*/
+				 * System.err
+				 * .println("Warning: ignoring new contract for function " +
+				 * function.name());
+				 */
 			} else {
 				FunctionContractTranslator contractTranslator = new FunctionContractTranslator(
 						modelBuilder, modelFactory, typeFactory, result,
@@ -3024,7 +3025,7 @@ public class FunctionTranslator {
 		AbstractFunctionDefinitionNode absFunNode = (AbstractFunctionDefinitionNode) node;
 		int continuity = absFunNode.continuity();
 		String attr = null;
-		
+
 		if (absFunNode.getAttribute() != null) {
 			attr = absFunNode.getAttribute().getStringRepresentation();
 			// trim the escaped double-quotes:
@@ -5578,6 +5579,17 @@ public class FunctionTranslator {
 		return result;
 	}
 
+	private Expression ensureIntType(Expression expr) {
+		CIVLType type = expr.getExpressionType();
+		if (type.isIntegerType())
+			return expr;
+		if (type.isBoolType())
+			return this.modelFactory.castExpression(expr.getSource(),
+					typeFactory.integerType(), expr);
+		throw new CIVLInternalException(
+				"Unable to convert expression to int type", expr.getSource());
+	}
+
 	/**
 	 * Translates an AST subscript node e1[e2] to a CIVL expression. The result
 	 * will either be a CIVL subscript expression (if e1 has array type) or a
@@ -5602,6 +5614,8 @@ public class FunctionTranslator {
 		if (lhsType.isSetType())
 			lhsType = ((CIVLSetType) lhsType).elementType();
 		if (lhsType.isArrayType()) {
+			if (!rhs.getExpressionType().isSetTypeOf(typeFactory.integerType()))
+				rhs = ensureIntType(rhs);
 			if (!(lhs instanceof LHSExpression)) {
 				Expression.ExpressionKind lhsKind = lhs.expressionKind();
 
@@ -5617,15 +5631,10 @@ public class FunctionTranslator {
 			result = modelFactory.subscriptExpression(source,
 					(LHSExpression) lhs, rhs);
 		} else {
-			CIVLType rhsType = rhs.getExpressionType();
 			Expression pointerExpr, indexExpr;
-
 			if (lhsType.isPointerType()) {
-				if (!rhsType.isIntegerType()
-						&& !rhsType.isSetTypeOf(typeFactory.integerType()))
-					throw new CIVLInternalException(
-							"Expected expression of integer type",
-							rhs.getSource());
+				if (!rhs.getExpressionType().isSetTypeOf(typeFactory.integerType()))
+					rhs = ensureIntType(rhs);
 				pointerExpr = lhs;
 				indexExpr = rhs;
 			} else
