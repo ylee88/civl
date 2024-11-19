@@ -36,7 +36,6 @@ public class PreprocessorRuntimeException extends ABCRuntimeException {
 	@Override
 	public String toString() {
 		String result = "Preprocessor error: " + super.getMessage();
-
 		if (token != null)
 			result += "\nat " + token;
 		return result;

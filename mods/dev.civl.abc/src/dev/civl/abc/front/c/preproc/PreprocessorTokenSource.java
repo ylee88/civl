@@ -36,6 +36,7 @@ import dev.civl.abc.token.IF.FunctionMacro;
 import dev.civl.abc.token.IF.Macro;
 import dev.civl.abc.token.IF.ObjectMacro;
 import dev.civl.abc.token.IF.SourceFile;
+import dev.civl.abc.token.IF.SourceFormatter;
 import dev.civl.abc.token.IF.StringToken;
 import dev.civl.abc.token.IF.SyntaxException;
 import dev.civl.abc.token.IF.TokenFactory;
@@ -1086,11 +1087,21 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 		String name = newMacro.getName();
 		Macro oldMacro = macroMap.get(name);
 		if (oldMacro != null) {
-			if (!oldMacro.equals(newMacro))
-				throw new PreprocessorException(
-						"Attempt to redefine macro in new way: " + newMacro
-								+ "\nOriginal defintion was at: "
-								+ oldMacro.getDefinitionNode());
+			if (!oldMacro.equals(newMacro)) {
+				Tree oldDefNode = oldMacro.getDefinitionNode(),
+						newDefNode = newMacro.getDefinitionNode();
+				SourceFile oldFile = oldMacro.getFile(),
+						newFile = newMacro.getFile();
+				int oldLine = oldDefNode.getLine(),
+						newLine = newDefNode.getLine();
+				StringBuffer err = new StringBuffer();
+				err.append("Definition of macro "
+						+ SourceFormatter.quoteSource(name, false) + " at ");
+				SourceFormatter.addLocator(err, newFile.getName(), newLine);
+				err.append(" conflicts with earlier definition at ");
+				SourceFormatter.addLocator(err, oldFile.getName(), oldLine);
+				throw new PreprocessorException(err.toString());
+			}
 		} else {
 			macroMap.put(name, newMacro);
 		}
@@ -1289,7 +1300,7 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 			pushStream(pair.right,
 					tokenFactory.newInclusion(sourceFile, filenameToken));
 		} else {
-			//System.out.println("Skipping once file " + sourceFile);
+			// System.out.println("Skipping once file " + sourceFile);
 			jumpNextNode();
 		}
 	}
@@ -1937,7 +1948,6 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 			} catch (PreprocessorException e) {
 				PreprocessorRuntimeException pre = new PreprocessorRuntimeException(
 						e);
-
 				pre.setStackTrace(e.getStackTrace());
 				throw pre;
 			} catch (PreprocessorRuntimeException e) {
@@ -1945,7 +1955,6 @@ public class PreprocessorTokenSource implements CivlcTokenSource {
 			} catch (RuntimeException e) {
 				PreprocessorRuntimeException pre = new PreprocessorRuntimeException(
 						e.toString(), firstOutput);
-
 				pre.setStackTrace(e.getStackTrace());
 				throw pre;
 			}

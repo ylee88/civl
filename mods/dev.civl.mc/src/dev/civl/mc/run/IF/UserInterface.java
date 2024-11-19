@@ -49,6 +49,7 @@ import dev.civl.abc.err.IF.ABCException;
 import dev.civl.abc.err.IF.ABCRuntimeException;
 import dev.civl.abc.front.IF.ParseException;
 import dev.civl.abc.front.IF.PreprocessorException;
+import dev.civl.abc.front.IF.PreprocessorRuntimeException;
 import dev.civl.abc.program.IF.Program;
 import dev.civl.abc.token.IF.FileIndexer;
 import dev.civl.abc.token.IF.SyntaxException;
@@ -82,8 +83,8 @@ import dev.civl.mc.run.common.CompareCommandLine;
 import dev.civl.mc.run.common.HelpCommandLine;
 import dev.civl.mc.run.common.ModelTranslator;
 import dev.civl.mc.run.common.NormalCommandLine;
-import dev.civl.mc.run.common.TracePlayer;
 import dev.civl.mc.run.common.NormalCommandLine.NormalCommandKind;
+import dev.civl.mc.run.common.TracePlayer;
 import dev.civl.mc.run.common.VerificationStatus;
 import dev.civl.mc.run.common.Verifier;
 import dev.civl.mc.semantics.IF.SymbolicAnalyzer;
@@ -186,7 +187,7 @@ public class UserInterface {
 	public UserInterface() {
 		parser = new CommandLineParser(definedOptions.values());
 	}
-	
+
 	public UserInterface(PrintStream out, PrintStream err) {
 		this();
 		this.out = out;
@@ -452,30 +453,25 @@ public class UserInterface {
 	 * affect the way CIVL parses/transforms the program, which might result in
 	 * different input variables.
 	 * 
-	 * @param files
-	 *                  the source files to parse
+	 * @param files the source files to parse
+	 * 
 	 * @return the list of input variable declaration nodes, which contains
-	 *         plenty of information about the input variable, e.g., the source,
-	 *         type and name, etc.
-	 * @throws ABCException
-	 *                          if anything goes wrong with parsing or
-	 *                          constructing the AST
+	 * plenty of information about the input variable, e.g., the source, type
+	 * and name, etc.
+	 * 
+	 * @throws ABCException if anything goes wrong with parsing or constructing
+	 * the AST
 	 *
-	private List<VariableDeclarationNode> getInputVariables(String[] files)
-			throws ABCException {
-		try {
-			GMCConfiguration gmcConfig = new GMCConfiguration(
-					definedOptions.values());
-			ModelTranslator translator = new ModelTranslator(gmcConfig,
-					gmcConfig.getAnonymousSection(), files, files[0]);
-
-			return translator.getInputVariables();
-		} catch (PreprocessorException | SyntaxException | ParseException
-				| IOException e) {
-			return new LinkedList<VariableDeclarationNode>();
-		}
-	}
-	*/
+	 * private List<VariableDeclarationNode> getInputVariables(String[] files)
+	 * throws ABCException { try { GMCConfiguration gmcConfig = new
+	 * GMCConfiguration( definedOptions.values()); ModelTranslator translator =
+	 * new ModelTranslator(gmcConfig, gmcConfig.getAnonymousSection(), files,
+	 * files[0]);
+	 * 
+	 * return translator.getInputVariables(); } catch (PreprocessorException |
+	 * SyntaxException | ParseException | IOException e) { return new
+	 * LinkedList<VariableDeclarationNode>(); } }
+	 */
 
 	/* ************************* Private Methods *************************** */
 
@@ -559,6 +555,10 @@ public class UserInterface {
 										+ " kind");
 				}
 			} catch (ABCException e) {
+				if (!quiet)
+					err.println(e);
+			} catch (PreprocessorRuntimeException e) {
+				// these are normal (expected) preprocessor errors
 				if (!quiet)
 					err.println(e);
 			} catch (ABCRuntimeException e) {
@@ -1344,7 +1344,7 @@ public class UserInterface {
 		out.println("for a particular command, e.g., \'civl help compare\'");
 		out.flush();
 	}
-	
+
 	private void printMpiSpecificInputs(PrintStream out) {
 		out.println("MPI Specific Inputs:");
 		out.println("  -input_mpi_nprocs=INTEGER (default: none)");
@@ -1354,13 +1354,14 @@ public class UserInterface {
 		out.println("  -input_mpi_nprocs_hi=INTEGER (default: none)");
 		out.println("    sets an upper bound for number of mpi processes");
 	}
-	
+
 	private void printOpenMpSpecificInputs(PrintStream out) {
 		out.println("OpenMP Specific Inputs:");
 		out.println("  -input_omp_thread_max=INTEGER (default: none)");
-		out.println("    caps the number of threads spawned by an OpenMP parallel region");
+		out.println(
+				"    caps the number of threads spawned by an OpenMP parallel region");
 	}
-	
+
 	private void printCudaSpecificInputs(PrintStream out) {
 		out.println("CUDA Specific Inputs:");
 		out.println("  -inputwarpSize=INTEGER (default: 32)");

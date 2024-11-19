@@ -27,7 +27,6 @@ public class ABCRuntimeException extends RuntimeException {
 
 	public String toString() {
 		String result = "Error: " + getMessage();
-
 		if (location != null)
 			result += "\nat " + location;
 		return result;
