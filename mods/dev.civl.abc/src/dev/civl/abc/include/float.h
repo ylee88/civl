@@ -14,7 +14,9 @@
  *  2: evaluate all operations and constants to the range and precision of the
  *     long double type  
  */
-#define FLT_EVAL_METHOD 1
+#ifndef FLT_EVAL_METHOD
+#define FLT_EVAL_METHOD 0
+#endif
 
 /*-1: indeterminable; 0: absent; 1: present;*/
 #define FLT_HAS_SUBNORM 1
