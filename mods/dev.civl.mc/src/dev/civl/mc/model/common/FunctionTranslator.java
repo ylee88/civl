@@ -5583,8 +5583,8 @@ public class FunctionTranslator {
 		CIVLType type = expr.getExpressionType();
 		if (type.isIntegerType())
 			return expr;
-		if (type.isBoolType())
-			return this.modelFactory.castExpression(expr.getSource(),
+		if (type.isBoolType() || type.isEnumerationType())
+			return modelFactory.castExpression(expr.getSource(),
 					typeFactory.integerType(), expr);
 		throw new CIVLInternalException(
 				"Unable to convert expression to int type", expr.getSource());
@@ -5633,7 +5633,8 @@ public class FunctionTranslator {
 		} else {
 			Expression pointerExpr, indexExpr;
 			if (lhsType.isPointerType()) {
-				if (!rhs.getExpressionType().isSetTypeOf(typeFactory.integerType()))
+				if (!rhs.getExpressionType()
+						.isSetTypeOf(typeFactory.integerType()))
 					rhs = ensureIntType(rhs);
 				pointerExpr = lhs;
 				indexExpr = rhs;
