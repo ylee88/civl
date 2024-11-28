@@ -238,14 +238,9 @@ typedef int (MPI_Grequest_free_function)(void *);
 typedef int (MPI_Grequest_query_function)(void *, MPI_Status *); 
 
 /**************************** Communicators  ************************************/
-#ifdef _CIVLMPI_
-CIVL_MPI_Comm CIVL_MPI_COMM_WORLD;
-MPI_Comm MPI_COMM_WORLD = &(CIVL_MPI_COMM_WORLD);
-#else
-MPI_Comm MPI_COMM_WORLD;
-#endif
 
-extern MPI_Comm MPI_COMM_SELF;
+MPI_Comm MPI_COMM_WORLD;
+MPI_Comm MPI_COMM_SELF;
 extern MPI_Comm MPI_COMM_PARENT;
 extern MPI_Comm MPI_COMM_TYPE_SHARED;
 

@@ -188,7 +188,16 @@ public class MPITranslationTest {
 		assertTrue(ui.run("verify -input_mpi_nprocs=3", TestConstants.QUIET,
 				filename("simple/allgather_inplace.c")));
 	}
-
+	
+	@Test
+	public void mpiCommSelf() {
+		// test MPI_COMM_SELF
+		assertTrue(ui.run("verify -input_mpi_nprocs=3", TestConstants.QUIET,
+				filename("mpi_comm_self.c")));
+		assertFalse(ui.run("verify -input_mpi_nprocs=3", TestConstants.QUIET,
+				filename("mpi_comm_self-bad.c")));
+	}
+	
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
 		ui = null;

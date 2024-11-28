@@ -7,6 +7,7 @@ import java.util.List;
 
 import dev.civl.abc.ast.IF.AST;
 import dev.civl.abc.ast.IF.ASTFactory;
+import dev.civl.abc.ast.entity.IF.Entity;
 import dev.civl.abc.ast.node.IF.ASTNode;
 import dev.civl.abc.ast.node.IF.ASTNode.NodeKind;
 import dev.civl.abc.ast.node.IF.SequenceNode;
@@ -92,16 +93,28 @@ public class MPI2CIVLWorker extends BaseWorker {
 	private final static String MPI_PREFIX = "_mpi_";
 
 	/**
-	 * The name of the identifier of the MPI_Comm variable in the final CIVL
-	 * program.
+	 * The name of the identifier of the MPI_Comm variable MPI_COMM_WORLD in the
+	 * final CIVL program.
 	 */
-	private final static String COMM_WORLD = "MPI_COMM_WORLD";
+	private final static String MPI_COMM_WORLD = "MPI_COMM_WORLD";
+
+	/**
+	 * The name of the identifier of the MPI_Comm variable MPI_COMM_SELF in the
+	 * final CIVL program.
+	 */
+	private final static String MPI_COMM_SELF = "MPI_COMM_SELF";
 
 	/**
 	 * The name of the identifier of the CMPI_Gcomm variable in the final CIVL
 	 * program.
 	 */
 	private final static String GCOMM_WORLD = MPI_PREFIX + "gcomm";
+	
+	/**
+	 * The name of the identifier of the CMPI_Gcomm variable _mpi_gcomm_self in
+	 * the final CIVL program.
+	 */
+	private final static String GCOMM_SELF = MPI_PREFIX + "gcomm_self";
 
 	/**
 	 * The name of the identifier of the CMPI_Gcomm sequence variable in the
@@ -136,6 +149,12 @@ public class MPI2CIVLWorker extends BaseWorker {
 	 * CIVL-C program.
 	 */
 	private final static String COMM_CREATE = "$mpi_comm_create";
+	
+	/**
+	 * The name of the function to create a new MPI_Comm object MPI_COMM_SELF in
+	 * the final CIVL-C program.
+	 */
+	private final static String COMM_SELF_CREATE = "$mpi_comm_self_create";
 
 	/**
 	 * The name of the function to free a CMPI_Gcomm object in the final CIVL-C
@@ -294,9 +313,51 @@ public class MPI2CIVLWorker extends BaseWorker {
 				this.newSource("function call " + COMM_CREATE,
 						CivlcTokenConstant.CALL),
 				this.identifierExpression(COMM_CREATE), commCreateArgs, null);
-		commVar = this.variableDeclaration(COMM_WORLD, commType, commCreate);
+		commVar = this.variableDeclaration(MPI_COMM_WORLD, commType, commCreate);
 		// commVar.setExternStorage(true);
 		return commVar;
+	}
+	
+	/**
+	 *
+	 * Generates the following code:
+	 * 
+	 * <code>
+	 * 
+	 * MPI_Comm MPI_COMM_SELF;
+	 * $mpi_gcomm _mpi_gcomm_self = $mpi_comm_self_create($here,
+	 *                                 &MPI_COMM_SELF);
+	 * 
+	 * </code>
+	 * 
+	 * @return
+	 */
+	private List<VariableDeclarationNode> commSelfDeclaration() {
+		List<VariableDeclarationNode> result = new LinkedList<>();
+		TypeNode commType = nodeFactory.newTypedefNameNode(
+				nodeFactory.newIdentifierNode(this.newSource("$comm type",
+						CivlcTokenConstant.IDENTIFIER), COMM_TYPE),
+				null);
+		VariableDeclarationNode commSelfVar = variableDeclaration(MPI_COMM_SELF,
+				commType);
+		ExpressionNode addrOfCommSelfVar = nodeFactory.newOperatorNode(
+				newSource("&" + MPI_COMM_SELF, CivlcTokenConstant.OPERATOR),
+				Operator.ADDRESSOF, identifierExpression(MPI_COMM_SELF));
+		ExpressionNode commSelfCreate = nodeFactory.newFunctionCallNode(
+				newSource("function call " + COMM_SELF_CREATE,
+						CivlcTokenConstant.CALL),
+				identifierExpression(COMM_SELF_CREATE),
+				Arrays.asList(hereNode(), addrOfCommSelfVar), null);
+		TypeNode gcommType = nodeFactory.newTypedefNameNode(
+				nodeFactory.newIdentifierNode(this.newSource("$gcomm type",
+						CivlcTokenConstant.IDENTIFIER), GCOMM_TYPE),
+				null);
+		VariableDeclarationNode gcommSelfVar = variableDeclaration(GCOMM_SELF,
+				gcommType, commSelfCreate);
+
+		result.add(commSelfVar);
+		result.add(gcommSelfVar);
+		return result;
 	}
 
 	/**
@@ -526,7 +587,12 @@ public class MPI2CIVLWorker extends BaseWorker {
 		boolean commCreated = false, newMPIinitMoved = false,
 				commDestroyedMoved = false;
 		String gcommStructName = null;
-
+		// If MPI_COMM_SELF is used, we create it:
+		boolean useMpiCommSelf = useMpiCommSelf(root);
+		// Need to move the declaration of the function $mpi_comm_self_create
+		// forward, so we take the decl off the tree:
+		BlockItemNode mpiCommSelfCreateFunDecl = null;
+		
 		for (BlockItemNode child : root) {
 			if (child == null)
 				continue;
@@ -575,8 +641,12 @@ public class MPI2CIVLWorker extends BaseWorker {
 											nullPointer()))));
 				} else if (name.equals(MPI_STATE_VAR)) {
 					processList.add(mpiInitIndex - 1, child);
-				} else if (name.equals(COMM_WORLD)) {
+				} else if (name.equals(MPI_COMM_WORLD)) {
 					// ignore original MPI_COMM_WORLD declaration
+				} else if (useMpiCommSelf && name.equals(MPI_COMM_SELF)) {
+					// ignore original MPI_COMM_SELF declaration, if the source
+					// program uses it because we are going to create it in
+					// _mpi_process_()
 				} else
 					processList.add(child);
 			} else if (child instanceof ExpressionStatementNode) {
@@ -612,6 +682,10 @@ public class MPI2CIVLWorker extends BaseWorker {
 					commCreated = true;
 					processList.add(commTypeIndex, child);
 					processList.add(commTypeIndex + 1, this.commDeclaration());
+				} else if (useMpiCommSelf && mpiCommSelfCreateFunDecl == null
+						&& name.equals(COMM_SELF_CREATE)) {
+					mpiCommSelfCreateFunDecl = child;
+					child.remove();
 				} else if (!commDestroyedMoved && name.equals(COMM_DESTROY)) {
 					int commDestroyIndex = commTypeIndex + 2,
 							mpiInitNextIndex = mpiInitIndex + 1;
@@ -664,7 +738,13 @@ public class MPI2CIVLWorker extends BaseWorker {
 			} else
 				processList.add(child);
 		}
-		processList.add(this.commDestroy(COMM_DESTROY, COMM_WORLD));
+		processList.add(this.commDestroy(COMM_DESTROY, MPI_COMM_WORLD));
+		if (useMpiCommSelf) {
+			processList.add(this.commDestroy(COMM_DESTROY, MPI_COMM_SELF));
+			processList.add(this.commDestroy(GCOMM_DESTROY, GCOMM_SELF));
+			processList.addAll(commTypeIndex + 1, commSelfDeclaration());
+			processList.add(commTypeIndex + 1, mpiCommSelfCreateFunDecl);
+		}
 
 		CompoundStatementNode mpiProcessBody = nodeFactory
 				.newCompoundStatementNode(
@@ -826,7 +906,7 @@ public class MPI2CIVLWorker extends BaseWorker {
 
 					if (funcName.equals(EXIT)) {
 						BlockItemNode commDestroy = this
-								.commDestroy(COMM_DESTROY, COMM_WORLD);
+								.commDestroy(COMM_DESTROY, MPI_COMM_WORLD);
 						int nodeIndex = node.childIndex();
 						ASTNode parent = node.parent();
 						List<BlockItemNode> newItems = new LinkedList<>();
@@ -845,6 +925,23 @@ public class MPI2CIVLWorker extends BaseWorker {
 				if (child != null)
 					transformExit(child);
 			}
+	}
+	
+	/**
+	 * @return true iff ast contains an identifier expression of name
+	 *         "MPI_COMM_SELF".
+	 */
+	private boolean useMpiCommSelf(ASTNode node) {
+		while (node != null) {
+			if (node instanceof IdentifierExpressionNode) {
+				Entity entity = ((IdentifierExpressionNode) node)
+						.getIdentifier().getEntity();
+				if (entity != null && entity.getName().equals(MPI_COMM_SELF))
+					return true;
+			}
+			node = node.nextDFS();
+		}
+		return false;
 	}
 
 	/* ********************* Methods From BaseTransformer ****************** */

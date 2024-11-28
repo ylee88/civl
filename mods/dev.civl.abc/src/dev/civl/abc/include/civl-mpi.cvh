@@ -217,6 +217,10 @@ $system[mpi] $mpi_gcomm $mpi_get_gcomm($scope, int);
 
 int $mpi_comm_dup($scope, MPI_Comm, MPI_Comm *, char *);
 
+// Creates an MPI communicator MPI_COMM_SELF. The returned $mpi_gcomm
+// needs to be explicitly destroyed.
+$mpi_gcomm $mpi_comm_self_create($scope, MPI_Comm * mpi_comm_self);
+
 int $mpi_comm_free(MPI_Comm *, $mpi_state);
 
 /* Assert that the basetype of the object pointed by 'buf' is sames as
