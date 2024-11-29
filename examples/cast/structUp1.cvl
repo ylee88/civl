@@ -1,0 +1,14 @@
+typedef int A;
+
+struct B {
+  A a;
+  double d;
+} b;
+
+int main(void) {
+  int * p = &b.a;
+  struct B * q = (struct B *)p;
+  *q = (struct B){1, 3.14};
+  $assert(b.a == 1);
+  $assert(b.d == 3.14);
+}

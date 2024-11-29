@@ -1,0 +1,16 @@
+struct B1 {
+  int i;
+  double d;
+};
+
+struct B2 {
+  struct B1 b1;
+  float f;
+} b2;
+
+int main(void) {
+  struct B2 * p = &b2;
+  int * q = (int *)p;
+  *q = 10;
+  $assert(b2.b1.i == 10);
+}

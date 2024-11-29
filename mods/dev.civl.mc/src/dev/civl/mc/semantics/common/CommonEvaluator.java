@@ -727,7 +727,7 @@ public class CommonEvaluator implements Evaluator {
 			default :
 				functionType = universe.functionType(argumentTypes, returnType);
 		}
-		
+
 		StringObject funcName = ModelConfiguration
 				.getAbstractFunctionName(universe, functionName);
 
@@ -1143,6 +1143,89 @@ public class CommonEvaluator implements Evaluator {
 				pointerSet);
 	}
 
+	/**
+	 * Given a struct type, this method determines if the given type equals the
+	 * struct type, or equals the type of the first (index 0) field of the
+	 * struct type, or if that first field is itself a struct type and the given
+	 * type is the first field of that type, or ....
+	 * 
+	 * @param structType
+	 *                       a non-null struct type
+	 * @param type
+	 *                       any non-null type
+	 * @return if <code>type</code> is found by repeating the first field
+	 *         operation starting with <code>structType</code> some k>=0 times,
+	 *         this returns k, else returns -1
+	 */
+	private int firstFieldLevel(CIVLStructOrUnionType structType,
+			CIVLType type) {
+		int count = 0;
+		CIVLType memberType = structType;
+		while (true) {
+			if (memberType.equals(type))
+				return count;
+			if (!memberType.isStructType())
+				return -1;
+			memberType = ((CIVLStructOrUnionType) memberType).getField(0)
+					.type();
+			count++;
+		}
+	}
+
+	/**
+	 * Given a pointer value {@code ptr} of static type {@code oldType}, and a
+	 * new pointer type {@code newType}, where one of these types is pointer to
+	 * struct and the other is the result of 0 or more applications of "type of
+	 * first field of struct", this method attempts to cast the pointer value to
+	 * the new type.
+	 * 
+	 * @param ptr
+	 *                    original pointer value
+	 * @param oldType
+	 *                    CIVL static type of pointer value
+	 * @param newType
+	 *                    new CIVL static type
+	 * @return new value of new type, or {@code null} if the types are not
+	 *         related by the first-field relation or for some reason the cast
+	 *         is not possible
+	 */
+	private SymbolicExpression castStructPointer(SymbolicExpression ptr,
+			CIVLPointerType oldType, CIVLPointerType newType) {
+		if (oldType.equals(newType))
+			return ptr;
+		CIVLType oldBaseType = oldType.baseType(),
+				newBaseType = newType.baseType();
+		ReferenceExpression ref = symbolicUtil.getSymRef(ptr);
+		if (oldBaseType.isStructType()) {
+			int level = firstFieldLevel((CIVLStructOrUnionType) oldBaseType,
+					newBaseType);
+			if (level >= 0) {
+				// the cast navigates down into the struct
+				for (int i = 0; i < level; i++) {
+					// convert ref to struct to ref to field 0 of struct
+					ref = universe.tupleComponentReference(ref, zeroObj);
+				}
+				return symbolicUtil.setSymRef(ptr, ref);
+			}
+		}
+		if (newBaseType.isStructType()) {
+			int level = firstFieldLevel((CIVLStructOrUnionType) newBaseType,
+					oldBaseType);
+			if (level >= 0) {
+				// the cast navigates up to the parent struct
+				for (int i = 0; i < level; i++) {
+					// if this cast is not possible there is nothing you can do.
+					// without a concrete pointer, how can you get the parent?
+					if (!(ref instanceof TupleComponentReference))
+						return null;
+					ref = ((TupleComponentReference) ref).getParent();
+				}
+				return symbolicUtil.setSymRef(ptr, ref);
+			}
+		}
+		return null;
+	}
+
 	@Override
 	public Evaluation evaluateCastWorker(State state, int pid, String process,
 			CIVLType castType, Expression arg)
@@ -1188,10 +1271,16 @@ public class CommonEvaluator implements Evaluator {
 					.apply(state.getPathCondition(universe), value, castType);
 			return eval;
 		} else if (argType.isPointerType() && castType.isPointerType()) {
-			// pointer to pointer: for now...no change.
+			// first try struct pointer conversion...
+			SymbolicExpression newValue = castStructPointer(value,
+					(CIVLPointerType) argType, (CIVLPointerType) castType);
+			if (newValue != null) { // success
+				eval.value = newValue;
+				return eval;
+			}
+			// try some trivial pointer conversions...
 			CIVLType argBaseType = ((CIVLPointerType) argType).baseType(),
 					castBaseType = ((CIVLPointerType) castType).baseType();
-
 			if (castBaseType.isFunction()) {
 				return eval;
 			} else if (!castBaseType.isCharType() && !argBaseType.isCharType()

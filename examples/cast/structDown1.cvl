@@ -1,0 +1,13 @@
+typedef int A;
+
+struct B {
+  A a;
+  double d;
+} b;
+
+int main(void) {
+  struct B * p = &b;
+  A * q = (A*)p;
+  *q = 10;
+  $assert(b.a == 10);
+}
