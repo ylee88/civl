@@ -61,18 +61,19 @@ public class CommonBinaryExpression extends CommonExpression
 	 * Create a new instance of a binary expression.
 	 * 
 	 * @param source
-	 *            The source information corresponding to this expression.
+	 *                     The source information corresponding to this
+	 *                     expression.
 	 * @param scope
-	 *            The highest scope that this expression accessed through its
-	 *            operands.
+	 *                     The highest scope that this expression accessed
+	 *                     through its operands.
 	 * @param type
-	 *            The type of this expression.
+	 *                     The type of this expression.
 	 * @param operator
-	 *            The operator of this expression.
+	 *                     The operator of this expression.
 	 * @param left
-	 *            The left-hand-side operand.
+	 *                     The left-hand-side operand.
 	 * @param right
-	 *            The right-hand-side operand.
+	 *                     The right-hand-side operand.
 	 */
 	public CommonBinaryExpression(CIVLSource source, Scope hscope, Scope lscope,
 			CIVLType type, BINARY_OPERATOR operator, Expression left,
@@ -267,8 +268,7 @@ public class CommonBinaryExpression extends CommonExpression
 						(NumericExpression) rightValue);
 				break;
 			case EQUAL :
-				constantValue = universe.equals((NumericExpression) leftValue,
-						(NumericExpression) rightValue);
+				constantValue = universe.equals(leftValue, rightValue);
 				break;
 			case NOT_EQUAL :
 				constantValue = universe

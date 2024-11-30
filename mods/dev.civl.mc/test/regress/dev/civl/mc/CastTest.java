@@ -56,6 +56,15 @@ public class CastTest {
 		check("structUp2.cvl");
 	}
 
+	/**
+	 * Tests a program where automatic conversions between boolean and int type
+	 * takes place.
+	 */
+	@Test
+	public void bool() {
+		check("bool.cvl");
+	}
+
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
 		ui = null;
