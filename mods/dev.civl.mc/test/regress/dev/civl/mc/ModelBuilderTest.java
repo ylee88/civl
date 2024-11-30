@@ -120,6 +120,18 @@ public class ModelBuilderTest {
 	public void conditionalCastNormalForm() {
 		assertTrue(ui.run(VERIFY, QUIET, filename("conditionalCastNorm.cvl")));
 	}
+	
+	@Test
+	public void externArrayCompleteLater() {
+		assertTrue(ui.run(VERIFY, QUIET,
+				filename("extern_array_complete_later.c")));
+	}
+	
+	@Test
+	public void externArrayCompleteLaterBad() {
+		assertFalse(ui.run(VERIFY, QUIET,
+				filename("extern_array_complete_later-bad.c")));
+	}
 
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {

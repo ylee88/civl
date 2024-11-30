@@ -31,6 +31,10 @@ import dev.civl.abc.ast.node.IF.statement.StatementNode;
 import dev.civl.abc.ast.node.IF.type.ArrayTypeNode;
 import dev.civl.abc.ast.node.IF.type.TypeNode;
 import dev.civl.abc.ast.node.IF.type.TypeNode.TypeNodeKind;
+import dev.civl.abc.ast.type.IF.ArrayType;
+import dev.civl.abc.ast.type.IF.ObjectType;
+import dev.civl.abc.ast.type.IF.Type.TypeKind;
+import dev.civl.abc.ast.value.IF.IntegerValue;
 import dev.civl.abc.token.IF.Source;
 import dev.civl.abc.token.IF.SyntaxException;
 import dev.civl.abc.transform.IF.BaseTransformer;
@@ -161,7 +165,7 @@ public class ExternLinkageVariableRenamer extends BaseTransformer {
 				allDeclarations.add((VariableDeclarationNode) varDecl);
 
 			ExternVariableDeclarations result = new ExternVariableDeclarations(
-					allDeclarations);
+					entity, allDeclarations);
 
 			results.add(result);
 		}
@@ -378,28 +382,27 @@ public class ExternLinkageVariableRenamer extends BaseTransformer {
 					parent.setChild(childIdx, typeDefinition);
 			}
 
-			TypeNode typeNode = externVarDecl.allDeclarations[0].getTypeNode();
+			// If a constant array type is completed later, we move its constant
+			// extent to the first declaration:
+			TypeNode firstDeclTypeNode = externVarDecl.allDeclarations[0].getTypeNode();
+			ObjectType varTy = externVarDecl.entity.getType();
 
-			if (typeNode.kind() != TypeNodeKind.ARRAY)
+			if (varTy.kind() != TypeKind.ARRAY)
 				continue;
 			if (externVarDecl.definitionIdx <= 0)
 				continue;
 
-			if (((ArrayTypeNode) typeNode).getExtent() != null)
-				continue;
+			ArrayType arrTy = (ArrayType) varTy;
+			IntegerValue arrSize = arrTy.getConstantSize();
 
-			// Special handling for arrays:
-			// For incomplete arrays declarations,
-			ArrayTypeNode completeArrayType = (ArrayTypeNode) externVarDecl
-					.getDefinition().getTypeNode();
+			if (arrSize != null) {
+				ArrayTypeNode firstDeclArrTypeNode = (ArrayTypeNode) firstDeclTypeNode;
 
-			if (completeArrayType.hasStaticExtent()) {
-				// 1) if the extent eventually is a "constant", move the extent
-				// to top:
-				ExpressionNode staticExtent = completeArrayType.getExtent();
-
-				staticExtent.remove();
-				((ArrayTypeNode) typeNode).setExtent(staticExtent);
+				if (!firstDeclArrTypeNode.hasStaticExtent())
+					firstDeclArrTypeNode
+							.setExtent(nodeFactory.newIntegerConstantNode(
+									externVarDecl.getDefinition().getSource(),
+									arrSize.toString()));
 			} else {
 				// 2) if the extent eventually is a "non-constant" and there is
 				// an prior incomplete declaration, throw an error:
@@ -443,9 +446,13 @@ public class ExternLinkageVariableRenamer extends BaseTransformer {
 		 * The definition of the extern variable (optional, can be null)
 		 */
 		int definitionIdx = -1;
+		
+		final Variable entity;
 
-		ExternVariableDeclarations(
+		ExternVariableDeclarations(Entity entity,
 				List<VariableDeclarationNode> allDeclarations) {
+			assert(entity.getEntityKind() == EntityKind.VARIABLE);
+			this.entity = (Variable) entity;
 			this.allDeclarations = new VariableDeclarationNode[allDeclarations
 					.size()];
 			allDeclarations.toArray(this.allDeclarations);
@@ -458,10 +465,6 @@ public class ExternLinkageVariableRenamer extends BaseTransformer {
 
 			for (int i = 0; i < allDeclarations.length; i++) {
 				VariableDeclarationNode decl = allDeclarations[i];
-				ProgramEntity entity = decl.getEntity();
-
-				if (entity.getEntityKind() != EntityKind.VARIABLE)
-					continue;
 
 				if (decl.getScope().getScopeKind() == ScopeKind.BLOCK)
 					inBlockIndices.add(i);
