@@ -28,7 +28,7 @@ public class SourceFormatter {
 	public final static String ANSI_RED = "\u001B[31m";
 
 	/**
-	 * Locators are strings of the form "filname:nnn:mmm-mmm" which indicate a
+	 * Locators are strings of the form "filename:nnn:mmm-mmm" which indicate a
 	 * location in a source file. These two constants are inserted before and
 	 * after a locator to highlight it properly.
 	 */

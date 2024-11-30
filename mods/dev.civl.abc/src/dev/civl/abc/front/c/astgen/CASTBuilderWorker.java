@@ -1258,7 +1258,7 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 							"processing function " + data.identifier.name());
 				// declaration.setContract(getContract());
 				setFunctionSpecifiers(declaration, analysis);
-				setStorageSpecifiers(declaration, analysis, scope);
+				setStorageSpecifiers(declaration, analysis);
 				if (initializer != null)
 					throw error("Initializer used in function declaration",
 							initializerTree);
@@ -1700,9 +1700,7 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	}
 
 	private void setStorageSpecifiers(FunctionDeclarationNode declaration,
-			SpecifierAnalysis analysis, SimpleScope scope)
-			throws SyntaxException {
-
+			SpecifierAnalysis analysis) throws SyntaxException {
 		if (analysis.externCount > 0)
 			declaration.setExternStorage(true);
 		if (analysis.staticCount > 0)
@@ -2875,11 +2873,11 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 		}
 		CompoundStatementNode body = translateCompoundStatement(
 				compoundStatementTree, newScope);
-		// According to the C Spec, the implicity identifier __func__
+		// According to the C Spec, the implicitly identifier __func__
 		// is defined in every function...
 		boolean containsFunc = containsIdentifier(compoundStatementTree,
 				"__func__");
-		//System.out.println("Contains __func__: " + containsFunc);
+		// System.out.println("Contains __func__: " + containsFunc);
 		if (containsFunc) {
 			CommonTree lcurlyNode = (CommonTree) compoundStatementTree
 					.getChild(0);
@@ -2901,10 +2899,8 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 		FunctionDefinitionNode result = nodeFactory.newFunctionDefinitionNode(
 				newSource(functionDefinitionTree), data.identifier,
 				(FunctionTypeNode) data.type, getContract(), body);
-		// TODO: Should function specifiers actually be set here? I added this
-		// call because otherwise specifiers are not added to function
-		// definitions, only declarations
 		setFunctionSpecifiers((FunctionDefinitionNode) result, analysis);
+		setStorageSpecifiers((FunctionDefinitionNode) result, analysis);
 		return result;
 	}
 
