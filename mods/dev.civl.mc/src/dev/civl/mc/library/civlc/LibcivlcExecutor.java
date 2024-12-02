@@ -286,7 +286,8 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 		for (int i = 1; i < argumentValues.length; i++) {
 			SymbolicExpression argumentValue = argumentValues[i];
 			CIVLType argumentType = arguments[i].getExpressionType();
-
+			StringBuffer strOut = new StringBuffer("");
+			
 			if (argumentType instanceof CIVLPointerType
 					&& ((CIVLPointerType) argumentType).baseType().isCharType()
 					&& argumentValue.operator() == SymbolicOperator.TUPLE) {
@@ -294,16 +295,26 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 						.getString(arguments[i].getSource(), state, pid,
 								process, arguments[i], argumentValue);
 				state = concreteString.first;
-				if (!civlConfig.isQuiet())
-					out.print(concreteString.second);
+				strOut = concreteString.second;
 			} else if (argumentValue.operator() == SymbolicOperator.ARRAY
 					&& ((CIVLArrayType)argumentType).elementType().isCharType()) {
-				out.print(symbolicUtil.charArrayToString(
-						arguments[i].getSource(), argumentValue, 0, false));
-			} else if (!civlConfig.isQuiet())
-				out.print(this.symbolicAnalyzer
+				strOut = symbolicUtil.charArrayToString(
+						arguments[i].getSource(), argumentValue, 0, false);
+			} else {
+				strOut = new StringBuffer(this.symbolicAnalyzer
 						.symbolicExpressionToString(arguments[i].getSource(),
 								state, argumentType, argumentValue));
+			}
+			
+			if (!civlConfig.isQuiet() && civlConfig.enablePrintf()) {
+				int strLen = strOut.length();
+				if (strLen > 0) {
+					char lastChar = strOut.charAt(strLen - 1);
+					if (lastChar == '\0')
+						strOut.setLength(strLen - 1);
+				}
+				out.print(strOut);
+			}
 		}
 		return new Evaluation(state, null);
 	}
