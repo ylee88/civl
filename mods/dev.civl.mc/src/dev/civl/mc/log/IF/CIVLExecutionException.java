@@ -199,7 +199,7 @@ public class CIVLExecutionException extends CIVLException {
 		String sysResourcePrefix = "/include";
 		String transformersuffix = "Transformer";
 
-		result.append(SourceFormatter.OPEN_ERR);
+		result.append(SourceFormatter.openErr());
 		result.append("CIVL execution violation ");
 		if (process != null) {
 			result.append("in ");
@@ -224,7 +224,7 @@ public class CIVLExecutionException extends CIVLException {
 		result.append(", certainty: ");
 		result.append(certainty);
 		result.append(")");
-		result.append(SourceFormatter.CLOSE_ERR);
+		result.append(SourceFormatter.closeErr());
 		// The violation source
 		if (source != null && !(source instanceof SystemCIVLSource)
 				&& !sourceAbsPathName.startsWith(sysResourcePrefix)) {

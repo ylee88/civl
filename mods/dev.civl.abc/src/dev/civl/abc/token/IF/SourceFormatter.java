@@ -8,13 +8,12 @@ import java.util.ArrayList;
 public class SourceFormatter {
 
 	/**
-	 * Plain text output, or we can use special ASCI sequences for color and
-	 * bold? The special sequences only work in certain terminals (including
-	 * most Unix-like terminals). They don't work in Eclipse debugger.
-	 * 
-	 * TODO: make this a command line option.
+	 * Always use plain text output? If this is true, only ASCII text will be
+	 * used for diagnostics. Otherwise, special color characters will be
+	 * inserted *if* a console (terminal) is detected as the output device. If
+	 * the output device is not a terminal, plain text will be used in any case.
 	 */
-	public final static boolean PLAIN = false;
+	public final static boolean plain = false;
 
 	/**
 	 * After quoted source exceeds this number of characters, the quote will be
@@ -22,38 +21,53 @@ public class SourceFormatter {
 	 */
 	public final static int MAX_SOURCE_CHARS = 80;
 
-	public final static String ANSI_RESET = "\u001B[0m";
-	public final static String ANSI_BOLD = "\u001B[1m";
-	public final static String ANSI_BLUE = "\u001B[34m";
-	public final static String ANSI_RED = "\u001B[31m";
-
-	/**
-	 * Locators are strings of the form "filename:nnn:mmm-mmm" which indicate a
-	 * location in a source file. These two constants are inserted before and
-	 * after a locator to highlight it properly.
-	 */
-	private final static String OPEN_LOCATOR = PLAIN ? "" : ANSI_BOLD;
-	private final static String CLOSE_LOCATOR = PLAIN ? "" : ANSI_RESET;
-
-	/**
-	 * These two constants are placed before/after source code excerpts to
-	 * highlight the code properly.
-	 */
-	private final static String OPEN_SOURCE = PLAIN ? "\"" : ANSI_BLUE;
-	private final static String CLOSE_SOURCE = PLAIN ? "\"" : ANSI_RESET;
-
-	/**
-	 * These are for the color of error messages.
-	 */
-	public final static String OPEN_ERR = PLAIN ? "" : ANSI_RED + ANSI_BOLD;
-	public final static String CLOSE_ERR = PLAIN ? "" : ANSI_RESET;
+	private final static String ANSI_RESET = "\u001B[0m";
+	private final static String ANSI_BOLD = "\u001B[1m";
+	private final static String ANSI_BLUE = "\u001B[34m";
+	private final static String ANSI_RED = "\u001B[31m";
 
 	/**
 	 * List of source segments. Each segment is formed my joining adjacent
 	 * tokens with a similar formation history. A null entry in this list
 	 * indicates an elision which will be represented by an ellipsis "..."
 	 */
-	ArrayList<SourceSegment> segments = new ArrayList<>();
+	private ArrayList<SourceSegment> segments = new ArrayList<>();
+
+	/**
+	 * Locators are strings of the form "filename:nnn:mmm-mmm" which indicate a
+	 * location in a source file. This code is inserted before a locator to
+	 * highlight it properly.
+	 */
+	private static String openLocator() {
+		return plain || System.console() == null ? "" : ANSI_BOLD;
+	}
+
+	private static String closeLocator() {
+		return plain || System.console() == null ? "" : ANSI_RESET;
+	}
+
+	/**
+	 * This code is placed before source code excerpts to highlight the code
+	 * properly.
+	 */
+	public static String openSource() {
+		return plain || System.console() == null ? "" : ANSI_BLUE;
+	}
+
+	public static String closeSource() {
+		return plain || System.console() == null ? "" : ANSI_RESET;
+	}
+
+	/**
+	 * This code is placed before an error message to highlight it properly.
+	 */
+	public static String openErr() {
+		return plain || System.console() == null ? "" : ANSI_RED;
+	}
+
+	public static String closeErr() {
+		return plain || System.console() == null ? "" : ANSI_RESET;
+	}
 
 	private static String escape(String txt) {
 		txt = txt.replaceAll("\n", "\\\\n");
@@ -72,35 +86,35 @@ public class SourceFormatter {
 
 	public static String quoteSource(String text, boolean clear) {
 		if (clear)
-			return OPEN_SOURCE + clearWhiteSpace(text) + CLOSE_SOURCE;
+			return openSource() + clearWhiteSpace(text) + closeSource();
 		else
-			return OPEN_SOURCE + escape(text) + CLOSE_SOURCE;
+			return openSource() + escape(text) + closeSource();
 	}
 
 	public static void addLocator(StringBuffer buf, String filename, int lineno,
 			int startCol, int stopCol) {
-		buf.append(OPEN_LOCATOR);
+		buf.append(openLocator());
 		buf.append(filename);
 		buf.append(":" + lineno + ":" + startCol);
 		if (stopCol != startCol)
 			buf.append("-" + stopCol);
-		buf.append(CLOSE_LOCATOR);
+		buf.append(closeLocator());
 	}
 
 	public static void addLocator(StringBuffer buf, String filename, int lineno,
 			int startCol) {
-		buf.append(OPEN_LOCATOR);
+		buf.append(openLocator());
 		buf.append(filename);
 		buf.append(":" + lineno + ":" + startCol);
-		buf.append(CLOSE_LOCATOR);
+		buf.append(closeLocator());
 	}
 
 	public static void addLocator(StringBuffer buf, String filename,
 			int lineno) {
-		buf.append(OPEN_LOCATOR);
+		buf.append(openLocator());
 		buf.append(filename);
 		buf.append(":" + lineno);
-		buf.append(CLOSE_LOCATOR);
+		buf.append(closeLocator());
 	}
 
 	public static String locator(String filename, int lineno, int startCol,
@@ -131,7 +145,7 @@ public class SourceFormatter {
 	 *         color/formatting
 	 */
 	public static String errorify(String str) {
-		return OPEN_ERR + str + CLOSE_ERR;
+		return openErr() + str + closeErr();
 	}
 
 	/**
@@ -194,7 +208,7 @@ public class SourceFormatter {
 	}
 
 	public void addContent(StringBuffer buf) {
-		buf.append(OPEN_SOURCE);
+		buf.append(openSource());
 		boolean first = true;
 		for (SourceSegment seg : segments) {
 			if (seg == null) {
@@ -213,7 +227,7 @@ public class SourceFormatter {
 				buf.append(" ");
 			buf.append(clearWhiteSpace(seg.theText));
 		}
-		buf.append(CLOSE_SOURCE);
+		buf.append(closeSource());
 	}
 
 	public String getContent() {
@@ -231,28 +245,6 @@ public class SourceFormatter {
 				: seg0.theFilename;
 		return SourceFormatter.locator(filename, seg0.theLineno,
 				seg0.theStartCol);
-	}
-
-	public void getDetailedReportOld(StringBuffer buf) {
-		if (segments.isEmpty())
-			return;
-		addContent(buf);
-		buf.append("\n");
-		for (SourceSegment seg : segments) {
-			if (seg == null) {
-				buf.append(".\n.\n.\n");
-			} else {
-				String text = seg.theText;
-				text = text.stripTrailing();
-				buf.append(quoteSource(text, false));
-				buf.append("\n  from ");
-				addLocator(buf, seg.theFilename, seg.theLineno, seg.theStartCol,
-						seg.theStopCol);
-				if (seg.theFormation != null)
-					buf.append(seg.theFormation.suffix());
-				buf.append("\n");
-			}
-		}
 	}
 
 	public void getDetailedReport(StringBuffer buf) {
