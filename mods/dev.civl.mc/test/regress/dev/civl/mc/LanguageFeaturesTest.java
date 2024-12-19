@@ -938,6 +938,16 @@ public class LanguageFeaturesTest {
 	public void arrayArrowTest() {
 		assertTrue(ui.run(VERIFY, QUIET, filename("arrayArrow.c")));
 	}
+	
+	@Test
+	public void variadic() {
+		assertTrue(ui.run(VERIFY, QUIET, filename("variadic.c")));
+	}
+	
+	@Test
+	public void missingArgs() {
+		assertFalse(ui.run(VERIFY, QUIET, filename("missingArgs.c")));
+	}
 
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {

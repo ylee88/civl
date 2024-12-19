@@ -1872,10 +1872,19 @@ public class ImmutableStateFactory implements StateFactory {
 		ImmutableProcessState[] newProcesses = state.copyProcessStates();
 		BitSet bitSet = new BitSet(newProcesses.length);
 
+		// For now, ignoring extra arguments in call to variadic
+		// functions. TODO: actually implement variadic functions.
+		int nparam = function.parameters().size(), narg = arguments.length;
+		assert (narg >= nparam); // this should always hold
+
 		// first value is always heap, which will be null initially
-		for (int i = 0; i < arguments.length; i++)
+		for (int i = 0; i < nparam; i++)
 			if (arguments[i] != null)
 				values[i + 1] = arguments[i];
+		if (narg > nparam && !config.isQuiet()) {
+			System.err.println("Warning: ignoring extra arguments in call to "
+					+ function.name().name());
+		}
 		bitSet.set(pid);
 		newScopes[sid] = new ImmutableDynamicScope(newScope, cid, values,
 				bitSet);
