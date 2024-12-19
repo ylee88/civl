@@ -615,7 +615,7 @@ public class ExpressionAnalyzer {
 			isSetType = true;
 			tempType = ((SetType) pointerNode.getType()).elementType();
 		} else {
-			addLvalueConversion(pointerNode);
+			addStandardConversions(pointerNode);
 			tempType = pointerNode.getConvertedType();
 		}
 		if (tempType.kind() != TypeKind.POINTER)

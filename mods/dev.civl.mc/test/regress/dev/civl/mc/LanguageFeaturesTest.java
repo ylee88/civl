@@ -933,6 +933,11 @@ public class LanguageFeaturesTest {
 	public void shadow2Test() {
 		assertTrue(ui.run(VERIFY, QUIET, filename("shadow2.c")));
 	}
+	
+	@Test
+	public void arrayArrowTest() {
+		assertTrue(ui.run(VERIFY, QUIET, filename("arrayArrow.c")));
+	}
 
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
