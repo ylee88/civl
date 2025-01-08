@@ -1,8 +1,12 @@
 package dev.civl.mc.kripke.common;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -15,14 +19,18 @@ import dev.civl.mc.kripke.IF.TraceStep;
 import dev.civl.mc.log.IF.CIVLErrorLogger;
 import dev.civl.mc.model.IF.CIVLInternalException;
 import dev.civl.mc.model.IF.location.Location;
+import dev.civl.mc.model.IF.statement.CallOrSpawnStatement;
 import dev.civl.mc.model.IF.statement.Statement;
+import dev.civl.mc.model.IF.statement.Statement.StatementKind;
 import dev.civl.mc.semantics.IF.Executor;
+import dev.civl.mc.semantics.IF.Semantics;
 import dev.civl.mc.semantics.IF.SymbolicAnalyzer;
 import dev.civl.mc.semantics.IF.Transition;
 import dev.civl.mc.semantics.IF.Transition.TransitionKind;
 import dev.civl.mc.state.IF.CIVLHeapException;
 import dev.civl.mc.state.IF.CIVLHeapException.HeapErrorKind;
 import dev.civl.mc.state.IF.ProcessState;
+import dev.civl.mc.state.IF.StackEntry;
 import dev.civl.mc.state.IF.State;
 import dev.civl.mc.state.IF.StateFactory;
 import dev.civl.mc.state.IF.UnsatisfiablePathConditionException;
@@ -588,5 +596,23 @@ public class CommonStateManager extends CIVLStateManager {
 	@Override
 	public int getPid(Transition transition) {
 		return transition.pid();
+	}
+
+	@Override
+	public Set<Integer> getEnabledProcesses(State state) {
+		Set<Integer> enabProcs = new HashSet<>();
+		for (ProcessState pstate : state.getProcessStates()) {
+			if (pstate != null) {
+				int pid = pstate.getPid();
+				if (!getTransitions(state, pid).isEmpty())
+					enabProcs.add(pid);
+			}
+		}
+		return enabProcs;
+	}
+
+	@Override
+	public Collection<Transition> getTransitions(State state, int pid) {
+		return enabler.enabledTransitionsInProcess(state, pid);
 	}
 }

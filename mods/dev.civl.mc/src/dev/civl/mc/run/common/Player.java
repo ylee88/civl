@@ -40,6 +40,7 @@ import dev.civl.mc.state.IF.StateFactory;
 import dev.civl.mc.state.IF.States;
 import dev.civl.gmc.CommandLineException;
 import dev.civl.gmc.GMCConfiguration;
+import dev.civl.gmc.dpor.DependencyAnalyzer;
 import dev.civl.gmc.seq.EnablerIF;
 import dev.civl.sarl.IF.SymbolicUniverse;
 
@@ -68,6 +69,8 @@ public abstract class Player {
 	public Evaluator evaluator;
 
 	protected EnablerIF<State, Transition> enabler;
+	
+	protected DependencyAnalyzer<State, Transition> depAnalyzer;
 
 	protected CIVLStatePredicate predicate = null;
 
@@ -166,6 +169,7 @@ public abstract class Player {
 		this.enabler = Kripkes.newEnabler(stateFactory, this.evaluator,
 				executor, symbolicAnalyzer, memUnitFactory,
 				this.libraryEnablerLoader, log, civlConfig, gmcConfig);
+		this.depAnalyzer = Kripkes.newDependencyAnalyzer();
 		this.random = gmcConfig.getAnonymousSection().isTrue(randomO);
 		this.minimize = gmcConfig.getAnonymousSection().isTrue(minO);
 		this.maxdepth = (int) gmcConfig.getAnonymousSection()

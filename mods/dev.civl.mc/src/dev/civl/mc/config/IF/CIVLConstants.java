@@ -222,6 +222,7 @@ public class CIVLConstants {
 	public static String PREEMPTION_BOUND = "preemptionBound";
 	public static String DISABLE_LOCAL_BLOCK = "disableLocalBlock";
 	public static String FAIR = "fair";
+	public static String DPOR = "dpor";
 
 	// Option objects
 	/**
@@ -720,6 +721,13 @@ public class CIVLConstants {
 			OptionType.BOOLEAN, "ignore unfair cycles", false);
 
 	/**
+	 * Specifies whether to use DPOR algorithm for model checking. Currently,
+	 * this is incompatible with the "collectProcesses" option. So when dpor is
+	 * marked true, process collection is turned off.
+	 */
+	public final static Option dporO = Option.newScalarOption(DPOR,
+			OptionType.BOOLEAN, "dynamic partial order reduction", false);
+	/**
 	 * The name of the CIVL system function, which is the starting point of a
 	 * CIVL model.
 	 */
@@ -747,7 +755,7 @@ public class CIVLConstants {
 				analyzeAbsO, strictCompareO, collectOutputO, timeoutO,
 				unpreprocO, sliceAnalysisO, witnessO, direct0, intBit,
 				intOperationTransformer, maxProcsO, SARLTestGenO,
-				preemptionBoundO, disableLocalBlockO, fairO),
+				preemptionBoundO, disableLocalBlockO, fairO, dporO),
 				CIVLProperty.getAllConfigurableProperties().stream()
 						.map(e -> e.getOption()))
 				.toArray(Option[]::new);

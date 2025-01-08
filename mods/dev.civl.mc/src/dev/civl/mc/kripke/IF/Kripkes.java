@@ -3,15 +3,19 @@ package dev.civl.mc.kripke.IF;
 import dev.civl.mc.config.IF.CIVLConfiguration;
 import dev.civl.mc.kripke.common.CommonLibraryEnablerLoader;
 import dev.civl.mc.kripke.common.CommonStateManager;
+import dev.civl.mc.kripke.common.SimpleDependencyAnalyzer;
 import dev.civl.mc.kripke.common.SimpleEnabler;
 import dev.civl.mc.log.IF.CIVLErrorLogger;
 import dev.civl.mc.semantics.IF.Evaluator;
 import dev.civl.mc.semantics.IF.Executor;
 import dev.civl.mc.semantics.IF.LibraryEvaluatorLoader;
 import dev.civl.mc.semantics.IF.SymbolicAnalyzer;
+import dev.civl.mc.semantics.IF.Transition;
 import dev.civl.mc.state.IF.MemoryUnitFactory;
+import dev.civl.mc.state.IF.State;
 import dev.civl.mc.state.IF.StateFactory;
 import dev.civl.gmc.GMCConfiguration;
+import dev.civl.gmc.dpor.DependencyAnalyzer;
 
 /**
  * This is the entry point of the module <strong>kripke</strong>.
@@ -48,6 +52,10 @@ public class Kripkes {
 		return new SimpleEnabler(stateFactory, evaluator, executor,
 				symbolicAnalyzer, libLoader, errorLogger, civlConfig,
 				gmcConfig);
+	}
+	
+	public static DependencyAnalyzer<State, Transition> newDependencyAnalyzer() {
+		return new SimpleDependencyAnalyzer();
 	}
 
 	/**

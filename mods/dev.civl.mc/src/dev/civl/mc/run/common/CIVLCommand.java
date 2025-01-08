@@ -60,6 +60,7 @@ import static dev.civl.mc.config.IF.CIVLConstants.userIncludePathO;
 import static dev.civl.mc.config.IF.CIVLConstants.verboseO;
 import static dev.civl.mc.config.IF.CIVLConstants.witnessO;
 import static dev.civl.mc.config.IF.CIVLConstants.fairO;
+import static dev.civl.mc.config.IF.CIVLConstants.dporO;
 
 import java.io.PrintStream;
 import java.util.Collection;
@@ -100,7 +101,7 @@ public class CIVLCommand {
 				macroO, preprocO, astO, showTimeO, showMemoryUnitsO, CIVLMacroO,
 				showUnreachedCodeO, analyzeAbsO, collectOutputO, timeoutO,
 				quietO, unpreprocO, direct0, intBit, intOperationTransformer,
-				maxProcsO, fairO);
+				maxProcsO, fairO, dporO);
 		CIVLCommand.addVerifyOption(
 				CIVLProperty.getAllConfigurableProperties().stream()
 						.map(e -> e.getOption()).toArray(Option[]::new));

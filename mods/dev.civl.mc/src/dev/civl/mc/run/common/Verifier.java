@@ -39,6 +39,7 @@ import dev.civl.gmc.CommandLineException;
 import dev.civl.gmc.ExcessiveErrorException;
 import dev.civl.gmc.GMCConfiguration;
 import dev.civl.gmc.StateSpaceCycleException;
+import dev.civl.gmc.dpor.DporDfsSearcher;
 import dev.civl.gmc.seq.DfsSearcher;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
@@ -224,6 +225,8 @@ public class Verifier extends Player {
 	 * 
 	 */
 	private DfsSearcher<State, Transition> searcher;
+	
+	private DporDfsSearcher<State, Transition> dporSearcher;
 
 	// private boolean shortFileNamesShown;
 
@@ -255,6 +258,10 @@ public class Verifier extends Player {
 				civlConfig.isPropertyToggled(CIVLProperty.TERMINATION));
 		searcher.setFairCycleCheck(civlConfig.isFair());
 		searcher.setName(sessionName);
+		
+		dporSearcher = new DporDfsSearcher<State, Transition>(depAnalyzer, stateManager, predicate, config);
+		if (civlConfig.debug())
+			dporSearcher.setDebugOut(out);
 		log.setSearcher(searcher);
 		if (minimize)
 			log.setMinimize(true);
@@ -395,6 +402,13 @@ public class Verifier extends Player {
 					boolean workRemains;
 
 					try {
+						if (civlConfig.dporEnabled()) {
+							// Resuming DPOR execution not supported yet
+							if (violationFound || !dporSearcher.explore(initialState)) {
+								break;
+							}
+						}
+						
 						if (violationFound) {
 							// may throw ExcessiveErrorException...
 							workRemains = searcher.proceedToNewState()
@@ -468,11 +482,20 @@ public class Verifier extends Player {
 				result = "All errors marked with '+' are absent on all executions.\n";
 				result += civlConfig.getCheckedPropertiesSummary();
 			}
+			int numNodesSaved, numStatesMatched, numTransitions;
+			if (civlConfig.dporEnabled()) {
+				numNodesSaved = dporSearcher.numOfSearchNodeSaved();
+				numStatesMatched = dporSearcher.numStatesMatched();
+				numTransitions = dporSearcher.numTransitions();
+			} else {
+				numNodesSaved = searcher.numOfSearchNodeSaved();
+				numStatesMatched = searcher.numStatesMatched();
+				numTransitions = searcher.numTransitions();
+			}
 			this.verificationStatus = new VerificationStatus(
 					stateManager.maxProcs(), stateManager.numStatesExplored(),
-					searcher.numOfSearchNodeSaved(),
-					searcher.numStatesMatched(), executor.getNumSteps(),
-					searcher.numTransitions());
+					numNodesSaved, numStatesMatched, executor.getNumSteps(),
+					numTransitions);
 			return !violationFound && log.numEntries() == 0;
 		} catch (CIVLStateException stateException) {
 			throw new CIVLExecutionException(stateException.civlProperty(),

@@ -1,4 +1,4 @@
-package dev.civl.gmc.seq;
+package dev.civl.gmc.dpor;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -6,21 +6,13 @@ import java.util.Map;
 
 import dev.civl.gmc.GetIdFunction;
 import dev.civl.gmc.TraceStepIF;
+import dev.civl.gmc.seq.SequentialNode;
+import dev.civl.gmc.seq.StackEntry;
+import dev.civl.gmc.seq.StateManager;
 
-/**
- * The factory to get a GMC search {@link SequentialNode}, if the
- * {@link SequentialNode} has been seen before, the seen {@link SequentialNode}
- * will be returned, otherwise, a new {@link SequentialNode} will be created and
- * returned.
- * 
- * @author Yihao Yan (yanyihao)
- */
-public class SequentialNodeFactory<STATE, TRANSITION> implements GetIdFunction<STATE> {
-	/**
-	 * Maps each STATE to a unique {@link SequentialNode}.
-	 */
-	private Map<STATE, SequentialNode<STATE>> nodeMap = new HashMap<>();
-
+public class DporNodeFactory<STATE, TRANSITION> implements GetIdFunction<STATE> {
+	private Map<STATE, DporNode<STATE>> nodeMap = new HashMap<>();
+	
 	/**
 	 * The counter used to count the # of {@link SequentialNode} cached in
 	 * {@link #nodeMap}.
@@ -37,7 +29,7 @@ public class SequentialNodeFactory<STATE, TRANSITION> implements GetIdFunction<S
 
 	private static int NOT_SAVED = -1;
 
-	public SequentialNodeFactory(StateManager<STATE, TRANSITION> stateManager,
+	public DporNodeFactory(StateManager<STATE, TRANSITION> stateManager,
 			boolean saveStates) {
 		this.stateManager = stateManager;
 		this.saveStates = saveStates;
@@ -56,11 +48,11 @@ public class SequentialNodeFactory<STATE, TRANSITION> implements GetIdFunction<S
 	 *         {@link SequentialNode} will always store the normalized or
 	 *         simplified version of {@code state}.
 	 */
-	public SequentialNode<STATE> getNode(TraceStepIF<STATE> traceStep) {
+	public DporNode<STATE> getNode(TraceStepIF<STATE> traceStep) {
 		STATE state = traceStep.getFinalState();
 
 		if (saveStates) {
-			SequentialNode<STATE> result = nodeMap.get(state);
+			DporNode<STATE> result = nodeMap.get(state);
 
 			if (result == null) {
 				stateManager.normalize(traceStep);
@@ -70,18 +62,18 @@ public class SequentialNodeFactory<STATE, TRANSITION> implements GetIdFunction<S
 				if (normalizedState != state) {
 					result = nodeMap.get(normalizedState);
 					if (result == null) {
-						result = new SequentialNode<STATE>(normalizedState,
+						result = new DporNode<STATE>(normalizedState,
 								nodeCounter++);
 						nodeMap.put(normalizedState, result);
 					}
 				} else {
-					result = new SequentialNode<STATE>(state, nodeCounter++);
+					result = new DporNode<STATE>(state, nodeCounter++);
 				}
 				nodeMap.put(state, result);
 			}
 			return result;
 		} else
-			return new SequentialNode<STATE>(state, NOT_SAVED);
+			return new DporNode<STATE>(state, NOT_SAVED);
 	}
 
 	/**
@@ -92,26 +84,8 @@ public class SequentialNodeFactory<STATE, TRANSITION> implements GetIdFunction<S
 	 * @return the node associated to the given state, null there is no such a
 	 *         node.
 	 */
-	public SequentialNode<STATE> getNode(STATE state) {
+	public DporNode<STATE> getNode(STATE state) {
 		return nodeMap.get(state);
-	}
-
-	/**
-	 * Construct a new stack entry which will be pushed onto the stack.
-	 * 
-	 * @param node
-	 *            The {@link SequentialNode} that wraps the source state.
-	 * @param transitions
-	 *            This could be the ample set or ample set complement of the
-	 *            source state.
-	 * @param full
-	 *            Whether {@code transitions} is ample set complement or not.
-	 * @return The newly constructed {@link StackEntry}.
-	 */
-	public StackEntry<STATE, TRANSITION> newStackEntry(
-			SequentialNode<STATE> node, Collection<TRANSITION> transitions,
-			int offset) {
-		return new StackEntry<>(node, transitions, offset);
 	}
 
 	/**
@@ -127,13 +101,13 @@ public class SequentialNodeFactory<STATE, TRANSITION> implements GetIdFunction<S
 	 * @param initState
 	 * @return
 	 */
-	public SequentialNode<STATE> getInitialNode(STATE initState) {
-		SequentialNode<STATE> initNode;
+	public DporNode<STATE> getInitialNode(STATE initState) {
+		DporNode<STATE> initNode;
 
 		if (saveStates) {
-			initNode = new SequentialNode<STATE>(initState, nodeCounter++);
+			initNode = new DporNode<STATE>(initState, nodeCounter++);
 		} else
-			initNode = new SequentialNode<STATE>(initState, NOT_SAVED);
+			initNode = new DporNode<STATE>(initState, NOT_SAVED);
 
 		nodeMap.put(initState, initNode);
 		return initNode;
@@ -147,13 +121,13 @@ public class SequentialNodeFactory<STATE, TRANSITION> implements GetIdFunction<S
 	 * @param state
 	 * @return
 	 */
-	SequentialNode<STATE> lookup(STATE state) {
+	DporNode<STATE> lookup(STATE state) {
 		return nodeMap.get(state);
 	}
 
 	@Override
 	public int getId(STATE state) {
-		SequentialNode<STATE> node = getNode(state);
+		DporNode<STATE> node = getNode(state);
 		return node == null ? -1 : node.getId();
 	}
 }

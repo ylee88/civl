@@ -1,6 +1,7 @@
 package dev.civl.mc.kripke.common;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -915,6 +916,18 @@ public class SimpleEnabler implements Enabler {
 	}
 
 	/* ************************** Public Methods ************************ */
+	
+	public Collection<Transition> enabledTransitionsInProcess(State state, int pid) {
+		int atomicProc = stateFactory.processInAtomic(state);
+		if (atomicProc < 0 || atomicProc == pid) {
+			try {
+				SimpleEnablerWorker worker = new SimpleEnablerWorker(this,
+						state);
+				return Arrays.asList(worker.enabledTransitionsInProcess(pid));
+			} catch (UnsatisfiablePathConditionException e) {}
+		}
+		return new LinkedList<>();
+	}
 
 	@Override
 	public Collection<Transition> ampleSet(State source) {

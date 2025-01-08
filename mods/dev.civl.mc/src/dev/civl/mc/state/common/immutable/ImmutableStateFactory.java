@@ -46,6 +46,7 @@ import dev.civl.mc.state.IF.State;
 import dev.civl.mc.state.IF.StateFactory;
 import dev.civl.mc.state.IF.StateValueHelper;
 import dev.civl.mc.util.IF.Pair;
+import dev.civl.mc.util.IF.SeqSet;
 import dev.civl.mc.util.IF.Singleton;
 import dev.civl.sarl.IF.CanonicalRenamer;
 import dev.civl.sarl.IF.Reasoner;
@@ -3180,6 +3181,12 @@ public class ImmutableStateFactory implements StateFactory {
 		return this.nullScopeValue;
 	}
 
+	public State makeCrossState(State state0, int proc0, SeqSet fixedMem0,
+			State state1, int proc1, SeqSet fixedMem1) {
+		// TODO:
+		return null;
+	}
+	
 	/**
 	 * Converts a map, which maps from non-negative integer set A to B, to a new
 	 * map, which maps non-negative integer set B to A. For the INPUT map, it

@@ -98,18 +98,18 @@ public class ImmutableState implements State {
 	 * The path condition, a non-null boolean-valued symbolic expression.
 	 * 
 	 */
-	private BooleanExpression pathCondition;
+	protected BooleanExpression pathCondition;
 
 	/**
 	 * processes[i] contains the process of pid i. some entries may be null.
 	 */
-	private ImmutableProcessState[] processStates;
+	protected ImmutableProcessState[] processStates;
 
 	/**
 	 * The dynamic scopes. The scope at position i is the dynamic scope with
 	 * dyscopeId i. The scope at index 0 is always the system scope.
 	 */
-	private ImmutableDynamicScope[] dyscopes;
+	protected ImmutableDynamicScope[] dyscopes;
 
 	/**
 	 * If the hashcode has been computed, it is cached here.

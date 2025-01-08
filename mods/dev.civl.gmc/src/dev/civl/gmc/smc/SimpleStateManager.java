@@ -1,6 +1,8 @@
 package dev.civl.gmc.smc;
 
 import java.io.PrintStream;
+import java.util.Collection;
+import java.util.Set;
 
 import dev.civl.gmc.TraceStepIF;
 import dev.civl.gmc.seq.StateManager;
@@ -29,7 +31,7 @@ public class SimpleStateManager extends StateManager<Integer, String> {
 	public int getId(Integer normalizedState) {
 		return normalizedState;
 	}
-
+	
 	@Override
 	public void normalize(TraceStepIF<Integer> traceStep) {
 		// Do nothing
@@ -91,6 +93,16 @@ public class SimpleStateManager extends StateManager<Integer, String> {
 	@Override
 	public int getPid(String transition) {
 		return 0;
+	}
+	
+	// TODO: Added these to appease the compiler but are almost surely not right.
+	@Override
+	public Set<Integer> getEnabledProcesses(Integer state) {
+		return null;
+	}
+	@Override
+	public Collection<String> getTransitions(Integer state, int pid) {
+		return null;
 	}
 
 }

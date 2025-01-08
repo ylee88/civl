@@ -190,7 +190,7 @@ public class DfsSearcher<STATE, TRANSITION> {
 		this.debugOut = debugOut;
 		this.sequentialNodeFactory = new SequentialNodeFactory<>(manager,
 				gmcConfig.getSaveStates());
-		this.manager.setSequentialNodeFactory(sequentialNodeFactory);
+		this.manager.setGetIdFunction(sequentialNodeFactory);
 		if (debugOut != null)
 			this.debugging = true;
 		stack = new Stack<>();

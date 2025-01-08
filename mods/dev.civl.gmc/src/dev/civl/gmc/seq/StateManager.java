@@ -1,7 +1,11 @@
 package dev.civl.gmc.seq;
 
 import java.io.PrintStream;
+import java.util.Collection;
+import java.util.Set;
+import java.util.function.Function;
 
+import dev.civl.gmc.GetIdFunction;
 import dev.civl.gmc.TraceStepIF;
 
 /**
@@ -25,7 +29,7 @@ import dev.civl.gmc.TraceStepIF;
  *                         state-transition system being analyzed
  */
 public abstract class StateManager<STATE, TRANSITION> {
-	private SequentialNodeFactory<STATE, TRANSITION> nodeFactory;
+	private GetIdFunction<STATE> getIdFunc;
 
 	/**
 	 * Given a state and a transition, returns the trace step after executing
@@ -55,6 +59,10 @@ public abstract class StateManager<STATE, TRANSITION> {
 	 * @return a PID of the given transition
 	 */
 	public abstract int getPid(TRANSITION transition);
+	
+	public abstract Set<Integer> getEnabledProcesses(STATE state);
+	
+	public abstract Collection<TRANSITION> getTransitions(STATE state, int pid);
 
 	/**
 	 * <p>
@@ -182,20 +190,11 @@ public abstract class StateManager<STATE, TRANSITION> {
 	 * @return the id of the normalizedState.
 	 */
 	public int getId(STATE normalizedState) {
-		if (nodeFactory != null) {
-			SequentialNode<STATE> node = nodeFactory.getNode(normalizedState);
-
-			if (node != null)
-				return node.getId();
-			else
-				return -1;
-		}
-		return -1;
+		return getIdFunc == null ? -1 : getIdFunc.getId(normalizedState);
 	}
 
-	public void setSequentialNodeFactory(
-			SequentialNodeFactory<STATE, TRANSITION> nodeFactory) {
-		this.nodeFactory = nodeFactory;
+	public void setGetIdFunction(GetIdFunction<STATE> getIdFunc) {
+		this.getIdFunc = getIdFunc;
 	}
 
 }

@@ -329,6 +329,12 @@ public class CIVLConfiguration {
 	 * execution).
 	 */
 	private boolean fair;
+	
+	/**
+	 * If this is true then DPOR algorithm is used. Note that collectProcesses
+	 * becomes false when this is set to true.
+	 */
+	private boolean dpor;
 
 	/**
 	 * Constructs a new CIVL configuration object from the command line
@@ -516,6 +522,9 @@ public class CIVLConfiguration {
 		this.disableLocalBlock = config
 				.isTrue(CIVLConstants.disableLocalBlockO);
 		this.fair = config.isTrue(CIVLConstants.fairO);
+		this.dpor = config.isTrue(CIVLConstants.dporO);
+		if (dpor)
+			this.collectProcesses = false;
 	}
 
 	public CIVLConfiguration(CIVLConfiguration config) {
@@ -567,6 +576,7 @@ public class CIVLConfiguration {
 		this.runtimeUpdate = config.runtimeUpdate;
 		this.disableLocalBlock = config.disableLocalBlock;
 		this.fair = config.fair;
+		this.dpor = config.dpor;
 	}
 
 	public CIVLConfiguration() {
@@ -1260,5 +1270,18 @@ public class CIVLConfiguration {
 
 	public void setFair(boolean val) {
 		this.fair = val;
+	}
+	
+	/**
+	 * Returns whether we are using dynamic partial order reduction
+	 */
+	public boolean dporEnabled() {
+		return dpor;
+	}
+	
+	public void setDpor(boolean val) {
+		this.dpor = val;
+		if (dpor)
+			setCollectProcesses(false);
 	}
 }
