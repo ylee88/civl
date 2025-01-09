@@ -115,8 +115,10 @@ public class DporSearchStack<STATE, TRANSITION> {
 		// onto the stack as a new Entry
 		TraceStepIF<STATE> traceStep = manager.nextState(currentState(),
 				top().currentTransition());
+		manager.printTraceStep(currentState(), traceStep);
 		DporNode<STATE> newNode = nodeFactory
 				.getNode(traceStep);
+		manager.printTraceStepFinalState(currentState(), newNode.getId());
 		boolean seen = newNode.getSeen();
 		newNode.setSeen(true);
 		newNode.setStackPosition(stack.size());
