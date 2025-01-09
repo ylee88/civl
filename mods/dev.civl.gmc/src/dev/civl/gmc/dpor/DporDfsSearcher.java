@@ -181,21 +181,23 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 			DporSearchStack<STATE, TRANSITION>.Entry topStackEntry = stack.top();
 			
 			for (Integer outerPid : topStackEntry.enabledProcs()) {
-				for (int i = stack.size() - 2; i >= 0; i--) {
+				DporSearchStack<STATE, TRANSITION>.StackTraversal stackTraversal = stack
+						.makeStackTraversal(outerPid);
+				for (int i = stackTraversal.next(); i != -1; i = stackTraversal.next()) {
 					DporSearchStack<STATE, TRANSITION>.Entry currEntry = stack.get(i);
-					if (!stack.hb(i, outerPid) && analyzer.checkDependent(stack, i, outerPid)){
+					if (analyzer.checkDependent(stack, i, outerPid)) {
 						stack.addRace(outerPid, i);
 						boolean addToBacktrack = true;
 						// proc id of a process in "E" set that is enabled at currEntry
 						// will remain -1 if no such process exists
 						int enabledProc = -1;
 						
-						// "E" set from alg is all processes p with
-						// topHbRel.lastHbEntry(proc) > i
 						DporSearchStack<STATE, TRANSITION>.HbRelation topHbRel = topStackEntry
 								.getHbRel();
 						final int oPidCopy = outerPid;
 						final int pos = i;
+						// This stream represents the "E" set in algorithm from
+						// DPOR paper
 						Iterator<Integer> candidateIter = Stream
 								.concat(Stream.of(outerPid),
 										topHbRel.hbProcSet().stream()

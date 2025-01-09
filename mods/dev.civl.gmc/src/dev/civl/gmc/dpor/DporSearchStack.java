@@ -2,12 +2,15 @@ package dev.civl.gmc.dpor;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.Stack;
 
@@ -36,8 +39,6 @@ public class DporSearchStack<STATE, TRANSITION> {
 	private Stack<Entry> stack = new Stack<>();
 	
 	private Map<Integer, Integer> procLastEntry = new HashMap<>();
-	
-	
 	
 	private int numStatesSeen = 0;
 
@@ -70,6 +71,14 @@ public class DporSearchStack<STATE, TRANSITION> {
 	
 	public Entry get(int index) {
 		return stack.get(index);
+	}
+	
+	public Set<Integer> seenProcesses() {
+		return procLastEntry.keySet();
+	}
+	
+	public int lastEntryPos(int proc) {
+		return procLastEntry.getOrDefault(proc, -1);
 	}
 	
 	public STATE currentState() {
@@ -134,7 +143,11 @@ public class DporSearchStack<STATE, TRANSITION> {
 		// New top no longer represents a transition and so last entry info
 		// needs updated
 		if (!stack.isEmpty()) {
-			procLastEntry.put(top().getPid(), top().getLastEntry());
+			if (top().getLastEntry() < 0)
+				procLastEntry.remove(top().getPid());
+			else
+				procLastEntry.put(top().getPid(), top().getLastEntry());
+			
 			top().setLastEntry(-1);
 		}
 	}
@@ -145,6 +158,10 @@ public class DporSearchStack<STATE, TRANSITION> {
 
 	public boolean hb(int entryPos, int pid) {
 		return top().getHbRel(pid).hb(entryPos);
+	}
+	
+	public StackTraversal makeStackTraversal(int proc) {
+		return new StackTraversal(proc);
 	}
 
 	public class Entry {
@@ -400,6 +417,49 @@ public class DporSearchStack<STATE, TRANSITION> {
 				this.entry = entry;
 				this.isRace = isRace;
 			}
+		}
+	}
+	
+	/**
+	 * A structure for efficiently traversing the stack in reverse order,
+	 * skipping entries which happen before the specified process of the top
+	 * stack entry. Adding races to the stack while traversing is permitted and
+	 * such changes are reflected in the traversal.
+	 */
+	public class StackTraversal {
+		private PriorityQueue<Integer> entryQueue;
+		private HbRelation topHbRel;
+		
+		private StackTraversal(int proc) {
+			topHbRel = top().getHbRel(proc);
+			Set<Integer> seenProcs = seenProcesses();
+			
+			if (seenProcs.isEmpty())
+				entryQueue = new PriorityQueue<Integer>();
+			else {
+				entryQueue = new PriorityQueue<Integer>(seenProcs.size(),
+						Collections.reverseOrder());
+				for (int seenProc : seenProcs) {
+					int lastEntry = procLastEntry.get(seenProc);
+					if (!topHbRel.hb(lastEntry)) {
+						entryQueue.add(lastEntry);
+					}
+				}
+			}
+		}
+		
+		public int next() {
+			while (!entryQueue.isEmpty()) {
+				int lastEntryPos = entryQueue.poll();
+				if (!topHbRel.hb(lastEntryPos)) {
+					Entry lastEntry = get(lastEntryPos);
+					int nextLastEntryPos = lastEntry.getLastEntry();
+					if (nextLastEntryPos >= 0)
+						entryQueue.add(nextLastEntryPos);
+					return lastEntryPos;
+				}
+			}
+			return -1;
 		}
 	}
 }
