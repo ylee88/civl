@@ -369,10 +369,6 @@ public class DporSearchStack<STATE, TRANSITION> {
 		private void addRace(int pid, int entryPos) {
 			getHbRel(pid).addRace(entryPos);
 		}
-
-		private Map<Integer, HbRelation.HbEdge> getHbMap() {
-			return getHbRel(getPid()).map;
-		}
 		
 		private void setLastEntry(int lastEntry) {
 			this.lastEntry = lastEntry;
@@ -391,7 +387,7 @@ public class DporSearchStack<STATE, TRANSITION> {
 		private void addEdge(int entryPos, boolean isRace) {
 			Entry entry = get(entryPos);
 			int pid = entry.getPid();
-			for (Map.Entry<Integer, HbEdge> hbEdge : entry.getHbMap().entrySet()) {
+			for (Map.Entry<Integer, HbEdge> hbEdge : entry.getHbRel(pid).map.entrySet()) {
 				int edgePos = hbEdge.getValue().entry;
 				HbEdge newEdge = new HbEdge(edgePos, false);
 				if (edgePos >= map.getOrDefault(hbEdge.getKey(), newEdge).entry) {
