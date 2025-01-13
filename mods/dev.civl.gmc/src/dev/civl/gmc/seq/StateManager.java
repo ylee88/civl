@@ -2,8 +2,8 @@ package dev.civl.gmc.seq;
 
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 
 import dev.civl.gmc.GetIdFunction;
 import dev.civl.gmc.TraceStepIF;
@@ -15,7 +15,7 @@ import dev.civl.gmc.TraceStepIF;
  * executing the transition from the given state. Other methods are provided
  * that are needed specifically for depth-first search, including methods to
  * mark a state as "seen before", and to make a state as "currently on (or off)
- * the stack". Still other methods are provided for printing information abou
+ * the stack". Still other methods are provided for printing information about
  * states.
  * 
  * @author Stephen F. Siegel
@@ -182,6 +182,8 @@ public abstract class StateManager<STATE, TRANSITION> {
 	 */
 	public abstract void printAllStatesLong(PrintStream out);
 
+	public abstract void debug(STATE state, List<Integer> backtrack);
+	
 	/**
 	 * Get the id of a normalizedState.
 	 * 

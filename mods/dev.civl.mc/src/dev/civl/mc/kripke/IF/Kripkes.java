@@ -54,8 +54,8 @@ public class Kripkes {
 				gmcConfig);
 	}
 	
-	public static DependencyAnalyzer<State, Transition> newDependencyAnalyzer() {
-		return new SimpleDependencyAnalyzer();
+	public static DependencyAnalyzer<State, Transition> newDependencyAnalyzer(SimpleEnabler enabler) {
+		return new SimpleDependencyAnalyzer(enabler);
 	}
 
 	/**

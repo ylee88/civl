@@ -1,8 +1,13 @@
 package dev.civl.gmc.dpor;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+
+import dev.civl.gmc.TraceStepIF;
 import dev.civl.gmc.seq.SequentialNode;
 
-public class DporNode<STATE> {
+public class DporNode<STATE, TRANSITION> {
 	private int id;
 	
 	/**
@@ -20,6 +25,8 @@ public class DporNode<STATE> {
 	 * not on the stack.
 	 */
 	private int stackPosition = -1;
+
+	private Map<TRANSITION, TraceStepIF<STATE>> transitionMap = new HashMap<>();
 
 	public DporNode(STATE state, int id) {
 		this.state = state;
@@ -81,6 +88,15 @@ public class DporNode<STATE> {
 	 */
 	public int getStackPosition() {
 		return stackPosition;
+	}
+	
+	public TraceStepIF<STATE> getTraceStep(TRANSITION transition) {
+		return transitionMap.getOrDefault(transition, null);
+	}
+
+	public void setTraceStep(TRANSITION transition,
+			TraceStepIF<STATE> traceStep) {
+		transitionMap.put(transition, traceStep);
 	}
 
 	/**

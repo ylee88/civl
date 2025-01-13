@@ -20,6 +20,7 @@ import dev.civl.mc.kripke.IF.CIVLStateManager;
 import dev.civl.mc.kripke.IF.Enabler;
 import dev.civl.mc.kripke.IF.Kripkes;
 import dev.civl.mc.kripke.IF.LibraryEnablerLoader;
+import dev.civl.mc.kripke.common.SimpleEnabler;
 import dev.civl.mc.log.IF.CIVLErrorLogger;
 import dev.civl.mc.model.IF.Model;
 import dev.civl.mc.model.IF.ModelFactory;
@@ -169,7 +170,7 @@ public abstract class Player {
 		this.enabler = Kripkes.newEnabler(stateFactory, this.evaluator,
 				executor, symbolicAnalyzer, memUnitFactory,
 				this.libraryEnablerLoader, log, civlConfig, gmcConfig);
-		this.depAnalyzer = Kripkes.newDependencyAnalyzer();
+		this.depAnalyzer = Kripkes.newDependencyAnalyzer((SimpleEnabler) enabler);
 		this.random = gmcConfig.getAnonymousSection().isTrue(randomO);
 		this.minimize = gmcConfig.getAnonymousSection().isTrue(minO);
 		this.maxdepth = (int) gmcConfig.getAnonymousSection()

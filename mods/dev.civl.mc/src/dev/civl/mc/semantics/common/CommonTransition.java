@@ -99,6 +99,12 @@ public class CommonTransition implements Transition {
 		}
 		return false;
 	}
+	
+	// TODO: Fix hashing in Statement so that we can use it here
+	@Override
+	public int hashCode() {
+		return Integer.hashCode(pid) ^ clause.hashCode();
+	}
 
 	/* *********************** Methods from Transition ********************* */
 

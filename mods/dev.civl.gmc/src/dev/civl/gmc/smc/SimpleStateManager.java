@@ -2,6 +2,7 @@ package dev.civl.gmc.smc;
 
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 import dev.civl.gmc.TraceStepIF;
@@ -26,7 +27,7 @@ public class SimpleStateManager extends StateManager<Integer, String> {
 	public TraceStepIF<Integer> nextState(Integer state, String transition) {
 		return new TraceStep(transition, graph.getDestState(state, transition));
 	}
-
+	
 	@Override
 	public int getId(Integer normalizedState) {
 		return normalizedState;
@@ -94,7 +95,7 @@ public class SimpleStateManager extends StateManager<Integer, String> {
 	public int getPid(String transition) {
 		return 0;
 	}
-	
+	public void debug(Integer state, List<Integer> backtrack) {}
 	// TODO: Added these to appease the compiler but are almost surely not right.
 	@Override
 	public Set<Integer> getEnabledProcesses(Integer state) {

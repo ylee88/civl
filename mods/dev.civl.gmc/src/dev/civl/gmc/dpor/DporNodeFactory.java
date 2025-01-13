@@ -11,7 +11,7 @@ import dev.civl.gmc.seq.StackEntry;
 import dev.civl.gmc.seq.StateManager;
 
 public class DporNodeFactory<STATE, TRANSITION> implements GetIdFunction<STATE> {
-	private Map<STATE, DporNode<STATE>> nodeMap = new HashMap<>();
+	private Map<STATE, DporNode<STATE, TRANSITION>> nodeMap = new HashMap<>();
 	
 	/**
 	 * The counter used to count the # of {@link SequentialNode} cached in
@@ -48,11 +48,11 @@ public class DporNodeFactory<STATE, TRANSITION> implements GetIdFunction<STATE> 
 	 *         {@link SequentialNode} will always store the normalized or
 	 *         simplified version of {@code state}.
 	 */
-	public DporNode<STATE> getNode(TraceStepIF<STATE> traceStep) {
+	public DporNode<STATE, TRANSITION> getNode(TraceStepIF<STATE> traceStep) {
 		STATE state = traceStep.getFinalState();
 
 		if (saveStates) {
-			DporNode<STATE> result = nodeMap.get(state);
+			DporNode<STATE, TRANSITION> result = nodeMap.get(state);
 
 			if (result == null) {
 				stateManager.normalize(traceStep);
@@ -62,18 +62,18 @@ public class DporNodeFactory<STATE, TRANSITION> implements GetIdFunction<STATE> 
 				if (normalizedState != state) {
 					result = nodeMap.get(normalizedState);
 					if (result == null) {
-						result = new DporNode<STATE>(normalizedState,
+						result = new DporNode<STATE, TRANSITION>(normalizedState,
 								nodeCounter++);
 						nodeMap.put(normalizedState, result);
 					}
 				} else {
-					result = new DporNode<STATE>(state, nodeCounter++);
+					result = new DporNode<STATE, TRANSITION>(state, nodeCounter++);
 				}
 				nodeMap.put(state, result);
 			}
 			return result;
 		} else
-			return new DporNode<STATE>(state, NOT_SAVED);
+			return new DporNode<STATE, TRANSITION>(state, NOT_SAVED);
 	}
 
 	/**
@@ -84,7 +84,7 @@ public class DporNodeFactory<STATE, TRANSITION> implements GetIdFunction<STATE> 
 	 * @return the node associated to the given state, null there is no such a
 	 *         node.
 	 */
-	public DporNode<STATE> getNode(STATE state) {
+	public DporNode<STATE, TRANSITION> getNode(STATE state) {
 		return nodeMap.get(state);
 	}
 
@@ -101,13 +101,13 @@ public class DporNodeFactory<STATE, TRANSITION> implements GetIdFunction<STATE> 
 	 * @param initState
 	 * @return
 	 */
-	public DporNode<STATE> getInitialNode(STATE initState) {
-		DporNode<STATE> initNode;
+	public DporNode<STATE, TRANSITION> getInitialNode(STATE initState) {
+		DporNode<STATE, TRANSITION> initNode;
 
 		if (saveStates) {
-			initNode = new DporNode<STATE>(initState, nodeCounter++);
+			initNode = new DporNode<STATE, TRANSITION>(initState, nodeCounter++);
 		} else
-			initNode = new DporNode<STATE>(initState, NOT_SAVED);
+			initNode = new DporNode<STATE, TRANSITION>(initState, NOT_SAVED);
 
 		nodeMap.put(initState, initNode);
 		return initNode;
@@ -121,13 +121,13 @@ public class DporNodeFactory<STATE, TRANSITION> implements GetIdFunction<STATE> 
 	 * @param state
 	 * @return
 	 */
-	DporNode<STATE> lookup(STATE state) {
+	DporNode<STATE, TRANSITION> lookup(STATE state) {
 		return nodeMap.get(state);
 	}
 
 	@Override
 	public int getId(STATE state) {
-		DporNode<STATE> node = getNode(state);
+		DporNode<STATE, TRANSITION> node = getNode(state);
 		return node == null ? -1 : node.getId();
 	}
 }

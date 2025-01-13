@@ -6,10 +6,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.Stack;
@@ -47,7 +45,7 @@ public class DporSearchStack<STATE, TRANSITION> {
 			STATE initialState) {
 		this.manager = manager;
 		this.nodeFactory = nodeFactory;
-		DporNode<STATE> initialNode = nodeFactory
+		DporNode<STATE, TRANSITION> initialNode = nodeFactory
 				.getInitialNode(initialState);
 		Entry initialEntry = new Entry(initialNode);
 		
@@ -119,15 +117,20 @@ public class DporSearchStack<STATE, TRANSITION> {
 		// info needs updating
 		top().setLastEntry(procLastEntry.getOrDefault(top().getPid(), -1));
 		procLastEntry.put(top().getPid(), stack.size() - 1);
-
-		// Get the next resulting state from the current transition and push it
-		// onto the stack as a new Entry
-		TraceStepIF<STATE> traceStep = manager.nextState(currentState(),
-				top().currentTransition());
-		manager.printTraceStep(currentState(), traceStep);
-		DporNode<STATE> newNode = nodeFactory
+		
+		DporNode<STATE, TRANSITION> topNode = top().getNode();
+		STATE topState = topNode.getState();
+		TRANSITION currentTran = top().currentTransition();
+		TraceStepIF<STATE> traceStep = topNode.getTraceStep(currentTran);
+		if (traceStep == null) {
+			traceStep = manager.nextState(topState, currentTran);
+			topNode.setTraceStep(currentTran, traceStep);
+		}
+		
+		manager.printTraceStep(topState, traceStep);
+		DporNode<STATE, TRANSITION> newNode = nodeFactory
 				.getNode(traceStep);
-		manager.printTraceStepFinalState(currentState(), newNode.getId());
+		manager.printTraceStepFinalState(newNode.getState(), newNode.getId());
 		boolean seen = newNode.getSeen();
 		newNode.setSeen(true);
 		newNode.setStackPosition(stack.size());
@@ -139,6 +142,7 @@ public class DporSearchStack<STATE, TRANSITION> {
 	}
 	
 	public void popTransition() {
+		manager.debug(top().getState(), top().backtrack);
 		stack.pop();
 		// New top no longer represents a transition and so last entry info
 		// needs updated
@@ -169,7 +173,7 @@ public class DporSearchStack<STATE, TRANSITION> {
 		 * The search node that wraps the source state with its search information
 		 * like stack position or fullyExpanded flag.
 		 */
-		private DporNode<STATE> node;
+		private DporNode<STATE, TRANSITION> node;
 
 		/**
 		 * Collection of processes which need to be explored
@@ -229,7 +233,7 @@ public class DporSearchStack<STATE, TRANSITION> {
 		 *            the ID number that should be associated to the first
 		 *            transition in the sequence.
 		 */
-		private Entry(DporNode<STATE> node) {
+		private Entry(DporNode<STATE, TRANSITION> node) {
 			this.node = node;
 			STATE state = node.getState();
 			this.enabledProcs = manager.getEnabledProcesses(state);
@@ -266,7 +270,7 @@ public class DporSearchStack<STATE, TRANSITION> {
 			return tid;
 		}
 
-		public DporNode<STATE> getNode() {
+		public DporNode<STATE, TRANSITION> getNode() {
 			return node;
 		}
 
@@ -296,12 +300,15 @@ public class DporSearchStack<STATE, TRANSITION> {
 		}
 		
 		/**
-		 * Fills the backtrack with all remaining enabled processes
+		 * Fills the backtrack with all remaining enabled processes.
+		 * 
+		 * @return the number of new processes added to the backtrack
 		 */
-		public void fullyEnable() {
+		public int fullyEnable() {
 			Set<Integer> remainingProcs = new HashSet<>(enabledProcs);
 			remainingProcs.removeAll(backtrack);
 			backtrack.addAll(remainingProcs);
+			return remainingProcs.size();
 		}
 		
 		public Collection<Integer> enabledProcs() {

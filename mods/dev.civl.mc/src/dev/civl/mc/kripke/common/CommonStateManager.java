@@ -615,4 +615,22 @@ public class CommonStateManager extends CIVLStateManager {
 	public Collection<Transition> getTransitions(State state, int pid) {
 		return enabler.enabledTransitionsInProcess(state, pid);
 	}
+	
+	@Override
+	public void debug(State state, List<Integer> backtrack) {
+		/*
+		Collection<Transition> ampleSet = enabler.ampleSet(state);
+		Set<Integer> ampleSetProcs = new HashSet<>();
+		for (Transition tran : ampleSet) {
+			ampleSetProcs.add(tran.pid());
+		}
+		for (int proc : backtrack) {
+			if (!ampleSetProcs.contains(proc)) {
+				printAllStates = true;
+				printTraceStepFinalState(state, -1);
+				throw new RuntimeException("Inefficiency!");
+			}
+		}
+		*/
+	}
 }

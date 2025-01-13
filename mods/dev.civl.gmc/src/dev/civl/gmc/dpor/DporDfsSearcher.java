@@ -59,6 +59,8 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 	 */
 	private int numStatesMatched = 0;
 
+	private int numRaces = 0;
+	
 	/**
 	 * The number of states seen in this search.
 	 */
@@ -183,48 +185,56 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 			for (Integer outerPid : topStackEntry.enabledProcs()) {
 				DporSearchStack<STATE, TRANSITION>.StackTraversal stackTraversal = stack
 						.makeStackTraversal(outerPid);
+				boolean foundRace = false;
 				for (int i = stackTraversal.next(); i != -1; i = stackTraversal.next()) {
 					DporSearchStack<STATE, TRANSITION>.Entry currEntry = stack.get(i);
 					if (analyzer.checkDependent(stack, i, outerPid)) {
 						stack.addRace(outerPid, i);
-						boolean addToBacktrack = true;
-						// proc id of a process in "E" set that is enabled at currEntry
-						// will remain -1 if no such process exists
-						int enabledProc = -1;
+						numRaces++;
+						debug("New Race added: ");
 						
-						DporSearchStack<STATE, TRANSITION>.HbRelation topHbRel = topStackEntry
-								.getHbRel();
-						final int oPidCopy = outerPid;
-						final int pos = i;
-						// This stream represents the "E" set in algorithm from
-						// DPOR paper
-						Iterator<Integer> candidateIter = Stream
-								.concat(Stream.of(outerPid),
-										topHbRel.hbProcSet().stream()
-												.filter(p -> p != oPidCopy && topHbRel
-														.lastHbEntry(p) > pos))
-								.iterator();
-						while (candidateIter.hasNext()) {
-							int proc = candidateIter.next();
-
-							if (currEntry.inBacktrack(proc)) {
-								// A process in the E set is already being
-								// backtracked here
-								addToBacktrack = false;
-								break;
+						// Only need to add to backtrack if this is the first race we found
+						if (!foundRace) {
+							foundRace = true;
+							boolean addToBacktrack = true;
+							// proc id of a process in "E" set that is enabled at currEntry
+							// will remain -1 if no such process exists
+							int enabledProc = -1;
+							
+							DporSearchStack<STATE, TRANSITION>.HbRelation topHbRel = topStackEntry
+									.getHbRel();
+							final int oPidCopy = outerPid;
+							final int pos = i;
+							// This stream represents the "E" set in algorithm from
+							// DPOR paper
+							Iterator<Integer> candidateIter = Stream
+									.concat(Stream.of(outerPid),
+											topHbRel.hbProcSet().stream()
+													.filter(p -> p != oPidCopy && topHbRel
+															.lastHbEntry(p) > pos))
+									.iterator();
+							while (candidateIter.hasNext()) {
+								int proc = candidateIter.next();
+	
+								if (currEntry.inBacktrack(proc)) {
+									// A process in the E set is already being
+									// backtracked here
+									addToBacktrack = false;
+									break;
+								}
+	
+								if (enabledProc == -1
+										&& currEntry.enabledProcs().contains(proc))
+									enabledProc = proc;
 							}
-
-							if (enabledProc == -1
-									&& currEntry.enabledProcs().contains(proc))
-								enabledProc = proc;
-						}
-						
-						if (addToBacktrack) {
-							if (enabledProc != -1) {
-								currEntry.addToBacktrack(enabledProc);
-							} else {
+							
+							if (addToBacktrack) {
+								if (enabledProc != -1) {
+									currEntry.addToBacktrack(enabledProc);
+								} else {
 								// No process in E was enabled so we must fully expand
-								currEntry.fullyEnable();
+									int numNewProcs = currEntry.fullyEnable();
+								}
 							}
 						}
 					}

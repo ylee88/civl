@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import dev.civl.gmc.GMCConfiguration;
 import dev.civl.mc.config.IF.CIVLConfiguration;
@@ -37,6 +38,7 @@ import dev.civl.mc.semantics.IF.Transition;
 import dev.civl.mc.state.IF.State;
 import dev.civl.mc.state.IF.StateFactory;
 import dev.civl.mc.state.IF.UnsatisfiablePathConditionException;
+import dev.civl.mc.util.IF.SeqSet;
 import dev.civl.mc.util.IF.Triple;
 import dev.civl.sarl.IF.Reasoner;
 import dev.civl.sarl.IF.SymbolicUniverse;
@@ -916,6 +918,16 @@ public class SimpleEnabler implements Enabler {
 	}
 
 	/* ************************** Public Methods ************************ */
+	public Set<Integer> computeDepends(State state, int pid, SeqSet depend,
+			SeqSet dependWrite) throws UnsatisfiablePathConditionException {
+		SimpleEnablerWorker worker = new SimpleEnablerWorker(this, state);
+		return worker.computeDepends(pid, depend, dependWrite);
+	}
+	
+	public void computeReach(State state, int pid, SeqSet reach, SeqSet reachWrite) {
+		SimpleEnablerWorker worker = new SimpleEnablerWorker(this, state);
+		worker.computeReach(pid, reach, reachWrite);
+	}
 	
 	public Collection<Transition> enabledTransitionsInProcess(State state, int pid) {
 		int atomicProc = stateFactory.processInAtomic(state);
