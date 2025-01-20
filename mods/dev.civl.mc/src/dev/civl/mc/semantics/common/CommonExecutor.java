@@ -613,6 +613,8 @@ public class CommonExecutor implements Executor {
 		if (!processState.hasEmptyStack()) {
 			StackEntry returnContext = processState.peekStack();
 			Location returnLocation = returnContext.location();
+			// TODO: why do we assume the call/spawn statement will be the
+			// sole outgoing statement from its source location?
 			CallOrSpawnStatement call = (CallOrSpawnStatement) returnLocation
 					.getSoleOutgoing();
 

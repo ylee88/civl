@@ -948,6 +948,10 @@ public class LanguageFeaturesTest {
 	public void missingArgs() {
 		assertFalse(ui.run(VERIFY, QUIET, filename("missingArgs.c")));
 	}
+	
+	@Test public void chooseCalls() {
+		assertTrue (ui.run(VERIFY, filename("chooseCalls.cvl")));
+	}
 
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {

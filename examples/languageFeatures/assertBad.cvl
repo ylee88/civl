@@ -1,0 +1,3 @@
+int main(void) {
+  $assert($false, "Blah %d %d\n", 1);
+}

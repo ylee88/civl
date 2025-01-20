@@ -1,0 +1,15 @@
+
+void f(void) {
+  $print("f\n");
+}
+
+void g(void) {
+  $print("g\n");
+}
+
+int main(void) {
+  $choose {
+    f();
+    g();
+  }
+}
