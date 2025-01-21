@@ -138,7 +138,7 @@ import dev.civl.sarl.IF.type.SymbolicUnionType;
  * <p>
  * In the future, we might consider getting even more precise and specifying
  * sub-components of objects, such as array slices, or particular fields of
- * structures. But for now, only complete objects can be specified.s
+ * structures. But for now, only complete objects can be specified.
  * </p>
  * 
  * @author siegel

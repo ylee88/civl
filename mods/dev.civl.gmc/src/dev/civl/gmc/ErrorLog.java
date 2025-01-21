@@ -78,6 +78,8 @@ public class ErrorLog {
 	 */
 	private Date date;
 
+	private boolean ignoreErrors = false;
+	
 	/**
 	 * The total number of errors reported to this log. This may be greater than
 	 * the number stored by this log, because many of the errors reported may be
@@ -371,6 +373,9 @@ public class ErrorLog {
 	 *             bound
 	 */
 	public void report(LogEntry entry) throws FileNotFoundException {
+		if (getIgnoreErrors()) {
+			throw new ExcessiveErrorException(-1);
+		}
 		if (searcher == null) {
 			if (!entry.getConfiguration().isQuiet()) {
 				out.println("Error " + numErrors + ":");
@@ -379,6 +384,14 @@ public class ErrorLog {
 			numErrors++;
 		} else
 			reportWithSearcher(entry);
+	}
+	
+	public boolean getIgnoreErrors() {
+		return ignoreErrors;
+	}
+	
+	public void setIgnoreErrors(boolean ignoreErrors) {
+		this.ignoreErrors = ignoreErrors;
 	}
 
 	/**

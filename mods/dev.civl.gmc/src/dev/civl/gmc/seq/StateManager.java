@@ -45,6 +45,16 @@ public abstract class StateManager<STATE, TRANSITION> {
 			TRANSITION transition);
 
 	/**
+	 * Same as nextState, except if an error is encountered then it is not
+	 * reported and null is returned
+	 * 
+	 * @param state
+	 * @param transition
+	 * @return
+	 */
+	public abstract TraceStepIF<STATE> tryNextState(STATE state, TRANSITION transition);
+	
+	/**
 	 * Gets the ID number of the process that is responsible for executing
 	 * transition. This is used for the preemption-bounding search. If not doing
 	 * preemption-bounded search, this method is not used.

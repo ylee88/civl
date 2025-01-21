@@ -1,13 +1,11 @@
 package dev.civl.gmc.dpor;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
 import dev.civl.gmc.GetIdFunction;
 import dev.civl.gmc.TraceStepIF;
 import dev.civl.gmc.seq.SequentialNode;
-import dev.civl.gmc.seq.StackEntry;
 import dev.civl.gmc.seq.StateManager;
 
 public class DporNodeFactory<STATE, TRANSITION> implements GetIdFunction<STATE> {

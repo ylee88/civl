@@ -67,6 +67,7 @@ import dev.civl.sarl.IF.object.SymbolicObject;
 import dev.civl.sarl.IF.object.SymbolicObject.SymbolicObjectKind;
 import dev.civl.sarl.IF.object.SymbolicSequence;
 import dev.civl.sarl.IF.type.SymbolicCompleteArrayType;
+import dev.civl.sarl.IF.type.SymbolicTupleType;
 import dev.civl.sarl.IF.type.SymbolicType;
 
 /**
@@ -163,6 +164,12 @@ public class ImmutableStateFactory implements StateFactory {
 	 * range.
 	 */
 	private final static int CACHE_INCREMENT = 10;
+	
+	/**
+	 * Value of the identifier for the next Dynamic Scope that is created during
+	 * a stack push.
+	 */
+	private int nextDyscopeId = 0;
 
 	// TODO: whats the difference in between undefined and null scope value ??!!
 	/**
@@ -1065,9 +1072,8 @@ public class ImmutableStateFactory implements StateFactory {
 		ImmutableDynamicScope newScope;
 
 		newValues[vid] = value;
-		newScope = new ImmutableDynamicScope(oldScope.lexicalScope(),
-				oldScope.getParent(), // TODO
-										// oldScope.getParentIdentifier()
+		newScope = new ImmutableDynamicScope(oldScope.identifier(),
+				oldScope.lexicalScope(), oldScope.getParent(),
 				newValues, oldScope.getReachers());
 		newScopes[scopeId] = newScope;
 		theState = theState.setScopes(newScopes);
@@ -1502,7 +1508,7 @@ public class ImmutableStateFactory implements StateFactory {
 	public SymbolicUniverse symbolicUniverse() {
 		return universe;
 	}
-
+	
 	@Override
 	public Pair<State, SymbolicExpression> malloc(State state, int dyscopeId,
 			int mallocId, SymbolicExpression heapObject) {
@@ -1608,7 +1614,9 @@ public class ImmutableStateFactory implements StateFactory {
 	 */
 	private ImmutableDynamicScope initialDynamicScope(Scope lexicalScope,
 			int parent, int dynamicScopeId, BitSet reachers) {
-		return new ImmutableDynamicScope(lexicalScope, parent,
+		int ident = nextDyscopeId;
+		nextDyscopeId++;
+		return new ImmutableDynamicScope(ident, lexicalScope, parent,
 				initialValues(lexicalScope), reachers);
 	}
 
@@ -1887,8 +1895,9 @@ public class ImmutableStateFactory implements StateFactory {
 					+ function.name().name());
 		}
 		bitSet.set(pid);
-		newScopes[sid] = new ImmutableDynamicScope(newScope, cid, values,
+		newScopes[sid] = new ImmutableDynamicScope(nextDyscopeId, newScope, cid, values,
 				bitSet);
+		nextDyscopeId++;
 		for (int id = cid; id >= 0;) {
 			ImmutableDynamicScope scope = newScopes[id];
 
@@ -2087,7 +2096,7 @@ public class ImmutableStateFactory implements StateFactory {
 				if (newValues == null)
 					newScopes[i] = dynamicScope.setReachers(newBitSet);
 				else
-					newScopes[i] = new ImmutableDynamicScope(staticScope,
+					newScopes[i] = new ImmutableDynamicScope(dynamicScope.identifier(), staticScope,
 							dynamicScope.getParent(), newValues, newBitSet);
 			} else if (newScopes != null) {
 				newScopes[i] = dynamicScope;
@@ -2971,6 +2980,225 @@ public class ImmutableStateFactory implements StateFactory {
 				universe.trueExpression());
 		result.collectibleCounts = new int[ModelConfiguration.SYMBOL_PREFIXES.length];
 		return result;
+	}
+	
+	@Override
+	public State crossState(State state1, int pid1, SeqSet fixedMem1, State state2, int pid2, SeqSet fixedMem2) {
+		final String CROSS_SYMBOLIC_PREFIX = "A";
+		ImmutableState immState1 = (ImmutableState) state1, immState2 = (ImmutableState) state2;
+		int numDyscopes1 = immState1.numDyscopes(), numDyscopes2 = immState2.numDyscopes();
+		
+		Map<Integer, Integer> identMap = new HashMap<>();
+		ArrayList<Integer> newToOld = new ArrayList<>(numDyscopes1 + numDyscopes2);
+		for (int i = 0; i < numDyscopes1; i++) {
+			ImmutableDynamicScope dyscope = immState1.getDyscope(i);
+			identMap.put(dyscope.identifier(), i);
+			newToOld.add(-1);
+		}
+		
+		// Calculate a mapping from dyscope ids in state2 to dyscope ids in cross state
+		int[] oldToNew = new int[numDyscopes2];
+		for (int i = 0; i < numDyscopes2; i++) {
+			ImmutableDynamicScope dyscope = immState2.getDyscope(i);
+			int newPos = identMap.getOrDefault(dyscope.identifier(), -1);
+			if (newPos < 0) {
+				oldToNew[i] = newToOld.size();
+				newToOld.add(i);
+			} else {
+				newToOld.set(newPos, i);
+				oldToNew[i] = newPos;
+			}
+		}
+		int combinedSize = newToOld.size();
+
+		// Create substituter based on oldToNew mapping so that we may update
+		// values in state accordingly
+		IntArray key = new IntArray(oldToNew);
+		UnaryOperator<SymbolicExpression> substituter = dyscopeSubMap
+				.get(key);
+		if (substituter == null) {
+			substituter = universe.mapSubstituter(scopeSubMap(oldToNew));
+			dyscopeSubMap.putIfAbsent(key, substituter);
+		}
+		
+		
+		ImmutableDynamicScope[] combinedScopes = new ImmutableDynamicScope[combinedSize];
+		int crossConstant = 0;
+		for (int i = 0; i < combinedSize; i++) {
+			ImmutableDynamicScope dyscope, otherDyscope = null;
+			SeqSet fixedMem;
+			if (i < numDyscopes1) {
+				dyscope = immState1.getDyscope(i);
+				fixedMem = fixedMem1;
+				int otherIndex = newToOld.get(i);
+				if (otherIndex >= 0) {
+					otherDyscope = immState2.getDyscope(otherIndex);
+					int otherParent = otherDyscope.getParent();
+					otherDyscope = otherDyscope.updateDyscopeIds(substituter,
+							universe, otherParent < 0 ? otherParent : oldToNew[otherParent]);
+				}
+			} else {
+				dyscope = immState2.getDyscope(newToOld.get(i));
+				int parent = dyscope.getParent();
+				dyscope = dyscope.updateDyscopeIds(substituter,
+						universe, parent < 0 ? parent : oldToNew[parent]);
+				fixedMem = fixedMem2;
+			}
+			
+			SymbolicExpression[] newValues = dyscope.copyValues();
+			
+			// Abstract the heap, excluding fixed memory
+			SymbolicExpression heapValue = dyscope.getValue(0);
+			if (!heapValue.isNull()) {
+				int numMallocs = numMallocs(heapValue);
+				for (int mid = 0; mid < numMallocs; mid++) {
+					int numHeapObjects = numHeapObjects(heapValue, mid);
+					SymbolicType objectType = getHeapObjectType(heapValue, mid);
+					for (int oid = 0; oid < numHeapObjects; oid++) {
+						if (!fixedMem.contains(i, 0, mid, oid)) {
+							heapValue = setHeapObject(heapValue, mid, oid,
+									universe.symbolicConstant(
+											universe.stringObject(
+													CROSS_SYMBOLIC_PREFIX
+															+ crossConstant),
+											objectType));
+							crossConstant++;
+						}
+					}
+				}
+			}
+			newValues[0] = heapValue;
+			// Abstract all variables, excluding fixed memory
+			for (int vid = 1; vid < newValues.length; vid++) {
+				// Don't havoc the atomic lock variable
+				if (i == 0 && vid == modelFactory.atomicLockVariableExpression().variable().vid())
+					continue;
+				
+				if (!fixedMem.contains(i, vid)) {
+					Variable var = dyscope.lexicalScope().variable(vid);
+					newValues[vid] = universe.symbolicConstant(
+							universe.stringObject(
+									CROSS_SYMBOLIC_PREFIX + crossConstant),
+							var.type().getDynamicType(universe));
+					crossConstant++;
+				}
+			}
+			
+			
+			if (otherDyscope != null) {
+				// Overwrite newValues with fixed values of otherDyscope.
+				// Note: otherDyscope is guaranteed to be from state2.
+				SymbolicExpression otherHeapValue = otherDyscope.getValue(0);
+				if (!otherHeapValue.isNull()) {
+					if (heapValue.isNull())
+						heapValue = typeFactory.heapType().getInitialValue();
+					int numMallocs = numMallocs(otherHeapValue);
+					for (int mid = 0; mid < numMallocs; mid++) {
+						int numOtherHeapObjects = numHeapObjects(otherHeapValue,
+								mid);
+						int numNewHeapObjects = numHeapObjects(heapValue, mid);
+						// number of heap objects in state2 might be more than
+						// in
+						// state1 so must extend number of objects to match
+						for (int j = numNewHeapObjects; j < numOtherHeapObjects; j++) {
+							SymbolicType heapObjectType = getHeapObjectType(
+									heapValue, mid);
+							SymbolicExpression newConstant = universe
+									.symbolicConstant(
+											universe.stringObject(
+													CROSS_SYMBOLIC_PREFIX
+															+ crossConstant),
+											heapObjectType);
+							crossConstant++;
+							heapValue = addHeapObject(heapValue, mid,
+									newConstant);
+						}
+
+						for (int oid = 0; oid < numOtherHeapObjects; oid++) {
+							if (fixedMem2.contains(i, 0, mid, oid)) {
+								heapValue = setHeapObject(heapValue, mid, oid,
+										getHeapObject(otherHeapValue, mid,
+												oid));
+							}
+						}
+					}
+					newValues[0] = heapValue;
+				}
+				
+				
+				for (int vid = 1; vid < newValues.length; vid++) {
+					if (fixedMem2.contains(i, vid)) {
+						newValues[vid] = otherDyscope.getValue(vid);
+					}
+				}
+			}
+			combinedScopes[i] = dyscope.setVariableValues(newValues);
+		}
+		
+		int numProcs = (pid1 > pid2 ? pid1 : pid2) + 1;
+		ImmutableProcessState[] newProcesses = new ImmutableProcessState[numProcs + 1];
+		for (int i = 0; i < numProcs; i++) {
+			if (i == pid1 || i == pid2) {
+				newProcesses[i] = i == pid1
+						? immState1.getProcessState(i)
+						: immState2.getProcessState(i).updateDyscopes(oldToNew,
+								substituter);
+			} else {
+				newProcesses[i] = null;
+			}
+		}
+
+		BooleanExpression newPathCondition = (BooleanExpression) substituter
+				.apply(immState2.getPermanentPathCondition());
+		return new ImmutableState(newProcesses, combinedScopes, newPathCondition);
+	}
+
+	private int numMallocs(SymbolicExpression heapValue) {
+		SymbolicTupleType type = (SymbolicTupleType) heapValue.type();
+		return type.sequence().numTypes();
+	}
+	
+	private int numHeapObjects(SymbolicExpression heapValue, int mallocId) {
+		IntObject mallocIdObj = universe.intObject(mallocId);
+		SymbolicExpression heapField = universe.tupleRead(heapValue,
+				mallocIdObj);
+		IntegerNumber num = (IntegerNumber) universe
+				.extractNumber(universe.length(heapField));
+		return num.intValue();
+	}
+	
+	private SymbolicType getHeapObjectType(SymbolicExpression heapValue, int mallocId) {
+		IntObject mallocIdObj = universe.intObject(mallocId);
+		SymbolicExpression heapField = universe.tupleRead(heapValue, mallocIdObj);
+		SymbolicCompleteArrayType heapFieldType = (SymbolicCompleteArrayType) heapField.type();
+		return heapFieldType.elementType();
+	}
+	
+	private SymbolicExpression getHeapObject(SymbolicExpression heapValue,
+			int mallocId, int objectId) {
+		IntObject mallocIdObj = universe.intObject(mallocId);
+		SymbolicExpression heapField = universe.tupleRead(heapValue, mallocIdObj);
+		NumericExpression objectIdExpr = universe.integer(objectId);
+		return universe.arrayRead(heapField, objectIdExpr);
+	}
+	
+	private SymbolicExpression setHeapObject(SymbolicExpression heapValue,
+			int mallocId, int objectId, SymbolicExpression object) {
+		IntObject mallocIdObj = universe.intObject(mallocId);
+		SymbolicExpression heapField = universe.tupleRead(heapValue, mallocIdObj);
+		NumericExpression objectIdExpr = universe.integer(objectId);
+		heapField = universe.arrayWrite(heapField, objectIdExpr, object);
+		heapValue = universe.tupleWrite(heapValue, mallocIdObj, heapField);
+		return heapValue;
+	}
+	
+	private SymbolicExpression addHeapObject(SymbolicExpression heapValue,
+			int mallocId, SymbolicExpression object) {
+		IntObject mallocIdObj = universe.intObject(mallocId);
+		SymbolicExpression heapField = universe.tupleRead(heapValue, mallocIdObj);
+		heapField = universe.append(heapField, object);
+		heapValue = universe.tupleWrite(heapValue, mallocIdObj, heapField);
+		return heapValue;
 	}
 
 	@Override

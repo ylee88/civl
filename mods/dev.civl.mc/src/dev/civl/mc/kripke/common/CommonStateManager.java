@@ -1,11 +1,9 @@
 package dev.civl.mc.kripke.common;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -19,24 +17,21 @@ import dev.civl.mc.kripke.IF.TraceStep;
 import dev.civl.mc.log.IF.CIVLErrorLogger;
 import dev.civl.mc.model.IF.CIVLInternalException;
 import dev.civl.mc.model.IF.location.Location;
-import dev.civl.mc.model.IF.statement.CallOrSpawnStatement;
 import dev.civl.mc.model.IF.statement.Statement;
-import dev.civl.mc.model.IF.statement.Statement.StatementKind;
 import dev.civl.mc.semantics.IF.Executor;
-import dev.civl.mc.semantics.IF.Semantics;
 import dev.civl.mc.semantics.IF.SymbolicAnalyzer;
 import dev.civl.mc.semantics.IF.Transition;
 import dev.civl.mc.semantics.IF.Transition.TransitionKind;
 import dev.civl.mc.state.IF.CIVLHeapException;
 import dev.civl.mc.state.IF.CIVLHeapException.HeapErrorKind;
 import dev.civl.mc.state.IF.ProcessState;
-import dev.civl.mc.state.IF.StackEntry;
 import dev.civl.mc.state.IF.State;
 import dev.civl.mc.state.IF.StateFactory;
 import dev.civl.mc.state.IF.UnsatisfiablePathConditionException;
 import dev.civl.mc.util.IF.Pair;
 import dev.civl.mc.util.IF.Printable;
 import dev.civl.mc.util.IF.Utils;
+import dev.civl.gmc.ExcessiveErrorException;
 import dev.civl.gmc.TraceStepIF;
 import dev.civl.sarl.IF.Reasoner;
 import dev.civl.sarl.IF.SymbolicUniverse;
@@ -345,6 +340,17 @@ public class CommonStateManager extends CIVLStateManager {
 			result.setFinalState(
 					stateFactory.addToPathcondition(lastState, pid, falseExpr));
 		}
+		return result;
+	}
+	
+	@Override
+	public TraceStepIF<State> tryNextState(State state, Transition transition) {
+		errorLogger.setIgnoreErrors(true);
+		TraceStepIF<State> result = null;
+		try {
+			result = nextState(state, transition);
+		} catch(ExcessiveErrorException e) {}
+		errorLogger.setIgnoreErrors(false);
 		return result;
 	}
 

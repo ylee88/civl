@@ -266,6 +266,10 @@ public class DporSearchStack<STATE, TRANSITION> {
 			return currentTran;
 		}
 
+		public Collection<TRANSITION> getTransitions() {
+			return transitions;
+		}
+		
 		public int getTid() {
 			return tid;
 		}
@@ -414,6 +418,7 @@ public class DporSearchStack<STATE, TRANSITION> {
 		
 		static private class HbEdge {
 			int entry;
+			@SuppressWarnings("unused")
 			boolean isRace;
 			
 			public HbEdge(int entry, boolean isRace) {

@@ -1,7 +1,6 @@
 package dev.civl.mc.kripke.common;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -446,7 +445,7 @@ public class SimpleEnabler implements Enabler {
 	 *                 a (non-null) {@link Statement}
 	 * @return {@code true} iff {@code stmt} is a {@code $wait statement}
 	 */
-	protected boolean isWait(Statement stmt) {
+	public boolean isWait(Statement stmt) {
 		if (waitFunction == null)
 			return false;
 		return stmt.statementKind() == StatementKind.CALL_OR_SPAWN

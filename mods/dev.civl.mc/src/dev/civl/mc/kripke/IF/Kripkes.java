@@ -16,6 +16,7 @@ import dev.civl.mc.state.IF.State;
 import dev.civl.mc.state.IF.StateFactory;
 import dev.civl.gmc.GMCConfiguration;
 import dev.civl.gmc.dpor.DependencyAnalyzer;
+import dev.civl.gmc.seq.StateManager;
 
 /**
  * This is the entry point of the module <strong>kripke</strong>.
@@ -54,8 +55,8 @@ public class Kripkes {
 				gmcConfig);
 	}
 	
-	public static DependencyAnalyzer<State, Transition> newDependencyAnalyzer(SimpleEnabler enabler) {
-		return new SimpleDependencyAnalyzer(enabler);
+	public static DependencyAnalyzer<State, Transition> newDependencyAnalyzer(StateManager<State, Transition> manager, StateFactory stateFactory, SimpleEnabler enabler) {
+		return new SimpleDependencyAnalyzer(manager, stateFactory, enabler);
 	}
 
 	/**

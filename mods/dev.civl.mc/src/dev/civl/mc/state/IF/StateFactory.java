@@ -19,6 +19,7 @@ import dev.civl.mc.model.IF.type.CIVLStateType;
 import dev.civl.mc.model.IF.variable.Variable;
 import dev.civl.mc.state.IF.CIVLHeapException.HeapErrorKind;
 import dev.civl.mc.util.IF.Pair;
+import dev.civl.mc.util.IF.SeqSet;
 import dev.civl.sarl.IF.SymbolicUniverse;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.NumericExpression;
@@ -816,6 +817,8 @@ public interface StateFactory {
 	 *         stack. The path condtion is simply 'true'.
 	 */
 	State emptyState(int nprocs);
+	
+	State crossState(State state1, int pid1, SeqSet fixedMem1, State state2, int pid2, SeqSet fixedMem2);
 
 	/**
 	 * Get a saved state by the state reference. The reference can be obtained

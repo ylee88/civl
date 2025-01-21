@@ -29,6 +29,11 @@ public class SimpleStateManager extends StateManager<Integer, String> {
 	}
 	
 	@Override
+	public TraceStepIF<Integer> tryNextState(Integer state, String transition) {
+		return new TraceStep(transition, graph.getDestState(state, transition));
+	}
+	
+	@Override
 	public int getId(Integer normalizedState) {
 		return normalizedState;
 	}

@@ -739,5 +739,4 @@ public class ImmutableProcessState implements ProcessState {
 	public boolean isSelfDestructable() {
 		return selfDestructable;
 	}
-
 }

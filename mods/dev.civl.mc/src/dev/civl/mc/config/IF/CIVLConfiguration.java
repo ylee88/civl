@@ -523,8 +523,10 @@ public class CIVLConfiguration {
 				.isTrue(CIVLConstants.disableLocalBlockO);
 		this.fair = config.isTrue(CIVLConstants.fairO);
 		this.dpor = config.isTrue(CIVLConstants.dporO);
-		if (dpor)
+		if (dpor) {
 			this.collectProcesses = false;
+			this.collectHeaps = false;
+		}
 	}
 
 	public CIVLConfiguration(CIVLConfiguration config) {

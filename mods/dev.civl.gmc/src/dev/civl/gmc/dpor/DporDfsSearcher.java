@@ -2,8 +2,6 @@ package dev.civl.gmc.dpor;
 
 import java.io.PrintStream;
 import java.util.Iterator;
-import java.util.PrimitiveIterator;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import dev.civl.gmc.GMCConfiguration;
@@ -233,7 +231,7 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 									currEntry.addToBacktrack(enabledProc);
 								} else {
 								// No process in E was enabled so we must fully expand
-									int numNewProcs = currEntry.fullyEnable();
+									currEntry.fullyEnable();
 								}
 							}
 						}

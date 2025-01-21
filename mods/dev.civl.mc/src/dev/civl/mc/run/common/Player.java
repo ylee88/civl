@@ -170,7 +170,6 @@ public abstract class Player {
 		this.enabler = Kripkes.newEnabler(stateFactory, this.evaluator,
 				executor, symbolicAnalyzer, memUnitFactory,
 				this.libraryEnablerLoader, log, civlConfig, gmcConfig);
-		this.depAnalyzer = Kripkes.newDependencyAnalyzer((SimpleEnabler) enabler);
 		this.random = gmcConfig.getAnonymousSection().isTrue(randomO);
 		this.minimize = gmcConfig.getAnonymousSection().isTrue(minO);
 		this.maxdepth = (int) gmcConfig.getAnonymousSection()
@@ -189,6 +188,7 @@ public abstract class Player {
 		}
 		stateManager = Kripkes.newStateManager((Enabler) enabler, executor,
 				symbolicAnalyzer, log, civlConfig);
+		this.depAnalyzer = Kripkes.newDependencyAnalyzer(stateManager, stateFactory, (SimpleEnabler) enabler);
 		universe.setErrFile("CIVLREP/" + sessionName + "_ProverOutput.txt");
 		// use evaluator to evaluate constant values of logic functions:
 		// make up a dummy state and process ID:
