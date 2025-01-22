@@ -42,8 +42,6 @@ public class SimpleDependencyAnalyzer
 
 		SeqSet inLocal = computeLocalMem(inEntry, inPid);
 		SeqSet topLocal = computeLocalMem(topEntry, pid);
-
-			
 		
 		try {
 			State crossState = stateFactory.crossState(inState, inPid, inLocal, topState, pid, topLocal);
@@ -73,7 +71,7 @@ public class SimpleDependencyAnalyzer
 			
 			Collection<Transition> enabledBeforeTop = manager.getTransitions(crossState, inPid);
 			for (Transition tran : enabledBeforeIn) {
-				TraceStep topInStep = (TraceStep) manager.tryNextState(crossState, topEntry.currentTransition());
+				TraceStep topInStep = (TraceStep) manager.tryNextState(crossState, tran);
 				if (topInStep == null)
 					return true;
 				

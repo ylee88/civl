@@ -315,17 +315,17 @@ public class Verifier extends Player {
 		List<Pair<String, String>> stats = new LinkedList<Pair<String, String>>();
 
 		stats.add(new Pair<String, String>("max process count",
-				Integer.toString(stateManager.maxProcs())));
+				Integer.toString(verificationStatus.maxProcessCount)));
 		stats.add(new Pair<String, String>("states",
-				Integer.toString(stateManager.numStatesExplored())));
+				Integer.toString(verificationStatus.numStates)));
 		stats.add(new Pair<String, String>("states saved",
-				Integer.toString(searcher.numOfSearchNodeSaved())));
+				Integer.toString(verificationStatus.numSavedStates)));
 		stats.add(new Pair<String, String>("state matches",
-				Integer.toString(searcher.numStatesMatched())));
+				Integer.toString(verificationStatus.numMatchedStates)));
 		stats.add(new Pair<String, String>("transitions",
-				Long.toString(executor.getNumSteps())));
+				Long.toString(verificationStatus.numTransitions)));
 		stats.add(new Pair<String, String>("trace steps",
-				Integer.toString(searcher.numTransitions())));
+				Integer.toString(verificationStatus.numTraceSteps)));
 		return stats;
 	}
 
@@ -482,20 +482,20 @@ public class Verifier extends Player {
 				result = "All errors marked with '+' are absent on all executions.\n";
 				result += civlConfig.getCheckedPropertiesSummary();
 			}
-			int numNodesSaved, numStatesMatched, numTransitions;
+			int numNodesSaved, numStatesMatched, numTraceSteps;
 			if (civlConfig.dporEnabled()) {
 				numNodesSaved = dporSearcher.numOfSearchNodeSaved();
 				numStatesMatched = dporSearcher.numStatesMatched();
-				numTransitions = dporSearcher.numTransitions();
+				numTraceSteps = dporSearcher.numTraceSteps();
 			} else {
 				numNodesSaved = searcher.numOfSearchNodeSaved();
 				numStatesMatched = searcher.numStatesMatched();
-				numTransitions = searcher.numTransitions();
+				numTraceSteps = searcher.numTransitions();
 			}
 			this.verificationStatus = new VerificationStatus(
 					stateManager.maxProcs(), stateManager.numStatesExplored(),
 					numNodesSaved, numStatesMatched, executor.getNumSteps(),
-					numTransitions);
+					numTraceSteps);
 			return !violationFound && log.numEntries() == 0;
 		} catch (CIVLStateException stateException) {
 			throw new CIVLExecutionException(stateException.civlProperty(),

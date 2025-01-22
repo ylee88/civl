@@ -47,11 +47,6 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 	private DporNodeFactory<STATE, TRANSITION> dporNodeFactory;
 
 	/**
-	 * The number of transitions executed since the beginning of the search.
-	 */
-	private int numTransitions = 0;
-
-	/**
 	 * The number of states encountered which are recognized as having already
 	 * been seen earlier in the search.
 	 */
@@ -443,8 +438,8 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 	 * 
 	 * @return the number of transitions executed.
 	 */
-	public int numTransitions() {
-		return numTransitions;
+	public int numTraceSteps() {
+		return stack.numTraceSteps();
 	}
 
 	/**
@@ -474,8 +469,8 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 	 *                the stream to which to print the information
 	 */
 	public void printSummary(PrintStream out) {
-		out.println("Number of states seen:    " + stack.numStatesSeen());
-		out.println("Number of transitions:   " + numTransitions);
+		out.println("Number of states seen:    " + numStatesSeen());
+		out.println("Number of trace steps:   " + numTraceSteps());
 		out.println("Number of states matched: " + numStatesMatched + "\n");
 		out.flush();
 	}

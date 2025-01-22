@@ -39,6 +39,8 @@ public class DporSearchStack<STATE, TRANSITION> {
 	private Map<Integer, Integer> procLastEntry = new HashMap<>();
 	
 	private int numStatesSeen = 0;
+	
+	private int numTraceSteps = 0;
 
 	DporSearchStack(StateManager<STATE, TRANSITION> manager,
 			DporNodeFactory<STATE, TRANSITION> nodeFactory,
@@ -87,6 +89,10 @@ public class DporSearchStack<STATE, TRANSITION> {
 		return numStatesSeen;
 	}
 	
+	public int numTraceSteps() {
+		return numTraceSteps;
+	}
+	
 	public TRANSITION currentTransition() {
 		return top().currentTransition();
 	}
@@ -125,6 +131,7 @@ public class DporSearchStack<STATE, TRANSITION> {
 		if (traceStep == null) {
 			traceStep = manager.nextState(topState, currentTran);
 			topNode.setTraceStep(currentTran, traceStep);
+			numTraceSteps++;
 		}
 		
 		manager.printTraceStep(topState, traceStep);

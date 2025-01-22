@@ -3021,6 +3021,16 @@ public class ImmutableStateFactory implements StateFactory {
 			dyscopeSubMap.putIfAbsent(key, substituter);
 		}
 		
+		// Update fixedMem2 to reflect new scope ids
+		SeqSet newFixedMem2 = new SeqSet();
+		for (int[] leaves : fixedMem2.getLeaves()) {
+			if (leaves.length == 0)
+				continue;
+			leaves[0] = oldToNew[leaves[0]];
+			newFixedMem2.add(leaves);
+		}
+		fixedMem2 = newFixedMem2;
+		
 		
 		ImmutableDynamicScope[] combinedScopes = new ImmutableDynamicScope[combinedSize];
 		int crossConstant = 0;
