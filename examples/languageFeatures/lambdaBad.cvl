@@ -1,0 +1,7 @@
+
+// the array type preceding $lambda should be complete.
+// this should produce a reasonable error message
+int main(void) {
+  int a[] = (int[])$lambda(int i) i;
+  $print(a, "\n");
+}

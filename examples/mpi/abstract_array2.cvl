@@ -1,0 +1,18 @@
+#include <mpi.h>
+
+int main(void) {
+  int nproc, rank;
+  MPI_Init(NULL, NULL);
+  MPI_Comm_size(MPI_COMM_WORLD, &nproc);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  $assert(nproc >= 2);
+  int a[] = (int[2]) $lambda(int i) rank;
+  if (rank == 0) {
+    int b[2*nproc];
+    MPI_Gather(a, 2, MPI_INT, b, 2, MPI_INT, 0, MPI_COMM_WORLD);
+    $assert($forall (int i:0..nproc-1) (b[2*i]==i && b[2*i+1]==i));
+  } else {
+    MPI_Gather(a, 2, MPI_INT, NULL, 0, MPI_INT, 0, MPI_COMM_WORLD);
+  }
+  MPI_Finalize();
+}

@@ -950,7 +950,11 @@ public class LanguageFeaturesTest {
 	}
 	
 	@Test public void chooseCalls() {
-		assertTrue (ui.run(VERIFY, filename("chooseCalls.cvl")));
+		assertTrue(ui.run(VERIFY, filename("chooseCalls.cvl")));
+	}
+
+	@Test public void lambdaBad() {
+		assertFalse(ui.run(VERIFY, filename("lambdaBad.cvl")));
 	}
 
 	@AfterClass
