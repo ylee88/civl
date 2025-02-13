@@ -40,7 +40,11 @@ public class DporSearchStack<STATE, TRANSITION> {
 	
 	private int numStatesSeen = 0;
 	
+	private int numStatesMatched = 0;
+	
 	private int numTraceSteps = 0;
+	
+	private int numTraceStepsMatched = 0;
 
 	DporSearchStack(StateManager<STATE, TRANSITION> manager,
 			DporNodeFactory<STATE, TRANSITION> nodeFactory,
@@ -89,8 +93,16 @@ public class DporSearchStack<STATE, TRANSITION> {
 		return numStatesSeen;
 	}
 	
+	public int numStatesMatched() {
+		return numStatesMatched;
+	}
+	
 	public int numTraceSteps() {
 		return numTraceSteps;
+	}
+	
+	public int numTraceStepsMatched() {
+		return numTraceStepsMatched;
 	}
 	
 	public TRANSITION currentTransition() {
@@ -132,6 +144,8 @@ public class DporSearchStack<STATE, TRANSITION> {
 			traceStep = manager.nextState(topState, currentTran);
 			topNode.setTraceStep(currentTran, traceStep);
 			numTraceSteps++;
+		} else {
+			numTraceStepsMatched++;
 		}
 		
 		manager.printTraceStep(topState, traceStep);
@@ -139,11 +153,14 @@ public class DporSearchStack<STATE, TRANSITION> {
 				.getNode(traceStep);
 		manager.printTraceStepFinalState(newNode.getState(), newNode.getId());
 		boolean seen = newNode.getSeen();
+		if (!seen) {
+			numStatesSeen++;
+		} else {
+			numStatesMatched++;
+		}
 		newNode.setSeen(true);
 		newNode.setStackPosition(stack.size());
 		stack.push(new Entry(newNode));
-		if (!seen)
-			numStatesSeen++;
 		
 		return seen;
 	}

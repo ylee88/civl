@@ -46,12 +46,6 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 	 */
 	private DporNodeFactory<STATE, TRANSITION> dporNodeFactory;
 
-	/**
-	 * The number of states encountered which are recognized as having already
-	 * been seen earlier in the search.
-	 */
-	private int numStatesMatched = 0;
-
 	private int numRaces = 0;
 	
 	/**
@@ -441,6 +435,10 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 	public int numTraceSteps() {
 		return stack.numTraceSteps();
 	}
+	
+	public int numTraceStepsMatched() {
+		return stack.numTraceStepsMatched();
+	}
 
 	/**
 	 * The number of states matched so far. A state is "matched" when the search
@@ -450,7 +448,7 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 	 * @return the number of states matched
 	 */
 	public int numStatesMatched() {
-		return numStatesMatched;
+		return stack.numStatesMatched();
 	}
 
 	/**
@@ -471,7 +469,7 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 	public void printSummary(PrintStream out) {
 		out.println("Number of states seen:    " + numStatesSeen());
 		out.println("Number of trace steps:   " + numTraceSteps());
-		out.println("Number of states matched: " + numStatesMatched + "\n");
+		out.println("Number of states matched: " + numStatesMatched() + "\n");
 		out.flush();
 	}
 

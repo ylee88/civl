@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 
-import dev.civl.gmc.TraceStepIF;
 import dev.civl.gmc.dpor.DependencyAnalyzer;
 import dev.civl.gmc.dpor.DporSearchStack;
 import dev.civl.gmc.seq.StateManager;
@@ -24,11 +23,29 @@ public class SimpleDependencyAnalyzer
 	private StateManager<State, Transition> manager;
 	private StateFactory stateFactory;
 	private SimpleEnabler enabler;
+	
+	private int numCrossTransitions = 0;
+	private int numCrossTraceSteps = 0;
 
 	public SimpleDependencyAnalyzer(StateManager<State, Transition> manager, StateFactory stateFactory, SimpleEnabler enabler) {
 		this.manager = manager;
 		this.stateFactory = stateFactory;
 		this.enabler = enabler;
+	}
+	
+	@Override
+	public int numCrossTransitions() {
+		return numCrossTransitions;
+	}
+	
+	@Override
+	public int numCrossTraceSteps() {
+		return numCrossTraceSteps;
+	}
+	
+	private void collectTraceStepStats(TraceStep traceStep) {
+		numCrossTraceSteps++;
+		numCrossTransitions += traceStep.getNumAtomicSteps();
 	}
 	
 	@Override
@@ -60,9 +77,11 @@ public class SimpleDependencyAnalyzer
 					&& topDep.disjoint(inDepWrite))
 				return false;
 			
-			TraceStepIF<State> inTopStep = manager.tryNextState(crossState, inEntry.currentTransition());
+			TraceStep inTopStep = (TraceStep) manager.tryNextState(crossState, inEntry.currentTransition());
 			if (inTopStep == null)
 				return true;
+			collectTraceStepStats(inTopStep);
+			
 			
 			Collection<Transition> enabledBeforeIn = manager.getTransitions(crossState, pid);
 			Collection<Transition> enabledAfterIn = manager.getTransitions(inTopStep.getFinalState(), pid);
@@ -74,17 +93,20 @@ public class SimpleDependencyAnalyzer
 				TraceStep topInStep = (TraceStep) manager.tryNextState(crossState, tran);
 				if (topInStep == null)
 					return true;
+				collectTraceStepStats(topInStep);
 				
 				Collection<Transition> enabledAfterTop = manager.getTransitions(topInStep.getFinalState(), inPid);
 				if (!transitionSetsEqual(enabledBeforeTop, enabledAfterTop))
 					return true;
 				
-				inTopStep = manager.tryNextState(inTopStep.getFinalState(), tran);
+				inTopStep = (TraceStep) manager.tryNextState(inTopStep.getFinalState(), tran);
 				if (inTopStep == null)
 					return true;
+				collectTraceStepStats(inTopStep);
 				topInStep = (TraceStep) manager.tryNextState(topInStep.getFinalState(), inEntry.currentTransition());
 				if (topInStep == null)
 					return true;
+				collectTraceStepStats(topInStep);
 				
 				if (!inTopStep.getFinalState().equals(topInStep.getFinalState()))
 					return true;
@@ -120,7 +142,16 @@ public class SimpleDependencyAnalyzer
 		
 		return true;
 	}
-	
+
+	/**
+	 * Looks at the state contained by "entry" and computes the set of local
+	 * memory locations to process pid. A memory location is local to pid if pid
+	 * can reach it but no other enabled process can.
+	 * 
+	 * @param entry
+	 * @param pid
+	 * @return the set of memory locations local to pid at entry
+	 */
 	private SeqSet computeLocalMem(DporSearchStack<State, Transition>.Entry entry, int pid) {
 		State state = entry.getState();
 		SeqSet nonLocal = new SeqSet();

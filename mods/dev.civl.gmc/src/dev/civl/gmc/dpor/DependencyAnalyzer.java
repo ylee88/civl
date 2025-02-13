@@ -3,6 +3,20 @@ package dev.civl.gmc.dpor;
 public interface DependencyAnalyzer<STATE, TRANSITION> {
 	
 	/**
+	 * Number of transitions executed from a "cross state" (see
+	 * {@link ImmutableStateFactory#crossState}) for the purposes of determining
+	 * dependence.
+	 */
+	public int numCrossTransitions();
+	
+	/**
+	 * Number of trace steps executed from a "cross state" (see
+	 * {@link ImmutableStateFactory#crossState}) for the purposes of determining
+	 * dependence.
+	 */
+	public int numCrossTraceSteps();
+	
+	/**
 	 * Checks whether the transition at "stackIndex" in the stack is dependent
 	 * with process pid
 	 * 

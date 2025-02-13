@@ -326,6 +326,14 @@ public class Verifier extends Player {
 				Long.toString(verificationStatus.numTransitions)));
 		stats.add(new Pair<String, String>("trace steps",
 				Integer.toString(verificationStatus.numTraceSteps)));
+		if (civlConfig.dporEnabled()) {
+			stats.add(new Pair<String, String>("trace step matches",
+					Integer.toString(verificationStatus.numTraceStepsMatched)));
+			stats.add(new Pair<String, String>("cross transitions",
+					Integer.toString(verificationStatus.numCrossTransitions)));
+			stats.add(new Pair<String, String>("cross trace steps",
+					Integer.toString(verificationStatus.numCrossTraceSteps)));
+		}
 		return stats;
 	}
 
@@ -360,7 +368,7 @@ public class Verifier extends Player {
 								searcher.numOfSearchNodeSaved(),
 								searcher.numStatesMatched(),
 								executor.getNumSteps(),
-								searcher.numTransitions());
+								searcher.numTransitions(), 0, 0, 0);
 					}
 					return;
 				}
@@ -483,10 +491,14 @@ public class Verifier extends Player {
 				result += civlConfig.getCheckedPropertiesSummary();
 			}
 			int numNodesSaved, numStatesMatched, numTraceSteps;
+			int numTraceStepsMatched = 0, numCrossTransitions = 0, numCrossTraceSteps = 0;
 			if (civlConfig.dporEnabled()) {
 				numNodesSaved = dporSearcher.numOfSearchNodeSaved();
 				numStatesMatched = dporSearcher.numStatesMatched();
 				numTraceSteps = dporSearcher.numTraceSteps();
+				numTraceStepsMatched = dporSearcher.numTraceStepsMatched();
+				numCrossTransitions = depAnalyzer.numCrossTransitions();
+				numCrossTraceSteps = depAnalyzer.numCrossTraceSteps();
 			} else {
 				numNodesSaved = searcher.numOfSearchNodeSaved();
 				numStatesMatched = searcher.numStatesMatched();
@@ -495,7 +507,8 @@ public class Verifier extends Player {
 			this.verificationStatus = new VerificationStatus(
 					stateManager.maxProcs(), stateManager.numStatesExplored(),
 					numNodesSaved, numStatesMatched, executor.getNumSteps(),
-					numTraceSteps);
+					numTraceSteps, numTraceStepsMatched, numCrossTransitions,
+					numCrossTraceSteps);
 			return !violationFound && log.numEntries() == 0;
 		} catch (CIVLStateException stateException) {
 			throw new CIVLExecutionException(stateException.civlProperty(),

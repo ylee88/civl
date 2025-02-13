@@ -818,7 +818,31 @@ public interface StateFactory {
 	 */
 	State emptyState(int nprocs);
 	
-	State crossState(State state1, int pid1, SeqSet fixedMem1, State state2, int pid2, SeqSet fixedMem2);
+	/**
+	 * Creates a new state in which:
+	 * 
+	 * 1. Reachable dyscopes of pid1 in state1 are merged with reachable dyscopes
+	 *    of pid2 in state2.
+	 * 2. Only processes pid1 and pid2 are present with the same stack they had
+	 *    in state1 and state2, respectively.
+	 * 3. Memory specified by fixedMem1 have their values copied from state1.
+	 * 4. Memory specified by fixedMem2 have their values copied from state2.
+	 * 5. All other memory is given fresh symbolic constants.
+	 * 
+	 * Prerequisites:
+	 *   fixedMem1 and fixedMem2 specify disjoint memory locations.
+	 *   pid1 and pid2 are distinct processes.
+	 * 
+	 * @param state1
+	 * @param pid1
+	 * @param fixedMem1
+	 * @param state2
+	 * @param pid2
+	 * @param fixedMem2
+	 * @return the cross state
+	 */
+	State crossState(State state1, int pid1, SeqSet fixedMem1, State state2,
+			int pid2, SeqSet fixedMem2);
 
 	/**
 	 * Get a saved state by the state reference. The reference can be obtained

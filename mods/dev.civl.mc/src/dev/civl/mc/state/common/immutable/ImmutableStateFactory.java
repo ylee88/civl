@@ -641,14 +641,7 @@ public class ImmutableStateFactory implements StateFactory {
 			}
 		}
 		if (change) {
-			IntArray key = new IntArray(oldToNew);
-			UnaryOperator<SymbolicExpression> substituter = dyscopeSubMap
-					.get(key);
-
-			if (substituter == null) {
-				substituter = universe.mapSubstituter(scopeSubMap(oldToNew));
-				dyscopeSubMap.putIfAbsent(key, substituter);
-			}
+			UnaryOperator<SymbolicExpression> substituter = getDyscopeSubstituter(oldToNew);
 
 			ImmutableDynamicScope[] newScopes = new ImmutableDynamicScope[newNumScopes];
 			int numProcs = theState.numProcs();
@@ -2443,14 +2436,9 @@ public class ImmutableStateFactory implements StateFactory {
 			ImmutableDynamicScope[] oldDyscopes, int[] oldToNew,
 			ImmutableDynamicScope[] outputDyscopes,
 			BooleanExpression oldPathCondition) {
-		IntArray key = new IntArray(oldToNew);
-		UnaryOperator<SymbolicExpression> substituter = dyscopeSubMap.get(key);
+		UnaryOperator<SymbolicExpression> substituter = getDyscopeSubstituter(oldToNew);
 		int numOldDyscopes = oldDyscopes.length;
 
-		if (substituter == null) {
-			substituter = universe.mapSubstituter(scopeSubMap(oldToNew));
-			dyscopeSubMap.putIfAbsent(key, substituter);
-		}
 
 		for (int i = 0; i < numOldDyscopes; i++) {
 			int newId = oldToNew[i];
@@ -2795,15 +2783,9 @@ public class ImmutableStateFactory implements StateFactory {
 		System.arraycopy(theState.copyScopes(), 0, dyscopes, 0,
 				theState.numDyscopes());
 
-		IntArray key = new IntArray(dyscopeMono2State);
-		UnaryOperator<SymbolicExpression> substituter = dyscopeSubMap.get(key);
+		UnaryOperator<SymbolicExpression> substituter = getDyscopeSubstituter(dyscopeMono2State);
 		BooleanExpression newPermanentPathCondition;
 
-		if (substituter == null) {
-			substituter = universe
-					.mapSubstituter(scopeSubMap(dyscopeMono2State));
-			dyscopeSubMap.putIfAbsent(key, substituter);
-		}
 		newPermanentPathCondition = (BooleanExpression) substituter
 				.apply(theState.getPermanentPathCondition());
 		processes[newPid] = monoProcess.updateDyscopes(dyscopeMono2State,
@@ -2927,15 +2909,8 @@ public class ImmutableStateFactory implements StateFactory {
 		newStack[0] = external.peekStack();
 		processes[newPid] = new ImmutableProcessState(newPid, newStack, null,
 				null, null, external.atomicCount(), true);
+		UnaryOperator<SymbolicExpression> substituter = getDyscopeSubstituter(extScopesCurr2Merged);
 
-		IntArray key = new IntArray(extScopesCurr2Merged);
-		UnaryOperator<SymbolicExpression> substituter = dyscopeSubMap.get(key);
-
-		if (substituter == null) {
-			substituter = universe
-					.mapSubstituter(scopeSubMap(extScopesCurr2Merged));
-			dyscopeSubMap.putIfAbsent(key, substituter);
-		}
 		processes[newPid] = processes[newPid]
 				.updateDyscopes(extScopesCurr2Merged, substituter);
 		setReachablesForProc(newDyscopes, processes[newPid]);
@@ -3009,17 +2984,9 @@ public class ImmutableStateFactory implements StateFactory {
 				oldToNew[i] = newPos;
 			}
 		}
+		
 		int combinedSize = newToOld.size();
-
-		// Create substituter based on oldToNew mapping so that we may update
-		// values in state accordingly
-		IntArray key = new IntArray(oldToNew);
-		UnaryOperator<SymbolicExpression> substituter = dyscopeSubMap
-				.get(key);
-		if (substituter == null) {
-			substituter = universe.mapSubstituter(scopeSubMap(oldToNew));
-			dyscopeSubMap.putIfAbsent(key, substituter);
-		}
+		UnaryOperator<SymbolicExpression> state2DyscopeSub = getDyscopeSubstituter(oldToNew);
 		
 		// Update fixedMem2 to reflect new scope ids
 		SeqSet newFixedMem2 = new SeqSet();
@@ -3037,27 +3004,42 @@ public class ImmutableStateFactory implements StateFactory {
 		for (int i = 0; i < combinedSize; i++) {
 			ImmutableDynamicScope dyscope, otherDyscope = null;
 			SeqSet fixedMem;
+			
+			/**
+			 * Find which dyscope the ith scope of our cross state should be.
+			 * 
+			 * If the dyscope belongs to only one state then it is stored in
+			 * "dyscope" and "otherDyscope" will be null.
+			 * 
+			 * If the dyscope is shared between both states then dyscope stores
+			 * the dyscope from immState1 and otherDyscope stores it from
+			 * immState2.
+			 */
 			if (i < numDyscopes1) {
+				// All dyscopes in range [0..numDyscopes1) are originally from immState1
 				dyscope = immState1.getDyscope(i);
 				fixedMem = fixedMem1;
-				int otherIndex = newToOld.get(i);
+				int otherIndex = newToOld.get(i); // The index of this dyscope in immState2 (if it exists)
 				if (otherIndex >= 0) {
+					// otherIndex is non-negative which means dyscope also appeared in immState2
 					otherDyscope = immState2.getDyscope(otherIndex);
 					int otherParent = otherDyscope.getParent();
-					otherDyscope = otherDyscope.updateDyscopeIds(substituter,
+					otherDyscope = otherDyscope.updateDyscopeIds(state2DyscopeSub,
 							universe, otherParent < 0 ? otherParent : oldToNew[otherParent]);
 				}
 			} else {
 				dyscope = immState2.getDyscope(newToOld.get(i));
 				int parent = dyscope.getParent();
-				dyscope = dyscope.updateDyscopeIds(substituter,
+				dyscope = dyscope.updateDyscopeIds(state2DyscopeSub,
 						universe, parent < 0 ? parent : oldToNew[parent]);
 				fixedMem = fixedMem2;
 			}
 			
 			SymbolicExpression[] newValues = dyscope.copyValues();
 			
-			// Abstract the heap, excluding fixed memory
+			/*
+			 *  Abstract the heap, excluding fixed memory
+			 */
 			SymbolicExpression heapValue = dyscope.getValue(0);
 			if (!heapValue.isNull()) {
 				int numMallocs = numMallocs(heapValue);
@@ -3078,7 +3060,10 @@ public class ImmutableStateFactory implements StateFactory {
 				}
 			}
 			newValues[0] = heapValue;
-			// Abstract all variables, excluding fixed memory
+			
+			/* 
+			 * Abstract all variables, excluding fixed memory
+			 */
 			for (int vid = 1; vid < newValues.length; vid++) {
 				// Don't havoc the atomic lock variable
 				if (i == 0 && vid == modelFactory.atomicLockVariableExpression().variable().vid())
@@ -3096,20 +3081,25 @@ public class ImmutableStateFactory implements StateFactory {
 			
 			
 			if (otherDyscope != null) {
-				// Overwrite newValues with fixed values of otherDyscope.
-				// Note: otherDyscope is guaranteed to be from state2.
+				/*
+				 * Add fixed values of otherDyscope to newValues.
+				 */
 				SymbolicExpression otherHeapValue = otherDyscope.getValue(0);
 				if (!otherHeapValue.isNull()) {
 					if (heapValue.isNull())
 						heapValue = typeFactory.heapType().getInitialValue();
 					int numMallocs = numMallocs(otherHeapValue);
+					/*
+					 * Add fixed heap objects from otherDyscope.
+					 */
 					for (int mid = 0; mid < numMallocs; mid++) {
 						int numOtherHeapObjects = numHeapObjects(otherHeapValue,
 								mid);
 						int numNewHeapObjects = numHeapObjects(heapValue, mid);
-						// number of heap objects in state2 might be more than
-						// in
-						// state1 so must extend number of objects to match
+						/*
+						 * Number of heap objects in state2 might be more than
+						 * in state1 so must extend number of objects to match
+						 */
 						for (int j = numNewHeapObjects; j < numOtherHeapObjects; j++) {
 							SymbolicType heapObjectType = getHeapObjectType(
 									heapValue, mid);
@@ -3135,7 +3125,9 @@ public class ImmutableStateFactory implements StateFactory {
 					newValues[0] = heapValue;
 				}
 				
-				
+				/*
+				 * Add fixed variables from otherDyscope.
+				 */
 				for (int vid = 1; vid < newValues.length; vid++) {
 					if (fixedMem2.contains(i, vid)) {
 						newValues[vid] = otherDyscope.getValue(vid);
@@ -3145,20 +3137,28 @@ public class ImmutableStateFactory implements StateFactory {
 			combinedScopes[i] = dyscope.setVariableValues(newValues);
 		}
 		
-		int numProcs = (pid1 > pid2 ? pid1 : pid2) + 1;
-		ImmutableProcessState[] newProcesses = new ImmutableProcessState[numProcs + 1];
+		int numInProcs = immState1.numProcs(), numTopProcs = immState2.numProcs();
+		int numProcs = numInProcs > numTopProcs ? numInProcs : numTopProcs;
+		ImmutableProcessState[] newProcesses = new ImmutableProcessState[numProcs];
 		for (int i = 0; i < numProcs; i++) {
 			if (i == pid1 || i == pid2) {
 				newProcesses[i] = i == pid1
 						? immState1.getProcessState(i)
 						: immState2.getProcessState(i).updateDyscopes(oldToNew,
-								substituter);
+								state2DyscopeSub);
+			} else if (i == 0) {
+				// TODO?
+				// Had a bug where the root process was expected to exist.
+				// Happened when LibcivlcExecutor.reportAssertionFailure was called
+				// leading to a call to inputVariableValueMap (from this class) which
+				// assumes it.
+				newProcesses[i] = immState1.getProcessState(0);
 			} else {
 				newProcesses[i] = null;
 			}
 		}
 
-		BooleanExpression newPathCondition = (BooleanExpression) substituter
+		BooleanExpression newPathCondition = (BooleanExpression) state2DyscopeSub
 				.apply(immState2.getPermanentPathCondition());
 		return new ImmutableState(newProcesses, combinedScopes, newPathCondition);
 	}
@@ -3418,11 +3418,29 @@ public class ImmutableStateFactory implements StateFactory {
 	public SymbolicExpression nullScopeValue() {
 		return this.nullScopeValue;
 	}
+	
+	/**
+	 * Given an array mapping old dyscope ids to new dyscope ids, returns a
+	 * substituter which performs this mapping on symbolic expressions.
+	 * 
+	 * This method performs caching.
+	 * 
+	 * @param oldToNew
+	 *            An array in which oldToNew[i] == j means that the dyscope with
+	 *            id "i" should now have id "j"
+	 * @return The substituter that performs this remapping of dyscope ids to
+	 *         symbolic expressions
+	 */
+	private UnaryOperator<SymbolicExpression> getDyscopeSubstituter(int[] oldToNew) {
+		IntArray key = new IntArray(oldToNew);
+		UnaryOperator<SymbolicExpression> substituter = dyscopeSubMap
+				.get(key);
 
-	public State makeCrossState(State state0, int proc0, SeqSet fixedMem0,
-			State state1, int proc1, SeqSet fixedMem1) {
-		// TODO:
-		return null;
+		if (substituter == null) {
+			substituter = universe.mapSubstituter(scopeSubMap(oldToNew));
+			dyscopeSubMap.putIfAbsent(key, substituter);
+		}
+		return substituter;
 	}
 	
 	/**
