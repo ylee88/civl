@@ -64,12 +64,6 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 	private boolean debugging = false;
 
 	/**
-	 * A name to give this searcher, used only for printing out messages about
-	 * the search, such as in debugging.
-	 */
-	private String name = null;
-
-	/**
 	 * When the stack is being summarized in debugging output, this is the upper
 	 * bound on the number of stack entries (starting from the top and moving
 	 * down) that will be printed.
@@ -134,15 +128,7 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 			StatePredicateIF<STATE> predicate, GMCConfiguration gmcConfig) {
 		this(analyzer, manager, predicate, gmcConfig, null);
 	}
-
-	public void setName(String name) {
-		this.name = name;
-	}
-
-	public String name() {
-		return name;
-	}
-
+	
 	/**
 	 * Returns the state at the top of the stack, without modifying the stack.
 	 */
@@ -155,6 +141,13 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 		return stack;
 	}
 
+	/**
+	 * Explore the state space starting at initialState using DPOR.
+	 * 
+	 * @param initialState
+	 * @return
+	 * @throws StateSpaceCycleException
+	 */
 	public boolean explore(STATE initialState) throws StateSpaceCycleException {
 		stack = new DporSearchStack<>(manager, dporNodeFactory, initialState);
 		
@@ -178,7 +171,6 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 					if (analyzer.checkDependent(stack, i, outerPid)) {
 						stack.addRace(outerPid, i);
 						numRaces++;
-						debug("New Race added: ");
 						
 						// Only need to add to backtrack if this is the first race we found
 						if (!foundRace) {
@@ -278,9 +270,6 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 	 *                sent
 	 */
 	public void setDebugOut(PrintStream out) {
-		if (out == null) {
-			throw new NullPointerException("null out");
-		}
 		debugOut = out;
 	}
 
@@ -372,52 +361,13 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 	 *                output stream to which this information should be sent
 	 */
 	public void printStack(PrintStream out) {
-		if (name != null)
-			out.print(name + " ");
 		out.println("Trace summary:\n");
 		printStack(out, false, false);
 		out.println();
-		if (name != null)
-			out.print(name + " ");
 		out.println("Trace details:");
 		printStack(out, true, false);
 	}
-
-	/**
-	 * Prints the stack, summarizing, i.e., only printing out the first few
-	 * entries from the top.
-	 * 
-	 * @param s
-	 *                       a message to print at the beginning
-	 * @param longFormat
-	 *                       if true, print complete state information,
-	 *                       otherwise use short names for the states
-	 */
-	void debugPrintStack(String s, boolean longFormat) {
-		if (debugging) {
-			debugOut.println(s + "  New stack for " + name + ":\n");
-			printStack(debugOut, longFormat, true);
-			debugOut.println();
-		}
-	}
-
-	/**
-	 * If the debugging flag is on, prints out all the states held by the state
-	 * manager in their full gory detail. Otherwise, a no-op.
-	 * 
-	 * @param s
-	 *              a message to print first
-	 */
-	void debugStates(String s) {
-		if (debugging) {
-			debugOut.println(s + "All states for " + name + ":\n");
-			manager.printAllStatesLong(debugOut);
-			debugOut.println();
-			printSummary(debugOut);
-		} else {
-		}
-	}
-
+	
 	/**
 	 * The number of states seen in this search.
 	 * 

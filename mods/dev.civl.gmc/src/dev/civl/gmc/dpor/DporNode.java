@@ -25,14 +25,18 @@ public class DporNode<STATE, TRANSITION> {
 	 */
 	private int stackPosition = -1;
 
+	/**
+	 * Cache mapping transitions to the trace steps that they entail when
+	 * executed.
+	 * 
+	 * Needed because DPOR requires frequently retracing steps.
+	 */
 	private Map<TRANSITION, TraceStepIF<STATE>> transitionMap = new HashMap<>();
 
 	public DporNode(STATE state, int id) {
 		this.state = state;
 		this.id = id;
 	}
-	
-	
 
 	/**
 	 * Sets the "seen flag" to a given value.
@@ -89,10 +93,18 @@ public class DporNode<STATE, TRANSITION> {
 		return stackPosition;
 	}
 	
+	/**
+	 * Given a transition, return the cached trace step it entails if we have
+	 * explored it already. Returns null if not.
+	 */
 	public TraceStepIF<STATE> getTraceStep(TRANSITION transition) {
 		return transitionMap.getOrDefault(transition, null);
 	}
 
+	/**
+	 * Accepts a transition and the trace step that it entails and caches this
+	 * association.
+	 */
 	public void setTraceStep(TRANSITION transition,
 			TraceStepIF<STATE> traceStep) {
 		transitionMap.put(transition, traceStep);
@@ -105,6 +117,9 @@ public class DporNode<STATE, TRANSITION> {
 		return state;
 	}
 
+	/**
+	 * Gets the node id which is unique to every node.
+	 */
 	public int getId() {
 		return id;
 	}

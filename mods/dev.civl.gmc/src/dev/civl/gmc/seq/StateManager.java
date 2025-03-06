@@ -38,19 +38,21 @@ public abstract class StateManager<STATE, TRANSITION> {
 	 * @param state
 	 *                       a state in the state transition system
 	 * @param transition
-	 *                       an execution which is enabled at the given state
+	 *                       a transition which is enabled at the given state
 	 * @return the trace step after executing the transition at the given state.
 	 */
 	public abstract TraceStepIF<STATE> nextState(STATE state,
 			TRANSITION transition);
 
 	/**
-	 * Same as nextState, except if an error is encountered then it is not
+	 * Same as {@link nextState} except if an error is encountered then it is not
 	 * reported and null is returned
 	 * 
 	 * @param state
+	 *            a state in the state transition system
 	 * @param transition
-	 * @return
+	 *            an transition which is enabled at the given state
+	 * @return the trace step after executing the transition at the given state.
 	 */
 	public abstract TraceStepIF<STATE> tryNextState(STATE state, TRANSITION transition);
 	
