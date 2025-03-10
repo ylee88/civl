@@ -2336,6 +2336,8 @@ public class ExpressionAnalyzer {
 		} else {
 			throw error("Argument to * has non-pointer type: " + type, node);
 		}
+		
+		addStandardConversions(node);
 	}
 
 	private void processRegularRange(RegularRangeNode node)

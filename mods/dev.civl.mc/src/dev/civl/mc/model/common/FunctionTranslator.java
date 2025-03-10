@@ -4734,6 +4734,9 @@ public class FunctionTranslator {
 					break;
 				}
 				case FUNCTION :
+					if (expression instanceof LHSExpression) {
+						expression = modelFactory.addressOfExpression(source, (LHSExpression) expression);
+					}
 					break;
 				case LVALUE :
 					break;
@@ -5144,21 +5147,11 @@ public class FunctionTranslator {
 			case DEREFERENCE :
 				Expression pointer = arguments.get(0);
 				CIVLType exprType = pointer.getExpressionType();
-				if (exprType.isFunction()) {
-					/* Dereferencing a function pointer more than once
-					 * is allowed in C.
-					 * 
-					 * For instance (**f)(10) is allowed even if f is just
-					 * a regular function pointer.
-					 */
-					result = pointer;
-				} else {
-					if (!exprType.isPointerType()) {
-						pointer = this.arrayToPointer(pointer);
-					}
-					result = modelFactory.dereferenceExpression(source,
-							pointer);
+
+				if (!exprType.isPointerType()) {
+					pointer = this.arrayToPointer(pointer);
 				}
+				result = modelFactory.dereferenceExpression(source, pointer);
 				break;
 			case CONDITIONAL :
 				try {

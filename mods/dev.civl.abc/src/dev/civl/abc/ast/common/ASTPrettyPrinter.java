@@ -2940,7 +2940,7 @@ public class ASTPrettyPrinter {
 
 		if (expression == null)
 			return result;
-
+		
 		ExpressionKind kind = expression.expressionKind();
 
 		switch (kind) {
@@ -2991,8 +2991,9 @@ public class ASTPrettyPrinter {
 				break;
 			}
 			case COMPOUND_LITERAL :
-				return compoundLiteral2Pretty((CompoundLiteralNode) expression,
-						maxLength);
+				result.append(compoundLiteral2Pretty(
+						(CompoundLiteralNode) expression, maxLength));
+				break;
 			case CONSTANT : {
 				String constant = ((ConstantNode) expression)
 						.getStringRepresentation();
@@ -3005,8 +3006,9 @@ public class ASTPrettyPrinter {
 				break;
 			}
 			case DERIVATIVE_EXPRESSION :
-				return derivative2Pretty((DerivativeExpressionNode) expression,
-						maxLength);
+				result.append(derivative2Pretty(
+						(DerivativeExpressionNode) expression, maxLength));
+				break;
 			case DOT : {
 				DotNode dot = (DotNode) expression;
 
@@ -3016,11 +3018,13 @@ public class ASTPrettyPrinter {
 				break;
 			}
 			case FUNCTION_CALL :
-				return functionCall2Pretty((FunctionCallNode) expression,
-						maxLength);
+				result.append(functionCall2Pretty((FunctionCallNode) expression,
+						maxLength));
+				break;
 			case GENERIC_SELECTION :
-				return genericSelection2Pretty(
-						(GenericSelectionNode) expression, maxLength);
+				result.append(genericSelection2Pretty(
+						(GenericSelectionNode) expression, maxLength));
+				break;
 			case IDENTIFIER_EXPRESSION :
 				result.append(((IdentifierExpressionNode) expression)
 						.getIdentifier().name());
@@ -3030,13 +3034,17 @@ public class ASTPrettyPrinter {
 						(MPIContractExpressionNode) expression, maxLength));
 				break;
 			case OPERATOR :
-				return operator2Pretty((OperatorNode) expression, maxLength);
+				result.append(
+						operator2Pretty((OperatorNode) expression, maxLength));
+				break;
 			case QUANTIFIED_EXPRESSION :
-				return quantifiedExpression2Pretty(
-						(QuantifiedExpressionNode) expression, maxLength);
+				result.append(quantifiedExpression2Pretty(
+						(QuantifiedExpressionNode) expression, maxLength));
+				break;
 			case REGULAR_RANGE :
-				return regularRange2Pretty((RegularRangeNode) expression,
-						maxLength);
+				result.append(regularRange2Pretty((RegularRangeNode) expression,
+						maxLength));
+				break;
 			// TODO
 			// case REMOTE_REFERENCE:
 			// break;
@@ -3077,8 +3085,9 @@ public class ASTPrettyPrinter {
 				result.append("\\result");
 				break;
 			case STATEMENT_EXPRESSION :
-				return statementExpression2Pretty(
-						(StatementExpressionNode) expression, maxLength);
+				result.append(statementExpression2Pretty(
+						(StatementExpressionNode) expression, maxLength));
+				break;
 			case NOTHING :
 				result.append("\\nothing");
 				break;

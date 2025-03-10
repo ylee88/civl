@@ -1406,10 +1406,6 @@ public class CommonEvaluator implements Evaluator {
 			String process, DereferenceExpression expression)
 			throws UnsatisfiablePathConditionException {
 		Evaluation eval = evaluate(state, pid, expression.pointer());
-
-		// Function pointers don't need extra processing to be dereferenced
-		if (eval.value.type().equals(functionPointerType))
-			return eval;
 		
 		return dereference(expression.pointer().getSource(), eval.state, pid,
 				process, eval.value, true, true);
