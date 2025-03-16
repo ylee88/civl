@@ -18,9 +18,12 @@ import dev.civl.abc.ast.node.IF.IdentifierNode;
 import dev.civl.abc.ast.node.IF.NodeFactory;
 import dev.civl.abc.ast.node.IF.PairNode;
 import dev.civl.abc.ast.node.IF.SequenceNode;
-import dev.civl.abc.ast.node.IF.acsl.*;
+import dev.civl.abc.ast.node.IF.acsl.CallEventNode;
+import dev.civl.abc.ast.node.IF.acsl.ExtendedQuantifiedExpressionNode;
 import dev.civl.abc.ast.node.IF.acsl.ExtendedQuantifiedExpressionNode.ExtendedQuantifier;
+import dev.civl.abc.ast.node.IF.acsl.MPIContractExpressionNode;
 import dev.civl.abc.ast.node.IF.acsl.MPIContractExpressionNode.MPIContractExpressionKind;
+import dev.civl.abc.ast.node.IF.acsl.ObjectOrRegionOfNode;
 import dev.civl.abc.ast.node.IF.compound.CompoundInitializerNode;
 import dev.civl.abc.ast.node.IF.compound.DesignationNode;
 import dev.civl.abc.ast.node.IF.declaration.DeclarationNode;
@@ -848,6 +851,12 @@ public class ExpressionAnalyzer {
 		processExpression(functionNode);
 		{
 			Type tmpType = functionNode.getType();
+			
+			// ignore qualifiers...
+			if (tmpType.kind() == TypeKind.QUALIFIED) {
+				tmpType = ((QualifiedObjectType)tmpType).getBaseType();
+			}
+			
 			TypeKind tmpKind = tmpType == null
 					? TypeKind.FUNCTION
 					: tmpType.kind();

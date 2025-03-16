@@ -17,9 +17,11 @@ import dev.civl.abc.ast.node.IF.expression.FunctionCallNode;
 import dev.civl.abc.ast.node.IF.expression.IdentifierExpressionNode;
 import dev.civl.abc.ast.type.IF.FunctionType;
 import dev.civl.abc.ast.type.IF.PointerType;
+import dev.civl.abc.ast.type.IF.QualifiedObjectType;
 import dev.civl.abc.ast.type.IF.StandardSignedIntegerType;
 import dev.civl.abc.ast.type.IF.StandardSignedIntegerType.SignedIntKind;
 import dev.civl.abc.ast.type.IF.Type;
+import dev.civl.abc.ast.type.IF.Type.TypeKind;
 import dev.civl.abc.token.IF.SyntaxException;
 
 /**
@@ -32,15 +34,16 @@ import dev.civl.abc.token.IF.SyntaxException;
  * function type. Second "process" call nodes using the function-type relation
  * to resolve indirect calls.
  * 
- * In addition to the usual Analyzer interface, this class provides static access to an unordered
- * list of {@link Function}s computed for each {@link AST}.
+ * In addition to the usual Analyzer interface, this class provides static
+ * access to an unordered list of {@link Function}s computed for each
+ * {@link AST}.
  * 
  * @author dwyer
  * 
  */
 public class CallAnalyzer implements Analyzer {
 	Map<FunctionType, Set<Function>> functionsOfAType = new HashMap<FunctionType, Set<Function>>();
-				
+
 	private void addCall(Function caller, Function callee) {
 		caller.getCallees().add(callee);
 		callee.getCallers().add(caller);
@@ -68,7 +71,8 @@ public class CallAnalyzer implements Analyzer {
 			// Return type of main is "int"
 			Type rType = funType.getReturnType();
 			if (rType instanceof StandardSignedIntegerType
-					&& ((StandardSignedIntegerType) rType).getIntKind() == SignedIntKind.INT) {
+					&& ((StandardSignedIntegerType) rType)
+							.getIntKind() == SignedIntKind.INT) {
 				// Main has either 0 or 2 parameters
 				if (funType.getNumParameters() == 0) {
 					funNode.getOwner().setMain(fEntity);
@@ -76,7 +80,8 @@ public class CallAnalyzer implements Analyzer {
 					// If it has parameters they are of type "int" and "char **"
 					Type p0 = funType.getParameterType(0);
 					if (p0 instanceof StandardSignedIntegerType
-							&& ((StandardSignedIntegerType) p0).getIntKind() == SignedIntKind.INT) {
+							&& ((StandardSignedIntegerType) p0)
+									.getIntKind() == SignedIntKind.INT) {
 						Type p1 = funType.getParameterType(1);
 						if (p1 instanceof PointerType) {
 							Type derefP1 = ((PointerType) p1).referencedType();
@@ -101,7 +106,8 @@ public class CallAnalyzer implements Analyzer {
 		funsOfThisType.add(fEntity);
 	}
 
-	private void collectFunctionDeclarationNode(FunctionDeclarationNode funcNode) {
+	private void collectFunctionDeclarationNode(
+			FunctionDeclarationNode funcNode) {
 		collectFunctionType((FunctionType) (funcNode.getTypeNode().getType()));
 	}
 
@@ -120,7 +126,8 @@ public class CallAnalyzer implements Analyzer {
 		return null;
 	}
 
-	private void processFunctionDefinitionNode(FunctionDefinitionNode funcNode) {
+	private void processFunctionDefinitionNode(
+			FunctionDefinitionNode funcNode) {
 		Function fEntity = funcNode.getEntity();
 		processFunctionBody(funcNode.getBody(), fEntity);
 	}
@@ -139,8 +146,10 @@ public class CallAnalyzer implements Analyzer {
 					addCall(caller, callee);
 				} else {
 					// Call through an expression (an identifier)
-					PointerType pFunType = (PointerType) fcn.getFunction()
-							.getConvertedType();
+					Type tmpType = fcn.getFunction().getConvertedType();
+					if (tmpType.kind() == TypeKind.QUALIFIED)
+						tmpType = ((QualifiedObjectType) tmpType).getBaseType();
+					PointerType pFunType = (PointerType) tmpType;
 					FunctionType funType = (FunctionType) pFunType
 							.referencedType();
 
@@ -193,7 +202,7 @@ public class CallAnalyzer implements Analyzer {
 			}
 		}
 	}
-	
+
 	@Override
 	public void clear(AST unit) {
 		functionsOfAType.clear();
@@ -223,15 +232,15 @@ public class CallAnalyzer implements Analyzer {
 	public void analyze(AST unit) throws SyntaxException {
 		// functions of a type is temporary map used during analysis of an AST
 		functionsOfAType.clear();
-		
+
 		ASTNode root = unit.getRootNode();
 
 		collectProgram(root);
 		processProgram(root);
-		
+
 		functionsOfAType.clear();
 	}
-	
+
 	static private void collectReachableCalls(Function f, Set<Function> funs) {
 		if (!funs.contains(f)) {
 			funs.add(f);
@@ -240,7 +249,7 @@ public class CallAnalyzer implements Analyzer {
 			}
 		}
 	}
-	
+
 	static public Set<Function> functions(AST unit) {
 		Set<Function> functionsAnalyzed = new HashSet<Function>();
 		Function mainFun = unit.getMain();
@@ -249,11 +258,11 @@ public class CallAnalyzer implements Analyzer {
 		}
 		return functionsAnalyzed;
 	}
-	
+
 	static public void printCallGraph(AST unit) {
 		System.out.println("Functions in call graph:");
 		for (Function f : functions(unit)) {
-			System.out.println("   "+f);
+			System.out.println("   " + f);
 		}
 		System.out.println();
 	}
