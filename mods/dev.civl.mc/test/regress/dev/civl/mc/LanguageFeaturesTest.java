@@ -593,6 +593,12 @@ public class LanguageFeaturesTest {
 		assertTrue(ui.run(VERIFY, NO_PRINTF, QUIET,
 				filename("functionPointer.cvl")));
 	}
+	
+	@Test
+	public void functionPointerDeref() throws ABCException {
+		assertTrue(ui.run(VERIFY, NO_PRINTF, QUIET,
+				filename("functionPointerDeref.cvl")));
+	}
 
 	@Test
 	public void undefPointer() throws ABCException {

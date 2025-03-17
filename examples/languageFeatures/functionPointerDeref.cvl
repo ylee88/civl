@@ -1,0 +1,15 @@
+int f(int x) {
+  return x+10;
+}
+
+int main() {
+  int (*fp)(int x);
+  fp = &f;
+  $print("fp = ", fp, "\n");
+  int a = fp(1);
+  int b = (*fp)(1);
+  int c = (**fp)(1);
+  $print("a=", a, "\n");
+  $print("b=", b, "\n");
+  $print("c=", c, "\n");
+}
