@@ -530,7 +530,7 @@ public class UserInterface {
 		quiet = isQuiet(args);
 		if (!quiet) {
 			out.println("CIVL v" + version + " of " + date
-					+ " -- http://vsl.cis.udel.edu/civl");
+					+ " -- https://civl.dev");
 			out.flush();
 		}
 		if (args == null || args.length < 1) {
