@@ -1,0 +1,42 @@
+$input int n;
+$assume(n > 0);
+
+typedef struct {
+  int x;
+  float y;
+} simple_t;
+
+typedef struct {
+  int x;
+  float y;
+  simple_t t;
+  union {
+    simple_t t;
+    int x;
+  } u;
+  int ts[10];
+} complex_t;
+
+
+int main() {
+  complex_t s[n] = (complex_t[n])$lambda(int i) (complex_t){42, .9};
+
+  $assert($forall (int i : 0 .. n-1) s[i].x == 42 && s[i].y == 0.9 &&
+	                             s[i].t.x == 0 && s[i].t.y == 0 &&
+	                             s[i].u.t.x == 0 && s[i].u.t.y == 0);
+  $assert($forall (int i : 0 .. n-1) $forall (int j : 0 .. 9) s[i].ts[j] == 0);
+
+  complex_t s2[n] = (complex_t[n])$lambda(int i) (complex_t){.y = .9, .x = 42, .t = {42, .9},
+							     /* .u = */ {42}, {1,2,3}};
+
+  $assert($forall (int i : 0 .. n-1) s2[i].x == 42 && s2[i].y == 0.9 &&
+	                             s2[i].t.x == 42 && s2[i].t.y == 0.9 &&
+	                             s2[i].u.t.x == 42 && s2[i].u.t.y == 0);
+  $assert($forall (int i : 0 .. n-1) s2[i].ts[0] == 1 && s2[i].ts[1] == 2 && s2[i].ts[2] == 3 && s2[i].ts[3] == 0);
+
+  complex_t s3[n] = (complex_t[n])$lambda(int i) (complex_t){.t.y = .9, {.x = 42}};
+
+  $assert($forall (int i : 0 .. n-1) s3[i].x == 0 && s3[i].y == 0 &&
+	                             s3[i].t.x == 0 && s3[i].t.y == 0.9 &&
+	                             s3[i].u.x == 42);
+}

@@ -1,0 +1,13 @@
+$input int n;
+$assume(n > 0);
+
+typedef struct {
+  int x;
+  float y;
+} simple_t;
+
+int main() {
+  simple_t s2[n] = (simple_t[n])$lambda(int i) (simple_t){.y = .9, .x = 42};
+
+  $assert($forall (int i : 0 .. n-1) s2[i].x == 42 && s2[i].y == 0.0); // '.y' is explicitly initialized so it won't be implicitly initialized after '.x'
+}

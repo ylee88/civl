@@ -24,7 +24,6 @@ import dev.civl.mc.model.IF.contract.NamedFunctionBehavior;
 import dev.civl.mc.model.IF.expression.AbstractFunctionCallExpression;
 import dev.civl.mc.model.IF.expression.AddressOfExpression;
 import dev.civl.mc.model.IF.expression.ArrayLambdaExpression;
-import dev.civl.mc.model.IF.expression.ArrayLiteralExpression;
 import dev.civl.mc.model.IF.expression.BinaryExpression;
 import dev.civl.mc.model.IF.expression.BinaryExpression.BINARY_OPERATOR;
 import dev.civl.mc.model.IF.expression.CastExpression;
@@ -1607,11 +1606,6 @@ public class SimpleEnablerWorker {
 				findObjects(result, state, pid, ale.expression());
 				break;
 			}
-			case ARRAY_LITERAL :
-				for (Expression element : ((ArrayLiteralExpression) expr)
-						.elements())
-					findObjects(result, state, pid, element);
-				break;
 			case BINARY :
 				findObjects(result, state, pid,
 						((BinaryExpression) expr).left());
@@ -1784,7 +1778,7 @@ public class SimpleEnablerWorker {
 				break;
 			case STRING_LITERAL : // nothing
 				break;
-			case STRUCT_OR_UNION_LITERAL :
+			case COMPOUND_LITERAL :
 				// nothing. these have constant values only (see Evaluator)
 				break;
 			case SUBSCRIPT : {

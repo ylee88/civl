@@ -55,6 +55,11 @@ public class CommonCompleteArrayType extends CommonArrayType
 	}
 
 	@Override
+	public boolean isIncompleteArrayType() {
+		return false;
+	}
+
+	@Override
 	public boolean hasState() {
 		if (super.hasState())
 			return true;
@@ -84,5 +89,10 @@ public class CommonCompleteArrayType extends CommonArrayType
 			Set<CIVLType> seenTypes) {
 		if (seenTypes.add(this))
 			super.addFreeVariables(result, seenTypes);
+	}
+
+	@Override
+	public boolean hasConstantLength() {
+		return extent.expressionKind() == ExpressionKind.INTEGER_LITERAL;
 	}
 }

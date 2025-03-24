@@ -2545,7 +2545,6 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 					break;
 				}
 				case ADDRESS_OF :
-				case ARRAY_LITERAL :
 				case BOOLEAN_LITERAL :
 				case CHAR_LITERAL :
 				case DOT :
@@ -2559,7 +2558,7 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 				case SIZEOF_TYPE :
 				case SIZEOF_EXPRESSION :
 				case STRING_LITERAL :
-				case STRUCT_OR_UNION_LITERAL :
+				case COMPOUND_LITERAL :
 				case SUBSCRIPT :
 				case LAMBDA :
 				case ARRAY_LAMBDA :

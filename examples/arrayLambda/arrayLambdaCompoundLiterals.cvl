@@ -1,0 +1,25 @@
+$input int n;
+$assume(n > 0);
+
+typedef struct {
+  int x;
+  float y;
+} simple_t;
+
+int main() {
+  simple_t s[n] = (simple_t[n])$lambda(int j) (simple_t){42, .9};
+
+  $assert($forall (int i : 0 .. n-1) s[i].x == 42 && s[i].y == 0.9);
+
+  simple_t s2[n] = (simple_t[n])$lambda(int i) (simple_t){.y = .9, .x = 42};
+
+  $assert($forall (int i : 0 .. n-1) s2[i].x == 42 && s2[i].y == 0.9);
+  
+  simple_t s3[n] = (simple_t[n])$lambda(int i) (simple_t){.y = .9};
+
+  $assert($forall (int i : 0 .. n-1) s3[i].x == 0 && s3[i].y == 0.9);
+
+  simple_t s4[n] = (simple_t[n])$lambda(int i) (simple_t){i};  
+
+  $assert($forall (int i : 0 .. n-1) s4[i].x == i && s4[i].y == 0.0);
+}

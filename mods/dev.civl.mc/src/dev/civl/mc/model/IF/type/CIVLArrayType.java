@@ -18,6 +18,12 @@ public interface CIVLArrayType extends CIVLType {
 	 * @return Is this a complete array type? (i.e. is the length specified?)
 	 */
 	boolean isComplete();
+	
+	/**
+	 * @return true iff this array type is complete and has compile-time
+	 *         constant array length
+	 */
+	boolean hasConstantLength();
 
 	/**
 	 * computes the dimension of this array type.

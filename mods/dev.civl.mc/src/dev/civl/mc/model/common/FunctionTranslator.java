@@ -32,6 +32,9 @@ import dev.civl.abc.ast.node.IF.acsl.MPIContractConstantNode.MPIConstantKind;
 import dev.civl.abc.ast.node.IF.acsl.MPIContractExpressionNode;
 import dev.civl.abc.ast.node.IF.acsl.MPIContractExpressionNode.MPIContractExpressionKind;
 import dev.civl.abc.ast.node.IF.compound.CompoundInitializerNode;
+import dev.civl.abc.ast.node.IF.compound.CompoundLiteralObject;
+import dev.civl.abc.ast.node.IF.compound.LiteralObject;
+import dev.civl.abc.ast.node.IF.compound.ScalarLiteralObject;
 import dev.civl.abc.ast.node.IF.declaration.AbstractFunctionDefinitionNode;
 import dev.civl.abc.ast.node.IF.declaration.FieldDeclarationNode;
 import dev.civl.abc.ast.node.IF.declaration.FunctionDeclarationNode;
@@ -140,9 +143,11 @@ import dev.civl.mc.model.IF.ModelFactory;
 import dev.civl.mc.model.IF.Scope;
 import dev.civl.mc.model.IF.contract.LoopContract;
 import dev.civl.mc.model.IF.expression.ArrayLambdaExpression;
-import dev.civl.mc.model.IF.expression.ArrayLiteralExpression;
 import dev.civl.mc.model.IF.expression.BinaryExpression;
 import dev.civl.mc.model.IF.expression.BinaryExpression.BINARY_OPERATOR;
+import dev.civl.mc.model.IF.expression.CompoundLiteralExpression;
+import dev.civl.mc.model.IF.expression.CompoundLiteralExpression.CIVLCompoundLiteralObject;
+import dev.civl.mc.model.IF.expression.CompoundLiteralExpression.CIVLLiteralObject;
 import dev.civl.mc.model.IF.expression.Expression;
 import dev.civl.mc.model.IF.expression.FunctionIdentifierExpression;
 import dev.civl.mc.model.IF.expression.IntegerLiteralExpression;
@@ -167,6 +172,7 @@ import dev.civl.mc.model.IF.statement.Statement;
 import dev.civl.mc.model.IF.statement.UpdateStatement;
 import dev.civl.mc.model.IF.statement.WithStatement;
 import dev.civl.mc.model.IF.type.CIVLArrayType;
+import dev.civl.mc.model.IF.type.CIVLCompleteArrayType;
 import dev.civl.mc.model.IF.type.CIVLCompleteDomainType;
 import dev.civl.mc.model.IF.type.CIVLFunctionType;
 import dev.civl.mc.model.IF.type.CIVLPointerType;
@@ -183,6 +189,7 @@ import dev.civl.mc.util.IF.Pair;
 import dev.civl.mc.util.IF.Singleton;
 import dev.civl.mc.util.IF.Triple;
 import dev.civl.sarl.IF.SymbolicUniverse;
+import dev.civl.sarl.IF.expr.NumericExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 
 /**
@@ -970,11 +977,10 @@ public class FunctionTranslator {
 	/**
 	 * If the given CIVL expression e has array type, this returns the
 	 * expression &e[0]. Otherwise returns e unchanged.<br>
-	 * This method should be called on every LHS expression e when it is used in
-	 * a place where a RHS expression is called for, except in the following
-	 * cases: (1) e is the first argument to the SUBSCRIPT operator (i.e., e
-	 * occurs in the context e[i]), or (2) e is the argument to the "sizeof"
-	 * operator.<br>
+	 * This method should be called on every LHS (lvalue) expression e when it
+	 * is converted to a rvalue expression, except in the following cases: (1) e
+	 * is the first argument to the SUBSCRIPT operator (i.e., e occurs in the
+	 * context e[i]), or (2) e is the argument to the "sizeof" operator.<br>
 	 * note: argument to & should never have array type.
 	 * 
 	 * @param array
@@ -984,8 +990,6 @@ public class FunctionTranslator {
 	protected Expression arrayToPointer(Expression array) {
 		CIVLType type = array.getExpressionType();
 
-		if (array instanceof ArrayLiteralExpression)
-			return array;
 		if (type.isArrayType()) {
 			CIVLSource source = array.getSource();
 			Expression zero = modelFactory.integerLiteralExpression(source,
@@ -3688,8 +3692,6 @@ public class FunctionTranslator {
 		LHSExpression lhs = modelFactory
 				.variableExpression(modelFactory.sourceOf(node), variable);
 
-		assert !(init instanceof StringLiteralNode) : "StringLiteralNode as "
-				+ "initializer has been translated away by ABC";
 		if (init != null) {
 			if (!(init instanceof ExpressionNode)
 					&& !(init instanceof CompoundInitializerNode))
@@ -3699,18 +3701,17 @@ public class FunctionTranslator {
 			if (location == null)
 				location = modelFactory
 						.location(modelFactory.sourceOfBeginning(node), scope);
-			if (init instanceof ExpressionNode) {
+			if (init instanceof CompoundInitializerNode) {
+				Expression rhs = translateCompoundInitializerNode(
+						(CompoundInitializerNode) init, scope);
+
+				initFragment = new CommonFragment(modelFactory.assignStatement(
+						modelFactory.sourceOf(node), location, lhs, rhs, true));
+			} else {
+				assert init instanceof ExpressionNode;
 				initFragment = this.assignStatement(modelFactory.sourceOf(node),
 						lhs, (ExpressionNode) init, true, scope);
-			} else
-				/*
-				 * Compound initializer nodes that are not children of $domain
-				 * literals have been translated away by ABC"
-				 */
-				throw new CIVLInternalException(
-						"Unexpected compound initializer node "
-								+ init.prettyRepresentation(),
-						node.getSource());
+			}
 			if (!modelFactory.anonFragment().isEmpty()) {
 				initFragment = modelFactory.anonFragment()
 						.combineWith(initFragment);
@@ -3722,23 +3723,24 @@ public class FunctionTranslator {
 
 	private Expression translateCompoundLiteralNode(
 			CompoundLiteralNode compoundNode, Scope scope) {
-		// TODO: check this. Make sure that users don't need to specify the
-		// dimension when using compound literal statement for DomainType.
-		assert compoundNode.getType().kind() == TypeKind.DOMAIN
-				: "Compound literal nodes other than"
-						+ " $domain literals have been translated away by ABC";
 		CIVLType type = translateABCType(
 				modelFactory.sourceOf(compoundNode.getTypeNode()), scope,
 				compoundNode.getType());
 
-		return translateCompoundInitializer(compoundNode.getInitializerList(),
-				scope, type);
+		if (type.isDomainType()) {
+			// TODO: check this. Make sure that users don't need to specify the
+			// dimension when using compound literal statement for DomainType.
+			return translateDomainLiteral(compoundNode.getInitializerList(),
+					scope, type);
+		}
+		return translateCompoundInitializerNode(
+				compoundNode.getInitializerList(), scope);
 	}
 
-	private Expression translateCompoundInitializer(
-			CompoundInitializerNode compoundInit, Scope scope, CIVLType type) {
-		CIVLSource source = modelFactory.sourceOf(compoundInit);
-		int size = compoundInit.numChildren();
+	private Expression translateDomainLiteral(CompoundInitializerNode domainLit,
+			Scope scope, CIVLType type) {
+		CIVLSource source = modelFactory.sourceOf(domainLit);
+		int size = domainLit.numChildren();
 		List<Expression> expressions = new ArrayList<>(size);
 
 		assert type.isDomainType()
@@ -3754,35 +3756,130 @@ public class FunctionTranslator {
 		assert size == dimension;
 		for (int i = 0; i < size; i++)
 			expressions.add(translateInitializerNode(
-					compoundInit.getSequenceChild(i).getRight(), scope,
-					typeFactory.rangeType()));
+					domainLit.getSequenceChild(i).getRight(), scope));
 		return modelFactory.recDomainLiteralExpression(source, expressions,
 				type);
 	}
+	
+
+	/**
+	 * A CompoundInitializerNode initializes a struct/union or an array.
+	 * 
+	 * ( TODO: check that ABC should translate away other possibilities, e.g.,
+	 * `(int*){&x}`
+	 */
+	private Expression translateCompoundInitializerNode(
+			CompoundInitializerNode compoundInit, Scope scope) {
+		CIVLSource source = modelFactory.sourceOf(compoundInit);
+		CIVLType type = translateABCType(source, scope, compoundInit.getType());
+
+		if (type.typeKind() == CIVLType.TypeKind.DOMAIN)
+			return translateDomainLiteral(compoundInit, scope, type);
+
+		CompoundLiteralExpression result = modelFactory
+				.compoundLiteralExpression(source, scope, type, false);
+		CompoundLiteralObject abcCompoundLitObj = compoundInit
+				.getLiteralObject();
+		CompoundLiteralExpression.CIVLCompoundLiteralObject CompoundLitObj = translateABCCompoundLiteralObject(
+				abcCompoundLitObj, scope, result);
+
+		result.setLiteralObject(CompoundLitObj);
+		return result;
+	}
+	
+	/**
+	 * Translates ABC's {@link CompoundLiteralObject} to
+	 * {@link CompoundLiteralExpression#CompoundLiteralObj}.
+	 * 
+	 * @param obj
+	 *            an ABC {@link CompoundLiteralObject}
+	 * @param scope
+	 *            the {@link Scope} of <code>litExpr</code>
+	 * @param litExpr
+	 *            the CompoundLiteralExpression that will own the translated
+	 *            result; in this method, <code>litExpr</code> is used to
+	 *            provide creator methods for
+	 *            {@link CompoundLiteralExpression#LiteralObj}s.
+	 * @return
+	 */
+	private CIVLCompoundLiteralObject translateABCCompoundLiteralObject(
+			CompoundLiteralObject abcObj, Scope scope,
+			CompoundLiteralExpression litExpr) {
+		List<CIVLLiteralObject> elements = new LinkedList<>();
+		Type abcType = abcObj.getType();
+		CIVLType type = translateABCType(litExpr.getSource(), scope, abcType);
+
+		if (type.isArrayType()) {
+			CIVLType eltType = ((CIVLArrayType) type).elementType();
+
+			for (LiteralObject eltObj : abcObj)
+				elements.add(translateABCLiteralObject(eltObj, scope, eltType,
+						litExpr));
+			if (type.isIncompleteArrayType()) {
+				// If 'type' is 'T[]', its size is determined by the number of
+				// elements:
+				Expression arraySize = modelFactory.integerLiteralExpression(
+						modelFactory.sourceOf(abcObj.getSourceNode()),
+						BigInteger.valueOf(elements.size()));
+
+				type = typeFactory.completeArrayType(eltType, arraySize);
+			}
+			return litExpr.createCompoundLiteralObject(type, elements);
+		} else if (type.isStructType()) {
+			CIVLStructOrUnionType structTy = (CIVLStructOrUnionType) type;
+			int idx = 0;
+
+			assert structTy.numFields() == abcObj.size();
+			for (LiteralObject fieldObj : abcObj) {
+				CIVLType fieldTy = structTy.getField(idx).type();
+
+				elements.add(translateABCLiteralObject(fieldObj, scope, fieldTy,
+						litExpr));
+				idx++;
+			}
+			return litExpr.createCompoundLiteralObject(structTy, elements);
+		}
+		assert type.isUnionType();
+
+		CIVLStructOrUnionType unionTy = (CIVLStructOrUnionType) type;
+		int idx = 0;
+
+		assert unionTy.numFields() >= abcObj.size();
+		for (LiteralObject fieldObj : abcObj) {
+			CIVLType fieldTy = unionTy.getField(idx).type();
+
+			elements.add(translateABCLiteralObject(fieldObj, scope, fieldTy,
+					litExpr));
+			idx++;
+		}
+		return litExpr.createCompoundLiteralObject(unionTy, elements);
+	}
+	
+	private CIVLLiteralObject translateABCLiteralObject(
+			LiteralObject /* Nullable */ abcLitObj, Scope scope,
+			CIVLType abcLitObjTy, CompoundLiteralExpression litExpr) {
+		if (abcLitObj == null)
+			return litExpr.createScalarLiteralObject(abcLitObjTy, null);
+		if (abcLitObj instanceof ScalarLiteralObject) {
+			Expression expr = translateExpressionNode(
+					((ScalarLiteralObject) abcLitObj).getExpression(), scope,
+					true);
+			return litExpr.createScalarLiteralObject(expr.getExpressionType(), expr);
+		}
+
+		return translateABCCompoundLiteralObject(
+				((CompoundLiteralObject) abcLitObj), scope, litExpr);
+	}
 
 	private Expression translateInitializerNode(InitializerNode initNode,
-			Scope scope, CIVLType type) {
-		Expression initExpr;
-
-		assert !(initNode instanceof StringLiteralNode)
-				: "StringLiteralNode as "
-						+ "initializer has been translated away by ABC";
+			Scope scope) {
 		if (initNode instanceof ExpressionNode)
-			initExpr = translateExpressionNode((ExpressionNode) initNode, scope,
+			return translateExpressionNode((ExpressionNode) initNode, scope,
 					true);
-		else if (initNode instanceof CompoundInitializerNode)
-			/*
-			 * Compound initializer nodes that are not children of $domain
-			 * literals have been translated away by ABC"
-			 */
-			throw new CIVLInternalException(
-					"Unexpected compound initializer node: " + initNode,
-					initNode.getSource());
-		else
-			throw new CIVLSyntaxException(
-					"Invalid initializer node: " + initNode,
-					initNode.getSource());
-		return initExpr;
+
+		assert initNode instanceof CompoundInitializerNode;
+		return translateCompoundInitializerNode(
+				(CompoundInitializerNode) initNode, scope);
 	}
 
 	/**
@@ -4122,35 +4219,42 @@ public class FunctionTranslator {
 						StringLiteralNode stringLiteralNode = (StringLiteralNode) constantNode;
 						StringLiteral stringValue = stringLiteralNode
 								.getConstantValue().getLiteral();
-						CIVLArrayType arrayType = typeFactory.completeArrayType(
-								typeFactory.charType(),
-								modelFactory.integerLiteralExpression(source,
-										BigInteger.valueOf(stringValue
-												.getNumCharacters())));
-						ArrayList<Expression> chars = new ArrayList<>();
-						// ArrayLiteralExpression stringLiteral;
-						// VariableExpression anonVariable = modelFactory
-						// .variableExpression(source, modelFactory
-						// .newAnonymousVariableForArrayLiteral(
-						// source, arrayType));
-						// Statement anonAssign;
+						CIVLType type = translateABCType(
+								modelFactory.sourceOf(stringLiteralNode), scope,
+								stringLiteralNode.getInitialType());
+						
+						assert type.isArrayType()
+								&& ((CIVLArrayType) type).isComplete();
+						
+						CIVLCompleteArrayType arrTy = (CIVLCompleteArrayType) type;
+						SymbolicUniverse universe = modelFactory.universe();
+						
+						assert arrTy.hasConstantLength();
+						arrTy.extent().calculateConstantValue(universe);
 
-						for (int i = 0; i < stringValue
-								.getNumCharacters(); i++) {
+						CompoundLiteralExpression compoundLitExpr = modelFactory
+								.compoundLiteralExpression(source, scope,
+										arrTy, true);
+						SymbolicExpression constVal = universe
+								.constantArray(universe.characterType(),
+										(NumericExpression) arrTy.extent()
+												.constantValue(),
+										universe.zeroInt());
+						int numChars = stringValue.getNumCharacters();
+
+						for (int i = 0; i < numChars; i++) {
 							for (char c : stringValue.getCharacter(i)
 									.getCharacters()) {
-								chars.add(modelFactory
-										.charLiteralExpression(source, c));
+								constVal = universe.arrayWrite(constVal,
+										universe.integer(i),
+										universe.character(c));
 							}
 						}
-						result = modelFactory.arrayLiteralExpression(source,
-								arrayType, chars);
-						// anonAssign = modelFactory.assignStatement(source,
-						// modelFactory.location(source, scope), anonVariable,
-						// stringLiteral, true);
-						// modelFactory.addAnonStatement(anonAssign);
-						// result = arrayToPointer(anonVariable);
-						// result = anonVariable;
+						// TODO denseArrayWrite on concrete arrays
+						// should be simplified to the same as writing
+						// elements one-by-one.
+						compoundLitExpr.setLiteralConstantValue(constVal);
+						result = compoundLitExpr;
 						break;
 					}
 				}
@@ -4583,30 +4687,36 @@ public class FunctionTranslator {
 	 * creates an anonymous and const variable in the root scope for an array
 	 * literal or array lambda.
 	 * 
-	 * @param arrayConst
+	 * @param array
 	 *                       the array literal or labmda expression
 	 * @return a variable expression wrapping the new anonymous variable
 	 */
-	private VariableExpression createAnonymousVariableForArrayConstant(
-			Scope scope, Expression arrayConst) {
-		CIVLSource source = arrayConst.getSource();
-		CIVLArrayType arrayType = (CIVLArrayType) arrayConst
+	private VariableExpression createAnonymousVariableForArrayLiteralOrArrayLambda(
+			Scope scope, Expression array) {
+		CIVLSource source = array.getSource();
+		CIVLArrayType arrayType = (CIVLArrayType) array
 				.getExpressionType();
-		VariableExpression anonVariable;
-		Statement anonAssign;
+		VariableExpression anonVariable;		
+		boolean isStringLiteral = false;
 
-		arrayConst.calculateConstantValue(modelFactory.universe());
-		if (arrayConst.hasConstantValue())
+		if (array instanceof CompoundLiteralExpression)
+			isStringLiteral = ((CompoundLiteralExpression) array)
+					.isStringLiteral();
+		array.calculateConstantValue(modelFactory.universe());
+		if (isStringLiteral) {
+			assert array.hasConstantValue();
 			anonVariable = modelFactory.variableExpression(source,
 					modelFactory.newAnonymousVariableForConstantArrayLiteral(
-							source, arrayType, arrayConst.constantValue()));
-		else {
-			anonVariable = modelFactory.variableExpression(source, modelFactory
-					.newAnonymousVariableForArrayLiteral(source, arrayType));
+							source, arrayType, array.constantValue()));
+		} else {
+			anonVariable = modelFactory.variableExpression(source,
+					modelFactory.newAnonymousVariableForArrayLiteral(source,
+							scope, arrayType));
 
-			anonAssign = modelFactory.assignStatement(source,
+			Statement anonAssign = modelFactory.assignStatement(source,
 					modelFactory.location(source, scope), anonVariable,
-					arrayConst, true);
+					array, true);
+			
 			modelFactory.addAnonStatement(anonAssign);
 		}
 		return anonVariable;
@@ -4684,12 +4794,12 @@ public class FunctionTranslator {
 										(LHSExpression) expression,
 										modelFactory.integerLiteralExpression(
 												source, BigInteger.ZERO)));
-					} else if (expressionKind == Expression.ExpressionKind.ARRAY_LITERAL
+					} else if (expressionKind == Expression.ExpressionKind.COMPOUND_LITERAL
 							|| expressionKind == Expression.ExpressionKind.ARRAY_LAMBDA) {
 						// creates anonymous variable in the root scope for this
 						// literal
 						// and return the address to this variable
-						VariableExpression anonVariable = createAnonymousVariableForArrayConstant(
+						VariableExpression anonVariable = createAnonymousVariableForArrayLiteralOrArrayLambda(
 								scope, expression);
 
 						expression = arrayToPointer(anonVariable);
@@ -5100,9 +5210,9 @@ public class FunctionTranslator {
 				else if (operand instanceof LHSExpression)
 					result = modelFactory.addressOfExpression(source,
 							(LHSExpression) operand);
-				else if (operandKind == Expression.ExpressionKind.ARRAY_LITERAL
+				else if (operandKind == Expression.ExpressionKind.COMPOUND_LITERAL
 						|| operandKind == Expression.ExpressionKind.ARRAY_LAMBDA) {
-					VariableExpression anonVariable = createAnonymousVariableForArrayConstant(
+					VariableExpression anonVariable = createAnonymousVariableForArrayLiteralOrArrayLambda(
 							scope, operand);
 
 					result = modelFactory.addressOfExpression(source,
@@ -5623,9 +5733,9 @@ public class FunctionTranslator {
 			if (!(lhs instanceof LHSExpression)) {
 				Expression.ExpressionKind lhsKind = lhs.expressionKind();
 
-				if (lhsKind == Expression.ExpressionKind.ARRAY_LITERAL
+				if (lhsKind == Expression.ExpressionKind.COMPOUND_LITERAL
 						|| lhsKind == Expression.ExpressionKind.ARRAY_LAMBDA)
-					lhs = this.createAnonymousVariableForArrayConstant(scope,
+					lhs = this.createAnonymousVariableForArrayLiteralOrArrayLambda(scope,
 							lhs);
 				else
 					throw new CIVLInternalException(
@@ -5801,8 +5911,9 @@ public class FunctionTranslator {
 						: field.getName();
 				Identifier identifier = modelFactory.identifier(
 						modelFactory.sourceOf(field.getDefinition()), name);
-				StructOrUnionField civlField = typeFactory
-						.structField(identifier, civlFieldType);
+				StructOrUnionField civlField = typeFactory.structField(
+						identifier, civlFieldType, i, field.isAnonymous(),
+						structType);
 
 				civlFields[i] = civlField;
 			}

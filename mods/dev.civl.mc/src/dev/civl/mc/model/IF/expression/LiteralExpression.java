@@ -13,7 +13,7 @@ import dev.civl.sarl.IF.expr.SymbolicExpression;
  */
 public interface LiteralExpression extends Expression {
 	public enum LiteralKind {
-		ARRAY, BOOLEAN, CHAR, INTEGER, REAL, STRING, STRUCT_OR_UNION, DOMAIN
+		ARRAY, BOOLEAN, CHAR, INTEGER, REAL, COMPOUND, DOMAIN
 	}
 
 	LiteralKind literalKind();

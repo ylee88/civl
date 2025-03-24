@@ -19,8 +19,8 @@ import dev.civl.mc.model.IF.CIVLUnimplementedFeatureException;
 import dev.civl.mc.model.IF.ModelConfiguration;
 import dev.civl.mc.model.IF.ModelFactory;
 import dev.civl.mc.model.IF.Scope;
+import dev.civl.mc.model.IF.expression.CompoundLiteralExpression;
 import dev.civl.mc.model.IF.expression.Expression;
-import dev.civl.mc.model.IF.expression.StructOrUnionLiteralExpression;
 import dev.civl.mc.model.IF.statement.AssignStatement;
 import dev.civl.mc.model.IF.statement.CallOrSpawnStatement;
 import dev.civl.mc.model.IF.statement.Statement;
@@ -145,15 +145,16 @@ public class LibdomainEnabler extends BaseLibraryEnabler
 	private List<AssignStatement> allDecompStatements(CallOrSpawnStatement call,
 			Scope exprScope, CIVLStructOrUnionType exprType,
 			List<SymbolicExpression> subDecomp, CIVLSource sourceOfLocation) {
-		StructOrUnionLiteralExpression decompsConstantExpr;
+		CompoundLiteralExpression decompsConstantExpr;
 		List<AssignStatement> assignStatements = new LinkedList<>();
 
 		for (int i = 0; i < subDecomp.size(); i++) {
 			SymbolicExpression decomp = subDecomp.get(i);
 			AssignStatement assignStatement;
 
-			decompsConstantExpr = modelFactory.structOrUnionLiteralExpression(
-					sourceOfLocation, exprScope, exprType, decomp);
+			decompsConstantExpr = modelFactory.compoundLiteralExpression(
+					sourceOfLocation, exprScope, exprType, false);
+			decompsConstantExpr.setLiteralConstantValue(decomp);
 			assignStatement = modelFactory.assignStatement(call.getSource(),
 					call.source(), call.lhs(), decompsConstantExpr, false);
 			assignStatement.setTargetTemp(call.target());

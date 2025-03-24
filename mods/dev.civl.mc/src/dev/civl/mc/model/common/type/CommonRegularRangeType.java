@@ -25,13 +25,15 @@ public class CommonRegularRangeType extends CommonStructOrUnionType
 		myfields.add(new CommonStructOrUnionField(
 				new CommonIdentifier(name.getSource(),
 						(StringObject) universe.stringObject("low")),
-				integerType));
+				integerType, 0, false, this));
 		myfields.add(new CommonStructOrUnionField(
 				new CommonIdentifier(name.getSource(),
 						(StringObject) universe.stringObject("high")),
-				integerType));
-		myfields.add(new CommonStructOrUnionField(new CommonIdentifier(
-				name.getSource(), universe.stringObject("step")), integerType));
+				integerType, 1, false, this));
+		myfields.add(new CommonStructOrUnionField(
+				new CommonIdentifier(name.getSource(),
+						universe.stringObject("step")),
+				integerType, 2, false, this));
 		this.complete(myfields);
 		elementType = integerType;
 	}

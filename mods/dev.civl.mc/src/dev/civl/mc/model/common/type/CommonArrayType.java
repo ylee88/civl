@@ -157,4 +157,9 @@ public class CommonArrayType extends CommonType implements CIVLArrayType {
 		}
 		return true;
 	}
+
+	@Override
+	public boolean hasConstantLength() {
+		return false;
+	}
 }

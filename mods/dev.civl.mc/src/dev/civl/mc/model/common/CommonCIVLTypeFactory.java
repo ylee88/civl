@@ -427,8 +427,11 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	}
 
 	@Override
-	public StructOrUnionField structField(Identifier name, CIVLType type) {
-		return new CommonStructOrUnionField(name, type);
+	public StructOrUnionField structField(Identifier name, CIVLType type,
+			int index, boolean isAnonymous,
+			CIVLStructOrUnionType enclosingType) {
+		return new CommonStructOrUnionField(name, type, index, isAnonymous,
+				enclosingType);
 	}
 
 	@Override

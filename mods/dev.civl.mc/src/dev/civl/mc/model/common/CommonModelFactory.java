@@ -39,13 +39,13 @@ import dev.civl.mc.model.IF.contract.MPICollectiveBehavior.MPICommunicationPatte
 import dev.civl.mc.model.IF.expression.AbstractFunctionCallExpression;
 import dev.civl.mc.model.IF.expression.AddressOfExpression;
 import dev.civl.mc.model.IF.expression.ArrayLambdaExpression;
-import dev.civl.mc.model.IF.expression.ArrayLiteralExpression;
 import dev.civl.mc.model.IF.expression.BinaryExpression;
 import dev.civl.mc.model.IF.expression.BinaryExpression.BINARY_OPERATOR;
 import dev.civl.mc.model.IF.expression.BooleanLiteralExpression;
 import dev.civl.mc.model.IF.expression.BoundVariableExpression;
 import dev.civl.mc.model.IF.expression.CastExpression;
 import dev.civl.mc.model.IF.expression.CharLiteralExpression;
+import dev.civl.mc.model.IF.expression.CompoundLiteralExpression;
 import dev.civl.mc.model.IF.expression.ConditionalExpression;
 import dev.civl.mc.model.IF.expression.DereferenceExpression;
 import dev.civl.mc.model.IF.expression.DerivativeCallExpression;
@@ -79,7 +79,6 @@ import dev.civl.mc.model.IF.expression.SelfExpression;
 import dev.civl.mc.model.IF.expression.SizeofExpression;
 import dev.civl.mc.model.IF.expression.SizeofTypeExpression;
 import dev.civl.mc.model.IF.expression.StatenullExpression;
-import dev.civl.mc.model.IF.expression.StructOrUnionLiteralExpression;
 import dev.civl.mc.model.IF.expression.SubscriptExpression;
 import dev.civl.mc.model.IF.expression.SystemGuardExpression;
 import dev.civl.mc.model.IF.expression.UnaryExpression;
@@ -116,13 +115,13 @@ import dev.civl.mc.model.IF.variable.Variable;
 import dev.civl.mc.model.common.contract.CommonLoopContract;
 import dev.civl.mc.model.common.expression.CommonAbstractFunctionCallExpression;
 import dev.civl.mc.model.common.expression.CommonAddressOfExpression;
-import dev.civl.mc.model.common.expression.CommonArrayLiteralExpression;
 import dev.civl.mc.model.common.expression.CommonArrrayLambdaExpression;
 import dev.civl.mc.model.common.expression.CommonBinaryExpression;
 import dev.civl.mc.model.common.expression.CommonBooleanLiteralExpression;
 import dev.civl.mc.model.common.expression.CommonBoundVariableExpression;
 import dev.civl.mc.model.common.expression.CommonCastExpression;
 import dev.civl.mc.model.common.expression.CommonCharLiteralExpression;
+import dev.civl.mc.model.common.expression.CommonCompoundLiteralExpression;
 import dev.civl.mc.model.common.expression.CommonConditionalExpression;
 import dev.civl.mc.model.common.expression.CommonDereferenceExpression;
 import dev.civl.mc.model.common.expression.CommonDerivativeCallExpression;
@@ -151,7 +150,6 @@ import dev.civl.mc.model.common.expression.CommonSelfExpression;
 import dev.civl.mc.model.common.expression.CommonSizeofExpression;
 import dev.civl.mc.model.common.expression.CommonSizeofTypeExpression;
 import dev.civl.mc.model.common.expression.CommonStatenullExpression;
-import dev.civl.mc.model.common.expression.CommonStructOrUnionLiteralExpression;
 import dev.civl.mc.model.common.expression.CommonSubscriptExpression;
 import dev.civl.mc.model.common.expression.CommonSystemGuardExpression;
 import dev.civl.mc.model.common.expression.CommonUnaryExpression;
@@ -1522,20 +1520,11 @@ public class CommonModelFactory implements ModelFactory {
 	}
 
 	@Override
-	public ArrayLiteralExpression arrayLiteralExpression(CIVLSource source,
-			CIVLArrayType arrayType, List<Expression> elements) {
-		return new CommonArrayLiteralExpression(source, joinScope(elements),
-				getLowerScope(elements), arrayType, elements);
-	}
-
-	@Override
-	public StructOrUnionLiteralExpression structOrUnionLiteralExpression(
-			CIVLSource source, Scope exprScope,
-			CIVLStructOrUnionType structOrUnionType,
-			SymbolicExpression constantValue) {
-		assert constantValue != null;
-		return new CommonStructOrUnionLiteralExpression(source, exprScope,
-				exprScope, structOrUnionType, constantValue);
+	public CompoundLiteralExpression compoundLiteralExpression(
+			CIVLSource source, Scope exprScope, CIVLType type,
+			boolean isStringLiteral) {
+		return new CommonCompoundLiteralExpression(source, exprScope, exprScope,
+				type, isStringLiteral);
 	}
 
 	@Override
@@ -1547,15 +1536,15 @@ public class CommonModelFactory implements ModelFactory {
 
 	@Override
 	public Variable newAnonymousVariableForArrayLiteral(CIVLSource sourceOf,
-			CIVLArrayType type) {
+			Scope scope, CIVLArrayType type) {
 		String name = ModelConfiguration.ANONYMOUS_VARIABLE_PREFIX
 				+ this.anonymousVariableId++;
 		Variable variable = this.variable(sourceOf, type,
 				this.identifier(sourceOf, name),
-				this.systemScope.numVariables());
+				scope.numVariables());
 
 		variable.setConst(true);
-		this.systemScope.addVariable(variable);
+		scope.addVariable(variable);
 		return variable;
 	}
 

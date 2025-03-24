@@ -18,4 +18,8 @@ public interface StructOrUnionField {
 	int index();
 
 	StructOrUnionField copyAs(CIVLPrimitiveType type, SymbolicUniverse universe);
+	
+	boolean isAnonymous();
+	
+	CIVLStructOrUnionType enclosingType();
 }

@@ -269,9 +269,11 @@ public class CompoundLiteralAnalyzer {
 					position.increment(ltNode);
 			}
 			if (initNode instanceof CompoundInitializerNode) {
+				CompoundInitializerNode ciNode = (CompoundInitializerNode) initNode;
+				
 				subType = position.getDesignatedType();
-				subLiteral = interpret((CompoundInitializerNode) initNode,
-						subType);
+				subLiteral = interpret(ciNode, subType);
+				ciNode.setType(extractType(subType));
 			} else {
 				ExpressionNode expr = (ExpressionNode) initNode;
 

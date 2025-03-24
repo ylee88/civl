@@ -88,7 +88,6 @@ public class CommonAccuracyAssumptionBuilder
 				// derivative.
 				break;
 			case ADDRESS_OF :
-			case ARRAY_LITERAL :
 			case BOOLEAN_LITERAL :
 			case CAST :
 			case COND :
@@ -103,7 +102,7 @@ public class CommonAccuracyAssumptionBuilder
 			case SIZEOF_EXPRESSION :
 			case SIZEOF_TYPE :
 			case STRING_LITERAL :
-			case STRUCT_OR_UNION_LITERAL :
+			case COMPOUND_LITERAL :
 			case SUBSCRIPT :
 			case FUNC_CALL :
 			case UNARY :

@@ -19,7 +19,10 @@ import dev.civl.abc.ast.node.IF.ASTNode;
  * 
  * @author siegel
  */
-public interface CompoundLiteralObject extends LiteralObject {
+public interface CompoundLiteralObject
+		extends
+			LiteralObject,
+			Iterable<LiteralObject> {
 
 	/**
 	 * Returns the number of members of this compound literal. This will be

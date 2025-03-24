@@ -12,9 +12,9 @@ import dev.civl.mc.model.IF.ModelConfiguration;
 import dev.civl.mc.model.IF.expression.AbstractFunctionCallExpression;
 import dev.civl.mc.model.IF.expression.AddressOfExpression;
 import dev.civl.mc.model.IF.expression.ArrayLambdaExpression;
-import dev.civl.mc.model.IF.expression.ArrayLiteralExpression;
 import dev.civl.mc.model.IF.expression.BinaryExpression;
 import dev.civl.mc.model.IF.expression.CastExpression;
+import dev.civl.mc.model.IF.expression.CompoundLiteralExpression;
 import dev.civl.mc.model.IF.expression.ConditionalExpression;
 import dev.civl.mc.model.IF.expression.DereferenceExpression;
 import dev.civl.mc.model.IF.expression.DotExpression;
@@ -220,10 +220,6 @@ public class ReadSetAnalyzer {
 				result.addAll(analyzeArrayLambda((ArrayLambdaExpression) expr,
 						state, pid));
 				break;
-			case ARRAY_LITERAL :
-				result.addAll(analyzeArrayLiteral((ArrayLiteralExpression) expr,
-						state, pid));
-				break;
 			case BINARY :
 				result.addAll(
 						analyzeBinary((BinaryExpression) expr, state, pid));
@@ -302,6 +298,10 @@ public class ReadSetAnalyzer {
 				result.addAll(
 						analyzeVariable((VariableExpression) expr, state, pid));
 				break;
+			case COMPOUND_LITERAL :
+				result.addAll(analyzeCompoundLiteral(
+						(CompoundLiteralExpression) expr, state, pid));
+				break;
 			/* Ignor-able kinds section */
 			case BOOLEAN_LITERAL :
 			case BOUND_VARIABLE :
@@ -324,7 +324,6 @@ public class ReadSetAnalyzer {
 			case DOMAIN_GUARD :// TODO: what is this ?
 				break;
 			/* shall not happen section */
-			case STRUCT_OR_UNION_LITERAL :
 			case MEMORY_UNIT :
 			case MPI_CONTRACT_EXPRESSION :
 				/* I don't know if ignor-able or not kinds section */
@@ -605,16 +604,6 @@ public class ReadSetAnalyzer {
 		return result;
 	}
 
-	private Set<SymbolicExpression> analyzeArrayLiteral(
-			ArrayLiteralExpression expr, State state, int pid)
-			throws UnsatisfiablePathConditionException {
-		Set<SymbolicExpression> result = new TreeSet<>(universe.comparator());
-
-		for (Expression ele : expr.elements())
-			result.addAll(analyzeMemWorker(ele, state, pid));
-		return result;
-	}
-
 	private Set<SymbolicExpression> analyzeArrayLambda(
 			ArrayLambdaExpression expr, State state, int pid)
 			throws UnsatisfiablePathConditionException {
@@ -652,6 +641,17 @@ public class ReadSetAnalyzer {
 	private Set<SymbolicExpression> analyzeUnaryExpression(UnaryExpression expr,
 			State state, int pid) throws UnsatisfiablePathConditionException {
 		return this.analyzeMemWorker(expr.operand(), state, pid);
+	}
+	
+	private Set<SymbolicExpression> analyzeCompoundLiteral(
+			CompoundLiteralExpression expr, State state, int pid)
+			throws UnsatisfiablePathConditionException {
+		Set<SymbolicExpression> result = new HashSet<>();
+
+		if (!expr.hasConstantValue())
+			for (Expression obj : expr.getLiteralObject().subExpressions())
+				result.addAll(analyzeMemWorker(obj, state, pid));
+		return result;
 	}
 
 	/**

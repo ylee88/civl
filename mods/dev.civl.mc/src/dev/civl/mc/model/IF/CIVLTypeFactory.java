@@ -247,9 +247,16 @@ public interface CIVLTypeFactory {
 	 *            Identifier for the name of this struct member.
 	 * @param type
 	 *            The type of this struct member.
+	 * @param index
+	 *            Index of the field in its enclosing struct/union
+	 * @param isAnonymous
+	 *            Whether this field is an anonymous member
+	 * @param enclosingType
+	 *            The struct/union type directly containing this field.
 	 * @return A struct field with the given name and type.
 	 */
-	StructOrUnionField structField(Identifier name, CIVLType type);
+	StructOrUnionField structField(Identifier name, CIVLType type, int index,
+			boolean isAnonymous, CIVLStructOrUnionType enclosingType);
 
 	/**
 	 * Returns new incomplete struct or union type with given name. Type can be

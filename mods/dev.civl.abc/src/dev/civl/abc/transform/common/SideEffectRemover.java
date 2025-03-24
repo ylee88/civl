@@ -1534,7 +1534,7 @@ public class SideEffectRemover extends BaseTransformer {
 	 *                       object that is associated with the compound
 	 *                       initializer (if it is a part of a compound literal)
 	 *                       or the left-hand side expression of in
-	 *                       initialization assignment.
+	 *                       initialization assignment. It is side-effect free.
 	 * @param objType
 	 *                       the type of the object that is associated with the
 	 *                       compound initializer
@@ -1583,6 +1583,9 @@ public class SideEffectRemover extends BaseTransformer {
 
 		if (type.kind() == TypeKind.DOMAIN)
 			return translateDomainLiteral(expression, isVoid);
+		if (expression.isSideEffectFree(true))
+			return new ExprTriple(expression);
+		
 		VariableDeclarationNode auxVarDeclForLiteral = newTempVariable(source,
 				type);
 		ExpressionNode auxVar = nodeFactory.newIdentifierExpressionNode(source,
@@ -2041,7 +2044,7 @@ public class SideEffectRemover extends BaseTransformer {
 	 * before the initialization takes place.
 	 * 
 	 * @param decl
-	 *                 a variable declaration
+	 *            a variable declaration
 	 * @return equivalent triple with empty after
 	 */
 	private List<BlockItemNode> translateVariableDeclaration(
@@ -2063,20 +2066,13 @@ public class SideEffectRemover extends BaseTransformer {
 				deConstQualifiers(var);
 			}
 		}
-		if (initNode != null) {
+		if (initNode != null && !initNode.isSideEffectFree(true)) {
 			ExprTriple initTriple;
 
 			initNode.remove();
-			if (initNode instanceof StringLiteralNode) {
-				initTriple = translateStringLiteralInitializer(type,
-						nodeFactory.newIdentifierExpressionNode(
-								decl.getSource(), decl.getIdentifier().copy()),
-						(StringLiteralNode) initNode);
-				decl.setInitializer(initTriple.getNode());
-				result.addAll(initTriple.getBefore());
-				result.add(decl);
-				result.addAll(initTriple.getAfter());
-			} else if (initNode instanceof ExpressionNode) {
+			assert !(initNode instanceof StringLiteralNode)
+					: "StringLiteralNode has no side effects";
+			if (initNode instanceof ExpressionNode) {
 				initTriple = translate((ExpressionNode) initNode, false);
 				emptyAfter((ExprTriple) initTriple);
 				decl.setInitializer((InitializerNode) initTriple.getNode());
@@ -2102,83 +2098,6 @@ public class SideEffectRemover extends BaseTransformer {
 			}
 		} else
 			result.add(decl);
-		return result;
-	}
-
-	/**
-	 * <p>
-	 * Translate a string literal initializer in 2 ways depending on the type of
-	 * the initialized variable:
-	 * </P>
-	 * 
-	 * <p>
-	 * 1)<code>
-	 * char * v = string;
-	 * </code> will be translated to <code>
-	 * char tmp[x] = $arrayLambda;
-	 * tmp[i] = string[i]; ...
-	 * char * v = tmp;
-	 * </code>; In this case, the returned triple includes the "tmp" identifier
-	 * expression as an initializer and all the statements that initializes
-	 * "tmp" in "before".
-	 * </p>
-	 * 
-	 *
-	 * <p>
-	 * 2)<code>
-	 * char v[n] = string;
-	 * </code> will be translated to <code>
-	 * char v[n] = $arrayLambda;
-	 * v[i] = string[i]; ...
-	 * </code>; In this case, the returned triple includes the "$arrayLambda"
-	 * initializer and all the statements that initializes "v" in "after".
-	 * </p>
-	 * 
-	 * @param varType
-	 *                       the {@link Type} of the variable that will be
-	 *                       initialized by the given string literal;
-	 * @param varExpr
-	 *                       the identifier expression of the variable that will
-	 *                       be initialized by the given string literal;
-	 *                       Significant iff the given variable type is
-	 *                       non-scalar type; otherwise, can be null.
-	 * @param strlitNode
-	 *                       a string literal initializer
-	 */
-	private ExprTriple translateStringLiteralInitializer(Type varType,
-			ExpressionNode varExpr, StringLiteralNode strlitNode) {
-		Source source = strlitNode.getSource();
-		ExpressionNode charArray;
-		Type charArrType;
-		VariableDeclarationNode tmpVar = null;
-		List<BlockItemNode> strlit2assignments = new LinkedList<>();
-
-		if (varType.isScalar()) {
-			// var has pointer type:
-			charArrType = strlitNode.getConstantValue().getType();
-			tmpVar = newTempVariable(source, charArrType);
-			charArray = nodeFactory.newIdentifierExpressionNode(source,
-					tmpVar.getIdentifier().copy());
-		} else {
-			assert varExpr != null;
-			charArray = varExpr.copy();
-			charArrType = varType;
-		}
-
-		ExprTriple result = stringOrCompoundInitializerWorker
-				.defaultValues(charArray, charArrType);
-		List<BlockItemNode> assignments = stringOrCompoundInitializerWorker
-				.translateStringLiteralInitializer(strlitNode, charArray);
-
-		for (BlockItemNode assignment : assignments)
-			strlit2assignments.addAll(translateBlockItem(assignment));
-		if (tmpVar != null) {
-			tmpVar.setInitializer(result.getNode());
-			result.addBefore(tmpVar);
-			result.setNode(charArray.copy());
-			result.addAllBefore(strlit2assignments);
-		} else
-			result.addAllAfter(strlit2assignments);
 		return result;
 	}
 

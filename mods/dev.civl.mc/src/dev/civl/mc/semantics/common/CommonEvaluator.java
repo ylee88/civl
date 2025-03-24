@@ -26,12 +26,15 @@ import dev.civl.mc.model.IF.SystemFunction;
 import dev.civl.mc.model.IF.expression.AbstractFunctionCallExpression;
 import dev.civl.mc.model.IF.expression.AddressOfExpression;
 import dev.civl.mc.model.IF.expression.ArrayLambdaExpression;
-import dev.civl.mc.model.IF.expression.ArrayLiteralExpression;
 import dev.civl.mc.model.IF.expression.BinaryExpression;
 import dev.civl.mc.model.IF.expression.BinaryExpression.BINARY_OPERATOR;
 import dev.civl.mc.model.IF.expression.BooleanLiteralExpression;
 import dev.civl.mc.model.IF.expression.CastExpression;
 import dev.civl.mc.model.IF.expression.CharLiteralExpression;
+import dev.civl.mc.model.IF.expression.CompoundLiteralExpression;
+import dev.civl.mc.model.IF.expression.CompoundLiteralExpression.CIVLCompoundLiteralObject;
+import dev.civl.mc.model.IF.expression.CompoundLiteralExpression.CIVLLiteralObject;
+import dev.civl.mc.model.IF.expression.CompoundLiteralExpression.CIVLScalarLiteralObject;
 import dev.civl.mc.model.IF.expression.ConditionalExpression;
 import dev.civl.mc.model.IF.expression.DereferenceExpression;
 import dev.civl.mc.model.IF.expression.DerivativeCallExpression;
@@ -59,7 +62,6 @@ import dev.civl.mc.model.IF.expression.ScopeofExpression;
 import dev.civl.mc.model.IF.expression.SelfExpression;
 import dev.civl.mc.model.IF.expression.SizeofExpression;
 import dev.civl.mc.model.IF.expression.SizeofTypeExpression;
-import dev.civl.mc.model.IF.expression.StructOrUnionLiteralExpression;
 import dev.civl.mc.model.IF.expression.SubscriptExpression;
 import dev.civl.mc.model.IF.expression.SystemGuardExpression;
 import dev.civl.mc.model.IF.expression.UnaryExpression;
@@ -268,14 +270,9 @@ public class CommonEvaluator implements Evaluator {
 	protected SymbolicUniverse universe;
 
 	/**
-	 * The symbolic int object of 0.
+	 * The symbolic int object of 0,1 and 2
 	 */
-	private IntObject zeroObj;
-
-	/**
-	 * The symbolic int object of 2.
-	 */
-	private IntObject twoObj;
+	final private IntObject zeroObj, oneObj, twoObj;
 
 	/**
 	 * The symbolic numeric expression of 0 of integer type.
@@ -382,6 +379,7 @@ public class CommonEvaluator implements Evaluator {
 		pointerType = typeFactory.pointerSymbolicType();
 		functionPointerType = typeFactory.functionPointerSymbolicType();
 		zeroObj = universe.intObject(0);
+		oneObj = universe.intObject(1);
 		twoObj = universe.intObject(2);
 		identityReference = universe.identityReference();
 		zero = universe.integer(0);
@@ -837,71 +835,6 @@ public class CommonEvaluator implements Evaluator {
 		falseBranch = eva.value;
 		eva.value = universe.cond(conEval, trueBranch, falseBranch);
 		return eva;
-	}
-
-	/**
-	 * Evaluates an array literal expression, like
-	 * <code>{[1] = a, [2] = 3, [6]=9}</code>;
-	 * 
-	 * @param state
-	 *                       The state of the program.
-	 * @param pid
-	 *                       The pid of the currently executing process.
-	 * @param expression
-	 *                       The array literal expression.
-	 * @return The symbolic representation of the array literal expression and
-	 *         the new state if there is side effect.
-	 * @throws UnsatisfiablePathConditionException
-	 */
-	protected Evaluation evaluateArrayLiteral(State state, int pid,
-			ArrayLiteralExpression expression)
-			throws UnsatisfiablePathConditionException {
-		Expression[] elements = expression.elements();
-		SymbolicType symbolicElementType;
-		List<SymbolicExpression> symbolicElements = new ArrayList<>();
-		Evaluation eval;
-
-		for (Expression element : elements) {
-			eval = evaluate(state, pid, element);
-			symbolicElements.add(eval.value);
-			state = eval.state;
-		}
-		// The symbolic element type is get from the function "getDynamicType()"
-		// which won't give any information about extents, so we have to add it
-		// if it's complete array type.
-		if (expression.elementType() instanceof CIVLCompleteArrayType) {
-			Pair<State, SymbolicType> pair;
-
-			pair = getCompleteArrayType(state, pid,
-					((CIVLCompleteArrayType) expression.elementType()));
-			state = pair.left;
-			symbolicElementType = pair.right;
-		} else
-			symbolicElementType = expression.elementType()
-					.getDynamicType(universe);
-		return new Evaluation(state,
-				universe.array(symbolicElementType, symbolicElements));
-	}
-
-	private Pair<State, SymbolicType> getCompleteArrayType(State state, int pid,
-			CIVLCompleteArrayType elementType)
-			throws UnsatisfiablePathConditionException {
-		SymbolicType arrayType;
-		Evaluation eval;
-		Pair<State, SymbolicType> pair;
-
-		if (elementType.elementType() instanceof CIVLCompleteArrayType) {
-			pair = this.getCompleteArrayType(state, pid,
-					(CIVLCompleteArrayType) elementType.elementType());
-			state = pair.left;
-			arrayType = pair.right;
-		} else
-			arrayType = elementType.elementType().getDynamicType(universe);
-		eval = this.evaluate(state, pid, elementType.extent());
-		state = eval.state;
-		assert eval.value instanceof NumericExpression;
-		return new Pair<State, SymbolicType>(state,
-				universe.arrayType(arrayType, (NumericExpression) eval.value));
 	}
 
 	/**
@@ -2776,37 +2709,102 @@ public class CommonEvaluator implements Evaluator {
 	}
 
 	/**
-	 * Evaluate a struct literal expression.
+	 * Evaluates a compound literal expression. The evaluation will go through
+	 * the {@link CIVLCompoundLiteralObject} of the expression.
 	 * 
 	 * @param state
-	 *                       The state of the program.
+	 *            the current program state
 	 * @param pid
-	 *                       The pid of the currently executing process.
+	 *            the ID the running process
 	 * @param expression
-	 *                       The struct literal expression.
-	 * @return The symbolic representation of the struct literal expression.
+	 *            the compound literal expression
+	 * @return the {@link Evaluation} result
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	protected Evaluation evaluateStructOrUnionLiteral(State state, int pid,
-			StructOrUnionLiteralExpression expression)
+	protected Evaluation evaluateCompoundLiteral(State state, int pid,
+			CompoundLiteralExpression expression)
 			throws UnsatisfiablePathConditionException {
-		// check if type of value is compatible with the expression type:
-		SymbolicExpression constVal = expression.constantValue();
-		SymbolicType dynamicExprType = expression.getExpressionType()
-				.getDynamicType(universe);
-
-		if (!symbolicAnalyzer.areDynamicTypesCompatiableForAssign(
-				dynamicExprType, constVal.type()))
-			// throw internal exception because StructOrUnionLiteralExpressions
-			// are only created by back-end implementations:
-			throw new CIVLInternalException(
-					"StructOrUnionLiteralExpression has incompatible constant value: "
-							+ constVal + "\nExpression type: "
-							+ expression.getExpressionType(),
-					expression);
-		return new Evaluation(state, constVal);
+		// At this point, we know this expression has no constant value:
+		return evaluateLiteralObject(state, pid, expression.getLiteralObject(),
+				expression.getSource());
 	}
+	
+	/**
+ 	 * Evaluate a {@link CIVLLiteralObject} for a compound literal expression
+ 	 * 
+ 	 * @param state
+ 	 *            the current state
+ 	 * @param pid
+ 	 *            the ID of the running process
+ 	 * @param obj
+ 	 *            the evaluating literal object
+ 	 * @param source
+ 	 *            {@link CIVLSource} of the compound literal expression  
+ 	 * @throws UnsatisfiablePathConditionException
+ 	 */
+ 	private Evaluation evaluateLiteralObject(State state, int pid, CIVLLiteralObject obj,
+ 			CIVLSource source) throws UnsatisfiablePathConditionException {
+ 		if (obj instanceof CIVLScalarLiteralObject) {
+ 			CIVLScalarLiteralObject scalar = (CIVLScalarLiteralObject) obj;
+ 			Expression scalarExpr = scalar.getExpression();
+ 
+ 			if (scalarExpr != null)
+ 				return evaluate(state, pid, scalarExpr);
+ 			return initialValueOfType(state, pid, scalar.type());
+ 		}
+ 
+ 		CIVLCompoundLiteralObject compound = (CIVLCompoundLiteralObject) obj;
+ 		List<SymbolicExpression> subObjVals = new ArrayList<>(compound.size());
+ 		SymbolicType compoundDyTy;
+ 		CIVLType compoundTy = compound.type();
+ 
+ 		assert compoundTy.isArrayType() || compoundTy.isStructType()
+ 				|| compoundTy.isUnionType();
+ 
+ 		TypeEvaluation teval = getDynamicType(state, pid, compoundTy, source,
+ 				false);
+ 
+		state = teval.state;
+		compoundDyTy = teval.type;
+		for (CIVLLiteralObject subObj : compound) {
+			Evaluation eval = evaluateLiteralObject(state, pid, subObj, source);
 
+			state = eval.state;
+			subObjVals.add(eval.value);
+		}
+
+		SymbolicExpression resultVal;
+
+		switch (compoundDyTy.typeKind()) {
+			case ARRAY : {
+				Evaluation eval = initialValueOfType(state, pid, compoundTy);
+
+				state = eval.state;
+				resultVal = universe.denseArrayWrite(eval.value, subObjVals);
+				break;
+			}
+			case TUPLE :
+				resultVal = universe.tuple((SymbolicTupleType) compoundDyTy,
+						subObjVals);
+				break;
+			case UNION : {
+				int memberIdx = subObjVals.size() - 1;
+
+				assert (memberIdx >= 0);
+				resultVal = universe.unionInject(
+						(SymbolicUnionType) compoundDyTy,
+						universe.intObject(memberIdx), subObjVals.getLast());
+				break;
+			}
+			default :
+				throw new CIVLInternalException(
+						"Unexpected compound literal object type kind "
+								+ compoundDyTy.typeKind(),
+						source);
+		}
+		return new Evaluation(state, resultVal);
+	}
+	
 	/**
 	 * Evaluate a unary expression.
 	 * 
@@ -3092,16 +3090,22 @@ public class CommonEvaluator implements Evaluator {
 				SymbolicExpression initDomainValue;
 				int dim;
 				SymbolicType integerType = universe.integerType();
-				SymbolicTupleType tupleType = universe.tupleType(
-						universe.stringObject("domain"),
-						Arrays.asList(integerType, integerType, universe
-								.arrayType(universe.arrayType(integerType))));
+				TypeEvaluation teval = getDynamicType(state, pid, domainType,
+						modelFactory.systemSource(), false);
+
+				state = teval.state;
+
+				SymbolicTupleType tupleType = (SymbolicTupleType) teval.type;
+				SymbolicUnionType unionComponentType = (SymbolicUnionType) tupleType
+						.sequence().getType(2);
 				List<SymbolicExpression> tupleComponents = new LinkedList<>();
+				SymbolicExpression unionComponentVal = universe.unionInject(
+						unionComponentType, oneObj,
+						universe.emptyArray(universe.arrayType(integerType)));
 
 				tupleComponents.add(one);
 				tupleComponents.add(one);
-				tupleComponents.add(
-						universe.emptyArray(universe.arrayType(integerType)));
+				tupleComponents.add(unionComponentVal);
 				if (domainType.isComplete()) {
 					CIVLCompleteDomainType compDomainType = (CIVLCompleteDomainType) domainType;
 
@@ -3635,10 +3639,6 @@ public class CommonEvaluator implements Evaluator {
 						(ArrayLambdaExpression) expression);
 				break;
 			}
-			case ARRAY_LITERAL :
-				result = evaluateArrayLiteral(state, pid,
-						(ArrayLiteralExpression) expression);
-				break;
 			case BINARY :
 				result = evaluateBinary(state, pid, process,
 						(BinaryExpression) expression);
@@ -3738,9 +3738,9 @@ public class CommonEvaluator implements Evaluator {
 				result = evaluateSizeofExpressionExpression(state, pid,
 						(SizeofExpression) expression);
 				break;
-			case STRUCT_OR_UNION_LITERAL :
-				result = evaluateStructOrUnionLiteral(state, pid,
-						(StructOrUnionLiteralExpression) expression);
+			case COMPOUND_LITERAL :
+				result = evaluateCompoundLiteral(state, pid,
+						(CompoundLiteralExpression) expression);
 				break;
 			case SUBSCRIPT :
 				result = evaluateSubscript(state, pid, process,

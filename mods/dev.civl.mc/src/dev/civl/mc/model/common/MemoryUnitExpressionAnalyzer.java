@@ -14,9 +14,9 @@ import dev.civl.mc.model.IF.Scope;
 import dev.civl.mc.model.IF.expression.AbstractFunctionCallExpression;
 import dev.civl.mc.model.IF.expression.AddressOfExpression;
 import dev.civl.mc.model.IF.expression.ArrayLambdaExpression;
-import dev.civl.mc.model.IF.expression.ArrayLiteralExpression;
 import dev.civl.mc.model.IF.expression.BinaryExpression;
 import dev.civl.mc.model.IF.expression.CastExpression;
+import dev.civl.mc.model.IF.expression.CompoundLiteralExpression;
 import dev.civl.mc.model.IF.expression.ConditionalExpression;
 import dev.civl.mc.model.IF.expression.DereferenceExpression;
 import dev.civl.mc.model.IF.expression.DomainGuardExpression;
@@ -409,16 +409,6 @@ public class MemoryUnitExpressionAnalyzer {
 						lambda.lambdaFunction(), result, derefCount);
 				break;
 			}
-			case ARRAY_LITERAL : {
-				Expression[] elements = ((ArrayLiteralExpression) expression)
-						.elements();
-
-				for (Expression element : elements) {
-					computeImpactMemoryUnitsOfExpression(writableVars, element,
-							result, derefCount);
-				}
-				break;
-			}
 			case BINARY : {
 				BinaryExpression binaryExpression = (BinaryExpression) expression;
 
@@ -561,8 +551,16 @@ public class MemoryUnitExpressionAnalyzer {
 				break;
 			case STRING_LITERAL :
 				break;
-			case STRUCT_OR_UNION_LITERAL :
+			case COMPOUND_LITERAL : {
+				CompoundLiteralExpression compound = (CompoundLiteralExpression) expression;
+
+				if (!compound.hasConstantValue())
+					for (Expression element : compound.getLiteralObject()
+							.subExpressions())
+						computeImpactMemoryUnitsOfExpression(writableVars,
+								element, result, derefCount);
 				break;
+			}
 			case SUBSCRIPT :
 				computeImpactMemoryUnitsOfExpression(writableVars,
 						((SubscriptExpression) expression).array(), result,

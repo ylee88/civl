@@ -12,12 +12,12 @@ import java.util.Stack;
 
 import dev.civl.mc.model.IF.expression.AbstractFunctionCallExpression;
 import dev.civl.mc.model.IF.expression.AddressOfExpression;
-import dev.civl.mc.model.IF.expression.ArrayLiteralExpression;
 import dev.civl.mc.model.IF.expression.BinaryExpression;
 import dev.civl.mc.model.IF.expression.BooleanLiteralExpression;
 import dev.civl.mc.model.IF.expression.BoundVariableExpression;
 import dev.civl.mc.model.IF.expression.CastExpression;
 import dev.civl.mc.model.IF.expression.CharLiteralExpression;
+import dev.civl.mc.model.IF.expression.CompoundLiteralExpression;
 import dev.civl.mc.model.IF.expression.ConditionalExpression;
 import dev.civl.mc.model.IF.expression.DereferenceExpression;
 import dev.civl.mc.model.IF.expression.DerivativeCallExpression;
@@ -42,7 +42,6 @@ import dev.civl.mc.model.IF.expression.ScopeofExpression;
 import dev.civl.mc.model.IF.expression.SelfExpression;
 import dev.civl.mc.model.IF.expression.SizeofExpression;
 import dev.civl.mc.model.IF.expression.SizeofTypeExpression;
-import dev.civl.mc.model.IF.expression.StructOrUnionLiteralExpression;
 import dev.civl.mc.model.IF.expression.SubscriptExpression;
 import dev.civl.mc.model.IF.expression.SystemGuardExpression;
 import dev.civl.mc.model.IF.expression.UnaryExpression;
@@ -329,10 +328,6 @@ public class DynamicDependence {
 				collectVariablesWorker(e,vars);
 		} else if (expr instanceof AddressOfExpression) {
 			collectVariablesWorker(((AddressOfExpression)expr).operand(),vars);
-		} else if (expr instanceof ArrayLiteralExpression) {
-			Expression[] elements = ((ArrayLiteralExpression) expr).elements();
-			for (Expression e : elements)
-				collectVariablesWorker(e,vars);
 		} else if (expr instanceof BinaryExpression) {
 			Expression left = ((BinaryExpression) expr).left();
 			Expression right = ((BinaryExpression) expr).right();
@@ -422,8 +417,13 @@ public class DynamicDependence {
 			collectVariablesWorker(e,vars);
 		} else if (expr instanceof SizeofTypeExpression) {
 			// do nothing
-		} else if (expr instanceof StructOrUnionLiteralExpression) {
-			// do nothing
+		} else if (expr instanceof CompoundLiteralExpression) {
+			CompoundLiteralExpression compound = (CompoundLiteralExpression) expr;
+
+			if (!compound.hasConstantValue())
+				for (Expression subExpr : compound.getLiteralObject()
+						.subExpressions())
+					collectVariablesWorker(subExpr, vars);
 		} else if (expr instanceof SubscriptExpression) {
 			// ask 
 		}  else if (expr instanceof SystemGuardExpression) {

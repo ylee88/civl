@@ -420,9 +420,18 @@ public class DeclarationAnalyzer {
 			if (initializer instanceof CompoundInitializerNode)
 				result.setType(entityAnalyzer.typeFactory.compositeType(type,
 						((CompoundInitializerNode) initializer).getType()));
-			if (initializer instanceof StringLiteralNode)
+			if (initializer instanceof StringLiteralNode) {
 				result.setType(entityAnalyzer.typeFactory.compositeType(type,
 						((StringLiteralNode) initializer).getType()));
+				if (result.getType().kind() == TypeKind.ARRAY) {
+					// If variable is also an array, the initializer and the
+					// variable shall have identical types. E.g.,
+					// char a[100] = "hello";
+					// The initializer "hello" is of type char[100].
+					((ExpressionNode) initializer)
+							.setInitialType(result.getType());
+				}
+			}
 			// if language is CIVL-C, apply CIVL-C extended rule for computing
 			// the final type from declaration and initializer...
 			if (!type.isScalar())

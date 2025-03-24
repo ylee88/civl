@@ -44,6 +44,30 @@ public class ArrayLambdaTest {
 		assertTrue(ui.run("verify", QUIET, filename("arrayLambda3.cvl")));
 	}
 
+	@Test
+	public void arrayLambdaCompoundLiterals() {
+		assertTrue(ui.run("verify", QUIET,
+				filename("arrayLambdaCompoundLiterals.cvl")));
+	}
+
+	@Test
+	public void arrayLambdaCompoundLiteralsBad() {
+		assertFalse(ui.run("verify", QUIET,
+				filename("arrayLambdaCompoundLiterals-bad.cvl")));
+	}
+
+	@Test
+	public void arrayLambdaCompoundLiterals2() {
+		assertTrue(ui.run("verify", QUIET,
+				filename("arrayLambdaCompoundLiterals2.cvl")));
+	}
+
+	@Test
+	public void arrayLambdaCompoundLiterals2Bad() {
+		assertFalse(ui.run("verify", QUIET,
+				filename("arrayLambdaCompoundLiterals2-bad.cvl")));
+	}
+
 	// lhs and rhs have incompatible dynamic types:
 	@Test
 	public void arrayLambdaAssignmentTypeInCompatible() {

@@ -32,11 +32,6 @@ public interface Expression extends Sourceable {
 		 */
 		ADDRESS_OF,
 		/**
-		 * A C array literal expression, e.g., <code> {[2]=5, [4]=3}</code>,
-		 * instance of {@link ArrayLiteralExpression}.
-		 */
-		ARRAY_LITERAL,
-		/**
 		 * A C binary operator expression, e.g., <code>a+b</code>,
 		 * <code>e/(d-5*c)</code>, instance of {@link BinaryExpression}.
 		 */
@@ -45,7 +40,7 @@ public interface Expression extends Sourceable {
 		 * Conditional expression c ? a : b, instance of
 		 * {@link ConditionalExpression}
 		 */
-		COND, DEREFERENCE, DERIVATIVE, DIFFERENTIABLE, DOMAIN_GUARD, DOT, DYNAMIC_TYPE_OF, FUNCTION_IDENTIFIER, FUNCTION_GUARD, INITIAL_VALUE, INTEGER_LITERAL, MEMORY_UNIT, MPI_CONTRACT_EXPRESSION, NULL_LITERAL, QUANTIFIER, REAL_LITERAL, REGULAR_RANGE, RESULT, SCOPEOF, SELF, SIZEOF_TYPE, SIZEOF_EXPRESSION, STRING_LITERAL, STRUCT_OR_UNION_LITERAL, SUBSCRIPT, SYSTEM_GUARD, UNARY, UNDEFINED_PROC, VARIABLE, HERE_OR_ROOT, PROC_NULL,
+		COND, DEREFERENCE, DERIVATIVE, DIFFERENTIABLE, DOMAIN_GUARD, DOT, DYNAMIC_TYPE_OF, FUNCTION_IDENTIFIER, FUNCTION_GUARD, INITIAL_VALUE, INTEGER_LITERAL, MEMORY_UNIT, MPI_CONTRACT_EXPRESSION, NULL_LITERAL, QUANTIFIER, REAL_LITERAL, REGULAR_RANGE, RESULT, SCOPEOF, SELF, SIZEOF_TYPE, SIZEOF_EXPRESSION, STRING_LITERAL, COMPOUND_LITERAL, SUBSCRIPT, SYSTEM_GUARD, UNARY, UNDEFINED_PROC, VARIABLE, HERE_OR_ROOT, PROC_NULL,
 		/**
 		 * A $state_null constant, instance of {@link StatenullExpression}
 		 */
@@ -150,7 +145,7 @@ public interface Expression extends Sourceable {
 	 * 
 	 * @param scope
 	 *            The scope to focus on.
-	 * @return
+	 * @return a nullable set of variables; null equivalents to an empty set
 	 */
 	Set<Variable> variableAddressedOf(Scope scope);
 
@@ -158,7 +153,7 @@ public interface Expression extends Sourceable {
 	 * Compute the set of variables that appear in an address-of expression.
 	 * e.g., <code>(&a + &b)</code> returns <code>{a, b}</code>.
 	 * 
-	 * @return
+	 * @return a nullable set of variables; null equivalents to an empty set
 	 */
 	Set<Variable> variableAddressedOf();
 

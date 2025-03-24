@@ -19,13 +19,13 @@ import dev.civl.mc.model.IF.contract.MPICollectiveBehavior.MPICommunicationPatte
 import dev.civl.mc.model.IF.expression.AbstractFunctionCallExpression;
 import dev.civl.mc.model.IF.expression.AddressOfExpression;
 import dev.civl.mc.model.IF.expression.ArrayLambdaExpression;
-import dev.civl.mc.model.IF.expression.ArrayLiteralExpression;
 import dev.civl.mc.model.IF.expression.BinaryExpression;
 import dev.civl.mc.model.IF.expression.BinaryExpression.BINARY_OPERATOR;
 import dev.civl.mc.model.IF.expression.BooleanLiteralExpression;
 import dev.civl.mc.model.IF.expression.BoundVariableExpression;
 import dev.civl.mc.model.IF.expression.CastExpression;
 import dev.civl.mc.model.IF.expression.CharLiteralExpression;
+import dev.civl.mc.model.IF.expression.CompoundLiteralExpression;
 import dev.civl.mc.model.IF.expression.ConditionalExpression;
 import dev.civl.mc.model.IF.expression.DereferenceExpression;
 import dev.civl.mc.model.IF.expression.DerivativeCallExpression;
@@ -57,7 +57,6 @@ import dev.civl.mc.model.IF.expression.SelfExpression;
 import dev.civl.mc.model.IF.expression.SizeofExpression;
 import dev.civl.mc.model.IF.expression.SizeofTypeExpression;
 import dev.civl.mc.model.IF.expression.StatenullExpression;
-import dev.civl.mc.model.IF.expression.StructOrUnionLiteralExpression;
 import dev.civl.mc.model.IF.expression.SubscriptExpression;
 import dev.civl.mc.model.IF.expression.UnaryExpression;
 import dev.civl.mc.model.IF.expression.UnaryExpression.UNARY_OPERATOR;
@@ -82,7 +81,6 @@ import dev.civl.mc.model.IF.statement.WithStatement;
 import dev.civl.mc.model.IF.type.CIVLArrayType;
 import dev.civl.mc.model.IF.type.CIVLFunctionType;
 import dev.civl.mc.model.IF.type.CIVLPointerType;
-import dev.civl.mc.model.IF.type.CIVLStructOrUnionType;
 import dev.civl.mc.model.IF.type.CIVLType;
 import dev.civl.mc.model.IF.variable.Variable;
 import dev.civl.mc.model.common.ModelFactoryException;
@@ -138,23 +136,6 @@ public interface ModelFactory {
 	 */
 	AddressOfExpression addressOfExpression(CIVLSource source,
 			LHSExpression operand);
-
-	/**
-	 * Create a new instance of array literal expression using an array of
-	 * expressions.
-	 * 
-	 * @param source
-	 *                      The CIVL source of the array literal.
-	 * 
-	 * @param arrayType
-	 *                      The type of the literal.
-	 * @param elements
-	 *                      The elements used to create the array literal
-	 *                      expression.
-	 * @return The new array literal expression created.
-	 */
-	ArrayLiteralExpression arrayLiteralExpression(CIVLSource source,
-			CIVLArrayType arrayType, List<Expression> elements);
 
 	/**
 	 * A binary expression. One of {+,-,*,\,<,<=,==,!=,&&,||,%}
@@ -626,23 +607,20 @@ public interface ModelFactory {
 			Expression argument);
 
 	/**
-	 * Creates a new instance of struct or union literal expression, which has a
-	 * constant value.
+	 * Creates a new instance of a compound literal expression.
 	 * 
 	 * @param source
-	 *                          the source of the literal expression
+	 *            the source of the literal expression
 	 * @param exprScope
-	 *                          the scope of the literal expression
+	 *            the scope of the literal expression
 	 * @param type
-	 *                          the type of the literal expression
-	 * @param constantValue
-	 *                          the constant value of the literal
-	 * @return the new struct or union literal expression which has the given
-	 *         constant value
+	 *            the type of the literal expression
+	 * @param isStringLiteral
+	 *            true iff this expression represents a string literal
+	 * @return the new compound literal expression
 	 */
-	StructOrUnionLiteralExpression structOrUnionLiteralExpression(
-			CIVLSource source, Scope exprScope, CIVLStructOrUnionType type,
-			SymbolicExpression constantValue);
+	CompoundLiteralExpression compoundLiteralExpression(CIVLSource source,
+			Scope exprScope, CIVLType type, boolean isStringLiteral);
 
 	/**
 	 * An expression for an array index operation. e.g. a[i]
@@ -1585,7 +1563,7 @@ public interface ModelFactory {
 	 * @return the new anonymous variable
 	 */
 	Variable newAnonymousVariableForArrayLiteral(CIVLSource sourceOf,
-			CIVLArrayType type);
+			Scope scope, CIVLArrayType type);
 
 	/**
 	 * Creates an anonymous variable of array type in the static constant scope.

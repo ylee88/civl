@@ -1,6 +1,7 @@
 package dev.civl.abc.analysis.entity;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 import dev.civl.abc.ast.node.IF.ASTNode;
@@ -154,4 +155,8 @@ public class CommonCompoundLiteralObject extends CommonLiteralObject
 		set(source, designation, 0, value);
 	}
 
+	@Override
+	public Iterator<LiteralObject> iterator() {
+		return elements.iterator();
+	}
 }
