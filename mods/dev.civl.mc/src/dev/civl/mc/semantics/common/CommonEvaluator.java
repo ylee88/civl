@@ -2793,7 +2793,8 @@ public class CommonEvaluator implements Evaluator {
 				assert (memberIdx >= 0);
 				resultVal = universe.unionInject(
 						(SymbolicUnionType) compoundDyTy,
-						universe.intObject(memberIdx), subObjVals.getLast());
+						universe.intObject(memberIdx),
+						subObjVals.get(subObjVals.size() - 1));
 				break;
 			}
 			default :
