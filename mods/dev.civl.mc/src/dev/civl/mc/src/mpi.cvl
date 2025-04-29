@@ -246,6 +246,26 @@ int MPI_Bcast(void *buf, int count, MPI_Datatype datatype, int root,
   return 0;
 }
 
+int MPI_Reduce_local(const void *inbuf, void *inoutbuf, int count,
+                     MPI_Datatype datatype, MPI_Op op) {
+#ifndef _MPI_CONTRACT
+  $assert(_mpi_state == _MPI_INIT, "MPI_Reduce_local() cannot be invoked without "
+    "MPI_Init() being called before.\n");
+#endif
+  $mpi_check_buffer(inbuf, count, datatype);
+  $mpi_check_buffer(inoutbuf, count, datatype);
+
+  size_t size = count * sizeofDatatype(datatype);
+  $bundle in_data = $bundle_pack(inbuf, size);
+ void *buf = $mpi_malloc(count, datatype);
+ 
+  $bundle_unpack_apply(in_data, inoutbuf, op, count, buf);
+  memcpy(inoutbuf, buf, size);
+  free(buf);
+  return 0;
+}
+
+
 /* Reduces values on all processes to a single value */
 int MPI_Reduce(const void* sendbuf, void* recvbuf, int count,
 	       MPI_Datatype datatype, MPI_Op op, int root,
