@@ -38,11 +38,23 @@ public class MPIRoutineTest {
 	}
 
 	@Test
-	public void mpiReduceLocalBad1() {
+	public void mpiReduceLocalBad() {
 		// TODO: really want to check that there are 4 errors at 4 specific
 		// locations
 		assertFalse(ui.run("verify  -errorBound=4 -input_mpi_nprocs=1 -quiet",
 				filename("mpi_reduce_local-bad.c")));
+	}
+	
+	@Test
+	public void mpiTypeSize() {
+		assertTrue(ui.run("verify -input_mpi_nprocs=1 -quiet",
+				filename("mpi_type_size.c")));
+	}
+	
+	@Test
+	public void mpiTypeSizeBad() {
+		assertFalse(ui.run("verify  -errorBound=4 -input_mpi_nprocs=1 -quiet",
+				filename("mpi_type_size-bad.c")));
 	}
 
 	@AfterClass

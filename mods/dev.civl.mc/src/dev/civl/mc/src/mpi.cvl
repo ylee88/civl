@@ -27,6 +27,13 @@ int $mpi_init(void) {
   return 0;
 }
 
+int MPI_Type_size(MPI_Datatype datatype, int *size) {
+  $assert(_mpi_state == _MPI_INIT, "MPI_Type_size() cannot be invoked "
+    "without MPI_Init() being called before.\n");
+  *size = sizeofDatatype(datatype);
+  return 0;
+}
+
 int MPI_Finalize(void) {
   $assert(_mpi_state == _MPI_INIT, "Process can only call MPI_Finalize() after the "
 	  "MPI enviroment is created and before cleaned.");
