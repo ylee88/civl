@@ -9,18 +9,17 @@ void test_builtin_types() {
   MPI_Type_size(MPI_DOUBLE, &size3);
   MPI_Type_size(MPI_CHAR, &size4);
 
-  $choose {
-    $when ($true)
-      assert(size1 != sizeof(int));
+  int x = $choose_int(4);
 
-    $when ($true)
-      assert(size2 != sizeof(float));
-
-    $when ($true)
-      assert(size3 != sizeof(double));
-
-    $when ($true)
-      assert(size3 != sizeof(char));
+  switch(x) {
+  case 0:
+    assert(size1 != sizeof(int));
+  case 1:
+    assert(size2 != sizeof(float));
+  case 2:
+    assert(size3 != sizeof(double));     
+  case 3:
+    assert(size3 != sizeof(char));
   }
 }
 
