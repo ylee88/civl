@@ -9,6 +9,7 @@ import dev.civl.gmc.seq.SequentialNode;
 import dev.civl.gmc.seq.StateManager;
 
 public class DporNodeFactory<STATE, TRANSITION> implements GetIdFunction<STATE> {
+	// Maps a state to its canonical DporNode
 	private Map<STATE, DporNode<STATE, TRANSITION>> nodeMap = new HashMap<>();
 	
 	/**
@@ -75,7 +76,7 @@ public class DporNodeFactory<STATE, TRANSITION> implements GetIdFunction<STATE> 
 	}
 
 	/**
-	 * Get the node associated to the given state, null there is no such a node.
+	 * Get the node associated to the given state, null if there is no such a node.
 	 * 
 	 * @param state
 	 *            The state whose associated node will be returned.

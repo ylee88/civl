@@ -8,6 +8,7 @@ import java.util.Set;
 
 import dev.civl.gmc.dpor.DependencyAnalyzer;
 import dev.civl.gmc.dpor.DporSearchStack;
+import dev.civl.gmc.dpor.DporStackEntry;
 import dev.civl.gmc.seq.StateManager;
 import dev.civl.mc.kripke.IF.TraceStep;
 import dev.civl.mc.semantics.IF.Transition;
@@ -51,7 +52,7 @@ public class SimpleDependencyAnalyzer
 	@Override
 	public boolean checkDependent(DporSearchStack<State, Transition> stack,
 			int stackIndex, int pid) {
-		DporSearchStack<State, Transition>.Entry inEntry, topEntry;
+		DporStackEntry<State, Transition> inEntry, topEntry;
 		inEntry = stack.get(stackIndex);
 		topEntry = stack.top();
 		int inPid = inEntry.getPid();
@@ -167,7 +168,7 @@ public class SimpleDependencyAnalyzer
 	 * @param pid
 	 * @return the set of memory locations local to pid at entry
 	 */
-	private SeqSet computeLocalMem(DporSearchStack<State, Transition>.Entry entry, int pid) {
+	private SeqSet computeLocalMem(DporStackEntry<State, Transition> entry, int pid) {
 		State state = entry.getState();
 		SeqSet nonLocal = new SeqSet();
 		for (int otherProc : entry.enabledProcs()) {

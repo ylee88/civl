@@ -6,6 +6,13 @@ import java.util.Map;
 import dev.civl.gmc.TraceStepIF;
 import dev.civl.gmc.seq.SequentialNode;
 
+/**
+ * Wraps a STATE object with trace step caching and persistent data used in the DPOR search
+ * @author awilton
+ *
+ * @param <STATE>
+ * @param <TRANSITION>
+ */
 public class DporNode<STATE, TRANSITION> {
 	private int id;
 	
@@ -31,7 +38,7 @@ public class DporNode<STATE, TRANSITION> {
 	 * 
 	 * Needed because DPOR requires frequently retracing steps.
 	 */
-	private Map<TRANSITION, TraceStepIF<STATE>> transitionMap = new HashMap<>();
+	private Map<TRANSITION, TraceStepIF<STATE>> traceStepCache = new HashMap<>();
 
 	public DporNode(STATE state, int id) {
 		this.state = state;
@@ -97,17 +104,17 @@ public class DporNode<STATE, TRANSITION> {
 	 * Given a transition, return the cached trace step it entails if we have
 	 * explored it already. Returns null if not.
 	 */
-	public TraceStepIF<STATE> getTraceStep(TRANSITION transition) {
-		return transitionMap.getOrDefault(transition, null);
+	public TraceStepIF<STATE> getTraceStepCache(TRANSITION transition) {
+		return traceStepCache.getOrDefault(transition, null);
 	}
 
 	/**
 	 * Accepts a transition and the trace step that it entails and caches this
 	 * association.
 	 */
-	public void setTraceStep(TRANSITION transition,
+	public void cacheTraceStep(TRANSITION transition,
 			TraceStepIF<STATE> traceStep) {
-		transitionMap.put(transition, traceStep);
+		traceStepCache.put(transition, traceStep);
 	}
 
 	/**

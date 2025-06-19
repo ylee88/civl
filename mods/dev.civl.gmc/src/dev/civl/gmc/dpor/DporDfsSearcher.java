@@ -160,16 +160,18 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 		 *   2. stack.currentState() has no enabled processes
 		 */
 		while (!stack.isEmpty()) {
-			DporSearchStack<STATE, TRANSITION>.Entry topStackEntry = stack.top();
+			DporStackEntry<STATE, TRANSITION> topStackEntry = stack.top();
 			
 			for (Integer outerPid : topStackEntry.enabledProcs()) {
 				DporSearchStack<STATE, TRANSITION>.StackTraversal stackTraversal = stack
 						.makeStackTraversal(outerPid);
 				boolean foundRace = false;
-				for (int i = stackTraversal.next(); i != -1; i = stackTraversal.next()) {
-					DporSearchStack<STATE, TRANSITION>.Entry currEntry = stack.get(i);
-					if (analyzer.checkDependent(stack, i, outerPid)) {
-						stack.addRace(outerPid, i);
+				for (DporStackEntry<STATE, TRANSITION> currEntry = stackTraversal
+						.next(); currEntry != null; currEntry = stackTraversal
+								.next()) {
+					final int pos = currEntry.getPos();
+					if (analyzer.checkDependent(stack, pos, outerPid)) {
+						stack.addRace(currEntry, outerPid);
 						numRaces++;
 						
 						// Only need to add to backtrack if this is the first race we found
@@ -180,17 +182,16 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 							// will remain -1 if no such process exists
 							int enabledProc = -1;
 							
-							DporSearchStack<STATE, TRANSITION>.HbRelation topHbRel = topStackEntry
-									.getHbRel();
+							DporHbSet topHbSet = topStackEntry.getHbSet();
 							final int oPidCopy = outerPid;
-							final int pos = i;
+							
 							// This stream represents the "E" set in algorithm from
 							// DPOR paper
 							Iterator<Integer> candidateIter = Stream
 									.concat(Stream.of(outerPid),
-											topHbRel.hbProcSet().stream()
-													.filter(p -> p != oPidCopy && topHbRel
-															.lastHbEntry(p) > pos))
+											topHbSet.procSet().stream()
+													.filter(p -> p != oPidCopy && topHbSet
+															.lastEntryPos(p) > pos))
 									.iterator();
 							while (candidateIter.hasNext()) {
 								int proc = candidateIter.next();
@@ -318,7 +319,7 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 			out.println("  <EMPTY>");
 		}
 		for (int i = 0; i < size; i++) {
-			DporSearchStack<STATE, TRANSITION>.Entry stackEntry = stack.get(i);
+			DporStackEntry<STATE, TRANSITION> stackEntry = stack.get(i);
 			STATE state = stackEntry.getState();
 
 			if (!summarize || i <= 1 || size - i < summaryCutOff - 1) {
