@@ -3,7 +3,7 @@ package dev.civl.mc.kripke.IF;
 import dev.civl.mc.config.IF.CIVLConfiguration;
 import dev.civl.mc.kripke.common.CommonLibraryEnablerLoader;
 import dev.civl.mc.kripke.common.CommonStateManager;
-import dev.civl.mc.kripke.common.SimpleDependencyAnalyzer;
+import dev.civl.mc.kripke.common.CrossStateDependencyAnalyzer;
 import dev.civl.mc.kripke.common.SimpleEnabler;
 import dev.civl.mc.log.IF.CIVLErrorLogger;
 import dev.civl.mc.semantics.IF.Evaluator;
@@ -56,7 +56,7 @@ public class Kripkes {
 	}
 	
 	public static DependencyAnalyzer<State, Transition> newDependencyAnalyzer(StateManager<State, Transition> manager, StateFactory stateFactory, SimpleEnabler enabler) {
-		return new SimpleDependencyAnalyzer(manager, stateFactory, enabler);
+		return new CrossStateDependencyAnalyzer(manager, stateFactory, enabler);
 	}
 
 	/**

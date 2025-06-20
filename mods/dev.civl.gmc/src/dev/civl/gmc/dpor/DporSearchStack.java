@@ -143,18 +143,19 @@ public class DporSearchStack<STATE, TRANSITION> {
 	}
 	
 	/**
-	 * Increments to the next outgoing transition to be explored from the
-	 * current state. This may involve switching to the transitions of the next
-	 * process in the backtrack set.
+	 * Precondition: currentTransition() == null
 	 * 
-	 * @return true iff a next transition exists
-	 * @throws {@link EmptyStackException} if the stack is empty
+	 * Traverses to the next available transition to explore, popping from the
+	 * stack as necessary.
+	 * 
+	 * @return whether a next transition was found. Will be false iff the stack
+	 *         is empty after searching
 	 */
-	public boolean nextTransition() {
-		if (top().nextTransition() == null) {
-			return top().nextProc() != -1;
+	public boolean searchForTransition() {
+		while (!stack.isEmpty() && !top().nextTransition()) {
+			popTransition();
 		}
-		return true;
+		return !isEmpty();
 	}
 	
 	/**
@@ -162,9 +163,9 @@ public class DporSearchStack<STATE, TRANSITION> {
 	 * 
 	 * Explores currentTransition() and pushes resulting state onto the stack
 	 * 
-	 * Returns whether the attained state after pushing has been seen before
+	 * Returns the new stack entry pushed to the top
 	 */
-	public boolean pushTransition() {
+	public DporStackEntry<STATE, TRANSITION> pushTransition() {
 		// Current top entry will now represent a transition and so "last entry"
 		// info needs updating
 		DporStackEntry<STATE, TRANSITION> topEntry = top();
@@ -187,8 +188,7 @@ public class DporSearchStack<STATE, TRANSITION> {
 		DporNode<STATE, TRANSITION> newNode = nodeFactory
 				.getNode(traceStep);
 		manager.printTraceStepFinalState(newNode.getState(), newNode.getId());
-		boolean seen = newNode.getSeen();
-		if (!seen) {
+		if (!newNode.getSeen()) {
 			numStatesSeen++;
 		} else {
 			numStatesMatched++;
@@ -197,7 +197,7 @@ public class DporSearchStack<STATE, TRANSITION> {
 		newNode.setStackPosition(stack.size());
 		stack.push(new DporStackEntry<STATE, TRANSITION>(this, newNode));
 		
-		return seen;
+		return top();
 	}
 	
 	public void popTransition() {

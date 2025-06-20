@@ -17,7 +17,7 @@ import dev.civl.mc.state.IF.StateFactory;
 import dev.civl.mc.state.IF.UnsatisfiablePathConditionException;
 import dev.civl.mc.util.IF.SeqSet;
 
-public class SimpleDependencyAnalyzer
+public class CrossStateDependencyAnalyzer
 		implements
 			DependencyAnalyzer<State, Transition> {
 	
@@ -28,7 +28,7 @@ public class SimpleDependencyAnalyzer
 	private int numCrossTransitions = 0;
 	private int numCrossTraceSteps = 0;
 
-	public SimpleDependencyAnalyzer(StateManager<State, Transition> manager, StateFactory stateFactory, SimpleEnabler enabler) {
+	public CrossStateDependencyAnalyzer(StateManager<State, Transition> manager, StateFactory stateFactory, SimpleEnabler enabler) {
 		this.manager = manager;
 		this.stateFactory = stateFactory;
 		this.enabler = enabler;

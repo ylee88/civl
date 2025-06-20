@@ -115,7 +115,7 @@ public class DporStackEntry<STATE, TRANSITION> {
 	private void initializeTransitions(Collection<TRANSITION> newTransitions) {
 		transitions = newTransitions;
 		transitionIterator = transitions.iterator();
-		nextTransition();
+		nextTransitionInProc();
 	}
 
 	public TRANSITION currentTransition() {
@@ -194,10 +194,24 @@ public class DporStackEntry<STATE, TRANSITION> {
 	}
 	
 	/**
+	 * Increments to the next outgoing transition to be explored from the
+	 * current state. This may involve switching to the transitions of the next
+	 * process in the backtrack set.
+	 * 
+	 * @return true iff a next transition exists
+	 */
+	public boolean nextTransition() {
+		if (nextTransitionInProc() == null) {
+			return nextProc() != -1;
+		}
+		return true;
+	}
+	
+	/**
 	 * @return the current transition and also move the
 	 *         {@link #transitionIterator}.
 	 */
-	TRANSITION nextTransition() {
+	private TRANSITION nextTransitionInProc() {
 		if (transitionIterator.hasNext()) {
 			tid++;
 			currentTran = transitionIterator.next();
@@ -216,7 +230,7 @@ public class DporStackEntry<STATE, TRANSITION> {
 	 *            process
 	 * @return
 	 */
-	int nextProc() {
+	private int nextProc() {
 		current++;
 		if (current >= backtrack.size())
 			return -1;

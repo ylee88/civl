@@ -154,89 +154,87 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 		if (predicate.holdsAt(stack.currentState()))
 			return true;
 		
-		/**
-		 * Invariant: If stack isn't empty, then either
-		 *   1. stack.currentTransition() is a transition we haven't explored yet
-		 *   2. stack.currentState() has no enabled processes
-		 */
+		
 		while (!stack.isEmpty()) {
-			DporStackEntry<STATE, TRANSITION> topStackEntry = stack.top();
+			/**
+			 * Invariant: stack.currentTransition() is either unexplored or is null
+			 */
+			if (stack.currentTransition() == null
+					&& !stack.searchForTransition())
+				break;
+
+			DporStackEntry<STATE, TRANSITION> currStackEntry = stack.top();
+			DporStackEntry<STATE, TRANSITION> nextStackEntry = stack.pushTransition();
+			if (!nextStackEntry.getNode().getSeen()) {
+				if (predicate.holdsAt(stack.currentState()))
+					return true;
+			}
+			final int pid = currStackEntry.getPid();
+			// TODO: Loop through all outgoing edges, enabled or disabled,
+			// except for pid and check for dependence
 			
-			for (Integer outerPid : topStackEntry.enabledProcs()) {
-				DporSearchStack<STATE, TRANSITION>.StackTraversal stackTraversal = stack
-						.makeStackTraversal(outerPid);
-				boolean foundRace = false;
-				for (DporStackEntry<STATE, TRANSITION> currEntry = stackTraversal
-						.next(); currEntry != null; currEntry = stackTraversal
-								.next()) {
-					final int pos = currEntry.getPos();
-					if (analyzer.checkDependent(stack, pos, outerPid)) {
-						stack.addRace(currEntry, outerPid);
-						numRaces++;
-						
-						// Only need to add to backtrack if this is the first race we found
-						if (!foundRace) {
-							foundRace = true;
-							boolean addToBacktrack = true;
-							// proc id of a process in "E" set that is enabled at currEntry
-							// will remain -1 if no such process exists
-							int enabledProc = -1;
-							
-							DporHbSet topHbSet = topStackEntry.getHbSet();
-							final int oPidCopy = outerPid;
-							
-							// This stream represents the "E" set in algorithm from
-							// DPOR paper
-							Iterator<Integer> candidateIter = Stream
-									.concat(Stream.of(outerPid),
-											topHbSet.procSet().stream()
-													.filter(p -> p != oPidCopy && topHbSet
-															.lastEntryPos(p) > pos))
-									.iterator();
-							while (candidateIter.hasNext()) {
-								int proc = candidateIter.next();
-	
-								if (currEntry.inBacktrack(proc)) {
-									// A process in the E set is already being
-									// backtracked here
-									addToBacktrack = false;
-									break;
-								}
-	
-								if (enabledProc == -1
-										&& currEntry.enabledProcs().contains(proc))
-									enabledProc = proc;
+			DporSearchStack<STATE, TRANSITION>.StackTraversal stackTraversal = stack
+					.makeStackTraversal(pid);
+			boolean foundRace = false;
+			for (DporStackEntry<STATE, TRANSITION> entry = stackTraversal
+					.next(); entry != null; entry = stackTraversal.next()) {
+				final int pos = entry.getPos();
+				if (analyzer.checkDependent(stack, pos, pid)) {
+					stack.addRace(entry, pid);
+					numRaces++;
+
+					// Only need to add to backtrack if this is the first race
+					// we found
+					if (!foundRace) {
+						foundRace = true;
+						boolean addToBacktrack = true;
+						// proc id of a process in "E" set that is enabled at
+						// currEntry
+						// will remain -1 if no such process exists
+						int enabledProc = -1;
+
+						DporHbSet topHbSet = currStackEntry.getHbSet();
+
+						// This stream represents the "E" set in algorithm from
+						// DPOR paper
+						Iterator<Integer> candidateIter = Stream
+								.concat(Stream.of(pid), topHbSet
+										.procSet().stream()
+										.filter(p -> p != pid && topHbSet
+												.lastEntryPos(p) > pos))
+								.iterator();
+						while (candidateIter.hasNext()) {
+							int proc = candidateIter.next();
+
+							if (entry.inBacktrack(proc)) {
+								// A process in the E set is already being
+								// backtracked here
+								addToBacktrack = false;
+								break;
 							}
-							
-							if (addToBacktrack) {
-								if (enabledProc != -1) {
-									currEntry.addToBacktrack(enabledProc);
-								} else {
-								// No process in E was enabled so we must fully expand
-									currEntry.fullyEnable();
-								}
+
+							if (enabledProc == -1
+									&& entry.enabledProcs().contains(proc))
+								enabledProc = proc;
+						}
+
+						if (addToBacktrack) {
+							if (enabledProc != -1) {
+								entry.addToBacktrack(enabledProc);
+							} else {
+								// No process in E was enabled so we must fully
+								// expand
+								entry.fullyEnable();
 							}
 						}
 					}
 				}
 			}
-
-			if (stack.currentTransition() == null) {
-				while (!stack.isEmpty() && !stack.nextTransition()) {
-					stack.popTransition();
-				}
-				if (stack.isEmpty())
-					break;
-			}
-			
-			if (!stack.pushTransition()) {
-				if (predicate.holdsAt(stack.currentState()))
-					return true;
-			}
 		}
 		
 		return false;
 	}
+	
 
 	/**
 	 * Set the debugging flag to the given value. If true, debugging output will
