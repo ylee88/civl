@@ -163,13 +163,11 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 					&& !stack.searchForTransition())
 				break;
 
-			DporStackEntry<STATE, TRANSITION> currStackEntry = stack.top();
-			DporStackEntry<STATE, TRANSITION> nextStackEntry = stack.pushTransition();
-			if (!nextStackEntry.getNode().getSeen()) {
+			if (!stack.pushTransition()) {
 				if (predicate.holdsAt(stack.currentState()))
 					return true;
 			}
-			final int pid = currStackEntry.getPid();
+			final int pid = stack.top().getPid();
 			// TODO: Loop through all outgoing edges, enabled or disabled,
 			// except for pid and check for dependence
 			
@@ -178,7 +176,7 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 			boolean foundRace = false;
 			for (DporStackEntry<STATE, TRANSITION> entry = stackTraversal
 					.next(); entry != null; entry = stackTraversal.next()) {
-				final int pos = entry.getPos();
+				final int pos = entry.getStackPosition();
 				if (analyzer.checkDependent(stack, pos, pid)) {
 					stack.addRace(entry, pid);
 					numRaces++;
@@ -193,7 +191,7 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 						// will remain -1 if no such process exists
 						int enabledProc = -1;
 
-						DporHbSet topHbSet = currStackEntry.getHbSet();
+						DporHbSet topHbSet = stack.top().getHbSet();
 
 						// This stream represents the "E" set in algorithm from
 						// DPOR paper
@@ -339,7 +337,7 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 			if (!summarize || i <= 0 || size - i < summaryCutOff) {
 				out.print("Step " + (i + 1) + ": ");
 				manager.printStateShort(out, state);
-				TRANSITION currTran = stackEntry.currentTransition();
+				TRANSITION currTran = stackEntry.getCurrentTransition();
 				if (currTran != null) {
 					out.print(" --");
 					manager.printTransitionShort(out, currTran);

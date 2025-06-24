@@ -28,64 +28,53 @@ public class DporStackEntry<STATE, TRANSITION> {
 	 */
 	List<Integer> backtrack = new ArrayList<>();
 	
-	final private int pos;
-	
 	/**
-	 * The stack index of the last transition from the same process as this
-	 * entry. -1 if no such earlier transition exists or if this entry is
-	 * on the top of the stack.
-	 */
-	private DporStackEntry<STATE, TRANSITION> lastEntry = null;
-	
-	/**
-	 * Maps a process to a structure containing happens-before information
+	 * Maps a process to a {@link DporHbSet} which a structure containing happens-before information
 	 * for all outgoing transitions from this entry that belong to that
 	 * process
 	 */
-	private Map<Integer, DporHbSet> procToHbSet = new HashMap<>();
+	//private Map<Integer, DporHbSet> procToHbSet = new HashMap<>();
+	
+	private StackProcessInfo stackProcInfo = null;
 
 	/**
-	 * Index into backtrack of the process we are currently processing.
+	 * Index into {@link DporStackEntry#backtrack} of the process we are currently exploring.
 	 */
 	private int current = 0;
 	
+	/**
+	 * Set of all processes with an enabled outgoing transition at the current state
+	 */
 	private Set<Integer> enabledProcs;
 
 	/**
-	 * The collection of transitions that the current
+	 * The collection of enabled transitions belonging to the current process ({@link DporStackEntry#getPid()})
 	 */
 	private Collection<TRANSITION> transitions;
 
 	/**
-	 * The iterator to iterate either the ample set or the ample set complement
-	 * of the {@link #sourceState}. This iterator will iterate over all the
-	 * transitions after {@link #currentTran} transition.
+	 * The iterator for {@link DporStackEntry#transitions}.
 	 */
 	private Iterator<TRANSITION> transitionIterator;
 
 	/**
 	 * The index of the current transition. This is used to write the trace file
-	 * which will be used later for replay.
+	 * for replay.
 	 */
 	private int tid = -1;
 
 	/**
 	 * The current transition.
 	 */
-	private TRANSITION currentTran = null;
+	private TRANSITION currentTransition = null;
 
 	/**
+	 * @param dporSearchStack
+	 *            The search stack that this entry will belong to
 	 * @param node
 	 *            The node that wraps the source state.
-	 * @param dporSearchStack TODO
-	 * @param transitions
-	 *            The ample set or ample set complement of the source state.
-	 * @param offset
-	 *            the ID number that should be associated to the first
-	 *            transition in the sequence.
 	 */
 	DporStackEntry(DporSearchStack<STATE, TRANSITION> dporSearchStack, DporNode<STATE, TRANSITION> node) {
-		this.pos = dporSearchStack.size();
 		this.manager = dporSearchStack.manager;
 		this.node = node;
 		STATE state = node.getState();
@@ -96,16 +85,6 @@ public class DporStackEntry<STATE, TRANSITION> {
 			int pid = enabledProcs.iterator().next();
 			this.backtrack.add(pid);
 			initializeTransitions(manager.getTransitions(state, pid));
-		}
-		// Initialize hb-relationships for all enabled processes
-		for (int pid : enabledProcs) {
-			DporHbSet hbSet = new DporHbSet();
-			procToHbSet.put(pid, hbSet);
-			// Add an edge to the last entry on the stack from this proc if one exists
-			DporStackEntry<STATE, TRANSITION> lastEntry = dporSearchStack.lastEntry(pid);
-			if (lastEntry != null) {
-				hbSet.addEntry(lastEntry);
-			}
 		}
 	}
 	
@@ -118,12 +97,8 @@ public class DporStackEntry<STATE, TRANSITION> {
 		nextTransitionInProc();
 	}
 
-	public TRANSITION currentTransition() {
-		return currentTran;
-	}
-
-	public Collection<TRANSITION> getTransitions() {
-		return transitions;
+	public TRANSITION getCurrentTransition() {
+		return currentTransition;
 	}
 	
 	public int getTid() {
@@ -141,14 +116,14 @@ public class DporStackEntry<STATE, TRANSITION> {
 	/**
 	 * Precondition: !{@link DporStackEntry#isDone()}
 	 * 
-	 * @return the pid of the process currently being explored.
+	 * @return the id of the process currently being explored.
 	 */
 	public int getPid() {
 		return backtrack.get(current);
 	}
 	
-	public int getPos() {
-		return pos;
+	public int getStackPosition() {
+		return node.getStackPosition();
 	}
 	
 	/**
@@ -189,10 +164,6 @@ public class DporStackEntry<STATE, TRANSITION> {
 		return enabledProcs;
 	}
 	
-	public DporStackEntry<STATE, TRANSITION> getLastEntry() {
-		return lastEntry;
-	}
-	
 	/**
 	 * Increments to the next outgoing transition to be explored from the
 	 * current state. This may involve switching to the transitions of the next
@@ -214,11 +185,11 @@ public class DporStackEntry<STATE, TRANSITION> {
 	private TRANSITION nextTransitionInProc() {
 		if (transitionIterator.hasNext()) {
 			tid++;
-			currentTran = transitionIterator.next();
+			currentTransition = transitionIterator.next();
 		} else {
-			currentTran = null;
+			currentTransition = null;
 		}
-		return currentTran;
+		return currentTransition;
 	}
 	
 	/**
@@ -242,26 +213,30 @@ public class DporStackEntry<STATE, TRANSITION> {
 	}
 	
 	/**
-	 * Get the hb-relation for the specified process.
+	 * Precondition: This entry is not the top of the stack.
 	 * 
-	 * Precondition: pid is in this entry's enabled set.
+	 * @return The stack position of the last entry with a transition from the
+	 *         same process as this entry's transition.
 	 */
-	public DporHbSet getHbSet(int pid) {
-		return procToHbSet.get(pid);
-	}
-	
-	public DporHbSet getHbSet() {
-		return getHbSet(getPid());
-	}
-	
-	void addRace(DporStackEntry<STATE, TRANSITION> entry, int pid) {
-		getHbSet(pid).addEntry(entry);
+	public int getLastEntryPosition() {
+		return stackProcInfo.lastEntry;
 	}
 	
 	/**
-	 * Sets the last interior entry with a transition from the process returned by {@link DporStackEntry#getPid()}
+	 * Precondition: This entry is not on the top of the stack.
+	 * 
+	 * @return The {@link DporHbSet} representing the set of stack entries with
+	 *         transitions that happen before this entry's transition
 	 */
-	void setLastEntry(DporStackEntry<STATE, TRANSITION> lastEntry) {
-		this.lastEntry = lastEntry;
+	public DporHbSet getHbSet() {
+		return stackProcInfo.hbSet;
+	}
+	
+	void setStackProcInfo(StackProcessInfo stackProcInfo) {
+		this.stackProcInfo = stackProcInfo;
+	}
+	
+	StackProcessInfo getStackProcInfo() {
+		return stackProcInfo;
 	}
 }

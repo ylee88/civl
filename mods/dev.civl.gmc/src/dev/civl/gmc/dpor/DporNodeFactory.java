@@ -5,15 +5,15 @@ import java.util.Map;
 
 import dev.civl.gmc.GetIdFunction;
 import dev.civl.gmc.TraceStepIF;
-import dev.civl.gmc.seq.SequentialNode;
 import dev.civl.gmc.seq.StateManager;
+import dev.civl.gmc.util.Pair;
 
 public class DporNodeFactory<STATE, TRANSITION> implements GetIdFunction<STATE> {
 	// Maps a state to its canonical DporNode
 	private Map<STATE, DporNode<STATE, TRANSITION>> nodeMap = new HashMap<>();
 	
 	/**
-	 * The counter used to count the # of {@link SequentialNode} cached in
+	 * The counter used to count the # of {@link DporNode} cached in
 	 * {@link #nodeMap}.
 	 */
 	private int nodeCounter = 0;
@@ -40,15 +40,18 @@ public class DporNodeFactory<STATE, TRANSITION> implements GetIdFunction<STATE> 
 	 * normalized and canonical state will have id.
 	 * </p>
 	 * 
-	 * @param state
-	 * @return the existing {@link SequentialNode} mapped to the state, or a new
-	 *         {@link SequentialNode} mapped to the state if there was no entry
-	 *         in the map for the key state. Note that the
-	 *         {@link SequentialNode} will always store the normalized or
-	 *         simplified version of {@code state}.
+	 * @return Left component: the existing {@link DporNode} mapped to the
+	 *         state, or a new {@link DporNode} mapped to the state if there was
+	 *         no entry in the map for the key state. Note that the
+	 *         {@link DporNode} will always store the normalized or simplified
+	 *         version of {@code state}.
+	 * 
+	 *         Right component: whether the returned node has been seen before
+	 *         (i.e. true iff we got it from storage)
 	 */
-	public DporNode<STATE, TRANSITION> getNode(TraceStepIF<STATE> traceStep) {
+	public Pair<DporNode<STATE, TRANSITION>, Boolean> getNode(TraceStepIF<STATE> traceStep) {
 		STATE state = traceStep.getFinalState();
+		boolean seen = true;
 
 		if (saveStates) {
 			DporNode<STATE, TRANSITION> result = nodeMap.get(state);
@@ -63,16 +66,18 @@ public class DporNodeFactory<STATE, TRANSITION> implements GetIdFunction<STATE> 
 					if (result == null) {
 						result = new DporNode<STATE, TRANSITION>(normalizedState,
 								nodeCounter++);
+						seen = false;
 						nodeMap.put(normalizedState, result);
 					}
 				} else {
 					result = new DporNode<STATE, TRANSITION>(state, nodeCounter++);
+					seen = false;
 				}
 				nodeMap.put(state, result);
 			}
-			return result;
+			return new Pair<>(result, seen);
 		} else
-			return new DporNode<STATE, TRANSITION>(state, NOT_SAVED);
+			return new Pair<>(new DporNode<STATE, TRANSITION>(state, NOT_SAVED), false);
 	}
 
 	/**
@@ -83,7 +88,7 @@ public class DporNodeFactory<STATE, TRANSITION> implements GetIdFunction<STATE> 
 	 * @return the node associated to the given state, null there is no such a
 	 *         node.
 	 */
-	public DporNode<STATE, TRANSITION> getNode(STATE state) {
+	public DporNode<STATE, TRANSITION> getAssociatedNode(STATE state) {
 		return nodeMap.get(state);
 	}
 
@@ -126,7 +131,7 @@ public class DporNodeFactory<STATE, TRANSITION> implements GetIdFunction<STATE> 
 
 	@Override
 	public int getId(STATE state) {
-		DporNode<STATE, TRANSITION> node = getNode(state);
+		DporNode<STATE, TRANSITION> node = getAssociatedNode(state);
 		return node == null ? -1 : node.getId();
 	}
 }

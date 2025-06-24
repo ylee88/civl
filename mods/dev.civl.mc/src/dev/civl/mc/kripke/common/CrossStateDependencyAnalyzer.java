@@ -84,7 +84,7 @@ public class CrossStateDependencyAnalyzer
 					&& topDep.disjoint(inDepWrite))
 				return false;
 			
-			TraceStep inTopStep = (TraceStep) manager.tryNextState(crossState, inEntry.currentTransition());
+			TraceStep inTopStep = (TraceStep) manager.tryNextState(crossState, inEntry.getCurrentTransition());
 			if (inTopStep == null)
 				return true;
 			collectTraceStepStats(inTopStep);
@@ -110,7 +110,7 @@ public class CrossStateDependencyAnalyzer
 				if (inTopStep == null)
 					return true;
 				collectTraceStepStats(inTopStep);
-				topInStep = (TraceStep) manager.tryNextState(topInStep.getFinalState(), inEntry.currentTransition());
+				topInStep = (TraceStep) manager.tryNextState(topInStep.getFinalState(), inEntry.getCurrentTransition());
 				if (topInStep == null)
 					return true;
 				collectTraceStepStats(topInStep);

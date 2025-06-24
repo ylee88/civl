@@ -24,15 +24,14 @@ public class DporHbSet {
 	 * Add a new entry to the HbSet and all entries that happen before it.
 	 */
 	public void addEntry(DporStackEntry<?,?> entry) {
-		int entryPos = entry.getPos();
-		int pid = entry.getPid();
-		for (Map.Entry<Integer, Integer> hbEdge : entry.getHbSet(pid).entryMap.entrySet()) {
+		int entryPos = entry.getStackPosition();
+		for (Map.Entry<Integer, Integer> hbEdge : entry.getHbSet().entryMap.entrySet()) {
 			int edgePos = hbEdge.getValue();
 			if (edgePos >= entryMap.getOrDefault(hbEdge.getKey(), edgePos)) {
 				entryMap.put(hbEdge.getKey(), edgePos);
 			}
 		}
-		entryMap.put(pid, entryPos);
+		entryMap.put(entry.getPid(), entryPos);
 	}
 	
 	/**
@@ -40,7 +39,7 @@ public class DporHbSet {
 	 * @return whether the entry is in this set
 	 */
 	public boolean contains(DporStackEntry<?,?> entry) {
-		return entry.getPos() <= entryMap.getOrDefault(entry.getPid(), -1);
+		return entry.getStackPosition() <= entryMap.getOrDefault(entry.getPid(), -1);
 	}
 	
 	/**

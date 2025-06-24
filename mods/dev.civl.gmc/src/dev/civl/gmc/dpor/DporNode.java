@@ -4,10 +4,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 import dev.civl.gmc.TraceStepIF;
-import dev.civl.gmc.seq.SequentialNode;
 
 /**
- * Wraps a STATE object with trace step caching and persistent data used in the DPOR search
+ * Wraps a STATE object with transition caching and persistent data used in the
+ * DPOR search
+ * 
  * @author awilton
  *
  * @param <STATE>
@@ -20,13 +21,9 @@ public class DporNode<STATE, TRANSITION> {
 	 * The state that is associated with this node.
 	 */
 	private STATE state;
-
+	
 	/**
-	 * True iff the Node has been seen.
-	 */
-	private boolean seen = false;
-	/**
-	 * The position index of which this {@link SequentialNode} is on Stack.
+	 * The position index of which this {@link DporNode} is on Stack.
 	 * Position 0 will be at the bottom of the stack (initial state). -1 means
 	 * not on the stack.
 	 */
@@ -46,33 +43,8 @@ public class DporNode<STATE, TRANSITION> {
 	}
 
 	/**
-	 * Sets the "seen flag" to a given value.
 	 * <p>
-	 * The seen flag is intended to be used by a depth-first search algorithm,
-	 * to mark that a state has been encountered in the search.
-	 * 
-	 * @param value
-	 *            the value you want to assign to the seen flag associated to
-	 *            that state
-	 */
-	public void setSeen(boolean value) {
-		seen = value;
-	}
-
-	/**
-	 * Returns the value of the seen flag associated to the given state.
-	 * 
-	 * @param state
-	 *            any state in the state transition system
-	 * @return the value of that state's seen flag.
-	 */
-	public boolean getSeen() {
-		return seen;
-	}
-
-	/**
-	 * <p>
-	 * Set the stack position field of the {@link SequentialNode}.
+	 * Set the stack position field of the {@link DporNode}.
 	 * </p>
 	 * <p>
 	 * The "stack position" field is intended to be used by a depth-first search
@@ -91,7 +63,7 @@ public class DporNode<STATE, TRANSITION> {
 	}
 
 	/**
-	 * Get the position of this {@link SequentialNode} on dfs stack or -1 if it
+	 * Get the position of this {@link DporNode} on dfs stack or -1 if it
 	 * is not on stack.
 	 * 
 	 * @return position of this state on dfs stack or -1
@@ -118,7 +90,7 @@ public class DporNode<STATE, TRANSITION> {
 	}
 
 	/**
-	 * @return the STATE this {@link SequentialNode} wraps.
+	 * @return the STATE this {@link DporNode} wraps.
 	 */
 	public STATE getState() {
 		return state;

@@ -8,6 +8,7 @@ import java.util.Stack;
 
 import dev.civl.gmc.TraceStepIF;
 import dev.civl.gmc.seq.StateManager;
+import dev.civl.gmc.util.Pair;
 
 /**
  * This class represents the search stack used in the DPOR algorithm. It
@@ -31,10 +32,9 @@ public class DporSearchStack<STATE, TRANSITION> {
 	private Stack<DporStackEntry<STATE, TRANSITION>> stack = new Stack<>();
 	
 	/**
-	 * A map from a proc ID to that proc's last entry on the stack.
-	 * Processes with no entry on the stack are not included in the map
+	 * A map from a proc ID to that proc's local DPOR info object.
 	 */
-	Map<Integer, DporStackEntry<STATE, TRANSITION>> lastEntries = new HashMap<>();
+	Map<Integer, StackProcessInfo> stackProcInfoMap = new HashMap<>();
 	
 	/** Statistic variables **/
 	private int numStatesSeen = 0;
@@ -51,8 +51,13 @@ public class DporSearchStack<STATE, TRANSITION> {
 				.getInitialNode(initialState);
 		DporStackEntry<STATE, TRANSITION> initialEntry = new DporStackEntry<STATE, TRANSITION>(this, initialNode);
 		
+		
+		for (int pid : manager.getEnabledProcesses(initialState)) {
+			StackProcessInfo stackProcInfo = new StackProcessInfo();
+			stackProcInfoMap.put(pid, stackProcInfo);
+		}
+		
 		stack.push(initialEntry);
-		initialNode.setSeen(true);
 		initialNode.setStackPosition(0);
 		numStatesSeen++;
 	}
@@ -93,7 +98,8 @@ public class DporSearchStack<STATE, TRANSITION> {
 	 *         null if pid has no transitions on stack
 	 */
 	public DporStackEntry<STATE, TRANSITION> lastEntry(int pid) {
-		return lastEntries.getOrDefault(pid, null);
+		StackProcessInfo stackProcInfo = stackProcInfoMap.getOrDefault(pid, null);
+		return stackProcInfo == null ? null : get(stackProcInfo.lastEntry);
 	}
 	
 	/**
@@ -139,7 +145,7 @@ public class DporSearchStack<STATE, TRANSITION> {
 	 * @throws {@link EmptyStackException} if the stack is empty
 	 */
 	public TRANSITION currentTransition() {
-		return top().currentTransition();
+		return top().getCurrentTransition();
 	}
 	
 	/**
@@ -163,18 +169,20 @@ public class DporSearchStack<STATE, TRANSITION> {
 	 * 
 	 * Explores currentTransition() and pushes resulting state onto the stack
 	 * 
-	 * Returns the new stack entry pushed to the top
+	 * Returns whether the new stack entry contains a node that has been seen before
 	 */
-	public DporStackEntry<STATE, TRANSITION> pushTransition() {
-		// Current top entry will now represent a transition and so "last entry"
-		// info needs updating
+	public boolean pushTransition() {
 		DporStackEntry<STATE, TRANSITION> topEntry = top();
-		topEntry.setLastEntry(lastEntry(topEntry.getPid()));
-		lastEntries.put(topEntry.getPid(), topEntry);
+		
+		topEntry.setStackProcInfo(stackProcInfoMap.get(topEntry.getPid()));
+		
+		StackProcessInfo newStackProcInfo = new StackProcessInfo();
+		newStackProcInfo.lastEntry = topEntry.getStackPosition();
+		stackProcInfoMap.put(topEntry.getPid(), newStackProcInfo);
 		
 		DporNode<STATE, TRANSITION> topNode = topEntry.getNode();
 		STATE topState = topNode.getState();
-		TRANSITION currentTran = topEntry.currentTransition();
+		TRANSITION currentTran = topEntry.getCurrentTransition();
 		TraceStepIF<STATE> traceStep = topNode.getTraceStepCache(currentTran);
 		if (traceStep == null) {
 			traceStep = manager.nextState(topState, currentTran);
@@ -185,19 +193,19 @@ public class DporSearchStack<STATE, TRANSITION> {
 		}
 		
 		manager.printTraceStep(topState, traceStep);
-		DporNode<STATE, TRANSITION> newNode = nodeFactory
+		Pair<DporNode<STATE, TRANSITION>, Boolean> nodeResult = nodeFactory
 				.getNode(traceStep);
+		DporNode<STATE, TRANSITION> newNode = nodeResult.left;
 		manager.printTraceStepFinalState(newNode.getState(), newNode.getId());
-		if (!newNode.getSeen()) {
+		if (!nodeResult.right) {
 			numStatesSeen++;
 		} else {
 			numStatesMatched++;
 		}
-		newNode.setSeen(true);
 		newNode.setStackPosition(stack.size());
 		stack.push(new DporStackEntry<STATE, TRANSITION>(this, newNode));
 		
-		return top();
+		return nodeResult.right;
 	}
 	
 	public void popTransition() {
@@ -205,25 +213,16 @@ public class DporSearchStack<STATE, TRANSITION> {
 		manager.debug(topEntry.getState(), topEntry.backtrack);
 		topEntry.getNode().setStackPosition(-1);
 		stack.pop();
-		// New top no longer represents a transition and so last entry info
-		// needs updated
 		if (!stack.isEmpty()) {
-			if (topEntry.getLastEntry() != null)
-				lastEntries.put(topEntry.getPid(), topEntry.getLastEntry());
-				
-			else
-				lastEntries.remove(topEntry.getPid());
-			
-			topEntry.setLastEntry(null);
+			DporStackEntry<STATE, TRANSITION> newTopEntry = top();
+			stackProcInfoMap.put(newTopEntry.getPid(), newTopEntry.getStackProcInfo());
+			newTopEntry.setStackProcInfo(null);
 		}
 	}
 	
 	public void addRace(DporStackEntry<STATE, TRANSITION> entry, int pid) {
-		top().addRace(entry, pid);
-	}
-
-	public boolean hb(int entryPos, int pid) {
-		return top().getHbSet(pid).contains(get(entryPos));
+		StackProcessInfo stackProcInfo = stackProcInfoMap.get(pid);
+		stackProcInfo.hbSet.addEntry(entry);
 	}
 	
 	public StackTraversal makeStackTraversal(int proc) {
@@ -241,16 +240,16 @@ public class DporSearchStack<STATE, TRANSITION> {
 		private DporHbSet topHbSet;
 
 		private StackTraversal(int proc) {
-			topHbSet = top().getHbSet(proc);
+			topHbSet = stackProcInfoMap.get(proc).hbSet;
 
-			if (lastEntries.isEmpty())
-				entryQueue = new PriorityQueue<Integer>();
-			else {
-				entryQueue = new PriorityQueue<Integer>(lastEntries.size(),
-						Collections.reverseOrder());
-				for (DporStackEntry<STATE, TRANSITION> lastEntry : lastEntries.values()) {
+			entryQueue = new PriorityQueue<Integer>(stackProcInfoMap.size(),
+					Collections.reverseOrder());
+			for (StackProcessInfo stackProcInfo : stackProcInfoMap.values()) {
+				if (stackProcInfo.lastEntry >= 0) {
+					DporStackEntry<STATE, TRANSITION> lastEntry = get(
+							stackProcInfo.lastEntry);
 					if (!topHbSet.contains(lastEntry)) {
-						entryQueue.add(lastEntry.getPos());
+						entryQueue.add(lastEntry.getStackPosition());
 					}
 				}
 			}
@@ -261,9 +260,9 @@ public class DporSearchStack<STATE, TRANSITION> {
 				DporStackEntry<STATE, TRANSITION> lastEntry = get(entryQueue.poll());
 				if (!topHbSet.contains(lastEntry)) {
 					
-					DporStackEntry<STATE, TRANSITION> nextToLastEntry = lastEntry.getLastEntry();
-					if (nextToLastEntry != null)
-						entryQueue.add(nextToLastEntry.getPos());
+					int nextToLastEntryPosition = lastEntry.getLastEntryPosition();
+					if (nextToLastEntryPosition >= 0)
+						entryQueue.add(get(nextToLastEntryPosition).getStackPosition());
 					return lastEntry;
 				}
 			}
