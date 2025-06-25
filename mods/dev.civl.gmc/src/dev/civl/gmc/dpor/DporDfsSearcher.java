@@ -2,6 +2,7 @@ package dev.civl.gmc.dpor;
 
 import java.io.PrintStream;
 import java.util.Iterator;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import dev.civl.gmc.GMCConfiguration;
@@ -128,13 +129,6 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 			StatePredicateIF<STATE> predicate, GMCConfiguration gmcConfig) {
 		this(analyzer, manager, predicate, gmcConfig, null);
 	}
-	
-	/**
-	 * Returns the state at the top of the stack, without modifying the stack.
-	 */
-	public STATE currentState() {
-		return stack == null ? null : stack.currentState();
-	}
 
 	/** Returns the stack used to perform the depth first search */
 	public DporSearchStack<STATE, TRANSITION> stack() {
@@ -186,6 +180,8 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 					if (!foundRace) {
 						foundRace = true;
 						boolean addToBacktrack = true;
+						Set<Integer> enabledProcs = manager
+								.getEnabledProcesses(entry.getState());
 						// proc id of a process in "E" set that is enabled at
 						// currEntry
 						// will remain -1 if no such process exists
@@ -212,7 +208,7 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 							}
 
 							if (enabledProc == -1
-									&& entry.enabledProcs().contains(proc))
+									&& enabledProcs.contains(proc))
 								enabledProc = proc;
 						}
 
@@ -222,7 +218,7 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 							} else {
 								// No process in E was enabled so we must fully
 								// expand
-								entry.fullyEnable();
+								entry.addAllToBacktrack(enabledProcs);
 							}
 						}
 					}
@@ -337,7 +333,7 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 			if (!summarize || i <= 0 || size - i < summaryCutOff) {
 				out.print("Step " + (i + 1) + ": ");
 				manager.printStateShort(out, state);
-				TRANSITION currTran = stackEntry.getCurrentTransition();
+				TRANSITION currTran = stackEntry.currentTransition();
 				if (currTran != null) {
 					out.print(" --");
 					manager.printTransitionShort(out, currTran);

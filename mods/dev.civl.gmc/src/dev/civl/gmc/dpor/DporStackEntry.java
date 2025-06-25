@@ -2,22 +2,20 @@ package dev.civl.gmc.dpor;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import dev.civl.gmc.seq.StateManager;
 
 /**
- * An element of the {@link DporSearchStack}. Wraps a
- * {@link DporNode} with transient data for the DPOR search.
+ * An element of the {@link DporSearchStack}. Wraps a {@link DporNode} with
+ * transient data used in the DPOR search.
+ * 
+ * @author Alex Wilton
  */
 public class DporStackEntry<STATE, TRANSITION> {
-	private StateManager<STATE, TRANSITION> manager;
-	
 	/**
 	 * The search node that wraps the source state
 	 */
@@ -29,28 +27,16 @@ public class DporStackEntry<STATE, TRANSITION> {
 	List<Integer> backtrack = new ArrayList<>();
 	
 	/**
-	 * Maps a process to a {@link DporHbSet} which a structure containing happens-before information
-	 * for all outgoing transitions from this entry that belong to that
-	 * process
+	 * DPOR data for the current transition. Only relevant if this transition is
+	 * actually "active," meaning if this entry is the top of the stack then
+	 * this is {@code null}.
 	 */
-	//private Map<Integer, DporHbSet> procToHbSet = new HashMap<>();
-	
-	private StackProcessInfo stackProcInfo = null;
+	private DporTransitionData transitionData = null;
 
 	/**
 	 * Index into {@link DporStackEntry#backtrack} of the process we are currently exploring.
 	 */
 	private int current = 0;
-	
-	/**
-	 * Set of all processes with an enabled outgoing transition at the current state
-	 */
-	private Set<Integer> enabledProcs;
-
-	/**
-	 * The collection of enabled transitions belonging to the current process ({@link DporStackEntry#getPid()})
-	 */
-	private Collection<TRANSITION> transitions;
 
 	/**
 	 * The iterator for {@link DporStackEntry#transitions}.
@@ -58,27 +44,26 @@ public class DporStackEntry<STATE, TRANSITION> {
 	private Iterator<TRANSITION> transitionIterator;
 
 	/**
+	 * The current transition.
+	 */
+	private TRANSITION currentTransition = null;
+	
+	/**
 	 * The index of the current transition. This is used to write the trace file
 	 * for replay.
 	 */
 	private int tid = -1;
 
 	/**
-	 * The current transition.
-	 */
-	private TRANSITION currentTransition = null;
-
-	/**
-	 * @param dporSearchStack
+	 * @param manager
 	 *            The search stack that this entry will belong to
 	 * @param node
 	 *            The node that wraps the source state.
 	 */
-	DporStackEntry(DporSearchStack<STATE, TRANSITION> dporSearchStack, DporNode<STATE, TRANSITION> node) {
-		this.manager = dporSearchStack.manager;
+	DporStackEntry(StateManager<STATE, TRANSITION> manager, DporNode<STATE, TRANSITION> node) {
 		this.node = node;
 		STATE state = node.getState();
-		this.enabledProcs = manager.getEnabledProcesses(state);
+		Set<Integer> enabledProcs = manager.getEnabledProcesses(state);
 		if (enabledProcs.isEmpty()) {
 			initializeTransitions(new ArrayList<TRANSITION>());
 		} else {
@@ -88,27 +73,37 @@ public class DporStackEntry<STATE, TRANSITION> {
 		}
 	}
 	
-	/**
-	 * Initializes {@link DporStackEntry#transitionIterator}
-	 */
 	private void initializeTransitions(Collection<TRANSITION> newTransitions) {
-		transitions = newTransitions;
-		transitionIterator = transitions.iterator();
+		transitionIterator = newTransitions.iterator();
 		nextTransitionInProc();
 	}
 
-	public TRANSITION getCurrentTransition() {
+	/**
+	 * @return the transition which is either being explored (if this an
+	 *         "interior" entry) or is about to be explored (if this is the top
+	 *         entry of the stack)
+	 */
+	public TRANSITION currentTransition() {
 		return currentTransition;
 	}
 	
+	/**
+	 * @return the transition id used for replaying traces
+	 */
 	public int getTid() {
 		return tid;
 	}
 
+	/**
+	 * @return The {@link DporNode} held by this entry
+	 */
 	public DporNode<STATE, TRANSITION> getNode() {
 		return node;
 	}
 
+	/**
+	 * @return The state held by this entry's node
+	 */
 	public STATE getState() {
 		return node.getState();
 	}
@@ -122,6 +117,9 @@ public class DporStackEntry<STATE, TRANSITION> {
 		return backtrack.get(current);
 	}
 	
+	/**
+	 * @return the index this entry has on the stack
+	 */
 	public int getStackPosition() {
 		return node.getStackPosition();
 	}
@@ -143,44 +141,54 @@ public class DporStackEntry<STATE, TRANSITION> {
 	
 	/**
 	 * Add process pid into this entry's backtrack set
+	 * <p>
+	 * Preconditions:
+	 * <ul>
+	 *  <li>pid is not in already backtrack set</li>
+	 *  <li>pid is enabled at this entry's state</li>
+	 * </ul>
 	 */
 	public void addToBacktrack(int pid) {
 		backtrack.add(pid);
 	}
 	
 	/**
-	 * Fills the backtrack with all remaining enabled processes.
+	 * Adds all of the processes in procs which are not already in the backtrack set
+	 * 
+	 * Precondition: All processes in procs are enabled at this entry's state
 	 * 
 	 * @return the number of new processes added to the backtrack
 	 */
-	public int fullyEnable() {
-		Set<Integer> remainingProcs = new HashSet<>(enabledProcs);
+	public int addAllToBacktrack(Collection<Integer> procs) {
+		Set<Integer> remainingProcs = new HashSet<>(procs);
 		remainingProcs.removeAll(backtrack);
 		backtrack.addAll(remainingProcs);
 		return remainingProcs.size();
 	}
-	
-	public Collection<Integer> enabledProcs() {
-		return enabledProcs;
-	}
-	
+
 	/**
 	 * Increments to the next outgoing transition to be explored from the
-	 * current state. This may involve switching to the transitions of the next
-	 * process in the backtrack set.
+	 * current state, moving to the next process in the backtrack set if
+	 * necessary.
+	 * 
+	 * @param manager
+	 *            Used to obtain the transitions of a process
 	 * 
 	 * @return true iff a next transition exists
 	 */
-	public boolean nextTransition() {
+	public boolean nextTransition(StateManager<STATE, TRANSITION> manager) {
 		if (nextTransitionInProc() == null) {
-			return nextProc() != -1;
+			return nextProc(manager) != -1;
 		}
 		return true;
 	}
 	
 	/**
-	 * @return the current transition and also move the
-	 *         {@link #transitionIterator}.
+	 * Increments to the next transition of the current process. If no such
+	 * transition exists then {@link DporStackEntry#currentTransition} becomes
+	 * {@code null}.
+	 * 
+	 * @return the current transition after incrementing
 	 */
 	private TRANSITION nextTransitionInProc() {
 		if (transitionIterator.hasNext()) {
@@ -197,11 +205,11 @@ public class DporStackEntry<STATE, TRANSITION> {
 	 * transitions being explored to those of the new process.
 	 * 
 	 * @param stateManager
-	 *            Used for obtaining the set of enabled transitions for the next
-	 *            process
-	 * @return
+	 *            Used to obtain the transitions of the next process
+	 * @return the id of the new process being explored. -1 if there is no next
+	 *         process.
 	 */
-	private int nextProc() {
+	private int nextProc(StateManager<STATE, TRANSITION> manager) {
 		current++;
 		if (current >= backtrack.size())
 			return -1;
@@ -218,8 +226,8 @@ public class DporStackEntry<STATE, TRANSITION> {
 	 * @return The stack position of the last entry with a transition from the
 	 *         same process as this entry's transition.
 	 */
-	public int getLastEntryPosition() {
-		return stackProcInfo.lastEntry;
+	public int getPrevStackPosition() {
+		return transitionData.prevStackPosition;
 	}
 	
 	/**
@@ -229,14 +237,22 @@ public class DporStackEntry<STATE, TRANSITION> {
 	 *         transitions that happen before this entry's transition
 	 */
 	public DporHbSet getHbSet() {
-		return stackProcInfo.hbSet;
+		return transitionData.hbSet;
 	}
 	
-	void setStackProcInfo(StackProcessInfo stackProcInfo) {
-		this.stackProcInfo = stackProcInfo;
+	/**
+	 * Sets the {@link DporTransitionData} for this entry.
+	 * @param transitionData
+	 */
+	void setTransitionData(DporTransitionData transitionData) {
+		this.transitionData = transitionData;
 	}
 	
-	StackProcessInfo getStackProcInfo() {
-		return stackProcInfo;
+	/**
+	 * @return this entry's {@link DporTransitionData}. Will be {@code null} iff this
+	 *         entry is at the top of the stack.
+	 */
+	DporTransitionData getTransitionData() {
+		return transitionData;
 	}
 }

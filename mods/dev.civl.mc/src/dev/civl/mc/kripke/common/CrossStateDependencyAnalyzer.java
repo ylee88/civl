@@ -84,7 +84,7 @@ public class CrossStateDependencyAnalyzer
 					&& topDep.disjoint(inDepWrite))
 				return false;
 			
-			TraceStep inTopStep = (TraceStep) manager.tryNextState(crossState, inEntry.getCurrentTransition());
+			TraceStep inTopStep = (TraceStep) manager.tryNextState(crossState, inEntry.currentTransition());
 			if (inTopStep == null)
 				return true;
 			collectTraceStepStats(inTopStep);
@@ -110,7 +110,7 @@ public class CrossStateDependencyAnalyzer
 				if (inTopStep == null)
 					return true;
 				collectTraceStepStats(inTopStep);
-				topInStep = (TraceStep) manager.tryNextState(topInStep.getFinalState(), inEntry.getCurrentTransition());
+				topInStep = (TraceStep) manager.tryNextState(topInStep.getFinalState(), inEntry.currentTransition());
 				if (topInStep == null)
 					return true;
 				collectTraceStepStats(topInStep);
@@ -171,7 +171,7 @@ public class CrossStateDependencyAnalyzer
 	private SeqSet computeLocalMem(DporStackEntry<State, Transition> entry, int pid) {
 		State state = entry.getState();
 		SeqSet nonLocal = new SeqSet();
-		for (int otherProc : entry.enabledProcs()) {
+		for (int otherProc : manager.getEnabledProcesses(entry.getState())) {
 			if (otherProc == pid)
 				continue;
 			SeqSet otherReach = new SeqSet(), otherReachWrite = new SeqSet();

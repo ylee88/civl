@@ -9,7 +9,7 @@ import dev.civl.gmc.TraceStepIF;
  * Wraps a STATE object with transition caching and persistent data used in the
  * DPOR search
  * 
- * @author awilton
+ * @author Alex Wilton
  *
  * @param <STATE>
  * @param <TRANSITION>
@@ -32,11 +32,17 @@ public class DporNode<STATE, TRANSITION> {
 	/**
 	 * Cache mapping transitions to the trace steps that they entail when
 	 * executed.
-	 * 
+	 * <p>
 	 * Needed because DPOR requires frequently retracing steps.
 	 */
 	private Map<TRANSITION, TraceStepIF<STATE>> traceStepCache = new HashMap<>();
 
+	/**
+	 * @param state
+	 *            The state this node will store
+	 * @param id
+	 *            An identifier unique to this node
+	 */
 	public DporNode(STATE state, int id) {
 		this.state = state;
 		this.id = id;
@@ -63,18 +69,16 @@ public class DporNode<STATE, TRANSITION> {
 	}
 
 	/**
-	 * Get the position of this {@link DporNode} on dfs stack or -1 if it
-	 * is not on stack.
-	 * 
-	 * @return position of this state on dfs stack or -1
+	 * @return the position of this node as an entry in {@link DporSearchStack}
+	 *         or -1 if it is not on the stack.
 	 */
 	public int getStackPosition() {
 		return stackPosition;
 	}
 	
 	/**
-	 * Given a transition, return the cached trace step it entails if we have
-	 * explored it already. Returns null if not.
+	 * @return the cached trace step {@code transition} entails if we have explored it already,
+	 *         otherwise {@code null}.
 	 */
 	public TraceStepIF<STATE> getTraceStepCache(TRANSITION transition) {
 		return traceStepCache.getOrDefault(transition, null);
@@ -97,7 +101,7 @@ public class DporNode<STATE, TRANSITION> {
 	}
 
 	/**
-	 * Gets the node id which is unique to every node.
+	 * @return the node id which is unique to every node.
 	 */
 	public int getId() {
 		return id;
