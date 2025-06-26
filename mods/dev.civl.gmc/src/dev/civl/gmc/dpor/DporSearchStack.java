@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.PriorityQueue;
+import java.util.Set;
 import java.util.Stack;
 
 import dev.civl.gmc.TraceStepIF;
@@ -65,10 +66,8 @@ public class DporSearchStack<STATE, TRANSITION> {
 				.getInitialNode(initialState);
 		DporStackEntry<STATE, TRANSITION> initialEntry = new DporStackEntry<STATE, TRANSITION>(manager, initialNode);
 		
-		
-		for (int pid : manager.getEnabledProcesses(initialState)) {
-			DporTransitionData transitionData = new DporTransitionData();
-			nextTransitionDataMap.put(pid, transitionData);
+		for (int pid : manager.getLiveProcesses(initialState)) {
+			nextTransitionDataMap.put(pid, new DporTransitionData());
 		}
 		
 		stack.push(initialEntry);
@@ -215,6 +214,13 @@ public class DporSearchStack<STATE, TRANSITION> {
 		newTransitionData.prevStackPosition = oldTopEntry.getStackPosition();
 		newTransitionData.hbSet.addEntry(oldTopEntry);
 		nextTransitionDataMap.put(oldTopEntry.getPid(), newTransitionData);
+		
+		// Keep track of any new processes that may have come into existence
+		Set<Integer> newProcs = manager.getLiveProcesses(newNode.getState());
+		newProcs.removeAll(nextTransitionDataMap.keySet());
+		for (int pid : newProcs) {
+			nextTransitionDataMap.put(pid, new DporTransitionData());
+		}
 		
 		return nodeResult.right;
 	}

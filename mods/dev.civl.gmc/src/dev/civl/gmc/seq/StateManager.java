@@ -74,6 +74,8 @@ public abstract class StateManager<STATE, TRANSITION> {
 	
 	public abstract Set<Integer> getEnabledProcesses(STATE state);
 	
+	public abstract Set<Integer> getLiveProcesses(STATE state);
+	
 	public abstract Collection<TRANSITION> getTransitions(STATE state, int pid);
 
 	/**

@@ -107,6 +107,10 @@ public class SimpleStateManager extends StateManager<Integer, String> {
 		return null;
 	}
 	@Override
+	public Set<Integer> getLiveProcesses(Integer state) {
+		return null;
+	}
+	@Override
 	public Collection<String> getTransitions(Integer state, int pid) {
 		return null;
 	}

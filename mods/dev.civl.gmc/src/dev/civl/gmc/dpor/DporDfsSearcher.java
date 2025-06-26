@@ -156,14 +156,32 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 			if (stack.currentTransition() == null
 					&& !stack.searchForTransition())
 				break;
-
+			
+			DporStackEntry<STATE, TRANSITION> newTransitionEntry = stack.top();
 			if (!stack.pushTransition()) {
 				if (predicate.holdsAt(stack.currentState()))
 					return true;
 			}
+			
 			final int pid = stack.top().getPid();
-			// TODO: Loop through all outgoing edges, enabled or disabled,
-			// except for pid and check for dependence
+			Set<Integer> newTransitionEnabledProcs = manager
+					.getEnabledProcesses(newTransitionEntry.getState());
+			// Loop through all other processes and check for dependence with the most recent transition
+			for (int otherPid : manager
+					.getLiveProcesses(stack.currentState())) {
+				if (otherPid == pid)
+					continue;
+				if (analyzer.checkDependent(stack,
+						newTransitionEntry.getStackPosition(), otherPid)) {
+					stack.addRace(newTransitionEntry, otherPid);
+					numRaces++;
+					if (newTransitionEnabledProcs.contains(otherPid))
+						newTransitionEntry.addToBacktrack(otherPid);
+					else
+						newTransitionEntry
+								.addAllToBacktrack(newTransitionEnabledProcs);
+				}
+			}
 			
 			DporSearchStack<STATE, TRANSITION>.StackTraversal stackTraversal = stack
 					.makeStackTraversal(pid);

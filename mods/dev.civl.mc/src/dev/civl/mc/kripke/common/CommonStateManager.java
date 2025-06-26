@@ -616,6 +616,17 @@ public class CommonStateManager extends CIVLStateManager {
 		}
 		return enabProcs;
 	}
+	
+	@Override
+	public Set<Integer> getLiveProcesses(State state) {
+		Set<Integer> liveProcs = new HashSet<>();
+		for (ProcessState pstate : state.getProcessStates()) {
+			if (pstate != null) {
+				liveProcs.add(pstate.getPid());
+			}
+		}
+		return liveProcs;
+	}
 
 	@Override
 	public Collection<Transition> getTransitions(State state, int pid) {
