@@ -163,7 +163,7 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 					return true;
 			}
 			
-			final int pid = stack.top().getPid();
+			final int pid = newTransitionEntry.getPid();
 			Set<Integer> newTransitionEnabledProcs = manager
 					.getEnabledProcesses(newTransitionEntry.getState());
 			// Loop through all other processes and check for dependence with the most recent transition
@@ -205,14 +205,14 @@ public class DporDfsSearcher<STATE, TRANSITION> {
 						// will remain -1 if no such process exists
 						int enabledProc = -1;
 
-						DporHbSet topHbSet = stack.top().getHbSet();
+						DporHbSet pidHbSet = stack.getHbSet(pid);
 
 						// This stream represents the "E" set in algorithm from
 						// DPOR paper
 						Iterator<Integer> candidateIter = Stream
-								.concat(Stream.of(pid), topHbSet
+								.concat(Stream.of(pid), pidHbSet
 										.procSet().stream()
-										.filter(p -> p != pid && topHbSet
+										.filter(p -> p != pid && pidHbSet
 												.lastEntryPos(p) > pos))
 								.iterator();
 						while (candidateIter.hasNext()) {

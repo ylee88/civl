@@ -221,7 +221,6 @@ public class DporSearchStack<STATE, TRANSITION> {
 		for (int pid : newProcs) {
 			nextTransitionDataMap.put(pid, new DporTransitionData());
 		}
-		
 		return nodeResult.right;
 	}
 	
@@ -244,6 +243,16 @@ public class DporSearchStack<STATE, TRANSITION> {
 			nextTransitionDataMap.put(newTopEntry.getPid(), newTopEntry.getTransitionData());
 			newTopEntry.setTransitionData(null);
 		}
+	}
+
+	/**
+	 * @param pid
+	 *            A process id
+	 * @return the {@link DporHbSet} for the next transitions of the process
+	 *         {@code pid}
+	 */
+	public DporHbSet getHbSet(int pid) {
+		return nextTransitionDataMap.get(pid).hbSet;
 	}
 	
 	/**
