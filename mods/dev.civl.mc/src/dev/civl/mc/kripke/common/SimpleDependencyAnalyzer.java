@@ -51,7 +51,7 @@ public class SimpleDependencyAnalyzer
 		State inState = inEntry.getState(), topState = topEntry.getState();
 
 		if (topState.getProcessState(pid).hasEmptyStack())
-			return true;
+			return false;
 		
 		try {
 			//SeqSet inReach = new SeqSet(), inReachWrite = new SeqSet();
@@ -70,7 +70,7 @@ public class SimpleDependencyAnalyzer
 			 * dependent with inEntry).
 			 */
 			if (waitees != null && waitees.contains(inPid))
-				return true;
+				return false;
 			
 			if (inDep.disjoint(topDepWrite)
 					&& topDep.disjoint(inDepWrite))
