@@ -1,0 +1,24 @@
+#include <stdlib.h>
+
+typedef struct M {
+  int f;
+} *B;
+
+typedef struct S {
+  B g;
+} *A;
+
+int main() {
+  int n = 2;
+  A x[2];
+  for (int i = 0; i < n; i++) {
+    x[i] = (A)malloc(sizeof(struct S));
+    x[i]->g = (B)malloc(sizeof(struct M));
+    x[i]->g->f = 4;
+  }
+  $assert($forall(int i : 0 .. n - 1) x[i]->g->f == 4);
+  $for(int i: 0 .. n-1) {
+    free(x[i]->g);
+    free(x[i]);
+  }
+}

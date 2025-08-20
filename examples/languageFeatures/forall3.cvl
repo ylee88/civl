@@ -1,0 +1,5 @@
+int main(void) {
+  int x=7;
+  int *a[2] = {&x, &x};
+  $assert($forall (int i : 0 .. 1) *(a[i])==7);
+}
