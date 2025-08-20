@@ -1,0 +1,5 @@
+int main() {
+  int a[][] = (int[2][2])$lambda(int i,j) 0;
+  int b[][] = (int[3][3])$lambda(int i,j) 0;
+  b = a;
+}

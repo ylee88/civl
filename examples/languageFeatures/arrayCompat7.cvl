@@ -1,0 +1,12 @@
+struct S {
+  int b[][];
+};
+
+int main() {
+  int a[2][2] = (int[2][2])$lambda(int i,j) 0;
+  struct S x;
+  x.b = (int[3][3])$lambda(int i,j) 0;
+  x.b = a;
+  x.b = (int[4][10])$lambda(int i,j) 0;
+  x.b[0] = (int[10])$lambda(int i) 10; // ok
+}

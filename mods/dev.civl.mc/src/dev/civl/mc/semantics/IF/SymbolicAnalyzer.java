@@ -324,7 +324,7 @@ public interface SymbolicAnalyzer {
 	/**
 	 * <p>
 	 * Check if the dynamic types of the left-hand side (lhs) and right-hand
-	 * side (rhs) expression are compatiable for assignment operation.
+	 * side (rhs) expression are compatible for assignment operation.
 	 * </p>
 	 * 
 	 * <p>

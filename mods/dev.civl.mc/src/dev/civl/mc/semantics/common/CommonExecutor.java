@@ -1626,11 +1626,8 @@ public class CommonExecutor implements Executor {
 				&& lhs.getExpressionType().typeKind() != TypeKind.MEM) {
 			SymbolicType lhsType, rhsType;
 
-			if (!isInitializer)
-				lhsType = evaluator.evaluate(state, pid, lhs).value.type();
-			else
-				lhsType = evaluator.getDynamicType(state, pid,
-						lhs.getExpressionType(), lhs.getSource(), false).type;
+			lhsType = evaluator.getDynamicType(state, pid,
+					lhs.getExpressionType(), lhs.getSource(), false).type;
 			rhsType = eval.value.type();
 			if (!symbolicAnalyzer.areDynamicTypesCompatiableForAssign(lhsType,
 					rhsType))

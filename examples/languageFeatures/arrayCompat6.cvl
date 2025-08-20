@@ -1,0 +1,7 @@
+int main() {
+  int a[2][2] = (int[2][2])$lambda(int i,j) 0;
+  int b[][] = (int[3][3])$lambda(int i,j) 0;
+  b = a; // should this change the symbolic type of b?
+  b[0] = (int[10])$lambda(int i) 10; // ok
+  //a[0] = (int[10])$lambda(int i) 10; // error
+}

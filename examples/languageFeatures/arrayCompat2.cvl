@@ -1,0 +1,11 @@
+typedef struct T {
+  int data[][];
+} T;
+
+int main() {
+  T a;
+  a.data = (int[2][2])$lambda(int i,j) 0;
+  T b;
+  b.data = (int[3][3])$lambda(int i,j) 0;
+  b = a;
+}
