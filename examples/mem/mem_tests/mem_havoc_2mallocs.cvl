@@ -1,0 +1,9 @@
+#include<mem.cvh>
+#include<stdlib.h>
+
+int main(void) {
+  int * p = malloc(sizeof(int));
+  int * q = malloc(sizeof(int));
+  $mem m = q;
+  $mem_havoc(m);
+}

@@ -4776,15 +4776,7 @@ public class CommonPreUniverse implements PreUniverse {
 					"the given value set template: " + valueSetTemplate
 							+ " does not have a value set template type");
 
-		SymbolicType valueType = getValueTypeOfValueSetTemplate(
-				valueSetTemplate);
 		SymbolicExpression result = oldValue;
-
-		if (!valueType.equals(oldValue.type()))
-			throw new SARLException(
-					"the value set template is associated with a different type: "
-							+ valueType + " than the type of given values: "
-							+ oldValue.type());
 		for (SymbolicObject ref : tupleRead(valueSetTemplate, intObject(1))
 				.getArguments()) {
 			LinkedList<ValueSetReference> refStack = new LinkedList<>();

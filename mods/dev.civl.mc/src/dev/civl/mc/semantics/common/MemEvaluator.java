@@ -416,7 +416,7 @@ public class MemEvaluator extends CommonEvaluator {
 			if (mlr.vid() > 0)
 				obj = dyscope.lexicalScope().variable(mlr.vid()).name().name();
 			else
-				obj = "Dyscope" + dyscopeId + "_malloc_" + mlr.mallocID();
+				obj = "Dyscope" + dyscopeId + "_malloc_" + mlr.heapID() + "_" + mlr.mallocID();
 			for (String ref : prettyPrintValueSetTemplate(universe,
 					mlr.valueSetTemplate(), source))
 				result += obj + ref + ", ";
@@ -780,7 +780,7 @@ public class MemEvaluator extends CommonEvaluator {
 			valueType = heapObjectType;
 			vsRef = symbolicUtil.getValueSetUtility()
 					.getVSReferenceToSequenceOrNoop(modelFactory.model()
-							.getMalloc(mallocID).getStaticElementType(), true,
+							.getMalloc(heapID).getStaticElementType(), true,
 							vsRef);
 		} else
 			vsRef = symbolicUtil.getValueSetUtility()
@@ -1146,11 +1146,10 @@ public class MemEvaluator extends CommonEvaluator {
 	 * reference. A heap ID is the ID of a lexical malloc statement.
 	 */
 	private int memoryHeapID(ValueSetReference ref2heap) {
-		NumericExpression mallocId = ((VSArrayElementReference) ref2heap)
-				.getIndex();
+		ValueSetReference parent = ((NTValueSetReference) ref2heap).getParent();
+		IntObject tupleIdx = ((VSTupleComponentReference) parent).getIndex();
 
-		assert mallocId.operator() == SymbolicOperator.CONCRETE;
-		return ((IntegerNumber) universe.extractNumber(mallocId)).intValue();
+		return tupleIdx.getInt();
 	}
 
 	/**
@@ -1159,10 +1158,11 @@ public class MemEvaluator extends CommonEvaluator {
 	 * specific malloc statement.
 	 */
 	private int memoryHeapMallocID(ValueSetReference ref2heap) {
-		ValueSetReference parent = ((NTValueSetReference) ref2heap).getParent();
-		IntObject tupleIdx = ((VSTupleComponentReference) parent).getIndex();
+		NumericExpression mallocId = ((VSArrayElementReference) ref2heap)
+				.getIndex();
 
-		return tupleIdx.getInt();
+		assert mallocId.operator() == SymbolicOperator.CONCRETE;
+		return ((IntegerNumber) universe.extractNumber(mallocId)).intValue();
 	}
 
 	private static String[] prettyPrintValueSetTemplate(
