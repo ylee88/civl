@@ -86,6 +86,46 @@ public class LanguageFeaturesTest {
 		assertFalse(
 				ui.run(VERIFY, QUIET, filename("arbitrary_pointer_bad.cvl")));
 	}
+	
+	@Test
+	public void arrayCompat() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, NO_PRINTF, filename("arrayCompat.cvl")));
+	}
+	
+	@Test
+	public void arrayCompat2() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, NO_PRINTF, filename("arrayCompat2.cvl")));
+	}
+	
+	@Test
+	public void arrayCompat3() throws ABCException {
+		assertFalse(ui.run(VERIFY, QUIET, NO_PRINTF, filename("arrayCompat3.cvl")));
+	}
+
+	@Test
+	public void arrayCompat4() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, NO_PRINTF, filename("arrayCompat4.cvl")));
+	}
+	
+	@Test
+	public void arrayCompat5() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, NO_PRINTF, filename("arrayCompat5.cvl")));
+	}
+	
+	@Test
+	public void arrayCompat6() throws ABCException {
+		assertFalse(ui.run(VERIFY, QUIET, NO_PRINTF, filename("arrayCompat6.cvl")));
+	}
+	
+	@Test
+	public void arrayCompat7() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, NO_PRINTF, filename("arrayCompat7.cvl")));
+	}
+	
+	@Test
+	public void arrayCompat8() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, NO_PRINTF, filename("arrayCompat8.cvl")));
+	}
 
 	@Test
 	public void arrayLiteral() throws ABCException {
