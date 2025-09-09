@@ -35,7 +35,7 @@ int main()
 	int i;
 
   // modified:
-  //@ transform flatten I;
+  //@ focus I;
 	for(i = 0; i < N; i++)
 	{
 		S s1;
@@ -72,7 +72,7 @@ int main()
   */
 
   // Modified
-  //@ transform flatten I;
+  //@ focus I;
   $assert($forall(int i:0..N-1) (a[i].n == 1) == (a[i].p != (void *)0));
   // Original
   /*
@@ -88,7 +88,7 @@ int main()
   */
 
   /*
-  //@ transform flatten I;
+  //@ focus I;
   for(i = 0; i < N; i++)
   {
     if (a[i]->n == 1) {

@@ -1,3 +1,14 @@
+/**
+ * Issue here is that focus cannot be applied across functions as usual.
+ * If we want to apply focus to a loop in a function then that function
+ * needs a function contract.
+ 
+ * Function contract here doesn't work for some reason (CIVL bug)
+ 
+ * Also the postcondition currently can't be transformed with focus
+ * so an assertion must be inserted into the function to apply focus.
+ * This could be fixed.
+ */
 #include<assert.h>
 
 #pragma CIVL ACSL

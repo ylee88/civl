@@ -20,6 +20,7 @@ package dev.civl.sarl.expr.IF;
 
 import java.util.Comparator;
 
+import dev.civl.sarl.IF.Reasoner;
 import dev.civl.sarl.IF.expr.ArrayElementReference;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.NumericExpression;
@@ -193,28 +194,33 @@ public interface ExpressionFactory {
 			SymbolicExpression refArr0, SymbolicExpression refArr1);
 
 	/**
-	 * <p>Tests if the two given {@link ValueSetReference}s have NO intersection, i.e.,
-	 * if applying the two reference to the same object, if their referred parts
-	 * have no overlap.
+	 * <p>
+	 * Tests if the two given {@link ValueSetReference}s have NO intersection,
+	 * i.e., if applying the two reference to the same object, if their referred
+	 * parts have no overlap.
 	 * </p>
 	 *
-	 * <p>returns the condition that is true iff the given two value set
-	 * reference have no intersection.
+	 * <p>
+	 * returns the condition that is true iff the given two value set reference
+	 * have no intersection.
 	 * </p>
 	 *
 	 * @param valueType
-	 *         the type of the value that the two given references can be
-	 *         applied to
+	 *            the type of the value that the two given references can be
+	 *            applied to
 	 * @param ref0
-	 *         an instance of {@link ValueSetReference}
+	 *            an instance of {@link ValueSetReference}
 	 * @param ref1
-	 *         an instance of {@link ValueSetReference}
+	 *            an instance of {@link ValueSetReference}
 	 * @return the condition that is true iff the two value set references have
-	 * no intersection
+	 *         no intersection
 	 */
 	BooleanExpression valueSetRefereceNoIntersect(SymbolicType valueType,
 			ValueSetReference ref0, ValueSetReference ref1);
 
+	SymbolicExpression valueSetDiff(SymbolicType valueType,
+			SymbolicExpression refArr0, SymbolicExpression refArr1);
+	
 	/**
 	 * <p>
 	 * Apply a default widening operator to a value set template, which is in
@@ -227,12 +233,22 @@ public interface ExpressionFactory {
 	 *            "refArr" refer to
 	 * @param refArr
 	 *            a concrete array of value set references
-	 * @return a symbolic expression of
-	 *         {@link #valueSetTemplateType()} type, where value set
-	 *         references have been widening-ed
+	 * @param reasoner
+	 *            a reasoner used for more accurate widening
+	 * @return a symbolic expression of {@link #valueSetTemplateType()} type,
+	 *         where value set references have been widening-ed
 	 */
-	SymbolicExpression valueSetWidening(SymbolicType valueType,
-			SymbolicExpression refArr);
+	SymbolicExpression valueSetWidening(Reasoner reasoner,
+			SymbolicType valueType, SymbolicExpression refArr);
+
+	SymbolicExpression valueSetProtectiveWidening(Reasoner reasoner,
+			SymbolicType valueType, SymbolicExpression refArrM,
+			SymbolicExpression refArrP);
+
+	SymbolicExpression valueSetElimWidening(Reasoner reasoner,
+			SymbolicType valueType, SymbolicExpression refArr,
+			SymbolicExpression elimExpr, NumericExpression lower,
+			NumericExpression upper);
 
 	/**
 	 * Returns the identity (or "trivial") value set reference I. This is the

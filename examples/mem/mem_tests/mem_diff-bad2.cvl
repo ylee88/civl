@@ -1,0 +1,16 @@
+#include<mem.cvh>
+
+$input int N;
+$assume(2 <= N && N <= 6);
+
+typedef struct {
+  int x[10];
+} A;
+
+int main() {
+  A a[10];
+  $mem m = &a[0 .. 9].x[0 .. 9];
+  $mem m2 = &a[N-1 .. N+3].x[N-2 .. N+2];
+  m = $mem_diff(m, m2);
+  $assert($mem_contains(m, m2));
+}

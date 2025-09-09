@@ -326,9 +326,12 @@ public class ModelTranslator {
 		if (config.svcomp())
 			task.addTransformRecord(
 					transformerFactory.getSvcompTransformerRecord(config));
-		if (config.loopInvariantEnabled())
+		if (config.loopInvariantEnabled()) {
 			task.addTransformRecord(
-					transformerFactory.getLoopContractTransformerRecord());
+					transformerFactory.getAnnotationTransformerRecord());
+			task.addTransformRecord(
+					transformerFactory.getLoopContractTransformerRecord(config));
+		}
 		if (config.isEnableMpiContract())
 			task.addTransformRecord(
 					transformerFactory.getContractTransformerRecord(

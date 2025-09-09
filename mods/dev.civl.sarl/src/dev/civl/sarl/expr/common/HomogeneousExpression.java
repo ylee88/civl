@@ -1161,4 +1161,15 @@ public class HomogeneousExpression<T extends SymbolicObject>
 				return true;
 		return false;
 	}
+	
+	@Override
+	public boolean containsSubobjectIgnoringType(SymbolicObject obj) {
+		if (this == obj) {
+			return true;
+		}
+		for (SymbolicObject element : arguments)
+			if (element.containsSubobjectIgnoringType(obj))
+				return true;
+		return false;
+	}
 }

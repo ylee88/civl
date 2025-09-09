@@ -123,4 +123,10 @@ public class CommonSequenceNode<T extends ASTNode> extends CommonASTNode
 	public void insertChildren(int index, List<T> list) {
 		insertChildrenAt(index, list);
 	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	public T shiftRemoveChild(int index) {
+		return (T) super.shiftRemoveChild(index);
+	}
 }

@@ -299,6 +299,8 @@ public class CIVLConfiguration {
 	 * set to true iff loop invariant option is enabled.
 	 */
 	private boolean loopInvariantEnabled = false;
+	
+	private boolean convergeWithMemEq = false;
 
 	/**
 	 * set to true iff CIVL will generate Junit test class for SARL:
@@ -473,6 +475,7 @@ public class CIVLConfiguration {
 			// Loop invariant transformation has cycles
 			this.setToggleableProperty(CIVLProperty.TERMINATION, false);
 		}
+		this.convergeWithMemEq = config.isTrue(CIVLConstants.memEqO);
 		this.collectSymbolicNames = config
 				.isTrue(CIVLConstants.collectSymbolicConstantsO)
 				|| loopInvariantEnabled;
@@ -546,6 +549,8 @@ public class CIVLConfiguration {
 		this.isReplay = config.isReplay;
 		this.mpiContractFunction = config.mpiContractFunction;
 		this.ompLoopDecomp = config.ompLoopDecomp;
+		this.loopInvariantEnabled = config.loopInvariantEnabled;
+		this.convergeWithMemEq = config.convergeWithMemEq;
 		this.ompNoSimplify = config.ompNoSimplify;
 		this.ompOnlySimplifier = config.ompOnlySimplifier;
 		this.out = config.out;
@@ -1244,6 +1249,10 @@ public class CIVLConfiguration {
 	 */
 	public boolean loopInvariantEnabled() {
 		return this.loopInvariantEnabled;
+	}
+	
+	public boolean convergeWithMemEquality() {
+		return this.convergeWithMemEq;
 	}
 
 	/**

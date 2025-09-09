@@ -133,28 +133,28 @@ public class CommonPreUniverse implements PreUniverse {
 	/**
 	 * Factory for producing general symbolic objects, canonicalizing them, etc.
 	 */
-	private ObjectFactory objectFactory;
+	protected ObjectFactory objectFactory;
 
 	/**
 	 * Factory for producing symbolic types.
 	 */
-	private SymbolicTypeFactory typeFactory;
+	protected SymbolicTypeFactory typeFactory;
 
 	/**
 	 * Factory for producing general symbolic expressions.
 	 */
-	private ExpressionFactory expressionFactory;
+	protected ExpressionFactory expressionFactory;
 
 	/**
 	 * Factory for producing and manipulating boolean expressions.
 	 */
-	private BooleanExpressionFactory booleanFactory;
+	protected BooleanExpressionFactory booleanFactory;
 
 	/**
 	 * The factory for producing and manipulating concrete numbers (such as
 	 * infinite precision integers and rationals).
 	 */
-	private NumberFactory numberFactory;
+	protected NumberFactory numberFactory;
 
 	/**
 	 * Factory for dealing with symbolic expressions of numeric (i.e., integer
@@ -457,62 +457,65 @@ public class CommonPreUniverse implements PreUniverse {
 		if (kind != type1.typeKind())
 			return falseExpr;
 		switch (kind) {
-		case BOOLEAN:
-		case CHAR:
-			// only one BOOLEAN type; only one CHAR type...
-			throw ierr("Unreachable: types are not equal but both have kind "
-					+ kind);
-		case INTEGER:
-		case REAL:
-			// types are not equal but have same kind. We do not consider
-			// Herbrand real and real to be compatible, e.g.
-			return falseExpr;
-		case ARRAY: {
-			SymbolicArrayType a0 = (SymbolicArrayType) type0;
-			SymbolicArrayType a1 = (SymbolicArrayType) type1;
-			BooleanExpression result = compatible(a0.elementType(),
-					a1.elementType(), nestingDepth);
+			case BOOLEAN :
+			case CHAR :
+				// only one BOOLEAN type; only one CHAR type...
+				throw ierr(
+						"Unreachable: types are not equal but both have kind "
+								+ kind);
+			case INTEGER :
+			case REAL :
+				// types are not equal but have same kind. We do not consider
+				// Herbrand real and real to be compatible, e.g.
+				return falseExpr;
+			case ARRAY : {
+				SymbolicArrayType a0 = (SymbolicArrayType) type0;
+				SymbolicArrayType a1 = (SymbolicArrayType) type1;
+				BooleanExpression result = compatible(a0.elementType(),
+						a1.elementType(), nestingDepth);
 
-			if (a0.isComplete() && a1.isComplete())
-				result = and(result,
-						equals(((SymbolicCompleteArrayType) a0).extent(),
-								((SymbolicCompleteArrayType) a1).extent(),
+				if (a0.isComplete() && a1.isComplete())
+					result = and(result,
+							equals(((SymbolicCompleteArrayType) a0).extent(),
+									((SymbolicCompleteArrayType) a1).extent(),
+									nestingDepth));
+				return result;
+			}
+			case FUNCTION :
+				return and(
+						compatibleTypeSequence(
+								((SymbolicFunctionType) type0).inputTypes(),
+								((SymbolicFunctionType) type1).inputTypes(),
+								nestingDepth),
+						compatible(((SymbolicFunctionType) type0).outputType(),
+								((SymbolicFunctionType) type1).outputType(),
 								nestingDepth));
-			return result;
-		}
-		case FUNCTION:
-			return and(compatibleTypeSequence(
-					((SymbolicFunctionType) type0).inputTypes(),
-					((SymbolicFunctionType) type1).inputTypes(), nestingDepth),
-					compatible(((SymbolicFunctionType) type0).outputType(),
-							((SymbolicFunctionType) type1).outputType(),
-							nestingDepth));
-		case TUPLE: {
-			SymbolicTupleType t0 = (SymbolicTupleType) type0;
-			SymbolicTupleType t1 = (SymbolicTupleType) type1;
+			case TUPLE : {
+				SymbolicTupleType t0 = (SymbolicTupleType) type0;
+				SymbolicTupleType t1 = (SymbolicTupleType) type1;
 
-			if (!t0.name().equals(t1.name()))
-				return falseExpr;
-			return compatibleTypeSequence(t0.sequence(), t1.sequence(),
-					nestingDepth);
-		}
-		case UNION: {
-			SymbolicUnionType t0 = (SymbolicUnionType) type0;
-			SymbolicUnionType t1 = (SymbolicUnionType) type1;
+				if (!t0.name().equals(t1.name()))
+					return falseExpr;
+				return compatibleTypeSequence(t0.sequence(), t1.sequence(),
+						nestingDepth);
+			}
+			case UNION : {
+				SymbolicUnionType t0 = (SymbolicUnionType) type0;
+				SymbolicUnionType t1 = (SymbolicUnionType) type1;
 
-			if (!t0.name().equals(t1.name()))
-				return falseExpr;
-			return compatibleTypeSequence(t0.sequence(), t1.sequence(),
-					nestingDepth);
-		}
-		case UNINTERPRETED: {
-			SymbolicUninterpretedType t0 = (SymbolicUninterpretedType) type0;
-			SymbolicUninterpretedType t1 = (SymbolicUninterpretedType) type1;
+				if (!t0.name().equals(t1.name()))
+					return falseExpr;
+				return compatibleTypeSequence(t0.sequence(), t1.sequence(),
+						nestingDepth);
+			}
+			case UNINTERPRETED : {
+				SymbolicUninterpretedType t0 = (SymbolicUninterpretedType) type0;
+				SymbolicUninterpretedType t1 = (SymbolicUninterpretedType) type1;
 
-			return bool(t0.equals(t1));
-		}
-		default:
-			throw ierr("unreachable");
+				return bool(t0.equals(t1));
+			}
+			default :
+				throw ierr("unreachable");
 		}
 	}
 
@@ -568,43 +571,45 @@ public class CommonPreUniverse implements PreUniverse {
 			if (result.isFalse())
 				return result;
 			switch (kind) {
-			case ARRAY_ELEMENT: {
-				ArrayElementReference ref0 = (ArrayElementReference) arg0;
-				ArrayElementReference ref1 = (ArrayElementReference) arg1;
+				case ARRAY_ELEMENT : {
+					ArrayElementReference ref0 = (ArrayElementReference) arg0;
+					ArrayElementReference ref1 = (ArrayElementReference) arg1;
 
-				result = and(result, equals(ref0.getIndex(), ref1.getIndex(),
-						quantifierDepth));
-				break;
-			}
-			case OFFSET: {
-				OffsetReference ref0 = (OffsetReference) arg0;
-				OffsetReference ref1 = (OffsetReference) arg1;
+					result = and(result, equals(ref0.getIndex(),
+							ref1.getIndex(), quantifierDepth));
+					break;
+				}
+				case OFFSET : {
+					OffsetReference ref0 = (OffsetReference) arg0;
+					OffsetReference ref1 = (OffsetReference) arg1;
 
-				result = and(result, equals(ref0.getOffset(), ref1.getOffset(),
-						quantifierDepth));
-				break;
-			}
-			case TUPLE_COMPONENT: {
-				TupleComponentReference ref0 = (TupleComponentReference) arg0;
-				TupleComponentReference ref1 = (TupleComponentReference) arg1;
+					result = and(result, equals(ref0.getOffset(),
+							ref1.getOffset(), quantifierDepth));
+					break;
+				}
+				case TUPLE_COMPONENT : {
+					TupleComponentReference ref0 = (TupleComponentReference) arg0;
+					TupleComponentReference ref1 = (TupleComponentReference) arg1;
 
-				result = ref0.getIndex().equals(ref1.getIndex()) ? result
-						: falseExpr;
-				break;
-			}
-			case UNION_MEMBER: {
-				UnionMemberReference ref0 = (UnionMemberReference) arg0;
-				UnionMemberReference ref1 = (UnionMemberReference) arg1;
+					result = ref0.getIndex().equals(ref1.getIndex())
+							? result
+							: falseExpr;
+					break;
+				}
+				case UNION_MEMBER : {
+					UnionMemberReference ref0 = (UnionMemberReference) arg0;
+					UnionMemberReference ref1 = (UnionMemberReference) arg1;
 
-				result = ref0.getIndex().equals(ref1.getIndex()) ? result
-						: falseExpr;
-				break;
-			}
-			default:
-				throw err(
-						"Unreachable because the only kinds of NTReferenceExpression "
-								+ "are as listed above.\n" + "This is: "
-								+ kind);
+					result = ref0.getIndex().equals(ref1.getIndex())
+							? result
+							: falseExpr;
+					break;
+				}
+				default :
+					throw err(
+							"Unreachable because the only kinds of NTReferenceExpression "
+									+ "are as listed above.\n" + "This is: "
+									+ kind);
 			}
 		} else {
 			// either both are identity of both are null
@@ -654,148 +659,150 @@ public class CommonPreUniverse implements PreUniverse {
 			return equals((ReferenceExpression) arg0,
 					(ReferenceExpression) arg1, quantifierDepth);
 		switch (type.typeKind()) {
-		case BOOLEAN:
-			return equiv((BooleanExpression) arg0, (BooleanExpression) arg1);
-		case CHAR: {
-			SymbolicOperator op0 = arg0.operator();
-			SymbolicOperator op1 = arg1.operator();
+			case BOOLEAN :
+				return equiv((BooleanExpression) arg0,
+						(BooleanExpression) arg1);
+			case CHAR : {
+				SymbolicOperator op0 = arg0.operator();
+				SymbolicOperator op1 = arg1.operator();
 
-			if (op0 == SymbolicOperator.CONCRETE
-					&& op1 == SymbolicOperator.CONCRETE) {
-				return bool(arg0.argument(0).equals(arg1.argument(0)));
-			}
-			return booleanFactory.booleanExpression(SymbolicOperator.EQUALS,
-					arg0, arg1);
-		}
-		case INTEGER:
-		case REAL:
-			return numericFactory.equals((NumericExpression) arg0,
-					(NumericExpression) arg1);
-		case ARRAY: {
-			NumericExpression length = length(arg0);
-
-			if (!(type instanceof SymbolicCompleteArrayType)
-					|| !(arg1.type() instanceof SymbolicCompleteArrayType))
-				result = and(result,
-						equals(length, length(arg1), quantifierDepth));
-			if (result.isFalse())
-				return result;
-			else {
-				NumericSymbolicConstant index = intBoundVar(quantifierDepth);
-
-				result = and(result,
-						forallInt(index, zeroInt(), length,
-								equals(arrayRead(arg0, index),
-										arrayRead(arg1, index),
-										quantifierDepth + 1)));
-				return result;
-			}
-		}
-		case FUNCTION: {
-			SymbolicTypeSequence inputTypes = ((SymbolicFunctionType) type)
-					.inputTypes();
-			int numInputs = inputTypes.numTypes();
-
-			if (numInputs == 0) {
-				result = and(result, booleanFactory.booleanExpression(
-						SymbolicOperator.EQUALS, arg0, arg1));
-			} else {
-				SymbolicConstant[] boundVariables = new SymbolicConstant[numInputs];
-				SymbolicSequence<?> sequence;
-				BooleanExpression expr;
-
-				for (int i = 0; i < numInputs; i++)
-					boundVariables[i] = boundVar(quantifierDepth + i,
-							inputTypes.getType(i));
-				sequence = objectFactory.sequence(boundVariables);
-				expr = equals(apply(arg0, sequence), apply(arg1, sequence),
-						quantifierDepth + numInputs);
-				for (int i = numInputs - 1; i >= 0; i--)
-					expr = forall(boundVariables[i], expr);
-				result = and(result, expr);
-				return result;
-			}
-
-			return result;
-		}
-		case TUPLE: {
-			int numComponents = ((SymbolicTupleType) type).sequence()
-					.numTypes();
-
-			for (int i = 0; i < numComponents; i++) {
-				IntObject index = intObject(i);
-
-				result = and(result, equals(tupleRead(arg0, index),
-						tupleRead(arg1, index), quantifierDepth));
-			}
-			return result;
-		}
-		case UNION: {
-			SymbolicUnionType unionType = (SymbolicUnionType) type;
-
-			if (arg0.operator() == SymbolicOperator.UNION_INJECT) {
-				IntObject index = (IntObject) arg0.argument(0);
-				SymbolicExpression value0 = (SymbolicExpression) arg0
-						.argument(1);
-
-				if (arg1.operator() == SymbolicOperator.UNION_INJECT)
-					return index.equals(arg1.argument(0))
-							? and(result,
-									equals(value0,
-											(SymbolicExpression) arg1
-													.argument(1),
-											quantifierDepth))
-							: falseExpr;
-				else
-					return and(result,
-							and(unionTest(index, arg1),
-									equals(value0, unionExtract(index, arg1),
-											quantifierDepth)));
-			} else if (arg1.operator() == SymbolicOperator.UNION_INJECT) {
-				IntObject index = (IntObject) arg1.argument(0);
-
-				return and(result,
-						and(unionTest(index, arg0),
-								equals((SymbolicExpression) arg1.argument(1),
-										unionExtract(index, arg0),
-										quantifierDepth)));
-			} else {
-				int numTypes = unionType.sequence().numTypes();
-				BooleanExpression expr = falseExpr;
-
-				for (int i = 0; i < numTypes; i++) {
-					IntObject index = intObject(i);
-					BooleanExpression clause = result;
-
-					clause = and(clause, unionTest(index, arg0));
-					if (clause.isFalse())
-						continue;
-					clause = and(clause, unionTest(index, arg1));
-					if (clause.isFalse())
-						continue;
-					clause = and(clause, equals(unionExtract(index, arg0),
-							unionExtract(index, arg1), quantifierDepth));
-					if (clause.isFalse())
-						continue;
-					expr = or(expr, clause);
+				if (op0 == SymbolicOperator.CONCRETE
+						&& op1 == SymbolicOperator.CONCRETE) {
+					return bool(arg0.argument(0).equals(arg1.argument(0)));
 				}
-				return expr;
+				return booleanFactory.booleanExpression(SymbolicOperator.EQUALS,
+						arg0, arg1);
 			}
-		}
-		case UNINTERPRETED:
-			if (arg0.operator() == SymbolicOperator.CONCRETE
-					&& arg1.operator() == SymbolicOperator.CONCRETE) {
-				SymbolicUninterpretedType uninterpretedType = (SymbolicUninterpretedType) type;
-				IntObject key0 = uninterpretedType.soleSelector().apply(arg0);
-				IntObject key1 = uninterpretedType.soleSelector().apply(arg1);
+			case INTEGER :
+			case REAL :
+				return numericFactory.equals((NumericExpression) arg0,
+						(NumericExpression) arg1);
+			case ARRAY : {
+				NumericExpression length = length(arg0);
 
-				return bool(key0.equals(key1));
-			} else {
-				return (BooleanExpression) expression(SymbolicOperator.EQUALS,
-						booleanType(), arg0, arg1);
+				if (!(type instanceof SymbolicCompleteArrayType)
+						|| !(arg1.type() instanceof SymbolicCompleteArrayType))
+					result = and(result,
+							equals(length, length(arg1), quantifierDepth));
+				if (result.isFalse())
+					return result;
+				else {
+					NumericSymbolicConstant index = intBoundVar(
+							quantifierDepth);
+
+					result = and(result,
+							forallInt(index, zeroInt(), length,
+									equals(arrayRead(arg0, index),
+											arrayRead(arg1, index),
+											quantifierDepth + 1)));
+					return result;
+				}
 			}
-		default:
-			throw ierr("Unknown type: " + type);
+			case FUNCTION : {
+				SymbolicTypeSequence inputTypes = ((SymbolicFunctionType) type)
+						.inputTypes();
+				int numInputs = inputTypes.numTypes();
+
+				if (numInputs == 0) {
+					result = and(result, booleanFactory.booleanExpression(
+							SymbolicOperator.EQUALS, arg0, arg1));
+				} else {
+					SymbolicConstant[] boundVariables = new SymbolicConstant[numInputs];
+					SymbolicSequence<?> sequence;
+					BooleanExpression expr;
+
+					for (int i = 0; i < numInputs; i++)
+						boundVariables[i] = boundVar(quantifierDepth + i,
+								inputTypes.getType(i));
+					sequence = objectFactory.sequence(boundVariables);
+					expr = equals(apply(arg0, sequence), apply(arg1, sequence),
+							quantifierDepth + numInputs);
+					for (int i = numInputs - 1; i >= 0; i--)
+						expr = forall(boundVariables[i], expr);
+					result = and(result, expr);
+					return result;
+				}
+
+				return result;
+			}
+			case TUPLE : {
+				int numComponents = ((SymbolicTupleType) type).sequence()
+						.numTypes();
+
+				for (int i = 0; i < numComponents; i++) {
+					IntObject index = intObject(i);
+
+					result = and(result, equals(tupleRead(arg0, index),
+							tupleRead(arg1, index), quantifierDepth));
+				}
+				return result;
+			}
+			case UNION : {
+				SymbolicUnionType unionType = (SymbolicUnionType) type;
+
+				if (arg0.operator() == SymbolicOperator.UNION_INJECT) {
+					IntObject index = (IntObject) arg0.argument(0);
+					SymbolicExpression value0 = (SymbolicExpression) arg0
+							.argument(1);
+
+					if (arg1.operator() == SymbolicOperator.UNION_INJECT)
+						return index.equals(arg1.argument(0))
+								? and(result, equals(value0,
+										(SymbolicExpression) arg1.argument(1),
+										quantifierDepth))
+								: falseExpr;
+					else
+						return and(result,
+								and(unionTest(index, arg1),
+										equals(value0,
+												unionExtract(index, arg1),
+												quantifierDepth)));
+				} else if (arg1.operator() == SymbolicOperator.UNION_INJECT) {
+					IntObject index = (IntObject) arg1.argument(0);
+
+					return and(result, and(unionTest(index, arg0),
+							equals((SymbolicExpression) arg1.argument(1),
+									unionExtract(index, arg0),
+									quantifierDepth)));
+				} else {
+					int numTypes = unionType.sequence().numTypes();
+					BooleanExpression expr = falseExpr;
+
+					for (int i = 0; i < numTypes; i++) {
+						IntObject index = intObject(i);
+						BooleanExpression clause = result;
+
+						clause = and(clause, unionTest(index, arg0));
+						if (clause.isFalse())
+							continue;
+						clause = and(clause, unionTest(index, arg1));
+						if (clause.isFalse())
+							continue;
+						clause = and(clause, equals(unionExtract(index, arg0),
+								unionExtract(index, arg1), quantifierDepth));
+						if (clause.isFalse())
+							continue;
+						expr = or(expr, clause);
+					}
+					return expr;
+				}
+			}
+			case UNINTERPRETED :
+				if (arg0.operator() == SymbolicOperator.CONCRETE
+						&& arg1.operator() == SymbolicOperator.CONCRETE) {
+					SymbolicUninterpretedType uninterpretedType = (SymbolicUninterpretedType) type;
+					IntObject key0 = uninterpretedType.soleSelector()
+							.apply(arg0);
+					IntObject key1 = uninterpretedType.soleSelector()
+							.apply(arg1);
+
+					return bool(key0.equals(key1));
+				} else {
+					return (BooleanExpression) expression(
+							SymbolicOperator.EQUALS, booleanType(), arg0, arg1);
+				}
+			default :
+				throw ierr("Unknown type: " + type);
 		}
 	}
 
@@ -902,156 +909,160 @@ public class CommonPreUniverse implements PreUniverse {
 	public SymbolicExpression make(SymbolicOperator operator, SymbolicType type,
 			SymbolicObject[] args) {
 		switch (operator) {
-		case ADD:
-			return add(type, args);
-		case AND:
-			return and(args);
-		case APPLY: // 2 args: function and sequence
-			if (isSigmaCall((SymbolicExpression) args[0]))
-				return makeSigma((SymbolicSequence<?>) args[1]);
-			if (isPermutCall((SymbolicExpression) args[0]))
-				return makePermut((SymbolicSequence<?>) args[1]);
-			if (isReductionCall((SymbolicExpression) args[0])) {
-				SymbolicSequence<?> reduceArgs = (SymbolicSequence<?>) args[1];
+			case ADD :
+				return add(type, args);
+			case AND :
+				return and(args);
+			case APPLY : // 2 args: function and sequence
+				if (isSigmaCall((SymbolicExpression) args[0]))
+					return makeSigma((SymbolicSequence<?>) args[1]);
+				if (isPermutCall((SymbolicExpression) args[0]))
+					return makePermut((SymbolicSequence<?>) args[1]);
+				if (isReductionCall((SymbolicExpression) args[0])) {
+					SymbolicSequence<?> reduceArgs = (SymbolicSequence<?>) args[1];
 
-				return makeReduction((NumericExpression) reduceArgs.get(0),
-						reduceArgs.get(1), reduceArgs.get(2));
-			}
-			return apply((SymbolicExpression) args[0],
-					(SymbolicSequence<?>) args[1]);
-		case ARRAY_LAMBDA:
-			return arrayLambda((SymbolicCompleteArrayType) type,
-					(SymbolicExpression) args[0]);
-		case ARRAY_READ:
-			return arrayRead((SymbolicExpression) args[0],
-					(NumericExpression) args[1]);
-		case ARRAY_WRITE:
-			return arrayWrite((SymbolicExpression) args[0],
-					(NumericExpression) args[1], (SymbolicExpression) args[2]);
-		case BIT_AND:
-			return bitand((NumericExpression) args[0],
-					(NumericExpression) args[1]);
-		case BIT_NOT:
-			return bitnot((NumericExpression) args[0]);
-		case BIT_OR:
-			return bitor((NumericExpression) args[0],
-					(NumericExpression) args[1]);
-		case BIT_XOR:
-			return bitxor((NumericExpression) args[0],
-					(NumericExpression) args[1]);
-		case BIT_SHIFT_LEFT:
-			return bitshiftLeft((NumericExpression) args[0],
-					(NumericExpression) args[1]);
-		case BIT_SHIFT_RIGHT:
-			return bitshiftRight((NumericExpression) args[0],
-					(NumericExpression) args[1]);
-		case CAST:
-			return cast(type, (SymbolicExpression) args[0]);
-		case CONCRETE:
-			if (type.isNumeric())
-				return numericFactory.number((NumberObject) args[0]);
-			else
-				return expression(SymbolicOperator.CONCRETE, type, args[0]);
-		case COND:
-			return cond((BooleanExpression) args[0],
-					(SymbolicExpression) args[1], (SymbolicExpression) args[2]);
-		case DENSE_ARRAY_WRITE:
-			return denseArrayWrite((SymbolicExpression) args[0],
-					(SymbolicSequence<?>) args[1]);
-		case DENSE_TUPLE_WRITE:
-			return denseTupleWrite((SymbolicExpression) args[0],
-					(SymbolicSequence<?>) args[1]);
-		case DERIV:
-			return derivative((SymbolicExpression) args[0], (IntObject) args[1],
-					(IntObject) args[2]);
-		case DIFFERENTIABLE: {
-			@SuppressWarnings("unchecked")
-			Iterable<? extends NumericExpression> lowers = (Iterable<? extends NumericExpression>) args[2];
-			@SuppressWarnings("unchecked")
-			Iterable<? extends NumericExpression> uppers = (Iterable<? extends NumericExpression>) args[3];
-
-			return differentiable((SymbolicExpression) args[0],
-					(IntObject) args[1], lowers, uppers);
-		}
-		case DIVIDE:
-			return divide((NumericExpression) args[0],
-					(NumericExpression) args[1]);
-		case EQUALS:
-			return equals((SymbolicExpression) args[0],
-					(SymbolicExpression) args[1]);
-		case EXISTS:
-			return exists((SymbolicConstant) args[0],
-					(BooleanExpression) args[1]);
-		case FORALL:
-			return forall((SymbolicConstant) args[0],
-					(BooleanExpression) args[1]);
-		case INT_DIVIDE:
-			return divide((NumericExpression) args[0],
-					(NumericExpression) args[1]);
-		case LAMBDA:
-			return lambda((SymbolicConstant) args[0],
-					(SymbolicExpression) args[1]);
-		case LENGTH:
-			return length((SymbolicExpression) args[0]);
-		case LESS_THAN:
-			return lessThan((NumericExpression) args[0],
-					(NumericExpression) args[1]);
-		case LESS_THAN_EQUALS:
-			return lessThanEquals((NumericExpression) args[0],
-					(NumericExpression) args[1]);
-		case MODULO:
-			return modulo((NumericExpression) args[0],
-					(NumericExpression) args[1]);
-		case MULTIPLY:
-			return multiply(type, args);
-		case NEGATIVE:
-			return minus((NumericExpression) args[0]);
-		case NEQ:
-			return neq((SymbolicExpression) args[0],
-					(SymbolicExpression) args[1]);
-		case NOT:
-			return not((BooleanExpression) args[0]);
-		case OR:
-			return or(args);
-		case POWER: // exponent could be expression or int constant
-			if (args[1] instanceof SymbolicExpression)
-				return power((NumericExpression) args[0],
+					return makeReduction((NumericExpression) reduceArgs.get(0),
+							reduceArgs.get(1), reduceArgs.get(2));
+				}
+				return apply((SymbolicExpression) args[0],
+						(SymbolicSequence<?>) args[1]);
+			case ARRAY_LAMBDA :
+				return arrayLambda((SymbolicCompleteArrayType) type,
+						(SymbolicExpression) args[0]);
+			case ARRAY_READ :
+				return arrayRead((SymbolicExpression) args[0],
 						(NumericExpression) args[1]);
-			else
-				return power((NumericExpression) args[0],
-						(IntegerNumber) ((NumberObject) args[1]).getNumber());
-		case TUPLE:
-			return tuple((SymbolicTupleType) type, Arrays.asList(args));
-		case ARRAY:
-			return array(((SymbolicArrayType) type).elementType(),
-					Arrays.asList(args));
-		case SUBTRACT:
-			return subtract((NumericExpression) args[0],
-					(NumericExpression) args[1]);
-		case SYMBOLIC_CONSTANT:
-			return symbolicConstant((StringObject) args[0], type);
-		case TUPLE_READ:
-			return tupleRead((SymbolicExpression) args[0], (IntObject) args[1]);
-		case TUPLE_WRITE:
-			return tupleWrite((SymbolicExpression) args[0], (IntObject) args[1],
-					(SymbolicExpression) args[2]);
-		case UNION_EXTRACT:
-			return unionExtract((IntObject) args[0],
-					(SymbolicExpression) args[1]);
-		case UNION_INJECT: {
-			SymbolicExpression expression = (SymbolicExpression) args[1];
-			SymbolicUnionType unionType = (SymbolicUnionType) type;
+			case ARRAY_WRITE :
+				return arrayWrite((SymbolicExpression) args[0],
+						(NumericExpression) args[1],
+						(SymbolicExpression) args[2]);
+			case BIT_AND :
+				return bitand((NumericExpression) args[0],
+						(NumericExpression) args[1]);
+			case BIT_NOT :
+				return bitnot((NumericExpression) args[0]);
+			case BIT_OR :
+				return bitor((NumericExpression) args[0],
+						(NumericExpression) args[1]);
+			case BIT_XOR :
+				return bitxor((NumericExpression) args[0],
+						(NumericExpression) args[1]);
+			case BIT_SHIFT_LEFT :
+				return bitshiftLeft((NumericExpression) args[0],
+						(NumericExpression) args[1]);
+			case BIT_SHIFT_RIGHT :
+				return bitshiftRight((NumericExpression) args[0],
+						(NumericExpression) args[1]);
+			case CAST :
+				return cast(type, (SymbolicExpression) args[0]);
+			case CONCRETE :
+				if (type.isNumeric())
+					return numericFactory.number((NumberObject) args[0]);
+				else
+					return expression(SymbolicOperator.CONCRETE, type, args[0]);
+			case COND :
+				return cond((BooleanExpression) args[0],
+						(SymbolicExpression) args[1],
+						(SymbolicExpression) args[2]);
+			case DENSE_ARRAY_WRITE :
+				return denseArrayWrite((SymbolicExpression) args[0],
+						(SymbolicSequence<?>) args[1]);
+			case DENSE_TUPLE_WRITE :
+				return denseTupleWrite((SymbolicExpression) args[0],
+						(SymbolicSequence<?>) args[1]);
+			case DERIV :
+				return derivative((SymbolicExpression) args[0],
+						(IntObject) args[1], (IntObject) args[2]);
+			case DIFFERENTIABLE : {
+				@SuppressWarnings("unchecked")
+				Iterable<? extends NumericExpression> lowers = (Iterable<? extends NumericExpression>) args[2];
+				@SuppressWarnings("unchecked")
+				Iterable<? extends NumericExpression> uppers = (Iterable<? extends NumericExpression>) args[3];
 
-			return unionInject(unionType, (IntObject) args[0], expression);
+				return differentiable((SymbolicExpression) args[0],
+						(IntObject) args[1], lowers, uppers);
+			}
+			case DIVIDE :
+				return divide((NumericExpression) args[0],
+						(NumericExpression) args[1]);
+			case EQUALS :
+				return equals((SymbolicExpression) args[0],
+						(SymbolicExpression) args[1]);
+			case EXISTS :
+				return exists((SymbolicConstant) args[0],
+						(BooleanExpression) args[1]);
+			case FORALL :
+				return forall((SymbolicConstant) args[0],
+						(BooleanExpression) args[1]);
+			case INT_DIVIDE :
+				return divide((NumericExpression) args[0],
+						(NumericExpression) args[1]);
+			case LAMBDA :
+				return lambda((SymbolicConstant) args[0],
+						(SymbolicExpression) args[1]);
+			case LENGTH :
+				return length((SymbolicExpression) args[0]);
+			case LESS_THAN :
+				return lessThan((NumericExpression) args[0],
+						(NumericExpression) args[1]);
+			case LESS_THAN_EQUALS :
+				return lessThanEquals((NumericExpression) args[0],
+						(NumericExpression) args[1]);
+			case MODULO :
+				return modulo((NumericExpression) args[0],
+						(NumericExpression) args[1]);
+			case MULTIPLY :
+				return multiply(type, args);
+			case NEGATIVE :
+				return minus((NumericExpression) args[0]);
+			case NEQ :
+				return neq((SymbolicExpression) args[0],
+						(SymbolicExpression) args[1]);
+			case NOT :
+				return not((BooleanExpression) args[0]);
+			case OR :
+				return or(args);
+			case POWER : // exponent could be expression or int constant
+				if (args[1] instanceof SymbolicExpression)
+					return power((NumericExpression) args[0],
+							(NumericExpression) args[1]);
+				else
+					return power((NumericExpression) args[0],
+							(IntegerNumber) ((NumberObject) args[1])
+									.getNumber());
+			case TUPLE :
+				return tuple((SymbolicTupleType) type, Arrays.asList(args));
+			case ARRAY :
+				return array(((SymbolicArrayType) type).elementType(),
+						Arrays.asList(args));
+			case SUBTRACT :
+				return subtract((NumericExpression) args[0],
+						(NumericExpression) args[1]);
+			case SYMBOLIC_CONSTANT :
+				return symbolicConstant((StringObject) args[0], type);
+			case TUPLE_READ :
+				return tupleRead((SymbolicExpression) args[0],
+						(IntObject) args[1]);
+			case TUPLE_WRITE :
+				return tupleWrite((SymbolicExpression) args[0],
+						(IntObject) args[1], (SymbolicExpression) args[2]);
+			case UNION_EXTRACT :
+				return unionExtract((IntObject) args[0],
+						(SymbolicExpression) args[1]);
+			case UNION_INJECT : {
+				SymbolicExpression expression = (SymbolicExpression) args[1];
+				SymbolicUnionType unionType = (SymbolicUnionType) type;
 
-		}
-		case UNION_TEST: {
-			SymbolicExpression expression = (SymbolicExpression) args[1];
+				return unionInject(unionType, (IntObject) args[0], expression);
 
-			return unionTest((IntObject) args[0], expression);
-		}
-		default:
-			throw ierr("Unknown expression kind: " + operator);
+			}
+			case UNION_TEST : {
+				SymbolicExpression expression = (SymbolicExpression) args[1];
+
+				return unionTest((IntObject) args[0], expression);
+			}
+			default :
+				throw ierr("Unknown expression kind: " + operator);
 		}
 	}
 
@@ -1097,7 +1108,8 @@ public class CommonPreUniverse implements PreUniverse {
 		int n = args.length;
 
 		if (n == 0)
-			return type.isInteger() ? numericFactory.zeroInt()
+			return type.isInteger()
+					? numericFactory.zeroInt()
 					: numericFactory.zeroReal();
 		else {
 			NumericExpression result = (NumericExpression) args[0];
@@ -1482,7 +1494,8 @@ public class CommonPreUniverse implements PreUniverse {
 		int n = args.length;
 
 		if (n == 0)
-			return type.isInteger() ? numericFactory.oneInt()
+			return type.isInteger()
+					? numericFactory.oneInt()
 					: numericFactory.oneReal();
 		else {
 			NumericExpression result = (NumericExpression) args[0];
@@ -1737,6 +1750,12 @@ public class CommonPreUniverse implements PreUniverse {
 	}
 
 	@Override
+	public BooleanExpression quickEquals(SymbolicExpression arg0,
+			SymbolicExpression arg1) {
+		return arg0.equals(arg1) ? trueExpr : falseExpr;
+	}
+
+	@Override
 	public BooleanExpression neq(SymbolicExpression arg0,
 			SymbolicExpression arg1) {
 		if (arg0.isNumeric())
@@ -1755,6 +1774,18 @@ public class CommonPreUniverse implements PreUniverse {
 		if (elements instanceof SymbolicSequence<?>)
 			return (SymbolicSequence<T>) elements;
 		return objectFactory.sequence(elements);
+	}
+
+	@Override
+	public BooleanExpression removeQuantifiers(BooleanExpression arg) {
+		List<BooleanExpression> quantFreeClauses = new ArrayList<>(
+				arg.getClauses().length);
+		for (BooleanExpression clause : arg.getClauses()) {
+			if (!clause.containsQuantifier()) {
+				quantFreeClauses.add(clause);
+			}
+		}
+		return and(quantFreeClauses);
 	}
 
 	/**
@@ -1896,7 +1927,8 @@ public class CommonPreUniverse implements PreUniverse {
 	public BooleanExpression unionTest(IntObject memberIndex,
 			SymbolicExpression object) {
 		if (object.operator() == SymbolicOperator.UNION_INJECT)
-			return object.argument(0).equals(memberIndex) ? trueExpr
+			return object.argument(0).equals(memberIndex)
+					? trueExpr
 					: falseExpr;
 		return booleanFactory.booleanExpression(SymbolicOperator.UNION_TEST,
 				memberIndex, object);
@@ -2746,44 +2778,45 @@ public class CommonPreUniverse implements PreUniverse {
 		if (reference == null)
 			throw new SARLException("dereference given null reference");
 		switch (reference.referenceKind()) {
-		case NULL:
-			throw new SARLException(
-					"Cannot dereference the null reference expression:\n"
-							+ value + "\n" + reference);
-		case IDENTITY:
-			return value;
-		case ARRAY_ELEMENT: {
-			ArrayElementReference ref = (ArrayElementReference) reference;
-
-			return arrayRead(dereference(value, ref.getParent()),
-					ref.getIndex());
-		}
-		case TUPLE_COMPONENT: {
-			TupleComponentReference ref = (TupleComponentReference) reference;
-
-			return tupleRead(dereference(value, ref.getParent()),
-					ref.getIndex());
-		}
-		case UNION_MEMBER: {
-			UnionMemberReference ref = (UnionMemberReference) reference;
-
-			return this.unionExtract(ref.getIndex(),
-					dereference(value, ref.getParent()));
-		}
-		case OFFSET: {
-			OffsetReference ref = (OffsetReference) reference;
-			NumericExpression index = ref.getOffset();
-			IntegerNumber indexNumber = (IntegerNumber) extractNumber(index);
-
-			if (indexNumber == null || !indexNumber.isZero())
+			case NULL :
 				throw new SARLException(
-						"Cannot dereference an offset reference with non-zero offset:\n"
-								+ reference + "\n" + value);
-			return dereference(value, ref.getParent());
-		}
-		default:
-			throw new SARLInternalException(
-					"Unknown reference kind: " + reference);
+						"Cannot dereference the null reference expression:\n"
+								+ value + "\n" + reference);
+			case IDENTITY :
+				return value;
+			case ARRAY_ELEMENT : {
+				ArrayElementReference ref = (ArrayElementReference) reference;
+
+				return arrayRead(dereference(value, ref.getParent()),
+						ref.getIndex());
+			}
+			case TUPLE_COMPONENT : {
+				TupleComponentReference ref = (TupleComponentReference) reference;
+
+				return tupleRead(dereference(value, ref.getParent()),
+						ref.getIndex());
+			}
+			case UNION_MEMBER : {
+				UnionMemberReference ref = (UnionMemberReference) reference;
+
+				return this.unionExtract(ref.getIndex(),
+						dereference(value, ref.getParent()));
+			}
+			case OFFSET : {
+				OffsetReference ref = (OffsetReference) reference;
+				NumericExpression index = ref.getOffset();
+				IntegerNumber indexNumber = (IntegerNumber) extractNumber(
+						index);
+
+				if (indexNumber == null || !indexNumber.isZero())
+					throw new SARLException(
+							"Cannot dereference an offset reference with non-zero offset:\n"
+									+ reference + "\n" + value);
+				return dereference(value, ref.getParent());
+			}
+			default :
+				throw new SARLInternalException(
+						"Unknown reference kind: " + reference);
 		}
 	}
 
@@ -2795,53 +2828,53 @@ public class CommonPreUniverse implements PreUniverse {
 		if (type == null)
 			throw new SARLException("referencedType given null type");
 		switch (reference.referenceKind()) {
-		case NULL:
-			throw new SARLException(
-					"Cannot compute referencedType of the null reference expression:\n"
+			case NULL :
+				throw new SARLException(
+						"Cannot compute referencedType of the null reference expression:\n"
+								+ type + "\n" + reference);
+			case IDENTITY :
+				return type;
+			case ARRAY_ELEMENT : {
+				ArrayElementReference ref = (ArrayElementReference) reference;
+				SymbolicType parentType = referencedType(type, ref.getParent());
+
+				if (parentType instanceof SymbolicArrayType)
+					return ((SymbolicArrayType) parentType).elementType();
+				else
+					throw new SARLException("Incompatible type and reference:\n"
 							+ type + "\n" + reference);
-		case IDENTITY:
-			return type;
-		case ARRAY_ELEMENT: {
-			ArrayElementReference ref = (ArrayElementReference) reference;
-			SymbolicType parentType = referencedType(type, ref.getParent());
+			}
+			case TUPLE_COMPONENT : {
+				TupleComponentReference ref = (TupleComponentReference) reference;
+				SymbolicType parentType = referencedType(type, ref.getParent());
 
-			if (parentType instanceof SymbolicArrayType)
-				return ((SymbolicArrayType) parentType).elementType();
-			else
-				throw new SARLException("Incompatible type and reference:\n"
-						+ type + "\n" + reference);
-		}
-		case TUPLE_COMPONENT: {
-			TupleComponentReference ref = (TupleComponentReference) reference;
-			SymbolicType parentType = referencedType(type, ref.getParent());
+				if (parentType instanceof SymbolicTupleType)
+					return ((SymbolicTupleType) parentType).sequence()
+							.getType(ref.getIndex().getInt());
+				else
+					throw new SARLException("Incompatible type and reference:\n"
+							+ type + "\n" + reference);
+			}
+			case UNION_MEMBER : {
+				UnionMemberReference ref = (UnionMemberReference) reference;
+				SymbolicType parentType = referencedType(type, ref.getParent());
 
-			if (parentType instanceof SymbolicTupleType)
-				return ((SymbolicTupleType) parentType).sequence()
-						.getType(ref.getIndex().getInt());
-			else
-				throw new SARLException("Incompatible type and reference:\n"
-						+ type + "\n" + reference);
-		}
-		case UNION_MEMBER: {
-			UnionMemberReference ref = (UnionMemberReference) reference;
-			SymbolicType parentType = referencedType(type, ref.getParent());
+				if (parentType instanceof SymbolicUnionType)
+					return ((SymbolicUnionType) parentType).sequence()
+							.getType(ref.getIndex().getInt());
+				else
+					throw new SARLException("Incompatible type and reference:\n"
+							+ type + "\n" + reference);
+			}
+			case OFFSET : {
+				OffsetReference ref = (OffsetReference) reference;
+				SymbolicType parentType = referencedType(type, ref.getParent());
 
-			if (parentType instanceof SymbolicUnionType)
-				return ((SymbolicUnionType) parentType).sequence()
-						.getType(ref.getIndex().getInt());
-			else
-				throw new SARLException("Incompatible type and reference:\n"
-						+ type + "\n" + reference);
-		}
-		case OFFSET: {
-			OffsetReference ref = (OffsetReference) reference;
-			SymbolicType parentType = referencedType(type, ref.getParent());
-
-			return parentType;
-		}
-		default:
-			throw new SARLInternalException(
-					"Unknown reference kind: " + reference);// unreachable
+				return parentType;
+			}
+			default :
+				throw new SARLInternalException(
+						"Unknown reference kind: " + reference);// unreachable
 		}
 	}
 
@@ -2891,53 +2924,56 @@ public class CommonPreUniverse implements PreUniverse {
 		if (value == null)
 			throw new SARLException("assign given null value");
 		switch (kind) {
-		case NULL:
-			throw new SARLException(
-					"Cannot assign using the null reference expression:\n"
-							+ value + "\n" + reference + "\n" + subValue);
-		case ARRAY_ELEMENT: {
-			ArrayElementReference ref = (ArrayElementReference) reference;
-			ReferenceExpression arrayReference = ref.getParent();
-			SymbolicExpression array = dereference(value, arrayReference);
-			SymbolicExpression newArray = arrayWrite(array, ref.getIndex(),
-					subValue);
-
-			return assign(value, arrayReference, newArray);
-		}
-		case TUPLE_COMPONENT: {
-			TupleComponentReference ref = (TupleComponentReference) reference;
-			ReferenceExpression tupleReference = ref.getParent();
-			SymbolicExpression tuple = dereference(value, tupleReference);
-			SymbolicExpression newTuple = tupleWrite(tuple, ref.getIndex(),
-					subValue);
-
-			return assign(value, tupleReference, newTuple);
-		}
-		case UNION_MEMBER: {
-			UnionMemberReference ref = (UnionMemberReference) reference;
-			ReferenceExpression unionReference = ref.getParent();
-			SymbolicExpression unionValue = dereference(value, unionReference);
-			SymbolicUnionType unionType = (SymbolicUnionType) unionValue.type();
-			SymbolicExpression newUnionValue = unionInject(unionType,
-					ref.getIndex(), subValue);
-
-			return assign(value, unionReference, newUnionValue);
-		}
-		case OFFSET: {
-			OffsetReference ref = (OffsetReference) reference;
-			NumericExpression index = ref.getOffset();
-			IntegerNumber indexNumber = (IntegerNumber) extractNumber(index);
-
-			if (indexNumber == null || !indexNumber.isZero()) // first case
-																// unreachable
+			case NULL :
 				throw new SARLException(
-						"Cannot assign via an offset reference with non-zero offset:\n"
-								+ reference + "\n" + value);
-			return assign(value, ref.getParent(), subValue);
-		}
-		default: // unreachable
-			throw new SARLInternalException(
-					"Unknown reference kind: " + reference);
+						"Cannot assign using the null reference expression:\n"
+								+ value + "\n" + reference + "\n" + subValue);
+			case ARRAY_ELEMENT : {
+				ArrayElementReference ref = (ArrayElementReference) reference;
+				ReferenceExpression arrayReference = ref.getParent();
+				SymbolicExpression array = dereference(value, arrayReference);
+				SymbolicExpression newArray = arrayWrite(array, ref.getIndex(),
+						subValue);
+
+				return assign(value, arrayReference, newArray);
+			}
+			case TUPLE_COMPONENT : {
+				TupleComponentReference ref = (TupleComponentReference) reference;
+				ReferenceExpression tupleReference = ref.getParent();
+				SymbolicExpression tuple = dereference(value, tupleReference);
+				SymbolicExpression newTuple = tupleWrite(tuple, ref.getIndex(),
+						subValue);
+
+				return assign(value, tupleReference, newTuple);
+			}
+			case UNION_MEMBER : {
+				UnionMemberReference ref = (UnionMemberReference) reference;
+				ReferenceExpression unionReference = ref.getParent();
+				SymbolicExpression unionValue = dereference(value,
+						unionReference);
+				SymbolicUnionType unionType = (SymbolicUnionType) unionValue
+						.type();
+				SymbolicExpression newUnionValue = unionInject(unionType,
+						ref.getIndex(), subValue);
+
+				return assign(value, unionReference, newUnionValue);
+			}
+			case OFFSET : {
+				OffsetReference ref = (OffsetReference) reference;
+				NumericExpression index = ref.getOffset();
+				IntegerNumber indexNumber = (IntegerNumber) extractNumber(
+						index);
+
+				if (indexNumber == null || !indexNumber.isZero()) // first case
+																	// unreachable
+					throw new SARLException(
+							"Cannot assign via an offset reference with non-zero offset:\n"
+									+ reference + "\n" + value);
+				return assign(value, ref.getParent(), subValue);
+			}
+			default : // unreachable
+				throw new SARLInternalException(
+						"Unknown reference kind: " + reference);
 		}
 	}
 
@@ -3104,17 +3140,24 @@ public class CommonPreUniverse implements PreUniverse {
 		return expr.getFreeVars();
 	}
 
-	@Override
 	public UnaryOperator<SymbolicExpression> mapSubstituter(
 			Map<SymbolicExpression, SymbolicExpression> map) {
 		return mapSubstituter(e -> map.get(e));
 	}
 
 	@Override
-	public UnaryOperator<SymbolicExpression> mapSubstituter(UnaryOperator<SymbolicExpression> operator) {
+	public UnaryOperator<SymbolicExpression> constantSubstituter(
+			Map<SymbolicConstant, SymbolicExpression> map) {
+		return mapSubstituter(
+				e -> e instanceof SymbolicConstant ? map.get(e) : null);
+	}
+
+	@Override
+	public UnaryOperator<SymbolicExpression> mapSubstituter(
+			UnaryOperator<SymbolicExpression> operator) {
 		return new MapSubstituter(this, objectFactory, typeFactory, operator);
 	}
-	
+
 	@Override
 	public UnaryOperator<SymbolicExpression> nameSubstituter(
 			Map<StringObject, StringObject> nameMap) {
@@ -3836,8 +3879,8 @@ public class CommonPreUniverse implements PreUniverse {
 	/**
 	 * <p>
 	 * If the given operand has such a form <code>$rdc(c, p, a)</code>, this
-	 * method returns a list of elements in "a" and the compatible condition
-	 * "c == count && p == operator".
+	 * method returns a list of elements in "a" and the compatible condition "c
+	 * == count && p == operator".
 	 * </p>
 	 */
 	private Pair<List<SymbolicExpression>, BooleanExpression> reductionPreproc(
@@ -3978,44 +4021,44 @@ public class CommonPreUniverse implements PreUniverse {
 	private void printExprTreeWorker(String prefix, PrintStream out,
 			SymbolicObject expr) {
 		switch (expr.symbolicObjectKind()) {
-		case EXPRESSION: {
-			SymbolicExpression symExpr = (SymbolicExpression) expr;
+			case EXPRESSION : {
+				SymbolicExpression symExpr = (SymbolicExpression) expr;
 
-			prefix += " ";
-			if (symExpr.operator() == SymbolicOperator.CONCRETE
-					|| symExpr.operator() == SymbolicOperator.SYMBOLIC_CONSTANT)
-				out.println(prefix + symExpr);
-			else {
-				out.print(prefix);
-				out.println(symExpr.operator());
-				for (SymbolicObject arg : symExpr.getArguments())
-					printExprTreeWorker(prefix + "|", out, arg);
+				prefix += " ";
+				if (symExpr.operator() == SymbolicOperator.CONCRETE || symExpr
+						.operator() == SymbolicOperator.SYMBOLIC_CONSTANT)
+					out.println(prefix + symExpr);
+				else {
+					out.print(prefix);
+					out.println(symExpr.operator());
+					for (SymbolicObject arg : symExpr.getArguments())
+						printExprTreeWorker(prefix + "|", out, arg);
+				}
 			}
-		}
-			break;
-		case SEQUENCE: {
-			SymbolicSequence<?> symSeq = (SymbolicSequence<?>) expr;
+				break;
+			case SEQUENCE : {
+				SymbolicSequence<?> symSeq = (SymbolicSequence<?>) expr;
 
-			out.println(prefix + " SEQ");
-			for (int i = 0; i < symSeq.size(); i++) {
-				SymbolicObject seq = symSeq.get(i);
+				out.println(prefix + " SEQ");
+				for (int i = 0; i < symSeq.size(); i++) {
+					SymbolicObject seq = symSeq.get(i);
 
-				printExprTreeWorker(prefix + " |", out, seq);
+					printExprTreeWorker(prefix + " |", out, seq);
+				}
+				break;
 			}
-			break;
-		}
-		case INT:
-		case CHAR:
-		case BOOLEAN:
-		case STRING:
-		case NUMBER:
-			out.println(prefix + " " + expr);
-			break;
-		case TYPE:
-		case TYPE_SEQUENCE:
-		default:
-			out.println(
-					"Unkownn Symbolic Object: " + expr.symbolicObjectKind());
+			case INT :
+			case CHAR :
+			case BOOLEAN :
+			case STRING :
+			case NUMBER :
+				out.println(prefix + " " + expr);
+				break;
+			case TYPE :
+			case TYPE_SEQUENCE :
+			default :
+				out.println("Unkownn Symbolic Object: "
+						+ expr.symbolicObjectKind());
 		}
 	}
 
@@ -4305,7 +4348,7 @@ public class CommonPreUniverse implements PreUniverse {
 					+ degree);
 		return (BooleanExpression) expression(SymbolicOperator.DIFFERENTIABLE,
 				booleanType,
-				new SymbolicObject[] { function, degree, lowerSeq, upperSeq });
+				new SymbolicObject[]{function, degree, lowerSeq, upperSeq});
 	}
 
 	/**
@@ -4734,6 +4777,18 @@ public class CommonPreUniverse implements PreUniverse {
 	}
 
 	@Override
+	public SymbolicExpression valueSetDiff(SymbolicExpression vst0,
+			SymbolicExpression vst1) {
+		checkValueSetOperandsCompatiable(vst0, vst1, "diff");
+		
+		SymbolicType valueType = getValueTypeOfValueSetTemplate(vst0);
+		SymbolicExpression refArray0 = tupleRead(vst0, intObject(1)),
+				refArray1 = tupleRead(vst1, intObject(1));
+		return expressionFactory.valueSetDiff(valueType, refArray0,
+				refArray1);
+	}
+	
+	@Override
 	public SymbolicExpression valueSetUnion(SymbolicExpression vst0,
 			SymbolicExpression vst1) {
 		checkValueSetOperandsCompatiable(vst0, vst1, "union");
@@ -4750,19 +4805,6 @@ public class CommonPreUniverse implements PreUniverse {
 		for (SymbolicObject e : refArray1.getArguments())
 			union[i++] = (ValueSetReference) e;
 		return valueSetTemplate(valueType, (ValueSetReference[]) union);
-	}
-
-	@Override
-	public SymbolicExpression valueSetWidening(
-			SymbolicExpression valueSetTemplate) {
-		if (!expressionFactory.isValueSetTemplateType(valueSetTemplate.type()))
-			throw new SARLException("the operand: " + valueSetTemplate
-					+ " of the widening operator does not have value set template type");
-		SymbolicType valueType = getValueTypeOfValueSetTemplate(
-				valueSetTemplate);
-		SymbolicExpression refArr = tupleRead(valueSetTemplate, intObject(1));
-
-		return expressionFactory.valueSetWidening(valueType, refArr);
 	}
 
 	@Override
@@ -4805,114 +4847,119 @@ public class CommonPreUniverse implements PreUniverse {
 		ValueSetReference vsRef = vsRefStack.pop();
 
 		switch (vsRef.valueSetReferenceKind()) {
-		case ARRAY_ELEMENT: {
-			NumericExpression index = ((VSArrayElementReference) vsRef)
-					.getIndex();
-			SymbolicExpression newElement = valueSetAssignsWorker(
-					arrayRead(oldValue, index), vsRefStack,
-					arrayRead(newValue, index));
+			case ARRAY_ELEMENT : {
+				NumericExpression index = ((VSArrayElementReference) vsRef)
+						.getIndex();
+				SymbolicExpression newElement = valueSetAssignsWorker(
+						arrayRead(oldValue, index), vsRefStack,
+						arrayRead(newValue, index));
 
-			return arrayWrite(oldValue, index, newElement);
-		}
-		case ARRAY_SECTION: {
-			VSArraySectionReference ref = (VSArraySectionReference) vsRef;
-			NumericExpression lower = ref.lowerBound();
-			NumericExpression upper = ref.upperBound();
-			NumericExpression step = ref.step();
-			SymbolicCompleteArrayType arrType = (SymbolicCompleteArrayType) newValue
-					.type();
-			boolean sectionIsWholeArray = false;
-
-			// 1. optimization case: the section is the whole array and there is
-			// no sub-array
-			if (lower.isZero() && upper.equals(arrType.extent())
-					&& step.isOne()) {
-				sectionIsWholeArray = true;
-				if (vsRefStack.isEmpty())
-					return newValue;
+				return arrayWrite(oldValue, index, newElement);
 			}
-			// 2. optimization case: if the section is concrete
-			IntegerNumber lowerNum, upperNum, stepNum;
+			case ARRAY_SECTION : {
+				VSArraySectionReference ref = (VSArraySectionReference) vsRef;
+				NumericExpression lower = ref.lowerBound();
+				NumericExpression upper = ref.upperBound();
+				NumericExpression step = ref.step();
+				SymbolicCompleteArrayType arrType = (SymbolicCompleteArrayType) newValue
+						.type();
+				boolean sectionIsWholeArray = false;
 
-			lowerNum = (IntegerNumber) extractNumber(lower);
-			upperNum = (IntegerNumber) extractNumber(upper);
-			stepNum = (IntegerNumber) extractNumber(step);
-			if (lowerNum != null && upperNum != null && stepNum != null) {
-				int upperInt = upperNum.intValue(),
-						stepInt = stepNum.intValue();
-
-				for (int i = lowerNum.intValue(); i < upperInt; i += stepInt) {
-					NumericExpression idx = integer(i);
-
-					oldValue = arrayWrite(oldValue, idx,
-							valueSetAssignsWorker(arrayRead(oldValue, idx),
-									new LinkedList<>(vsRefStack),
-									arrayRead(newValue, idx)));
+				// 1. optimization case: the section is the whole array and
+				// there is
+				// no sub-array
+				if (lower.isZero() && upper.equals(arrType.extent())
+						&& step.isOne()) {
+					sectionIsWholeArray = true;
+					if (vsRefStack.isEmpty())
+						return newValue;
 				}
-				return oldValue;
+				// 2. optimization case: if the section is concrete
+				IntegerNumber lowerNum, upperNum, stepNum;
+
+				lowerNum = (IntegerNumber) extractNumber(lower);
+				upperNum = (IntegerNumber) extractNumber(upper);
+				stepNum = (IntegerNumber) extractNumber(step);
+				if (lowerNum != null && upperNum != null && stepNum != null) {
+					int upperInt = upperNum.intValue(),
+							stepInt = stepNum.intValue();
+
+					for (int i = lowerNum
+							.intValue(); i < upperInt; i += stepInt) {
+						NumericExpression idx = integer(i);
+
+						oldValue = arrayWrite(oldValue, idx,
+								valueSetAssignsWorker(arrayRead(oldValue, idx),
+										new LinkedList<>(vsRefStack),
+										arrayRead(newValue, idx)));
+					}
+					return oldValue;
+				}
+				// 3. general case: array lambda
+				int bvSuffix = 0;
+				NumericSymbolicConstant bv;
+				Set<SymbolicConstant> scSet = oldValue.getFreeVars();
+				BooleanExpression inRange;
+				SymbolicExpression lambda;
+				// create a local BoundCleaner since bound variables don't need
+				// to
+				// be globally different:
+				BoundCleaner cleaner = new BoundCleaner(this, objectFactory,
+						typeFactory);
+				SymbolicExpression newSection = newValue;
+
+				oldValue = cleaner.apply(oldValue);
+				newSection = cleaner.apply(newSection);
+				scSet.addAll(newSection.getFreeVars());
+				do {
+					bv = (NumericSymbolicConstant) symbolicConstant(
+							stringObject("i" + bvSuffix++), integerType());
+				} while (scSet.contains(bv));
+				inRange = and(lessThanEquals(lower, bv), lessThan(bv, upper));
+				inRange = and(inRange,
+						equals(modulo(subtract(bv, lower), step), zeroInt()));
+
+				SymbolicExpression newElementValue, oldElementValue;
+
+				newElementValue = arrayRead(newSection, bv);
+				oldElementValue = arrayRead(oldValue, bv);
+				newSection = valueSetAssignsWorker(oldElementValue, vsRefStack,
+						newElementValue);
+
+				if (newSection == newElementValue && sectionIsWholeArray)
+					/*
+					 * "newPart == newElementValue" means that the WHOLE generic
+					 * element "newSection[i]" is ALL referred by the rest of
+					 * the VSReferences. Then in such a case, if
+					 * "sectionIsWholeArray" is true, the whole array is
+					 * assigned by the "newValue".
+					 */
+					return newValue;
+				lambda = cond(inRange, newSection, arrayRead(oldValue, bv));
+				lambda = lambda(bv, lambda);
+				return arrayLambda(arrType, lambda);
 			}
-			// 3. general case: array lambda
-			int bvSuffix = 0;
-			NumericSymbolicConstant bv;
-			Set<SymbolicConstant> scSet = oldValue.getFreeVars();
-			BooleanExpression inRange;
-			SymbolicExpression lambda;
-			// create a local BoundCleaner since bound variables don't need to
-			// be globally different:
-			BoundCleaner cleaner = new BoundCleaner(this, objectFactory,
-					typeFactory);
-			SymbolicExpression newSection = newValue;
+			case TUPLE_COMPONENT : {
+				IntObject idx = ((VSTupleComponentReference) vsRef).getIndex();
 
-			oldValue = cleaner.apply(oldValue);
-			newSection = cleaner.apply(newSection);
-			scSet.addAll(newSection.getFreeVars());
-			do {
-				bv = (NumericSymbolicConstant) symbolicConstant(
-						stringObject("i" + bvSuffix++), integerType());
-			} while (scSet.contains(bv));
-			inRange = and(lessThanEquals(lower, bv), lessThan(bv, upper));
-			inRange = and(inRange,
-					equals(modulo(subtract(bv, lower), step), zeroInt()));
+				newValue = valueSetAssignsWorker(tupleRead(oldValue, idx),
+						vsRefStack, tupleRead(newValue, idx));
+				return tupleWrite(oldValue, idx, newValue);
+			}
+			case UNION_MEMBER :
+				IntObject idx = ((VSUnionMemberReference) vsRef).getIndex();
 
-			SymbolicExpression newElementValue, oldElementValue;
-
-			newElementValue = arrayRead(newSection, bv);
-			oldElementValue = arrayRead(oldValue, bv);
-			newSection = valueSetAssignsWorker(oldElementValue, vsRefStack,
-					newElementValue);
-
-			if (newSection == newElementValue && sectionIsWholeArray)
-				/*
-				 * "newPart == newElementValue" means that the WHOLE generic
-				 * element "newSection[i]" is ALL referred by the rest of the
-				 * VSReferences. Then in such a case, if "sectionIsWholeArray"
-				 * is true, the whole array is assigned by the "newValue".
-				 */
-				return newValue;
-			lambda = cond(inRange, newSection, arrayRead(oldValue, bv));
-			lambda = lambda(bv, lambda);
-			return arrayLambda(arrType, lambda);
-		}
-		case TUPLE_COMPONENT: {
-			IntObject idx = ((VSTupleComponentReference) vsRef).getIndex();
-
-			newValue = valueSetAssignsWorker(tupleRead(oldValue, idx),
-					vsRefStack, tupleRead(newValue, idx));
-			return tupleWrite(oldValue, idx, newValue);
-		}
-		case UNION_MEMBER:
-			IntObject idx = ((VSUnionMemberReference) vsRef).getIndex();
-
-			newValue = valueSetAssignsWorker(unionExtract(idx, oldValue),
-					vsRefStack, unionExtract(idx, newValue));
-			return unionInject((SymbolicUnionType) oldValue.type(), idx,
-					newValue);
-		case OFFSET:
-			throw new SARLException("unsupported value set reference kind "
-					+ vsRef.valueSetReferenceKind() + " for value set assign");
-		case IDENTITY:
-		default:
-			throw new SARLException("unreachable");
+				newValue = valueSetAssignsWorker(unionExtract(idx, oldValue),
+						vsRefStack, unionExtract(idx, newValue));
+				return unionInject((SymbolicUnionType) oldValue.type(), idx,
+						newValue);
+			case OFFSET :
+				throw new SARLException("unsupported value set reference kind "
+						+ vsRef.valueSetReferenceKind()
+						+ " for value set assign");
+			case IDENTITY :
+			default :
+				throw new SARLException("unreachable");
 		}
 	}
 
@@ -4971,7 +5018,7 @@ public class CommonPreUniverse implements PreUniverse {
 	 *            a value set template expression
 	 * @return a symbolic type that is associated with the given "vst"
 	 */
-	private SymbolicType getValueTypeOfValueSetTemplate(
+	protected SymbolicType getValueTypeOfValueSetTemplate(
 			SymbolicExpression vst) {
 		SymbolicFunctionType funcType = (SymbolicFunctionType) ((SymbolicExpression) ((SymbolicExpression) vst
 				.argument(0)).argument(0)).type();

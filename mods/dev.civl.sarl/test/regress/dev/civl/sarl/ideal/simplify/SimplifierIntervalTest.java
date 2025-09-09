@@ -3,26 +3,29 @@
  */
 package dev.civl.sarl.ideal.simplify;
 
-import static dev.civl.sarl.ideal.simplify.CommonObjects.assumption;
-import static dev.civl.sarl.ideal.simplify.CommonObjects.idealSimplifier;
-import static dev.civl.sarl.ideal.simplify.CommonObjects.idealSimplifierFactory;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.testContext;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.int0;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.intNeg1;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.preUniv;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.x;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.xInt;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.yInt;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.newContext;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+
+import java.util.Arrays;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.number.Interval;
 import dev.civl.sarl.IF.number.NumberFactory;
+import dev.civl.sarl.prove.IF.Prove;
 
 // private static SymbolicConstant t;
 
@@ -49,10 +52,8 @@ public class SimplifierIntervalTest {
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
 		CommonObjects.setUp();
-		assumption = preUniv.lessThan(xInt, int0);
 		// preUniv.equals(preUniv.multiply(rat5,x), preUniv.multiply(y, y));
-		idealSimplifier = idealSimplifierFactory.newSimplifier(assumption,
-				useBackwardSubstitution);
+		testContext = newContext(preUniv.lessThan(xInt, int0));
 	}
 
 	/**
@@ -77,7 +78,7 @@ public class SimplifierIntervalTest {
 	public void mixedTypeNullTest() {
 		// non-matching symbolic constant in assumptionAsInterval and
 		// the initial assumption should return null
-		assertNull(idealSimplifier.assumptionAsInterval(x));
+		assertNull(testContext.assumptionAsInterval(x));
 	}
 
 	/**
@@ -92,7 +93,7 @@ public class SimplifierIntervalTest {
 		// out.println(idealSimplifier.assumptionAsInterval(xInt));
 		// out.println(assumption.atomString());
 		assertEquals(intNeg1.toString(),
-				idealSimplifier.assumptionAsInterval(xInt).upper().toString());
+				testContext.assumptionAsInterval(xInt).upper().toString());
 	}
 
 	/**
@@ -103,14 +104,13 @@ public class SimplifierIntervalTest {
 	 */
 	@Test
 	public void getSimpleIntervalFromContext2Free() {
-		assumption = preUniv.lessThanEquals(int0, xInt);
+		BooleanExpression assumption = preUniv.lessThanEquals(int0, xInt);
 		assumption = preUniv.and(assumption,
 				preUniv.lessThan(xInt, preUniv.integer(3)));
 		assumption = preUniv.and(assumption,
 				preUniv.lessThan(yInt, preUniv.integer(9)));
-		idealSimplifier = idealSimplifierFactory.newSimplifier(assumption,
-				useBackwardSubstitution);
-		Interval interval = idealSimplifier.intervalApproximation(xInt);
+		testContext = newContext(assumption);
+		Interval interval = testContext.computeRange(xInt).intervalOverApproximation();
 
 		NumberFactory nf = preUniv.numberFactory();
 
@@ -128,12 +128,11 @@ public class SimplifierIntervalTest {
 	 */
 	@Test
 	public void getSimpleIntervalFromContext1Free() {
-		assumption = preUniv.lessThanEquals(int0, xInt);
+		BooleanExpression assumption = preUniv.lessThanEquals(int0, xInt);
 		assumption = preUniv.and(assumption,
 				preUniv.lessThan(xInt, preUniv.integer(3)));
-		idealSimplifier = idealSimplifierFactory.newSimplifier(assumption,
-				useBackwardSubstitution);
+		testContext = newContext(assumption);
 
-		assertNotNull(idealSimplifier.assumptionAsInterval(xInt));
+		assertNotNull(testContext.assumptionAsInterval(xInt));
 	}
 }

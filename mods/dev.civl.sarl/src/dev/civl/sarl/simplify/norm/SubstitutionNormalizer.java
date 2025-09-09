@@ -7,7 +7,8 @@ import java.util.Map.Entry;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.SymbolicConstant;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
-import dev.civl.sarl.simplify.simplifier.Context;
+import dev.civl.sarl.simplify.simplification.Strategy;
+import dev.civl.sarl.simplify.simplifier.MutableContext;
 import dev.civl.sarl.simplify.simplifier.ContextExtractor;
 import dev.civl.sarl.simplify.simplifier.InconsistentContextException;
 import dev.civl.sarl.simplify.simplifier.SimplifierUtility;
@@ -24,16 +25,16 @@ public class SubstitutionNormalizer implements Normalizer {
 	/**
 	 * The context being simplified.
 	 */
-	private Context context;
+	private MutableContext context;
 
 	/**
 	 * Creates new {@link SubstitutionNormalizer} for simplifying the given
-	 * {@link Context}.
+	 * {@link MutableContext}.
 	 * 
 	 * @param context
 	 *            the context to be simplified
 	 */
-	public SubstitutionNormalizer(Context context) {
+	public SubstitutionNormalizer(MutableContext context) {
 		this.context = context;
 	}
 
@@ -104,8 +105,16 @@ public class SubstitutionNormalizer implements Normalizer {
 					continue;
 				context.removeSubkey(key1);
 
-				SymbolicExpression key2 = context.simplify(key1),
-						value2 = context.simplify(value1);
+				SymbolicExpression key2 = key1, value2 = value1;
+				
+				/* If context is trivial and value1 is true then we may infinitely recurse since
+				 * a call to simplify on key1 may use SubContextSimplification which may lead back
+				 * to here, causing infinite recursion.
+				 */
+				if (!(context.contextIsTrivial() && value1.isTrue())) {
+					key2 = (SymbolicExpression) context.simplify(key1, Strategy.standardStrategy());
+					value2 = (SymbolicExpression) context.simplify(value1, Strategy.standardStrategy());
+				}
 				Pair<SymbolicExpression, SymbolicExpression> pair = new Pair<>(
 						key2, value2);
 

@@ -17,6 +17,7 @@ import dev.civl.abc.ast.entity.IF.Scope;
 import dev.civl.abc.ast.node.IF.ASTNode;
 import dev.civl.abc.ast.node.IF.AttributeKey;
 import dev.civl.abc.ast.node.IF.NodePredicate;
+import dev.civl.abc.ast.node.IF.acsl.TransformNode;
 import dev.civl.abc.token.IF.Source;
 
 public abstract class CommonASTNode implements ASTNode {
@@ -34,6 +35,8 @@ public abstract class CommonASTNode implements ASTNode {
 	private int childIndex = -1;
 
 	private ArrayList<ASTNode> children;
+	
+	private LinkedList<TransformNode> transforms;
 
 	private Source source;
 
@@ -72,6 +75,7 @@ public abstract class CommonASTNode implements ASTNode {
 
 		instanceId = instanceCount++;
 		this.source = source;
+		transforms = new LinkedList<TransformNode>();
 		children = new ArrayList<ASTNode>();
 		while (childIterator.hasNext()) {
 			CommonASTNode child = (CommonASTNode) childIterator.next();
@@ -102,6 +106,7 @@ public abstract class CommonASTNode implements ASTNode {
 	public CommonASTNode(Source source) {
 		this.source = source;
 		children = new ArrayList<ASTNode>();
+		transforms = new LinkedList<TransformNode>();
 	}
 
 	public CommonASTNode(Source source, ASTNode child) {
@@ -321,6 +326,11 @@ public abstract class CommonASTNode implements ASTNode {
 		}
 	}
 
+	protected ASTNode shiftRemoveChild(int index) {
+		removeChild(index);
+		return children.remove(index);
+	}
+	
 	@Override
 	public ASTNode removeChild(int index) {
 		int numChildren = children.size();
@@ -409,6 +419,26 @@ public abstract class CommonASTNode implements ASTNode {
 	@Override
 	public Scope getScope() {
 		return scope;
+	}
+	
+	@Override
+	public void addTransformAnnotation(TransformNode transformAnnotation) {
+		transforms.add(transformAnnotation);
+	}
+	
+	@Override
+	public void addAllTransformAnnotations(List<TransformNode> transformAnnotations) {
+		transforms.addAll(transformAnnotations);
+	}
+	
+	@Override
+	public void removeTransformAnnotation(int index) {
+		transforms.remove(index);
+	}
+	
+	@Override
+	public List<TransformNode> transformAnnotations() {
+		return transforms;
 	}
 
 	@Override

@@ -1,7 +1,12 @@
 package dev.civl.sarl.reason.common;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import dev.civl.sarl.IF.ModelResult;
@@ -17,13 +22,21 @@ import dev.civl.sarl.IF.expr.SymbolicConstant;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.IF.number.Interval;
 import dev.civl.sarl.IF.number.Number;
+import dev.civl.sarl.ideal.IF.IdealFactory;
+import dev.civl.sarl.ideal.IF.RationalExpression;
 import dev.civl.sarl.preuniverse.IF.PreUniverse;
 import dev.civl.sarl.prove.IF.Prove;
 import dev.civl.sarl.prove.IF.ProverFunctionInterpretation;
 import dev.civl.sarl.prove.IF.TheoremProver;
+import dev.civl.sarl.prove.IF.TheoremProverFactory;
 import dev.civl.sarl.simplify.IF.ContextPartition;
-import dev.civl.sarl.simplify.IF.Simplifier;
+import dev.civl.sarl.simplify.IF.Range;
 import dev.civl.sarl.simplify.IF.Simplify;
+import dev.civl.sarl.simplify.simplifier.Context;
+import dev.civl.sarl.simplify.common.SARLProverAdaptor;
+import dev.civl.sarl.simplify.simplification.ProverHeuristic;
+import dev.civl.sarl.simplify.simplification.Strategy;
+import dev.civl.sarl.simplify.simplification.TotalProverHeuristic;
 import dev.civl.sarl.util.Pair;
 
 /**
@@ -59,40 +72,24 @@ public class ContextMinimizingReasoner implements Reasoner {
 	 */
 	private final static PrintStream debugOut = System.out;
 
-	/**
-	 * Try renaming all symbolic constants in a canonical way, like in Green.
-	 */
-	private final static boolean rename = false;
-
 	// Instance fields...
 
-	/**
-	 * The prover. Only initialized when and if it is needed, because it may be
-	 * expensive and may be never necessary if all of the queries are delegated
-	 * to reduced contexts.
-	 */
-	protected TheoremProver prover = null;
+	protected PreUniverse universe;
 
-	/**
-	 * The simplifier. Only initialized when and if it is needed, because it may
-	 * be expensive and may be never necessary if all of the simplification
-	 * tasks are delegated to reduced contexts.
-	 */
-	private Simplifier simplifier = null;
+	protected ContextMinimizingReasonerFactory reasonerFactory;
 
-	/**
-	 * The factory responsible for producing instances of
-	 * {@link ContextMinimizingReasoner}, including this one. It is needed to
-	 * produce the {@link #prover} and/or {@link #simplifier}.
-	 */
-	protected ContextMinimizingReasonerFactory factory;
+	protected List<Context> contextStack = new LinkedList<>();
+
+	protected UnaryOperator<SymbolicExpression> boundCleaner;
+
+	final protected boolean backwardsSub;
 
 	/**
 	 * The context (i.e., path condition) associated to this reasoner. All
 	 * simplifications and queries are executed using this context as the
 	 * underlying assumption.
 	 */
-	private BooleanExpression context;
+	private List<BooleanExpression> origAssumptionStack;
 
 	/**
 	 * The partition of the set of conjunctive clauses of the context into
@@ -101,20 +98,6 @@ public class ContextMinimizingReasoner implements Reasoner {
 	 * relation.
 	 */
 	private ContextPartition partition;
-
-	/**
-	 * Cached results of calls to {@link #valid(BooleanExpression)}. All results
-	 * are stored here (except the most trivial ones), even if they were
-	 * obtained by delegation to a reduced context.
-	 */
-	private Map<BooleanExpression, ValidityResult> validityCache = new ConcurrentHashMap<>();
-
-	/**
-	 * Cached results of calls to {@link #unsat(BooleanExpression)}. All results
-	 * are stored here (except the most trivial ones), even if they were
-	 * obtained by delegation to a reduced context.
-	 */
-	private Map<BooleanExpression, ValidityResult> unsatCache = new ConcurrentHashMap<>();
 
 	/**
 	 * A set of pure functions with definitions:
@@ -134,67 +117,43 @@ public class ContextMinimizingReasoner implements Reasoner {
 	 *            assumption used when processing all simplification and theorem
 	 *            prover queries with this reasoner
 	 */
-	public ContextMinimizingReasoner(ContextMinimizingReasonerFactory factory,
-			BooleanExpression context, boolean useBackwardSubstitution,
+	public ContextMinimizingReasoner(PreUniverse universe,
+			IdealFactory idealFactory, TheoremProverFactory proverFactory,
+			ContextMinimizingReasonerFactory reasonerFactory,
+			List<BooleanExpression> origAssumptionStack,
+			boolean useBackwardSubstitution,
 			ProverFunctionInterpretation logicFunctions[]) {
-		assert context.isCanonic();
-		this.factory = factory;
-		this.context = context;
-		this.partition = Simplify.newContextPartition(factory.getUniverse(),
-				context);
-		this.simplifier = factory.getSimplifierFactory().newSimplifier(context,
-				useBackwardSubstitution);
+		int stackSize = origAssumptionStack.size();
+
+		assert stackSize > 0;
 		assert logicFunctions != null;
+
+		this.universe = universe;
+		this.reasonerFactory = reasonerFactory;
 		this.logicFunctions = logicFunctions;
-	}
+		this.origAssumptionStack = origAssumptionStack;
+		this.partition = Simplify.newContextPartition(universe,
+				origAssumptionStack);
+		this.backwardsSub = useBackwardSubstitution;
+		this.boundCleaner = universe.newMinimalBoundCleaner();
 
-	/**
-	 * @param context
-	 *            the context of the created prover
-	 * @param proverNoCache
-	 *            this method always creates a new instance of
-	 *            {@link TheoremProver} if this is set to true, otherwise use
-	 *            the cached instance if cache exists
-	 */
-	protected synchronized TheoremProver getProver(BooleanExpression context,
-			boolean proverNoCache) {
-		if (proverNoCache)
-			return factory.getTheoremProverFactory().newProver(context,
-					logicFunctions);
-		else
-			return prover == null ? (prover = factory.getTheoremProverFactory()
-					.newProver(context, logicFunctions)) : prover;
-	}
+		Context lastContext = Context.newContext(universe, idealFactory,
+				proverFactory,
+				(BooleanExpression) boundCleaner
+						.apply(origAssumptionStack.get(0)),
+				useBackwardSubstitution, logicFunctions);
 
-	/**
-	 * Use context minimization to compute a reduced context for the given
-	 * expression, AND then rename all the symbolic constants in the reduced
-	 * context and the expression.
-	 * 
-	 * @param expression
-	 *            a symbolic expression that is to be simplified or validated
-	 * @return a pair consisting of the {@link Reasoner} for the renamed,
-	 *         reduced context and the renamed expression
-	 */
-	private Pair<ContextMinimizingReasoner, SymbolicExpression> reduceAndRename(
-			SymbolicExpression expression) {
-		BooleanExpression reducedContext = partition.minimizeFor(expression,
-				factory.getUniverse());
-		UnaryOperator<SymbolicExpression> renamer = factory.getUniverse()
-				.canonicalRenamer("X");
-		BooleanExpression renamedContext = (BooleanExpression) renamer
-				.apply(reducedContext);
-		SymbolicExpression renamedExpression = renamer.apply(expression);
-		ContextMinimizingReasoner reasoner;
-
-		if (renamedContext == context) {
-			reasoner = this;
-		} else {
-			reasoner = getReasoner(renamedContext,
-					simplifier.useBackwardSubstitution());
+		contextStack.add(lastContext);
+		for (int i = 1; i < stackSize; i++) {
+			lastContext = lastContext
+					.createSubContext((BooleanExpression) boundCleaner
+							.apply(origAssumptionStack.get(i)));
+			contextStack.add(lastContext);
 		}
-		return new Pair<ContextMinimizingReasoner, SymbolicExpression>(reasoner,
-				renamedExpression);
+	}
+
+	private Context topContext() {
+		return contextStack.get(contextStack.size() - 1);
 	}
 
 	/**
@@ -205,19 +164,19 @@ public class ContextMinimizingReasoner implements Reasoner {
 	 *            a symbolic expression that is to be simplified or validated
 	 * @return the {@link Reasoner} for the reduced context
 	 */
-	private ContextMinimizingReasoner getReducedReasonerFor(
+	private ContextMinimizingReasoner getMinimizedReasonerFor(
 			SymbolicExpression expression) {
-		BooleanExpression reducedContext = partition.minimizeFor(expression,
-				factory.getUniverse());
-		ContextMinimizingReasoner reducedReasoner;
+		List<BooleanExpression> minimizedAssumptionStack = partition
+				.minimizeFor(expression, universe);
+		ContextMinimizingReasoner minimizedReasoner;
 
-		if (reducedContext == context) {
-			reducedReasoner = this;
+		if (minimizedAssumptionStack == origAssumptionStack) {
+			minimizedReasoner = this;
 		} else {
-			reducedReasoner = getReasoner(reducedContext,
-					simplifier.useBackwardSubstitution());
+			minimizedReasoner = getReasoner(minimizedAssumptionStack,
+					backwardsSub);
 		}
-		return reducedReasoner;
+		return minimizedReasoner;
 	}
 
 	/**
@@ -245,43 +204,29 @@ public class ContextMinimizingReasoner implements Reasoner {
 		if (predicate.isFalse())
 			return checkUnsat ? Prove.RESULT_YES : Prove.RESULT_NO;
 
-		ValidityResult result = validCheckCache(predicate, getModel,
-				checkUnsat);
+		ValidityResult result = topContext().checkProverCache(predicate,
+				getModel, checkUnsat);
 
 		if (result != null)
 			return result;
-
-		ContextMinimizingReasoner reducedReasoner;
-		BooleanExpression transformedPredicate;
-
-		if (rename) {
-			// note: for now, getModel won't work with renamed predicates; you
-			// need a way to get the map between the old and new names in the
-			// predicate
-			Pair<ContextMinimizingReasoner, SymbolicExpression> pair = reduceAndRename(
-					predicate);
-
-			reducedReasoner = pair.left;
-			transformedPredicate = (BooleanExpression) pair.right;
-		} else {
-			reducedReasoner = getReducedReasonerFor(predicate);
-			transformedPredicate = predicate;
-		}
+		ContextMinimizingReasoner reducedReasoner = getMinimizedReasonerFor(
+				predicate);
+		BooleanExpression transformedPredicate = predicate;
 
 		if (debug) {
-			debugOut.println(
-					"Reduced context       : " + reducedReasoner.context);
+			debugOut.println("Reduced context       : "
+					+ reducedReasoner.origAssumptionStack);
 			debugOut.println("Transformed predicate : " + transformedPredicate);
 		}
 
 		if (reducedReasoner != this) {
 			result = reducedReasoner.validOrUnsatCacheNoReduce(
 					transformedPredicate, getModel, checkUnsat);
+			topContext().updateCache(transformedPredicate, result, checkUnsat);
 		} else {
 			result = this.validOrUnsatNoCacheNoReduce(transformedPredicate,
 					getModel, checkUnsat);
 		}
-		updateCache(predicate, result, checkUnsat);
 		return result;
 	}
 
@@ -312,14 +257,24 @@ public class ContextMinimizingReasoner implements Reasoner {
 	 */
 	private ValidityResult validOrUnsatCacheNoReduce(
 			BooleanExpression predicate, boolean getModel, boolean checkUnsat) {
-		ValidityResult result = validCheckCache(predicate, getModel,
-				checkUnsat);
+		ValidityResult result = topContext().checkProverCache(predicate,
+				getModel, checkUnsat);
 
 		if (result != null)
 			return result;
 		result = validOrUnsatNoCacheNoReduce(predicate, getModel, checkUnsat);
-		updateCache(predicate, result, checkUnsat);
 		return result;
+	}
+
+	private SymbolicExpression simplifyWork(SymbolicExpression expr,
+			Strategy strategy) {
+		// rename bound variables with counts starting from where the
+		// original assumption renaming left off. This ensures that
+		// all bound variables in the assumption and x are unique, but
+		// two different x's can have same bound variables (thus
+		// improving canonicalization)...
+		expr = universe.cloneBoundCleaner(boundCleaner).apply(expr);
+		return (SymbolicExpression) topContext().simplify(expr, strategy);
 	}
 
 	public static int dbgcnt1 = 0;
@@ -356,140 +311,43 @@ public class ContextMinimizingReasoner implements Reasoner {
 			dbgcnt1++;
 			debugOut.println("dbgcnt1 = " + dbgcnt1);
 		}
-		// the method named "getReducedContext" below has nothing to do
-		// with the context reduction being performed by this reasoner...
-		BooleanExpression newContext = simplifier.getReducedContext();
-		BooleanExpression newPredicate = (BooleanExpression) simplifier
-				.apply(predicate);
+		List<BooleanExpression> newAssumptionStack = getReducedContextStack();
+		BooleanExpression newPredicate = (BooleanExpression) simplifyWork(
+				predicate, Strategy.standardStrategy());
 		ValidityResult result = null;
 		ContextMinimizingReasoner newReasoner; // may be same as old
 
-		if (newContext == context) {
+		if (newAssumptionStack.equals(origAssumptionStack)) {
 			newReasoner = this;
 		} else {
-			newReasoner = getReasoner(newContext,
-					simplifier.useBackwardSubstitution());
+			newReasoner = getReasoner(newAssumptionStack, backwardsSub);
 		}
 
-		if (newPredicate != predicate || newContext != context) {
+		if (newPredicate != predicate
+				|| !newAssumptionStack.equals(origAssumptionStack)) {
 			// the predicate or context got simpler, so start over again
 			// with checks of trivial cases, cache, etc...
 			if (debug) {
-				debugOut.println("Context              : " + context);
-				debugOut.println("Simplified context   : " + newContext);
+				debugOut.println(
+						"Context              : " + origAssumptionStack);
+				debugOut.println(
+						"Simplified context   : " + newAssumptionStack);
 				debugOut.println("Predicate            : " + predicate);
 				debugOut.println("Simplified predicate : " + newPredicate);
 				debugOut.flush();
 			}
 			result = newReasoner.checkValidOrUnsat(newPredicate, getModel,
 					checkUnsat);
+			// TODO: Cache in this reasoner too?
 		} else {
-			SARLProverAdaptor adaptor = new SARLProverAdaptor(
-					simplifier.universe());
-
-			newContext = (BooleanExpression) adaptor.apply(getReducedContext());
-			newPredicate = (BooleanExpression) adaptor.apply(newPredicate);
-			newContext = simplifier.universe().and(newContext,
-					adaptor.getAxioms());
-			if (getModel) {
-				assert !checkUnsat : "currently unsat-checking cannot give model";
-				result = getProver(newContext,
-						newContext != getReducedContext())
-								.validOrModel(newPredicate);
-			} else {
-				TheoremProver prover = getProver(newContext,
-						newContext != getReducedContext());
-
-				result = checkUnsat ? prover.unsat(newPredicate)
-						: prover.valid(newPredicate);
-			}
+			ProverHeuristic totalPH = new TotalProverHeuristic();
+			result = getModel
+					? topContext().validOrModel(newPredicate, totalPH)
+					: checkUnsat
+							? topContext().unsat(newPredicate, totalPH)
+							: topContext().valid(newPredicate, totalPH);
 		}
 		return result;
-	}
-
-	/**
-	 * Looks for cached result of validity (or unsatisfiability) check on
-	 * predicate. For the context "true", results are cached directly in the
-	 * predicate. Otherwise, look in the map {@link #validityCache} (or
-	 * #unsatCache).
-	 * 
-	 * @param predicate
-	 *            boolean expression whose validity is being checked
-	 * @param getModel
-	 * @param checUnsat
-	 *            if <code>true</code>, looking at the cache for
-	 *            unsatisfiability checking; otherwise, looking at the cache for
-	 *            validity checking
-	 * @return cached result from previous check on this predicate or
-	 *         <code>null</code> if no such result is cached
-	 */
-	private ValidityResult validCheckCache(BooleanExpression predicate,
-			boolean getModel, boolean checkUnsat) {
-		BooleanExpression fullContext = getFullContext();
-		ValidityResult result;
-		ResultType contextFreeResultType = null;
-
-		if (fullContext.isTrue())
-			contextFreeResultType = checkUnsat ? predicate.getUnsatisfiability()
-					: predicate.getValidity();
-
-		if (contextFreeResultType != null) {
-			switch (contextFreeResultType) {
-			case MAYBE:
-				result = Prove.RESULT_MAYBE;
-				break;
-			case NO:
-				if (getModel) {
-					assert !checkUnsat : "currently unsat-checking cannot give a model";
-					result = validityCache.get(predicate);
-				} else
-					result = Prove.RESULT_NO;
-				break;
-			case YES:
-				result = Prove.RESULT_YES;
-				break;
-			default:
-				throw new SARLInternalException("unrechable");
-			}
-		} else
-			result = checkUnsat ? unsatCache.get(predicate)
-					: validityCache.get(predicate);
-		return result;
-	}
-
-	/**
-	 * Updates the validity (or unsatisfiability( cache with the specified
-	 * result.
-	 * 
-	 * @param predicate
-	 *            boolean expression whose validity was checked
-	 * @param result
-	 *            the (non-<code>null</code>) result of the validity check on
-	 *            <code>predicate</code>
-	 * @param checkUnsat
-	 *            if <code>true</code>, try to determine if the conjunction of
-	 *            the given predicate and context is unsatisfiable; otherwise,
-	 *            try to determine if the context entails the predicate.
-	 */
-	private void updateCache(BooleanExpression predicate, ValidityResult result,
-			boolean checkUnsat) {
-		BooleanExpression fullContext = getFullContext();
-
-		if (fullContext.isTrue()) {
-			if (checkUnsat)
-				predicate.setUnsatisfiability(result.getResultType());
-			else
-				predicate.setValidity(result.getResultType());
-			if (result instanceof ModelResult) {
-				assert !checkUnsat : "currently unsat-checking cannot give a model";
-				validityCache.putIfAbsent(predicate, result);
-			}
-		} else {
-			if (checkUnsat)
-				unsatCache.putIfAbsent(predicate, result);
-			else
-				validityCache.putIfAbsent(predicate, result);
-		}
 	}
 
 	/**
@@ -506,44 +364,85 @@ public class ContextMinimizingReasoner implements Reasoner {
 	private Number extractNumberNoReduce(NumericExpression expression) {
 		NumericExpression simple = (NumericExpression) simplify(expression);
 
-		return factory.getUniverse().extractNumber(simple);
+		return universe.extractNumber(simple);
 	}
 
 	// Public methods...
 
 	@Override
 	public Map<SymbolicConstant, SymbolicExpression> constantSubstitutionMap() {
-		return simplifier.constantSubstitutionMap();
+		return topContext().getAllSolvedVariables();
 	}
 
 	@Override
-	public BooleanExpression getReducedContext() {
-		return simplifier.getReducedContext();
+	public BooleanExpression getReducedCollapsedContext() {
+		return universe.and(getReducedContextStack());
 	}
 
 	@Override
-	public BooleanExpression getFullContext() {
-		return simplifier.getFullContext();
+	public BooleanExpression getFullCollapsedContext() {
+		return universe.and(getFullContextStack());
+	}
+
+	@Override
+	public BooleanExpression getReducedContext(int index) {
+		return contextStack.get(index).getReducedAssumption();
+	}
+
+	@Override
+	public BooleanExpression getFullContext(int index) {
+		return contextStack.get(index).getFullAssumption();
+	}
+
+	@Override
+	public List<BooleanExpression> getReducedContextStack() {
+		List<BooleanExpression> reducedContextStack = new ArrayList<>(
+				contextStack.size());
+		for (int i = 0; i < contextStack.size(); i++) {
+			reducedContextStack.add(getReducedContext(i));
+		}
+		return reducedContextStack;
+	}
+
+	@Override
+	public List<BooleanExpression> getFullContextStack() {
+		List<BooleanExpression> fullContextStack = new ArrayList<>(
+				contextStack.size());
+		for (int i = 0; i < contextStack.size(); i++) {
+			fullContextStack.add(getFullContext(i));
+		}
+		return fullContextStack;
+	}
+
+	@Override
+	public void aggressivelySimplifyTopContext(
+			Set<SymbolicConstant> aggressiveSet) {
+		topContext().simplifyAssumption(
+				aggressiveSet == null ? new HashSet<>() : aggressiveSet);
 	}
 
 	@Override
 	public Interval assumptionAsInterval(SymbolicConstant symbolicConstant) {
-		return simplifier.assumptionAsInterval(symbolicConstant);
+		return topContext().assumptionAsInterval(symbolicConstant);
 	}
 
 	@Override
-	public SymbolicExpression simplify(SymbolicExpression expression) {
+	public <T extends SymbolicExpression> T simplify(T expression,
+			Set<SymbolicConstant> aggressiveSet) {
 
 		if (debug) {
 			debugOut.println("Simplifying            :" + expression + " ("
 					+ expression.type() + ")");
-			debugOut.println("Simplification context : " + context);
+			debugOut.println("Simplification context : " + origAssumptionStack);
 		}
 
-		ContextMinimizingReasoner reducedReasoner = getReducedReasonerFor(
+		ContextMinimizingReasoner reducedReasoner = getMinimizedReasonerFor(
 				expression);
-		SymbolicExpression result = reducedReasoner.simplifier
-				.apply(expression);
+		Strategy strategy = aggressiveSet == null
+				? Strategy.standardStrategy()
+				: Strategy.standardFreeVarStrategy(aggressiveSet);
+		@SuppressWarnings("unchecked")
+		T result = (T) reducedReasoner.simplifyWork(expression, strategy);
 
 		if (debug) {
 			debugOut.println("Simplification result  : " + result + " ("
@@ -553,54 +452,32 @@ public class ContextMinimizingReasoner implements Reasoner {
 	}
 
 	@Override
-	public BooleanExpression simplify(BooleanExpression expression) {
-		return (BooleanExpression) simplify((SymbolicExpression) expression);
+	public <T extends SymbolicExpression> T simplify(T expression) {
+		return simplify(expression, null);
 	}
 
 	@Override
-	public NumericExpression simplify(NumericExpression expression) {
-		return (NumericExpression) simplify((SymbolicExpression) expression);
+	public ValidityResult unsat(BooleanExpression predicate) {
+		ValidityResult result = checkValidOrUnsat(predicate, false, true);
+		return result;
 	}
 
 	@Override
 	public ValidityResult valid(BooleanExpression predicate) {
-		PreUniverse universe = factory.getUniverse();
-		boolean showQuery = universe.getShowQueries();
-
-		if (showQuery) {
-			PrintStream out = universe.getOutputStream();
-			int id = universe.numValidCalls();
-
-			out.println("Query " + id + " context        : " + context);
-			out.println("Query " + id + " assertion      : " + predicate);
-			out.flush();
-		}
-
 		ValidityResult result = checkValidOrUnsat(predicate, false, false);
-
-		if (showQuery)
-
-		{
-			PrintStream out = universe.getOutputStream();
-			int id = universe.numValidCalls();
-
-			out.println("Query " + id + " result         : " + result);
-			out.flush();
-		}
-		universe.incrementValidCount();
 		return result;
 	}
 
 	@Override
 	public ValidityResult validOrModel(BooleanExpression predicate) {
-		PreUniverse universe = factory.getUniverse();
 		boolean showQuery = universe.getShowQueries();
 
 		if (showQuery) {
 			PrintStream out = universe.getOutputStream();
 			int id = universe.numValidCalls();
 
-			out.println("ModelQuery " + id + " context   : " + context);
+			out.println(
+					"ModelQuery " + id + " context   : " + origAssumptionStack);
 			out.println("ModelQuery " + id + " assertion : " + predicate);
 			out.flush();
 		}
@@ -614,7 +491,6 @@ public class ContextMinimizingReasoner implements Reasoner {
 			out.println("ModelQuery " + id + " result    : " + result);
 			out.flush();
 		}
-		universe.incrementValidCount();
 		return result;
 	}
 
@@ -625,13 +501,16 @@ public class ContextMinimizingReasoner implements Reasoner {
 
 	@Override
 	public Number extractNumber(NumericExpression expression) {
-		return getReducedReasonerFor(expression)
+		return getMinimizedReasonerFor(expression)
 				.extractNumberNoReduce(expression);
 	}
 
 	@Override
 	public Interval intervalApproximation(NumericExpression expr) {
-		return simplifier.intervalApproximation(expr);
+		Range range = topContext().computeRange((RationalExpression) expr);
+		Interval result = range.intervalOverApproximation();
+
+		return result;
 	}
 
 	@Override
@@ -642,11 +521,12 @@ public class ContextMinimizingReasoner implements Reasoner {
 		// assumption. Perform Taylor expansions where appropriate.
 		// TODO: rename the indexConstraint and the limitVars if they conflict
 		// with any free variables.
-		PreUniverse universe = simplifier.universe();
-		BooleanExpression oldContext = simplifier.getFullContext();
-		BooleanExpression newContext = universe.and(oldContext,
-				indexConstraint);
-		Reasoner newReasoner = getReasoner(newContext, true);
+		List<BooleanExpression> oldAssumptionStack = getFullContextStack();
+		List<BooleanExpression> newAssumptionStack = new ArrayList<>(
+				oldAssumptionStack.size() + 1);
+		newAssumptionStack.addAll(oldAssumptionStack);
+		newAssumptionStack.add(indexConstraint);
+		Reasoner newReasoner = getReasoner(newAssumptionStack, true);
 		TaylorSubstituter taylorSubstituter = new TaylorSubstituter(universe,
 				universe.objectFactory(), universe.typeFactory(), newReasoner,
 				limitVars, orders);
@@ -663,36 +543,10 @@ public class ContextMinimizingReasoner implements Reasoner {
 	 * the information of {@link ProverFunctionInterpretation}s from callers
 	 * since this reasoner does not support ProverPredicate.
 	 */
-	protected ContextMinimizingReasoner getReasoner(BooleanExpression context,
+	protected ContextMinimizingReasoner getReasoner(
+			List<BooleanExpression> assumptionStack,
 			boolean useBackwardsSubstitution) {
-		return factory.getReasoner(context, useBackwardsSubstitution,
-				logicFunctions);
-	}
-
-	@Override
-	public ValidityResult unsat(BooleanExpression predicate) {
-		PreUniverse universe = factory.getUniverse();
-		boolean showQuery = universe.getShowQueries();
-
-		if (showQuery) {
-			PrintStream out = universe.getOutputStream();
-			int id = universe.numValidCalls();
-
-			out.println("Unsat-Query " + id + " context        : " + context);
-			out.println("Unsat-Query " + id + " assertion      : " + predicate);
-			out.flush();
-		}
-
-		ValidityResult result = checkValidOrUnsat(predicate, false, true);
-
-		if (showQuery) {
-			PrintStream out = universe.getOutputStream();
-			int id = universe.numValidCalls();
-
-			out.println("Query " + id + " result         : " + result);
-			out.flush();
-		}
-		universe.incrementValidCount();
-		return result;
+		return reasonerFactory.getReasoner(assumptionStack,
+				useBackwardsSubstitution, logicFunctions);
 	}
 }

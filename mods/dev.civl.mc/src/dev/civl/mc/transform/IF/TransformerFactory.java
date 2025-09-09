@@ -53,6 +53,8 @@ public class TransformerFactory {
 
 	private DirectingTransformer directingTransformer;
 
+	private AnnotationTransformer annotationTransformer;
+	
 	/**
 	 * A cache for a created {@link LoopContractTransformer}
 	 */
@@ -93,7 +95,7 @@ public class TransformerFactory {
 	/**
 	 * @return A {@link TransformRecord} for loop contract transformer
 	 */
-	public TransformRecord getLoopContractTransformerRecord() {
+	public TransformRecord getLoopContractTransformerRecord(CIVLConfiguration civlConfig) {
 		return new TransformRecord(LoopContractTransformer.CODE,
 				LoopContractTransformer.LONG_NAME,
 				LoopContractTransformer.SHORT_DESCRIPTION) {
@@ -101,8 +103,22 @@ public class TransformerFactory {
 			public Transformer create(ASTFactory astFactory) {
 				if (loopContractTransformer == null)
 					loopContractTransformer = new LoopContractTransformer(
-							astFactory);
+							astFactory, civlConfig);
 				return loopContractTransformer;
+			}
+		};
+	}
+	
+	public TransformRecord getAnnotationTransformerRecord() {
+		return new TransformRecord(AnnotationTransformer.CODE,
+				AnnotationTransformer.LONG_NAME,
+				AnnotationTransformer.SHORT_DESCRIPTION) {
+			@Override
+			public Transformer create(ASTFactory astFactory) {
+				if (annotationTransformer == null)
+					annotationTransformer = new AnnotationTransformer(
+							astFactory);
+				return annotationTransformer;
 			}
 		};
 	}

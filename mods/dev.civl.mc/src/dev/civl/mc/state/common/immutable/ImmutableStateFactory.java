@@ -423,10 +423,10 @@ public class ImmutableStateFactory implements StateFactory {
 		if (collectHeaps)
 			theState = collectHeaps(theState, toBeIgnored);
 		// theState = collectSymbolicConstants(theState, collectHeaps);
-		if (collectSymbolicConstants)
-			theState = collectHavocVariables(theState);
 		if (simplify)
 			theState = simplify(theState);
+		if (collectSymbolicConstants)
+			theState = collectHavocVariables(theState);
 		theState.makeCanonic(universe, scopeMap, processMap);
 		return theState;
 	}
@@ -1083,12 +1083,29 @@ public class ImmutableStateFactory implements StateFactory {
 
 	@Override
 	public ImmutableState simplify(State state) {
+		return simplify(state, -1, null);
+	}
+
+	@Override
+	public ImmutableState simplify(State state, int pid) {
+		return simplify(state, pid, null);
+	}
+
+	@Override
+	public ImmutableState simplify(State state,
+			Set<SymbolicConstant> aggressiveSet) {
+		return simplify(state, -1, aggressiveSet);
+	}
+
+	@Override
+	public ImmutableState simplify(State state, int pid,
+			Set<SymbolicConstant> aggressiveSet) {
 		ImmutableState theState = (ImmutableState) state;
 
 		theState = simplifyReferencedStates(theState,
 				theState.getPermanentPathCondition(),
 				NORMALIZE_REFERRED_STATES_DEPTH);
-		return simplifyWork(theState, true);
+		return simplifyWork(theState, true, pid, aggressiveSet);
 	}
 
 	// TODO: why need this ?
@@ -1118,23 +1135,88 @@ public class ImmutableStateFactory implements StateFactory {
 	 * @return
 	 */
 	private ImmutableState simplifyWork(State state,
-			boolean reducePathcondition) {
+			boolean reducePathCondition, int simplifyingPid,
+			Set<SymbolicConstant> aggressiveSet) {
 		ImmutableState theState = (ImmutableState) state;
 
 		if (theState.simplifiedState != null)
 			return theState.simplifiedState;
 
+		ImmutableProcessState[] procStates = theState.copyProcessStates();
+
+		List<BooleanExpression> conditionStack;
+		if (simplifyingPid >= 0) {
+			BooleanExpression[] ppc = procStates[simplifyingPid]
+					.getPartialPathConditions();
+			conditionStack = new ArrayList<>(ppc.length + 1);
+			conditionStack.add(state.getPermanentPathCondition());
+			conditionStack.addAll(Arrays.asList(ppc));
+		} else {
+			conditionStack = new ArrayList<>(2);
+			conditionStack.add(state.getPermanentPathCondition());
+
+			BooleanExpression conjppc = universe.trueExpression();
+			for (int i = 0; i < procStates.length; i++) {
+				if (procStates[i] == null)
+					continue;
+
+				conjppc = universe.and(conjppc, universe.and(Arrays
+						.asList(procStates[i].getPartialPathConditions())));
+			}
+			if (!conjppc.isTrue())
+				conditionStack.add(conjppc);
+		}
+
+		Reasoner reasoner = universe.reasoner(conditionStack);
+		//reasoner.aggressivelySimplifyTopContext(aggressiveSet);
+
+		if (nsat(reasoner.getReducedCollapsedContext())) {
+			return theState
+					.setPermanentPathCondition(universe.falseExpression());
+		}
+
+		UnaryOperator<SymbolicExpression> substituter = universe
+				.constantSubstituter(reasoner.constantSubstitutionMap());
+		boolean processChanged = false;
+
+		for (int i = 0; i < procStates.length; i++) {
+			if (procStates[i] == null)
+				continue;
+
+			boolean procStateChanged = false;
+			BooleanExpression[] newPartialPathConds = procStates[i]
+					.getPartialPathConditions().clone();
+			int ppcLen = newPartialPathConds.length;
+
+			for (int j = 0; j < ppcLen; j++) {
+				BooleanExpression oldPartialPathCond = newPartialPathConds[j];
+				newPartialPathConds[j] = i == simplifyingPid
+						? (reducePathCondition
+								? reasoner.getReducedContext(j + 1)
+								: reasoner.getFullContext(j + 1))
+						: (BooleanExpression) substituter
+								.apply(newPartialPathConds[j]);
+
+				if (!oldPartialPathCond.equals(newPartialPathConds[j]))
+					procStateChanged = true;
+			}
+
+			SimplifyOperator simplifier = new SimplifyOperator(reasoner,
+					aggressiveSet);
+			ImmutableProcessState tmp = procStateChanged
+					? procStates[i]
+							.setPartialPathConditions(newPartialPathConds)
+					: procStates[i];
+			tmp = tmp.apply(simplifier, false);
+
+			if (tmp != procStates[i])
+				processChanged = true;
+			procStates[i] = tmp;
+		}
+
 		int numScopes = theState.numDyscopes();
-		BooleanExpression pathCondition = theState.getPermanentPathCondition();
 		ImmutableDynamicScope[] newDynamicScopes = null;
-		Reasoner reasoner = universe.reasoner(pathCondition);
-		BooleanExpression newPathCondition;
 
-		newPathCondition = reasoner.getReducedContext();
-
-		if (newPathCondition != pathCondition)
-			if (nsat(newPathCondition))
-				newPathCondition = universe.falseExpression();
 		for (int i = 0; i < numScopes; i++) {
 			ImmutableDynamicScope oldScope = theState.getDyscope(i);
 			int numVars = oldScope.numberOfVariables();
@@ -1142,7 +1224,8 @@ public class ImmutableStateFactory implements StateFactory {
 
 			for (int j = 0; j < numVars; j++) {
 				SymbolicExpression oldValue = oldScope.getValue(j);
-				SymbolicExpression newValue = reasoner.simplify(oldValue);
+				SymbolicExpression newValue = reasoner.simplify(oldValue,
+						aggressiveSet);
 
 				if (oldValue != newValue && newVariableValues == null) {
 					newVariableValues = new SymbolicExpression[numVars];
@@ -1163,29 +1246,15 @@ public class ImmutableStateFactory implements StateFactory {
 						: oldScope;
 		}
 
-		boolean processChanged = false;
-		ImmutableProcessState[] procStates = theState.copyProcessStates();
-		SimplifyOperator simplifier = new SimplifyOperator(reasoner);
-
-		for (int i = 0; i < procStates.length; i++) {
-			if (procStates[i] == null)
-				continue;
-
-			ImmutableProcessState tmp = procStates[i].apply(simplifier);
-
-			if (tmp != procStates[i])
-				processChanged = true;
-			procStates[i] = tmp;
-		}
-		if (newDynamicScopes != null || newPathCondition != null
-				|| processChanged) {
+		if (newDynamicScopes != null || processChanged) {
 			theState = ImmutableState.newState(theState, procStates,
 					newDynamicScopes,
-					reducePathcondition
-							? newPathCondition
-							: reasoner.getFullContext());
+					reducePathCondition
+							? reasoner.getReducedContext(0)
+							: reasoner.getFullContext(0));
 			theState.simplifiedState = theState;
 		}
+
 		return theState;
 	}
 
@@ -1426,7 +1495,7 @@ public class ImmutableStateFactory implements StateFactory {
 				 * equivalent to) the old path condition...
 				 */
 				newRefState = newRefState
-						.setPermanentPathCondition(reasoner.getFullContext());
+						.setPermanentPathCondition(reasoner.getFullCollapsedContext());
 				/*
 				 * Note that here must use full context (from the reasoner) to
 				 * simplify the referred state. It is incorrect to use reduced
@@ -1435,7 +1504,7 @@ public class ImmutableStateFactory implements StateFactory {
 				 * that X should be replaced with 0 but this reasoner will not
 				 * be used).
 				 */
-				newRefState = simplifyWork(newRefState, false);
+				newRefState = simplifyWork(newRefState, false, -1, null);
 				if (newRefState == oldRefState)
 					continue;
 

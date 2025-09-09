@@ -18,7 +18,9 @@
  ******************************************************************************/
 package dev.civl.sarl.IF;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.NumericExpression;
@@ -71,7 +73,7 @@ public interface Reasoner {
 	 * 
 	 * @return the reduced context associated to this Reasoner
 	 */
-	BooleanExpression getReducedContext();
+	BooleanExpression getReducedCollapsedContext();
 
 	/**
 	 * Returns the full context associated to this Reasoner. This expression may
@@ -86,7 +88,17 @@ public interface Reasoner {
 	 * 
 	 * @return the reduced context associated to this Reasoner
 	 */
-	BooleanExpression getFullContext();
+	BooleanExpression getFullCollapsedContext();
+
+	BooleanExpression getReducedContext(int index);
+
+	BooleanExpression getFullContext(int index);
+
+	List<BooleanExpression> getReducedContextStack();
+
+	List<BooleanExpression> getFullContextStack();
+
+	void aggressivelySimplifyTopContext(Set<SymbolicConstant> aggressiveSet);
 
 	/**
 	 * If the context can be represented as a simple interval constraint, i.e.,
@@ -151,29 +163,10 @@ public interface Reasoner {
 	 *            any symbolic expression
 	 * @return simplified version of the expression
 	 */
-	SymbolicExpression simplify(SymbolicExpression expression);
+	<T extends SymbolicExpression> T simplify(T expression);
 
-	/**
-	 * Simplifies the given boolean expression. Result is same as that of
-	 * {@link #simplify(SymbolicExpression)}, but this saves you the trouble of
-	 * casting to {@link BooleanExpression}.
-	 * 
-	 * @param expression
-	 *            any BooleanExpression
-	 * @return simplified version of the expression
-	 */
-	BooleanExpression simplify(BooleanExpression expression);
-
-	/**
-	 * Simplifies the given numeric expression. Result is same as that of
-	 * {@link #simplify(SymbolicExpression)}, but this saves you the trouble of
-	 * casting to {@link NumericExpression}.
-	 * 
-	 * @param expression
-	 *            any NumericExpression
-	 * @return simplified version of the expression
-	 */
-	NumericExpression simplify(NumericExpression expression);
+	<T extends SymbolicExpression> T simplify(T expression,
+			Set<SymbolicConstant> aggressiveSet);
 
 	/**
 	 * <p>

@@ -88,6 +88,8 @@ public class EntityAnalyzer implements Analyzer {
 	StatementAnalyzer statementAnalyzer;
 
 	TypeAnalyzer typeAnalyzer;
+	
+	FocusTransformAnalyzer focusAnalyzer;
 
 	EntityFactory entityFactory;
 
@@ -138,6 +140,7 @@ public class EntityAnalyzer implements Analyzer {
 				conversionFactory, typeFactory, configuration);
 		this.expressionAnalyzer.setStatementAnalyzer(statementAnalyzer);
 		this.typeAnalyzer = new TypeAnalyzer(this, typeFactory, configuration);
+		this.focusAnalyzer = new FocusTransformAnalyzer(nodeFactory, sourceFactory);
 		// externVariablesAllowedWoDef.add("stdin");
 		// externVariablesAllowedWoDef.add("stdout");
 		// externVariablesAllowedWoDef.add("stderr");
@@ -151,7 +154,7 @@ public class EntityAnalyzer implements Analyzer {
 
 	@Override
 	public void analyze(AST ast) throws SyntaxException {
-		ASTNode root = ast.getRootNode();
+		SequenceNode<BlockItemNode> root = ast.getRootNode();
 		Iterable<ASTNode> children = root.children();
 		Scope rootScope = root.getScope();
 
@@ -165,6 +168,7 @@ public class EntityAnalyzer implements Analyzer {
 		}
 		findTentativeDefinitions(rootScope);
 		this.expressionAnalyzer.processUnknownIdentifiers(root);
+		this.focusAnalyzer.analyze(root);
 		// // only checks external definition for whole-program AST
 		// if (ast.isWholeProgram()) {
 		// this.checkDefinitionForExternVariables(rootScope);

@@ -681,7 +681,7 @@ public class LibpointerExecutor extends BaseLibraryExecutor
 			String firstArg, secondArg;
 
 			message.append("Context: ");
-			message.append(reasoner.getReducedContext());
+			message.append(reasoner.getReducedCollapsedContext());
 			message.append("\nAssertion voilated: ");
 			message.append(
 					"$equals(" + arguments[0] + ", " + arguments[1] + ")");

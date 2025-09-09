@@ -2,6 +2,8 @@
  */
 package dev.civl.sarl.simplify;
 
+import java.util.Arrays;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -14,8 +16,6 @@ import dev.civl.sarl.IF.type.SymbolicType;
 import dev.civl.sarl.preuniverse.IF.FactorySystem;
 import dev.civl.sarl.preuniverse.IF.PreUniverse;
 import dev.civl.sarl.preuniverse.IF.PreUniverses;
-import dev.civl.sarl.simplify.IF.Simplifier;
-import dev.civl.sarl.simplify.IF.SimplifierFactory;
 import dev.civl.sarl.simplify.IF.Simplify;
 
 /**
@@ -74,24 +74,6 @@ public class SimplifyCreationTest {
 	public void testCreation() {
 		@SuppressWarnings("unused")
 		Simplify simplify = new Simplify();
-	}
-	
-	/**
-	 * 
-	 */
-	@Test
-	public void testIdentitySimplifier(){
-		@SuppressWarnings("unused")
-		Simplifier simplifier = Simplify.identitySimplifier(preUniv, xeq5);
-	}
-	
-	/**
-	 * 
-	 */
-	@Test
-	public void simplifierFactoryTest(){
-		@SuppressWarnings("unused")
-		SimplifierFactory simplifierFactory = Simplify.newIdentitySimplifierFactory(preUniv);
 	}
 
 }

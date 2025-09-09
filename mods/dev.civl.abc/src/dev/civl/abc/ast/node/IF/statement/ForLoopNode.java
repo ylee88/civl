@@ -44,6 +44,41 @@ public interface ForLoopNode extends LoopNode {
 	 */
 	void setIncrementer(ExpressionNode node);
 
+	/**
+	 * Returns whether the loop has been marked as being "standard." See
+	 * {@link setStandard} for what conditions are supposed to hold in order for
+	 * this to return true.
+	 * 
+	 * @return whether the loop was marked as "standard"
+	 */
+	boolean isStandard();
+
+	/**
+	 * Mark whether the for loop is "standard" or not. A for loop is standard
+	 * iff the following conditions are guaranteed to hold for all valid
+	 * error-free executions (so in particular, an execution is allowed to
+	 * violate one of these conditions as long as that execution is guaranteed
+	 * to reach an error state such as an assertion violation):
+	 * 
+	 * 1. The loop has an initializer expression of the form
+	 * <code>int i = a</code> or <code>i = a</code> for some variable
+	 * <code>i</code>, called the "loop variable," and some integer expression
+	 * <code>a</code>.
+	 * 
+	 * 2. The loop has a conditional of the form <code>i < b</code> or
+	 * <code>i <= b</code> in which <code>i</code> is the loop variable and
+	 * <code>b</code> is some integer expression.
+	 * 
+	 * 3. If evaluating the expression <code>b</code> at the start of an
+	 * iteration results in the value <code>x</code> then evaluating it at the
+	 * end of the iteration should also result in the value <code>x</code>.
+	 * 
+	 * 4. If the loop variable <code>i</code> evaluates to <code>y</code> at the
+	 * start of an iteration, then at the end of that iteration, <code>i</code>
+	 * should evaluate to <code>y+1</code>.
+	 */
+	void setStandard(boolean isStandard);
+
 	@Override
 	ForLoopNode copy();
 

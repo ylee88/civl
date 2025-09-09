@@ -94,7 +94,7 @@ public class LinearReasoningTest {
 		oracle.put(x, r1);
 		oracle.put(y, r1);
 		assertEquals(oracle, m);
-		assertEquals(trueExpr, r.getReducedContext());
+		assertEquals(trueExpr, r.getReducedCollapsedContext());
 	}
 
 	/**

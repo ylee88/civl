@@ -26,6 +26,7 @@ import dev.civl.abc.ast.node.IF.PragmaNode;
 import dev.civl.abc.ast.node.IF.SequenceNode;
 import dev.civl.abc.ast.node.IF.StaticAssertionNode;
 import dev.civl.abc.ast.node.IF.acsl.ContractNode;
+import dev.civl.abc.ast.node.IF.acsl.TransformNode;
 import dev.civl.abc.ast.node.IF.compound.CompoundInitializerNode;
 import dev.civl.abc.ast.node.IF.compound.DesignationNode;
 import dev.civl.abc.ast.node.IF.compound.DesignatorNode;
@@ -99,7 +100,6 @@ import dev.civl.abc.token.IF.Source;
 import dev.civl.abc.token.IF.StringToken;
 import dev.civl.abc.token.IF.SyntaxException;
 import dev.civl.abc.token.IF.TokenFactory;
-import dev.civl.abc.util.IF.Pair;
 
 /**
  * Builds an AST from an ANTLR tree.
@@ -162,9 +162,33 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	private AcslContractHandler acslHandler;
 
 	/**
-	 * TODO: how does this stack work ? no doc.
+	 * A simple class that bundles together a scope, along with annotation data
+	 * obtained from translateAnnotation.
+	 * 
+	 * @author awilton
 	 */
-	private Stack<Pair<SimpleScope, SequenceNode<ContractNode>>> scopeAndContracts = new Stack<>();
+	public class AnnotationData {
+		AnnotationData(SimpleScope scope, SequenceNode<ContractNode> contract,
+				List<TransformNode> transforms) {
+			this.scope = scope;
+			this.contract = contract;
+			this.transforms = transforms;
+		}
+		SimpleScope scope;
+		SequenceNode<ContractNode> contract;
+		List<TransformNode> transforms;
+	}
+	/**
+	 * This stack keeps track of all the annotation data being applied to each
+	 * scope starting from the current scope and up through each of the scopes
+	 * parents. Upon entering a deeper scope, an entry is added and it is
+	 * removed when leaving the scope. This is so that we can parse the
+	 * annotation data before, say a statement, and then translate that
+	 * statement and finally add the annotation data to that completed statement
+	 * afterwards, all while being able to handle when there are annotations
+	 * within the statement being translated.
+	 */
+	private Stack<AnnotationData> annotationStack = new Stack<>();
 
 	/*
 	 * The attribute key representing the expression is a civl omp dependency
@@ -2252,23 +2276,31 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	}
 
 	private SimpleScope getNewScope(SimpleScope scope) {
-		if (!this.scopeAndContracts.isEmpty())
-			if (this.scopeAndContracts.peek().left != null)
-				return scopeAndContracts.peek().left;
+		if (!this.annotationStack.isEmpty())
+			if (this.annotationStack.peek().scope != null)
+				return annotationStack.peek().scope;
 		return new SimpleScope(scope);
 	}
 
 	private SequenceNode<ContractNode> getContract() {
-		if (!this.scopeAndContracts.isEmpty())
-			if (this.scopeAndContracts.peek().right != null)
-				return scopeAndContracts.peek().right;
+		if (!this.annotationStack.isEmpty())
+			if (this.annotationStack.peek().contract != null)
+				return annotationStack.peek().contract;
 		return null;
 	}
 
-	private void clearScopeAndContract() {
-		if (!this.scopeAndContracts.isEmpty()) {
-			this.scopeAndContracts.peek().left = null;
-			this.scopeAndContracts.peek().right = null;
+	private List<TransformNode> getTransforms() {
+		if (!this.annotationStack.isEmpty())
+			if (this.annotationStack.peek().transforms != null)
+				return annotationStack.peek().transforms;
+		return null;
+	}
+
+	private void clearCurrentAnnotations() {
+		if (!this.annotationStack.isEmpty()) {
+			this.annotationStack.peek().scope = null;
+			this.annotationStack.peek().contract = null;
+			this.annotationStack.peek().transforms = null;
 		}
 	}
 
@@ -2504,7 +2536,7 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 		List<BlockItemNode> civlPragmaNodes = new LinkedList<BlockItemNode>();
 		OmpExecutableNode ompStatementNode = null;
 
-		scopeAndContracts.push(new Pair<>(null, null));
+		annotationStack.push(new AnnotationData(null, null, null));
 		for (int i = 0; i < numChildren; i++) {
 			CommonTree childTree = (CommonTree) blockItems.getChild(i);
 			List<BlockItemNode> newBlockItems = this
@@ -2584,7 +2616,7 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 			}
 			items.addAll(newBlockItems);
 		}
-		scopeAndContracts.pop();
+		annotationStack.pop();
 
 		int numItems = items.size();
 		boolean changed = false;
@@ -3046,7 +3078,7 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 						null);
 			}
 		}
-		scopeAndContracts.push(new Pair<>(null, null));
+		annotationStack.push(new AnnotationData(null, null, null));
 		for (int i = 0; i < numChildren; i++) {
 			// TODO need to know what's the language and decide whether the
 			// external definition node type needs to be checked, because C
@@ -3054,7 +3086,8 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 			definitions.addAll(this.translateBlockItemNode(
 					(CommonTree) translationUnit.getChild(i), scope, false));
 		}
-		scopeAndContracts.pop();
+		annotationStack.pop();
+
 		// TODO: maybe find a better way to handle this (e.g. only when Cuda
 		// flag specified so we don't have to rely on automatically detecting
 		// Cuda programs
@@ -3168,17 +3201,18 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 			throws SyntaxException {
 		int kind = blockItemTree.getType();
 		List<BlockItemNode> items = new LinkedList<BlockItemNode>();
+		boolean acceptsAnnotations = false;
 
 		switch (kind) {
 			case DECLARATION :
 				for (BlockItemNode declaration : translateDeclaration(
 						blockItemTree, scope))
 					items.add(declaration);
-				clearScopeAndContract();
+				acceptsAnnotations = true;
 				break;
 			case FUNCTION_DEFINITION :
 				items.add(translateFunctionDefinition(blockItemTree, scope));
-				clearScopeAndContract();
+				acceptsAnnotations = true;
 				break;
 			case PPRAGMA :
 				ASTNode pragmaNode = translatePragma(blockItemTree, scope);
@@ -3197,10 +3231,11 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 				}
 				items.add((BlockItemNode) this.translateStatement(blockItemTree,
 						scope));
-				clearScopeAndContract();
+				acceptsAnnotations = true;
 				break;
 			case STATICASSERT :
 				items.add(translateStaticAssertion(blockItemTree, scope));
+				acceptsAnnotations = true;
 				break;
 			case ANNOTATION :
 				items.addAll(translateAnnotation(blockItemTree, scope));
@@ -3208,6 +3243,17 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 			default :
 				throw new ABCUnsupportedException("translating block item node "
 						+ blockItemTree.toString());
+		}
+
+		if (acceptsAnnotations) {
+			List<TransformNode> transforms = getTransforms();
+
+			if (transforms != null) {
+				for (BlockItemNode item : items) {
+					item.addAllTransformAnnotations(transforms);
+				}
+			}
+			clearCurrentAnnotations();
 		}
 		return items;
 	}
@@ -3217,7 +3263,7 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	/**
 	 * Translates a code annotation, which is a comment that begins with an "@"
 	 * character. If the configuration's acsl flag is false, this will do
-	 * nothing. Else will interprete it as an ACSL annotation.
+	 * nothing. Else will interpret it as an ACSL annotation.
 	 * 
 	 * @param annotationTree
 	 *                           the ANTLR tree node representing the
@@ -3236,12 +3282,17 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 		Source source = this.newSource(annotationTree);
 		SimpleScope newScope = new SimpleScope(scope);
 
-		this.scopeAndContracts.peek().left = newScope;
+		this.annotationStack.peek().scope = newScope;
 
 		ACSLSpecTranslation acslSpec = acslHandler
 				.translateAcslAnnotation(source, tokenSource, newScope, config);
 
-		this.scopeAndContracts.peek().right = acslSpec.contractNodes;
+		if (acslSpec.contractNodes.numChildren() > 0
+				|| annotationStack.peek().contract == null)
+			this.annotationStack.peek().contract = acslSpec.contractNodes;
+		if (!acslSpec.transformNodes.isEmpty()
+				|| annotationStack.peek().transforms == null)
+			this.annotationStack.peek().transforms = acslSpec.transformNodes;
 		return acslSpec.blockItemNodes;
 	}
 

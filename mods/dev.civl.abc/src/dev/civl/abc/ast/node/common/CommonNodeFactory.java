@@ -36,7 +36,10 @@ import dev.civl.abc.ast.node.IF.acsl.DependsNode;
 import dev.civl.abc.ast.node.IF.acsl.EnsuresNode;
 import dev.civl.abc.ast.node.IF.acsl.ExtendedQuantifiedExpressionNode;
 import dev.civl.abc.ast.node.IF.acsl.ExtendedQuantifiedExpressionNode.ExtendedQuantifier;
+import dev.civl.abc.ast.node.IF.acsl.FocusAssertTransformNode;
+import dev.civl.abc.ast.node.IF.acsl.FocusLoopTransformNode;
 import dev.civl.abc.ast.node.IF.acsl.GuardsNode;
+import dev.civl.abc.ast.node.IF.acsl.InsertTransformNode;
 import dev.civl.abc.ast.node.IF.acsl.InvariantNode;
 import dev.civl.abc.ast.node.IF.acsl.MPICollectiveBlockNode;
 import dev.civl.abc.ast.node.IF.acsl.MPICollectiveBlockNode.MPICommunicatorMode;
@@ -162,7 +165,10 @@ import dev.civl.abc.ast.node.common.acsl.CommonCompositeEventNode;
 import dev.civl.abc.ast.node.common.acsl.CommonDependsNode;
 import dev.civl.abc.ast.node.common.acsl.CommonEnsuresNode;
 import dev.civl.abc.ast.node.common.acsl.CommonExtendedQuantifiedExpressionNode;
+import dev.civl.abc.ast.node.common.acsl.CommonFocusAssertTransformNode;
+import dev.civl.abc.ast.node.common.acsl.CommonFocusLoopTransformNode;
 import dev.civl.abc.ast.node.common.acsl.CommonGuardNode;
+import dev.civl.abc.ast.node.common.acsl.CommonInsertTransformNode;
 import dev.civl.abc.ast.node.common.acsl.CommonInvariantNode;
 import dev.civl.abc.ast.node.common.acsl.CommonMPICollectiveBlockNode;
 import dev.civl.abc.ast.node.common.acsl.CommonMPIConstantNode;
@@ -285,6 +291,7 @@ import dev.civl.abc.token.IF.ExecutionCharacter;
 import dev.civl.abc.token.IF.Source;
 import dev.civl.abc.token.IF.StringLiteral;
 import dev.civl.abc.token.IF.SyntaxException;
+import dev.civl.abc.token.IF.TokenFactory;
 
 public class CommonNodeFactory implements NodeFactory {
 
@@ -1434,5 +1441,24 @@ public class CommonNodeFactory implements NodeFactory {
 
 		return new CommonPredicateNode(source, predicateTypeNode, identifier,
 				wrappedBody);
+	}
+
+	@Override
+	public FocusLoopTransformNode newFocusLoopNode(Source source, TokenFactory tokenFactory,
+			String focusTag, SequenceNode<ExpressionNode> memoryList) {
+		return new CommonFocusLoopTransformNode(source, this, tokenFactory,
+				focusTag, memoryList);
+	}
+	
+	@Override
+	public FocusAssertTransformNode newFocusAssertNode(Source source, TokenFactory tokenFactory,
+			List<String> focusTags) {
+		return new CommonFocusAssertTransformNode(source, this, tokenFactory, focusTags);
+	}
+
+	@Override
+	public InsertTransformNode newInsertTransformNode(Source source,
+			List<BlockItemNode> nodesToInsert, boolean insertAfter) {
+		return new CommonInsertTransformNode(source, nodesToInsert, insertAfter);
 	}
 }

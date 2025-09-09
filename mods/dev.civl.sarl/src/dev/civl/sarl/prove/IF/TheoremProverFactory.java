@@ -31,7 +31,7 @@ import dev.civl.sarl.IF.expr.BooleanExpression;
  * @author Stephen F. Siegel
  */
 public interface TheoremProverFactory {
-
+	
 	/**
 	 * Returns a new instance of {@link TheoremProver} with the given context.
 	 * 

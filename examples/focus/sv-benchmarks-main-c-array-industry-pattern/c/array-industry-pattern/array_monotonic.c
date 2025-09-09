@@ -20,7 +20,7 @@ int main()
 	int b[N];
 
   // modified:
-  //@ transform flatten i;
+  //@ focus I;
   for(i = 0; i < N; i++)
 	{
 		a[i] = __VERIFIER_nondet_int();
@@ -37,7 +37,7 @@ int main()
   */
 
   // modified:
-  //@ transform flatten i;
+  //@ focus I;
   $assert($forall(int i:0..N-1) a[i] == 10 => b[i] == 20);
   /* original:
 	for(i = 0; i < N; i = i + 2)

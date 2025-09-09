@@ -7,8 +7,6 @@ import dev.civl.sarl.IF.SARLConstants;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
-import dev.civl.sarl.expr.IF.BooleanExpressionFactory;
-import dev.civl.sarl.simplify.simplifier.IdealSimplifierWorker;
 
 /**
  * Some things that should happen:
@@ -25,49 +23,32 @@ import dev.civl.sarl.simplify.simplifier.IdealSimplifierWorker;
  */
 public class OrSimplification extends Simplification {
 
-	public OrSimplification(IdealSimplifierWorker worker) {
-		super(worker);
-	}
-
 	@Override
-	public SymbolicExpression apply(SymbolicExpression x) {
+	protected SymbolicExpression apply(SymbolicExpression x) {
 		if (x.operator() != SymbolicOperator.OR)
 			return x;
 
-		BooleanExpressionFactory bf = info().getBooleanFactory();
 		BooleanExpression expr = (BooleanExpression) x;
-		BooleanExpression[] args = bf.getArgumentsAsArray(expr);
+		BooleanExpression[] args = util().getBooleanFactory()
+				.getArgumentsAsArray(expr);
 		int n = args.length;
 		Set<BooleanExpression> nots = new HashSet<>();
 
 		for (BooleanExpression arg : args)
-			nots.add(bf.not(arg));
+			nots.add(universe.not(arg));
 		for (int i = 0; i < n; i++) {
 			BooleanExpression arg = args[i];
 
 			if (nots.contains(arg)) {
-				BooleanExpression result = info().trueExpr();
-
-				for (int j = 0; j < i; j++)
-					result = bf.or(result, args[j]);
-				for (i++; i < n; i++)
-					if (!nots.contains(args[i]))
-						result = bf.or(result, args[i]);
-				return result;
+				return universe.trueExpression();
 			}
 		}
 		if (SARLConstants.useDoubleOrNegation) {
-			BooleanExpression result = universe()
-					.not((BooleanExpression) simplifyExpression(
-							universe().not(expr)));
+			BooleanExpression result = universe.not(
+					(BooleanExpression) simplify(universe.not(expr)));
 			return result;
 		} else {
 			return expr;
 		}
-	}
-
-	@Override
-	public SimplificationKind kind() {
-		return SimplificationKind.OR;
 	}
 }

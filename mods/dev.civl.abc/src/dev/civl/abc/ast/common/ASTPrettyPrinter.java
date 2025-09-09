@@ -3255,18 +3255,22 @@ public class ASTPrettyPrinter {
 			default :// UNIFORM
 				quantifier = "$uniform";
 		}
+		result.append("(");
 		result.append(quantifier);
 		result.append(" (");
 		result.append(boundVariableList2Pretty(quantified.boundVariableList(),
 				vacantLength(maxLength, result)));
+		result.append(") ");
 		if (quantified.restriction() != null) {
-			result.append(" | ");
+			result.append("!(");
 			result.append(expression2Pretty(quantified.restriction(),
 					vacantLength(maxLength, result)));
+			result.append(") || ");
 		}
-		result.append(") ");
+		result.append("(");
 		result.append(expression2Pretty(quantified.expression(),
 				vacantLength(maxLength, result)));
+		result.append("))");
 		return trimStringBuffer(result, maxLength);
 	}
 

@@ -4,7 +4,6 @@ import dev.civl.sarl.IF.TheoremProverException;
 import dev.civl.sarl.IF.ValidityResult;
 import dev.civl.sarl.IF.ValidityResult.ResultType;
 import dev.civl.sarl.IF.expr.BooleanExpression;
-import dev.civl.sarl.preuniverse.IF.PreUniverse;
 import dev.civl.sarl.prove.IF.Prove;
 import dev.civl.sarl.prove.IF.TheoremProver;
 
@@ -18,18 +17,10 @@ import dev.civl.sarl.prove.IF.TheoremProver;
  */
 public class MultiProver implements TheoremProver {
 
-	private PreUniverse universe;
-
 	private TheoremProver[] provers;
 
-	public MultiProver(PreUniverse universe, TheoremProver[] provers) {
-		this.universe = universe;
+	public MultiProver(TheoremProver[] provers) {
 		this.provers = provers;
-	}
-
-	@Override
-	public PreUniverse universe() {
-		return universe;
 	}
 
 	@Override

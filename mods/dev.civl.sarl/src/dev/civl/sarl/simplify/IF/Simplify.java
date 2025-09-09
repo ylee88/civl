@@ -18,78 +18,28 @@
  ******************************************************************************/
 package dev.civl.sarl.simplify.IF;
 
+import java.util.List;
+
 import dev.civl.sarl.IF.expr.BooleanExpression;
-import dev.civl.sarl.ideal.IF.IdealFactory;
 import dev.civl.sarl.preuniverse.IF.PreUniverse;
 import dev.civl.sarl.simplify.common.CommonContextPartition;
-import dev.civl.sarl.simplify.common.IdentitySimplifier;
-import dev.civl.sarl.simplify.common.IdentitySimplifierFactory;
 import dev.civl.sarl.simplify.common.IntervalUnionFactory;
-import dev.civl.sarl.simplify.simplifier.IdealSimplifierFactory;
 
 /**
  * Entry point for module "simplify", providing static method to create basic
- * simplifiers, simplifier factories, and range factories.
+ * range factories and context partitions
  * 
  * @author Stephen F. Siegel
  */
 public class Simplify {
-
-	/**
-	 * Creates a new "trivial" simplifier: given any expression this simplifiers
-	 * just returns the expression.
-	 * 
-	 * @param universe
-	 *            the pre-universe associated to the simplifier
-	 * @param assumption
-	 *            the boolean expression context, which is just not used
-	 * @return the new trivial simplifier
-	 */
-	public static Simplifier identitySimplifier(PreUniverse universe,
-			BooleanExpression assumption) {
-		return new IdentitySimplifier(universe, assumption);
-	}
-
-	/**
-	 * A factory for producing trivial simplifiers.
-	 * 
-	 * @param universe
-	 *            the pre-universe to associate to the simplifier
-	 * @return a new trivial simplifier factory
-	 * @see #identitySimplifier(PreUniverse, BooleanExpression)
-	 */
-	public static SimplifierFactory newIdentitySimplifierFactory(
-			PreUniverse universe) {
-		return new IdentitySimplifierFactory(universe);
-	}
 
 	public static RangeFactory newIntervalUnionFactory() {
 		return new IntervalUnionFactory();
 	}
 
 	public static ContextPartition newContextPartition(PreUniverse universe,
-			BooleanExpression context) {
-		return new CommonContextPartition(context, universe);
-	}
-
-	/**
-	 * Constructs a new {@link SimplifierFactory} based on ideal arithmetic. The
-	 * simplifiers produced by the new factory will deal with ideal numeric
-	 * expressions and use all the rules of ideal arithmetic to simplify
-	 * expressions.
-	 * 
-	 * @param idealFactory
-	 *            the {@link IdealFactory} that the simplifiers will use to
-	 *            simplify expressions
-	 * @param universe
-	 *            the symbolic universe that the simplifiers will use to create
-	 *            and manipulate expressions that are not dealt with by the
-	 *            ideal factory (specifically, non-numeric expressions)
-	 * @return a new simplifier factory based on ideal arithmetic
-	 */
-	public static SimplifierFactory newIdealSimplifierFactory(
-			IdealFactory idealFactory, PreUniverse universe) {
-		return new IdealSimplifierFactory(idealFactory, universe);
+			List<BooleanExpression> contextStack) {
+		return new CommonContextPartition(contextStack, universe);
 	}
 
 }

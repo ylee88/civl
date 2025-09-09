@@ -22,7 +22,6 @@ import dev.civl.sarl.IF.ModelResult;
 import dev.civl.sarl.IF.TheoremProverException;
 import dev.civl.sarl.IF.ValidityResult;
 import dev.civl.sarl.IF.expr.BooleanExpression;
-import dev.civl.sarl.preuniverse.IF.PreUniverse;
 
 /**
  * Provides an abstract interface for an automated theorem prover operating
@@ -31,15 +30,6 @@ import dev.civl.sarl.preuniverse.IF.PreUniverse;
  * @author Stephen F. Siegel
  */
 public interface TheoremProver {
-
-	/**
-	 * Get the symbolic universe associated with the theorem prover. This is the
-	 * object used to create and manipulate symbolic expressions.
-	 * 
-	 * @return the symbolic universe associated to this theorem prover
-	 */
-	PreUniverse universe();
-
 	/**
 	 * <p>
 	 * Attempts to determine whether the statement p(x)=>q(x) is valid, i.e., is

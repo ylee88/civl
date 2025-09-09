@@ -108,18 +108,22 @@ public class BoundCleaner extends ExpressionSubstituter {
 		SymbolicConstant oldBoundVariable = (SymbolicConstant) expression
 				.argument(0);
 		String oldName = oldBoundVariable.name().getString();
-		Integer count = countMap.get(oldName);
 		SymbolicType newType = substituteType(expression.type(), state);
 		SymbolicType newBoundVariableType = substituteType(
 				oldBoundVariable.type(), state);
 
+		int indexOfSpecialString = oldName.lastIndexOf(specialString);
+		String namePrefix = indexOfSpecialString >= 0
+				? oldName.substring(0, indexOfSpecialString)
+				: oldName;
+		Integer count = countMap.get(namePrefix);
 		if (count == null)
 			count = 0;
 
-		String newName = oldName + specialString + count;
+		String newName = namePrefix + specialString + count;
 
 		count++;
-		countMap.put(oldName, count);
+		countMap.put(namePrefix, count);
 
 		SymbolicConstant newBoundVariable = universe.symbolicConstant(
 				universe.stringObject(newName), newBoundVariableType);

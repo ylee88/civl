@@ -193,4 +193,6 @@ public interface SymbolicObject {
 	 * @return {@code true} iff this contains a sub-object equal to {@code obj}
 	 */
 	boolean containsSubobject(SymbolicObject obj);
+	
+	boolean containsSubobjectIgnoringType(SymbolicObject obj);
 }

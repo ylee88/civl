@@ -8,8 +8,8 @@ import dev.civl.abc.ast.node.IF.NodeFactory;
 import dev.civl.abc.ast.node.IF.SequenceNode;
 import dev.civl.abc.ast.node.IF.acsl.AssignsOrReadsNode;
 import dev.civl.abc.ast.node.IF.acsl.ContractNode;
-import dev.civl.abc.ast.node.IF.acsl.ContractNode.ContractKind;
 import dev.civl.abc.ast.node.IF.acsl.InvariantNode;
+import dev.civl.abc.ast.node.IF.acsl.TransformNode;
 import dev.civl.abc.ast.node.IF.expression.ExpressionNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode.Operator;
 import dev.civl.abc.ast.node.IF.statement.LoopNode;
@@ -40,6 +40,8 @@ class LoopContractBlock {
 	 */
 	private List<ExpressionNode> assignClauses;
 
+	private List<TransformNode> transformations;
+
 	/**
 	 * A reference to the associated {@link LoopNode}
 	 */
@@ -50,6 +52,7 @@ class LoopContractBlock {
 		this.loop = loop;
 		this.invariants = new LinkedList<>();
 		this.assignClauses = new LinkedList<>();
+		this.transformations = new LinkedList<>();
 		this.parseLoopContracts(loop);
 	}
 
@@ -70,6 +73,14 @@ class LoopContractBlock {
 	void addLoopAssigns(SequenceNode<ExpressionNode> writeSets) {
 		for (ExpressionNode writeSet : writeSets)
 			this.assignClauses.add(writeSet);
+	}
+	
+	void addLoopTransformation(TransformNode transformation) {
+		transformations.add(transformation);
+	}
+	
+	void addAllLoopTransformations(List<TransformNode> transformList) {
+		transformations.addAll(transformList);
 	}
 
 	/**
@@ -106,6 +117,10 @@ class LoopContractBlock {
 	List<ExpressionNode> getLoopAssignSet() {
 		return assignClauses;
 	}
+	
+	List<TransformNode> getTransformations() {
+		return transformations;
+	}
 
 	/**
 	 * Returns the corresponding {@link LoopNode}
@@ -126,17 +141,26 @@ class LoopContractBlock {
 		SequenceNode<ContractNode> loopContracts = loopNode.loopContracts();
 
 		for (ContractNode contract : loopContracts) {
-			if (contract.contractKind() == ContractKind.INVARIANT) {
-				ExpressionNode invariant = ((InvariantNode) contract)
-						.getExpression();
+			switch (contract.contractKind()) {
+				case INVARIANT :
+					ExpressionNode invariant = ((InvariantNode) contract)
+							.getExpression();
 
-				addLoopInvariants(invariant);
-			} else if (contract.contractKind() == ContractKind.ASSIGNS_READS) {
-				SequenceNode<ExpressionNode> assignedSet = ((AssignsOrReadsNode) contract)
-						.getMemoryList();
+					addLoopInvariants(invariant);
+					break;
+				case ASSIGNS_READS :
+					SequenceNode<ExpressionNode> assignedSet = ((AssignsOrReadsNode) contract)
+							.getMemoryList();
 
-				addLoopAssigns(assignedSet);
+					addLoopAssigns(assignedSet);
+					break;
+				case TRANSFORM:
+					addLoopTransformation((TransformNode) contract);
+					break;
+				default:
+					// Skip
 			}
 		}
+		addAllLoopTransformations(loopNode.transformAnnotations());
 	}
 }

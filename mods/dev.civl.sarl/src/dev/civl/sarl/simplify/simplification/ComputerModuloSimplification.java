@@ -6,8 +6,6 @@ import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.NumericExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
-import dev.civl.sarl.simplify.simplifier.Context;
-import dev.civl.sarl.simplify.simplifier.IdealSimplifierWorker;
 
 /**
  * <p>
@@ -26,54 +24,45 @@ import dev.civl.sarl.simplify.simplifier.IdealSimplifierWorker;
  */
 public class ComputerModuloSimplification extends Simplification {
 
-	public ComputerModuloSimplification(IdealSimplifierWorker worker) {
-		super(worker);
-	}
-
 	@Override
-	public SymbolicExpression apply(SymbolicExpression x) {
+	protected SymbolicExpression apply(SymbolicExpression x) {
 		if (x.operator() != SymbolicOperator.MODULO)
 			return x;
 
 		NumericExpression dividen = (NumericExpression) x.argument(0);
 		NumericExpression divisor = (NumericExpression) x.argument(1);
-		Context subContext = newSubContext();
 		int preSize = x.size();
-		NumericExpression zero = universe().zeroInt();
+		NumericExpression zero = universe.zeroInt();
 		// addens and divisor must be non-negative
 		BooleanExpression nonNeg;
 
-		dividen = (NumericExpression) subContext.simplify(dividen);
-		divisor = (NumericExpression) subContext.simplify(divisor);
-		nonNeg = universe().lessThanEquals(zero, divisor);
+		dividen = (NumericExpression) simplify(dividen);
+		divisor = (NumericExpression) simplify(divisor);
+		nonNeg = universe.lessThanEquals(zero, divisor);
 		if (dividen.operator() == SymbolicOperator.ADD) {
 			int numArgs = dividen.numArguments();
 			NumericExpression addens[] = new NumericExpression[numArgs];
 
 			for (int i = 0; i < numArgs; i++) {
 				addens[i] = (NumericExpression) dividen.argument(i);
-				nonNeg = universe().and(nonNeg,
-						universe().lessThanEquals(zero, addens[i]));
+				nonNeg = universe.and(nonNeg,
+						universe.lessThanEquals(zero, addens[i]));
 			}
 			// check for non-negative:
-			if (!subContext.simplify(nonNeg).isTrue())
-				return x;
-			for (int i = 0; i < numArgs; i++) {
-				addens[i] = universe().modulo(addens[i], divisor);
-				addens[i] = (NumericExpression) subContext.simplify(addens[i]);
+			if (proveValid((BooleanExpression) simplify(nonNeg))) {
+				for (int i = 0; i < numArgs; i++) {
+					addens[i] = universe.modulo(addens[i], divisor);
+					addens[i] = (NumericExpression) simplify(addens[i]);
+				}
+
+				NumericExpression newX = universe.add(Arrays.asList(addens));
+
+				newX = universe.modulo(newX, divisor);
+				if (newX.size() < preSize)
+					x = newX;
 			}
-
-			NumericExpression newX = universe().add(Arrays.asList(addens));
-
-			newX = universe().modulo(newX, divisor);
-			if (newX.size() < preSize)
-				return newX;
 		}
+		
 		return x;
-	}
-
-	@Override
-	public SimplificationKind kind() {
-		return SimplificationKind.MODULO;
 	}
 }

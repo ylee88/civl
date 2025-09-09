@@ -812,7 +812,7 @@ public class CommonExecutor implements Executor {
 						BooleanExpression pc = state.getPathCondition(universe);
 						Reasoner reasoner = universe.reasoner(pc);
 
-						if (reasoner.getReducedContext() != pc)
+						if (reasoner.getReducedCollapsedContext() != pc)
 							state = this.stateFactory.simplify(state);
 					}
 				}

@@ -147,6 +147,7 @@ OPTION_NAME
     | '-int_bit'
     | '-direct'
     | '-loop'
+    | '-memeq'
     | '-maxdepth'
     | '-min'
     | '-mpiContract'

@@ -1,4 +1,4 @@
-package dev.civl.sarl.reason.common;
+package dev.civl.sarl.simplify.common;
 
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.preuniverse.IF.PreUniverse;
@@ -9,7 +9,7 @@ import dev.civl.sarl.preuniverse.IF.PreUniverse;
  * 
  * @author ziqing
  */
-class SARLProverAdaptor {
+public class SARLProverAdaptor {
 
 	private PreUniverse pu;
 
@@ -18,18 +18,18 @@ class SARLProverAdaptor {
 
 	private StatefulSigmaAdaptor sigmaAdaptor;
 
-	SARLProverAdaptor(PreUniverse pu) {
+	public SARLProverAdaptor(PreUniverse pu) {
 		this.pu = pu;
 		this.arrayLambdaAdaptor = new StatefulArrayLambdaAdaptor(pu);
 		this.sigmaAdaptor = new StatefulSigmaAdaptor(pu);
 	}
 
-	BooleanExpression apply(BooleanExpression formula) {
+	public BooleanExpression apply(BooleanExpression formula) {
 		formula = (BooleanExpression) arrayLambdaAdaptor.apply(formula);
 		return (BooleanExpression) sigmaAdaptor.apply(formula);
 	}
 
-	BooleanExpression getAxioms() {
+	public BooleanExpression getAxioms() {
 		return pu.and(arrayLambdaAdaptor.getIndependentArrayLambdaAxioms(),
 				pu.and(sigmaAdaptor.getAxioms()));
 	}

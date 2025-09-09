@@ -1,5 +1,7 @@
 package dev.civl.sarl.simplify.IF;
 
+import java.util.List;
+
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.preuniverse.IF.PreUniverse;
@@ -73,6 +75,6 @@ public interface ContextPartition {
 	 *            <code>expr</code>
 	 * @return the reduced context
 	 */
-	BooleanExpression minimizeFor(SymbolicExpression expr, PreUniverse universe);
+	List<BooleanExpression> minimizeFor(SymbolicExpression expr, PreUniverse universe);
 
 }

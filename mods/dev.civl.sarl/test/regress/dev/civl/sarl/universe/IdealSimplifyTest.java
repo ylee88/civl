@@ -84,7 +84,7 @@ public class IdealSimplifyTest {
 		Reasoner reasoner = universe.reasoner(universe.bool(true));
 
 		assertEquals(x, reasoner.simplify(x));
-		assertEquals(trueExpr, reasoner.getReducedContext());
+		assertEquals(trueExpr, reasoner.getReducedCollapsedContext());
 	}
 
 	/**
@@ -96,7 +96,7 @@ public class IdealSimplifyTest {
 		Reasoner reasoner = universe.reasoner(assumption);
 
 		assertEquals(three, reasoner.simplify(x));
-		assertEquals(trueExpr, reasoner.getReducedContext());
+		assertEquals(trueExpr, reasoner.getReducedCollapsedContext());
 	}
 
 	/**
@@ -110,7 +110,7 @@ public class IdealSimplifyTest {
 		Reasoner reasoner = universe.reasoner(assumption);
 
 		assertEquals(three, reasoner.simplify(x));
-		assertEquals(trueExpr, reasoner.getReducedContext());
+		assertEquals(trueExpr, reasoner.getReducedCollapsedContext());
 	}
 
 	/**
@@ -124,7 +124,7 @@ public class IdealSimplifyTest {
 		Reasoner reasoner = universe.reasoner(assumption);
 
 		assertEquals(universe.integer(2), reasoner.simplify(u));
-		assertEquals(trueExpr, reasoner.getReducedContext());
+		assertEquals(trueExpr, reasoner.getReducedCollapsedContext());
 	}
 
 	/**
@@ -138,7 +138,7 @@ public class IdealSimplifyTest {
 		Reasoner reasoner = universe.reasoner(assumption);
 
 		assertEquals(universe.integer(2), reasoner.simplify(u));
-		assertEquals(trueExpr, reasoner.getReducedContext());
+		assertEquals(trueExpr, reasoner.getReducedCollapsedContext());
 	}
 
 	/**
@@ -152,7 +152,7 @@ public class IdealSimplifyTest {
 		Reasoner reasoner = universe.reasoner(assumption);
 
 		assertEquals(u, reasoner.simplify(u));
-		assertEquals(falseExpr, reasoner.getReducedContext());
+		assertEquals(falseExpr, reasoner.getReducedCollapsedContext());
 	}
 
 	/**
@@ -165,7 +165,7 @@ public class IdealSimplifyTest {
 		Reasoner reasoner = universe.reasoner(assumption);
 
 		assertEquals(x, reasoner.simplify(x));
-		assertEquals(assumption, reasoner.getReducedContext());
+		assertEquals(assumption, reasoner.getReducedCollapsedContext());
 	}
 
 	/**
@@ -188,7 +188,7 @@ public class IdealSimplifyTest {
 		Reasoner reasoner = universe.reasoner(assumption);
 
 		assertEquals(universe.rational(7.0), reasoner.simplify(read));
-		assertEquals(trueExpr, reasoner.getReducedContext());
+		assertEquals(trueExpr, reasoner.getReducedCollapsedContext());
 	}
 
 	/**
@@ -203,7 +203,7 @@ public class IdealSimplifyTest {
 
 		assertEquals(universe.rational(5, 2), reasoner.simplify(x));
 		assertEquals(universe.rational(1, 2), reasoner.simplify(y));
-		assertEquals(trueExpr, reasoner.getReducedContext());
+		assertEquals(trueExpr, reasoner.getReducedCollapsedContext());
 	}
 
 	/**
@@ -225,7 +225,7 @@ public class IdealSimplifyTest {
 
 		assertEquals(universe.rational(5, 2), reasoner.simplify(x3));
 		assertEquals(universe.rational(1, 2), reasoner.simplify(y7));
-		assertEquals(newAssumption, reasoner.getReducedContext());
+		assertEquals(newAssumption, reasoner.getReducedCollapsedContext());
 	}
 
 	/**
@@ -238,7 +238,7 @@ public class IdealSimplifyTest {
 				universe.lessThan(x, universe.rational(1.5)));
 		Reasoner reasoner = universe.reasoner(p1);
 
-		assertEquals(p0, reasoner.getReducedContext());
+		assertEquals(p0, reasoner.getReducedCollapsedContext());
 		assertEquals(x, reasoner.simplify(x));
 	}
 

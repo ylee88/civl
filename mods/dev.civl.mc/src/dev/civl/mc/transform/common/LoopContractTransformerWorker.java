@@ -11,9 +11,12 @@ import dev.civl.abc.ast.node.IF.ASTNode.NodeKind;
 import dev.civl.abc.ast.node.IF.NodeFactory;
 import dev.civl.abc.ast.node.IF.SequenceNode;
 import dev.civl.abc.ast.node.IF.declaration.FunctionDefinitionNode;
+import dev.civl.abc.ast.node.IF.declaration.InitializerNode;
 import dev.civl.abc.ast.node.IF.declaration.VariableDeclarationNode;
 import dev.civl.abc.ast.node.IF.expression.ExpressionNode;
 import dev.civl.abc.ast.node.IF.expression.FunctionCallNode;
+import dev.civl.abc.ast.node.IF.expression.IdentifierExpressionNode;
+import dev.civl.abc.ast.node.IF.expression.OperatorNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode.Operator;
 import dev.civl.abc.ast.node.IF.expression.StringLiteralNode;
 import dev.civl.abc.ast.node.IF.statement.BlockItemNode;
@@ -24,6 +27,7 @@ import dev.civl.abc.ast.node.IF.statement.LoopNode;
 import dev.civl.abc.ast.node.IF.statement.LoopNode.LoopKind;
 import dev.civl.abc.ast.node.IF.statement.StatementNode;
 import dev.civl.abc.ast.node.IF.statement.StatementNode.StatementKind;
+import dev.civl.abc.ast.type.IF.StandardBasicType.BasicTypeKind;
 import dev.civl.abc.front.IF.CivlcTokenConstant;
 import dev.civl.abc.token.IF.CivlcToken;
 import dev.civl.abc.token.IF.CivlcToken.TokenVocabulary;
@@ -31,6 +35,7 @@ import dev.civl.abc.token.IF.Formation;
 import dev.civl.abc.token.IF.Source;
 import dev.civl.abc.token.IF.StringLiteral;
 import dev.civl.abc.token.IF.SyntaxException;
+import dev.civl.mc.config.IF.CIVLConfiguration;
 
 public class LoopContractTransformerWorker extends BaseWorker {
 	/**
@@ -59,7 +64,13 @@ public class LoopContractTransformerWorker extends BaseWorker {
 
 	private final static String MEM_UNARY_WIDENING = "$mem_unary_widening";
 
+	private final static String MEM_ELIM_WIDENING = "$mem_elim_widening";
+
+	private final static String MEM_PROTECTIVE_WIDENING = "$mem_protective_widening";
+
 	private final static String MEM_HAVOC = "$mem_havoc";
+
+	private final CIVLConfiguration config;
 
 	@Deprecated
 	private final static String MEM_HAVOC_SIDECOND = "$mem_havoc_sidecond";
@@ -168,9 +179,11 @@ public class LoopContractTransformerWorker extends BaseWorker {
 	/* ******************* Constructor ********************** */
 
 	public LoopContractTransformerWorker(String transformerName,
-			ASTFactory astFactory) throws SyntaxException {
+			ASTFactory astFactory, CIVLConfiguration config)
+			throws SyntaxException {
 		super(transformerName, astFactory);
 		this.nodeFactory = astFactory.getNodeFactory();
+		this.config = config;
 		Formation feedBackformation = tokenFactory
 				.newTransformFormation(transformerName, "violation report");
 
@@ -275,6 +288,7 @@ public class LoopContractTransformerWorker extends BaseWorker {
 		// transform inner loops
 		transformLoopInFunction(loop.getLoopNode().getBody());
 
+		// duplicateLoop.loopContracts().remove();
 		List<BlockItemNode> LISEComponents = new LinkedList<>();
 		ASTNode loopParent = loop.getLoopNode().parent();
 		int childIdx = loop.getLoopNode().childIndex();
@@ -286,7 +300,6 @@ public class LoopContractTransformerWorker extends BaseWorker {
 		} else {
 			// transforms loop body by inferring [loop-assigns] automatically:
 			String writeSetName = nextLoopTmpIdentifier();
-
 			LISEComponents.add(memTypeVariableDeclaration(writeSetName));
 			LISEComponents
 					.addAll(inductionStepInferringAssigns(loop, writeSetName));
@@ -297,7 +310,6 @@ public class LoopContractTransformerWorker extends BaseWorker {
 		BlockItemNode LISEBlock = nodeFactory.newCompoundStatementNode(source,
 				LISEComponents);
 
-		loop.getLoopNode().remove();
 		loopParent.setChild(childIdx, LISEBlock);
 	}
 
@@ -520,10 +532,8 @@ public class LoopContractTransformerWorker extends BaseWorker {
 
 		inductionBranch = nodeFactory
 				.newCompoundStatementNode(inductionStepSource, inductionStep);
-
 		// build conclusion branch ...
 		List<BlockItemNode> concludeBranchComponents = new LinkedList<>();
-
 		concludeBranchComponents.addAll(getForLoopInitializers(loop));
 		concludeBranchComponents.addAll(createConclusion(loop, null));
 		concludeBranch = nodeFactory.newCompoundStatementNode(
@@ -572,8 +582,6 @@ public class LoopContractTransformerWorker extends BaseWorker {
 			result.add(memTypeVariableDeclaration(tmpWsName));
 			result.addAll(unionLoopAssigns(loop.getLoopAssignSet(), tmpWsName));
 			result.addAll(createMemHavoc(tmpWsName));
-		} else {
-			result.addAll(createMemHavoc(writeSetName));
 		}
 
 		// assuming (loop-inv && !loop-cond && sidecond) holds:
@@ -603,6 +611,10 @@ public class LoopContractTransformerWorker extends BaseWorker {
 	}
 
 	/* *********************** Utility methods ****************************** */
+	private boolean isStandardForLoop(LoopNode loop) {
+		return loop instanceof ForLoopNode && ((ForLoopNode) loop).isStandard();
+	}
+
 	/**
 	 * $mem_havoc(m);
 	 */
@@ -700,31 +712,52 @@ public class LoopContractTransformerWorker extends BaseWorker {
 	 * <code>$mem_unary_widening(memVarName)</code>
 	 */
 	@SuppressWarnings("unused")
-	private BlockItemNode createMemWidening(String memVarName) {
+	private BlockItemNode createMemWidening(String lhs, String operand) {
 		Source source = newSource(MEM_UNARY_WIDENING, CivlcTokenConstant.CALL);
-		return nodeFactory.newExpressionStatementNode(
+		return createAssignment(identifierExpression(lhs),
 				functionCall(source, MEM_UNARY_WIDENING,
-						Arrays.asList(this.identifierExpression(memVarName))));
+						Arrays.asList(this.identifierExpression(operand))));
+	}
+
+	private BlockItemNode createMemProtectiveWidening(String lhs, String mName,
+			String pName) {
+		Source source = newSource(MEM_PROTECTIVE_WIDENING,
+				CivlcTokenConstant.CALL);
+		return createAssignment(identifierExpression(lhs),
+				functionCall(source, MEM_PROTECTIVE_WIDENING,
+						Arrays.asList(identifierExpression(mName),
+								identifierExpression(pName))));
+	}
+
+	private BlockItemNode createMemElimWidening(String lhs, String operand,
+			String varToElim, ExpressionNode lower, ExpressionNode upper) {
+		Source source = newSource(MEM_ELIM_WIDENING, CivlcTokenConstant.CALL);
+		return createAssignment(identifierExpression(lhs),
+				functionCall(source, MEM_ELIM_WIDENING,
+						Arrays.asList(identifierExpression(operand),
+								identifierExpression(varToElim), lower.copy(),
+								upper.copy())));
 	}
 
 	/**
 	 * <code>lhs = $mem_unary_widening($mem_union(operand1, operand2))</code>
 	 */
+	@SuppressWarnings("unused")
 	private BlockItemNode createMemUnionWidening(String lhs, String operand1,
 			String operand2) {
+		Source wideningsource = newSource(MEM_UNARY_WIDENING,
+				CivlcTokenConstant.CALL);
 		Source unionSource = newSource(MEM_UNION, CivlcTokenConstant.CALL);
 		ExpressionNode unionNode = functionCall(unionSource, MEM_UNION,
 				Arrays.asList(identifierExpression(operand1),
 						identifierExpression(operand2)));
-		Source wideningsource = newSource(MEM_UNARY_WIDENING,
-				CivlcTokenConstant.CALL);
 		ExpressionNode wideningNode = functionCall(wideningsource,
 				MEM_UNARY_WIDENING, Arrays.asList(unionNode));
 
 		return createAssignment(identifierExpression(lhs), wideningNode);
 	}
 
-	@SuppressWarnings("unused")
+	// @SuppressWarnings("unused")
 	private BlockItemNode createMemUnionWidening2(String lhs, String operand1,
 			String operand2) {
 		Source unionSource = newSource(MEM_UNION_WIDENING,
@@ -854,6 +887,18 @@ public class LoopContractTransformerWorker extends BaseWorker {
 				nodeFactory.newFunctionCallNode(writeSetPop,
 						identifierExpression(WRITE_SET_POP), Arrays.asList(),
 						null));
+	}
+
+	// lhs = $mem_union(operand, $write_set_pop());
+	private BlockItemNode createWriteSetUnionPop(String lhs, String operand) {
+		Source writeSetPop = newSource(WRITE_SET_POP, CivlcTokenConstant.CALL);
+		Source unionSource = newSource(MEM_UNION, CivlcTokenConstant.CALL);
+		ExpressionNode unionNode = functionCall(unionSource, MEM_UNION,
+				Arrays.asList(identifierExpression(operand),
+						nodeFactory.newFunctionCallNode(writeSetPop,
+								identifierExpression(WRITE_SET_POP),
+								Arrays.asList(), null)));
+		return createAssignment(identifierExpression(lhs), unionNode);
 	}
 
 	/**

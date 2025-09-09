@@ -3,23 +3,29 @@
  */
 package dev.civl.sarl.ideal.simplify;
 
-import static dev.civl.sarl.ideal.simplify.CommonObjects.assumption;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.claim1;
-import static dev.civl.sarl.ideal.simplify.CommonObjects.idealSimp2;
-import static dev.civl.sarl.ideal.simplify.CommonObjects.idealSimplifier;
-import static dev.civl.sarl.ideal.simplify.CommonObjects.idealSimplifierFactory;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.standardStrategy;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.testContext2;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.testContext;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.preUniv;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.rat5;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.x;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.xeq5;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.newContext;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
+
+import java.util.Arrays;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import dev.civl.sarl.IF.expr.BooleanExpression;
+import dev.civl.sarl.IF.expr.SymbolicExpression;
+import dev.civl.sarl.prove.IF.Prove;
 
 /**
  * Testing on IdealSimplifier on the basis of boolean and BooleanExpressions for
@@ -67,11 +73,11 @@ public class SimpBoolTest {
 	 */
 	@Test
 	public void boolExprTest() {
-		assumption = xeq5;
-		idealSimplifier = idealSimplifierFactory.newSimplifier(assumption,
-				useBackwardSubstitution);
-		assertEquals(rat5.type(), idealSimplifier.apply(x).type());
-		assertEquals(rat5, idealSimplifier.apply(x));
+		testContext = newContext(xeq5);
+		assertEquals(rat5.type(),
+				((SymbolicExpression) testContext.simplify(x, standardStrategy))
+						.type());
+		assertEquals(rat5, testContext.simplify(x, standardStrategy));
 	}
 
 	/**
@@ -80,30 +86,22 @@ public class SimpBoolTest {
 	 */
 	@Test
 	public void boolValTest() {
-		/*
-		 * //p = preUniv.trueExpression(); out.println(pThanQ);
-		 * out.println(preUniv.implies(p, preUniv.not(q))); //assumption =
-		 * preUniv.equals(p, preUniv.trueExpression()); assumption =
-		 * preUniv.implies(p, preUniv.not(q));
-		 * out.println(assumption.toStringBufferLong()); idealSimplifier =
-		 * idealSimplifierFactory.newSimplifier(assumption);
-		 * out.println(idealSimplifier.apply(pThanQ));
-		 */
+		BooleanExpression assumption = preUniv.not(xeq5);
 
-		assumption = preUniv.not(xeq5);
-
-		idealSimplifier = idealSimplifierFactory.newSimplifier(assumption,
-				useBackwardSubstitution);
+		testContext = newContext(assumption);
 
 		claim1 = xeq5;
 
-		idealSimp2 = idealSimplifierFactory.newSimplifier(claim1,
-				useBackwardSubstitution);
+		testContext2 = newContext(claim1);
 
 		// check that type-matching is in place
-		assertEquals(idealSimplifier.apply(x).type(),
-				idealSimp2.apply(x).type());
-		assertNotEquals(idealSimplifier.apply(x), idealSimp2.apply(x));
+		assertEquals(
+				((SymbolicExpression) testContext.simplify(x, standardStrategy))
+						.type(),
+				((SymbolicExpression) testContext2.simplify(x,
+						standardStrategy)).type());
+		assertNotEquals(testContext.simplify(x, standardStrategy),
+				testContext2.simplify(x, standardStrategy));
 		assertEquals(claim1, preUniv.not(assumption));
 		assertEquals(assumption, preUniv.not(claim1));
 		// out.println(claim1);
@@ -119,20 +117,9 @@ public class SimpBoolTest {
 	 */
 	@Test
 	public void assumptionCounterValueTest() {
-		// p = preUniv.falseExpression();
-		// q = preUniv.trueExpression();
-
-		// out.println(pThanQ);
-		assumption = preUniv.equals(xeq5, preUniv.falseExpression());
-		idealSimplifier = idealSimplifierFactory.newSimplifier(assumption,
-				useBackwardSubstitution);
-		// out.println(idealSimplifier.apply(x));
-		assertNull(idealSimplifier.assumptionAsInterval(x));
-		// assumption = preUniv.and(preUniv.equals(p, preUniv.trueExpression()),
-		// pThanQ);
-		// out.println(assumption);
-		// idealSimplifier = idealSimplifierFactory.newSimplifier(assumption);
-		// out.println("here: " + idealSimplifier.apply(pThanQ));
+		testContext = newContext(
+				preUniv.equals(xeq5, preUniv.falseExpression()));
+		assertNull(testContext.assumptionAsInterval(x));
 	}
 
 }

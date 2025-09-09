@@ -125,6 +125,11 @@ public abstract class CommonSymbolicType extends CommonSymbolicObject
 	public StringBuffer toStringBufferLong() {
 		return toStringBuffer(false);
 	}
+	
+	@Override
+	public boolean containsSubobjectIgnoringType(SymbolicObject obj) {
+		return false;
+	}
 
 	/**
 	 * Returns the cached "pure" version of this type, i.e. the type obtained by

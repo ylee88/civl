@@ -3,7 +3,7 @@ package dev.civl.abc.front.common.astgen;
 import java.util.List;
 
 import org.antlr.runtime.tree.CommonTree;
-import org.antlr.runtime.tree.ParseTree;
+
 import dev.civl.abc.ast.node.IF.SequenceNode;
 import dev.civl.abc.ast.node.IF.expression.ExpressionNode;
 import dev.civl.abc.ast.node.IF.statement.BlockItemNode;

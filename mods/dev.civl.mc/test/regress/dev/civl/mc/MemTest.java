@@ -175,7 +175,54 @@ public class MemTest {
 	public void memUnion2Bad() throws ABCException {
 		assertFalse(ui.run(VERIFY, QUIET, filename("mem_union2-bad.cvl")));
 	}
+	
+	/* ************* Test for Diff ****************/
+	
+	@Test
+	public void memDiff() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, filename("mem_diff.cvl")));
+	}
+	
+	@Test
+	public void memDiff2() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, filename("mem_diff2.cvl")));
+	}
+	
+	@Test
+	public void memDiff3() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, filename("mem_diff3.cvl")));
+	}
+	
+	@Test
+	public void memDiff4() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, filename("mem_diff4.cvl")));
+	}
 
+	@Test
+	public void memDiff5() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, filename("mem_diff5.cvl")));
+	}
+	
+	@Test
+	public void memDiff6() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, filename("mem_diff2.cvl")));
+	}
+	
+	@Test
+	public void memDiff7() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, filename("mem_diff2.cvl")));
+	}
+	
+	@Test
+	public void memDiffBad() throws ABCException {
+		assertFalse(ui.run(VERIFY, QUIET, filename("mem_diff-bad.cvl")));
+	}
+	
+	@Test
+	public void memDiffBad2() throws ABCException {
+		assertFalse(ui.run(VERIFY, QUIET, filename("mem_diff-bad2.cvl")));
+	}
+	
 	/* ************* Test for Union Widening ****************/
 	@Test
 	public void memUnionWideningArr() throws ABCException {

@@ -68,4 +68,14 @@ public interface SequenceNode<T extends ASTNode> extends ASTNode, Iterable<T> {
 	 */
 	void insertChildren(int index, List<T> list);
 
+	/**
+	 * Removes the child at the index from the list completely, shifting all
+	 * children in front of it back by one. Returns the child that was pulled
+	 * from the list.
+	 * 
+	 * @param index
+	 * 	          an integer in [0,numChildren)
+	 * @return The child that was removed from the list.
+	 */
+	T shiftRemoveChild(int index);
 }

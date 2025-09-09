@@ -17,13 +17,8 @@ import dev.civl.sarl.ideal.IF.Monomial;
 import dev.civl.sarl.ideal.IF.Primitive;
 import dev.civl.sarl.ideal.IF.PrimitivePower;
 import dev.civl.sarl.ideal.IF.RationalExpression;
-import dev.civl.sarl.simplify.simplifier.IdealSimplifierWorker;
 
 public class RationalPowerSimplification extends Simplification {
-
-	public RationalPowerSimplification(IdealSimplifierWorker worker) {
-		super(worker);
-	}
 
 	/**
 	 * Build up entries in power map from the monic factors of a {@link Monic}.
@@ -56,11 +51,11 @@ public class RationalPowerSimplification extends Simplification {
 	private boolean simplifyPowers(Map<Monomial, RationalExpression> powerMap1,
 			Map<Constant, RationalExpression> powerMap2, boolean positive,
 			Monic monic) {
-		IdealFactory idf = idealFactory();
+		IdealFactory idf = util().getIdealFactory();
 		PrimitivePower[] factors = monic.monicFactors(idf);
 		boolean isInteger = monic.type().isInteger();
 		boolean change = false;
-		NumberFactory nf = numberFactory();
+		NumberFactory nf = util().getNumberFactory();
 
 		for (PrimitivePower pp : factors) {
 			Primitive primitive = pp.primitive(idf);
@@ -131,7 +126,7 @@ public class RationalPowerSimplification extends Simplification {
 	 */
 	private RationalExpression simplifyPowersRational(
 			RationalExpression rational) {
-		IdealFactory idf = idealFactory();
+		IdealFactory idf = util().getIdealFactory();
 		Monomial numerator = rational.numerator(idf),
 				denominator = rational.denominator(idf);
 		Monic m1 = numerator.monic(idf), m2 = denominator.monic(idf);
@@ -162,15 +157,10 @@ public class RationalPowerSimplification extends Simplification {
 	}
 
 	@Override
-	public SymbolicExpression apply(SymbolicExpression x) {
+	protected SymbolicExpression apply(SymbolicExpression x) {
 		if (x instanceof RationalExpression)
 			return simplifyPowersRational((RationalExpression) x);
 		return x;
-	}
-
-	@Override
-	public SimplificationKind kind() {
-		return SimplificationKind.RATIONAL;
 	}
 
 }

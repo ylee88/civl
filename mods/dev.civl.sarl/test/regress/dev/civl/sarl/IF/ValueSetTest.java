@@ -375,12 +375,12 @@ public class ValueSetTest {
 		ref3 = universe.vsArraySectionReference(
 				universe.vsArraySectionReference(ref3, zero, six), zero, six);
 		ref4 = universe.vsArraySectionReference(
-				universe.vsArraySectionReference(ref4, two, six), zero, six);
+				universe.vsArraySectionReference(ref4, two, six), zero, four);
 		vst = universe.valueSetTemplate(type,
 				new ValueSetReference[] { ref0, ref1 });
 		vst1 = universe.valueSetTemplate(type,
 				new ValueSetReference[] { ref4 });
-		vst = universe.valueSetWidening(vst);
+		vst = universe.valueSetWidening(universe.trueExpression(), vst);
 		vst.equals(vst1);
 		assertTrue(vst == vst1);
 		vst = universe.valueSetTemplate(type,
@@ -388,7 +388,7 @@ public class ValueSetTest {
 		vst1 = universe.valueSetTemplate(type,
 				new ValueSetReference[] { ref3 });
 		assertTrue(vst != vst1);
-		assertTrue(universe.valueSetWidening(vst) == vst1);
+		assertTrue(universe.valueSetWidening(universe.trueExpression(), vst) == vst1);
 	}
 
 	@Test
@@ -416,7 +416,7 @@ public class ValueSetTest {
 		vst1 = universe.valueSetTemplate(type,
 				new ValueSetReference[] { ref2 });
 		assertTrue(vst != vst1);
-		vst = universe.valueSetWidening(vst);
+		vst = universe.valueSetWidening(universe.trueExpression(), vst);
 		assertTrue(vst == vst1);
 	}
 
@@ -445,7 +445,7 @@ public class ValueSetTest {
 		vst1 = universe.valueSetTemplate(type,
 				new ValueSetReference[] { ref2 });
 		assertTrue(vst != vst1);
-		vst1 = universe.valueSetWidening(vst);
+		vst1 = universe.valueSetWidening(universe.trueExpression(), vst);
 		assertTrue(vst == vst1);
 	}
 

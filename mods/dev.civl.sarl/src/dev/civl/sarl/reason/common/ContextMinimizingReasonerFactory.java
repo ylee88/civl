@@ -1,17 +1,18 @@
 package dev.civl.sarl.reason.common;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import dev.civl.sarl.IF.Reasoner;
 import dev.civl.sarl.IF.expr.BooleanExpression;
+import dev.civl.sarl.ideal.IF.IdealFactory;
 import dev.civl.sarl.preuniverse.IF.PreUniverse;
 import dev.civl.sarl.prove.IF.ProverFunctionInterpretation;
 import dev.civl.sarl.prove.IF.TheoremProver;
 import dev.civl.sarl.prove.IF.TheoremProverFactory;
 import dev.civl.sarl.reason.IF.ReasonerFactory;
-import dev.civl.sarl.simplify.IF.Simplifier;
-import dev.civl.sarl.simplify.IF.SimplifierFactory;
 
 /**
  * A factory for producing instances of {@link ContextMinimizingReasoner}.
@@ -27,15 +28,11 @@ public class ContextMinimizingReasonerFactory implements ReasonerFactory {
 	private TheoremProverFactory proverFactory;
 
 	/**
-	 * Factory used to produce new {@link Simplifier}s, which will be used by
-	 * the reasoners to simplify expressions.
-	 */
-	private SimplifierFactory simplifierFactory;
-
-	/**
 	 * Symbolic universe used to produce new symbolic expressions.
 	 */
 	private PreUniverse universe;
+
+	private IdealFactory idealFactory;
 
 	/**
 	 * Caches the {@link Reasoner}s associated to each boolean expression. In
@@ -61,11 +58,10 @@ public class ContextMinimizingReasonerFactory implements ReasonerFactory {
 	 *            the reasoners to simplify expressions
 	 */
 	public ContextMinimizingReasonerFactory(PreUniverse universe,
-			TheoremProverFactory proverFactory,
-			SimplifierFactory simplifierFactory) {
+			IdealFactory idealFactory, TheoremProverFactory proverFactory) {
 		this.universe = universe;
+		this.idealFactory = idealFactory;
 		this.proverFactory = proverFactory;
-		this.simplifierFactory = simplifierFactory;
 		this.universe = universe;
 	}
 
@@ -73,40 +69,31 @@ public class ContextMinimizingReasonerFactory implements ReasonerFactory {
 	public ContextMinimizingReasoner getReasoner(BooleanExpression context,
 			boolean useBackwardSubstitution,
 			ProverFunctionInterpretation logicFunctions[]) {
-		assert context.isCanonic();
-		ReasonerCacheKey key = new ReasonerCacheKey(context, logicFunctions);
+		List<BooleanExpression> contextStack = new ArrayList<>(1);
+		contextStack.add(context);
+		return getReasoner(contextStack, useBackwardSubstitution,
+				logicFunctions);
+	}
+
+	@Override
+	public ContextMinimizingReasoner getReasoner(
+			List<BooleanExpression> contextStack,
+			boolean useBackwardSubstitution,
+			ProverFunctionInterpretation logicFunctions[]) {
+		for (BooleanExpression subContext : contextStack)
+			assert subContext.isCanonic();
+		ReasonerCacheKey key = new ReasonerCacheKey(contextStack,
+				logicFunctions);
 		ContextMinimizingReasoner result = reasonerMap.get(key);
 
 		if (result == null) {
 			ContextMinimizingReasoner newContextMinimizingReasoner = new ContextMinimizingReasoner(
-					this, context, useBackwardSubstitution, logicFunctions);
+					universe, idealFactory, proverFactory, this, contextStack,
+					useBackwardSubstitution, logicFunctions);
 
 			result = reasonerMap.putIfAbsent(key, newContextMinimizingReasoner);
 			return result == null ? newContextMinimizingReasoner : result;
 		}
 		return result;
-	}
-
-	/**
-	 * Returns the symbolic universe associated to this factory.
-	 * 
-	 * @return the symbolic universe associated to this factory
-	 */
-	PreUniverse getUniverse() {
-		return universe;
-	}
-
-	/**
-	 * Returns the simplifier factory associated to this factory.
-	 * 
-	 * @return the simplifier factory associated to this factory
-	 */
-	SimplifierFactory getSimplifierFactory() {
-		return simplifierFactory;
-	}
-
-	@Override
-	public TheoremProverFactory getTheoremProverFactory() {
-		return proverFactory;
 	}
 }

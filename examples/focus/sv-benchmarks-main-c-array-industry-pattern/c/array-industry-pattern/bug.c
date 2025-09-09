@@ -1,4 +1,7 @@
-/* Verifiable with mods:
+/* This file is the version of array_of_struct_ptr_cond_init.c which does
+ * not make the change from S *a[N] to S a[N] (and hence contains the bug).
+ * 
+ * Verifiable with mods:
  * Changed S *a[N] to S a[N] because of CIVL bug: Pointer symbolic info not simplified before dereference. Trying to fix this leads to deeper CIVL bug.
  */
 typedef unsigned int size_t;
@@ -31,7 +34,7 @@ int main()
 {
 	int i;
 
-  //@ transform flatten I;
+  //@ focus I;
   for(i = 0; i < N; i++)
 	{
 		S *s1 =  (S *)malloc(sizeof(S));
@@ -50,7 +53,7 @@ int main()
 	}
 
   // Modified
-  //@ transform flatten I;
+  //@ focus I;
   $assert($forall(int i:0..N-1) (a[i]->n == 1) == (a[i]->p != (void *)0));
   // Original
   /*
@@ -66,7 +69,7 @@ int main()
   */
 
   /*
-  //@ transform flatten I;
+  //@ focus I;
   for(i = 0; i < N; i++)
   {
     if (a[i]->n == 1) {

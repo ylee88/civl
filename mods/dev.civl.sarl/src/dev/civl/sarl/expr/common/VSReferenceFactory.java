@@ -1,12 +1,17 @@
 package dev.civl.sarl.expr.common;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Set;
+import java.util.stream.Stream;
 
+import dev.civl.sarl.IF.Reasoner;
 import dev.civl.sarl.IF.SARLException;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.NumericExpression;
@@ -14,6 +19,8 @@ import dev.civl.sarl.IF.expr.NumericSymbolicConstant;
 import dev.civl.sarl.IF.expr.SymbolicConstant;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
+import dev.civl.sarl.IF.expr.SymbolicRange;
+import dev.civl.sarl.IF.expr.SymbolicRange.RangeKind;
 import dev.civl.sarl.IF.expr.valueSetReference.NTValueSetReference;
 import dev.civl.sarl.IF.expr.valueSetReference.VSArrayElementReference;
 import dev.civl.sarl.IF.expr.valueSetReference.VSArraySectionReference;
@@ -35,17 +42,20 @@ import dev.civl.sarl.IF.type.SymbolicTupleType;
 import dev.civl.sarl.IF.type.SymbolicType;
 import dev.civl.sarl.IF.type.SymbolicTypeSequence;
 import dev.civl.sarl.IF.type.SymbolicUnionType;
+import dev.civl.sarl.IF.type.SymbolicType.SymbolicTypeKind;
 import dev.civl.sarl.expr.IF.BooleanExpressionFactory;
 import dev.civl.sarl.expr.IF.NumericExpressionFactory;
+import dev.civl.sarl.expr.IF.SymbolicRangeFactory;
 import dev.civl.sarl.expr.common.valueSetReference.CommonVSArrayElementReference;
 import dev.civl.sarl.expr.common.valueSetReference.CommonVSArraySectionReference;
 import dev.civl.sarl.expr.common.valueSetReference.CommonVSIdentityReference;
 import dev.civl.sarl.expr.common.valueSetReference.CommonVSOffsetReference;
 import dev.civl.sarl.expr.common.valueSetReference.CommonVSTupleComponentReference;
 import dev.civl.sarl.expr.common.valueSetReference.CommonVSUnionMemberReference;
-import dev.civl.sarl.ideal.common.NTConstant;
+import dev.civl.sarl.ideal.IF.Constant;
 import dev.civl.sarl.object.IF.ObjectFactory;
 import dev.civl.sarl.object.common.SimpleSequence;
+import dev.civl.sarl.prove.IF.Prove;
 import dev.civl.sarl.type.IF.SymbolicTypeFactory;
 import dev.civl.sarl.util.Pair;
 
@@ -62,13 +72,15 @@ import dev.civl.sarl.util.Pair;
 public class VSReferenceFactory {
 
 	/*
-	 * References to factorys:
+	 * References to factories:
 	 */
 	private ObjectFactory objectFactory;
 
 	private SymbolicTypeFactory typeFactory;
 
 	private NumericExpressionFactory numericFactory;
+
+	private SymbolicRangeFactory rangeFactory;
 
 	/**
 	 * The symbolic type of {@link ValueSetReference} expressions
@@ -98,6 +110,7 @@ public class VSReferenceFactory {
 		this.numericFactory = numericFactory;
 		this.objectFactory = numericFactory.objectFactory();
 		this.typeFactory = numericFactory.typeFactory();
+		this.rangeFactory = new CommonSymbolicRangeFactory(numericFactory);
 
 		SymbolicType integerType = typeFactory.integerType();
 		SymbolicTypeSequence refIdxSeq, refRangeSeq;
@@ -143,10 +156,6 @@ public class VSReferenceFactory {
 	/**
 	 * The general interface for creating {@link ValueSetReference}s
 	 * 
-	 * @TODO Should this really be public? Nobody calling from outside class
-	 *       could pass in the correct arg0 since it requires one of the private
-	 *       reference functions
-	 * 
 	 * @param operator
 	 *            The {@link SymbolicOperator} of the {@link ValueSetReference}
 	 *            instance
@@ -177,7 +186,7 @@ public class VSReferenceFactory {
 				@SuppressWarnings("unchecked")
 				SimpleSequence<? extends SymbolicObject> seq = (SimpleSequence<? extends SymbolicObject>) args[1];
 				IntObject idx = objectFactory.intObject(
-						((IntegerNumber) ((NTConstant) seq.get(1)).number())
+						((IntegerNumber) ((Constant) seq.get(1)).number())
 								.intValue());
 
 				return vsTupleComponentReference((ValueSetReference) seq.get(0),
@@ -186,7 +195,7 @@ public class VSReferenceFactory {
 				@SuppressWarnings("unchecked")
 				SimpleSequence<? extends SymbolicObject> seq = (SimpleSequence<? extends SymbolicObject>) args[1];
 				IntObject idx = objectFactory.intObject(
-						((IntegerNumber) ((NTConstant) seq.get(1)).number())
+						((IntegerNumber) ((Constant) seq.get(1)).number())
 								.intValue());
 
 				return vsUnionMemberReference((ValueSetReference) seq.get(0),
@@ -289,12 +298,19 @@ public class VSReferenceFactory {
 	ValueSetReference[] normalize(SymbolicType valueType,
 			ValueSetReference[] vsRefs) {
 		vsRefs = toMaxDepth(deleteSubReferences(vsRefs), valueType);
+		Arrays.sort(vsRefs, objectFactory.comparator());
+		return vsRefs;
+	}
+
+	ValueSetReference[] simplify(Reasoner reasoner, SymbolicType valueType,
+			ValueSetReference[] vsRefs) {
+		vsRefs = normalize(valueType, vsRefs);
 
 		ValueSetReference[][] groups = grouping(vsRefs);
 		int finalNumRefs = 0;
 
 		for (int i = 0; i < groups.length; i++) {
-			groups[i] = normalizeGroup(groups[i]);
+			groups[i] = simplifyGroup(reasoner, groups[i]);
 			finalNumRefs += groups[i].length;
 		}
 
@@ -344,20 +360,11 @@ public class VSReferenceFactory {
 			if (candidates.length == 0)
 				return boolFactory.falseExpr();
 
-			NumericExpression[][][] superDomain = getDomain(candidates);
-			NumericExpression[][][] subDomain = getDomain(
-					new ValueSetReference[] { subRef });
-			NumericExpression[][] transformedSubDom = new NumericExpression[subDomain.length][];
-			BooleanExpression contains;
-
-			// transform subDomain : [numLevels][1][3] -> [numLevels][3] in
-			// order
-			// to call "contains"
-			for (int i = 0; i < subDomain.length; i++) {
-				assert subDomain[i].length == 1 : "single value set reference encodes up to one range";
-				transformedSubDom[i] = subDomain[i][0];
-			}
-			contains = contains(superDomain, transformedSubDom);
+			List<List<VSRefComp>> superDomain = getDomain(
+					Arrays.asList(candidates));
+			List<VSRefComp> subDomain = getDomain(subRef,
+					superDomain.get(0).size());
+			BooleanExpression contains = contains(superDomain, subDomain);
 			result = boolFactory.and(contains, result);
 		}
 		return result;
@@ -396,33 +403,68 @@ public class VSReferenceFactory {
 		for (ValueSetReference v0 : vsrsOfMaxDepth[0])
 			for (ValueSetReference v1 : vsrsOfMaxDepth[1])
 				if (sameConcreteStructure(v0, v1, false)) {
-					NumericExpression[][][] dom0 = getDomain(
-							new ValueSetReference[] { v0 });
-					NumericExpression[][][] dom1 = getDomain(
-							new ValueSetReference[] { v1 });
-					NumericExpression[][] transformedDom0 = new NumericExpression[dom0.length][];
-					NumericExpression[][] transformedDom1 = new NumericExpression[dom1.length][];
+					List<List<VSRefComp>> doms = getDomain(
+							Arrays.asList(v0, v1));
+					List<VSRefComp> dom0 = doms.get(0);
+					List<VSRefComp> dom1 = doms.get(1);
 
-					assert dom0.length == dom1.length;
-					if (dom0.length == 0) // same object
+					assert dom0.size() == dom1.size();
+					if (dom0.size() == 0) // same object
 						return numericFactory.booleanFactory().falseExpr();
-					/*
-					 * the second dimensions must have size 1. Transform the
-					 * array in order to call "noIntersect"
-					 */
-					for (int i = 0; i < dom0.length; i++) {
-						assert dom0[i].length == 1;
-						assert dom1[i].length == 1;
-						transformedDom0[i] = dom0[i][0];
-						transformedDom1[i] = dom1[i][0];
-					}
 
-					BooleanExpression cond = noIntersect(transformedDom0,
-							transformedDom1);
-
+					BooleanExpression cond = disjoint(dom0, dom1);
 					result = numericFactory.booleanFactory().and(result, cond);
 				}
 		return result;
+	}
+	
+	ValueSetReference[] valueSetDiff(SymbolicType valueType,
+			ValueSetReference[] refs0, ValueSetReference[] refs1) {
+		ValueSetReference[][] vsrsOfMaxDepth = toMaxDepth(valueType, refs0, refs1);
+		assert vsrsOfMaxDepth.length == 2;
+		List<ValueSetReference> workList = new LinkedList<ValueSetReference>(
+				Arrays.asList(vsrsOfMaxDepth[0])),
+				processedList = new LinkedList<>();
+		
+		for (ValueSetReference v1 : vsrsOfMaxDepth[1]) {
+			List<VSRefComp> dom1 = getDomain(Arrays.asList(v1)).get(0);
+			for (ValueSetReference v0 : workList) {
+				if (sameConcreteStructure(v0, v1, false)) {
+					List<VSRefComp> dom0 = getDomain(Arrays.asList(v0)).get(0);
+					int domSize = dom0.size();
+					ArrayList<SymbolicRange> origRanges = new ArrayList<>(
+							domSize),
+							lowerRanges = new ArrayList<>(domSize),
+							upperRanges = new ArrayList<>(domSize);
+
+					Iterator<VSRefComp> dom1Iter = dom1.iterator();
+					for (VSRefComp comp0 : dom0) {
+						VSRefComp comp1 = dom1Iter.next();
+						origRanges.add(comp0.range);
+						
+						SymbolicRange[] compDiff = rangeFactory
+								.diff(comp0.range, comp1.range);
+						lowerRanges.add(compDiff[0]);
+						upperRanges.add(compDiff[1]);
+					}
+					for (int i = 0; i < domSize; i++) {
+						SymbolicRange rangeTmp = origRanges.get(i);
+						origRanges.set(i, lowerRanges.get(i));
+						processedList
+								.add(replaceArraySections(origRanges, v0));
+						origRanges.set(i, upperRanges.get(i));
+						processedList
+								.add(replaceArraySections(origRanges, v0));
+						origRanges.set(i, rangeTmp);
+					}
+				} else {
+					processedList.add(v0);
+				}
+			}
+			workList = processedList;
+			processedList = new LinkedList<>();
+		}
+		return workList.toArray(new ValueSetReference[0]);
 	}
 
 	/**
@@ -452,9 +494,9 @@ public class VSReferenceFactory {
 	 *            a set of {@link ValueSetReference}s
 	 * @return a java-array of value set references after the widening operation
 	 */
-	ValueSetReference[] valueSetWidening(SymbolicType valueType,
-			ValueSetReference[] refs) {
-		refs = toMaxDepth(refs, valueType);
+	ValueSetReference[] valueSetWidening(Reasoner reasoner,
+			SymbolicType valueType, ValueSetReference[] refs) {
+		refs = simplify(reasoner, valueType, refs);
 		ValueSetReference[][] groups = grouping(refs);
 		List<ValueSetReference> result = new LinkedList<>();
 
@@ -470,7 +512,185 @@ public class VSReferenceFactory {
 		return ret;
 	}
 
+	ValueSetReference[] valueSetProtectiveWidening(Reasoner reasoner,
+			SymbolicType valueType, ValueSetReference[] mRefs,
+			ValueSetReference[] pRefs) {
+		mRefs = simplify(reasoner, valueType, mRefs);
+		pRefs = normalize(valueType, pRefs);
+
+		ArrayList<ValueSetReference[]> mGroups = new ArrayList<>(mRefs.length);
+		ArrayList<ValueSetReference[]> pGroups = new ArrayList<>(mRefs.length);
+
+		for (int remaining = mRefs.length; remaining != 0; remaining = mRefs.length) {
+			ValueSetReference modelRef = mRefs[0];
+			Pair<ValueSetReference[], ValueSetReference[]> sames_remains = getSameConcreteStructureAs(
+					mRefs, modelRef, false);
+			mRefs = sames_remains.right;
+			mGroups.add(sames_remains.left);
+
+			sames_remains = getSameConcreteStructureAs(pRefs, modelRef, false);
+			pRefs = sames_remains.right;
+			pGroups.add(sames_remains.left);
+		}
+		List<ValueSetReference> result = new LinkedList<>();
+
+		for (int i = 0; i < mGroups.size(); ++i) {
+			result.addAll(protectiveWidening(reasoner, valueType,
+					mGroups.get(i), pGroups.get(i)).mWidened);
+		}
+
+		ValueSetReference[] ret = new ValueSetReference[result.size()];
+
+		result.toArray(ret);
+		return ret;
+	}
+
+	ValueSetReference[] valueSetElimWidening(Reasoner reasoner,
+			SymbolicType valueType, ValueSetReference[] refs,
+			SymbolicExpression elimExpr, NumericExpression lower,
+			NumericExpression upper) {
+		refs = simplify(reasoner, valueType, refs);
+		if (elimExpr.operator() == SymbolicOperator.SYMBOLIC_CONSTANT) {
+			List<ValueSetReference> result = new LinkedList<>();
+
+			for (ValueSetReference ref : refs)
+				result.add(elimWidening(reasoner, valueType, ref,
+						(SymbolicConstant) elimExpr, lower, upper));
+
+			ValueSetReference[] ret = new ValueSetReference[result.size()];
+
+			result.toArray(ret);
+			return ret;
+		}
+		return refs;
+	}
+
 	/* ************************ private methods **************************/
+	private class VSRefComp {
+		private VSReferenceKind refKind;
+		private SymbolicRange range;
+		private SymbolicType parentType;
+
+		private VSRefComp(SymbolicType parentType, VSReferenceKind refKind,
+				SymbolicRange range) {
+			this.range = range;
+			this.refKind = refKind;
+			this.parentType = parentType;
+		}
+
+		public boolean equals(Object other) {
+			if (other == null)
+				return false;
+			if (this.getClass() != other.getClass())
+				return false;
+			VSRefComp castOther = (VSRefComp) other;
+			return refKind.equals(castOther.refKind)
+					&& range.equals(castOther.range);
+		}
+
+		public VSReferenceKind refKind() {
+			return refKind;
+		}
+
+		public SymbolicRange range() {
+			return range;
+		}
+
+		public SymbolicType parentType() {
+			return parentType;
+		}
+		
+		public String toString() {
+			return refKind.toString()+"("+parentType+", "+range+")";
+		}
+	}
+
+	private boolean domainKind(VSReferenceKind k) {
+		switch (k) {
+		case ARRAY_ELEMENT:
+		case ARRAY_SECTION:
+		case OFFSET:
+			return true;
+		default:
+			return false;
+		}
+	}
+
+	private VSRefComp vsRefComp(SymbolicType type, VSReferenceKind kind,
+			SymbolicRange range) {
+		assert kind == VSReferenceKind.ARRAY_SECTION || range
+				.getRangeKind() == RangeKind.SINGLETON : "Only array sections"
+						+ " are allowed non-singleton ranges.";
+		return new VSRefComp(type, kind, range);
+	}
+
+	private VSRefComp vsRefComp(VSReferenceKind kind, SymbolicRange range) {
+		return vsRefComp(null, kind, range);
+	}
+
+	private VSRefComp vsRefComp(SymbolicType type, ValueSetReference vsr) {
+		VSReferenceKind kind = vsr.valueSetReferenceKind();
+
+		switch (kind) {
+		case ARRAY_ELEMENT:
+			return vsRefComp(type, kind, rangeFactory
+					.symbolicRange(((VSArrayElementReference) vsr).getIndex()));
+		case ARRAY_SECTION:
+			VSArraySectionReference sectionRef = (VSArraySectionReference) vsr;
+
+			return vsRefComp(type, kind,
+					rangeFactory.symbolicRange(sectionRef.lowerBound(),
+							sectionRef.upperBound(), sectionRef.step()));
+		case OFFSET:
+			return vsRefComp(type, kind, rangeFactory
+					.symbolicRange(((VSOffsetReference) vsr).getOffset()));
+		case TUPLE_COMPONENT:
+			return vsRefComp(type, kind,
+					rangeFactory.symbolicRange(numericFactory
+							.number(((VSTupleComponentReference) vsr).getIndex()
+									.getInt())));
+		case UNION_MEMBER:
+			return vsRefComp(type, kind,
+					rangeFactory.symbolicRange(
+							numericFactory.number(((VSUnionMemberReference) vsr)
+									.getIndex().getInt())));
+		case IDENTITY:
+			break;
+		}
+		return null;
+	}
+
+	private VSRefComp vsRefComp(ValueSetReference vsr) {
+		return vsRefComp(null, vsr);
+	}
+
+	private ValueSetReference valueSetReference(ValueSetReference parent,
+			VSRefComp child) {
+		SymbolicRange range = child.range();
+		switch (child.refKind()) {
+		case ARRAY_ELEMENT:
+		case ARRAY_SECTION:
+			if (range.getRangeKind() == RangeKind.SINGLETON)
+				return vsArrayElementReference(parent, range.getLower());
+			else
+				return vsArraySectionReference(parent, range.getLower(),
+						range.getUpper(), range.getStep());
+		case OFFSET:
+			return vsOffsetReference(parent, range.getLower());
+		case TUPLE_COMPONENT:
+			return vsTupleComponentReference(parent,
+					objectFactory.intObject(((IntegerNumber) numericFactory
+							.extractNumber(range.getLower())).intValue()));
+		case UNION_MEMBER:
+			return vsUnionMemberReference(parent,
+					objectFactory.intObject(((IntegerNumber) numericFactory
+							.extractNumber(range.getLower())).intValue()));
+		case IDENTITY:
+			break;
+		}
+		return vsIdentityReference();
+	}
+
 	private SymbolicConstant symbolicConstant(StringObject name,
 			SymbolicType type) {
 		if (type.isNumeric())
@@ -479,7 +699,7 @@ public class VSReferenceFactory {
 	}
 
 	private SymbolicSequence<SymbolicExpression> makeSequence(
-			ValueSetReference parent, NumericExpression... indices) {
+			ValueSetReference parent, SymbolicExpression... indices) {
 		SymbolicExpression seqEles[] = new SymbolicExpression[indices.length
 				+ 1];
 
@@ -597,6 +817,369 @@ public class VSReferenceFactory {
 				parentIndices);
 	}
 
+	private class ProtectiveWideningResult {
+		List<ValueSetReference> mWidened;
+		List<ValueSetReference> pProtected;
+		List<ValueSetReference> pDamaged;
+	}
+
+	private ProtectiveWideningResult protectiveWidening(Reasoner reasoner,
+			SymbolicType valueType, ValueSetReference[] mGroup,
+			ValueSetReference[] pGroup) {
+		assert mGroup.length > 0;
+		List<List<VSRefComp>> mDomains = getDomain(valueType,
+				Arrays.asList(mGroup));
+		List<List<VSRefComp>> pDomains = getDomain(Arrays.asList(pGroup));
+
+		ProtectiveWideningResult result = new ProtectiveWideningResult();
+		result.mWidened = new ArrayList<>(mGroup.length);
+
+		List<Integer> damagedIndices = new ArrayList<>(pGroup.length);
+		List<Integer> undamagedIndices = new ArrayList<>(pGroup.length);
+
+		// Initially all elements of pGroup are considered undamaged.
+		for (int i = 0; i < pGroup.length; ++i) {
+			undamagedIndices.add(i);
+		}
+
+		/*
+		 * We will call elements of the mGroup array "mRefs." Similarly, "pRefs"
+		 * refer to elements of the pGroup array.
+		 * 
+		 * We say that a pRef p is "guarded" from an mRef m if we are able to
+		 * prove that mRef does not cover pRef. A pRef p is said to be "damaged"
+		 * if it was not guarded by some encountered mRef m.
+		 */
+		for (int mInd = 0; mInd < mGroup.length; ++mInd) {
+			// The pRefs "at risk" of being damaged by m.
+			List<Integer> riskSet = undamagedIndices;
+			// The list of elements found to be guarded from m
+			List<Integer> guardedIndices = new ArrayList<>(
+					undamagedIndices.size());
+			List<VSRefComp> mDomain = mDomains.get(mInd);
+			List<SymbolicRange> widenedRanges = new ArrayList<>(mDomain.size());
+			int level = 0;
+			for (VSRefComp mComp : mDomain) {
+				SymbolicRange mRange = mComp.range();
+				// upper bounds of pRef ranges found to fall strictly below
+				// mRange
+				List<NumericExpression> lowerBounds = new ArrayList<>(
+						pGroup.length);
+				// lower bounds of pRef ranges found to fall strictly above
+				// mRange
+				List<NumericExpression> strictUpperBounds = new ArrayList<>(
+						pGroup.length);
+				// pRefs with ranges not provably disjoint from mRange
+				List<Integer> newRiskSet = new ArrayList<>(riskSet.size());
+
+				for (int pInd : riskSet) {
+					SymbolicRange pRange = pDomains.get(pInd).get(level)
+							.range();
+					boolean guarded = false;
+
+					if (mComp.refKind() == VSReferenceKind.OFFSET && reasoner
+							.isValid(rangeFactory.neq(mRange, pRange))) {
+						guarded = true;
+					} else {
+						if (reasoner.isValid(
+								rangeFactory.strictlyBelow(pRange, mRange))) {
+							guarded = true;
+
+							// p is guarded from m since pRange is below mRange
+							lowerBounds.add(pRange.getUpper());
+						} else if (reasoner.isValid(
+								rangeFactory.strictlyBelow(mRange, pRange))) {
+							guarded = true;
+
+							// p is guarded from m since pRange is above mRange
+							strictUpperBounds.add(pRange.getLower());
+						}
+					}
+
+					if (guarded)
+						guardedIndices.add(pInd);
+					else
+						newRiskSet.add(pInd);
+				}
+
+				if (mComp.refKind() == VSReferenceKind.OFFSET) {
+					widenedRanges.add(null);
+				} else {
+					NumericExpression lower = lowerBounds.isEmpty()
+							? numericFactory.zeroInt()
+							: numericFactory.max(lowerBounds);
+
+					assert mComp.parentType()
+							.typeKind() == SymbolicTypeKind.ARRAY;
+					SymbolicArrayType parentType = (SymbolicArrayType) mComp
+							.parentType();
+					assert parentType.isComplete();
+
+					NumericExpression upper = strictUpperBounds.isEmpty()
+							? ((SymbolicCompleteArrayType) parentType).extent()
+							: numericFactory.min(strictUpperBounds);
+
+					widenedRanges.add(rangeFactory.symbolicRange(lower, upper));
+				}
+				/*
+				 * At this point, newRiskSet holds the indices from riskSet that
+				 * could not be proven to be disjoint from m. Hence, we can
+				 * narrow our search at the next structural level to only
+				 * include these indices
+				 */
+				riskSet = newRiskSet;
+				++level;
+			}
+			// At this point, anything left in the riskSet potentially
+			// overlapped with m at every level and hence it is damaged. All
+			// other indices are contained in guardedIndices
+			damagedIndices.addAll(riskSet);
+			// Update undamgedIndices to only include the elements that were
+			// guarded by m
+			undamagedIndices = guardedIndices;
+
+			result.mWidened
+					.add(replaceArraySections(widenedRanges, mGroup[mInd]));
+		}
+		result.pProtected = new ArrayList<>(undamagedIndices.size());
+
+		for (int i : undamagedIndices) {
+			result.pProtected.add(pGroup[i]);
+		}
+
+		result.pDamaged = new ArrayList<>(damagedIndices.size());
+
+		for (int i : damagedIndices) {
+			result.pDamaged.add(pGroup[i]);
+		}
+
+		return result;
+	}
+
+	private ValueSetReference elimWidening(Reasoner reasoner,
+			SymbolicType valueType, ValueSetReference ref,
+			SymbolicConstant symConst, NumericExpression lower,
+			NumericExpression upper) {
+		if (ref.isIdentityReference()) {
+			return ref;
+		}
+		NumericExpression inclusiveUpper = numericFactory.subtract(upper,
+				numericFactory.oneInt());
+
+		if (ref.isArrayElementReference()) {
+			VSArrayElementReference r = (VSArrayElementReference) ref;
+			NumericExpression index = r.getIndex();
+			Pair<NumericExpression, NumericExpression> range = widenToRange(
+					reasoner, index, symConst, lower, inclusiveUpper);
+			if (range != null) {
+				ValueSetReference parent = elimWidening(reasoner, valueType,
+						r.getParent(), symConst, lower, upper);
+				return vsArraySectionReference(parent, range.left,
+						numericFactory.add(range.right,
+								numericFactory.oneInt()),
+						numericFactory.oneInt());
+			}
+		}
+		if (ref.isArraySectionReference()) {
+			VSArraySectionReference r = (VSArraySectionReference) ref;
+			NumericExpression rLowerBound = r.lowerBound();
+			Pair<NumericExpression, NumericExpression> lowerRange = widenToRange(
+					reasoner, rLowerBound, symConst, lower, inclusiveUpper);
+			NumericExpression newLowerBound = lowerRange == null ? rLowerBound
+					: lowerRange.left;
+
+			NumericExpression rUpperBound = r.upperBound();
+			Pair<NumericExpression, NumericExpression> upperRange = widenToRange(
+					reasoner, rUpperBound, symConst, lower, inclusiveUpper);
+			NumericExpression newUpperBound = upperRange == null ? rUpperBound
+					: upperRange.right;
+
+			ValueSetReference parent = elimWidening(reasoner, valueType,
+					r.getParent(), symConst, lower, upper);
+			return vsArraySectionReference(parent, newLowerBound, newUpperBound,
+					numericFactory.oneInt());
+		}
+		@SuppressWarnings("unchecked")
+		SimpleSequence<SymbolicExpression> parentIndices = (SimpleSequence<SymbolicExpression>) ref
+				.argument(1);
+		ValueSetReference parent = elimWidening(reasoner, valueType,
+				((NTValueSetReference) ref).getParent(), symConst, lower,
+				upper);
+
+		parentIndices = (SimpleSequence<SymbolicExpression>) parentIndices
+				.set(0, parent);
+		return valueSetReference(SymbolicOperator.APPLY, ref.argument(0),
+				parentIndices);
+	}
+
+	private class SignedNumericExpression {
+		public NumericExpression expr;
+		public int sign;
+
+		public SignedNumericExpression(NumericExpression expr, int sign) {
+			this.expr = expr;
+			this.sign = sign;
+		}
+	}
+
+	private Pair<NumericExpression, NumericExpression> widenToRange(
+			Reasoner reasoner, NumericExpression expr, SymbolicConstant var,
+			NumericExpression lower, NumericExpression upper) {
+		switch (expr.operator()) {
+		case SYMBOLIC_CONSTANT: {
+			if (((SymbolicConstant) expr).name() == var.name()) {
+				return new Pair<>(lower, upper);
+			}
+			return null;
+		}
+		case NEGATIVE: {
+			Pair<NumericExpression, NumericExpression> argResult = widenToRange(
+					reasoner, (NumericExpression) expr.argument(0), var, lower,
+					upper);
+			return argResult == null ? null
+					: new Pair<>(numericFactory.minus(argResult.right),
+							numericFactory.minus(argResult.left));
+		}
+		case ADD: {
+			NumericExpression unwidened = numericFactory.zeroInt(),
+					newLower = numericFactory.zeroInt(),
+					newUpper = numericFactory.zeroInt();
+			boolean widened = false;
+
+			for (SymbolicObject obj : expr.getArguments()) {
+				NumericExpression arg = (NumericExpression) obj;
+				Pair<NumericExpression, NumericExpression> result = widenToRange(
+						reasoner, arg, var, lower, upper);
+				if (result != null) {
+					widened = true;
+					newLower = numericFactory.add(newLower, result.left);
+					newUpper = numericFactory.add(newUpper, result.right);
+				} else {
+					unwidened = numericFactory.add(unwidened, arg);
+				}
+			}
+			return widened
+					? new Pair<>(numericFactory.add(newLower, unwidened),
+							numericFactory.add(newUpper, unwidened))
+					: null;
+		}
+		case SUBTRACT: {
+			Pair<NumericExpression, NumericExpression> leftResult = widenToRange(
+					reasoner, (NumericExpression) expr.argument(0), var, lower,
+					upper),
+					rightResult = widenToRange(reasoner,
+							numericFactory.minus(
+									(NumericExpression) expr.argument(1)),
+							var, lower, upper);
+			if (leftResult == null && rightResult == null) {
+				return null;
+			}
+			NumericExpression newLower = leftResult == null
+					? numericFactory.zeroInt()
+					: leftResult.left,
+					newUpper = leftResult == null ? numericFactory.zeroInt()
+							: leftResult.right;
+			newLower = rightResult == null ? newLower
+					: numericFactory.add(newLower, rightResult.left);
+			newUpper = rightResult == null ? newUpper
+					: numericFactory.add(newUpper, rightResult.right);
+			return new Pair<>(newLower, newUpper);
+		}
+		case MULTIPLY: {
+			assert expr.numArguments() > 0;
+			List<Pair<NumericExpression, NumericExpression>> widenedRanges = new ArrayList<Pair<NumericExpression, NumericExpression>>(
+					expr.numArguments());
+			List<NumericExpression> unwidenedRanges = new ArrayList<NumericExpression>(
+					expr.numArguments());
+			for (SymbolicObject obj : expr.getArguments()) {
+				NumericExpression arg = (NumericExpression) obj;
+				Pair<NumericExpression, NumericExpression> result = widenToRange(
+						reasoner, arg, var, lower, upper);
+				if (result == null) {
+					unwidenedRanges.add(arg);
+				} else {
+					widenedRanges.add(result);
+				}
+			}
+			if (widenedRanges.isEmpty()) {
+				return null;
+			}
+
+			SignedNumericExpression unwidenedProduct = new SignedNumericExpression(
+					numericFactory.oneInt(), 1);
+			if (!unwidenedRanges.isEmpty()) {
+				unwidenedProduct.expr = unwidenedRanges.get(0);
+				for (int i = 1; i < unwidenedRanges.size(); i++) {
+					unwidenedProduct.expr = numericFactory.multiply(
+							unwidenedProduct.expr, unwidenedRanges.get(i));
+				}
+				unwidenedProduct.sign = reasoner.valid(
+						numericFactory.lessThanEquals(numericFactory.zeroInt(),
+								unwidenedProduct.expr)) == Prove.RESULT_YES
+										? 1
+										: (reasoner.valid(
+												numericFactory.lessThanEquals(
+														unwidenedProduct.expr,
+														numericFactory
+																.zeroInt())) == Prove.RESULT_YES
+																		? -1
+																		: 0);
+			}
+
+			Pair<SignedNumericExpression, SignedNumericExpression> newRange = new Pair<>(
+					unwidenedProduct, unwidenedProduct);
+			for (Pair<NumericExpression, NumericExpression> interval : widenedRanges) {
+				int leftSign = 0;
+				int rightSign = 0;
+				if (reasoner.valid(
+						numericFactory.lessThanEquals(numericFactory.zeroInt(),
+								interval.left)) == Prove.RESULT_YES) {
+					leftSign = 1;
+					rightSign = 1;
+				} else if (reasoner.valid(numericFactory.lessThanEquals(
+						interval.right,
+						numericFactory.zeroInt())) == Prove.RESULT_YES) {
+					leftSign = -1;
+					rightSign = -1;
+				} else {
+					if (reasoner.valid(numericFactory.lessThanEquals(
+							interval.left,
+							numericFactory.zeroInt())) == Prove.RESULT_YES)
+						leftSign = -1;
+					if (reasoner.valid(numericFactory.lessThanEquals(
+							numericFactory.zeroInt(),
+							interval.right)) == Prove.RESULT_YES)
+						rightSign = 1;
+				}
+				newRange = multiplyInterval(newRange,
+						new Pair<>(
+								new SignedNumericExpression(interval.left,
+										leftSign),
+								new SignedNumericExpression(interval.right,
+										rightSign)));
+			}
+			return new Pair<NumericExpression, NumericExpression>(
+					newRange.left.expr, newRange.right.expr);
+		}
+		default:
+			return null;
+		}
+	}
+
+	Pair<SignedNumericExpression, SignedNumericExpression> multiplyInterval(
+			Pair<SignedNumericExpression, SignedNumericExpression> i1,
+			Pair<SignedNumericExpression, SignedNumericExpression> i2) {
+		if (i1.left.sign > 0 && i2.left.sign > 0) {
+			SignedNumericExpression lower = new SignedNumericExpression(
+					numericFactory.multiply(i1.left.expr, i2.left.expr), 1);
+			SignedNumericExpression upper = new SignedNumericExpression(
+					numericFactory.multiply(i1.right.expr, i2.right.expr), 1);
+			return new Pair<SignedNumericExpression, SignedNumericExpression>(
+					lower, upper);
+		}
+		return null;
+	}
+
 	/**
 	 * <p>
 	 * <b>pre-condition:</b> all group members have the same
@@ -612,7 +1195,8 @@ public class VSReferenceFactory {
 	 *            a group of value set references
 	 * @return normalized group fo value set references
 	 */
-	private ValueSetReference[] normalizeGroup(ValueSetReference[] group) {
+	private ValueSetReference[] simplifyGroup(Reasoner reasoner,
+			ValueSetReference[] group) {
 		boolean hasCombined = false;
 		ValueSetReference[] result = Arrays.copyOf(group, group.length);
 		int length = result.length;
@@ -628,7 +1212,7 @@ public class VSReferenceFactory {
 					if (i == j)
 						continue;
 					else {
-						combined = combine(result[i], result[j]);
+						combined = combine(reasoner, result[i], result[j]);
 						if (combined != null) {
 							hasCombined = true;
 							break;
@@ -652,24 +1236,17 @@ public class VSReferenceFactory {
 	}
 
 	/**
-	 * <p>
-	 * Attempt to combine two value set references: a and b, they can be
-	 * combined if
-	 * <ul>
-	 * <li>there is at MOST one pair of ancestors a' and b' of a and b at some
-	 * recursive level such that a' != b' and they can only be either array
-	 * element or section references, then for a' and b':</li>
-	 * <ul>
-	 * <li>a' refers to an array section "l .. h : s" and b' refers to an array
-	 * section "x .. y : z" and <code>s == z</code> and one of the followings
-	 * holds: 1) <code>
-	 * l == y
-	 * </code> or 2) <code>h == x</code>
-	 * </ul>
-	 * </ul>
-	 * , otherwise, returns null
-	 * </p>
+	 * Attempt to combine two {@link ValueSetReference}s r0 and r1 into a single
+	 * value set reference which is equivalent to the union of r0 and r1. If
+	 * such a combination cannot be done soundly then null is returned.
 	 * 
+	 * If at all possible, the parameters r0 and r1 should be ordered so that r1
+	 * is more likely to contain r0 than the other way around.
+	 * 
+	 * @param reasoner
+	 *            A {@link Reasoner} which may be used to determine the
+	 *            relationship between the domains of a and b. May be null in
+	 *            which case simple syntactic reasoning is used.
 	 * @param r0
 	 *            a value set reference
 	 * @param r1
@@ -677,75 +1254,102 @@ public class VSReferenceFactory {
 	 * @return the combined value set reference, or null if a and b are not
 	 *         combinable.
 	 */
-	private ValueSetReference combine(ValueSetReference r0,
+	private ValueSetReference combine(Reasoner reasoner, ValueSetReference r0,
 			ValueSetReference r1) {
-		NumericExpression[][][] d0 = getDomain(new ValueSetReference[] { r0 });
-		NumericExpression[][][] d1 = getDomain(new ValueSetReference[] { r1 });
-		NumericExpression[][] ranges0 = new NumericExpression[d0.length][];
-		NumericExpression[][] ranges1 = new NumericExpression[d1.length][];
+		List<List<VSRefComp>> domains = getDomain(Arrays.asList(r0, r1));
 
-		// transform d0 -> ranges0 & d1 -> ranges1:
-		assert d0.length == d1.length;
-		for (int i = 0; i < d0.length; i++) {
-			ranges0[i] = d0[i][0];
-			ranges1[i] = d1[i][0];
-		}
+		/**
+		 * It is sound to combine r0 and r1 iff one of the following conditions
+		 * occurs:
+		 * 
+		 * 1. One of r0 or r1 is subset of the other in which case the result
+		 * will be the superset.
+		 * 
+		 * 2. r0 and r1 have equal domains except at one level, but the union of
+		 * these differing VSRefComp can be represented by a single VSRefComp c.
+		 * The result in this case is r0 with its differing component replaced
+		 * by the combined component c.
+		 * 
+		 * subInd and superInd are meant for resolving case 1 while diffPos is
+		 * meant for resolving case 2.
+		 */
+		Integer subInd = null, superInd = null;
+		Integer diffPos = null;
 
-		int diffAt = -1;
+		ListIterator<VSRefComp> iter0 = domains.get(0).listIterator(),
+				iter1 = domains.get(1).listIterator();
 
-		for (int i = 0; i < ranges0.length; i++) {
-			boolean diff = !(ranges0[i][0] == ranges1[i][0]
-					&& ranges0[i][1] == ranges1[i][1]
-					&& ranges0[i][2] == ranges1[i][2]);
+		while (iter0.hasNext()) {
+			VSRefComp comp0 = iter0.next(), comp1 = iter1.next();
+			// We use an array so that we may index it with subInd and superInd
+			SymbolicRange[] ranges = new SymbolicRange[] { comp0.range(),
+					comp1.range() };
+			VSReferenceKind kind = comp0.refKind();
+			if (kind != comp1.refKind()) {
+				assert kind == VSReferenceKind.ARRAY_ELEMENT
+						|| kind == VSReferenceKind.ARRAY_SECTION;
+				assert comp1.refKind() == VSReferenceKind.ARRAY_ELEMENT
+						|| comp1.refKind() == VSReferenceKind.ARRAY_SECTION;
+			}
 
-			if (diff && diffAt >= 0)
+			// Currently don't support combining ranges with nontrivial steps
+			if (!ranges[0].getStep().isOne() || !ranges[1].getStep().isOne())
 				return null;
-			else if (diff)
-				diffAt = i;
+			BooleanExpression rangeEquality = rangeFactory.equals(ranges[0],
+					ranges[1]);
+
+			if (!rangeEquality.isTrue()) {
+				boolean combineRange = false;
+
+				if (reasoner == null) {
+					combineRange = true;
+				} else if (superInd != null) {
+					assert subInd != null;
+					if (!reasoner.isValid(rangeFactory.subset(ranges[subInd],
+							ranges[superInd])))
+						return null;
+				} else if (!reasoner.isValid(rangeEquality)) {
+					// Refs with differing offset components can't be combined
+					if (kind == VSReferenceKind.OFFSET)
+						return null;
+
+					combineRange = true;
+					if (reasoner.isValid(
+							rangeFactory.subset(ranges[0], ranges[1]))) {
+						subInd = 0;
+						superInd = 1;
+					} else if (reasoner.isValid(
+							rangeFactory.subset(ranges[1], ranges[0]))) {
+						subInd = 1;
+						superInd = 0;
+					}
+				}
+
+				if (combineRange) {
+					// Refs without a subset relationship and multiple diffs
+					// cannot be combined.
+					if (diffPos != null)
+						return null;
+					diffPos = iter0.previousIndex();
+				}
+			}
 		}
-		if (diffAt < 0)
-			return r0;
 
-		NumericExpression[] newRange = combineRanges(ranges0[diffAt],
-				ranges1[diffAt]);
+		if (superInd != null)
+			return superInd == 1 ? r1 : r0;
+		if (diffPos != null) {
+			SymbolicRange combinedRange = rangeFactory.tryUnion(reasoner,
+					domains.get(0).get(diffPos).range(),
+					domains.get(1).get(diffPos).range());
 
-		if (newRange == null)
-			return null;
-		// Update ValueSetReference with newRange:
-		// note the the only recursive level that needs update is the
-		// "diffAt + 1"-th level (since 0-based), counting from outer to inner,
-		// ignoring tuple component and union member references:
-		return replaceWithArraySection(diffAt + 1, newRange, r0);
+			if (combinedRange == null)
+				return null;
+			return replaceWithArraySection(diffPos, combinedRange, r0);
+		}
+		return r0;
 	}
 
 	/**
-	 * Attempts to combine two ranges, see
-	 * {@link #combine(ValueSetReference, ValueSetReference)} for the cases
-	 * under which they can be combined.
-	 * 
-	 * @param r0
-	 *            range consists of 3 numeric expressions: [lower .. upper :
-	 *            step]
-	 * @param r1
-	 *            range consists of 3 numeric expressions: [lower .. upper :
-	 *            step]
-	 * @return the combined range or null if the given two are not able to be
-	 *         combined
-	 */
-	private NumericExpression[] combineRanges(NumericExpression[] r0,
-			NumericExpression r1[]) {
-		if (r0[2] != r1[2])
-			return null;
-		// connected:
-		if (r0[0] == r1[1])
-			return new NumericExpression[] { r1[0], r0[1], r0[2] };
-		if (r0[1] == r1[0])
-			return new NumericExpression[] { r0[0], r1[1], r1[2] };
-		return null;
-	}
-
-	/**
-	 * 
 	 * <p>
 	 * Given a depth counter "n" and a value set reference "origin", an ancestor
 	 * <code>a</code> of "origin" is referred by: <code>
@@ -777,7 +1381,7 @@ public class VSReferenceFactory {
 	 * </code>
 	 * </p>
 	 * 
-	 * @param n
+	 * @param index
 	 *            the number of array element/section references or offset
 	 *            reference that is counted from origin to the ancestor (the
 	 *            ancestor itself is counted as well) that will be replaced.
@@ -787,38 +1391,40 @@ public class VSReferenceFactory {
 	 *            the value set reference before the replacement
 	 * @return the replaced value set reference
 	 */
-	private ValueSetReference replaceWithArraySection(int n,
-			NumericExpression[] newRange, ValueSetReference origin) {
-		LinkedList<ValueSetReference> stack = new LinkedList<>();
+	private ValueSetReference replaceWithArraySection(int index,
+			SymbolicRange newRange, ValueSetReference origin) {
+		return replaceArraySectionsWorker(Stream.iterate(0, i -> i + 1)
+				.map(i -> i == index ? newRange : null), origin);
+	}
 
-		while (!origin.isIdentityReference() && n > 0) {
-			stack.push(origin);
-			if (origin.isArrayElementReference()
-					|| origin.isArraySectionReference()
-					|| origin.isOffsetReference())
-				n--;
-			origin = ((NTValueSetReference) origin).getParent();
+	private ValueSetReference replaceArraySections(
+			List<SymbolicRange> newRanges, ValueSetReference origin) {
+		return replaceArraySectionsWorker(newRanges.stream(), origin);
+	}
+
+	private ValueSetReference replaceArraySectionsWorker(
+			Stream<SymbolicRange> compStream, ValueSetReference vsr) {
+		LinkedList<VSRefComp> stack = new LinkedList<>();
+		Iterator<SymbolicRange> compIter = compStream.iterator();
+
+		while (!vsr.isIdentityReference() && compIter.hasNext()) {
+			VSReferenceKind compKind = vsr.valueSetReferenceKind();
+			SymbolicRange newRange = domainKind(compKind) ? compIter.next()
+					: null;
+
+			stack.push(newRange != null
+					? vsRefComp(newRange.getRangeKind() == RangeKind.SINGLETON
+							? compKind
+							: VSReferenceKind.ARRAY_SECTION, newRange)
+					: vsRefComp(vsr));
+
+			vsr = ((NTValueSetReference) vsr).getParent();
 		}
-		assert !stack.peek().isOffsetReference();
-		stack.pop();
-		origin = vsArraySectionReference(origin, newRange[0], newRange[1],
-				newRange[2]);
+
 		while (!stack.isEmpty()) {
-			ValueSetReference ancestor = stack.pop();
-			SymbolicObject[] args = new SymbolicObject[ancestor.numArguments()];
-
-			assert args.length == 2;
-			args[0] = ancestor.argument(0);
-
-			@SuppressWarnings("unchecked")
-			SimpleSequence<SymbolicExpression> seqArg = (SimpleSequence<SymbolicExpression>) ancestor
-					.argument(1);
-			seqArg = (SimpleSequence<SymbolicExpression>) seqArg.set(0,
-					(SymbolicExpression) origin);
-			args[1] = seqArg;
-			origin = valueSetReference(SymbolicOperator.APPLY, args);
+			vsr = valueSetReference(vsr, stack.pop());
 		}
-		return origin;
+		return vsr;
 	}
 
 	/**
@@ -853,59 +1459,71 @@ public class VSReferenceFactory {
 	 * </code>
 	 * </p>
 	 * 
-	 * @param superDomain
+	 * @param superDomains
 	 * @param subDomain
 	 * @return
 	 */
-	private BooleanExpression contains(NumericExpression[][][] superDomain,
-			NumericExpression[][] subDomain) {
-		assert superDomain.length == subDomain.length;
+	private BooleanExpression contains(List<List<VSRefComp>> superDomains,
+			List<VSRefComp> subDomain) {
 		BooleanExpressionFactory boolFactory = numericFactory.booleanFactory();
+		int numDims = subDomain.size();
 
-		if (subDomain.length == 0)
+		if (numDims == 0)
 			return boolFactory.trueExpr();
 
-		int numDims = superDomain.length;
-		int numRangesPerDim = 0;
+		int numRanges = superDomains.size();
 		BooleanExpression forallRestriction = boolFactory.trueExpr();
+		// TODO: Figure out a way to ensure we generate a variable not free in
+		// the ranges.
 		String superEleName = "i", subEleName = "j";
-		NumericSymbolicConstant[] superEles = new NumericSymbolicConstant[numDims];
-		NumericSymbolicConstant[] subEles = new NumericSymbolicConstant[numDims];
+		ArrayList<NumericSymbolicConstant> superEles = new ArrayList<>(numDims);
+		ArrayList<NumericSymbolicConstant> subEles = new ArrayList<>(numDims);
 
-		for (int i = 0; i < numDims; i++) {
-			superEles[i] = (NumericSymbolicConstant) symbolicConstant(
+		Iterator<VSRefComp> subIter = subDomain.iterator();
+		for (int i = 0; i < numDims; ++i) {
+			SymbolicRange subRange = subIter.next().range();
+
+			superEles.add((NumericSymbolicConstant) symbolicConstant(
 					objectFactory.stringObject(superEleName + i),
-					typeFactory.integerType());
-			subEles[i] = (NumericSymbolicConstant) symbolicConstant(
+					typeFactory.integerType()));
+			NumericSymbolicConstant subEle = (NumericSymbolicConstant) symbolicConstant(
 					objectFactory.stringObject(subEleName + i),
 					typeFactory.integerType());
+			subEles.add(subEle);
+			assert !subRange.getLower().getFreeVars().contains(subEle)
+					&& !subRange.getUpper().getFreeVars().contains(subEle)
+					&& !subRange.getStep().getFreeVars().contains(
+							subEle) : "bound variable 'i' has been used in expression";
 			forallRestriction = boolFactory.and(forallRestriction,
-					inRange(subEles[i], subDomain[i]));
-			if (numRangesPerDim == 0)
-				numRangesPerDim = superDomain[i].length;
-			assert numRangesPerDim == superDomain[i].length;
+					rangeFactory.inRange(subEle, subRange));
 		}
 
-		BooleanExpression existsPred[] = new BooleanExpression[numRangesPerDim];
+		BooleanExpression existsPred[] = new BooleanExpression[numRanges];
 		BooleanExpression forallPred;
 
-		for (int i = 0; i < numRangesPerDim; i++) {
+		Iterator<List<VSRefComp>> superDomainsIter = superDomains.iterator();
+		for (int i = 0; i < numRanges; ++i) {
 			existsPred[i] = boolFactory.trueExpr();
+			List<VSRefComp> superDomain = superDomainsIter.next();
+			assert (superDomain.size() == numDims);
+			Iterator<VSRefComp> superDomainIter = superDomain.iterator();
 
-			for (int j = 0; j < numDims; j++) {
-				existsPred[i] = boolFactory.and(existsPred[i],
-						inRange(superEles[j], superDomain[j][i]));
-				existsPred[i] = boolFactory.and(existsPred[i],
-						numericFactory.equals(superEles[j], subEles[j]));
+			for (int j = 0; j < numDims; ++j) {
+				VSRefComp superRange = superDomainIter.next();
+				existsPred[i] = boolFactory.and(existsPred[i], rangeFactory
+						.inRange(superEles.get(j), superRange.range()));
+				existsPred[i] = boolFactory.and(existsPred[i], numericFactory
+						.equals(superEles.get(j), subEles.get(j)));
 			}
-			for (int j = 0; j < numDims; j++)
-				existsPred[i] = boolFactory.exists(superEles[j], existsPred[i]);
+			for (NumericSymbolicConstant superEle : superEles) {
+				existsPred[i] = boolFactory.exists(superEle, existsPred[i]);
+			}
 		}
 		forallPred = boolFactory.or(Arrays.asList(existsPred));
 		forallPred = boolFactory.or(boolFactory.not(forallRestriction),
 				forallPred);
 		for (int i = 0; i < numDims; i++)
-			forallPred = boolFactory.forall(subEles[i], forallPred);
+			forallPred = boolFactory.forall(subEles.get(i), forallPred);
 		return forallPred;
 	}
 
@@ -937,65 +1555,17 @@ public class VSReferenceFactory {
 	 * @return the condition that is true iff the two given domain have no
 	 *         intersection
 	 */
-	private BooleanExpression noIntersect(NumericExpression[][] dom1,
-			NumericExpression[][] dom2) {
-		assert dom1.length == dom2.length;
-		int len = dom1.length;
-		assert len > 0;
+	private BooleanExpression disjoint(List<VSRefComp> dom1,
+			List<VSRefComp> dom2) {
+		assert dom1.size() == dom2.size() && dom1.size() > 0;
 
-		BooleanExpression result = rangeNoIntersect(dom1[0], dom2[0]);
+		Iterator<VSRefComp> iter1 = dom1.iterator(), iter2 = dom2.iterator();
+		BooleanExpression result = rangeFactory.disjoint(iter1.next().range(),
+				iter2.next().range());
 
-		for (int i = 1; i < len; i++) {
-			BooleanExpression tmp = rangeNoIntersect(dom1[i], dom2[i]);
-
-			result = numericFactory.booleanFactory().or(result, tmp);
-		}
-		return result;
-	}
-
-	/**
-	 * <p>
-	 * return the condition that is true iff the two given ranges have no
-	 * intersection.
-	 * </p>
-	 *
-	 * @param r0
-	 *            a range, consists of three NumericExpressions: low, high and
-	 *            step.
-	 * @param r1
-	 *            a range, consists of three NumericExpressions: low, high and
-	 *            step.
-	 * @return the condition that is true iff the given two ranges have no
-	 *         intersection
-	 */
-	private BooleanExpression rangeNoIntersect(NumericExpression[] r0,
-			NumericExpression[] r1) {
-		assert r0[2].isOne() && r1[2].isOne();
-		// TODO: considering steps.
-		NumericExpression low0 = r0[0], low1 = r1[0], hi0 = r0[1], hi1 = r1[1];
-		// no intersect cond:
-		BooleanExpression cond = numericFactory.lessThanEquals(hi0, low1);
-		BooleanExpression tmp = numericFactory.lessThanEquals(hi1, low0);
-
-		return numericFactory.booleanFactory().or(cond, tmp);
-	}
-
-	private BooleanExpression inRange(NumericSymbolicConstant e,
-			NumericExpression range[]) {
-		assert !range[0].getFreeVars().contains(e)
-				&& !range[1].getFreeVars().contains(e)
-				&& !range[2].getFreeVars().contains(
-						e) : "bound variable 'i' has been used in expression";
-		BooleanExpressionFactory boolFactory = numericFactory.booleanFactory();
-		BooleanExpression result = numericFactory.lessThanEquals(range[0], e);
-
-		result = boolFactory.and(result, numericFactory.lessThan(e, range[1]));
-		if (!range[2].isOne()) {
-			NumericExpression mod = numericFactory
-					.modulo(numericFactory.subtract(e, range[0]), range[2]);
-
-			result = boolFactory.and(result,
-					numericFactory.equals(mod, numericFactory.zeroInt()));
+		while (iter1.hasNext()) {
+			result = numericFactory.booleanFactory().or(result, rangeFactory
+					.disjoint(iter1.next().range(), iter2.next().range()));
 		}
 		return result;
 	}
@@ -1038,68 +1608,79 @@ public class VSReferenceFactory {
 	 *         dimension is the number of ranges in a recursive level; the third
 	 *         dimension is the range: low, high and step.
 	 */
-	private NumericExpression[][][] getDomain(ValueSetReference[] refs) {
-		if (refs.length < 1)
-			return new NumericExpression[0][0][0];
+	private List<List<VSRefComp>> getDomain(List<ValueSetReference> refs) {
+		List<List<VSRefComp>> results = new ArrayList<>(refs.size());
 
-		ValueSetReference[] copy = Arrays.copyOf(refs, refs.length);
-		NumericExpression one = numericFactory.oneInt();
-		ValueSetReference delegate = copy[0];
-		List<NumericExpression[][]> results = new LinkedList<>();
+		Integer domainSize = null;
 
-		while (!delegate.isIdentityReference()) {
-			NumericExpression[][] resultAtLevel = new NumericExpression[copy.length][];
-			boolean hasRange = false;
-
-			switch (delegate.valueSetReferenceKind()) {
-			case ARRAY_ELEMENT:
-			case ARRAY_SECTION:
-				for (int i = 0; i < copy.length; i++)
-					if (copy[i].isArrayElementReference()) {
-						NumericExpression idx = ((VSArrayElementReference) copy[i])
-								.getIndex();
-						resultAtLevel[i] = new NumericExpression[] { idx,
-								numericFactory.add(idx, one), one };
-					} else {
-						VSArraySectionReference sectionRef = (VSArraySectionReference) copy[i];
-						NumericExpression lo = sectionRef.lowerBound(),
-								hi = sectionRef.upperBound(),
-								step = sectionRef.step();
-
-						resultAtLevel[i] = new NumericExpression[] { lo, hi,
-								step };
-					}
-				hasRange = true;
-				break;
-			case OFFSET:
-				for (int i = 0; i < copy.length; i++) {
-					NumericExpression offset = ((VSOffsetReference) copy[i])
-							.getOffset();
-
-					resultAtLevel[i] = new NumericExpression[] { offset,
-							numericFactory.add(offset, one), one };
-				}
-				hasRange = true;
-				break;
-			case TUPLE_COMPONENT:
-			case UNION_MEMBER:
-				// ignore:
-				break;
-			case IDENTITY:
-			default:
-				throw new SARLException("unreachable");
-			}
-			if (hasRange)
-				results.add(resultAtLevel);
-			for (int i = 0; i < copy.length; i++)
-				copy[i] = ((NTValueSetReference) copy[i]).getParent();
-			delegate = copy[0];
+		for (ValueSetReference r : refs) {
+			List<VSRefComp> rDom = getDomain(r, domainSize);
+			domainSize = rDom.size();
+			results.add(rDom);
 		}
 
-		NumericExpression[][][] ret = new NumericExpression[results.size()][][];
+		return results;
+	}
 
-		results.toArray(ret);
-		return ret;
+	private List<VSRefComp> getDomain(ValueSetReference vsr,
+			Integer domainSize) {
+		ArrayList<VSRefComp> domain = domainSize != null
+				? new ArrayList<>(domainSize)
+				: new ArrayList<>();
+
+		while (!vsr.isIdentityReference()) {
+			if (domainKind(vsr.valueSetReferenceKind())) {
+				domain.add(vsRefComp(vsr));
+			}
+
+			vsr = ((NTValueSetReference) vsr).getParent();
+		}
+
+		return domain;
+	}
+
+	private List<VSRefComp> getDomain(SymbolicType valueType,
+			ValueSetReference vsr) {
+		if (valueType == null)
+			return getDomain(vsr, null);
+
+		LinkedList<ValueSetReference> refStack = new LinkedList<>();
+		int domainSize = 0;
+
+		while (!vsr.isIdentityReference()) {
+			refStack.push(vsr);
+			if (domainKind(vsr.valueSetReferenceKind())) {
+				++domainSize;
+			}
+
+			vsr = ((NTValueSetReference) vsr).getParent();
+		}
+
+		VSRefComp[] domain = new VSRefComp[domainSize];
+		int i = domainSize;
+
+		while (!refStack.isEmpty()) {
+			--i;
+			vsr = refStack.pop();
+
+			if (domainKind(vsr.valueSetReferenceKind())) {
+				domain[i] = vsRefComp(valueType, vsr);
+			}
+			valueType = referredTypeFromParent(valueType, vsr);
+		}
+
+		return new ArrayList<VSRefComp>(Arrays.asList(domain));
+	}
+
+	private List<List<VSRefComp>> getDomain(SymbolicType valueType,
+			List<ValueSetReference> vsrs) {
+		List<List<VSRefComp>> domains = new ArrayList<>(vsrs.size());
+
+		for (ValueSetReference vsr : vsrs) {
+			domains.add(getDomain(valueType, vsr));
+		}
+
+		return domains;
 	}
 
 	/**
@@ -1260,6 +1841,7 @@ public class VSReferenceFactory {
 
 			isStructureKind0 &= kind0 != VSReferenceKind.ARRAY_SECTION;
 			isStructureKind1 &= kind1 != VSReferenceKind.ARRAY_SECTION;
+
 			if (ignoreOffset) {
 				isStructureKind0 &= kind0 != VSReferenceKind.OFFSET;
 				isStructureKind1 &= kind1 != VSReferenceKind.OFFSET;
@@ -1384,7 +1966,7 @@ public class VSReferenceFactory {
 		return extendWorker(new ValueSetReference[] { ref }, referredType,
 				toMax);
 	}
-
+	
 	/**
 	 * the recursive helper method for
 	 * {@link #extend(ValueSetReference, SymbolicType, int)}
@@ -1474,9 +2056,10 @@ public class VSReferenceFactory {
 	/**
 	 * <p>
 	 * Deletes a set of value set references <code>D</code> from a given set
-	 * <code>R</code>, results in <code>R' = R - D</code> and guarantees that
-	 * for each <code>d in D</code>, there is exact one
-	 * <code>ancestor(d) in R'</code>.
+	 * <code>R</code>, resulting in R' = R - D, such that each
+	 * <code>d in D</code> has exactly one <code>ancestor(d) in R'</code>, and
+	 * no <code>r in R'</code> has a strict ancestor in <code>R'</code>.
+	 * <code>R'</code> is returned.
 	 * </p>
 	 * 
 	 * @param refs
@@ -1494,16 +2077,17 @@ public class VSReferenceFactory {
 				return depth(o1) - depth(o2);
 			}
 		});
-		for (int i = 0; i < copies.length; i++) {
+		for (int i = 1; i < copies.length; i++) {
 			// if any ref with shorter depth than me (copies[i]) is one of my
-			// ancestor:
+			// ancestor then add i to deletingIndices.
 			for (int j = 0; j < i; j++) {
 				ValueSetReference ancestor = copies[i];
 				boolean isSubRef = false;
 
 				// Note that if a deleting ref "r" is an ancestor of me, there
 				// must be another non-deleting ref which is an ancestor for
-				// both "r" and me.
+				// both "r" and me so that it is ok that we do not check the
+				// deletingIndices set.
 				while (true) {
 					if (ancestor == copies[j]) {
 						deletingIndices.add(i);
@@ -1546,35 +2130,38 @@ public class VSReferenceFactory {
 	 */
 	private SymbolicType referredType(SymbolicType valueType,
 			ValueSetReference ref) {
+		return ref.valueSetReferenceKind() == VSReferenceKind.IDENTITY
+				? valueType
+				: referredTypeFromParent(referredType(valueType,
+						((NTValueSetReference) ref).getParent()), ref);
+	}
+
+	private SymbolicType referredTypeFromParent(SymbolicType parentType,
+			ValueSetReference ref) {
+		VSReferenceKind kind = ref.valueSetReferenceKind();
+		assert kind != VSReferenceKind.IDENTITY;
 		switch (ref.valueSetReferenceKind()) {
 		case ARRAY_ELEMENT:
 		case ARRAY_SECTION:
-			return ((SymbolicArrayType) referredType(valueType,
-					((NTValueSetReference) ref).getParent())).elementType();
-		case IDENTITY:
-			return valueType;
+			return ((SymbolicArrayType) parentType).elementType();
 		case TUPLE_COMPONENT: {
 			VSTupleComponentReference tupleRef = (VSTupleComponentReference) ref;
 
-			return ((SymbolicTupleType) referredType(valueType,
-					tupleRef.getParent())).sequence()
-							.getType(tupleRef.getIndex().getInt());
+			return ((SymbolicTupleType) parentType).sequence()
+					.getType(tupleRef.getIndex().getInt());
 		}
 		case UNION_MEMBER: {
 			VSUnionMemberReference tupleRef = (VSUnionMemberReference) ref;
 
-			return ((SymbolicUnionType) referredType(valueType,
-					tupleRef.getParent())).sequence()
-							.getType(tupleRef.getIndex().getInt());
+			return ((SymbolicUnionType) parentType).sequence()
+					.getType(tupleRef.getIndex().getInt());
 		}
 		case OFFSET:
-			throw new SARLException("Unsupported value set reference kind: "
-					+ ref.valueSetReferenceKind()
-					+ " for getting the referred type from value type: "
-					+ valueType);
-		default:
-			throw new SARLException("Unknown value set reference kind: "
-					+ ref.valueSetReferenceKind());
+			throw new SARLException("Computing referred type of"
+					+ " OFFSET ValueSetReference is unsupported");
+		case IDENTITY:
 		}
+		// Unreachable
+		return null;
 	}
 }

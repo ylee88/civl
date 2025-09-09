@@ -111,6 +111,7 @@ public class MixedArithmeticTest {
 		out.println("herbrandSimplify: e1 = " + e1); // X+1h
 		out.println("herbrandSimplify: p  = " + p); // X=2h
 		out.println("herbrandSimplify: e2 = " + e2); // 2h+1h
+		boolean b = expected.equals(e2);
 		assertEquals(expected, e2);
 	}
 
@@ -124,7 +125,7 @@ public class MixedArithmeticTest {
 				universe.lessThanEquals(x, one),
 				universe.lessThanEquals(one, x));
 		Reasoner reasoner = universe.reasoner(assumption);
-		BooleanExpression newAssumption = reasoner.getReducedContext();
+		BooleanExpression newAssumption = reasoner.getReducedCollapsedContext();
 
 		out.println("hrelations: assumption    : " + assumption);
 		out.println("hrelations: newAssumption : " + newAssumption);

@@ -367,6 +367,8 @@ public class AcslContractAnalyzerWorker {
 					for (ExpressionNode mem : assignsNode.getMemoryList())
 						expressionAnalyzer.processExpression(mem);
 					break;
+				case TRANSFORM :
+					break;
 				default :
 					throw error("Unknown kind of loop contracts: "
 							+ clause.contractKind(), clause);

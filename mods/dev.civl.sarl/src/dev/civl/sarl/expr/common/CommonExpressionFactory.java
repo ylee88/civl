@@ -23,7 +23,10 @@ import static dev.civl.sarl.IF.expr.SymbolicExpression.SymbolicOperator.TUPLE;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.List;
 
+import dev.civl.sarl.IF.Reasoner;
 import dev.civl.sarl.IF.SARLInternalException;
 import dev.civl.sarl.IF.expr.ArrayElementReference;
 import dev.civl.sarl.IF.expr.BooleanExpression;
@@ -586,7 +589,7 @@ public class CommonExpressionFactory implements ExpressionFactory {
 	public SymbolicExpression valueSetTemplate(SymbolicType valueType,
 			ValueSetReference[] vsRefs) {
 		// normalize:
-		vsRefs = vsReferenceFactory.normalize(valueType, vsRefs);
+		vsRefs = vsReferenceFactory.simplify(null, valueType, vsRefs);
 
 		// construct:
 		SymbolicExpression arr = expression(SymbolicOperator.ARRAY,
@@ -653,15 +656,59 @@ public class CommonExpressionFactory implements ExpressionFactory {
 			ValueSetReference ref0, ValueSetReference ref1) {
 		return vsReferenceFactory.valueSetNoIntersect(valueType, ref0, ref1);
 	}
+	
+	@Override
+	public SymbolicExpression valueSetDiff(SymbolicType valueType,
+			SymbolicExpression refArr0, SymbolicExpression refArr1) {
+		ValueSetReference refs0[] = new ValueSetReference[refArr0.numArguments()],
+				refs1[] = new ValueSetReference[refArr1.numArguments()];
+		for (int i = 0; i < refs0.length; i++)
+			refs0[i] = (ValueSetReference) refArr0.argument(i);
+		for (int i = 0; i < refs1.length; i++)
+			refs1[i] = (ValueSetReference) refArr1.argument(i);
+		
+		ValueSetReference refs[] = vsReferenceFactory.valueSetDiff(valueType, refs0, refs1);
+		return valueSetTemplate(valueType, refs);
+	}
 
 	@Override
-	public SymbolicExpression valueSetWidening(SymbolicType valueType,
-			SymbolicExpression refArr) {
+	public SymbolicExpression valueSetWidening(Reasoner reasoner,
+			SymbolicType valueType, SymbolicExpression refArr) {
 		ValueSetReference refs[] = new ValueSetReference[refArr.numArguments()];
 
 		for (int i = 0; i < refs.length; i++)
 			refs[i] = (ValueSetReference) refArr.argument(i);
-		refs = vsReferenceFactory.valueSetWidening(valueType, refs);
+		refs = vsReferenceFactory.valueSetWidening(reasoner, valueType, refs);
+		return valueSetTemplate(valueType, refs);
+	}
+	
+	@Override
+	public SymbolicExpression valueSetProtectiveWidening(Reasoner reasoner,
+			SymbolicType valueType, SymbolicExpression refArrM,
+			SymbolicExpression refArrP) {
+		ValueSetReference mRefs[] = new ValueSetReference[refArrM.numArguments()];
+		for (int i = 0; i < mRefs.length; i++)
+			mRefs[i] = (ValueSetReference) refArrM.argument(i);
+		
+		ValueSetReference pRefs[] = new ValueSetReference[refArrP.numArguments()];
+		for (int i = 0; i < pRefs.length; i++)
+			pRefs[i] = (ValueSetReference) refArrP.argument(i);
+		
+		mRefs = vsReferenceFactory.valueSetProtectiveWidening(reasoner, valueType, mRefs, pRefs);
+		return valueSetTemplate(valueType, mRefs);
+	}
+
+	@Override
+	public SymbolicExpression valueSetElimWidening(Reasoner reasoner,
+			SymbolicType valueType, SymbolicExpression refArr,
+			SymbolicExpression elimExpr, NumericExpression lower,
+			NumericExpression upper) {
+		ValueSetReference refs[] = new ValueSetReference[refArr.numArguments()];
+
+		for (int i = 0; i < refs.length; i++)
+			refs[i] = (ValueSetReference) refArr.argument(i);
+		refs = vsReferenceFactory.valueSetElimWidening(reasoner, valueType,
+				refs, elimExpr, lower, upper);
 		return valueSetTemplate(valueType, refs);
 	}
 }

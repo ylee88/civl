@@ -303,9 +303,24 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 		else
 			result.append(state.identifier());
 		result.append("\n");
+		for (int pid = 0; pid < numProcs; pid++) {
+			ProcessState process = state.getProcessState(pid);
+			if (process == null)
+				continue;
+			BooleanExpression[] ppc = process.getPartialPathConditions();
+			if (ppc.length == 0)
+				continue;
+			result.append("| Process " + pid + " partial path conditions\n");
+			for (int i = ppc.length - 1; i >= 0; i--) {
+				result.append("| | entry " + i);
+				result.append(this.pathconditionToString(null, state, "| | | ",
+						ppc[i]));
+				result.append("\n");
+			}
+		}
 		result.append("| Path condition");
 		result.append(this.pathconditionToString(null, state, "| | ",
-				state.getPathCondition(universe)));
+				state.getPermanentPathCondition()));
 		// result.append("| | "
 		// + this.symbolicExpressionToString(null, state, null,
 		// state.getPathCondition()));
@@ -984,8 +999,10 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 			SymbolicExpression symbolicExpression, boolean atomize,
 			String prefix, String separator) {
 		StringBuffer result = new StringBuffer();
+		SymbolicType type = symbolicExpression.type();
 
-		if (symbolicExpression.size() >= PRINT_SIZE_THRESHOLD) {
+		if (symbolicExpression.size() >= PRINT_SIZE_THRESHOLD
+				&& !type.equals(this.dynamicHeapType)) {
 			symbolicExpression.printCompressedTree(prefix, result);
 
 			// insert the first new line character and deletes the last
@@ -996,7 +1013,6 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 			return result;
 		}
 
-		SymbolicType type = symbolicExpression.type();
 		SymbolicType charType = typeFactory.charType().getDynamicType(universe);
 
 		if (type == null)
@@ -2811,6 +2827,8 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 
 						claim = reasoner.simplify(claim);
 						if (result == ResultType.YES) {
+							// TODO shouldn't it be .getResultType() ==
+							// ResultType.YES?
 							if (!derefable && reasoner
 									.valid(universe.equals(length, index))
 									.getResultType() != ResultType.NO) {

@@ -4,7 +4,6 @@ import java.util.ArrayList;
 
 import dev.civl.sarl.IF.TheoremProverException;
 import dev.civl.sarl.IF.expr.BooleanExpression;
-import dev.civl.sarl.preuniverse.IF.PreUniverse;
 import dev.civl.sarl.prove.IF.ProverFunctionInterpretation;
 import dev.civl.sarl.prove.IF.TheoremProver;
 import dev.civl.sarl.prove.IF.TheoremProverFactory;
@@ -17,13 +16,9 @@ import dev.civl.sarl.prove.IF.TheoremProverFactory;
  */
 public class MultiProverFactory implements TheoremProverFactory {
 
-	private PreUniverse universe;
-
 	private TheoremProverFactory[] factories;
 
-	public MultiProverFactory(PreUniverse universe,
-			TheoremProverFactory[] factories) {
-		this.universe = universe;
+	public MultiProverFactory(TheoremProverFactory[] factories) {
 		this.factories = factories;
 	}
 
@@ -50,7 +45,7 @@ public class MultiProverFactory implements TheoremProverFactory {
 				// ignore this prover.
 			}
 		}
-		return new MultiProver(universe, provers.toArray(new TheoremProver[0]));
+		return new MultiProver(provers.toArray(new TheoremProver[0]));
 	}
 
 }

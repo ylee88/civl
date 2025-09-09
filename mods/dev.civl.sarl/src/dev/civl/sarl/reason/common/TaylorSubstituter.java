@@ -309,7 +309,7 @@ public class TaylorSubstituter extends ExpressionSubstituter {
 	 */
 	private BooleanExpression findDifferentiableClaim(
 			SymbolicExpression function) {
-		for (BooleanExpression clause : reasoner.getReducedContext()
+		for (BooleanExpression clause : reasoner.getReducedCollapsedContext()
 				.getClauses()) {
 			if (clause.operator() != SymbolicOperator.DIFFERENTIABLE)
 				continue;

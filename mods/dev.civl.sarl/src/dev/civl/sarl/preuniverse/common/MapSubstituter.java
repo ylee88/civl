@@ -52,7 +52,7 @@ public class MapSubstituter extends ExpressionSubstituter {
 			return stack.isEmpty();
 		}
 	}
-
+	
 	private UnaryOperator<SymbolicExpression> operator;
 
 	public MapSubstituter(PreUniverse universe, ObjectFactory objectFactory,

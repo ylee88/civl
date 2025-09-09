@@ -1,4 +1,4 @@
-package dev.civl.sarl.reason.common;
+package dev.civl.sarl.simplify.common;
 
 import java.util.LinkedList;
 import java.util.List;

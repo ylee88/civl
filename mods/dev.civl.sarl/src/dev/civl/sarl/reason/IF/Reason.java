@@ -18,13 +18,10 @@
  ******************************************************************************/
 package dev.civl.sarl.reason.IF;
 
-import dev.civl.sarl.IF.config.SARLConfig;
+import dev.civl.sarl.ideal.IF.IdealFactory;
 import dev.civl.sarl.preuniverse.IF.PreUniverse;
 import dev.civl.sarl.prove.IF.TheoremProverFactory;
-import dev.civl.sarl.prove.why3.RobustWhy3ProvePlatformFactory;
 import dev.civl.sarl.reason.common.ContextMinimizingReasonerFactory;
-import dev.civl.sarl.reason.common.Why3ReasonerFactory;
-import dev.civl.sarl.simplify.IF.SimplifierFactory;
 
 /**
  * Provides a static method for producing a new {@link ReasonerFactory}.
@@ -46,32 +43,9 @@ public class Reason {
 	 * @return
 	 */
 	public static ReasonerFactory newReasonerFactory(PreUniverse universe,
-			SimplifierFactory simplifierFactory,
-			TheoremProverFactory proverFactory) {
+			IdealFactory idealFactory, TheoremProverFactory proverFactory) {
 		ReasonerFactory result = new ContextMinimizingReasonerFactory(universe,
-				proverFactory, simplifierFactory);
-
-		return result;
-	}
-
-	/**
-	 * Create a why3 reasoner factory iff why3 is installed. If why3 is not
-	 * installed, this function shall not be called.
-	 * 
-	 * @param universe
-	 *            A reference to a {@link PreUniverse}
-	 * @param simplifierFactory
-	 *            A reference to a {@link SimplifierFactory}
-	 * @param proverFactory
-	 *            A reference to a {@link RobustWhy3ProvePlatformFactory}
-	 * @return
-	 */
-	public static Why3ReasonerFactory newWhy3ReasonerFactory(SARLConfig config,
-			PreUniverse universe, SimplifierFactory simplifierFactory,
-			RobustWhy3ProvePlatformFactory proverFactory) {
-		assert config.getWhy3ProvePlatform() != null;
-		Why3ReasonerFactory result = new Why3ReasonerFactory(universe,
-				simplifierFactory, proverFactory);
+				idealFactory, proverFactory);
 
 		return result;
 	}

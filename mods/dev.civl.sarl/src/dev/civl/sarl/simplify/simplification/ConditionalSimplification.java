@@ -10,12 +10,11 @@ import dev.civl.sarl.IF.SARLInternalException;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
-import dev.civl.sarl.simplify.simplifier.IdealSimplifierWorker;
 
 /**
  * Used to simplify a conditional symbolic expression p?a:b.
  * 
- * NEED BETTER WAY?  p?(q?a:b):c ==> p&&q ? a : (p&&!q) ? b : c
+ * NEED BETTER WAY? p?(q?a:b):c ==> p&&q ? a : (p&&!q) ? b : c
  * 
  * Algorithm:
  * 
@@ -91,10 +90,6 @@ p1?a1:p2?a2 ... : pn-1?an-1:an
  */
 public class ConditionalSimplification extends Simplification {
 
-	public ConditionalSimplification(IdealSimplifierWorker worker) {
-		super(worker);
-	}
-
 	private class ConditionalSimplifier {
 
 		Map<BooleanExpression, SymbolicExpression> map1;
@@ -102,7 +97,7 @@ public class ConditionalSimplification extends Simplification {
 		Map<SymbolicExpression, BooleanExpression> map2;
 
 		public ConditionalSimplifier() {
-			this.map1 = new TreeMap<>(universe().comparator());
+			this.map1 = new TreeMap<>(universe.comparator());
 			this.map2 = new HashMap<>();
 		}
 
@@ -110,7 +105,7 @@ public class ConditionalSimplification extends Simplification {
 			BooleanExpression p = (BooleanExpression) condExpr.argument(0);
 
 			enter(p, (SymbolicExpression) condExpr.argument(1));
-			enter(universe().not(p), (SymbolicExpression) condExpr.argument(2));
+			enter(universe.not(p), (SymbolicExpression) condExpr.argument(2));
 		}
 
 		private SymbolicExpression buildResult(
@@ -125,7 +120,7 @@ public class ConditionalSimplification extends Simplification {
 				Entry<BooleanExpression, SymbolicExpression> entry = iter
 						.next();
 
-				result = universe().cond(entry.getKey(), entry.getValue(),
+				result = universe.cond(entry.getKey(), entry.getValue(),
 						result);
 			}
 			return result;
@@ -136,18 +131,17 @@ public class ConditionalSimplification extends Simplification {
 		}
 
 		private void enter(BooleanExpression p, SymbolicExpression v) {
-			if (p.isFalse()) { // nothing to do
+			if (proveUnsat(p)) { // nothing to do
 			} else if (v.operator() == SymbolicOperator.COND) {
 				BooleanExpression q = (BooleanExpression) v.argument(0);
 				SymbolicExpression a = (SymbolicExpression) v.argument(1),
 						b = (SymbolicExpression) v.argument(2);
 
-				enter(universe().and(p, q), a);
-				enter(universe().and(p, universe().not(q)), b);
+				enter(universe.and(p, q), a);
+				enter(universe.and(p, universe.not(q)), b);
 			} else {
-				BooleanExpression p2 = (BooleanExpression) simplifyExpression(
-						p);
-				SymbolicExpression v2 = simplifyExpression(v);
+				BooleanExpression p2 = (BooleanExpression) simplify(p);
+				SymbolicExpression v2 = (SymbolicExpression) simplify(v);
 
 				if (p != p2 || v != v2)
 					enter(p2, v2);
@@ -156,7 +150,7 @@ public class ConditionalSimplification extends Simplification {
 
 					if (q != null) {
 						map1.remove(q);
-						enter(universe().or(p, q), v);
+						enter(universe.or(p, q), v);
 					} else {
 						map1.put(p, v);
 						map2.put(v, p);
@@ -168,15 +162,11 @@ public class ConditionalSimplification extends Simplification {
 	}
 
 	@Override
-	public SymbolicExpression apply(SymbolicExpression x) {
+	protected SymbolicExpression apply(SymbolicExpression x) {
 		ConditionalSimplifier cs = new ConditionalSimplifier();
 
 		cs.init(x);
 		return cs.getResult();
 	}
 
-	@Override
-	public SimplificationKind kind() {
-		return SimplificationKind.COND;
-	}
 }

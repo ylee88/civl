@@ -1,5 +1,7 @@
 package dev.civl.mc.library.mem;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -23,6 +25,7 @@ import dev.civl.mc.semantics.IF.LibraryEvaluatorLoader;
 import dev.civl.mc.semantics.IF.LibraryExecutor;
 import dev.civl.mc.semantics.IF.LibraryExecutorLoader;
 import dev.civl.mc.semantics.IF.SymbolicAnalyzer;
+import dev.civl.mc.state.IF.ProcessState;
 import dev.civl.mc.state.IF.State;
 import dev.civl.mc.state.IF.StateValueHelper;
 import dev.civl.mc.state.IF.UnsatisfiablePathConditionException;
@@ -92,6 +95,9 @@ public class LibmemExecutor extends BaseLibraryExecutor
 				callEval = executeMemContains(state, pid, arguments,
 						argumentValues, source);
 				break;
+			case "$mem_diff" :
+				callEval = executeMemDiff(state, pid, arguments, argumentValues, source);
+				break;
 			case "$mem_union" :
 				callEval = executeMemUnion(state, pid, arguments,
 						argumentValues, source);
@@ -116,12 +122,24 @@ public class LibmemExecutor extends BaseLibraryExecutor
 				callEval = executeMemUnaryWidening(state, pid, arguments,
 						argumentValues, source);
 				break;
+			case "$mem_elim_widening" :
+				callEval = executeMemElimWidening(state, pid, arguments,
+						argumentValues, source);
+				break;
+			case "$mem_protective_widening" :
+				callEval = executeMemProtectiveWidening(state, pid, arguments,
+						argumentValues, source);
+				break;
 			case "$mem_empty" :
 				callEval = executeMemNew(state, pid, arguments, argumentValues,
 						source);
 				break;
 			case "$mem_equals" :
 				callEval = executeMemEquals(state, pid, arguments,
+						argumentValues, source);
+				break;
+			case "$mem_quick_equals" :
+				callEval = executeMemQuickEquals(state, pid, arguments,
 						argumentValues, source);
 				break;
 			default :
@@ -244,6 +262,35 @@ public class LibmemExecutor extends BaseLibraryExecutor
 						entry.valueSetTemplate()));
 		}
 		return new Evaluation(state, result);
+	}
+	
+	private Evaluation executeMemDiff(State state, int pid,
+			Expression[] arguments, SymbolicExpression[] argumentValues,
+			CIVLSource source) throws UnsatisfiablePathConditionException {
+		SymbolicExpression mem0 = collector.apply(argumentValues[0]);
+		SymbolicExpression mem1 = collector.apply(argumentValues[1]);
+		MemoryLocationMap set0 = memValue2MemoryLocationSet(mem0);
+		MemoryLocationMap set1 = memValue2MemoryLocationSet(mem1);
+		CIVLMemType memType = typeFactory.civlMemType();
+		
+		List<SymbolicExpression[]> results = new LinkedList<>();
+		
+		for (MemLocMapEntry entry : set0.entrySet()) {
+			SymbolicExpression vst;
+
+			vst = set1.get(entry.vid(), entry.heapID(), entry.mallocID(),
+					entry.scopeValue());
+			vst = vst == null
+					? entry.valueSetTemplate()
+					: universe.valueSetDiff(entry.valueSetTemplate(), vst);
+			results.add(new SymbolicExpression[]{universe.integer(entry.vid()),
+					universe.integer(entry.heapID()),
+					universe.integer(entry.mallocID()), entry.scopeValue(),
+					vst});
+		}
+
+		return new Evaluation(state,
+				memType.memValueCreator(universe).apply(results));
 	}
 
 	private Evaluation executeMemUnion(State state, int pid,
@@ -435,6 +482,32 @@ public class LibmemExecutor extends BaseLibraryExecutor
 		return new Evaluation(state, result);
 	}
 
+	private Evaluation executeMemQuickEquals(State state, int pid,
+			Expression[] arguments, SymbolicExpression[] argumentValues,
+			CIVLSource source) throws UnsatisfiablePathConditionException {
+		SymbolicExpression mem0 = collector.apply(argumentValues[0]);
+		SymbolicExpression mem1 = collector.apply(argumentValues[1]);
+		MemoryLocationMap set0 = memValue2MemoryLocationSet(mem0);
+		MemoryLocationMap set1 = memValue2MemoryLocationSet(mem1);
+		BooleanExpression result = universe.equals(
+				universe.integer(set0.size()), universe.integer(set1.size()));
+
+		for (MemLocMapEntry entry : set0.entrySet()) {
+			SymbolicExpression vst0 = set0.get(entry.vid(), entry.heapID(),
+					entry.mallocID(), entry.scopeValue());
+			SymbolicExpression vst1 = set1.get(entry.vid(), entry.heapID(),
+					entry.mallocID(), entry.scopeValue());
+
+			if (vst1 != null)
+				result = universe.and(result, universe.quickEquals(vst0, vst1));
+			else {
+				result = universe.falseExpression();
+				break;
+			}
+		}
+		return new Evaluation(state, result);
+	}
+
 	private Evaluation executeMemUnionWidening(State state, int pid,
 			Expression[] arguments, SymbolicExpression[] argumentValues,
 			CIVLSource source) throws UnsatisfiablePathConditionException {
@@ -459,14 +532,68 @@ public class LibmemExecutor extends BaseLibraryExecutor
 		}
 
 		List<SymbolicExpression[]> results = new LinkedList<>();
-
 		for (MemLocMapEntry entry : set0.entrySet())
 			results.add(new SymbolicExpression[]{universe.integer(entry.vid()),
 					universe.integer(entry.heapID()),
 					universe.integer(entry.mallocID()), entry.scopeValue(),
-					universe.valueSetWidening(entry.valueSetTemplate())});
+					universe.valueSetWidening(state.getPathCondition(
+							universe),
+							entry.valueSetTemplate())});
 		return new Evaluation(state,
 				memType.memValueCreator(universe).apply(results));
+	}
+
+	private Evaluation executeMemProtectiveWidening(State state, int pid,
+			Expression[] arguments, SymbolicExpression[] argumentValues,
+			CIVLSource source) throws UnsatisfiablePathConditionException {
+		SymbolicExpression m = collector.apply(argumentValues[0]);
+		SymbolicExpression p = collector.apply(argumentValues[1]);
+		MemoryLocationMap mMap = memValue2MemoryLocationSet(m);
+		MemoryLocationMap pMap = memValue2MemoryLocationSet(p);
+		CIVLMemType memType = typeFactory.civlMemType();
+
+		List<SymbolicExpression[]> results = new LinkedList<>();
+		for (MemLocMapEntry entry : mMap.entrySet()) {
+			SymbolicExpression pEntry = pMap.get(entry.vid(), entry.heapID(),
+					entry.mallocID(), entry.scopeValue());
+			if (pEntry == null) {
+				pEntry = universe.valueSetTemplate(
+						universe.valueType(entry.valueSetTemplate()),
+						new ValueSetReference[0]);
+			}
+
+			SymbolicExpression widenedResult = universe
+					.valueSetProtectiveWidening(state.getPathCondition(universe),
+							entry.valueSetTemplate(), pEntry);
+
+			results.add(new SymbolicExpression[]{universe.integer(entry.vid()),
+					universe.integer(entry.heapID()),
+					universe.integer(entry.mallocID()), entry.scopeValue(),
+					widenedResult});
+		}
+		return new Evaluation(state,
+				memType.memValueCreator(universe).apply(results));
+	}
+
+	private Evaluation executeMemElimWidening(State state, int pid,
+			Expression[] arguments, SymbolicExpression[] argumentValues,
+			CIVLSource source) throws UnsatisfiablePathConditionException {
+		SymbolicExpression mem = collector.apply(argumentValues[0]);
+		SymbolicExpression elimExpr = argumentValues[1],
+				lower = argumentValues[2], upper = argumentValues[3];
+		MemoryLocationMap set = memValue2MemoryLocationSet(mem);
+		List<SymbolicExpression[]> results = new LinkedList<>();
+
+		for (MemLocMapEntry entry : set.entrySet()) {
+			results.add(new SymbolicExpression[]{universe.integer(entry.vid()),
+					universe.integer(entry.heapID()),
+					universe.integer(entry.mallocID()), entry.scopeValue(),
+					universe.valueSetElimWidening(
+							state.getPathCondition(universe),
+							entry.valueSetTemplate(), elimExpr, lower, upper)});
+		}
+		return new Evaluation(state, typeFactory.civlMemType()
+				.memValueCreator(universe).apply(results));
 	}
 
 	private Evaluation executeMemHavoc(State state, int pid,
@@ -607,11 +734,12 @@ public class LibmemExecutor extends BaseLibraryExecutor
 	private Evaluation executeMemNew(State state, int pid,
 			Expression[] arguments, SymbolicExpression[] argumentValues,
 			CIVLSource source) throws UnsatisfiablePathConditionException {
-		CIVLMemType memType = typeFactory.civlMemType();
-		SymbolicExpression empty = memType.memValueCreator(universe)
-				.apply(new LinkedList<>());
+		return new Evaluation(state, memEmpty());
+	}
 
-		return new Evaluation(state, empty);
+	private SymbolicExpression memEmpty() {
+		CIVLMemType memType = typeFactory.civlMemType();
+		return memType.memValueCreator(universe).apply(new LinkedList<>());
 	}
 
 	/**

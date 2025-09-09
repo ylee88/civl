@@ -28,43 +28,43 @@ public interface ValueSetReference extends SymbolicExpression {
 	 * @author ziqing
 	 */
 	static public enum VSReferenceKind {
-	/**
-	 * The identity reference. This is the reference that when applied to any
-	 * value v, returns a reference to v. A reference of this kind is an
-	 * instance of {@link VSIdentityReference}.
-	 */
-	IDENTITY,
-	/**
-	 * An array element of reference. A reference of this kind is an instance of
-	 * {@link VSArrayElementReference}. It includes a reference to the "parent"
-	 * value set and an index.
-	 */
-	ARRAY_ELEMENT,
-	/**
-	 * An reference to a "section" of an array. A reference of this kind is an
-	 * instance of {@link VSArraySectionReference}. It includes a reference to
-	 * the "parent" value set, an inclusive lower index bound and an exclusive
-	 * upper index bound of the section.
-	 */
-	ARRAY_SECTION,
-	/**
-	 * A tuple component reference. A reference of this kind is an instance of
-	 * {@link VSTupleComponentReference}. It includes a reference to the
-	 * "parent" value set and a concrete integer field index.
-	 */
-	TUPLE_COMPONENT,
-	/**
-	 * A union member reference. A reference of this kind is an instance of
-	 * {@link VSUnionMemberReference}. It includes a reference to the "parent"
-	 * value set and an integer member index.
-	 */
-	UNION_MEMBER,
-	/**
-	 * An offset reference. A reference of this kind is an instance of
-	 * {@link VSOffsetReference}. It includes a reference to a "parent" value
-	 * set and an integer "offset".
-	 */
-	OFFSET,
+		/**
+		 * The identity reference. This is the reference that when applied to
+		 * any value v, returns a reference to v. A reference of this kind is an
+		 * instance of {@link VSIdentityReference}.
+		 */
+		IDENTITY,
+		/**
+		 * An array element of reference. A reference of this kind is an
+		 * instance of {@link VSArrayElementReference}. It includes a reference
+		 * to the "parent" value set and an index.
+		 */
+		ARRAY_ELEMENT,
+		/**
+		 * An reference to a "section" of an array. A reference of this kind is
+		 * an instance of {@link VSArraySectionReference}. It includes a
+		 * reference to the "parent" value set, an inclusive lower index bound
+		 * and an exclusive upper index bound of the section.
+		 */
+		ARRAY_SECTION,
+		/**
+		 * A tuple component reference. A reference of this kind is an instance
+		 * of {@link VSTupleComponentReference}. It includes a reference to the
+		 * "parent" value set and a concrete integer field index.
+		 */
+		TUPLE_COMPONENT,
+		/**
+		 * A union member reference. A reference of this kind is an instance of
+		 * {@link VSUnionMemberReference}. It includes a reference to the
+		 * "parent" value set and an integer member index.
+		 */
+		UNION_MEMBER,
+		/**
+		 * An offset reference. A reference of this kind is an instance of
+		 * {@link VSOffsetReference}. It includes a reference to a "parent"
+		 * value set and an integer "offset".
+		 */
+		OFFSET,
 	}
 
 	/**

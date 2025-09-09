@@ -1,4 +1,4 @@
-package dev.civl.sarl.reason.common;
+package dev.civl.sarl.simplify.common;
 
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.IF.object.SymbolicObject;

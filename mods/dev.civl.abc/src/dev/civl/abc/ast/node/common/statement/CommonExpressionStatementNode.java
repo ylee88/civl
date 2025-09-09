@@ -29,8 +29,10 @@ public class CommonExpressionStatementNode extends CommonStatementNode
 
 	@Override
 	public ExpressionStatementNode copy() {
-		return new CommonExpressionStatementNode(getSource(),
+		ExpressionStatementNode result = new CommonExpressionStatementNode(getSource(),
 				duplicate(getExpression()));
+		result.addAllTransformAnnotations(transformAnnotations());
+		return result;
 	}
 
 	@Override

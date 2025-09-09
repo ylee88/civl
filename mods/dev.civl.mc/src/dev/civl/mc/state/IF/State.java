@@ -93,13 +93,22 @@ public interface State {
 	int rootDyscopeID();
 
 	/**
-	 * Returns the path condition.
+	 * Returns the path condition. This includes the partial path conditions of
+	 * all process states. See {@link ProcessState#getPartialPathConditions()}.
 	 * 
 	 * @param universe
 	 *            A reference to a {@link SymbolicUniverse}.
 	 * @return the path condition.
 	 */
 	BooleanExpression getPathCondition(SymbolicUniverse universe);
+
+	/**
+	 * Returns the path condition, excluding the partial path conditions held by
+	 * the process states.
+	 * 
+	 * @return the permanent path condition.
+	 */
+	BooleanExpression getPermanentPathCondition();
 
 	/**
 	 * Gets the dynamic scope ID (dyscope ID) of the parent of the dynamic scope

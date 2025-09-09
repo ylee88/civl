@@ -18,7 +18,6 @@
  ******************************************************************************/
 package dev.civl.sarl.expr.IF;
 
-import dev.civl.sarl.IF.SARLInternalException;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.NumericExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
@@ -30,12 +29,7 @@ import dev.civl.sarl.expr.common.CommonExpressionFactory;
 import dev.civl.sarl.expr.common.CommonNumericExpressionFactory;
 import dev.civl.sarl.herbrand.IF.Herbrand;
 import dev.civl.sarl.ideal.IF.Ideal;
-import dev.civl.sarl.ideal.IF.IdealFactory;
 import dev.civl.sarl.object.IF.ObjectFactory;
-import dev.civl.sarl.preuniverse.IF.PreUniverse;
-import dev.civl.sarl.simplify.IF.Simplifier;
-import dev.civl.sarl.simplify.IF.SimplifierFactory;
-import dev.civl.sarl.simplify.IF.Simplify;
 import dev.civl.sarl.type.IF.SymbolicTypeFactory;
 
 /**
@@ -186,34 +180,5 @@ public class Expressions {
 
 		booleanFactory.setNumericExpressionFactory(numericFactory);
 		return newExpressionFactory(numericFactory);
-	}
-
-	/**
-	 * Produces a new factory for creating {@link Simplifier}s for a standard
-	 * expression factory.
-	 * 
-	 * @param standardExpressionFactory
-	 *                                      a standard expression factory which
-	 *                                      uses Ideal and Herbrand arithmetic
-	 * @param universe
-	 *                                      the pre-universe used to make
-	 *                                      symbolic expressions
-	 * @return the new simplifier factory
-	 */
-	public static SimplifierFactory standardSimplifierFactory(
-			ExpressionFactory standardExpressionFactory, PreUniverse universe) {
-		NumericExpressionFactory numericFactory = standardExpressionFactory
-				.numericFactory();
-		IdealFactory idealFactory;
-
-		if (numericFactory instanceof IdealFactory)
-			idealFactory = (IdealFactory) numericFactory;
-		else if (numericFactory instanceof CommonNumericExpressionFactory)
-			idealFactory = (IdealFactory) ((CommonNumericExpressionFactory) numericFactory)
-					.idealFactory();
-		else
-			throw new SARLInternalException("Unknown expression factory kind.");
-
-		return Simplify.newIdealSimplifierFactory(idealFactory, universe);
 	}
 }

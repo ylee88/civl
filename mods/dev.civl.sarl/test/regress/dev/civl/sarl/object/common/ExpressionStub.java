@@ -174,4 +174,9 @@ public class ExpressionStub implements SymbolicExpression {
 	public boolean containsSubobject(SymbolicObject obj) {
 		return false;
 	}
+	
+	@Override
+	public boolean containsSubobjectIgnoringType(SymbolicObject obj) {
+		return false;
+	}
 }

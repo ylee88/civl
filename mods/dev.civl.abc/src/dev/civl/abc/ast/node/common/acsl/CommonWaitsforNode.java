@@ -16,7 +16,7 @@ public class CommonWaitsforNode extends CommonContractNode
 
 	public CommonWaitsforNode(Source source,
 			SequenceNode<ExpressionNode> children) {
-		super(source, children);
+		super(source, (ASTNode) children);
 		arguments = children;
 	}
 

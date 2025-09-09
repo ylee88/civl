@@ -65,7 +65,7 @@ public class SimplifyTest {
 				(BooleanExpression) univ.equals(X1, univ.integer(1)));
 		reasoner = univ.reasoner(contex);
 		System.out.println(contex.toString());
-		contex = reasoner.getReducedContext();
+		contex = reasoner.getReducedCollapsedContext();
 		System.out.println(contex.toString());
 	}
 
@@ -131,7 +131,7 @@ public class SimplifyTest {
 		out.println("p: " + p);
 
 		Reasoner reasoner = universe.reasoner(p);
-		BooleanExpression r = reasoner.getFullContext();
+		BooleanExpression r = reasoner.getFullCollapsedContext();
 
 		out.println("r: " + r);
 	}
@@ -143,7 +143,7 @@ public class SimplifyTest {
 
 		BooleanExpression p = universe.equals(x, one);
 		Reasoner reasoner = universe.reasoner(universe.not(p));
-		out.println(reasoner.getFullContext());
+		out.println(reasoner.getFullCollapsedContext());
 		BooleanExpression q = reasoner.simplify(p);
 		out.println(q);
 	}

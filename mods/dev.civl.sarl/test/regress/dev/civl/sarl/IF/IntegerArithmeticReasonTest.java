@@ -136,7 +136,7 @@ public class IntegerArithmeticReasonTest {
 		Reasoner reasoner = universe.reasoner(assumption);
 
 		assertEquals(universe.integer(2), reasoner.simplify(u));
-		assertEquals(trueExpr, reasoner.getReducedContext());
+		assertEquals(trueExpr, reasoner.getReducedCollapsedContext());
 	}
 
 	/**
@@ -150,7 +150,7 @@ public class IntegerArithmeticReasonTest {
 		Reasoner reasoner = universe.reasoner(assumption);
 
 		assertEquals(universe.integer(2), reasoner.simplify(u));
-		assertEquals(trueExpr, reasoner.getReducedContext());
+		assertEquals(trueExpr, reasoner.getReducedCollapsedContext());
 	}
 
 	/**
@@ -164,7 +164,7 @@ public class IntegerArithmeticReasonTest {
 		Reasoner reasoner = universe.reasoner(assumption);
 
 		assertEquals(u, reasoner.simplify(u));
-		assertEquals(falseExpr, reasoner.getReducedContext());
+		assertEquals(falseExpr, reasoner.getReducedCollapsedContext());
 	}
 
 	/**
@@ -184,7 +184,7 @@ public class IntegerArithmeticReasonTest {
 		Reasoner reasoner = universe.reasoner(assumption);
 
 		assertEquals(universe.integer(7), reasoner.simplify(read));
-		assertEquals(trueExpr, reasoner.getReducedContext());
+		assertEquals(trueExpr, reasoner.getReducedCollapsedContext());
 	}
 
 	/**
@@ -298,6 +298,6 @@ public class IntegerArithmeticReasonTest {
 		SymbolicExpression x_val = r.constantSubstitutionMap().get(X);
 
 		assertEquals(threeInt, x_val);
-		assertEquals(trueExpr, r.getReducedContext());
+		assertEquals(trueExpr, r.getReducedCollapsedContext());
 	}
 }

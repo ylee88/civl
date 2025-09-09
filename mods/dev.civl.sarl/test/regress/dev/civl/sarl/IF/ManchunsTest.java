@@ -28,7 +28,7 @@ public class ManchunsTest {
 		claim = universe.or(claim, universe.neq(y, universe.zeroReal()));
 		System.out.println(claim);
 		reasoner = universe.reasoner(claim);
-		claim = reasoner.getReducedContext();
+		claim = reasoner.getReducedCollapsedContext();
 		System.out.println(claim);
 	}
 

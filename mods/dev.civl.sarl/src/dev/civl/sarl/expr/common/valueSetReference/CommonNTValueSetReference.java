@@ -40,7 +40,7 @@ public abstract class CommonNTValueSetReference extends CommonValueSetReference
 	 * unionMemberReferenceFunction, parentIndexSequence is sequence of length 2
 	 * in which element 0 is the parent reference (the reference to the
 	 * expression of union type) and element 1 is the member index, a concrete
-	 * numeric symbolic expression of intger type.</li>
+	 * numeric symbolic expression of integer type.</li>
 	 * <li>{@link VSOffsetReference}: just like array element reference, but
 	 * function is offsetReferenceFunction</li>
 	 * </ul>
@@ -58,11 +58,11 @@ public abstract class CommonNTValueSetReference extends CommonValueSetReference
 			SymbolicSequence<SymbolicExpression> parentIndexSequence) {
 		super(referenceType, function, parentIndexSequence);
 		assert parentIndexSequence.get(0) instanceof ValueSetReference;
-		assert parentIndexSequence.get(1).type().isInteger();
-		assert parentIndexSequence.size() <= 2
-				|| (parentIndexSequence.get(2).type().isInteger()
-						&& parentIndexSequence.get(3).type().isInteger());
-
+		int seqSize = parentIndexSequence.size();
+		assert seqSize == 2 || seqSize == 4;
+		for (int i = 1; i < seqSize; i++) {
+			assert parentIndexSequence.get(i).type().isInteger();
+		}
 	}
 
 	/**

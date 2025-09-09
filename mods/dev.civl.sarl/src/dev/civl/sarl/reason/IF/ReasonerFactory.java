@@ -18,10 +18,10 @@
  ******************************************************************************/
 package dev.civl.sarl.reason.IF;
 
+import java.util.List;
 import dev.civl.sarl.IF.Reasoner;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.prove.IF.ProverFunctionInterpretation;
-import dev.civl.sarl.prove.IF.TheoremProverFactory;
 
 /**
  * <p>
@@ -57,20 +57,20 @@ public interface ReasonerFactory {
 	 *            shall the reasoner use backwards substitution to solve for
 	 *            certain numeric expressions in terms of others when
 	 *            simplifying?
+	 * @param simplifyWithTrivialProver
+	 *            should the reasoner's {@link Simplifier} use a
+	 *            {@link TrivialProver} or the one constructed by the factory
+	 *            returned by {@link getTheoremProverFactory}?
 	 * @param proverPredicates
-	 *            {@link ProverFunctionInterpretation}s which factor out common boolean
-	 *            expressions from complex prover contexts and queries
+	 *            {@link ProverFunctionInterpretation}s which factor out common
+	 *            boolean expressions from complex prover contexts and queries
 	 * @return a {@link Reasoner} based on the given <code>context</code>
 	 */
 	Reasoner getReasoner(BooleanExpression context,
 			boolean useBackwardSubstitution,
 			ProverFunctionInterpretation[] proverPredicates);
 
-	/**
-	 * Returns the theorem prover factory used by this reasoner factory. Every
-	 * reasoner factory has one.
-	 * 
-	 * @return the theorem prover factory used by this reasoner factory
-	 */
-	TheoremProverFactory getTheoremProverFactory();
+	Reasoner getReasoner(List<BooleanExpression> contextStack,
+			boolean useBackwardSubstitution,
+			ProverFunctionInterpretation[] proverPredicates);
 }

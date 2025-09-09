@@ -100,7 +100,7 @@ public class BackwardsSubTest {
 
 		out.println(clause);
 		u.setUseBackwardSubstitution(true);
-		clause = u.reasoner(clause).getReducedContext();
+		clause = u.reasoner(clause).getReducedCollapsedContext();
 		out.println(clause);
 		int numX_a = 0;
 

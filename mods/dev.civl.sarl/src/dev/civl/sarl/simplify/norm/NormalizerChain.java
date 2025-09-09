@@ -5,6 +5,7 @@ import java.util.Set;
 
 import dev.civl.sarl.IF.expr.SymbolicConstant;
 import dev.civl.sarl.simplify.simplifier.InconsistentContextException;
+import dev.civl.sarl.simplify.simplifier.MutableContext;
 import dev.civl.sarl.simplify.simplifier.SimplifierUtility;
 
 public class NormalizerChain implements Normalizer {
@@ -17,9 +18,11 @@ public class NormalizerChain implements Normalizer {
 
 	public final static PrintStream out = System.out;
 
+	private MutableContext context;
 	private Normalizer[] members;
 
-	public NormalizerChain(Normalizer... members) {
+	public NormalizerChain(MutableContext context, Normalizer... members) {
+		this.context = context;
 		this.members = members;
 	}
 
@@ -51,6 +54,10 @@ public class NormalizerChain implements Normalizer {
 			hasDirt = false;
 			for (int i = 0; i < n; i++) {
 				if (!dirts[i].isEmpty()) {
+					if (debug) {
+						context.checkSubMapInvariant();
+						//System.out.println("Invariant holds");
+					}
 					members[i].normalize(dirts[i], tmp);
 					dirts[i].clear();
 					if (!tmp.isEmpty()) {

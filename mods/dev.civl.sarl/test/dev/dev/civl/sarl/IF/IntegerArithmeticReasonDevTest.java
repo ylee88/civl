@@ -85,7 +85,7 @@ public class IntegerArithmeticReasonDevTest {
 		Reasoner reasoner = universe.reasoner(assumption);
 
 		assertEquals(universe.integer(2), reasoner.simplify(u));
-		assertEquals(trueExpr, reasoner.getReducedContext());
+		assertEquals(trueExpr, reasoner.getReducedCollapsedContext());
 	}
 
 	/**
@@ -99,7 +99,7 @@ public class IntegerArithmeticReasonDevTest {
 		Reasoner reasoner = universe.reasoner(assumption);
 
 		assertEquals(universe.integer(2), reasoner.simplify(u));
-		assertEquals(trueExpr, reasoner.getReducedContext());
+		assertEquals(trueExpr, reasoner.getReducedCollapsedContext());
 	}
 
 	/**
@@ -113,7 +113,7 @@ public class IntegerArithmeticReasonDevTest {
 		Reasoner reasoner = universe.reasoner(assumption);
 
 		assertEquals(u, reasoner.simplify(u));
-		assertEquals(falseExpr, reasoner.getReducedContext());
+		assertEquals(falseExpr, reasoner.getReducedCollapsedContext());
 	}
 
 	/**
@@ -133,7 +133,7 @@ public class IntegerArithmeticReasonDevTest {
 		Reasoner reasoner = universe.reasoner(assumption);
 
 		assertEquals(universe.integer(7), reasoner.simplify(read));
-		assertEquals(trueExpr, reasoner.getReducedContext());
+		assertEquals(trueExpr, reasoner.getReducedCollapsedContext());
 	}
 
 	/**

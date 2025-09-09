@@ -18,18 +18,19 @@
  ******************************************************************************/
 package dev.civl.sarl.reason.common;
 
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import dev.civl.sarl.IF.Reasoner;
 import dev.civl.sarl.IF.expr.BooleanExpression;
+import dev.civl.sarl.ideal.IF.IdealFactory;
+import dev.civl.sarl.preuniverse.IF.PreUniverse;
 import dev.civl.sarl.prove.IF.ProverFunctionInterpretation;
 import dev.civl.sarl.prove.IF.TheoremProver;
 import dev.civl.sarl.prove.IF.TheoremProverFactory;
-import dev.civl.sarl.prove.why3.RobustWhy3ProvePlatformFactory;
 import dev.civl.sarl.reason.IF.ReasonerFactory;
-import dev.civl.sarl.simplify.IF.Simplifier;
-import dev.civl.sarl.simplify.IF.SimplifierFactory;
 
 /**
  * Basic factory for producing instances of {@link CommonReasoner}.
@@ -43,7 +44,11 @@ public class CommonReasonerFactory implements ReasonerFactory {
 	 * have at most one {@link Reasoner} for each boolean expression
 	 * ("context").
 	 */
-	private Map<BooleanExpression, Reasoner> reasonerCache = new ConcurrentHashMap<>();
+	private Map<List<BooleanExpression>, Reasoner> reasonerCache = new ConcurrentHashMap<>();
+
+	private PreUniverse universe;
+
+	private IdealFactory idealFactory;
 
 	/**
 	 * The theorem prover factory associated to this reasoner factory. It will
@@ -51,13 +56,6 @@ public class CommonReasonerFactory implements ReasonerFactory {
 	 * new {@link TheoremProver}s as the need arises.
 	 */
 	private TheoremProverFactory proverFactory;
-
-	/**
-	 * The simplifier factory associated to this reasoner factory. It will be
-	 * used by the {@link Reasoner}s produced by this factory to instantiate new
-	 * {@link Simplifier}s as the need arises.
-	 */
-	private SimplifierFactory simplifierFactory;
 
 	/**
 	 * Produces a new {@link CommonReasonerFactory} based on the given
@@ -72,32 +70,36 @@ public class CommonReasonerFactory implements ReasonerFactory {
 	 *            this factory to create new {@link TheoremProver}s when the
 	 *            need arises
 	 */
-	public CommonReasonerFactory(SimplifierFactory simplifierFactory,
-			TheoremProverFactory proverFactory,
-			RobustWhy3ProvePlatformFactory why3Factory) {
+	public CommonReasonerFactory(PreUniverse universe,
+			IdealFactory idealFactory, TheoremProverFactory proverFactory) {
+		this.universe = universe;
+		this.idealFactory = idealFactory;
 		this.proverFactory = proverFactory;
-		this.simplifierFactory = simplifierFactory;
 	}
 
 	@Override
 	public Reasoner getReasoner(BooleanExpression context,
 			boolean useBackwardSubstitution,
 			ProverFunctionInterpretation[] proverPredicates) {
-		Reasoner result = reasonerCache.get(context);
-
-		if (result == null) {
-			Simplifier simplifier = simplifierFactory.newSimplifier(context,
-					useBackwardSubstitution);
-			Reasoner newReasoner = new CommonReasoner(this, simplifier);
-
-			result = reasonerCache.putIfAbsent(context, newReasoner);
-			return result == null ? newReasoner : result;
-		}
-		return result;
+		List<BooleanExpression> contextStack = new ArrayList<>(1);
+		contextStack.add(context);
+		return getReasoner(contextStack, useBackwardSubstitution,
+				proverPredicates);
 	}
 
 	@Override
-	public TheoremProverFactory getTheoremProverFactory() {
-		return proverFactory;
+	public Reasoner getReasoner(List<BooleanExpression> assumptionStack,
+			boolean useBackwardSubstitution,
+			ProverFunctionInterpretation[] proverPredicates) {
+		Reasoner result = reasonerCache.get(assumptionStack);
+
+		if (result == null) {
+			Reasoner newReasoner = new CommonReasoner(universe, idealFactory,
+					proverFactory, this, assumptionStack);
+
+			result = reasonerCache.putIfAbsent(assumptionStack, newReasoner);
+			return result == null ? newReasoner : result;
+		}
+		return result;
 	}
 }

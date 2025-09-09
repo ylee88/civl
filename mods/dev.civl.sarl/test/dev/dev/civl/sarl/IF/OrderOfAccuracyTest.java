@@ -101,7 +101,7 @@ public class OrderOfAccuracyTest {
 				Arrays.asList(jh, jh));
 
 		out.println("Context    : " + context);
-		out.println("Reduced    : " + reasoner.getReducedContext());
+		out.println("Reduced    : " + reasoner.getReducedCollapsedContext());
 		out.println("Expression : " + expr);
 		out.println("Result     : " + result);
 		out.println("Expected   : " + expected);
@@ -152,7 +152,7 @@ public class OrderOfAccuracyTest {
 						universe.multiply(universe.rational(4), h)));
 
 		out.println("Context    : " + context);
-		out.println("Reduced    : " + reasoner.getReducedContext());
+		out.println("Reduced    : " + reasoner.getReducedCollapsedContext());
 		out.println("Expression : " + expr);
 		out.println("Result     : " + result);
 		out.println("Expected   : " + expected);
@@ -209,7 +209,7 @@ public class OrderOfAccuracyTest {
 				h };
 		int[] orders = new int[] { 3 };
 
-		out.println(reasoner.getReducedContext());
+		out.println(reasoner.getReducedCollapsedContext());
 
 		boolean result = reasoner.checkBigOClaim(indexConstraint, lhs,
 				limitVars, orders);

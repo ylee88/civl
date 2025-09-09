@@ -84,14 +84,14 @@ public class SimplifyExpressionTest {
 		BooleanExpression a1 = universe.lessThanEquals(zero, ternary);
 		BooleanExpression and = universe.and(a1, p);
 		Reasoner reasoner = universe.reasoner(and);
-		BooleanExpression context1 = reasoner.getFullContext();
+		BooleanExpression context1 = reasoner.getFullCollapsedContext();
 
 		out.println("context: " + context1);
 		// whatever you get, should be same as assuming x/y>=0 and p.
 
 		Reasoner reasoner2 = universe
 				.reasoner(universe.and(p, universe.lessThanEquals(zero, rat)));
-		BooleanExpression context2 = reasoner2.getFullContext();
+		BooleanExpression context2 = reasoner2.getFullCollapsedContext();
 
 		assertEquals(context2, context1);
 	}
@@ -141,7 +141,7 @@ public class SimplifyExpressionTest {
 		Reasoner reasoner = u.reasoner(context);
 
 		out.println(context);
-		out.println(reasoner.getReducedContext());
+		out.println(reasoner.getReducedCollapsedContext());
 		assertTrue(reasoner.isValid(u.lessThanEquals(u.zeroInt(), X_N)));
 	}
 
@@ -181,8 +181,8 @@ public class SimplifyExpressionTest {
 
 		Reasoner reasoner = universe.reasoner(context);
 
-		out.println("full context    : " + reasoner.getFullContext());
-		out.println("reduced context : " + reasoner.getReducedContext());
+		out.println("full context    : " + reasoner.getFullCollapsedContext());
+		out.println("reduced context : " + reasoner.getReducedCollapsedContext());
 		out.println("SubMap: " + reasoner.constantSubstitutionMap());
 		out.println();
 

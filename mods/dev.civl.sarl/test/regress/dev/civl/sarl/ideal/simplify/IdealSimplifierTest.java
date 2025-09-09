@@ -1,7 +1,7 @@
 package dev.civl.sarl.ideal.simplify;
 
-import static dev.civl.sarl.ideal.simplify.CommonObjects.idealSimplifier;
-import static dev.civl.sarl.ideal.simplify.CommonObjects.idealSimplifierFactory;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.testContext;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.useBackwardSubstitution;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.preUniv;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.rat0;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.rat2;
@@ -10,6 +10,7 @@ import static dev.civl.sarl.ideal.simplify.CommonObjects.ratNeg25;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.trueExpr;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.x;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.xeq5;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.newContext;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -29,7 +30,7 @@ import dev.civl.sarl.IF.expr.NumericExpression;
 import dev.civl.sarl.IF.expr.NumericSymbolicConstant;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.IF.type.SymbolicArrayType;
-import dev.civl.sarl.simplify.IF.Simplifier;
+import dev.civl.sarl.prove.IF.Prove;
 
 /**
  * Testing on IdealSimplifier based on Polynomials using methods -
@@ -42,8 +43,6 @@ import dev.civl.sarl.simplify.IF.Simplifier;
 public class IdealSimplifierTest {
 
 	public final static PrintStream out = System.out;
-
-	private final static boolean useBackwardSubstitution = true;
 
 	private static BooleanExpression boolArg1, boolArg2;
 
@@ -59,7 +58,7 @@ public class IdealSimplifierTest {
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
 		CommonObjects.setUp();
-
+		useBackwardSubstitution = true;
 	}
 
 	/**
@@ -71,27 +70,12 @@ public class IdealSimplifierTest {
 	}
 
 	/**
-	 * Test on IdealSimplifier to check if a exception is thrown and if it is
-	 * the correct one.
-	 */
-	@Test(expected = NullPointerException.class)
-	public void getFullContextTextTestnull() {
-
-		idealSimplifier = idealSimplifierFactory.newSimplifier(null,
-				useBackwardSubstitution);
-		BooleanExpression boolNull = idealSimplifier.getFullContext();
-		assertEquals(null, boolNull);
-
-	}
-
-	/**
 	 * Test on IdealSimplifier to get full context
 	 */
 	public void getFullContextTextTestTrivial() {
 
-		idealSimplifier = idealSimplifierFactory.newSimplifier(xeq5,
-				useBackwardSubstitution);
-		BooleanExpression boolXEq5 = idealSimplifier.getFullContext();
+		testContext = newContext(xeq5);
+		BooleanExpression boolXEq5 = testContext.getFullAssumption();
 		assertEquals(xeq5, boolXEq5);
 
 	}
@@ -100,10 +84,8 @@ public class IdealSimplifierTest {
 	 * Test on IdealSimplifier to get full context
 	 */
 	public void getFullContextTestTrivial1() {
-		boolArg1 = preUniv.lessThanEquals(rat25, preUniv.multiply(x, x));
-		Simplifier simpEq1 = idealSimplifierFactory.newSimplifier(boolArg1,
-				useBackwardSubstitution);
-		BooleanExpression boolSimpEq1 = simpEq1.getFullContext();
+		testContext = newContext(preUniv.lessThanEquals(rat25, preUniv.multiply(x, x)));
+		BooleanExpression boolSimpEq1 = testContext.getFullAssumption();
 		assertEquals(
 				preUniv.lessThanEquals(rat0,
 						preUniv.add(ratNeg25, preUniv.multiply(x, x))),
@@ -115,32 +97,10 @@ public class IdealSimplifierTest {
 	 */
 	public void getFullContextTestTrivial2() {
 		boolArg2 = preUniv.lessThanEquals(rat2, preUniv.multiply(x, x));
-		Simplifier simpEq2 = idealSimplifierFactory.newSimplifier(boolArg2,
-				useBackwardSubstitution);
-		BooleanExpression boolSimpEq2 = simpEq2.getFullContext();
+		testContext = newContext(boolArg2);
+		BooleanExpression boolSimpEq2 = testContext.getFullAssumption();
 		assertEquals(boolArg2, boolSimpEq2);
 	}
-	/*
-	 * @Test public void getFullReducedQuadTest(){ boolArg1 =
-	 * preUniv.lessThanEquals(twenty_five, xpyInt); boolArg2 =
-	 * preUniv.lessThan(five, yInt);
-	 * 
-	 * //IdealSimplifier idealSimp1 =
-	 * idealSimplifierFactory.newSimplifier(boolArg1); //IdealSimplifier
-	 * idealSimp2 = idealSimplifierFactory.newSimplifier(boolArg2);
-	 * 
-	 * 
-	 * //BooleanExpression boolExpr1 = idealSimp1.getReducedContext();
-	 * //BooleanExpression boolExpr2 = idealSimp2.getReducedContext();
-	 * 
-	 * assumption = preUniv.equals(boolArg1, boolArg2); idealSimplifier =
-	 * idealSimplifierFactory.newSimplifier(assumption); BooleanExpression
-	 * boolExpr = idealSimplifier.getFullContext();
-	 * 
-	 * assertEquals(boolArg1,boolExpr);
-	 * 
-	 * }
-	 */
 
 	/**
 	 * Test on IdealSimplifier to get reduced context
@@ -148,16 +108,13 @@ public class IdealSimplifierTest {
 
 	@Test
 	public void getReducedContextTest() {
-		CommonObjects.setUp();
-		idealSimplifier = idealSimplifierFactory.newSimplifier(trueExpr,
-				useBackwardSubstitution);
-		BooleanExpression boolTrue = idealSimplifier.getReducedContext();
+		testContext = newContext(trueExpr);
+		BooleanExpression boolTrue = testContext.getReducedAssumption();
 		assertEquals(trueExpr, boolTrue);
 
 		boolArg2 = preUniv.lessThanEquals(rat2, preUniv.multiply(x, x));
-		Simplifier simpEq2 = idealSimplifierFactory.newSimplifier(boolArg2,
-				useBackwardSubstitution);
-		BooleanExpression boolSimpEq2 = simpEq2.getReducedContext();
+		testContext = newContext(boolArg2);
+		BooleanExpression boolSimpEq2 = testContext.getReducedAssumption();
 		assertEquals(boolArg2, boolSimpEq2);
 	}
 
@@ -256,7 +213,7 @@ public class IdealSimplifierTest {
 
 		BooleanExpression context = universe.and(assumption, pred);
 		Reasoner reasoner = universe.reasoner(context);
-		BooleanExpression p = reasoner.getReducedContext();
+		BooleanExpression p = reasoner.getReducedCollapsedContext();
 		out.println("p  : " + p);
 		BooleanExpression neg = universe.not(p);
 		out.println("!p : " + neg);
@@ -296,7 +253,7 @@ public class IdealSimplifierTest {
 		falseExpr = universe.and(falseExpr,
 				universe.lessThanEquals(universe.oneInt(), old_Y2));
 		falseExpr = universe.reasoner(universe.not(falseExpr))
-				.getReducedContext();
+				.getReducedCollapsedContext();
 		System.err.println("!" + falseExpr + " = " + universe.not(falseExpr));
 		// at another state:
 		/*
@@ -381,7 +338,7 @@ public class IdealSimplifierTest {
 		BooleanExpression pSimp = reasoner.simplify(p);
 
 		out.println("Original Assumption: " + context);
-		out.println("Full Context       : " + reasoner.getFullContext());
+		out.println("Full Context       : " + reasoner.getFullCollapsedContext());
 		out.println("p                  : " + p);
 		out.println("pSimp              : " + pSimp);
 
@@ -448,7 +405,7 @@ public class IdealSimplifierTest {
 		// context shall not contain Y4 neither:
 		if (!reasoner.simplify(Y4).getFreeVars().contains(Y4)) {
 			assertTrue(
-					!reasoner.getReducedContext().getFreeVars().contains(Y4));
+					!reasoner.getReducedCollapsedContext().getFreeVars().contains(Y4));
 		}
 
 	}

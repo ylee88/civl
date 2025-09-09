@@ -1,4 +1,4 @@
-/* Verifiable!
+/* Verifiable with -memeq but fails without. TODO: Figure out what the discrepency is.
  */
 #include <stdlib.h>
 #include <assert.h>
@@ -19,14 +19,14 @@ int main()
 	int k;
 	int i;
 
-  //@ transform flatten I;
+  //@ focus I;
 	for (i  = 0; i<N ; i++)
 	{
 		a[i] = i; 
 		b[i] = i ;
 	}
 
-  //@ transform flatten I;
+  //@ focus I;
 	for (i=0; i< N; i++)
 	{
 		if(__VERIFIER_nondet_short())
@@ -38,7 +38,7 @@ int main()
 	}
 
   // Modified
-  //@ transform flatten I;
+  //@ focus I;
   $assert($forall(int i:0..N-1) a[i] == b[i] || b[i] == a[i] * a[i]);
   // Original
   /*

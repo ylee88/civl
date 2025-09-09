@@ -1,23 +1,14 @@
 package dev.civl.sarl.simplify.simplification;
 
-import java.util.HashSet;
-
-import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
-import dev.civl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
-import dev.civl.sarl.simplify.simplifier.Context;
-import dev.civl.sarl.simplify.simplifier.ContextExtractor;
-import dev.civl.sarl.simplify.simplifier.IdealSimplifierWorker;
-import dev.civl.sarl.simplify.simplifier.InconsistentContextException;
 
+@Deprecated
 public class NumericOrSimplification extends Simplification {
 
-	public NumericOrSimplification(IdealSimplifierWorker worker) {
-		super(worker);
-	}
-
 	@Override
-	public SymbolicExpression apply(SymbolicExpression x) {
+	protected SymbolicExpression apply(SymbolicExpression x) {
+		return x;
+		/*
 		if (x.operator() != SymbolicOperator.OR)
 			return x;
 
@@ -37,11 +28,7 @@ public class NumericOrSimplification extends Simplification {
 		else
 			result = expr;
 		return result;
-	}
-
-	@Override
-	public SimplificationKind kind() {
-		return SimplificationKind.NUMERIC_OR;
+		*/
 	}
 
 }

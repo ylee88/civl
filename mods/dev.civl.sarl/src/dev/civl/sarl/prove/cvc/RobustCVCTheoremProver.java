@@ -134,11 +134,6 @@ public class RobustCVCTheoremProver implements TheoremProver {
 		this.processBuilder = new ProcessBuilder(command);
 	}
 
-	@Override
-	public PreUniverse universe() {
-		return universe;
-	}
-
 	private ValidityResult readCVCOutput(BufferedReader cvcOut,
 			BufferedReader cvcErr) {
 		try {

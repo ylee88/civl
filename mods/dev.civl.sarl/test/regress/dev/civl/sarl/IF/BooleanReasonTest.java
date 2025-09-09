@@ -411,7 +411,7 @@ public class BooleanReasonTest {
 
 		Reasoner reasoner = universe.reasoner(context);
 
-		reasoner.getFullContext();
+		reasoner.getFullCollapsedContext();
 	}
 
 	/**

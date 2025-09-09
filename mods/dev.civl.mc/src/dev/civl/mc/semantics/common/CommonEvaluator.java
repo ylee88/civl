@@ -462,6 +462,9 @@ public class CommonEvaluator implements Evaluator {
 			boolean muteErrorSideEffects)
 			throws UnsatisfiablePathConditionException {
 		SymbolicExpression deref;
+		
+		Reasoner reasoner = universe.reasoner(state.getPathCondition(universe));
+		pointer = reasoner.simplify(pointer);
 
 		// C11 6.5.3.2: If an invalid value has been assigned to the
 		// pointer, the behavior of the unary * operator is undefined.
@@ -603,7 +606,7 @@ public class CommonEvaluator implements Evaluator {
 				errorLogger.logSimpleError(source, state, pid, process,
 						symbolicAnalyzer.stateInformation(state),
 						CIVLProperty.UNDEFINED_VALUE,
-						"attempt to deference a pointer that is not concrete.\n"
+						"attempt to dereference a pointer that is not concrete.\n"
 								+ "pointer value: " + pointer);
 			throwPCException = true;
 		} else if (symbolicUtil.isNullPointer(pointer)) {
@@ -612,7 +615,7 @@ public class CommonEvaluator implements Evaluator {
 				errorLogger.logSimpleError(source, state, pid, process,
 						this.symbolicAnalyzer.stateInformation(state),
 						CIVLProperty.DEREFERENCE,
-						"attempt to deference a null pointer");
+						"attempt to dereference a null pointer");
 			throwPCException = true;
 		} else {
 			int sid = stateFactory

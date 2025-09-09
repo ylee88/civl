@@ -100,6 +100,14 @@ $atomic_f $system _Bool $mem_equals($mem m0, $mem m1);
   @*/
 $atomic_f $system _Bool $mem_contains($mem super, $mem sub);
 
+/* Returns the mem object which represents the set of memory locations in the
+   set difference of mem0 and mem1 (the set of memory locations contained in
+   mem0 but not contained in mem1). */
+/*@ depends_on \nothing;
+  @ executes_when \true;
+  @*/
+$atomic_f $system $mem $mem_diff($mem mem0, $mem mem1);
+
 /* Tests if two $mem objects have no overlap. Returns the condition that is
    true iff the two $mem objects have no overlap.
    
@@ -161,5 +169,10 @@ $atomic_f $system $mem $mem_unary_widening($mem m);
   @ executes_when \true;
   @*/
 $atomic_f $system void $mem_assign_from($state s, $mem m);
+
+/*@ depends_on \nothing;
+  @ executes_when \true;
+  @*/
+$system $mem $mem_protective_widening($mem m, $mem p);
 
 #endif

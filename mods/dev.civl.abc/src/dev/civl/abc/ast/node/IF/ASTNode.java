@@ -1,6 +1,7 @@
 package dev.civl.abc.ast.node.IF;
 
 import java.io.PrintStream;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 import dev.civl.abc.ast.IF.AST;
@@ -9,6 +10,7 @@ import dev.civl.abc.ast.IF.ASTFactory;
 import dev.civl.abc.ast.IF.DifferenceObject;
 import dev.civl.abc.ast.entity.IF.Scope;
 import dev.civl.abc.ast.node.IF.acsl.ContractNode;
+import dev.civl.abc.ast.node.IF.acsl.TransformNode;
 import dev.civl.abc.ast.node.IF.compound.ArrayDesignatorNode;
 import dev.civl.abc.ast.node.IF.compound.DesignationNode;
 import dev.civl.abc.ast.node.IF.compound.FieldDesignatorNode;
@@ -539,6 +541,15 @@ public interface ASTNode {
 	 *            the scope
 	 */
 	void setScope(Scope scope);
+	
+	
+	void addTransformAnnotation(TransformNode transform);
+	
+	void removeTransformAnnotation(int index);
+	
+	void addAllTransformAnnotations(List<TransformNode> transforms);
+	
+	List<TransformNode> transformAnnotations();
 
 	/**
 	 * Is the given AST node equivalent to me?

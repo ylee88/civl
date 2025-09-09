@@ -201,7 +201,7 @@ public class Z3Translator {
 	 * Map from SARL symbolic constants to corresponding Z3 expressions. Entries
 	 * are a subset of those of {@link #expressionMap}.
 	 */
-	private Map<SymbolicConstant, FastList<String>> variableMap;
+	private Set<String> variableMap;
 
 	/**
 	 * Mapping of SARL symbolic type to corresponding Z3 type. Used to cache
@@ -290,7 +290,7 @@ public class Z3Translator {
 		this.sarlAuxVarCount = 0;
 		this.expressionMap = new HashMap<>();
 		this.castMap = new HashMap<>();
-		this.variableMap = new HashMap<>();
+		this.variableMap = new HashSet<>();
 		this.typeMap = new HashMap<>();
 		this.functionSet = new HashSet<>();
 		this.z3Declarations = new FastList<>();
@@ -313,7 +313,7 @@ public class Z3Translator {
 		this.typeMap = new HashMap<>(startingContext.typeMap);
 		this.functionSet = new HashSet<>(startingContext.functionSet);
 		this.expressionMap = new HashMap<>(startingContext.expressionMap);
-		this.variableMap = new HashMap<>(startingContext.variableMap);
+		this.variableMap = new HashSet<>(startingContext.variableMap);
 		if (theExpression.size() >= FULL_EXPR_SIZE_THRESHOLD
 				|| startingContext.subExpressionBindings != null) {
 			this.subExpressionsBindingNames = new HashMap<>();
@@ -793,7 +793,7 @@ public class Z3Translator {
 			z3Declarations.append(functionDeclaration(name,
 					(SymbolicFunctionType) symbolicType));
 		} else {
-			if (!isBoundVariable) {
+			if (!isBoundVariable && !variableMap.contains(name)) {
 				FastList<String> z3Type = translateType(symbolicType);
 
 				z3Declarations.addAll("(declare-const ", name, " ");
@@ -801,7 +801,7 @@ public class Z3Translator {
 				z3Declarations.add(")\n");
 			}
 		}
-		this.variableMap.put(symbolicConstant, result); // currently not used
+		this.variableMap.add(name);
 		this.expressionMap.put(symbolicConstant, result);
 		return result.clone();
 	}

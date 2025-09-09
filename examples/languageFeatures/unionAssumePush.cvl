@@ -1,0 +1,13 @@
+#include <mem.cvh>
+
+$input int N;
+$assume(N > 0);
+int a[N];
+
+int main() {
+  $mem y = &a;
+  $assume_push(N == 1);
+  $mem x = &a;
+  $assume_pop();
+  $mem z = $mem_union(x, y);
+}

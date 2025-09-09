@@ -16,7 +16,8 @@ import dev.civl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
 import dev.civl.sarl.IF.object.SymbolicObject;
 import dev.civl.sarl.expr.IF.BooleanExpressionFactory;
 import dev.civl.sarl.preuniverse.IF.PreUniverse;
-import dev.civl.sarl.simplify.simplifier.Context;
+import dev.civl.sarl.simplify.simplification.Strategy;
+import dev.civl.sarl.simplify.simplifier.MutableContext;
 import dev.civl.sarl.simplify.simplifier.ContextExtractor;
 import dev.civl.sarl.simplify.simplifier.InconsistentContextException;
 import dev.civl.sarl.simplify.simplifier.SimplifierUtility;
@@ -30,7 +31,7 @@ public class MultiOrNormalizer implements Normalizer {
 	/**
 	 * The context being simplified.
 	 */
-	private Context context;
+	private MutableContext context;
 
 	/**
 	 * A reference to {@link #PreUniverse}
@@ -41,7 +42,7 @@ public class MultiOrNormalizer implements Normalizer {
 
 	private BooleanExpression trueExpr;
 
-	public MultiOrNormalizer(Context context) {
+	public MultiOrNormalizer(MutableContext context) {
 		this.context = context;
 		this.universe = context.getInfo().getUniverse();
 		this.booleanFactory = context.getInfo().getBooleanFactory();
@@ -149,7 +150,7 @@ public class MultiOrNormalizer implements Normalizer {
 
 		// Try to simplify r0...
 		// TODO: consider assuming !commonPart in a sub-context first
-		BooleanExpression r1 = (BooleanExpression) context.simplify(r0);
+		BooleanExpression r1 = (BooleanExpression) context.simplify(r0, Strategy.standardStrategy());
 
 		if (r0 == r1) {
 			// put them back, nothing is dirty

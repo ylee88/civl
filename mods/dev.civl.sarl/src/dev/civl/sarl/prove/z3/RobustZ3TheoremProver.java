@@ -147,11 +147,6 @@ public class RobustZ3TheoremProver implements TheoremProver {
 		this.processBuilder = new ProcessBuilder(command);
 	}
 
-	@Override
-	public PreUniverse universe() {
-		return universe;
-	}
-
 	// a little different: checking sat or unsat
 	private ValidityResult readZ3Output(BufferedReader z3Out,
 			BufferedReader z3Err) {

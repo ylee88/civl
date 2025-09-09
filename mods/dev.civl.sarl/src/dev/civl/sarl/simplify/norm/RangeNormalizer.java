@@ -15,7 +15,8 @@ import dev.civl.sarl.ideal.IF.Monic;
 import dev.civl.sarl.ideal.IF.Monomial;
 import dev.civl.sarl.simplify.IF.Range;
 import dev.civl.sarl.simplify.IF.RangeFactory;
-import dev.civl.sarl.simplify.simplifier.Context;
+import dev.civl.sarl.simplify.simplification.Strategy;
+import dev.civl.sarl.simplify.simplifier.MutableContext;
 import dev.civl.sarl.simplify.simplifier.ContextExtractor;
 import dev.civl.sarl.simplify.simplifier.InconsistentContextException;
 import dev.civl.sarl.simplify.simplifier.SimplifierUtility;
@@ -23,7 +24,7 @@ import dev.civl.sarl.util.Pair;
 import dev.civl.sarl.util.WorkMap;
 
 /**
- * Normalizes the range map of a {@link Context}.
+ * Normalizes the range map of a {@link MutableContext}.
  * 
  * @author siegel
  */
@@ -39,8 +40,8 @@ public class RangeNormalizer implements Normalizer {
 	 */
 	public final static PrintStream out = System.out;
 
-	/** The {@link Context} that is being normalized. */
-	private Context context;
+	/** The {@link MutableContext} that is being normalized. */
+	private MutableContext context;
 
 	/** A reference to the context's range map. */
 	private WorkMap<Monic, Range> rangeMap;
@@ -49,7 +50,7 @@ public class RangeNormalizer implements Normalizer {
 
 	private SimplifierUtility info;
 
-	public RangeNormalizer(Context context) {
+	public RangeNormalizer(MutableContext context) {
 		this.context = context;
 		this.rangeMap = context.getRangeMap();
 		this.info = context.getInfo();
@@ -159,7 +160,7 @@ public class RangeNormalizer implements Normalizer {
 			throws InconsistentContextException {
 		Monic oldKey = entry.getKey();
 		NumericExpression simpKey = (NumericExpression) context
-				.simplify(oldKey);
+				.simplify(oldKey, Strategy.standardStrategy());
 		Range oldRange = entry.getValue();
 
 		if (simpKey instanceof Constant) {
@@ -208,8 +209,6 @@ public class RangeNormalizer implements Normalizer {
 		rangeMap.makeAllDirty(); // put everything on the work list
 		for (Entry<Monic, Range> oldEntry = rangeMap
 				.hold(); oldEntry != null; oldEntry = rangeMap.hold()) {
-			context.clearSimplifications();
-
 			boolean change = processEntry(oldEntry, dirtyOut);
 
 			if (!change)

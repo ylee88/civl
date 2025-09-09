@@ -18,9 +18,11 @@
  ******************************************************************************/
 package dev.civl.sarl.IF;
 
+import java.util.List;
 import dev.civl.sarl.IF.ValidityResult.ResultType;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.NumericExpression;
+import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.IF.number.Number;
 import dev.civl.sarl.IF.object.SymbolicObject;
 import dev.civl.sarl.IF.type.SymbolicType;
@@ -67,6 +69,8 @@ public interface SymbolicUniverse extends CoreUniverse {
 	 */
 	Reasoner reasoner(BooleanExpression context);
 
+	Reasoner reasoner(List<BooleanExpression> contextStack);
+
 	/**
 	 * Attempts to extract a concrete numeric value from the given expression,
 	 * using the assumption if necessary to simplify the expression. For
@@ -84,6 +88,30 @@ public interface SymbolicUniverse extends CoreUniverse {
 			NumericExpression expression);
 
 	/**
+	 * <p>
+	 * Apply a default widening operator to the value set references in the
+	 * given value set template.
+	 * </p>
+	 * 
+	 * @param context
+	 *            the context (path condition) in which this widen is being
+	 *            applied
+	 * @param vst
+	 *            a value set template
+	 * @return the value set template after being applied the default widening
+	 *         operator
+	 */
+	SymbolicExpression valueSetWidening(BooleanExpression context,
+			SymbolicExpression vst);
+
+	SymbolicExpression valueSetProtectiveWidening(BooleanExpression context,
+			SymbolicExpression vstM, SymbolicExpression vstP);
+
+	SymbolicExpression valueSetElimWidening(BooleanExpression context,
+			SymbolicExpression vst, SymbolicExpression elimExpr,
+			SymbolicExpression lower, SymbolicExpression upper);
+
+	/**
 	 * Same as {@link #reasoner(BooleanExpression, boolean)} but only Why3 prove
 	 * platform will be used if it is installed. If Why3 is not installed, this
 	 * function is equivalent to {@link #reasoner(BooleanExpression, boolean)}
@@ -91,6 +119,9 @@ public interface SymbolicUniverse extends CoreUniverse {
 	 * @param context
 	 *            a non-<code>null</code> boolean expression to be used as the
 	 *            context for the {@link Reasoner}
+	 * @param simplifyWithTrivialProver
+	 *            whether expresion simplification should use a
+	 *            {@link TrivialProver}.
 	 * @return a {@link Reasoner} based on the given <code>context</code>
 	 */
 	Reasoner why3Reasoner(BooleanExpression context);

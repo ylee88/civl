@@ -1,9 +1,12 @@
 package dev.civl.sarl.simplify.common;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -30,7 +33,9 @@ public class CommonContextPartition implements ContextPartition {
 	 * clauses. It is possible for there to be 0 classes: this happens iff the
 	 * context is "true".
 	 */
-	private BooleanExpression[] classes;
+	private List<List<BooleanExpression>> stackClasses;
+
+	private int stackSize;
 
 	/**
 	 * Maps each symbolic constant X to the index of the equivalence class to
@@ -44,59 +49,7 @@ public class CommonContextPartition implements ContextPartition {
 	/**
 	 * Cached results of {@link #minimizeFor(SymbolicExpression, PreUniverse)}.
 	 */
-	private Map<SymbolicExpression, BooleanExpression> minimalContextMap = new HashMap<>();
-
-	// /**
-	// * Given a boolean-valued symbolic expression <code>boolExpr</code>,
-	// returns
-	// * a sequence of boolean expressions whose conjunction is equivalent to
-	// * <code>boolExpr</code>. The decomposition should be highly non-trivial
-	// in
-	// * general, and this method should be efficient.
-	// *
-	// * @param boolExpr
-	// * a boolean symbolic expression (non-<code>null</code>)
-	// * @return sequence of symbolic expressions whose conjunction is
-	// equivalent
-	// * to <code>boolExpr</code>
-	// */
-	// private static BooleanExpression[] getClauses(BooleanExpression boolExpr)
-	// {
-	// SymbolicOperator operator = boolExpr.operator();
-	//
-	// if (operator == SymbolicOperator.AND) {
-	// int numChildren = boolExpr.numArguments();
-	// BooleanExpression[] clauses;
-	//
-	// if (numChildren == 1) {
-	// SymbolicCollection<?> collection = (SymbolicCollection<?>) boolExpr
-	// .argument(0);
-	// int count = 0;
-	//
-	// clauses = new BooleanExpression[collection.size()];
-	// for (SymbolicExpression expr : collection) {
-	// clauses[count] = (BooleanExpression) expr;
-	// count++;
-	// }
-	// } else if (numChildren == 2) {
-	// ArrayList<BooleanExpression> clauseList = new ArrayList<>();
-	//
-	// for (int i = 0; i < 2; i++) {
-	// for (BooleanExpression b : getClauses((BooleanExpression) boolExpr
-	// .argument(i))) {
-	// clauseList.add(b);
-	// }
-	// }
-	// clauses = new BooleanExpression[clauseList.size()];
-	// clauseList.toArray(clauses);
-	// } else {
-	// throw new RuntimeException("unreachable");
-	// }
-	// return clauses;
-	// } else {
-	// return new BooleanExpression[] { boolExpr };
-	// }
-	// }
+	private Map<SymbolicExpression, List<BooleanExpression>> minimalContextMap = new HashMap<>();
 
 	/**
 	 * A class to use for temporary storage of data while the partition of the
@@ -118,7 +71,7 @@ public class CommonContextPartition implements ContextPartition {
 		 * The indexes of the clauses that comprise this partition. The clauses
 		 * will be numbered from 0.
 		 */
-		BitSet clauses;
+		List<BitSet> clausesStack;
 
 		/**
 		 * When the algorithm completes, the final set of partitions will form
@@ -133,8 +86,11 @@ public class CommonContextPartition implements ContextPartition {
 		 * @param numClauses
 		 *            the number of clauses this partition will deal with
 		 */
-		public Partition(int numClauses) {
-			clauses = new BitSet(numClauses);
+		public Partition(List<List<BooleanExpression>> clausesStack) {
+			this.clausesStack = new ArrayList<>(clausesStack.size());
+			for (List<BooleanExpression> subClauses : clausesStack) {
+				this.clausesStack.add(new BitSet(subClauses.size()));
+			}
 		}
 	}
 
@@ -145,92 +101,110 @@ public class CommonContextPartition implements ContextPartition {
 	 * information for later use in variables <code>classes</code> and
 	 * <code>partitionMap</code>.
 	 * 
-	 * @param context
+	 * @param contextStack
 	 *            a non-<code>null</code> boolean expression (typically the path
 	 *            condition)
 	 */
-	public CommonContextPartition(BooleanExpression context,
+	public CommonContextPartition(List<BooleanExpression> contextStack,
 			PreUniverse universe) {
-		BooleanExpression[] clauses = context.getClauses();
-		int numClauses = clauses.length;
+		stackSize = contextStack.size();
+		assert stackSize > 0;
+
 		Map<SymbolicConstant, Partition> pMap = new HashMap<>();
 		int numClasses = 0;
-
-		if (debug) {
-			System.out.println("Forming partition for: " + context);
+		List<List<BooleanExpression>> clausesStack = new ArrayList<>(stackSize);
+		for (BooleanExpression subContext : contextStack) {
+			clausesStack.add(Arrays.asList(subContext.getClauses()));
 		}
 
-		for (int i = 0; i < numClauses; i++) {
-			BooleanExpression clause = clauses[i];
-			// the partition containing this clause:
-			Partition partition = null;
-			Collection<SymbolicConstant> vars = universe
-					.getFreeSymbolicConstants(clause);
+		for (int i = 0; i < stackSize; i++) {
+			List<BooleanExpression> subClauses = clausesStack.get(i);
+			int numClauses = subClauses.size();
 
-			/*
-			 * Loop invariant: partition == null or parition.clauses contains i.
-			 * 
-			 * For all symbolic constants v, Partitions p: v is contained in
-			 * p.vars iff pMap.get(v)==p.
-			 * 
-			 * partition starts out null, but is set to something not null in
-			 * the first iteration, i.e., in processing the first symbolic
-			 * constant to occur in the clause
-			 */
-			for (SymbolicConstant var : vars) {
-				Partition oldPartition = pMap.get(var);
+			for (int j = 0; j < numClauses; j++) {
+				BooleanExpression clause = subClauses.get(j);
+				// the partition containing this clause:
+				Partition partition = null;
+				Collection<SymbolicConstant> vars = universe
+						.getFreeSymbolicConstants(clause);
 
-				if (oldPartition == null) {
-					// first time we've encountered var
-					// put var in the current partition
-					if (partition == null) {
-						// current clause not in any partition yet
-						partition = new Partition(numClauses);
-						numClasses++;
-						partition.clauses.set(i);
-					}
-					partition.vars.add(var);
-					pMap.put(var, partition);
-				} else {
-					assert oldPartition.vars.contains(var);
-					if (partition == null) {
-						// current clause not in any partition yet
-						partition = oldPartition;
-						partition.clauses.set(i);
-					} else if (partition != oldPartition) {
-						// merge partition and oldPartition:
-						for (SymbolicConstant oldVar : oldPartition.vars)
-							pMap.put(oldVar, partition);
-						partition.vars.addAll(oldPartition.vars);
-						partition.clauses.or(oldPartition.clauses);
-						numClasses--;
-						// oldPartition can now get swept up by garb. col.
+				/*
+				 * Loop invariant: partition == null or parition.clauses
+				 * contains i.
+				 * 
+				 * For all symbolic constants v, Partitions p: v is contained in
+				 * p.vars iff pMap.get(v)==p.
+				 * 
+				 * partition starts out null, but is set to something not null
+				 * in the first iteration, i.e., in processing the first
+				 * symbolic constant to occur in the clause
+				 */
+				for (SymbolicConstant var : vars) {
+					Partition oldPartition = pMap.get(var);
+
+					if (oldPartition == null) {
+						// first time we've encountered var
+						// put var in the current partition
+						if (partition == null) {
+							// current clause not in any partition yet
+							partition = new Partition(clausesStack);
+							numClasses++;
+							partition.clausesStack.get(i).set(j);
+						}
+						partition.vars.add(var);
+						pMap.put(var, partition);
+					} else {
+						assert oldPartition.vars.contains(var);
+						if (partition == null) {
+							// current clause not in any partition yet
+							partition = oldPartition;
+							partition.clausesStack.get(i).set(j);
+						} else if (partition != oldPartition) {
+							// merge partition and oldPartition:
+							for (SymbolicConstant oldVar : oldPartition.vars)
+								pMap.put(oldVar, partition);
+							partition.vars.addAll(oldPartition.vars);
+							for (int k = 0; k < stackSize; k++)
+								partition.clausesStack.get(k)
+										.or(oldPartition.clausesStack.get(k));
+							numClasses--;
+							// oldPartition can now get swept up by garb. col.
+						}
 					}
 				}
 			}
 		}
 
-		this.classes = new BooleanExpression[numClasses];
+		this.stackClasses = new ArrayList<>(numClasses);
 		int classId = 0;
 
 		for (Entry<SymbolicConstant, Partition> entry : pMap.entrySet()) {
 			SymbolicConstant var = entry.getKey();
 			Partition partition = entry.getValue();
-			BitSet bitSet = partition.clauses;
-			int id = partition.id;
 
-			if (id < 0) {
-				id = partition.id = classId;
-				BooleanExpression newClass = universe.trueExpression();
+			if (partition.id < 0) {
+				List<BooleanExpression> newStackClass = new ArrayList<>(
+						stackSize);
 
-				for (int i = bitSet.nextSetBit(0); i >= 0; i = bitSet
-						.nextSetBit(i + 1)) {
-					newClass = universe.and(newClass, clauses[i]);
+				for (int i = 0; i < stackSize; i++) {
+					List<BooleanExpression> originalSubClauses = clausesStack
+							.get(i);
+					BooleanExpression newSubContext = universe.trueExpression();
+					BitSet bitSet = partition.clausesStack.get(i);
+
+					for (int j = bitSet.nextSetBit(0); j >= 0; j = bitSet
+							.nextSetBit(j + 1)) {
+						newSubContext = universe.and(newSubContext,
+								originalSubClauses.get(j));
+					}
+					newStackClass.add(newSubContext);
 				}
-				classes[classId] = newClass;
+
+				stackClasses.add(newStackClass);
+				partition.id = classId;
 				classId++;
 			}
-			this.partitionMap.put(var, id);
+			this.partitionMap.put(var, partition.id);
 		}
 		if (debug) {
 			System.out.println(this);
@@ -254,16 +228,13 @@ public class CommonContextPartition implements ContextPartition {
 	 *         <code>expr</code>
 	 */
 	@Override
-	public BooleanExpression minimizeFor(SymbolicExpression expr,
+	public List<BooleanExpression> minimizeFor(SymbolicExpression expr,
 			PreUniverse universe) {
-		BooleanExpression result = minimalContextMap.get(expr);
+		List<BooleanExpression> result = minimalContextMap.get(expr);
 
 		if (result == null) {
 			Set<SymbolicConstant> vars = universe
 					.getFreeSymbolicConstants(expr);
-
-			// TODO: also need free symbolic constants occurring in the
-			// expr.type()???? the method above should do that.
 
 			Set<Integer> resultClasses = new HashSet<>();
 
@@ -274,10 +245,17 @@ public class CommonContextPartition implements ContextPartition {
 					resultClasses.add(classId);
 			}
 
-			result = universe.trueExpression();
+			result = new ArrayList<>(stackSize);
+			for (int i = 0; i < stackSize; i++) {
+				result.add(universe.trueExpression());
+			}
 
 			for (int classId : resultClasses) {
-				result = universe.and(result, classes[classId]);
+				List<BooleanExpression> stackClass = stackClasses.get(classId);
+				for (int i = 0; i < stackSize; i++) {
+					result.set(i,
+							universe.and(result.get(i), stackClass.get(i)));
+				}
 			}
 			if (debug) {
 				System.out.println("Context minimization: ");
@@ -295,10 +273,14 @@ public class CommonContextPartition implements ContextPartition {
 	public String toString() {
 		StringBuffer buf = new StringBuffer();
 
-		for (int i = 0; i < classes.length; i++) {
-			buf.append("Class " + i + ": ");
-			buf.append(classes[i]);
-			buf.append("\n");
+		for (int i = stackSize - 1; i >= 0; i++) {
+			buf.append("Partition Stack Entry " + i + ":\n");
+			for (int j = 0; j < stackClasses.get(j).size(); j++) {
+				BooleanExpression classSubContext = stackClasses.get(j).get(i);
+				buf.append("Class " + j + ": ");
+				buf.append(classSubContext);
+				buf.append("\n");
+			}
 		}
 		return buf.toString();
 	}

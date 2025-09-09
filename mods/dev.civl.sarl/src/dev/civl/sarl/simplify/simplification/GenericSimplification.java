@@ -1,102 +1,13 @@
 package dev.civl.sarl.simplify.simplification;
 
-import dev.civl.sarl.IF.SARLInternalException;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
 import dev.civl.sarl.IF.object.SymbolicObject;
 import dev.civl.sarl.IF.object.SymbolicObject.SymbolicObjectKind;
-import dev.civl.sarl.IF.object.SymbolicSequence;
 import dev.civl.sarl.IF.type.SymbolicType;
-import dev.civl.sarl.IF.type.SymbolicTypeSequence;
 import dev.civl.sarl.preuniverse.IF.PreUniverse;
-import dev.civl.sarl.simplify.simplifier.IdealSimplifierWorker;
-import dev.civl.sarl.simplify.simplifier.SimplifierUtility;
 
 public class GenericSimplification extends Simplification {
-
-	public GenericSimplification(IdealSimplifierWorker worker) {
-		super(worker);
-	}
-
-	/**
-	 * Performs the work necessary for simplifying a sequence of symbolic
-	 * expressions. The result is obtained by simplifying each component
-	 * individually.
-	 * 
-	 * @param sequence
-	 *            any canonic symbolic expression sequence
-	 * @return the simplified sequence
-	 */
-	private SymbolicSequence<?> simplifySequenceWork(
-			SymbolicSequence<?> sequence) {
-		int size = sequence.size();
-		SymbolicSequence<?> result = sequence;
-
-		for (int i = 0; i < size; i++) {
-			SymbolicExpression oldElement = sequence.get(i);
-			SymbolicExpression newElement = simplifyExpression(oldElement);
-
-			if (newElement != oldElement) {
-				SymbolicExpression[] newElements = new SymbolicExpression[size];
-
-				for (int j = 0; j < i; j++)
-					newElements[j] = sequence.get(j);
-				newElements[i] = newElement;
-				for (int j = i + 1; j < size; j++)
-					newElements[j] = simplifyExpression(sequence.get(j));
-				result = universe().objectFactory().sequence(newElements);
-				break;
-			}
-		}
-		return result;
-	}
-
-	/**
-	 * Performs the work necessary to simplify a non-simple symbolic object.
-	 * This just redirects to the appropriate specific method, such as
-	 * {@link #simplifySequenceWork(SymbolicSequence)},
-	 * {@link #simplifyTypeWork(SymbolicType)}, etc.
-	 * 
-	 * @param object
-	 *            a non-null non-simple symbolic object
-	 * @return the simplified version of that object
-	 */
-	private SymbolicObject simplifyObjectWork(SymbolicObject object) {
-		switch (object.symbolicObjectKind()) {
-		case EXPRESSION:
-			return simplifyExpressionWork((SymbolicExpression) object);
-		case SEQUENCE:
-			return simplifySequenceWork((SymbolicSequence<?>) object);
-		case TYPE:
-			return simplifyTypeWork((SymbolicType) object);
-		case TYPE_SEQUENCE:
-			return simplifyTypeSequenceWork((SymbolicTypeSequence) object);
-		default:
-			throw new SARLInternalException("unreachable");
-		}
-	}
-
-	/**
-	 * Simplifies a symbolic object by first looking in the cache for the
-	 * previous result of simplifying that object, and, if not found there,
-	 * invoking {@link #simplifyObjectWork(SymbolicObject)}
-	 * 
-	 * @param object
-	 *            any non-<code>null</code> symbolic object
-	 * @return result of simplification of <code>object</code>
-	 */
-	private SymbolicObject simplifyObject(SymbolicObject object) {
-		if (SimplifierUtility.isSimpleObject(object))
-			return object;
-
-		SymbolicObject result = getCachedSimplification(object);
-
-		if (result == null) {
-			result = simplifyObjectWork(object);
-			cacheSimplification(object, result);
-		}
-		return result;
-	}
 
 	/**
 	 * <p>
@@ -124,7 +35,7 @@ public class GenericSimplification extends Simplification {
 	 * @return a simplified version of that expression
 	 */
 	@Override
-	public SymbolicExpression apply(SymbolicExpression expression) {
+	protected SymbolicExpression apply(SymbolicExpression expression) {
 		if (expression.isNull())
 			return expression;
 
@@ -135,24 +46,24 @@ public class GenericSimplification extends Simplification {
 			SymbolicObjectKind kind = object.symbolicObjectKind();
 
 			switch (kind) {
-			case BOOLEAN:
-			case INT:
-			case NUMBER:
-			case STRING:
-				return expression;
-			default:
+				case BOOLEAN :
+				case INT :
+				case NUMBER :
+				case STRING :
+					return expression;
+				default :
 			}
 		}
 
 		SymbolicType type = expression.type();
-		SymbolicType simplifiedType = simplifyType(type);
+		SymbolicType simplifiedType = (SymbolicType) simplify(type);
 		int numArgs = expression.numArguments();
 		SymbolicObject[] simplifiedArgs = null;
 
 		if (type == simplifiedType) {
 			for (int i = 0; i < numArgs; i++) {
 				SymbolicObject arg = expression.argument(i);
-				SymbolicObject simplifiedArg = simplifyObject(arg);
+				SymbolicObject simplifiedArg = simplify(arg);
 
 				assert simplifiedArg != null;
 				if (simplifiedArg != arg) {
@@ -161,24 +72,18 @@ public class GenericSimplification extends Simplification {
 						simplifiedArgs[j] = expression.argument(j);
 					simplifiedArgs[i] = simplifiedArg;
 					for (int j = i + 1; j < numArgs; j++)
-						simplifiedArgs[j] = simplifyObject(
-								expression.argument(j));
+						simplifiedArgs[j] = simplify(expression.argument(j));
 					break;
 				}
 			}
 		} else {
 			simplifiedArgs = new SymbolicObject[numArgs];
 			for (int i = 0; i < numArgs; i++)
-				simplifiedArgs[i] = simplifyObject(expression.argument(i));
+				simplifiedArgs[i] = simplify(expression.argument(i));
 		}
 		if (simplifiedArgs == null)
 			return expression;
-		return universe().make(operator, simplifiedType, simplifiedArgs);
-	}
-
-	@Override
-	public SimplificationKind kind() {
-		return SimplificationKind.GENERIC;
+		return universe.make(operator, simplifiedType, simplifiedArgs);
 	}
 
 }

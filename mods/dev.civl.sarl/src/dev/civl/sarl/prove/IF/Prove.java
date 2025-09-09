@@ -33,6 +33,7 @@ import dev.civl.sarl.preuniverse.IF.PreUniverse;
 import dev.civl.sarl.prove.common.CommonModelResult;
 import dev.civl.sarl.prove.common.CommonValidityResult;
 import dev.civl.sarl.prove.common.MultiProverFactory;
+import dev.civl.sarl.prove.common.TrivialProverFactory;
 import dev.civl.sarl.prove.cvc.RobustCVCTheoremProverFactory;
 import dev.civl.sarl.prove.z3.RobustZ3TheoremProverFactory;
 
@@ -71,6 +72,8 @@ public class Prove {
 	public final static ValidityResult RESULT_MAYBE = new CommonValidityResult(
 			ResultType.MAYBE);
 
+	public final static TrivialProverFactory trivialProverFactory = new TrivialProverFactory();
+	
 	/**
 	 * Constructs a new theorem prover factory based on the given configuration.
 	 * A resulting prover resolves a query as follows: it starts by using the
@@ -97,7 +100,7 @@ public class Prove {
 			factories[count] = newProverFactory(universe, prover);
 			count++;
 		}
-		return new MultiProverFactory(universe, factories);
+		return new MultiProverFactory(factories);
 	}
 
 	/**
@@ -130,7 +133,10 @@ public class Prove {
 						"Unknown kind of theorem prover: " + prover.getKind());
 		}
 	}
-
+	
+	public static TheoremProverFactory trivialProverFactory() {
+		return trivialProverFactory;
+	}
 	/**
 	 * Returns one of the constants {@link #RESULT_YES}, {@link #RESULT_NO},
 	 * {@link #RESULT_MAYBE}, corresponding to the given type.

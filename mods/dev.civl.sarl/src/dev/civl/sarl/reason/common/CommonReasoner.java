@@ -19,6 +19,7 @@
 package dev.civl.sarl.reason.common;
 
 import java.io.PrintStream;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -32,17 +33,15 @@ import dev.civl.sarl.IF.ValidityResult.ResultType;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.NumericExpression;
 import dev.civl.sarl.IF.expr.NumericSymbolicConstant;
-import dev.civl.sarl.IF.expr.SymbolicConstant;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
-import dev.civl.sarl.IF.number.Interval;
 import dev.civl.sarl.IF.number.Number;
+import dev.civl.sarl.ideal.IF.IdealFactory;
 import dev.civl.sarl.preuniverse.IF.PreUniverse;
 import dev.civl.sarl.prove.IF.Prove;
 import dev.civl.sarl.prove.IF.ProverFunctionInterpretation;
 import dev.civl.sarl.prove.IF.TheoremProver;
 import dev.civl.sarl.prove.IF.TheoremProverFactory;
 import dev.civl.sarl.reason.IF.ReasonerFactory;
-import dev.civl.sarl.simplify.IF.Simplifier;
 
 /**
  * A very basic implementation of {@link Reasoner} based on a given
@@ -54,7 +53,7 @@ import dev.civl.sarl.simplify.IF.Simplifier;
  * 
  * @author Stephen F. Siegel
  */
-public class CommonReasoner implements Reasoner {
+public class CommonReasoner extends SimpleReasoner {
 
 	/**
 	 * The factory that was used to produce this {@link CommonReasoner}. It may
@@ -68,12 +67,6 @@ public class CommonReasoner implements Reasoner {
 	 * re-used for subsequence queries. It is stored in this variable.
 	 */
 	private TheoremProver prover = null;
-
-	/**
-	 * The simplifier, which must be non-<code>null</code> and is set at
-	 * initialization.
-	 */
-	private Simplifier simplifier;
 
 	/**
 	 * The cached results of previous validity queries, i.e., calls to method
@@ -100,51 +93,11 @@ public class CommonReasoner implements Reasoner {
 	 * @param factory
 	 *            a factory for producing new {@link TheoremProver}s
 	 */
-	public CommonReasoner(ReasonerFactory reasonerFactory,
-			Simplifier simplifier) {
+	public CommonReasoner(PreUniverse universe, IdealFactory idealFactory,
+			TheoremProverFactory proverFactory, ReasonerFactory reasonerFactory,
+			List<BooleanExpression> assumptionStack) {
+		super(universe, idealFactory, proverFactory, assumptionStack);
 		this.reasonerFactory = reasonerFactory;
-		this.simplifier = simplifier;
-	}
-
-	/**
-	 * Returns the symbolic universe used by this {@link Reasoner}.
-	 * 
-	 * @return the symbolic universe
-	 */
-	public PreUniverse universe() {
-		return simplifier.universe();
-	}
-
-	@Override
-	public BooleanExpression getReducedContext() {
-		return simplifier.getReducedContext();
-	}
-
-	@Override
-	public BooleanExpression getFullContext() {
-		return simplifier.getFullContext();
-	}
-
-	@Override
-	public Interval assumptionAsInterval(SymbolicConstant symbolicConstant) {
-		return simplifier.assumptionAsInterval(symbolicConstant);
-	}
-
-	@Override
-	public SymbolicExpression simplify(SymbolicExpression expression) {
-		if (expression == null)
-			throw new SARLException("Argument to Reasoner.simplify is null.");
-		return simplifier.apply(expression);
-	}
-
-	@Override
-	public BooleanExpression simplify(BooleanExpression expression) {
-		return (BooleanExpression) simplify((SymbolicExpression) expression);
-	}
-
-	@Override
-	public NumericExpression simplify(NumericExpression expression) {
-		return (NumericExpression) simplify((SymbolicExpression) expression);
 	}
 
 	@Override
@@ -156,14 +109,14 @@ public class CommonReasoner implements Reasoner {
 			int id = universe().numValidCalls();
 
 			out.println("Query " + id + " assumption: "
-					+ simplifier.getFullContext());
+					+ getFullCollapsedContext());
 			out.println("Query " + id + " predicate:  " + predicate);
 		}
 		if (predicate == null)
 			throw new SARLException("Argument to Reasoner.valid is null.");
 		else {
 			ValidityResult result = null;
-			BooleanExpression fullContext = getFullContext();
+			BooleanExpression fullContext = getFullCollapsedContext();
 
 			universe().incrementValidCount();
 			if (fullContext.isTrue()) {
@@ -171,23 +124,23 @@ public class CommonReasoner implements Reasoner {
 
 				if (resultType != null) {
 					switch (resultType) {
-					case MAYBE:
-						result = Prove.RESULT_MAYBE;
-						break;
-					case NO:
-						result = Prove.RESULT_NO;
-						break;
-					case YES:
-						result = Prove.RESULT_YES;
-						break;
-					default:
-						throw new SARLInternalException("unrechable");
+						case MAYBE :
+							result = Prove.RESULT_MAYBE;
+							break;
+						case NO :
+							result = Prove.RESULT_NO;
+							break;
+						case YES :
+							result = Prove.RESULT_YES;
+							break;
+						default :
+							throw new SARLInternalException("unrechable");
 					}
 				}
 			}
 			if (result == null) {
-				BooleanExpression simplifiedPredicate = (BooleanExpression) simplifier
-						.apply(predicate);
+				BooleanExpression simplifiedPredicate = (BooleanExpression) simplify(
+						predicate);
 
 				if (simplifiedPredicate.isTrue())
 					result = Prove.RESULT_YES;
@@ -216,8 +169,8 @@ public class CommonReasoner implements Reasoner {
 
 	@Override
 	public ValidityResult validOrModel(BooleanExpression predicate) {
-		BooleanExpression simplifiedPredicate = (BooleanExpression) simplifier
-				.apply(predicate);
+		BooleanExpression simplifiedPredicate = (BooleanExpression) simplify(
+				predicate);
 		ValidityResult result;
 
 		universe().incrementValidCount();
@@ -234,11 +187,6 @@ public class CommonReasoner implements Reasoner {
 	}
 
 	@Override
-	public Map<SymbolicConstant, SymbolicExpression> constantSubstitutionMap() {
-		return simplifier.constantSubstitutionMap();
-	}
-
-	@Override
 	public boolean isValid(BooleanExpression predicate) {
 		return valid(predicate).getResultType() == ResultType.YES;
 	}
@@ -251,11 +199,6 @@ public class CommonReasoner implements Reasoner {
 	}
 
 	@Override
-	public Interval intervalApproximation(NumericExpression expr) {
-		return simplifier.intervalApproximation(expr);
-	}
-
-	@Override
 	public boolean checkBigOClaim(BooleanExpression indexConstraint,
 			NumericExpression lhs, NumericSymbolicConstant[] limitVars,
 			int[] orders) {
@@ -264,7 +207,7 @@ public class CommonReasoner implements Reasoner {
 		// TODO: rename the indexConstraint and the limitVars if they conflict
 		// with any free variables.
 		PreUniverse universe = universe();
-		BooleanExpression oldContext = simplifier.getFullContext();
+		BooleanExpression oldContext = getFullCollapsedContext();
 		BooleanExpression newContext = universe.and(oldContext,
 				indexConstraint);
 		Reasoner newReasoner = reasonerFactory.getReasoner(newContext, true,
@@ -281,8 +224,9 @@ public class CommonReasoner implements Reasoner {
 	}
 
 	private synchronized TheoremProver getProver() {
-		return prover == null ? (prover = reasonerFactory
-				.getTheoremProverFactory().newProver(getReducedContext()))
+		return prover == null
+				? (prover = proverFactory
+						.newProver(getReducedCollapsedContext()))
 				: prover;
 	}
 
@@ -298,19 +242,19 @@ public class CommonReasoner implements Reasoner {
 			int id = universe().numValidCalls();
 
 			out.println("Unsat-Query " + id + " assumption: "
-					+ simplifier.getFullContext());
+					+ getFullCollapsedContext());
 			out.println("Unsat-Query  " + id + " predicate :  " + predicate);
 		}
 		if (predicate == null)
 			throw new SARLException("Argument to Reasoner.valid is null.");
 		else {
 			ValidityResult result = null;
-			BooleanExpression formula = universe().and(getFullContext(),
-					predicate);
+			BooleanExpression formula = universe()
+					.and(getFullCollapsedContext(), predicate);
 
 			universe().incrementValidCount();
-			BooleanExpression simplifiedFormula = (BooleanExpression) simplifier
-					.apply(formula);
+			BooleanExpression simplifiedFormula = (BooleanExpression) simplify(
+					formula);
 
 			result = unsatCache.get(simplifiedFormula);
 			if (result == null) {
@@ -319,7 +263,7 @@ public class CommonReasoner implements Reasoner {
 				else if (simplifiedFormula.isTrue())
 					result = Prove.RESULT_NO;
 				else
-					result = reasonerFactory.getTheoremProverFactory()
+					result = proverFactory
 							.newProver(universe().trueExpression())
 							.unsat(simplifiedFormula);
 			}
@@ -330,7 +274,7 @@ public class CommonReasoner implements Reasoner {
 
 				out.println("UNSAT Query " + id + " result:     " + result);
 			}
-			if (getFullContext().isTrue())
+			if (getFullCollapsedContext().isTrue())
 				predicate.setUnsatisfiability(result.getResultType());
 			return result;
 		}

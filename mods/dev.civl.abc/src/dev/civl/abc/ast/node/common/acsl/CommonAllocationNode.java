@@ -20,7 +20,7 @@ public class CommonAllocationNode extends CommonContractNode
 
 	public CommonAllocationNode(Source source, boolean isAllocates,
 			SequenceNode<ExpressionNode> memoryList) {
-		super(source, memoryList);
+		super(source, (ASTNode) memoryList);
 		this.isAllocates = isAllocates;
 	}
 

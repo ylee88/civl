@@ -19,6 +19,9 @@
 package dev.civl.sarl.herbrand.common;
 
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.NumericExpression;
@@ -55,13 +58,14 @@ public class CommonHerbrandFactory implements NumericExpressionFactory {
 
 	private HerbrandExpression zeroInt, zeroReal, oneInt, oneReal;
 
-	private SymbolicFunctionType realBinaryOp, realUnaryOp, integerBinaryOp,
-			integerUnaryOp, realBinaryPred, integerBinaryPred;
+	private SymbolicFunctionType realBinaryPred, integerBinaryPred;
+	private Map<Integer, SymbolicFunctionType> realNAryOp, integerNAryOp;
 
 	private SymbolicConstant plusReal, plusInteger, minusReal, minusInteger,
 			timesReal, timesInteger, divideReal, divideInteger, negativeReal,
-			negativeInteger, modulo, powerInteger, powerReal, lessThanInteger,
-			lessThanReal, lteInteger, lteReal;
+			negativeInteger, modulo, powerInteger, powerReal, minReal,
+			minInteger, maxReal, maxInteger, lessThanInteger, lessThanReal,
+			lteInteger, lteReal;
 
 	public CommonHerbrandFactory(NumberFactory numberFactory,
 			ObjectFactory objectFactory, SymbolicTypeFactory typeFactory,
@@ -87,6 +91,8 @@ public class CommonHerbrandFactory implements NumericExpressionFactory {
 				objectFactory.numberObject(numberFactory.zeroInteger()));
 		this.zeroReal = number(
 				objectFactory.numberObject(numberFactory.zeroRational()));
+		this.realNAryOp = new HashMap<>(3);
+		this.integerNAryOp = new HashMap<>(3);
 	}
 
 	private SymbolicConstant commonSymbolicConstant(StringObject name,
@@ -99,50 +105,60 @@ public class CommonHerbrandFactory implements NumericExpressionFactory {
 		return objectFactory.sequence(new NumericExpression[] { e0, e1 });
 	}
 
+	private SymbolicSequence<NumericExpression> sequence(
+			NumericExpression[] exprs) {
+		return objectFactory.sequence(exprs);
+	}
+
 	private SymbolicFunctionType realBinaryOp() {
-		if (realBinaryOp == null)
-			realBinaryOp = typeFactory
-					.functionType(
-							typeFactory.sequence(new SymbolicType[] {
-									herbrandRealType, herbrandRealType }),
-							herbrandRealType);
-		return realBinaryOp;
+		return realNAryOp(2);
 	}
 
 	private SymbolicFunctionType integerBinaryOp() {
-		if (integerBinaryOp == null)
-			integerBinaryOp = typeFactory.functionType(
-					typeFactory.sequence(new SymbolicType[] {
-							herbrandIntegerType, herbrandIntegerType }),
-					herbrandIntegerType);
-		return integerBinaryOp;
+		return integerNAryOp(2);
 	}
 
 	private SymbolicFunctionType realUnaryOp() {
-		if (realUnaryOp == null)
-			realUnaryOp = typeFactory.functionType(
-					typeFactory
-							.sequence(new SymbolicType[] { herbrandRealType }),
-					herbrandRealType);
-		return realUnaryOp;
+		return realNAryOp(1);
 	}
 
 	private SymbolicFunctionType integerUnaryOp() {
-		if (integerUnaryOp == null)
-			integerUnaryOp = typeFactory.functionType(
-					typeFactory.sequence(
-							new SymbolicType[] { herbrandIntegerType }),
+		return integerNAryOp(1);
+	}
+
+	private SymbolicFunctionType realNAryOp(int arity) {
+		SymbolicFunctionType opType = realNAryOp.get(arity);
+		if (opType == null) {
+			SymbolicType[] inputTypes = new SymbolicType[arity];
+			for (int i = 0; i < arity; ++i) {
+				inputTypes[i] = herbrandRealType;
+			}
+			opType = typeFactory.functionType(typeFactory.sequence(inputTypes),
+					herbrandRealType);
+			realNAryOp.put(arity, opType);
+		}
+		return opType;
+	}
+
+	private SymbolicFunctionType integerNAryOp(int arity) {
+		SymbolicFunctionType opType = integerNAryOp.get(arity);
+		if (opType == null) {
+			SymbolicType[] inputTypes = new SymbolicType[arity];
+			for (int i = 0; i < arity; ++i) {
+				inputTypes[i] = herbrandIntegerType;
+			}
+			opType = typeFactory.functionType(typeFactory.sequence(inputTypes),
 					herbrandIntegerType);
-		return integerUnaryOp;
+			integerNAryOp.put(arity, opType);
+		}
+		return opType;
 	}
 
 	private SymbolicFunctionType realBinaryPred() {
 		if (realBinaryPred == null)
-			realBinaryPred = typeFactory
-					.functionType(
-							typeFactory.sequence(new SymbolicType[] {
-									herbrandRealType, herbrandRealType }),
-							booleanType);
+			realBinaryPred = typeFactory.functionType(typeFactory.sequence(
+					new SymbolicType[] { herbrandRealType, herbrandRealType }),
+					booleanType);
 		return realBinaryPred;
 	}
 
@@ -268,6 +284,46 @@ public class CommonHerbrandFactory implements NumericExpressionFactory {
 		return powerInteger;
 	}
 
+	private SymbolicConstant minReal(int arity) {
+		if (minReal == null)
+			minReal = commonSymbolicConstant(
+					objectFactory.stringObject("MIN_" + arity + "_REAL"),
+					realNAryOp(arity));
+		return minReal;
+	}
+
+	private SymbolicConstant minInteger(int arity) {
+		if (minInteger == null)
+			minInteger = commonSymbolicConstant(
+					objectFactory.stringObject("MIN_" + arity + "_INT"),
+					integerNAryOp(arity));
+		return minInteger;
+	}
+
+	private SymbolicConstant minOp(SymbolicType type, int arity) {
+		return type.isInteger() ? minInteger(arity) : minReal(arity);
+	}
+
+	private SymbolicConstant maxReal(int arity) {
+		if (maxReal == null)
+			maxReal = commonSymbolicConstant(
+					objectFactory.stringObject("MAX_" + arity + "_REAL"),
+					realNAryOp(arity));
+		return maxReal;
+	}
+
+	private SymbolicConstant maxInteger(int arity) {
+		if (maxInteger == null)
+			maxInteger = commonSymbolicConstant(
+					objectFactory.stringObject("MAX_" + arity + "_INT"),
+					integerNAryOp(arity));
+		return maxInteger;
+	}
+
+	private SymbolicConstant maxOp(SymbolicType type, int arity) {
+		return type.isInteger() ? maxInteger(arity) : maxReal(arity);
+	}
+
 	private SymbolicConstant lessThanInteger() {
 		if (lessThanInteger == null)
 			lessThanInteger = commonSymbolicConstant(
@@ -334,6 +390,11 @@ public class CommonHerbrandFactory implements NumericExpressionFactory {
 		return expression(SymbolicOperator.CONCRETE,
 				numberObject.isReal() ? herbrandRealType : herbrandIntegerType,
 				new SymbolicObject[] { numberObject });
+	}
+
+	@Override
+	public NumericExpression number(int value) {
+		return number(objectFactory.numberObject(numberFactory.integer(value)));
 	}
 
 	@Override
@@ -453,6 +514,28 @@ public class CommonHerbrandFactory implements NumericExpressionFactory {
 			return expression(SymbolicOperator.APPLY, herbrandRealType,
 					powerReal(), sequence(base, exponent));
 		}
+	}
+
+	@Override
+	public NumericExpression min(List<NumericExpression> exprs) {
+		int size = exprs.size();
+		assert (size > 0);
+		if (size == 1)
+			return exprs.get(0);
+		SymbolicType type = exprs.get(0).type();
+		return expression(SymbolicOperator.APPLY, type, minOp(type, size),
+				sequence(exprs.toArray(new NumericExpression[0])));
+	}
+
+	@Override
+	public NumericExpression max(List<NumericExpression> exprs) {
+		int size = exprs.size();
+		assert (size > 0);
+		if (size == 1)
+			return exprs.get(0);
+		SymbolicType type = exprs.get(0).type();
+		return expression(SymbolicOperator.APPLY, type, maxOp(type, size),
+				sequence(exprs.toArray(new NumericExpression[0])));
 	}
 
 	@Override

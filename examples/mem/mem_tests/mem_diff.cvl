@@ -1,0 +1,12 @@
+#include<mem.cvh>
+
+$input int N;
+$assume(2 <= N && N <= 6);
+int a[10];
+
+int main() {
+  $mem m = &a[0 .. 9];
+  $mem m2 = &a[N-1 .. N+3];
+  m = $mem_diff(m, m2);
+  $assert($mem_contains(m, &a[0]));
+}

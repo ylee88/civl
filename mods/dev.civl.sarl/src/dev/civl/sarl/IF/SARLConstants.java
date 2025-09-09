@@ -51,7 +51,7 @@ public class SARLConstants {
 	 * before. If false, this check will not take place and the simplifier may
 	 * loop forever --- depending on the particular simplification rules used.
 	 */
-	public static boolean cycleDetection = true;
+	//public static boolean cycleDetection = true;
 
 	/**
 	 * Set to true to let the Z3 translator translate a SARL array to a

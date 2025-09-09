@@ -3,10 +3,9 @@
  */
 package dev.civl.sarl.ideal.simplify;
 
-import static dev.civl.sarl.ideal.simplify.CommonObjects.assumption;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.bigMixedXYTermPoly;
-import static dev.civl.sarl.ideal.simplify.CommonObjects.idealSimplifier;
-import static dev.civl.sarl.ideal.simplify.CommonObjects.idealSimplifierFactory;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.standardStrategy;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.testContext;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.out;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.preUniv;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.rat0;
@@ -18,8 +17,12 @@ import static dev.civl.sarl.ideal.simplify.CommonObjects.x;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.x4th;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.xNE;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.yNE;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.useBackwardSubstitution;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.newContext;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+
+import java.util.Arrays;
 
 import org.junit.After;
 import org.junit.Before;
@@ -27,6 +30,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import dev.civl.sarl.IF.expr.SymbolicExpression;
+import dev.civl.sarl.prove.IF.Prove;
 
 /**
  * Set of tests on IdealSimplifier based about assigning values to single
@@ -38,7 +42,7 @@ import dev.civl.sarl.IF.expr.SymbolicExpression;
  */
 public class IdealSimplifierBBTest {
 
-	private final static boolean useBackwardSubstitution = true;
+	// private final static boolean useBackwardSubstitution = true;
 
 	/**
 	 * Calls the setUp() method in CommonObjects to make use of consolidated
@@ -51,6 +55,7 @@ public class IdealSimplifierBBTest {
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
 		CommonObjects.setUp();
+		useBackwardSubstitution = true;
 	}
 
 	/**
@@ -73,16 +78,14 @@ public class IdealSimplifierBBTest {
 	 */
 	@Test
 	public void xGreater0Test() {
-		assumption = preUniv.lessThan(rat0, xNE); // 0<x
-		idealSimplifier = idealSimplifierFactory.newSimplifier(assumption,
-				useBackwardSubstitution);
-		out.println("full: " + idealSimplifier.getFullContext() + " reduced: "
-				+ idealSimplifier.getReducedContext());
-		assertEquals("0 < x", idealSimplifier.getReducedContext().toString());
+		testContext = newContext(preUniv.lessThan(rat0, xNE));
+		out.println("full: " + testContext.getFullAssumption() + " reduced: "
+				+ testContext.getReducedAssumption());
+		assertEquals("0 < x", testContext.getReducedAssumption().toString());
 
-		out.println(idealSimplifier.apply(bigMixedXYTermPoly));
-		assertEquals(idealSimplifier.getReducedContext(),
-				idealSimplifier.getFullContext());
+		out.println(testContext.simplify(bigMixedXYTermPoly, standardStrategy));
+		assertEquals(testContext.getReducedAssumption(),
+				testContext.getFullAssumption());
 	}
 
 	/**
@@ -93,24 +96,22 @@ public class IdealSimplifierBBTest {
 	@Test
 	public void twoStagePolyTest() {
 		// first assumption: x == -1.0
-		assumption = preUniv.equals(ratNeg1, x);
-		idealSimplifier = idealSimplifierFactory.newSimplifier(assumption,
-				useBackwardSubstitution);
-		out.println(idealSimplifier.apply(bigMixedXYTermPoly));
-		SymbolicExpression noX = idealSimplifier.apply(bigMixedXYTermPoly); // intermediary
-																			// symbolic
-																			// expression
+		testContext = newContext(preUniv.equals(ratNeg1, x));
+		out.println(testContext.simplify(bigMixedXYTermPoly, standardStrategy));
+		SymbolicExpression noX = (SymbolicExpression) testContext
+				.simplify(bigMixedXYTermPoly, standardStrategy); // intermediary
+		// symbolic
+		// expression
 
 		// second assumption: y == 1.0
-		assumption = preUniv.equals(rat1, yNE);
-		idealSimplifier = idealSimplifierFactory.newSimplifier(assumption,
-				useBackwardSubstitution);
-		out.println(idealSimplifier.apply(noX));
+		testContext = newContext(preUniv.equals(rat1, yNE));
+		out.println(testContext.simplify(noX, standardStrategy));
 		// 0^3 should = 0...
-		assertEquals(rat0.type(), idealSimplifier.apply(noX).type());
-		assertEquals(rat0, idealSimplifier.apply(noX));
-		out.println(idealSimplifier.getFullContext());
-		out.println(idealSimplifier.getReducedContext());
+		assertEquals(rat0.type(), ((SymbolicExpression) testContext
+				.simplify(noX, standardStrategy)).type());
+		assertEquals(rat0, testContext.simplify(noX, standardStrategy));
+		out.println(testContext.getFullAssumption());
+		out.println(testContext.getReducedAssumption());
 	}
 
 	/**
@@ -119,14 +120,12 @@ public class IdealSimplifierBBTest {
 	 */
 	@Test
 	public void simplifySolvableTest() {
-		assumption = preUniv.equals(rat0, yNE);
-		idealSimplifier = idealSimplifierFactory.newSimplifier(assumption,
-				useBackwardSubstitution);
+		testContext = newContext(preUniv.equals(rat0, yNE));
 		// out.println("here: " + idealSimplifier.getFullContext());
 		// out.println(idealSimplifier.getReducedContext());
-		assertNotEquals(idealSimplifier.getFullContext(),
-				idealSimplifier.getReducedContext());
-		assertEquals(trueExpr, idealSimplifier.getReducedContext());
+		assertNotEquals(testContext.getFullAssumption(),
+				testContext.getReducedAssumption());
+		assertEquals(trueExpr, testContext.getReducedAssumption());
 	}
 
 	/**
@@ -135,14 +134,12 @@ public class IdealSimplifierBBTest {
 	 */
 	@Test
 	public void singlePowerTermSimplifyTest() {
-		assumption = preUniv.equals(rat0, x4th);
-		idealSimplifier = idealSimplifierFactory.newSimplifier(assumption,
-				useBackwardSubstitution);
-		out.println("here: " + idealSimplifier.getFullContext());
-		out.println(idealSimplifier.getReducedContext());
-		assertEquals(rat0, idealSimplifier.apply(threeX4th));
+		testContext = newContext(preUniv.equals(rat0, x4th));
+		out.println("here: " + testContext.getFullAssumption());
+		out.println(testContext.getReducedAssumption());
+		assertEquals(rat0, testContext.simplify(threeX4th, standardStrategy));
 		// x^4 == 0 should be reduced to x == 0
-		assertNotEquals(idealSimplifier.getFullContext(),
-				idealSimplifier.getReducedContext());
+		assertNotEquals(testContext.getFullAssumption(),
+				testContext.getReducedAssumption());
 	}
 }

@@ -1,6 +1,8 @@
 package dev.civl.mc.library.civlc;
 
+import java.util.HashSet;
 import java.io.PrintStream;
+import java.util.Set;
 
 import dev.civl.mc.config.IF.CIVLConfiguration;
 import dev.civl.mc.dynamic.IF.SymbolicUtility;
@@ -29,6 +31,7 @@ import dev.civl.mc.semantics.IF.SymbolicAnalyzer;
 import dev.civl.mc.semantics.IF.TypeEvaluation;
 import dev.civl.mc.semantics.common.ReservedLogicFunctionCallEvaluator;
 import dev.civl.mc.state.IF.DynamicScope;
+import dev.civl.mc.state.IF.ProcessState;
 import dev.civl.mc.state.IF.State;
 import dev.civl.mc.state.IF.UnsatisfiablePathConditionException;
 import dev.civl.mc.util.IF.Pair;
@@ -40,6 +43,7 @@ import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.NTReferenceExpression;
 import dev.civl.sarl.IF.expr.NumericExpression;
 import dev.civl.sarl.IF.expr.ReferenceExpression;
+import dev.civl.sarl.IF.expr.SymbolicConstant;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
 import dev.civl.sarl.IF.number.IntegerNumber;
@@ -858,8 +862,35 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 	private Evaluation executeAssumePop(State state, int pid,
 			Expression[] arguments, SymbolicExpression[] argumentValues,
 			CIVLSource source) {
+		state = stateFactory.simplify(state, pid, getAggressiveSet(state, pid));
 		state = stateFactory.popAssumption(state, pid);
 		return new Evaluation(state, null);
+	}
+	
+	
+	private Set<SymbolicConstant> getAggressiveSet(State state, int pid) {
+		ProcessState proc = state.getProcessState(pid);
+		
+		if (proc == null)
+			return null;
+		BooleanExpression[] ppc = state.getProcessState(pid)
+				.getPartialPathConditions();
+		
+		if (ppc.length == 0)
+			return null;
+		BooleanExpression pcAfterPop = state.getPermanentPathCondition();
+		for (int i = 0; i < ppc.length-1; i++)
+			pcAfterPop = universe.and(pcAfterPop, ppc[i]);
+		
+		Set<SymbolicConstant> otherFreeSet = pcAfterPop.getFreeVars();
+		Set<SymbolicConstant> ppcTopFreeSet = ppc[ppc.length - 1].getFreeVars();
+		Set<SymbolicConstant> aggressiveSet = new HashSet<>();
+		
+		for(SymbolicConstant c : ppcTopFreeSet) {
+			if (!otherFreeSet.contains(c))
+				aggressiveSet.add(c);
+		}
+		return aggressiveSet;
 	}
 
 	private State executeAssert(State state, int pid, String process,

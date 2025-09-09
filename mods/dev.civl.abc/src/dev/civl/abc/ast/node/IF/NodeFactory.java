@@ -19,7 +19,10 @@ import dev.civl.abc.ast.node.IF.acsl.DependsNode;
 import dev.civl.abc.ast.node.IF.acsl.EnsuresNode;
 import dev.civl.abc.ast.node.IF.acsl.ExtendedQuantifiedExpressionNode;
 import dev.civl.abc.ast.node.IF.acsl.ExtendedQuantifiedExpressionNode.ExtendedQuantifier;
+import dev.civl.abc.ast.node.IF.acsl.FocusAssertTransformNode;
+import dev.civl.abc.ast.node.IF.acsl.FocusLoopTransformNode;
 import dev.civl.abc.ast.node.IF.acsl.GuardsNode;
+import dev.civl.abc.ast.node.IF.acsl.InsertTransformNode;
 import dev.civl.abc.ast.node.IF.acsl.InvariantNode;
 import dev.civl.abc.ast.node.IF.acsl.MPICollectiveBlockNode;
 import dev.civl.abc.ast.node.IF.acsl.MPICollectiveBlockNode.MPICommunicatorMode;
@@ -143,6 +146,7 @@ import dev.civl.abc.token.IF.ExecutionCharacter;
 import dev.civl.abc.token.IF.Source;
 import dev.civl.abc.token.IF.StringLiteral;
 import dev.civl.abc.token.IF.SyntaxException;
+import dev.civl.abc.token.IF.TokenFactory;
 
 /**
  * <p>
@@ -391,11 +395,22 @@ public interface NodeFactory {
 	 *                              the node representing the return type of the
 	 *                              function type
 	 * @param formals
+<<<<<<< .working
+	 *            the sequence of formal parameter declaration nodes for the
+	 *            function type. This parameter cannot be null. If there are no
+	 *            formals then it must be a sequence node with an empty list.
+||||||| .merge-left.r5788
+	 *            the sequence of formal parameter declaration nodes for the
+	 *            function type. TODO: if there is no parameter, can this be
+	 *            NULL or it has to be sequence node with an empty list as its
+	 *            children?
+=======
 	 *                              the sequence of formal parameter declaration
 	 *                              nodes for the function type. TODO: if there
 	 *                              is no parameter, can this be NULL or it has
 	 *                              to be sequence node with an empty list as
 	 *                              its children?
+>>>>>>> .merge-right.r5973
 	 * @param hasIdentifierList
 	 *                              <code>true</code> if the function is
 	 *                              declared using an identifier list (i.e.,
@@ -2971,4 +2986,14 @@ public interface NodeFactory {
 	PredicateNode newPredicateNode(Source source, IdentifierNode identifier,
 			SequenceNode<VariableDeclarationNode> parameters,
 			ExpressionNode body);
+
+	FocusLoopTransformNode newFocusLoopNode(Source source,
+			TokenFactory tokenFactory, String focusTag,
+			SequenceNode<ExpressionNode> memoryList);
+
+	FocusAssertTransformNode newFocusAssertNode(Source source,
+			TokenFactory tokenFactory, List<String> focusTags);
+
+	InsertTransformNode newInsertTransformNode(Source source,
+			List<BlockItemNode> nodesToInsert, boolean insertAfter);
 }

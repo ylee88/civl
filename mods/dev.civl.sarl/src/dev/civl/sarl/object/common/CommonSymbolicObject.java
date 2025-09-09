@@ -198,6 +198,11 @@ public abstract class CommonSymbolicObject implements SymbolicObject {
 	public RationalNumber getOrder() {
 		return order;
 	}
+	
+	@Override
+	public boolean containsSubobjectIgnoringType(SymbolicObject obj) {
+		return this == obj;
+	}
 
 	// public methods: Object
 

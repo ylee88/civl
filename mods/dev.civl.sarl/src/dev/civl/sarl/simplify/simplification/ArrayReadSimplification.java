@@ -9,7 +9,6 @@ import java.util.Iterator;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.NumericExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
-import dev.civl.sarl.simplify.simplifier.IdealSimplifierWorker;
 
 /**
  * <p>
@@ -55,20 +54,16 @@ import dev.civl.sarl.simplify.simplifier.IdealSimplifierWorker;
  */
 public class ArrayReadSimplification extends Simplification {
 
-	public ArrayReadSimplification(IdealSimplifierWorker worker) {
-		super(worker);
-	}
-
 	@Override
-	public SymbolicExpression apply(SymbolicExpression x) {
+	protected SymbolicExpression apply(SymbolicExpression x) {
 		if (x.operator() != ARRAY_READ)
 			return x;
 
 		SymbolicExpression array = (SymbolicExpression) x.argument(0);
 		NumericExpression idx = (NumericExpression) x.argument(1);
 
-		array = simplifyExpression(array);
-		idx = (NumericExpression) simplifyExpression(idx);
+		array = (SymbolicExpression) simplify(array);
+		idx = (NumericExpression) simplify(idx);
 
 		SymbolicExpression result = simplifyArrayReadWorker(array, idx);
 
@@ -77,12 +72,7 @@ public class ArrayReadSimplification extends Simplification {
 		else if (result != null)
 			return result;
 		else
-			return universe().arrayRead(array, idx);
-	}
-
-	@Override
-	public SimplificationKind kind() {
-		return SimplificationKind.ARRAY_READ;
+			return universe.arrayRead(array, idx);
 	}
 
 	/**
@@ -119,12 +109,12 @@ public class ArrayReadSimplification extends Simplification {
 
 		while (iter.hasNext() && iter.next() != null)
 			count++;
-		if (newSubContext(
-				universe().lessThanEquals(universe().integer(count), readIdx))
-						.getFullAssumption().isTrue()) {
-			ret = universe().arrayRead(
+		BooleanExpression newRead = universe
+				.lessThanEquals(universe.integer(count), readIdx);
+		if (proveValid((BooleanExpression) simplify(newRead))) {
+			ret = universe.arrayRead(
 					(SymbolicExpression) denseArrayWrite.argument(0), readIdx);
-			return simplifyExpressionWork(ret);
+			return (SymbolicExpression) simplify(ret);
 		}
 		return null;
 	}
@@ -146,11 +136,12 @@ public class ArrayReadSimplification extends Simplification {
 			if (array.argument(i) != element)
 				return null;
 
-		BooleanExpression readIdxInRange = universe().and(
-				universe().lessThanEquals(universe().zeroInt(), readIdx),
-				universe().lessThan(readIdx, universe().integer(numArgs)));
+		BooleanExpression readIdxInRange = universe.and(
+				universe.lessThanEquals(universe.zeroInt(), readIdx),
+				universe.lessThan(readIdx, universe.integer(numArgs)));
 
-		if (newSubContext(readIdxInRange).getFullAssumption().isTrue())
+		if (proveValid(
+				(BooleanExpression) simplify(readIdxInRange)))
 			return element;
 		else
 			return null;

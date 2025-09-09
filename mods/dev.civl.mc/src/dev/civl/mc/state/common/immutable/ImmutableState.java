@@ -605,10 +605,6 @@ public class ImmutableState implements State {
 		return result;
 	}
 
-	BooleanExpression getPermanentPathCondition() {
-		return pathCondition;
-	}
-
 	/**
 	 * Set the partial path condition stack of the given process to the new one.
 	 * 
@@ -699,6 +695,11 @@ public class ImmutableState implements State {
 				pc = universe.and(pc, ppcs[i]);
 		}
 		return pc;
+	}
+	
+	@Override
+	public BooleanExpression getPermanentPathCondition() {
+		return pathCondition;
 	}
 
 	@Override

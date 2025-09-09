@@ -10,13 +10,8 @@ import dev.civl.sarl.ideal.IF.IdealFactory;
 import dev.civl.sarl.ideal.IF.Monomial;
 import dev.civl.sarl.ideal.IF.Polynomial;
 import dev.civl.sarl.ideal.IF.RationalExpression;
-import dev.civl.sarl.simplify.simplifier.IdealSimplifierWorker;
 
 public class PolynomialSimplification extends Simplification {
-
-	public PolynomialSimplification(IdealSimplifierWorker worker) {
-		super(worker);
-	}
 
 	/**
 	 * <p>
@@ -52,13 +47,13 @@ public class PolynomialSimplification extends Simplification {
 	 *         <code>poly</code> under the existing assumptions
 	 */
 	private RationalExpression simplifyPolynomial(Polynomial poly) {
-		IdealFactory idf = idealFactory();
+		IdealFactory idf = util().getIdealFactory();
 		Constant constantTerm = poly.constantTerm(idf);
 
 		if (!constantTerm.isZero()) {
 			RationalExpression result = idf.subtract(poly, constantTerm);
 
-			result = (RationalExpression) simplifyExpression(result);
+			result = (RationalExpression) simplify(result);
 			result = idf.add(result, constantTerm);
 			return result;
 		}
@@ -72,7 +67,7 @@ public class PolynomialSimplification extends Simplification {
 		assert size >= 2;
 		for (int i = 0; i < size; i++) {
 			Monomial term = termMap[i];
-			Monomial simplifiedTerm = (Monomial) simplifyExpression(term);
+			Monomial simplifiedTerm = (Monomial) simplify(term);
 
 			if (term != simplifiedTerm) { // a simplification
 				terms = new Monomial[size];
@@ -80,7 +75,7 @@ public class PolynomialSimplification extends Simplification {
 					terms[j] = termMap[j];
 				terms[i] = simplifiedTerm;
 				for (int j = i + 1; j < size; j++)
-					terms[j] = (Monomial) simplifyExpression(termMap[j]);
+					terms[j] = (Monomial) simplify(termMap[j]);
 				return (RationalExpression) idf.addMonomials(terms);
 			}
 		}
@@ -88,16 +83,11 @@ public class PolynomialSimplification extends Simplification {
 	}
 
 	@Override
-	public SymbolicExpression apply(SymbolicExpression x) {
+	protected SymbolicExpression apply(SymbolicExpression x) {
 		if (x instanceof Polynomial) {
 			return simplifyPolynomial((Polynomial) x);
 		}
 		return x;
-	}
-
-	@Override
-	public SimplificationKind kind() {
-		return SimplificationKind.POLYNOMIAL;
 	}
 
 }

@@ -1,7 +1,7 @@
 package dev.civl.sarl.reason.common;
 
 import java.util.Arrays;
-
+import java.util.List;
 import dev.civl.sarl.IF.Reasoner;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.prove.IF.ProverFunctionInterpretation;
@@ -15,19 +15,20 @@ import dev.civl.sarl.prove.IF.ProverFunctionInterpretation;
  */
 public class ReasonerCacheKey {
 
-	final private BooleanExpression context;
+	final private List<BooleanExpression> contextStack;
 
 	final private ProverFunctionInterpretation[] proverPredicates;
 
-	ReasonerCacheKey(BooleanExpression context,
+	ReasonerCacheKey(List<BooleanExpression> contextStack,
 			ProverFunctionInterpretation[] proverPredicates) {
-		this.context = context;
+		this.contextStack = contextStack;
 		this.proverPredicates = proverPredicates;
 	}
 
 	@Override
 	public int hashCode() {
-		return context.hashCode() ^ Arrays.hashCode(proverPredicates) ^ 3063907;
+		return contextStack.hashCode() ^ Arrays.hashCode(proverPredicates)
+				^ 3063907;
 	}
 
 	@Override
@@ -35,9 +36,8 @@ public class ReasonerCacheKey {
 		if (obj instanceof ReasonerCacheKey) {
 			ReasonerCacheKey otherKey = (ReasonerCacheKey) obj;
 
-			if (otherKey.context.equals(context))
-				return Arrays.equals(proverPredicates,
-						otherKey.proverPredicates);
+			return Arrays.equals(proverPredicates, otherKey.proverPredicates)
+					&& otherKey.contextStack.equals(contextStack);
 		}
 		return false;
 	}

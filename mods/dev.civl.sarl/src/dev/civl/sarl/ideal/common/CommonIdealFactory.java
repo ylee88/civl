@@ -19,6 +19,7 @@
 package dev.civl.sarl.ideal.common;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -1298,8 +1299,9 @@ public class CommonIdealFactory implements IdealFactory {
 				if (gcd.isOne())
 					break;
 			}
-			return constant(leadingNumber.signum() < 0
-					? numberFactory.negate(gcd) : gcd);
+			return constant(
+					leadingNumber.signum() < 0 ? numberFactory.negate(gcd)
+							: gcd);
 		} else {
 			return leadingConstant;
 		}
@@ -2095,6 +2097,58 @@ public class CommonIdealFactory implements IdealFactory {
 	}
 
 	@Override
+	public NumericExpression min(List<NumericExpression> exprs) {
+		ArrayList<NumericExpression> copy = new ArrayList<>(exprs);
+		return minWork(copy);
+	}
+
+	private NumericExpression minWork(ArrayList<NumericExpression> exprs) {
+		int size = exprs.size();
+		assert (size > 0);
+		if (size == 1) {
+			return exprs.get(0);
+		}
+		if (size == 2) {
+			NumericExpression arg0 = exprs.get(0);
+			NumericExpression arg1 = exprs.get(1);
+			assert (arg0.type().equals(arg1.type()));
+			return expression(SymbolicOperator.COND, arg0.type(),
+					lessThanEquals(arg0, arg1), arg0, arg1);
+		}
+		NumericExpression minOfEnd = minWork(new ArrayList<>(
+				Arrays.asList(exprs.get(size - 2), exprs.get(size - 1))));
+		exprs.remove(size - 1);
+		exprs.set(size - 2, minOfEnd);
+		return minWork(exprs);
+	}
+
+	@Override
+	public NumericExpression max(List<NumericExpression> exprs) {
+		ArrayList<NumericExpression> copy = new ArrayList<>(exprs);
+		return maxWork(copy);
+	}
+
+	private NumericExpression maxWork(ArrayList<NumericExpression> exprs) {
+		int size = exprs.size();
+		assert (size > 0);
+		if (size == 1) {
+			return exprs.get(0);
+		}
+		if (size == 2) {
+			NumericExpression arg0 = exprs.get(0);
+			NumericExpression arg1 = exprs.get(1);
+			assert (arg0.type().equals(arg1.type()));
+			return expression(SymbolicOperator.COND, arg0.type(),
+					lessThanEquals(arg0, arg1), arg1, arg0);
+		}
+		NumericExpression minOfEnd = maxWork(new ArrayList<>(
+				Arrays.asList(exprs.get(size - 2), exprs.get(size - 1))));
+		exprs.remove(size - 1);
+		exprs.set(size - 2, minOfEnd);
+		return maxWork(exprs);
+	}
+
+	@Override
 	public NumericExpression cast(NumericExpression numericExpression,
 			SymbolicType newType) {
 		SymbolicType oldType = numericExpression.type();
@@ -2132,6 +2186,11 @@ public class CommonIdealFactory implements IdealFactory {
 	@Override
 	public NumericExpression number(NumberObject numberObject) {
 		return constant(numberObject);
+	}
+
+	@Override
+	public NumericExpression number(int value) {
+		return number(objectFactory.numberObject(numberFactory.integer(value)));
 	}
 
 	@Override

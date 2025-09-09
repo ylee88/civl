@@ -61,9 +61,11 @@ public class CommonLoopNode extends CommonStatementNode implements LoopNode {
 
 	@Override
 	public LoopNode copy() {
-		return new CommonLoopNode(getSource(), getKind(),
+		LoopNode result = new CommonLoopNode(getSource(), getKind(),
 				duplicate(getCondition()), duplicate(getBody()),
 				duplicate(loopContracts()));
+		result.addAllTransformAnnotations(transformAnnotations());
+		return result;
 	}
 
 	@Override

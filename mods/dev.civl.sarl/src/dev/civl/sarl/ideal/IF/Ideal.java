@@ -28,7 +28,6 @@ import dev.civl.sarl.IF.type.SymbolicType;
 import dev.civl.sarl.expr.IF.BooleanExpressionFactory;
 import dev.civl.sarl.ideal.common.CommonIdealFactory;
 import dev.civl.sarl.object.IF.ObjectFactory;
-import dev.civl.sarl.simplify.IF.SimplifierFactory;
 import dev.civl.sarl.type.IF.SymbolicTypeFactory;
 
 /**

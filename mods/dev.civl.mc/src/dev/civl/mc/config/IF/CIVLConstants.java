@@ -164,6 +164,7 @@ public class CIVLConstants {
 	public static String MPI_MODEL = "mpi";
 
 	public static String LOOP_INV = "loop";
+	public static String CONVERGE_W_MEM_EQ = "memeq";
 	public static String PROC_BOUND = "procBound";
 	public static String RANDOM = "random";
 	public static String SAVE_STATES = "saveStates";
@@ -333,6 +334,11 @@ public class CIVLConstants {
 	public final static Option loopO = Option.newScalarOption(LOOP_INV,
 			OptionType.BOOLEAN,
 			"Enable all settings that are required for verifying with loop invariants",
+			false);
+
+	public final static Option memEqO = Option.newScalarOption(
+			CONVERGE_W_MEM_EQ, OptionType.BOOLEAN,
+			"Use mem equality to converge annotated loops rather than state convergence.",
 			false);
 
 	/**
@@ -742,7 +748,7 @@ public class CIVLConstants {
 		return Stream.concat(Stream.of(astO, collectHeapsO, collectProcessesO,
 				collectScopesO, collectSymbolicConstantsO, debugO,
 				enablePrintfO, errorBoundO, errorStateEquivO, guidedO, idO,
-				inputO, linkO, loopO, macroO, maxdepthO, minO, mpiContractO,
+				inputO, linkO, loopO, memEqO, macroO, maxdepthO, minO, mpiContractO,
 				mpiModelO, ompLoopDecompO, ompNoSimplifyO, ompOnlySimplifierO,
 				probO, preprocO, procBoundO, randomO, runtimeUpdateO,
 				saveStatesO, seedO, showAmpleSetO, showAmpleSetWtStatesO,

@@ -101,7 +101,7 @@ public class SimplifierUtility {
 	/** An ordering on {@link Monic}s. */
 	Comparator<Monic> monicComparator;
 
-	SimplifierUtility(PreUniverse universe, IdealFactory idealFactory) {
+	public SimplifierUtility(PreUniverse universe, IdealFactory idealFactory) {
 		this.idealFactory = idealFactory;
 		this.universe = universe;
 		this.booleanFactory = idealFactory.booleanFactory();

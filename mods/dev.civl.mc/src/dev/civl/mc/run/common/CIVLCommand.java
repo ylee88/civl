@@ -17,6 +17,7 @@ import static dev.civl.mc.config.IF.CIVLConstants.inputO;
 import static dev.civl.mc.config.IF.CIVLConstants.intBit;
 import static dev.civl.mc.config.IF.CIVLConstants.intOperationTransformer;
 import static dev.civl.mc.config.IF.CIVLConstants.loopO;
+import static dev.civl.mc.config.IF.CIVLConstants.memEqO;
 import static dev.civl.mc.config.IF.CIVLConstants.macroO;
 import static dev.civl.mc.config.IF.CIVLConstants.maxProcsO;
 import static dev.civl.mc.config.IF.CIVLConstants.maxdepthO;
@@ -92,7 +93,7 @@ public class CIVLCommand {
 		CIVLCommand.addVerifyOption(errorBoundO, verboseO, debugO,
 				userIncludePathO, sysIncludePathO, showTransitionsO,
 				showStatesO, showSavedStatesO, showQueriesO, showProverQueriesO,
-				inputO, minO, loopO, mpiContractO, maxdepthO, procBoundO,
+				inputO, minO, loopO, memEqO, mpiContractO, maxdepthO, procBoundO,
 				saveStatesO, simplifyO, solveO, enablePrintfO, showAmpleSetO,
 				showAmpleSetWtStatesO, statelessPrintfO, svcomp16O, svcomp17O,
 				showProgramO, showPathConditionO, ompNoSimplifyO,

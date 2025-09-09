@@ -619,6 +619,11 @@ public class LanguageFeaturesTest {
 	}
 
 	@Test
+	public void unionAssumePush() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, filename("unionAssumePush.cvl")));
+	}
+	
+	@Test
 	public void enum1() throws ABCException {
 		assertTrue(ui.run(VERIFY, QUIET, filename("enum1.cvl")));
 	}

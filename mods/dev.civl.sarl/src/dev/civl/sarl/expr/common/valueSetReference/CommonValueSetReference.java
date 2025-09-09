@@ -75,7 +75,7 @@ public abstract class CommonValueSetReference extends
 	 * unionMemberReferenceFunction, parentIndexSequence is sequence of length 2
 	 * in which element 0 is the parent reference (the reference to the
 	 * expression of union type) and element 1 is the member index, a concrete
-	 * numeric symbolic expression of intger type.</li>
+	 * numeric symbolic expression of integer type.</li>
 	 * <li>{@link VSOffsetReference}: just like array element reference, but
 	 * function is offsetReferenceFunction</li>
 	 * </ul>
@@ -109,7 +109,7 @@ public abstract class CommonValueSetReference extends
 	public boolean isArraySectionReference() {
 		return false;
 	}
-
+	
 	@Override
 	public boolean isTupleComponentReference() {
 		return false;

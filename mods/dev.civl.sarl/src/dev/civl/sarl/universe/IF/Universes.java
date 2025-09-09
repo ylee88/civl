@@ -25,6 +25,8 @@ import dev.civl.sarl.IF.config.SARLConfig;
 import dev.civl.sarl.IF.number.NumberFactory;
 import dev.civl.sarl.expr.IF.ExpressionFactory;
 import dev.civl.sarl.expr.IF.Expressions;
+import dev.civl.sarl.expr.IF.NumericExpressionFactory;
+import dev.civl.sarl.expr.common.CommonNumericExpressionFactory;
 import dev.civl.sarl.ideal.IF.IdealFactory;
 import dev.civl.sarl.number.IF.Numbers;
 import dev.civl.sarl.object.IF.ObjectFactory;
@@ -35,8 +37,6 @@ import dev.civl.sarl.prove.IF.Prove;
 import dev.civl.sarl.prove.IF.TheoremProverFactory;
 import dev.civl.sarl.reason.IF.Reason;
 import dev.civl.sarl.reason.IF.ReasonerFactory;
-import dev.civl.sarl.simplify.IF.SimplifierFactory;
-import dev.civl.sarl.simplify.IF.Simplify;
 import dev.civl.sarl.type.IF.SymbolicTypeFactory;
 import dev.civl.sarl.type.IF.Types;
 import dev.civl.sarl.universe.common.CommonSymbolicUniverse;
@@ -52,15 +52,13 @@ public class Universes {
 	public static SymbolicUniverse newIdealUniverse(SARLConfig config,
 			ProverInfo prover) {
 		FactorySystem system = PreUniverses.newIdealFactorySystem();
+		IdealFactory idealFactory = getIdealFactory(system);
 		CommonSymbolicUniverse universe = new CommonSymbolicUniverse(system);
-		SimplifierFactory simplifierFactory = Simplify.newIdealSimplifierFactory(
-				(IdealFactory) system.numericFactory(), universe);
 		TheoremProverFactory proverFactory = prover == null
 				? Prove.newMultiProverFactory(universe, config)
 				: Prove.newProverFactory(universe, prover);
 		ReasonerFactory reasonerFactory = Reason.newReasonerFactory(universe,
-				simplifierFactory, proverFactory);
-
+				idealFactory, proverFactory);
 //		if (config.getWhy3ProvePlatform() != null) {
 //			Why3ReasonerFactory why3ReasonerFactory = Reason
 //					.newWhy3ReasonerFactory(config, universe, simplifierFactory,
@@ -80,14 +78,13 @@ public class Universes {
 	public static SymbolicUniverse newHerbrandUniverse(SARLConfig config,
 			ProverInfo prover) {
 		FactorySystem system = PreUniverses.newHerbrandFactorySystem();
+		IdealFactory idealFactory = getIdealFactory(system);
 		CommonSymbolicUniverse universe = new CommonSymbolicUniverse(system);
-		SimplifierFactory simplifierFactory = Simplify
-				.newIdentitySimplifierFactory(universe);
 		TheoremProverFactory proverFactory = prover == null
 				? Prove.newMultiProverFactory(universe, config)
 				: Prove.newProverFactory(universe, prover);
 		ReasonerFactory reasonerFactory = Reason.newReasonerFactory(universe,
-				simplifierFactory, proverFactory);
+				idealFactory, proverFactory);
 
 //		if (config.getWhy3ProvePlatform() != null) {
 //			Why3ReasonerFactory why3ReasonerFactory = Reason
@@ -115,17 +112,16 @@ public class Universes {
 		ExpressionFactory expressionFactory = Expressions
 				.newStandardExpressionFactory(numberFactory, objectFactory,
 						typeFactory);
+
 		FactorySystem system = PreUniverses.newFactorySystem(objectFactory,
 				typeFactory, expressionFactory);
+		IdealFactory idealFactory = getIdealFactory(system);
 		CommonSymbolicUniverse universe = new CommonSymbolicUniverse(system);
-		SimplifierFactory simplifierFactory = Expressions
-				.standardSimplifierFactory(expressionFactory, universe);
 		TheoremProverFactory proverFactory = prover == null
 				? Prove.newMultiProverFactory(universe, config)
 				: Prove.newProverFactory(universe, prover);
 		ReasonerFactory reasonerFactory = Reason.newReasonerFactory(universe,
-				simplifierFactory, proverFactory);
-
+				idealFactory, proverFactory);
 //		if (config.getWhy3ProvePlatform() != null) {
 //			Why3ReasonerFactory why3ReasonerFactory = Reason
 //					.newWhy3ReasonerFactory(config, universe, simplifierFactory,
@@ -141,6 +137,20 @@ public class Universes {
 	public static SymbolicUniverse newStandardUniverse() {
 		return newStandardUniverse(Configurations.getDefaultConfiguration(),
 				null);
+	}
+
+	/*
+	 * Small hack to obtain an IdealFactory regardless if we are working with a
+	 * Herbrand FactorySystem or not. Eventually, Ideal and Herbrand universes
+	 * will be merged into one and then we can remove this hack.
+	 */
+	private static IdealFactory getIdealFactory(FactorySystem system) {
+		NumericExpressionFactory numericFactory = system.numericFactory();
+		return (IdealFactory) (numericFactory instanceof IdealFactory
+				? numericFactory
+				: numericFactory instanceof CommonNumericExpressionFactory ?
+						((CommonNumericExpressionFactory) numericFactory).idealFactory() :
+							PreUniverses.newIdealFactorySystem().numericFactory());
 	}
 
 }

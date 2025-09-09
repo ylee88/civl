@@ -11,7 +11,6 @@ import dev.civl.sarl.ideal.IF.IdealFactory;
 import dev.civl.sarl.ideal.IF.Monic;
 import dev.civl.sarl.ideal.IF.Monomial;
 import dev.civl.sarl.ideal.IF.RationalExpression;
-import dev.civl.sarl.simplify.simplifier.IdealSimplifierWorker;
 
 /**
  * A simplification that applies to expressions in which the operator is
@@ -20,10 +19,6 @@ import dev.civl.sarl.simplify.simplifier.IdealSimplifierWorker;
  * @author siegel
  */
 public class PowerSimplification extends Simplification {
-
-	public PowerSimplification(IdealSimplifierWorker worker) {
-		super(worker);
-	}
 
 	/**
 	 * <p>
@@ -55,7 +50,7 @@ public class PowerSimplification extends Simplification {
 		NumericExpression base = (NumericExpression) powerExpr.argument(0);
 		SymbolicObject exp = powerExpr.argument(1);
 		NumericExpression neExp;
-		IdealFactory idf = idealFactory();
+		IdealFactory idf = util().getIdealFactory();
 
 		if (exp.symbolicObjectKind() == SymbolicObjectKind.NUMBER) {
 			NumberObject nobj = (NumberObject) exp;
@@ -93,15 +88,10 @@ public class PowerSimplification extends Simplification {
 	}
 
 	@Override
-	public SymbolicExpression apply(SymbolicExpression x) {
+	protected SymbolicExpression apply(SymbolicExpression x) {
 		if (x.operator() == SymbolicOperator.POWER)
 			return simplifyPowerDecompose((RationalExpression) x);
 		return x;
-	}
-
-	@Override
-	public SimplificationKind kind() {
-		return SimplificationKind.POWER;
 	}
 
 }

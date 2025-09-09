@@ -20,7 +20,7 @@ public class CommonCompletenessNode extends CommonContractNode
 
 	public CommonCompletenessNode(Source source, boolean isComplete,
 			SequenceNode<IdentifierNode> idList) {
-		super(source, idList);
+		super(source, (ASTNode) idList);
 	}
 
 	@Override

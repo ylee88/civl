@@ -125,11 +125,6 @@ public class RobustWhy3ProvePlatform implements TheoremProver {
 	}
 
 	@Override
-	public PreUniverse universe() {
-		return universe;
-	}
-
-	@Override
 	public ValidityResult valid(BooleanExpression predicate) {
 		PrintStream out = universe.getOutputStream();
 		int id = universe.numProverValidCalls();
@@ -267,7 +262,7 @@ public class RobustWhy3ProvePlatform implements TheoremProver {
 				Files.delete(temporaryScriptFile.toPath());
 			} catch (IOException e1) {
 				err.print("File " + temporaryScriptFile
-						+ " is not successfullt deleted.");
+						+ " is not successfully deleted.");
 			}
 		}
 		return result;

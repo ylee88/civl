@@ -9,72 +9,61 @@ import dev.civl.sarl.IF.expr.NumericExpression;
 import dev.civl.sarl.IF.expr.SymbolicConstant;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
-import dev.civl.sarl.simplify.simplifier.Context;
-import dev.civl.sarl.simplify.simplifier.IdealSimplifierWorker;
 
 public class QuantifierSimplification extends Simplification {
 
-	public QuantifierSimplification(IdealSimplifierWorker worker) {
-		super(worker);
-	}
-
 	@Override
-	public SymbolicExpression apply(SymbolicExpression expr) {
+	protected SymbolicExpression apply(SymbolicExpression expr) {
 		SymbolicOperator op = expr.operator();
 
 		if (op == FORALL) {
-			ForallStructure forall = universe()
+			ForallStructure forall = universe
 					.getForallStructure((BooleanExpression) expr);
 
 			if (forall != null) {
-				NumericExpression incLow = forall.lowerBound, excUp = universe()
-						.add(forall.upperBound, universe().oneInt()), excUp2;
+				NumericExpression incLow = forall.lowerBound, excUp = universe
+						.add(forall.upperBound, universe.oneInt()), excUp2;
 
-				incLow = (NumericExpression) simplifyExpression(incLow);
-				excUp2 = (NumericExpression) simplifyExpression(excUp);
+				incLow = (NumericExpression) simplify(incLow);
+				excUp2 = (NumericExpression) simplify(excUp);
 
 				// restrict:
-				BooleanExpression rstc = universe().lessThanEquals(incLow,
+				BooleanExpression rstc = universe.lessThanEquals(incLow,
 						forall.boundVariable);
 
-				rstc = universe().and(rstc,
-						universe().lessThan(forall.boundVariable, excUp2));
-				rstc = (BooleanExpression) simplifyExpression(rstc);
+				rstc = universe.and(rstc,
+						universe.lessThan(forall.boundVariable, excUp2));
+				rstc = (BooleanExpression) simplify(rstc);
 
-				Context subContext = newSubContext(rstc);
+				// TODO: Do we want to change this to a call to proveUnsat?
+				if (rstc.isFalse()) {
+					return universe.trueExpression();
+				}
 
-				if (subContext.getFullAssumption().isFalse())
-					return universe().trueExpression();
-
-				BooleanExpression newBody = (BooleanExpression) subContext
-						.simplify(forall.body);
+				pushAssumption(rstc);
+				BooleanExpression newBody = (BooleanExpression) simplify(forall.body);
+				popAssumption();
 
 				if (newBody == forall.body && incLow == forall.lowerBound
 						&& excUp == excUp2)
 					return expr;
 				else
-					return universe().forallInt(forall.boundVariable, incLow,
+					return universe.forallInt(forall.boundVariable, incLow,
 							excUp2, newBody);
 			}
 		}
 		if (op == FORALL || op == EXISTS) {
 			SymbolicConstant boundVar = (SymbolicConstant) expr.argument(0);
 			BooleanExpression body = (BooleanExpression) expr.argument(1);
-			Context subContext = newSubContext(body);
-			BooleanExpression body2 = subContext.getFullAssumption();
+			BooleanExpression body2 = (BooleanExpression) simplify(body);
 
 			if (body == body2)
 				return expr;
 			return op == SymbolicOperator.FORALL
-					? universe().forall(boundVar, body2)
-					: universe().exists(boundVar, body2);
+					? universe.forall(boundVar, body2)
+					: universe.exists(boundVar, body2);
 		}
 		return expr;
-	}
-
-	@Override
-	public SimplificationKind kind() {
-		return SimplificationKind.QUANTIFIER;
 	}
 
 }

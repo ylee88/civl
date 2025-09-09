@@ -181,9 +181,8 @@ public class CommonProverInfo implements ProverInfo {
 			out.println("  kind = " + kind + ";");
 		if (version != null)
 			out.println("  version = \"" + version + "\";");
-		if (path != null) {
-			out.println("  path = \"" + path.getPath().replace('\\', '/') + "\";");
-		}
+		if (path != null)
+			out.println("  path = \"" + path + "\";");
 		if (!options.isEmpty()) {
 			boolean first = true;
 

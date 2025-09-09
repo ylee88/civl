@@ -12,30 +12,23 @@ import dev.civl.sarl.IF.type.SymbolicFunctionType;
 import dev.civl.sarl.expr.IF.BooleanExpressionFactory;
 import dev.civl.sarl.ideal.IF.IdealFactory;
 import dev.civl.sarl.preuniverse.IF.PreUniverse;
-import dev.civl.sarl.simplify.simplifier.IdealSimplifierWorker;
-import dev.civl.sarl.simplify.simplifier.SubContext;
 import dev.civl.sarl.type.IF.SymbolicTypeFactory;
 
 public class ArrayLambdaSimplification extends Simplification {
 
-	public ArrayLambdaSimplification(IdealSimplifierWorker worker) {
-		super(worker);
-	}
-
 	@Override
-	public SymbolicExpression apply(SymbolicExpression expr) {
+	protected SymbolicExpression apply(SymbolicExpression expr) {
 		assert expr.operator() == SymbolicOperator.ARRAY_LAMBDA;
 		SymbolicArrayType arrayType = (SymbolicArrayType) expr.type();
 		SymbolicExpression function = (SymbolicExpression) expr.argument(0);
-		BooleanExpressionFactory bf = info().getBooleanFactory();
-		IdealFactory idf = idealFactory();
+		BooleanExpressionFactory bf = util().getBooleanFactory();
+		IdealFactory idf = util().getIdealFactory();
 		SymbolicTypeFactory tf = idf.typeFactory();
-		PreUniverse uv = universe();
+		PreUniverse universe = util().getUniverse();
 
 		if (arrayType.isComplete()) {
 			SymbolicCompleteArrayType completeType = (SymbolicCompleteArrayType) arrayType;
-			SymbolicCompleteArrayType newCompleteType = (SymbolicCompleteArrayType) simplifyType(
-					arrayType);
+			SymbolicCompleteArrayType newCompleteType = (SymbolicCompleteArrayType) simplify(arrayType);
 			NumericExpression length = newCompleteType.extent();
 			// function : [0,length-1] -> elementType
 			// when simplifying function, can assume domain is [0,length-1].
@@ -54,8 +47,9 @@ public class ArrayLambdaSimplification extends Simplification {
 				BooleanExpression boundAssumption = bf.and(
 						idf.lessThanEquals(idf.zeroInt(), boundVar),
 						idf.lessThan(boundVar, length));
-				SubContext subContext = newSubContext(boundAssumption);
-				SymbolicExpression newBody = subContext.simplify(body);
+				pushAssumption(boundAssumption);
+				SymbolicExpression newBody = (SymbolicExpression) simplify(body);
+				popAssumption();
 
 				if (newBody == body && newCompleteType == completeType)
 					return expr;
@@ -64,12 +58,12 @@ public class ArrayLambdaSimplification extends Simplification {
 						.type();
 				SymbolicFunctionType newFunctionType = tf.functionType(
 						functionType.inputTypes(), newBody.type());
-				SymbolicExpression newFunction = uv.make(
+				SymbolicExpression newFunction = universe.make(
 						SymbolicOperator.LAMBDA, newFunctionType,
-						new SymbolicObject[] { boundVar, newBody });
-				SymbolicExpression result = uv.make(
+						new SymbolicObject[]{boundVar, newBody});
+				SymbolicExpression result = universe.make(
 						SymbolicOperator.ARRAY_LAMBDA, newCompleteType,
-						new SymbolicObject[] { newFunction });
+						new SymbolicObject[]{newFunction});
 
 				return result;
 			} else {
@@ -80,10 +74,5 @@ public class ArrayLambdaSimplification extends Simplification {
 		}
 		return genericSimplify(expr);
 		// return expr;
-	}
-
-	@Override
-	public SimplificationKind kind() {
-		return SimplificationKind.ARRAY_LAMBDA;
 	}
 }

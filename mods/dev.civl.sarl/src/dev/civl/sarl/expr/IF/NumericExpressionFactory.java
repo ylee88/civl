@@ -19,6 +19,7 @@
 package dev.civl.sarl.expr.IF;
 
 import java.util.Comparator;
+import java.util.List;
 
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.NumericExpression;
@@ -98,6 +99,8 @@ public interface NumericExpressionFactory {
 	Comparator<NumericExpression> comparator();
 
 	NumericExpression number(NumberObject numberObject);
+
+	NumericExpression number(int value);
 
 	NumericSymbolicConstant symbolicConstant(StringObject name,
 			SymbolicType type);
@@ -243,6 +246,24 @@ public interface NumericExpressionFactory {
 	 *            the exponent in the power expression
 	 */
 	NumericExpression power(NumericExpression base, NumericExpression exponent);
+
+	/**
+	 * Returns a NumericExpression which is equivalent to the minimum of all
+	 * NumericExpressions in exprs.
+	 * 
+	 * @param exprs
+	 *            the NumericExpressions we want the minimum of.
+	 */
+	NumericExpression min(List<NumericExpression> exprs);
+
+	/**
+	 * Returns a NumericExpression which is equivalent to the maximum of all
+	 * NumericExpressions in exprs.
+	 * 
+	 * @param exprs
+	 *            the NumericExpressions we want the maximum of.
+	 */
+	NumericExpression max(List<NumericExpression> exprs);
 
 	/**
 	 * Returns a NumericExpression with the symbolic type passed in the second

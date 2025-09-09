@@ -1,7 +1,9 @@
 package dev.civl.sarl.ideal.simplify;
 
 import java.io.PrintStream;
+import java.util.Arrays;
 
+import dev.civl.sarl.IF.Reasoner;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.NumericExpression;
 import dev.civl.sarl.IF.expr.NumericSymbolicConstant;
@@ -14,10 +16,14 @@ import dev.civl.sarl.ideal.IF.IdealFactory;
 import dev.civl.sarl.preuniverse.IF.FactorySystem;
 import dev.civl.sarl.preuniverse.IF.PreUniverse;
 import dev.civl.sarl.preuniverse.IF.PreUniverses;
-import dev.civl.sarl.simplify.IF.Simplifier;
-import dev.civl.sarl.simplify.IF.Simplify;
-import dev.civl.sarl.simplify.common.IdentitySimplifierFactory;
-import dev.civl.sarl.simplify.simplifier.IdealSimplifierFactory;
+import dev.civl.sarl.prove.IF.Prove;
+import dev.civl.sarl.prove.IF.ProverFunctionInterpretation;
+import dev.civl.sarl.prove.IF.TheoremProver;
+import dev.civl.sarl.reason.IF.Reason;
+import dev.civl.sarl.reason.IF.ReasonerFactory;
+import dev.civl.sarl.simplify.simplification.Strategy;
+import dev.civl.sarl.simplify.simplifier.Context;
+import dev.civl.sarl.simplify.simplifier.MutableContext;
 import dev.civl.sarl.type.IF.SymbolicTypeFactory;
 
 /**
@@ -51,17 +57,19 @@ public class CommonObjects {
 
 	static IdealFactory idealFactory;
 
-	static IdealSimplifierFactory idealSimplifierFactory;
+	static TheoremProver trivialProver;
 
-	static IdentitySimplifierFactory identitySimplifierFactory;
+	static boolean useBackwardSubstitution;
 
-	static Simplifier idealSimplifier, idealSimp2;
+	static Strategy standardStrategy = Strategy.standardStrategy();
 
-	static Simplifier simp1ifier_xeq5;
+	static Context testContext, testContext2;
+
+	static Reasoner simp1ifier_xeq5;
 
 	static BooleanExpression p, q, claim1, pThanQ, xeq5, yeq6, trueExpr,
-			falseExpr, assumption; // assumption is not initialized, as uses
-									// will vary greatly
+			falseExpr; // assumption is not initialized, as uses
+						// will vary greatly
 
 	static SymbolicExpression symbExpr_xpy; // x + y
 
@@ -110,8 +118,8 @@ public class CommonObjects {
 	static NumericExpression xpyInt, xyInt, xxInt, x4thInt, threeX4thInt,
 			xxyInt, xyyInt;
 
-	static dev.civl.sarl.IF.number.Number num3, num5, numNeg2000,
-			num10000, num0, num10pt5;
+	static dev.civl.sarl.IF.number.Number num3, num5, numNeg2000, num10000,
+			num0, num10pt5;
 
 	static dev.civl.sarl.IF.number.Number num3Int, num5Int, num0Int,
 			numNeg2000Int, num10000Int, neg1Int;
@@ -120,8 +128,8 @@ public class CommonObjects {
 	 * Method provides initialization of common SARL Objects declared in the
 	 * CommonObjects Class.
 	 * <p>
-	 * This method is only accessible within the
-	 * dev.civl.sarl.ideal.simplify package.
+	 * This method is only accessible within the dev.civl.sarl.ideal.simplify
+	 * package.
 	 * 
 	 * @see CommonObjects
 	 */
@@ -131,8 +139,6 @@ public class CommonObjects {
 		out = System.out;
 		idealFactory = (IdealFactory) system.expressionFactory()
 				.numericFactory();
-		idealSimplifierFactory = (IdealSimplifierFactory) Simplify
-				.newIdealSimplifierFactory(idealFactory, preUniv);
 		boolExprFact = PreUniverses.newIdealFactorySystem().booleanFactory();
 		ratNeg1 = preUniv.rational(-1);
 		ratNeg2 = preUniv.rational(-2);
@@ -176,7 +182,6 @@ public class CommonObjects {
 				.symbolicConstant(preUniv.stringObject("yInt"), integerType);
 		xeq5 = preUniv.equals(x, rat5);
 		yeq6 = preUniv.equals(y, rat6);
-		simp1ifier_xeq5 = idealSimplifierFactory.newSimplifier(xeq5, true);
 		// not sure if xsqd is necessary
 		// xsqd = preUniv.multiply(x, x);
 		xpy = preUniv.add(x, y);
@@ -226,6 +231,12 @@ public class CommonObjects {
 		p = preUniv.falseExpression();
 		q = preUniv.falseExpression();
 		pThanQ = preUniv.implies(p, q);
+	}
+
+	static Context newContext(BooleanExpression assumption) {
+		return Context.newContext(preUniv, idealFactory,
+				Prove.trivialProverFactory(), assumption,
+				useBackwardSubstitution, null);
 	}
 
 }

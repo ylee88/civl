@@ -18,7 +18,9 @@
  ******************************************************************************/
 package dev.civl.sarl.expr.common;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 
 import dev.civl.sarl.IF.SARLInternalException;
 import dev.civl.sarl.IF.expr.BooleanExpression;
@@ -134,12 +136,32 @@ public class CommonNumericExpressionFactory
 				if (object instanceof NumberObject)
 					return herbrandFactory.number((NumberObject) object);
 			}
-			return herbrandFactory
-					.expression(
-							SymbolicOperator.CAST, oldType.isInteger()
-									? herbrandIntegerType : herbrandRealType,
-							arg);
+			return herbrandFactory.expression(SymbolicOperator.CAST,
+					oldType.isInteger() ? herbrandIntegerType
+							: herbrandRealType,
+					arg);
 		}
+	}
+
+	private List<NumericExpression> unifyType(List<NumericExpression> exprs) {
+		boolean isHerbrand = false;
+
+		for (NumericExpression e : exprs) {
+			if (e.type().isHerbrand()) {
+				isHerbrand = true;
+				break;
+			}
+		}
+		if (isHerbrand) {
+			List<NumericExpression> herbrandification = new ArrayList<>(
+					exprs.size());
+
+			for (NumericExpression e : exprs) {
+				herbrandification.add(castToHerbrand(e));
+			}
+			exprs = herbrandification;
+		}
+		return exprs;
 	}
 
 	// Exported methods....
@@ -237,6 +259,11 @@ public class CommonNumericExpressionFactory
 	@Override
 	public NumericExpression number(NumberObject numberObject) {
 		return idealFactory.number(numberObject);
+	}
+	
+	@Override
+	public NumericExpression number(int value) {
+		return number(objectFactory.numberObject(numberFactory.integer(value)));
 	}
 
 	/**
@@ -570,6 +597,28 @@ public class CommonNumericExpressionFactory
 					castToHerbrand(exponent));
 	}
 
+	@Override
+	public NumericExpression min(List<NumericExpression> exprs) {
+		assert (exprs.size() > 0);
+		if (exprs.size() == 1) {
+			return exprs.get(0);
+		}
+		exprs = unifyType(exprs);
+		return exprs.get(0).type().isIdeal() ? idealFactory.min(exprs)
+				: herbrandFactory.min(exprs);
+	}
+
+	@Override
+	public NumericExpression max(List<NumericExpression> exprs) {
+		assert (exprs.size() > 0);
+		if (exprs.size() == 1) {
+			return exprs.get(0);
+		}
+		exprs = unifyType(exprs);
+		return exprs.get(0).type().isIdeal() ? idealFactory.max(exprs)
+				: herbrandFactory.max(exprs);
+	}
+
 	/**
 	 * Method that casts expr to newType
 	 * 
@@ -772,8 +821,8 @@ public class CommonNumericExpressionFactory
 
 /**
  * 
- * CommonNumericComparator class implements Comparator
- * <NumericExpression> interface
+ * CommonNumericComparator class implements Comparator <NumericExpression>
+ * interface
  * 
  * @author siegel
  *

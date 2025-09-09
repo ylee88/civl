@@ -50,6 +50,18 @@ public class ConfigFactory {
 	public final static PrintStream out = System.out;
 
 	/**
+	 * Map from the typical file names of the executable theorem provers to the
+	 * kind of theorem prover. Add more entries as needed.
+	 */
+	private static Map<String, ProverKind> executableMap = new HashMap<>();
+
+	static {
+		executableMap.put("cvc4", ProverKind.CVC4); // working
+		executableMap.put("z3", ProverKind.Z3); // working
+		executableMap.put("why3", ProverKind.Why3); // working
+	}
+
+	/**
 	 * Map from the names of the (JNI) dynamic libraries to the kind of the
 	 * theorem prover. Add more entries as needed.
 	 */
@@ -94,24 +106,6 @@ public class ConfigFactory {
 		case "Z3_API":
 			return ProverKind.Z3_API;
 		case "Why3":
-			return ProverKind.Why3;
-		default:
-			return null;
-		}
-	}
-
-	private static ProverKind proverKindFromExecutable(String execFileName) {
-		// Strip ".exe" from executable name if it is present.
-		int length = execFileName.length();
-		if (length > 4 && execFileName.substring(length - 4).equals(".exe"))
-			execFileName = execFileName.substring(0, length - 4);
-
-		switch (execFileName) {
-		case "cvc4":
-			return ProverKind.CVC4;
-		case "z3":
-			return ProverKind.Z3;
-		case "why3":
 			return ProverKind.Why3;
 		default:
 			return null;
@@ -294,8 +288,13 @@ public class ConfigFactory {
 		info.setShowInconclusives(false);
 		info.setShowErrors(true);
 		if (kind == ProverKind.Why3) {
-			info.addOption("cvc4-15");
-			info.addOption("z3");
+			for (String why3prover : executableMap.keySet()) {
+				if (why3prover.equals("why3"))
+					continue;
+				if (why3prover.equals("cvc4"))
+					why3prover += "-15";
+				info.addOption(why3prover);
+			}
 			info.setTimeout(5.0);
 			// set environment for helping why3 finding prover executables:
 			info.setEnv(System.getenv("PATH"));
@@ -747,7 +746,7 @@ public class ConfigFactory {
 						continue;
 
 					String name = file.getName();
-					ProverKind kind = proverKindFromExecutable(name);
+					ProverKind kind = executableMap.get(name);
 
 					if (kind != null) {
 						String alias = kind.toString().toLowerCase();

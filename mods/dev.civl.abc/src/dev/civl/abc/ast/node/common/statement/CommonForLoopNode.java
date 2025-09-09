@@ -12,6 +12,8 @@ import dev.civl.abc.token.IF.Source;
 
 public class CommonForLoopNode extends CommonLoopNode implements ForLoopNode {
 
+	private boolean isStandard = false;
+
 	public CommonForLoopNode(Source source, ExpressionNode condition,
 			StatementNode statement, ForLoopInitializerNode initializer,
 			ExpressionNode incrementer, SequenceNode<ContractNode> contracts) {
@@ -31,10 +33,23 @@ public class CommonForLoopNode extends CommonLoopNode implements ForLoopNode {
 	}
 
 	@Override
+	public boolean isStandard() {
+		return isStandard;
+	}
+
+	@Override
+	public void setStandard(boolean isStandard) {
+		this.isStandard = isStandard;
+	}
+
+	@Override
 	public ForLoopNode copy() {
-		return new CommonForLoopNode(getSource(), duplicate(getCondition()),
-				duplicate(getBody()), duplicate(getInitializer()),
-				duplicate(getIncrementer()), duplicate(loopContracts()));
+		ForLoopNode result = new CommonForLoopNode(getSource(),
+				duplicate(getCondition()), duplicate(getBody()),
+				duplicate(getInitializer()), duplicate(getIncrementer()),
+				duplicate(loopContracts()));
+		result.addAllTransformAnnotations(transformAnnotations());
+		return result;
 	}
 
 	@Override

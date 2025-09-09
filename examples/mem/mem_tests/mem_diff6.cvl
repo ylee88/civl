@@ -1,0 +1,20 @@
+#include<mem.cvh>
+
+$input int N;
+$assume(2 <= N && N <= 6);
+
+typedef struct {
+  int x[10][10];
+} A;
+
+int main() {
+  A a;
+  $mem m = &a.x[0 .. 9][0 .. 9];
+  $mem m2 = &a.x[N-1 .. N+3][N-2 .. N+2];
+  m = $mem_diff(m, m2);
+  $mem m3 = &a.x[0..N-2][0..9];
+  m3 = $mem_union(m3, &a.x[N+4..9][0..9]);
+  m3 = $mem_union(m3, &a.x[0..9][0..N-3]);
+  m3 = $mem_union(m3, &a.x[0..9][N+3..9]);
+  $assert($mem_contains(m, m3));
+}

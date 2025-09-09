@@ -415,6 +415,12 @@ public interface StateFactory {
 	 */
 	State simplify(State state);
 
+	State simplify(State state, int pid);
+
+	State simplify(State state, Set<SymbolicConstant> aggressiveSet);
+
+	State simplify(State state, int pid, Set<SymbolicConstant> aggressiveSet);
+
 	/**
 	 * Returns the number of objects of type State that have been instantiated
 	 * since this JVM started.

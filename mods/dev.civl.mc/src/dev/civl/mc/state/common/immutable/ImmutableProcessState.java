@@ -393,16 +393,6 @@ public class ImmutableProcessState implements ProcessState {
 	}
 
 	/**
-	 * @return The reference to the partial path condition array.
-	 */
-	BooleanExpression[] getPartialPathConditions() {
-		if (partialPathConditions == null)
-			return new BooleanExpression[0];
-		else
-			return partialPathConditions;
-	}
-
-	/**
 	 * Set the write set stack of this process state to the given
 	 * "newWriteSets".
 	 * 
@@ -476,11 +466,16 @@ public class ImmutableProcessState implements ProcessState {
 	 * @return a new process state where symbolic expressions have been updated.
 	 */
 	ImmutableProcessState apply(UnaryOperator<SymbolicExpression> operator) {
+		return apply(operator, true);
+	}
+	
+	
+	ImmutableProcessState apply(UnaryOperator<SymbolicExpression> operator, boolean applyToPartialPathCondition) {
 		boolean anyChange = false, change = false;
 		BooleanExpression ppcNew[] = null;
 		DynamicMemoryLocationSet writeSetsNew[] = null, readSetsNew[] = null;
 
-		if (partialPathConditions != null) {
+		if (partialPathConditions != null && applyToPartialPathCondition) {
 			ppcNew = Arrays.copyOf(partialPathConditions,
 					partialPathConditions.length);
 			for (int i = 0; i < partialPathConditions.length; i++) {
@@ -592,6 +587,17 @@ public class ImmutableProcessState implements ProcessState {
 				this.atomicCount + 1, selfDestructable);
 	}
 
+	/**
+	 * @return The reference to the partial path condition array.
+	 */
+	@Override
+	public BooleanExpression[] getPartialPathConditions() {
+		if (partialPathConditions == null)
+			return new BooleanExpression[0];
+		else
+			return partialPathConditions;
+	}
+	
 	/**
 	 * {@inheritDoc} Look at the first entry on the call stack, but do not
 	 * remove it.

@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 import dev.civl.mc.model.IF.location.Location;
+import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 
 /**
@@ -52,6 +53,8 @@ public interface ProcessState {
 	 */
 	int getDyscopeId();
 
+	BooleanExpression[] getPartialPathConditions();
+	
 	/**
 	 * Returns the top frame on the call stack. Undefined behavior if call stack
 	 * is empty.

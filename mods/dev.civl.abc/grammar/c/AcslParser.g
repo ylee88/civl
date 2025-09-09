@@ -64,6 +64,8 @@ tokens{
     EXECUTES_WHEN;
     EXISTS_ACSL;
     FALSE_ACSL;
+    FOCUS_ASSERT;
+    FOCUS_LOOP;
     FORALL_ACSL;
     FREES;
     FUNC_CALL;
@@ -132,6 +134,9 @@ tokens{
     SUM;
     TERM_PARENTHESIZED;
     TERMINATES;
+    TRANSFORM;
+    TRANSFORM_CONTRACT;
+    TRANSFORM_CONTRACT_BLOCK;
     TRUE_ACSL;
     TYPE_BUILTIN;
     TYPE_ID;
@@ -155,6 +160,7 @@ contract
     | function_contract 
     | logic_function_contract
     | assert_contract
+    | transform_contract
     ;
 
 /* Section 2.4.2 Loop Annotations */
@@ -204,6 +210,35 @@ loop_variant
         ->^(LOOP_VARIANT term)
     | loop_key variant_key term FOR IDENTIFIER
         ->^(LOOP_VARIANT term IDENTIFIER)
+    ;
+
+transform_contract
+    : transform_contract_block
+        ->^(TRANSFORM_CONTRACT transform_contract_block)
+    ;
+
+transform_contract_block
+    : trs+=transform* ->^(TRANSFORM_CONTRACT_BLOCK $trs*)
+    ;
+
+transform
+    : transform_spec SEMI ->^(TRANSFORM transform_spec)
+    ;
+
+transform_spec
+    : focus_spec
+    ;
+    
+focus_spec
+    : focus_assert_spec | focus_loop_spec
+    ;
+    
+focus_assert_spec
+    : focus_key IDENTIFIER+ ->^(FOCUS_ASSERT IDENTIFIER+)
+    ;
+    
+focus_loop_spec
+    : focus_key IDENTIFIER BITOR argumentExpressionList ->^(FOCUS_LOOP IDENTIFIER argumentExpressionList)
     ;
 
 /* sec. 2.3 Function contracts */
@@ -1055,6 +1090,10 @@ frees_key
     : {input.LT(1).getText().equals("frees")}? IDENTIFIER
     ; 
   
+focus_key
+	: {input.LT(1).getText().equals("focus")}? IDENTIFIER
+	;
+
 invariant_key
     : {input.LT(1).getText().equals("invariant")}? IDENTIFIER
     ;

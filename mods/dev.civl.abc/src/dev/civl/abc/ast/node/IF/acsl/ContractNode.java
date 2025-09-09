@@ -78,6 +78,11 @@ public interface ContractNode extends ASTNode {
 		 */
 		REQUIRES,
 		/**
+		 * A "transform" node represents a transformation that should be applied
+		 * to the piece of code annotated by the transform node.
+		 */
+		TRANSFORM,
+		/**
 		 * A "waitsfor" node represents a synchronization clause in a CIVL-C
 		 * procedure contract. May be safe cast to {@link WaitsforNode}.
 		 */
@@ -91,12 +96,14 @@ public interface ContractNode extends ASTNode {
 		 * </p>
 		 */
 		PREDICATE,
-        /**
-         * <p>events that are used in MPI_ABSENT expressions:
-         * <code>\send, \enter \exit</code></p>.  Instances of
-         * {@link MPIContractAbsentEventNode}
-         */
-        MPI_EVENT,
+		/**
+		 * <p>
+		 * events that are used in MPI_ABSENT expressions:
+		 * <code>\send, \enter \exit</code>
+		 * </p>
+		 * . Instances of {@link MPIContractAbsentEventNode}
+		 */
+		MPI_EVENT,
 	}
 
 	/**

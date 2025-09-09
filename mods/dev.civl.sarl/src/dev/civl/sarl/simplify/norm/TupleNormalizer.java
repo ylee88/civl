@@ -15,7 +15,7 @@ import dev.civl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
 import dev.civl.sarl.IF.object.IntObject;
 import dev.civl.sarl.IF.type.SymbolicTupleType;
 import dev.civl.sarl.preuniverse.IF.PreUniverse;
-import dev.civl.sarl.simplify.simplifier.Context;
+import dev.civl.sarl.simplify.simplifier.MutableContext;
 import dev.civl.sarl.simplify.simplifier.InconsistentContextException;
 import dev.civl.sarl.util.Pair;
 
@@ -30,7 +30,7 @@ public class TupleNormalizer implements Normalizer {
 	/**
 	 * The context being simplified.
 	 */
-	private Context context;
+	private MutableContext context;
 
 	/**
 	 * A reference to {@link #PreUniverse}
@@ -39,12 +39,12 @@ public class TupleNormalizer implements Normalizer {
 
 	/**
 	 * Creates new {@link TupleNormalizer} for simplifying the given
-	 * {@link Context}.
+	 * {@link MutableContext}.
 	 * 
 	 * @param context
 	 *            the context to be simplified
 	 */
-	public TupleNormalizer(Context context) {
+	public TupleNormalizer(MutableContext context) {
 		this.context = context;
 		this.universe = context.getInfo().getUniverse();
 	}
@@ -116,7 +116,7 @@ public class TupleNormalizer implements Normalizer {
 
 		/**
 		 * Collecting concrete component values for tuples from entries of the
-		 * {@link Context#subMap}. Add entries to {@link #tupleSubstitutions}
+		 * {@link MutableContext#subMap}. Add entries to {@link #tupleSubstitutions}
 		 * once a non-concrete tuple can be simplified to a concrete one.
 		 */
 		private void simplify() {

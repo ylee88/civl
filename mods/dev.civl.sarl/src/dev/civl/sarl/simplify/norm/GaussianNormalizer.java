@@ -8,13 +8,13 @@ import dev.civl.sarl.IF.expr.SymbolicConstant;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.ideal.IF.Monic;
 import dev.civl.sarl.ideal.IF.Monomial;
-import dev.civl.sarl.simplify.simplifier.Context;
+import dev.civl.sarl.simplify.simplifier.MutableContext;
 import dev.civl.sarl.simplify.simplifier.InconsistentContextException;
 import dev.civl.sarl.simplify.simplifier.LinearSolver;
 import dev.civl.sarl.simplify.simplifier.SimplifierUtility;
 
 /**
- * Performs Gaussian Elimination on the numeric entries of a {@link Context}'s
+ * Performs Gaussian Elimination on the numeric entries of a {@link MutableContext}'s
  * substitution map. Does not read or modify the context's range map.
  */
 public class GaussianNormalizer implements Normalizer {
@@ -26,9 +26,9 @@ public class GaussianNormalizer implements Normalizer {
 	/**
 	 * The context being simplified.
 	 */
-	private Context context;
+	private MutableContext context;
 
-	public GaussianNormalizer(Context context) {
+	public GaussianNormalizer(MutableContext context) {
 		this.context = context;
 	}
 
@@ -92,6 +92,7 @@ public class GaussianNormalizer implements Normalizer {
 			context.removeSubkey(key);
 		for (Entry<Monic, Monomial> entry : ls.getNewEntries())
 			context.addSub(entry.getKey(), entry.getValue(), dirtyOut);
+		context.applySubMapToSelf(dirtyOut);
 	}
 
 }
