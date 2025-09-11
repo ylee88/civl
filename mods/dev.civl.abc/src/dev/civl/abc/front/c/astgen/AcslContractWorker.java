@@ -186,8 +186,13 @@ public class AcslContractWorker {
 						(CommonTree) contractTree.getChild(0), scope));
 				break;
 			case AcslParser.LOOP_CONTRACT :
-				translatedContractNodes.addAll(translateLoopContractBlock(
-						(CommonTree) contractTree.getChild(0), scope));
+				for (ContractNode node : translateLoopContractBlock(
+						(CommonTree) contractTree.getChild(0), scope)) {
+					if (node instanceof TransformNode)
+						translatedTransformNodes.add((TransformNode) node);
+					else
+						translatedContractNodes.add(node);
+				}
 				break;
 			case AcslParser.LOGIC_FUNCTIONS :
 				translatedBlockItems
@@ -230,21 +235,11 @@ public class AcslContractWorker {
 		CommonTree specTree = (CommonTree) tree.getChild(0);
 
 		switch (specTree.getType()) {
-			case FOCUS_LOOP :
-				return translateFocusLoop(specTree, source, scope);
 			case FOCUS_ASSERT :
 				return translateFocusAssert(specTree, source);
 			default :
 				throw this.error("Unknown transform type", specTree);
 		}
-	}
-
-	private FocusLoopTransformNode translateFocusLoop(CommonTree tree,
-			Source source, SimpleScope scope) throws SyntaxException {
-		String focusTag = ((CommonTree) tree.getChild(0)).getToken().getText();
-		SequenceNode<ExpressionNode> memoryList = translateArgumentList(
-				(CommonTree) tree.getChild(1), scope);
-		return this.nodeFactory.newFocusLoopNode(source, tokenFactory, focusTag, memoryList);
 	}
 	
 	private FocusAssertTransformNode translateFocusAssert(CommonTree tree, Source source)
@@ -293,6 +288,9 @@ public class AcslContractWorker {
 					result.add(this.translateLoopClause(
 							(CommonTree) loopItem.getChild(0), scope));
 					break;
+				case AcslParser.FOCUS_LOOP :
+					result.add(translateFocusLoop(loopItem, newSource(loopItem), scope));
+					break;
 				case AcslParser.LOOP_VARIANT :
 					System.err.println(
 							"loop variants are not supported hence ignored.");
@@ -303,6 +301,70 @@ public class AcslContractWorker {
 			}
 		}
 		return result;
+	}
+	
+	private FocusLoopTransformNode translateFocusLoop(CommonTree tree,
+			Source source, SimpleScope scope) throws SyntaxException {
+		CommonTree focusHeaderTree = (CommonTree) tree.getChild(0);
+		String focusTag = ((CommonTree) focusHeaderTree.getChild(0)).getToken()
+				.getText();
+		SequenceNode<ExpressionNode> tagWindow = focusHeaderTree
+				.getChildCount() > 1
+						? translateLoopFocusWindow(
+								(CommonTree) focusHeaderTree.getChild(1), scope)
+						: null;
+		SequenceNode<ExpressionNode> memoryList = translateArgumentList(
+				(CommonTree) tree.getChild(1), scope);
+		return this.nodeFactory.newFocusLoopNode(source, tokenFactory, focusTag,
+				tagWindow, memoryList);
+	}
+
+	private SequenceNode<ExpressionNode> translateLoopFocusWindow(
+			CommonTree tree, SimpleScope scope) throws SyntaxException {
+		CommonTree child = (CommonTree) tree.getChild(0);
+		ExpressionNode windowExpr = translateExpression(child, scope);
+		ExpressionNode windowLower = null, windowUpper = null;
+		switch (tree.getType()) {
+			case AcslParser.LOOP_FOCUS_POS_SINGLETON:
+				windowLower = windowExpr;
+				break;
+			case AcslParser.LOOP_FOCUS_NEG_SINGLETON :
+				windowLower = nodeFactory.newOperatorNode(newSource(child), OperatorNode.Operator.UNARYMINUS, windowExpr);
+				break;
+			case AcslParser.LOOP_FOCUS_RANGE:
+				if (!(windowExpr instanceof RegularRangeNode))
+					throw this.error("Loop focus window requires a range when using curly braces", tree);
+				RegularRangeNode rangeNode = (RegularRangeNode) windowExpr;
+				if (rangeNode.getStep() != null)
+					throw this.error("Loop focus window range cannot be declared with a step", tree);
+				windowLower = rangeNode.getLow().copy();
+				windowUpper = rangeNode.getHigh().copy();
+				break;
+			default :
+				throw this.error("unknown kind of loop focus window", tree);
+		}
+		
+		boolean simpleWindow = checkIsSimpleInteger(windowLower);
+		if (windowUpper != null)
+			simpleWindow &= checkIsSimpleInteger(windowUpper);
+		if (!simpleWindow)
+			throw error(
+					"Loop focus window requires use of integer constants only",
+					child);
+		
+		return nodeFactory.newSequenceNode(newSource(tree), "loop focus window",
+				Arrays.asList(windowLower, windowUpper));
+	}
+	
+	private boolean checkIsSimpleInteger(ExpressionNode node) {
+		if (node instanceof IntegerConstantNode)
+			return true;
+		if (node instanceof OperatorNode) {
+			OperatorNode opNode = (OperatorNode) node;
+			return opNode.getOperator() == OperatorNode.Operator.UNARYMINUS
+					&& checkIsSimpleInteger((ExpressionNode) node.child(0));
+		}
+		return false;
 	}
 
 	/**

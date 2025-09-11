@@ -86,6 +86,10 @@ tokens{
     LOOP_CONTRACT;
     LOOP_CONTRACT_BLOCK;
     LOOP_FREE;
+    LOOP_FOCUS_HEAD;
+    LOOP_FOCUS_POS_SINGLETON;
+    LOOP_FOCUS_NEG_SINGLETON;
+    LOOP_FOCUS_RANGE;
     LOOP_INVARIANT;
     LOOP_VARIANT;
     MAX;
@@ -170,8 +174,8 @@ loop_contract
     ;
 
 loop_contract_block
-    : lc+=loop_clause* lb+=loop_behavior* lv=loop_variant?
-        ->^(LOOP_CONTRACT_BLOCK $lc* $lb* $lv?)
+    : lc+=loop_clause* lb+=loop_behavior* lv=loop_variant? lf=loop_focus?
+        ->^(LOOP_CONTRACT_BLOCK $lc* $lb* $lv? $lf?)
     ;
 
 loop_clause
@@ -211,6 +215,21 @@ loop_variant
     | loop_key variant_key term FOR IDENTIFIER
         ->^(LOOP_VARIANT term IDENTIFIER)
     ;
+    
+loop_focus
+    : focus_key loop_focus_head BITOR argumentExpressionList ->^(FOCUS_LOOP loop_focus_head argumentExpressionList)
+    ;
+
+loop_focus_head
+    : IDENTIFIER loop_focus_window? ->^(LOOP_FOCUS_HEAD IDENTIFIER loop_focus_window?)
+    ;
+    
+loop_focus_window
+    : PLUS LCURLY rangeExpression RCURLY
+        ->^(LOOP_FOCUS_RANGE rangeExpression)
+    | PLUS unaryExpression ->^(LOOP_FOCUS_POS_SINGLETON unaryExpression)
+    | SUB unaryExpression ->^(LOOP_FOCUS_NEG_SINGLETON unaryExpression)
+    ;
 
 transform_contract
     : transform_contract_block
@@ -226,19 +245,11 @@ transform
     ;
 
 transform_spec
-    : focus_spec
-    ;
-    
-focus_spec
-    : focus_assert_spec | focus_loop_spec
+    : focus_assert_spec
     ;
     
 focus_assert_spec
     : focus_key IDENTIFIER+ ->^(FOCUS_ASSERT IDENTIFIER+)
-    ;
-    
-focus_loop_spec
-    : focus_key IDENTIFIER BITOR argumentExpressionList ->^(FOCUS_LOOP IDENTIFIER argumentExpressionList)
     ;
 
 /* sec. 2.3 Function contracts */

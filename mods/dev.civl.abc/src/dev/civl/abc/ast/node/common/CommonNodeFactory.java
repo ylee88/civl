@@ -1444,10 +1444,12 @@ public class CommonNodeFactory implements NodeFactory {
 	}
 
 	@Override
-	public FocusLoopTransformNode newFocusLoopNode(Source source, TokenFactory tokenFactory,
-			String focusTag, SequenceNode<ExpressionNode> memoryList) {
+	public FocusLoopTransformNode newFocusLoopNode(Source source,
+			TokenFactory tokenFactory, String focusTag,
+			SequenceNode<ExpressionNode> tagWindow,
+			SequenceNode<ExpressionNode> memoryList) {
 		return new CommonFocusLoopTransformNode(source, this, tokenFactory,
-				focusTag, memoryList);
+				focusTag, tagWindow, memoryList);
 	}
 	
 	@Override

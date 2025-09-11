@@ -15,6 +15,7 @@ import dev.civl.abc.ast.node.IF.expression.ExpressionNode;
 import dev.civl.abc.ast.node.IF.expression.FunctionCallNode;
 import dev.civl.abc.ast.node.IF.expression.IdentifierExpressionNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode;
+import dev.civl.abc.ast.node.IF.expression.OperatorNode.Operator;
 import dev.civl.abc.ast.node.IF.expression.RegularRangeNode;
 import dev.civl.abc.front.IF.CivlcTokenConstant;
 import dev.civl.abc.token.IF.CivlcToken;
@@ -98,6 +99,24 @@ public abstract class CommonFocusTransformNode extends CommonTransformNode
 	protected IdentifierNode identifier(String name) {
 		return nodeFactory.newIdentifierNode(newSource("identifier", name),
 				name);
+	}
+	
+	protected ExpressionNode minExpression(ExpressionNode expr1, ExpressionNode expr2) {
+		String thisFuncName = "minExpression";
+		Source maxSource = newSource(thisFuncName,
+				"min(" + expr1.toString() + ", " + expr2.toString() + ")");
+		return nodeFactory.newOperatorNode(maxSource, Operator.CONDITIONAL,
+				nodeFactory.newOperatorNode(maxSource,
+						Operator.LTE, expr1, expr2), expr1.copy(), expr2.copy());
+	}
+	
+	protected ExpressionNode maxExpression(ExpressionNode expr1, ExpressionNode expr2) {
+		String thisFuncName = "maxExpression";
+		Source maxSource = newSource(thisFuncName,
+				"max(" + expr1.toString() + ", " + expr2.toString() + ")");
+		return nodeFactory.newOperatorNode(maxSource, Operator.CONDITIONAL,
+				nodeFactory.newOperatorNode(maxSource,
+						Operator.GTE, expr1, expr2), expr1.copy(), expr2.copy());
 	}
 
 	protected Source newSource(String callingFuncName, String sourceText) {

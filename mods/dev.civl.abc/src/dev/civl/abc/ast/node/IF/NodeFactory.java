@@ -2989,6 +2989,7 @@ public interface NodeFactory {
 
 	FocusLoopTransformNode newFocusLoopNode(Source source,
 			TokenFactory tokenFactory, String focusTag,
+			SequenceNode<ExpressionNode> tagWindow,
 			SequenceNode<ExpressionNode> memoryList);
 
 	FocusAssertTransformNode newFocusAssertNode(Source source,

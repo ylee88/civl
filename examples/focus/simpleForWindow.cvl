@@ -9,9 +9,10 @@ int a[N];
 int main() {
 
   int x = 0;
+  // Note loop variable i should auto-include into unfocus.
   /*@ loop invariant x == i;
     @ loop assigns a[0..N-1],x;
-    @ focus F | a[F];
+    @ focus F+{-1..1} | a[F-1..F+1];
     @*/
   for (int i = 0; i < N; i++) {
     a[i] = i + x;
@@ -19,5 +20,5 @@ int main() {
   }
   
   //@ focus F;
-  $assert($forall(int i:0..N-1) a[i] == i+i);
+  $assert($forall(int i:1..N-2) a[i-1] == 2*(i-1) && a[i] == 2*i && a[i+1] == 2*(i+1));
 }

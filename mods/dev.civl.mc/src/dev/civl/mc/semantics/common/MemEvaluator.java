@@ -785,11 +785,14 @@ public class MemEvaluator extends CommonEvaluator {
 		} else
 			vsRef = symbolicUtil.getValueSetUtility()
 					.getVSReferenceToSequenceOrNoop(type, false, vsRef);
+		// Don't want out of bound checking for $mem expressions
+		/*
 		if (civlConfig.isPropertyToggled(CIVLProperty.OUT_OF_BOUNDS)) {
 			// error checking ...
 			state = checkValueSetReferenceOutOfBound(state, pid, valueType,
 					vsRef, source);
 		}
+		*/
 		
 		// make value of dynamic $mem type ...
 		Function<List<SymbolicExpression[]>, SymbolicExpression> memValueCreator = typeFactory

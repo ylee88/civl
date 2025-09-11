@@ -3,14 +3,17 @@
 #pragma CIVL ACSL
 $input int M;
 $assume(0 < M);
-$input int N = 1;
+$input int N;
+$assume(0 < N);
 $input float A[M][N], B[M][N];
 
 int main() {
   double C[M][N];
-  //@ focus I;
+  //@ loop assigns C[0..M-1][0..N-1];
+  //@ focus I | C[I][0..N-1];
   for (int i = 0; i < M; i++) {
-    //@ focus J;
+    //@ loop assigns C[i][0..N-1];
+    //@ focus J | C[i][J];
     for (int j = 0; j < N; j++) {
       C[i][j] = A[i][j]+B[i][j];
     }
