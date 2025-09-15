@@ -1,7 +1,9 @@
-package dev.civl.abc.analysis.entity;
+package dev.civl.abc.analysis.IF;
 
 import java.util.HashMap;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import dev.civl.abc.token.IF.SyntaxException;
 
@@ -13,6 +15,7 @@ public class FocusAnalysisData {
 		}
 		String focusVarName;
 		String altFocusVarName;
+		SortedSet<Integer> offsets = new TreeSet<>();
 	}
 	private HashMap<String, TagData> tagMap;
 
@@ -36,6 +39,14 @@ public class FocusAnalysisData {
 		}
 	}
 
+	public void addFocusOffset(String tag, int offset) {
+		TagData data = tagData(tag);
+		data.offsets.add(offset);
+	}
+	
+	public SortedSet<Integer> getFocusOffsets(String tag) {
+		return tagData(tag).offsets;
+	}
 
 	private TagData tagData(String tag) {
 		return tagMap.get(tag);

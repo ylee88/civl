@@ -11,12 +11,9 @@ import dev.civl.abc.ast.node.IF.ASTNode.NodeKind;
 import dev.civl.abc.ast.node.IF.NodeFactory;
 import dev.civl.abc.ast.node.IF.SequenceNode;
 import dev.civl.abc.ast.node.IF.declaration.FunctionDefinitionNode;
-import dev.civl.abc.ast.node.IF.declaration.InitializerNode;
 import dev.civl.abc.ast.node.IF.declaration.VariableDeclarationNode;
 import dev.civl.abc.ast.node.IF.expression.ExpressionNode;
 import dev.civl.abc.ast.node.IF.expression.FunctionCallNode;
-import dev.civl.abc.ast.node.IF.expression.IdentifierExpressionNode;
-import dev.civl.abc.ast.node.IF.expression.OperatorNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode.Operator;
 import dev.civl.abc.ast.node.IF.expression.StringLiteralNode;
 import dev.civl.abc.ast.node.IF.statement.BlockItemNode;
@@ -27,7 +24,6 @@ import dev.civl.abc.ast.node.IF.statement.LoopNode;
 import dev.civl.abc.ast.node.IF.statement.LoopNode.LoopKind;
 import dev.civl.abc.ast.node.IF.statement.StatementNode;
 import dev.civl.abc.ast.node.IF.statement.StatementNode.StatementKind;
-import dev.civl.abc.ast.type.IF.StandardBasicType.BasicTypeKind;
 import dev.civl.abc.front.IF.CivlcTokenConstant;
 import dev.civl.abc.token.IF.CivlcToken;
 import dev.civl.abc.token.IF.CivlcToken.TokenVocabulary;
@@ -64,12 +60,9 @@ public class LoopContractTransformerWorker extends BaseWorker {
 
 	private final static String MEM_UNARY_WIDENING = "$mem_unary_widening";
 
-	private final static String MEM_ELIM_WIDENING = "$mem_elim_widening";
-
-	private final static String MEM_PROTECTIVE_WIDENING = "$mem_protective_widening";
-
 	private final static String MEM_HAVOC = "$mem_havoc";
 
+	@SuppressWarnings("unused")
 	private final CIVLConfiguration config;
 
 	@Deprecated
@@ -611,6 +604,7 @@ public class LoopContractTransformerWorker extends BaseWorker {
 	}
 
 	/* *********************** Utility methods ****************************** */
+	@SuppressWarnings("unused")
 	private boolean isStandardForLoop(LoopNode loop) {
 		return loop instanceof ForLoopNode && ((ForLoopNode) loop).isStandard();
 	}
@@ -719,30 +713,9 @@ public class LoopContractTransformerWorker extends BaseWorker {
 						Arrays.asList(this.identifierExpression(operand))));
 	}
 
-	private BlockItemNode createMemProtectiveWidening(String lhs, String mName,
-			String pName) {
-		Source source = newSource(MEM_PROTECTIVE_WIDENING,
-				CivlcTokenConstant.CALL);
-		return createAssignment(identifierExpression(lhs),
-				functionCall(source, MEM_PROTECTIVE_WIDENING,
-						Arrays.asList(identifierExpression(mName),
-								identifierExpression(pName))));
-	}
-
-	private BlockItemNode createMemElimWidening(String lhs, String operand,
-			String varToElim, ExpressionNode lower, ExpressionNode upper) {
-		Source source = newSource(MEM_ELIM_WIDENING, CivlcTokenConstant.CALL);
-		return createAssignment(identifierExpression(lhs),
-				functionCall(source, MEM_ELIM_WIDENING,
-						Arrays.asList(identifierExpression(operand),
-								identifierExpression(varToElim), lower.copy(),
-								upper.copy())));
-	}
-
 	/**
 	 * <code>lhs = $mem_unary_widening($mem_union(operand1, operand2))</code>
 	 */
-	@SuppressWarnings("unused")
 	private BlockItemNode createMemUnionWidening(String lhs, String operand1,
 			String operand2) {
 		Source wideningsource = newSource(MEM_UNARY_WIDENING,
@@ -757,7 +730,7 @@ public class LoopContractTransformerWorker extends BaseWorker {
 		return createAssignment(identifierExpression(lhs), wideningNode);
 	}
 
-	// @SuppressWarnings("unused")
+	@SuppressWarnings("unused")
 	private BlockItemNode createMemUnionWidening2(String lhs, String operand1,
 			String operand2) {
 		Source unionSource = newSource(MEM_UNION_WIDENING,
@@ -887,18 +860,6 @@ public class LoopContractTransformerWorker extends BaseWorker {
 				nodeFactory.newFunctionCallNode(writeSetPop,
 						identifierExpression(WRITE_SET_POP), Arrays.asList(),
 						null));
-	}
-
-	// lhs = $mem_union(operand, $write_set_pop());
-	private BlockItemNode createWriteSetUnionPop(String lhs, String operand) {
-		Source writeSetPop = newSource(WRITE_SET_POP, CivlcTokenConstant.CALL);
-		Source unionSource = newSource(MEM_UNION, CivlcTokenConstant.CALL);
-		ExpressionNode unionNode = functionCall(unionSource, MEM_UNION,
-				Arrays.asList(identifierExpression(operand),
-						nodeFactory.newFunctionCallNode(writeSetPop,
-								identifierExpression(WRITE_SET_POP),
-								Arrays.asList(), null)));
-		return createAssignment(identifierExpression(lhs), unionNode);
 	}
 
 	/**

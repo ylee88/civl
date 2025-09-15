@@ -7,11 +7,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 import dev.civl.sarl.IF.ModelResult;
 import dev.civl.sarl.IF.Reasoner;
-import dev.civl.sarl.IF.SARLInternalException;
 import dev.civl.sarl.IF.UnaryOperator;
 import dev.civl.sarl.IF.ValidityResult;
 import dev.civl.sarl.IF.ValidityResult.ResultType;
@@ -32,12 +30,10 @@ import dev.civl.sarl.prove.IF.TheoremProverFactory;
 import dev.civl.sarl.simplify.IF.ContextPartition;
 import dev.civl.sarl.simplify.IF.Range;
 import dev.civl.sarl.simplify.IF.Simplify;
-import dev.civl.sarl.simplify.simplifier.Context;
-import dev.civl.sarl.simplify.common.SARLProverAdaptor;
 import dev.civl.sarl.simplify.simplification.ProverHeuristic;
 import dev.civl.sarl.simplify.simplification.Strategy;
 import dev.civl.sarl.simplify.simplification.TotalProverHeuristic;
-import dev.civl.sarl.util.Pair;
+import dev.civl.sarl.simplify.simplifier.Context;
 
 /**
  * <p>

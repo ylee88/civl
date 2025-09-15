@@ -4,11 +4,10 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import dev.civl.abc.analysis.entity.FocusAnalysisData;
+import dev.civl.abc.analysis.IF.FocusAnalysisData;
 import dev.civl.abc.ast.node.IF.ASTNode;
 import dev.civl.abc.ast.node.IF.IdentifierNode;
 import dev.civl.abc.ast.node.IF.NodeFactory;
-import dev.civl.abc.ast.node.IF.acsl.FocusLoopTransformNode;
 import dev.civl.abc.ast.node.IF.acsl.FocusTransformNode;
 import dev.civl.abc.ast.node.IF.acsl.TransformNode;
 import dev.civl.abc.ast.node.IF.expression.ExpressionNode;
@@ -19,10 +18,10 @@ import dev.civl.abc.ast.node.IF.expression.OperatorNode.Operator;
 import dev.civl.abc.ast.node.IF.expression.RegularRangeNode;
 import dev.civl.abc.front.IF.CivlcTokenConstant;
 import dev.civl.abc.token.IF.CivlcToken;
+import dev.civl.abc.token.IF.CivlcToken.TokenVocabulary;
 import dev.civl.abc.token.IF.Formation;
 import dev.civl.abc.token.IF.Source;
 import dev.civl.abc.token.IF.TokenFactory;
-import dev.civl.abc.token.IF.CivlcToken.TokenVocabulary;
 
 public abstract class CommonFocusTransformNode extends CommonTransformNode
 		implements FocusTransformNode {
@@ -65,6 +64,42 @@ public abstract class CommonFocusTransformNode extends CommonTransformNode
 		return hadFocusTransforms;
 	}
 	
+	protected ExpressionNode replaceIdent(ExpressionNode expr, String origName,
+			String newName) {
+		return replaceIdent(expr, origName, identifierExpression(newName));
+	}
+	
+	protected ExpressionNode replaceIdent(ExpressionNode expr, String origName, ExpressionNode replacementExpr) {
+		ExpressionNode result = expr.copy();
+		replaceIdentHelper(result, origName, replacementExpr);
+		return result;
+	}
+
+	private void replaceIdentHelper(ASTNode node, String identName,
+			ExpressionNode replacementNode) {
+		if (node == null)
+			return;
+
+		if (node.nodeKind() == ASTNode.NodeKind.EXPRESSION) {
+			ExpressionNode expr = (ExpressionNode) node;
+			if (expr.expressionKind() == ExpressionNode.ExpressionKind.IDENTIFIER_EXPRESSION) {
+				IdentifierNode ident = ((IdentifierExpressionNode) expr)
+						.getIdentifier();
+				if (ident.name().equals(identName)) {
+					int childIndex = expr.childIndex();
+					ASTNode parent = expr.parent();
+					parent.removeChild(childIndex);
+					parent.setChild(childIndex, replacementNode.copy());
+				}
+
+				return;
+			}
+		}
+		for (ASTNode child : node.children()) {
+			replaceIdentHelper(child, identName, replacementNode);
+		}
+	}
+	
 	protected ExpressionNode genVarRestriction(String varName, RegularRangeNode range) {
 		String methodName = "genVarRestriction";
 		Source varSource = newSource(methodName, varName);
@@ -99,6 +134,39 @@ public abstract class CommonFocusTransformNode extends CommonTransformNode
 	protected IdentifierNode identifier(String name) {
 		return nodeFactory.newIdentifierNode(newSource("identifier", name),
 				name);
+	}
+	
+	protected ExpressionNode addIntExpr(ExpressionNode expr, int offset) {
+		String thisFuncName = "addInt";
+		Source thisSource = newSource(thisFuncName,
+				expr.toString() + "+" + Integer.toString(offset));
+		return nodeFactory.newOperatorNode(thisSource, Operator.PLUS, expr,
+				nodeFactory.newIntConstantNode(
+						newSource(thisFuncName, Integer.toString(offset)),
+						offset));
+	}
+	
+	protected ExpressionNode andExpr(ExpressionNode... args) {
+		Source source = newSource("andExpr", "&&");
+		if (args.length == 0)
+			return nodeFactory.newBooleanConstantNode(source, true);
+
+		ExpressionNode result = args[0];
+		for (int i = 1; i < args.length; i++) {
+			result = nodeFactory.newOperatorNode(source,
+					OperatorNode.Operator.LAND, result, args[i]);
+		}
+		return result;
+	}
+	
+	protected ExpressionNode implies(ExpressionNode contextNode,
+			ExpressionNode resultNode) {
+		String thisFuncName = "implies";
+		Source thisSource = newSource(thisFuncName,
+				contextNode.toString() + " ==> " + resultNode.toString());
+		return nodeFactory.newOperatorNode(thisSource, Operator.LOR, nodeFactory
+				.newOperatorNode(thisSource, Operator.NOT, contextNode),
+				resultNode);
 	}
 	
 	protected ExpressionNode minExpression(ExpressionNode expr1, ExpressionNode expr2) {

@@ -3,16 +3,13 @@ package dev.civl.sarl.simplify.simplifier;
 import static dev.civl.sarl.IF.SARLConstants.polyProbThreshold;
 import static dev.civl.sarl.IF.expr.SymbolicExpression.SymbolicOperator.LESS_THAN;
 
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 
 import dev.civl.sarl.IF.CoreUniverse.ForallStructure;
-import dev.civl.sarl.IF.UnaryOperator;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.NumericExpression;
 import dev.civl.sarl.IF.expr.NumericSymbolicConstant;
@@ -42,7 +39,6 @@ import dev.civl.sarl.simplify.eval.FastEvaluator;
 import dev.civl.sarl.simplify.simplification.Strategy;
 import dev.civl.sarl.util.Pair;
 import dev.civl.sarl.util.SingletonSet;
-import dev.civl.sarl.util.WorkMap;
 
 /**
  * A context extractor is used to build up a {@link MutableContext} by consuming

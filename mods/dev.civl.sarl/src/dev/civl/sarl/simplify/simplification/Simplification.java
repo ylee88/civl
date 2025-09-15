@@ -1,8 +1,5 @@
 package dev.civl.sarl.simplify.simplification;
 
-import java.util.LinkedList;
-import java.util.List;
-
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.NumericExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
@@ -11,7 +8,6 @@ import dev.civl.sarl.IF.number.Interval;
 import dev.civl.sarl.IF.object.SymbolicObject;
 import dev.civl.sarl.ideal.IF.RationalExpression;
 import dev.civl.sarl.preuniverse.IF.PreUniverse;
-import dev.civl.sarl.simplify.simplifier.Context;
 import dev.civl.sarl.simplify.simplifier.MutableContext;
 import dev.civl.sarl.simplify.simplifier.SimplifierUtility;
 

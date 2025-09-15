@@ -1,7 +1,5 @@
 package dev.civl.mc.library.mem;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -25,7 +23,6 @@ import dev.civl.mc.semantics.IF.LibraryEvaluatorLoader;
 import dev.civl.mc.semantics.IF.LibraryExecutor;
 import dev.civl.mc.semantics.IF.LibraryExecutorLoader;
 import dev.civl.mc.semantics.IF.SymbolicAnalyzer;
-import dev.civl.mc.state.IF.ProcessState;
 import dev.civl.mc.state.IF.State;
 import dev.civl.mc.state.IF.StateValueHelper;
 import dev.civl.mc.state.IF.UnsatisfiablePathConditionException;

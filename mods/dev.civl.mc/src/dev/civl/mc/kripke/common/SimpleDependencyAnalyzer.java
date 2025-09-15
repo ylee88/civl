@@ -1,16 +1,11 @@
 package dev.civl.mc.kripke.common;
 
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
 import java.util.Set;
 
 import dev.civl.gmc.dpor.DependencyAnalyzer;
 import dev.civl.gmc.dpor.DporSearchStack;
 import dev.civl.gmc.dpor.DporStackEntry;
 import dev.civl.gmc.seq.StateManager;
-import dev.civl.mc.kripke.IF.TraceStep;
 import dev.civl.mc.semantics.IF.Transition;
 import dev.civl.mc.state.IF.State;
 import dev.civl.mc.state.IF.StateFactory;
@@ -21,7 +16,9 @@ public class SimpleDependencyAnalyzer
 		implements
 			DependencyAnalyzer<State, Transition> {
 	
+	@SuppressWarnings("unused")
 	private StateManager<State, Transition> manager;
+	@SuppressWarnings("unused")
 	private StateFactory stateFactory;
 	private SimpleEnabler enabler;
 

@@ -66,6 +66,7 @@ tokens{
     FALSE_ACSL;
     FOCUS_ASSERT;
     FOCUS_LOOP;
+    FOCUS_ORDERED_STATEMENT;
     FORALL_ACSL;
     FREES;
     FUNC_CALL;
@@ -164,6 +165,7 @@ contract
     | function_contract 
     | logic_function_contract
     | assert_contract
+    | ordered_contract
     | transform_contract
     ;
 
@@ -217,7 +219,7 @@ loop_variant
     ;
     
 loop_focus
-    : focus_key loop_focus_head BITOR argumentExpressionList ->^(FOCUS_LOOP loop_focus_head argumentExpressionList)
+    : focus_key loop_focus_head BITOR argumentExpressionList SEMI ->^(FOCUS_LOOP loop_focus_head argumentExpressionList)
     ;
 
 loop_focus_head
@@ -250,6 +252,14 @@ transform_spec
     
 focus_assert_spec
     : focus_key IDENTIFIER+ ->^(FOCUS_ASSERT IDENTIFIER+)
+    ;
+
+ordered_contract
+    : focus_key ordered_key
+        LPAREN relOp COMMA
+        IDENTIFIER COLON rangeExpression
+            BITOR assignmentExpression RPAREN SEMI
+      -> ^(FOCUS_ORDERED_STATEMENT relOp IDENTIFIER rangeExpression assignmentExpression)
     ;
 
 /* sec. 2.3 Function contracts */
@@ -1102,8 +1112,12 @@ frees_key
     ; 
   
 focus_key
-	: {input.LT(1).getText().equals("focus")}? IDENTIFIER
-	;
+	  : {input.LT(1).getText().equals("focus")}? IDENTIFIER
+	  ;
+
+ordered_key
+    : {input.LT(1).getText().equals("ordered")}? IDENTIFIER
+    ;
 
 invariant_key
     : {input.LT(1).getText().equals("invariant")}? IDENTIFIER

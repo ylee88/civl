@@ -72,7 +72,7 @@ public class Prove {
 	public final static ValidityResult RESULT_MAYBE = new CommonValidityResult(
 			ResultType.MAYBE);
 
-	public final static TrivialProverFactory trivialProverFactory = new TrivialProverFactory();
+	private final static TrivialProverFactory trivialProverFactory = new TrivialProverFactory();
 	
 	/**
 	 * Constructs a new theorem prover factory based on the given configuration.

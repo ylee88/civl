@@ -21,6 +21,7 @@ import dev.civl.abc.ast.node.IF.acsl.ExtendedQuantifiedExpressionNode;
 import dev.civl.abc.ast.node.IF.acsl.ExtendedQuantifiedExpressionNode.ExtendedQuantifier;
 import dev.civl.abc.ast.node.IF.acsl.FocusAssertTransformNode;
 import dev.civl.abc.ast.node.IF.acsl.FocusLoopTransformNode;
+import dev.civl.abc.ast.node.IF.acsl.FocusOrderedTransformNode;
 import dev.civl.abc.ast.node.IF.acsl.GuardsNode;
 import dev.civl.abc.ast.node.IF.acsl.InsertTransformNode;
 import dev.civl.abc.ast.node.IF.acsl.InvariantNode;
@@ -2991,6 +2992,10 @@ public interface NodeFactory {
 			TokenFactory tokenFactory, String focusTag,
 			SequenceNode<ExpressionNode> tagWindow,
 			SequenceNode<ExpressionNode> memoryList);
+
+	FocusOrderedTransformNode newFocusOrderedNode(Source source,
+			TokenFactory tokenFactory, String focusTag, OperatorNode operator,
+			RegularRangeNode range, ExpressionNode expr);
 
 	FocusAssertTransformNode newFocusAssertNode(Source source,
 			TokenFactory tokenFactory, List<String> focusTags);

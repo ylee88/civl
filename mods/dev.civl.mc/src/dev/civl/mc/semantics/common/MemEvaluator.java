@@ -829,6 +829,12 @@ public class MemEvaluator extends CommonEvaluator {
 	 *             when the value set reference refers to regions that are out
 	 *             of bound
 	 */
+	/*
+	 * TODO: Originally called in makeValueOfMemType but removed. We should
+	 * instead delay such out of bounds checks to when we actually use the mem
+	 * set in a way that warrants such a check like $mem_havoc.
+	 */
+	@SuppressWarnings("unused")
 	private State checkValueSetReferenceOutOfBound(State state, int pid,
 			SymbolicType valueType, ValueSetReference ref, CIVLSource source)
 			throws UnsatisfiablePathConditionException {

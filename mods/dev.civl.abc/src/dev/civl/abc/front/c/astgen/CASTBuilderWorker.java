@@ -3201,18 +3201,15 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 			throws SyntaxException {
 		int kind = blockItemTree.getType();
 		List<BlockItemNode> items = new LinkedList<BlockItemNode>();
-		boolean acceptsAnnotations = false;
 
 		switch (kind) {
 			case DECLARATION :
 				for (BlockItemNode declaration : translateDeclaration(
 						blockItemTree, scope))
 					items.add(declaration);
-				acceptsAnnotations = true;
 				break;
 			case FUNCTION_DEFINITION :
 				items.add(translateFunctionDefinition(blockItemTree, scope));
-				acceptsAnnotations = true;
 				break;
 			case PPRAGMA :
 				ASTNode pragmaNode = translatePragma(blockItemTree, scope);
@@ -3231,11 +3228,9 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 				}
 				items.add((BlockItemNode) this.translateStatement(blockItemTree,
 						scope));
-				acceptsAnnotations = true;
 				break;
 			case STATICASSERT :
 				items.add(translateStaticAssertion(blockItemTree, scope));
-				acceptsAnnotations = true;
 				break;
 			case ANNOTATION :
 				items.addAll(translateAnnotation(blockItemTree, scope));
@@ -3245,16 +3240,16 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 						+ blockItemTree.toString());
 		}
 
-		if (acceptsAnnotations) {
-			List<TransformNode> transforms = getTransforms();
+		List<TransformNode> transforms = getTransforms();
 
-			if (transforms != null) {
-				for (BlockItemNode item : items) {
-					item.addAllTransformAnnotations(transforms);
-				}
+		if (transforms != null) {
+			for (BlockItemNode item : items) {
+				item.addAllTransformAnnotations(transforms);
 			}
-			clearCurrentAnnotations();
 		}
+		if (!items.isEmpty())
+			clearCurrentAnnotations();
+		
 		return items;
 	}
 

@@ -1,9 +1,11 @@
 package dev.civl.mc.kripke.IF;
 
+import dev.civl.gmc.GMCConfiguration;
+import dev.civl.gmc.dpor.DependencyAnalyzer;
+import dev.civl.gmc.seq.StateManager;
 import dev.civl.mc.config.IF.CIVLConfiguration;
 import dev.civl.mc.kripke.common.CommonLibraryEnablerLoader;
 import dev.civl.mc.kripke.common.CommonStateManager;
-import dev.civl.mc.kripke.common.CrossStateDependencyAnalyzer;
 import dev.civl.mc.kripke.common.SimpleDependencyAnalyzer;
 import dev.civl.mc.kripke.common.SimpleEnabler;
 import dev.civl.mc.log.IF.CIVLErrorLogger;
@@ -15,9 +17,6 @@ import dev.civl.mc.semantics.IF.Transition;
 import dev.civl.mc.state.IF.MemoryUnitFactory;
 import dev.civl.mc.state.IF.State;
 import dev.civl.mc.state.IF.StateFactory;
-import dev.civl.gmc.GMCConfiguration;
-import dev.civl.gmc.dpor.DependencyAnalyzer;
-import dev.civl.gmc.seq.StateManager;
 
 /**
  * This is the entry point of the module <strong>kripke</strong>.

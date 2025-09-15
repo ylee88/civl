@@ -38,6 +38,7 @@ import dev.civl.abc.ast.node.IF.acsl.ExtendedQuantifiedExpressionNode;
 import dev.civl.abc.ast.node.IF.acsl.ExtendedQuantifiedExpressionNode.ExtendedQuantifier;
 import dev.civl.abc.ast.node.IF.acsl.FocusAssertTransformNode;
 import dev.civl.abc.ast.node.IF.acsl.FocusLoopTransformNode;
+import dev.civl.abc.ast.node.IF.acsl.FocusOrderedTransformNode;
 import dev.civl.abc.ast.node.IF.acsl.GuardsNode;
 import dev.civl.abc.ast.node.IF.acsl.InsertTransformNode;
 import dev.civl.abc.ast.node.IF.acsl.InvariantNode;
@@ -167,6 +168,7 @@ import dev.civl.abc.ast.node.common.acsl.CommonEnsuresNode;
 import dev.civl.abc.ast.node.common.acsl.CommonExtendedQuantifiedExpressionNode;
 import dev.civl.abc.ast.node.common.acsl.CommonFocusAssertTransformNode;
 import dev.civl.abc.ast.node.common.acsl.CommonFocusLoopTransformNode;
+import dev.civl.abc.ast.node.common.acsl.CommonFocusOrderedTransformNode;
 import dev.civl.abc.ast.node.common.acsl.CommonGuardNode;
 import dev.civl.abc.ast.node.common.acsl.CommonInsertTransformNode;
 import dev.civl.abc.ast.node.common.acsl.CommonInvariantNode;
@@ -1450,6 +1452,14 @@ public class CommonNodeFactory implements NodeFactory {
 			SequenceNode<ExpressionNode> memoryList) {
 		return new CommonFocusLoopTransformNode(source, this, tokenFactory,
 				focusTag, tagWindow, memoryList);
+	}
+	
+	@Override
+	public FocusOrderedTransformNode newFocusOrderedNode(Source source,
+			TokenFactory tokenFactory, String focusTag, OperatorNode operator,
+			RegularRangeNode range, ExpressionNode expr) {
+		return new CommonFocusOrderedTransformNode(source, this, tokenFactory,
+				focusTag, operator, range, expr);
 	}
 	
 	@Override

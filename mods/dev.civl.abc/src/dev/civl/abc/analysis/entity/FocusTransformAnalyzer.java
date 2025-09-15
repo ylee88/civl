@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import dev.civl.abc.analysis.IF.FocusAnalysisData;
 import dev.civl.abc.ast.node.IF.ASTNode;
 import dev.civl.abc.ast.node.IF.IdentifierNode;
 import dev.civl.abc.ast.node.IF.NodeFactory;
@@ -21,6 +22,7 @@ import dev.civl.abc.ast.node.IF.expression.QuantifiedExpressionNode.Quantifier;
 import dev.civl.abc.ast.node.IF.expression.RegularRangeNode;
 import dev.civl.abc.ast.node.IF.expression.FunctionCallNode;
 import dev.civl.abc.ast.node.IF.expression.IdentifierExpressionNode;
+import dev.civl.abc.ast.node.IF.expression.IntegerConstantNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode.Operator;
 import dev.civl.abc.ast.node.IF.expression.QuantifiedExpressionNode;
@@ -43,6 +45,7 @@ import dev.civl.abc.token.IF.Source;
 import dev.civl.abc.token.IF.SyntaxException;
 import dev.civl.abc.token.IF.TokenFactory;
 import dev.civl.abc.token.IF.CivlcToken.TokenVocabulary;
+import dev.civl.sarl.util.Pair;
 
 public class FocusTransformAnalyzer {
 
@@ -107,6 +110,9 @@ public class FocusTransformAnalyzer {
 				break;
 			case ASSERT :
 				processFocusAssert(statementNode, (FocusAssertTransformNode) focusNode);
+				break;
+			case ORDERED :
+				// TODO: Consider processing ordered statements
 				break;
 		}
 	}
@@ -222,10 +228,38 @@ public class FocusTransformAnalyzer {
 					incrNode.getArgument(0).getSource());
 		}
 		
-		focusData.addFocusTag(focusNode.getFocusTag());
+		String focusTag = focusNode.getFocusTag();
+		focusData.addFocusTag(focusTag);
+		Pair<Integer, Integer> windowValues = extractWindow(focusNode.getFocusWindow());
+		int upperOffset = windowValues.right == null ? windowValues.left : windowValues.right;
+		for (int i = windowValues.left; i <= upperOffset; i++)
+			focusData.addFocusOffset(focusTag, i);
 		process(loopNode.getBody());
 	}
+	
+	private Pair<Integer, Integer> extractWindow(SequenceNode<ExpressionNode> focusWindowNode) {
+		if (focusWindowNode == null)
+			return new Pair<Integer, Integer>(0, null);
+		ExpressionNode lowerNode = focusWindowNode.getSequenceChild(0),
+				upperNode = focusWindowNode.getSequenceChild(1);
+		int lowValue = extractInteger(lowerNode);
+		return upperNode == null
+				? new Pair<Integer, Integer>(lowValue, null)
+				: new Pair<Integer, Integer>(lowValue,
+						extractInteger(upperNode));
+	}
 
+	private int extractInteger(ExpressionNode exprNode) {
+		if (exprNode instanceof OperatorNode) {
+			OperatorNode opNode = (OperatorNode) exprNode;
+			assert opNode.getOperator() == Operator.UNARYMINUS;
+			return -extractInteger(opNode.getArgument(0));
+		}
+		assert exprNode instanceof IntegerConstantNode;
+		IntegerConstantNode intNode = (IntegerConstantNode) exprNode;
+		return intNode.getConstantValue().getIntegerValue().intValue();
+	}
+	
 	private void processFocusAssert(StatementNode statementNode,
 			FocusAssertTransformNode focusNode) throws SyntaxException {
 		if (statementNode.statementKind() != StatementKind.EXPRESSION)

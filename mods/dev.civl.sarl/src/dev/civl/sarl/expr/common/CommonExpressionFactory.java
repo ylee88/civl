@@ -23,8 +23,6 @@ import static dev.civl.sarl.IF.expr.SymbolicExpression.SymbolicOperator.TUPLE;
 
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.LinkedList;
-import java.util.List;
 
 import dev.civl.sarl.IF.Reasoner;
 import dev.civl.sarl.IF.SARLInternalException;

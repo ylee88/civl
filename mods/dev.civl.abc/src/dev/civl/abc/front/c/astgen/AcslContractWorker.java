@@ -202,6 +202,12 @@ public class AcslContractWorker {
 				translatedBlockItems
 						.add(translateACSLAssertion(contractTree, scope));
 				break;
+			case AcslParser.FOCUS_ORDERED_STATEMENT :
+				translatedTransformNodes.add(
+						translateFocusOrderedStatement(contractTree, scope));
+				translatedBlockItems.add(nodeFactory
+						.newNullStatementNode(parseTree.source(contractTree)));
+				break;
 			case AcslParser.TRANSFORM_CONTRACT :
 				translatedTransformNodes.addAll(translateTransformContract(
 						(CommonTree) contractTree.getChild(0), scope));
@@ -405,6 +411,54 @@ public class AcslContractWorker {
 				Arrays.asList(translateExpression(predicate, scope)), null);
 
 		return nodeFactory.newExpressionStatementNode(assertCall);
+	}
+
+	private TransformNode translateFocusOrderedStatement(CommonTree ordTree,
+			SimpleScope scope) throws SyntaxException {
+		OperatorNode relOpNode = translateRelOp(
+				(CommonTree) ordTree.getChild(0));
+		String focusTag = ((CommonTree) ordTree.getChild(1)).getToken()
+				.getText();
+		CommonTree rangeTree = (CommonTree) ordTree.getChild(2);
+		ExpressionNode rangeExprNode = translateExpression(rangeTree, scope);
+		if (!(rangeExprNode instanceof RegularRangeNode))
+			throw error("Focus ordered statement requires a range", rangeTree);
+		RegularRangeNode rangeNode = (RegularRangeNode) rangeExprNode;
+		if (rangeNode.getStep() != null)
+			throw error(
+					"Focus ordered statement only supports ranges without a step",
+					rangeTree);
+		CommonTree exprTree = (CommonTree) ordTree.getChild(3);
+		ExpressionNode exprNode = translateExpression(exprTree, scope);
+		return nodeFactory.newFocusOrderedNode(parseTree.source(ordTree),
+				tokenFactory, focusTag, relOpNode, rangeNode, exprNode);
+	}
+	
+	private OperatorNode translateRelOp(CommonTree relOpTree) throws SyntaxException {
+		OperatorNode.Operator op;
+		switch(relOpTree.getType()) {
+			case LTE:
+				op = Operator.LTE;
+				break;
+			case LT:
+				op = Operator.LT;
+				break;
+			case GTE:
+				op = Operator.GTE;
+				break;
+			case GT :
+				op = Operator.GT;
+				break;
+			case EQUALS :
+				op = Operator.EQUALS;
+				break;
+			default :
+				throw error(
+						"Invalid relation operator used in focus ordered statement",
+						relOpTree);
+		}
+		return nodeFactory.newOperatorNode(parseTree.source(relOpTree), op,
+				Arrays.asList());
 	}
 
 	/**

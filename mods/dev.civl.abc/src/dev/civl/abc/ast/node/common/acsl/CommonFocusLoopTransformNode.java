@@ -3,34 +3,21 @@ package dev.civl.abc.ast.node.common.acsl;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-import dev.civl.abc.analysis.entity.FocusAnalysisData;
-import dev.civl.abc.ast.node.IF.ASTNode;
-import dev.civl.abc.ast.node.IF.IdentifierNode;
 import dev.civl.abc.ast.node.IF.NodeFactory;
-import dev.civl.abc.ast.node.IF.PairNode;
 import dev.civl.abc.ast.node.IF.SequenceNode;
 import dev.civl.abc.ast.node.IF.acsl.AssignsOrReadsNode;
 import dev.civl.abc.ast.node.IF.acsl.ContractNode;
 import dev.civl.abc.ast.node.IF.acsl.FocusLoopTransformNode;
 import dev.civl.abc.ast.node.IF.acsl.InvariantNode;
-import dev.civl.abc.ast.node.IF.acsl.TransformNode;
-import dev.civl.abc.ast.node.IF.acsl.FocusTransformNode.FocusKind;
-import dev.civl.abc.ast.node.IF.declaration.VariableDeclarationNode;
 import dev.civl.abc.ast.node.IF.expression.ExpressionNode;
-import dev.civl.abc.ast.node.IF.expression.FunctionCallNode;
 import dev.civl.abc.ast.node.IF.expression.IdentifierExpressionNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode;
-import dev.civl.abc.ast.node.IF.expression.QuantifiedExpressionNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode.Operator;
-import dev.civl.abc.ast.node.IF.expression.QuantifiedExpressionNode.Quantifier;
 import dev.civl.abc.ast.node.IF.statement.BlockItemNode;
-import dev.civl.abc.ast.node.IF.statement.CompoundStatementNode;
 import dev.civl.abc.ast.node.IF.statement.DeclarationListNode;
 import dev.civl.abc.ast.node.IF.statement.ExpressionStatementNode;
 import dev.civl.abc.ast.node.IF.statement.ForLoopInitializerNode;
@@ -38,14 +25,10 @@ import dev.civl.abc.ast.node.IF.statement.ForLoopNode;
 import dev.civl.abc.ast.node.IF.statement.LoopNode;
 import dev.civl.abc.ast.node.IF.statement.StatementNode;
 import dev.civl.abc.ast.type.IF.StandardBasicType.BasicTypeKind;
-import dev.civl.abc.front.IF.CivlcTokenConstant;
-import dev.civl.abc.token.IF.CivlcToken;
-import dev.civl.abc.token.IF.Formation;
 import dev.civl.abc.token.IF.Source;
 import dev.civl.abc.token.IF.SyntaxException;
 import dev.civl.abc.token.IF.TokenFactory;
 import dev.civl.abc.util.IF.Pair;
-import dev.civl.abc.token.IF.CivlcToken.TokenVocabulary;
 
 public class CommonFocusLoopTransformNode extends CommonFocusTransformNode
 		implements
@@ -92,7 +75,6 @@ public class CommonFocusLoopTransformNode extends CommonFocusTransformNode
 		ExpressionNode boundExpr = boundInfo.right.copy();
 		ExpressionNode loopInvars = getLoopInvariants(loopNode).copy();
 		List<ExpressionNode> assignsList = getLoopAssigns(loopNode);
-		ExpressionNode windowLower = getWindowLower();
 		ExpressionNode windowUpper = getWindowUpper();
 
 		initExpr.remove();
@@ -327,7 +309,11 @@ public class CommonFocusLoopTransformNode extends CommonFocusTransformNode
 						newSource(thisFuncName,
 								loopVarName + " == " + oldBoundVarName),
 						Operator.EQUALS, identifierExpression(loopVarName),
-						identifierExpression(oldBoundVarName))))));
+						inclusive
+								? addIntExpr(
+										identifierExpression(oldBoundVarName),
+										1)
+								: identifierExpression(oldBoundVarName))))));
 		items.add(nodeFactory.newExpressionStatementNode(
 				functionCall("$assume", Arrays.asList(loopInvars.copy()))));
 
@@ -485,46 +471,6 @@ public class CommonFocusLoopTransformNode extends CommonFocusTransformNode
 						identifierExpression(memName),
 						functionCall("$mem_diff", Arrays.asList(
 								identifierExpression(memName), memExpr))));
-	}
-
-	private ExpressionNode andExpr(ExpressionNode... args) {
-		Source source = newSource("andExpr", "&&");
-		if (args.length == 0)
-			return nodeFactory.newBooleanConstantNode(source, true);
-
-		ExpressionNode result = args[0];
-		for (int i = 1; i < args.length; i++) {
-			result = nodeFactory.newOperatorNode(source,
-					OperatorNode.Operator.LAND, result, args[i]);
-		}
-		return result;
-	}
-
-	private ExpressionNode replaceIdent(ExpressionNode expr, String origName,
-			String newName) {
-		ExpressionNode result = expr.copy();
-		replaceIdentHelper(result, origName, newName);
-		return result;
-	}
-
-	private void replaceIdentHelper(ASTNode node, String origName,
-			String newName) {
-		if (node == null)
-			return;
-
-		if (node.nodeKind() == ASTNode.NodeKind.EXPRESSION) {
-			ExpressionNode expr = (ExpressionNode) node;
-			if (expr.expressionKind() == ExpressionNode.ExpressionKind.IDENTIFIER_EXPRESSION) {
-				IdentifierNode ident = ((IdentifierExpressionNode) expr)
-						.getIdentifier();
-				if (ident.name().equals(origName))
-					ident.setName(newName);
-				return;
-			}
-		}
-		for (ASTNode child : node.children()) {
-			replaceIdentHelper(child, origName, newName);
-		}
 	}
 
 	/**

@@ -6,7 +6,6 @@ import dev.civl.sarl.IF.Reasoner;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.NumericExpression;
 import dev.civl.sarl.IF.expr.SymbolicRange;
-import dev.civl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
 import dev.civl.sarl.IF.expr.SymbolicRange.RangeKind;
 import dev.civl.sarl.expr.IF.BooleanExpressionFactory;
 import dev.civl.sarl.expr.IF.NumericExpressionFactory;
