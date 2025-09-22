@@ -204,6 +204,12 @@ public class CommonPreUniverse implements PreUniverse {
 	 * It has integer type.
 	 */
 	private NumericSymbolicConstant arrayIndex;
+	
+	final private String MEM_HAVOC_SYMB_CONST_PREFIX = "M";
+	
+	private int memHavocSuffix = 0;
+	
+	final private String MEM_ASSIGN_INCOMPLETE_ERROR_MSG = "Attempt to assign to a section of $mem which is not fully complete.";
 
 	private int validCount = 0;
 
@@ -4808,6 +4814,89 @@ public class CommonPreUniverse implements PreUniverse {
 	}
 
 	@Override
+	public SymbolicExpression valueSetHavoc(SymbolicExpression value,
+			SymbolicExpression valueSetTemplate) {
+		SymbolicType rootType = getValueTypeOfValueSetTemplate(valueSetTemplate);
+		SymbolicExpression result = value;
+		for (SymbolicObject ref : tupleRead(valueSetTemplate, intObject(1))
+				.getArguments()) {
+			LinkedList<ValueSetReference> refStack = new LinkedList<>();
+			ValueSetReference vsRef = (ValueSetReference) ref;
+
+			while (!vsRef.isIdentityReference()) {
+				refStack.push(vsRef);
+				vsRef = ((NTValueSetReference) vsRef).getParent();
+			}
+			if (refStack.isEmpty())
+				return freshMemHavocSymbolicConstant(rootType);
+			result = valueSetHavocWorker(result, refStack);
+		}
+		return result;
+	}
+
+	/*
+	 * Defers creating a fresh symbolic constant to havoc with until we either
+	 * reach a leaf ValueSetReference or we reach an array section (because at
+	 * this point, we have a set of memory locations and can no longer defer)
+	 */
+	private SymbolicExpression valueSetHavocWorker(SymbolicExpression value,
+			LinkedList<ValueSetReference> vsRefStack) {
+		ValueSetReference vsRef = vsRefStack.pop();
+
+		switch (vsRef.valueSetReferenceKind()) {
+			case ARRAY_ELEMENT : {
+				NumericExpression index = ((VSArrayElementReference) vsRef)
+						.getIndex();
+				SymbolicArrayType arrayType = (SymbolicArrayType) value.type();
+				SymbolicExpression newElement = vsRefStack.isEmpty()
+						? freshMemHavocSymbolicConstant(arrayType.elementType())
+						: valueSetHavocWorker(arrayRead(value, index),
+								vsRefStack);
+				return arrayWrite(value, index, newElement);
+			}
+			case ARRAY_SECTION : {
+				vsRefStack.push(vsRef);
+				return valueSetAssignsWorker(value,
+						new LinkedList<>(vsRefStack),
+						freshMemHavocSymbolicConstant(value.type()));
+			}
+			case TUPLE_COMPONENT : {
+				IntObject idx = ((VSTupleComponentReference) vsRef).getIndex();
+				SymbolicTupleType tupleType = (SymbolicTupleType) value.type();
+				SymbolicExpression newElement = vsRefStack.isEmpty()
+						? freshMemHavocSymbolicConstant(
+								tupleType.sequence().getType(idx.getInt()))
+						: valueSetHavocWorker(tupleRead(value, idx),
+								vsRefStack);
+				return tupleWrite(value, idx, newElement);
+			}
+			case UNION_MEMBER :
+				IntObject idx = ((VSUnionMemberReference) vsRef).getIndex();
+				SymbolicUnionType unionType = (SymbolicUnionType) value.type();
+				SymbolicExpression newElement = vsRefStack.isEmpty()
+						? freshMemHavocSymbolicConstant(
+								unionType.sequence().getType(idx.getInt()))
+						: valueSetHavocWorker(unionExtract(idx, value),
+								vsRefStack);
+				return unionInject(unionType, idx, newElement);
+			case OFFSET :
+				throw new SARLException("unsupported value set reference kind "
+						+ vsRef.valueSetReferenceKind()
+						+ " for value set assign");
+			case IDENTITY :
+			default :
+				throw new SARLException("unreachable");
+		}
+	}
+	
+	private SymbolicConstant freshMemHavocSymbolicConstant(
+			SymbolicType valueType) {
+		return symbolicConstant(
+				stringObject(MEM_HAVOC_SYMB_CONST_PREFIX + memHavocSuffix++),
+				valueType);
+	}
+	
+	@Override
 	public SymbolicExpression valueSetAssigns(SymbolicExpression oldValue,
 			SymbolicExpression valueSetTemplate, SymbolicExpression newValue) {
 		if (!oldValue.type().equals(newValue.type()))
@@ -4850,6 +4939,9 @@ public class CommonPreUniverse implements PreUniverse {
 			case ARRAY_ELEMENT : {
 				NumericExpression index = ((VSArrayElementReference) vsRef)
 						.getIndex();
+				if (!((SymbolicArrayType) oldValue.type()).isComplete()) {
+					throw new SARLException(MEM_ASSIGN_INCOMPLETE_ERROR_MSG);
+				}
 				SymbolicExpression newElement = valueSetAssignsWorker(
 						arrayRead(oldValue, index), vsRefStack,
 						arrayRead(newValue, index));
@@ -4861,14 +4953,17 @@ public class CommonPreUniverse implements PreUniverse {
 				NumericExpression lower = ref.lowerBound();
 				NumericExpression upper = ref.upperBound();
 				NumericExpression step = ref.step();
-				SymbolicCompleteArrayType arrType = (SymbolicCompleteArrayType) newValue
-						.type();
+				SymbolicArrayType arrayType = (SymbolicArrayType) oldValue.type();
+				if (!arrayType.isComplete())
+					throw new SARLException(MEM_ASSIGN_INCOMPLETE_ERROR_MSG);
+				SymbolicCompleteArrayType completeArrayType = (SymbolicCompleteArrayType) arrayType;
+				
 				boolean sectionIsWholeArray = false;
 
 				// 1. optimization case: the section is the whole array and
 				// there is
 				// no sub-array
-				if (lower.isZero() && upper.equals(arrType.extent())
+				if (lower.isZero() && upper.equals(completeArrayType.extent())
 						&& step.isOne()) {
 					sectionIsWholeArray = true;
 					if (vsRefStack.isEmpty())
@@ -4937,7 +5032,7 @@ public class CommonPreUniverse implements PreUniverse {
 					return newValue;
 				lambda = cond(inRange, newSection, arrayRead(oldValue, bv));
 				lambda = lambda(bv, lambda);
-				return arrayLambda(arrType, lambda);
+				return arrayLambda(completeArrayType, lambda);
 			}
 			case TUPLE_COMPONENT : {
 				IntObject idx = ((VSTupleComponentReference) vsRef).getIndex();

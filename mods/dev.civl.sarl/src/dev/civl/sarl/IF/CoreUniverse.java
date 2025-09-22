@@ -2634,6 +2634,9 @@ public interface CoreUniverse {
 	SymbolicExpression valueSetUnion(SymbolicExpression vst0,
 			SymbolicExpression vst1);
 
+	SymbolicExpression valueSetHavoc(SymbolicExpression value,
+			SymbolicExpression valueSetTemplate);
+	
 	/**
 	 * <p>
 	 * Copies a subset of a value <code>v</code> to another value

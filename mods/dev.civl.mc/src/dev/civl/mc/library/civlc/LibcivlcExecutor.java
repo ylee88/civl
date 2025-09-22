@@ -862,12 +862,14 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 	private Evaluation executeAssumePop(State state, int pid,
 			Expression[] arguments, SymbolicExpression[] argumentValues,
 			CIVLSource source) {
-		state = stateFactory.simplify(state, pid, getAggressiveSet(state, pid));
+		//state = stateFactory.simplify(state, pid, getAggressiveSet(state, pid));
+		state = stateFactory.simplify(state, pid, null);
 		state = stateFactory.popAssumption(state, pid);
 		return new Evaluation(state, null);
 	}
 	
 	
+	@SuppressWarnings("unused")
 	private Set<SymbolicConstant> getAggressiveSet(State state, int pid) {
 		ProcessState proc = state.getProcessState(pid);
 		

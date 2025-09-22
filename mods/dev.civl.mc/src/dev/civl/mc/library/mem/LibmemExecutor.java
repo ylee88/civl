@@ -701,6 +701,7 @@ public class LibmemExecutor extends BaseLibraryExecutor
 	 * @return the {@link Evaluation} after havoc
 	 * @throws UnsatisfiablePathConditionException
 	 */
+	/*
 	private Evaluation havoc(State state, int pid,
 			MemoryLocationReference memRef, CIVLSource source)
 			throws UnsatisfiablePathConditionException {
@@ -725,6 +726,34 @@ public class LibmemExecutor extends BaseLibraryExecutor
 		eval.state = primaryExecutor.assign2(source, eval.state, pid,
 				rootPointer, eval.value, memRef.valueSetTemplate());
 		eval.value = universe.nullExpression();
+		return eval;
+	}
+	*/
+	
+	private Evaluation havoc(State state, int pid,
+			MemoryLocationReference memRef, CIVLSource source)
+			throws UnsatisfiablePathConditionException {
+		int sid = stateFactory.getDyscopeId(memRef.scopeValue());
+		SymbolicExpression oldValue = getRootValue(memRef, state, null, pid);
+		SymbolicExpression rootPointer = getRootPointer(memRef);
+		SymbolicType oldValueType = oldValue.type();
+
+		// If the referred variable was uninitialized and has a
+		// primitive type, its value may be NULL hence type cannot be
+		// obtained from its value. But primitive types have simple dynamic
+		// types.
+		if (oldValueType == null) {
+			Variable var = state.getDyscope(sid).lexicalScope()
+					.variable(memRef.vid());
+
+			assert var.type().typeKind() == TypeKind.PRIMITIVE;
+			oldValueType = var.type().getDynamicType(universe);
+		}
+		SymbolicExpression vst = memRef.valueSetTemplate();
+		Evaluation eval = new Evaluation(
+				primaryExecutor.assign2(source, state, pid, rootPointer,
+						universe.valueSetHavoc(oldValue, vst), vst),
+				universe.nullExpression());
 		return eval;
 	}
 
