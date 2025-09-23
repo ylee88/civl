@@ -209,6 +209,9 @@ public class RangeNormalizer implements Normalizer {
 		rangeMap.makeAllDirty(); // put everything on the work list
 		for (Entry<Monic, Range> oldEntry = rangeMap
 				.hold(); oldEntry != null; oldEntry = rangeMap.hold()) {
+			// Do we need this?
+			context.clearSimplificationCache();
+			
 			boolean change = processEntry(oldEntry, dirtyOut);
 
 			if (!change)

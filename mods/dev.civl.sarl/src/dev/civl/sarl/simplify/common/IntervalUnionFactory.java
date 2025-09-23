@@ -1,6 +1,7 @@
 package dev.civl.sarl.simplify.common;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 
 import dev.civl.sarl.IF.number.IntegerNumber;
 import dev.civl.sarl.IF.number.Interval;
@@ -1145,50 +1146,63 @@ public class IntervalUnionFactory implements RangeFactory {
 		IntervalUnionSet context = (IntervalUnionSet) contextRange;
 
 		Interval[] ia1 = ius.intervals(), ia2 = context.intervals();
-		int n1 = ia1.length;
+		int n1 = ia1.length, n2 = ia2.length;
 
 		if (n1 == 0)
 			return ius;
 
-		Interval left1 = ia1[0], left2 = ia2[0], newLeft = null,
-				newRight = null;
+		LinkedList<Interval> newIntervals = new LinkedList<>();
+		for (int i = 0; i < n1; i++) {
+			newIntervals.add(ia1[i]);
+		}
+		Interval left1 = newIntervals.get(0), left2 = ia2[0];
 		boolean integral = ius.isIntegral();
 
 		if (left1.strictLower() == left2.strictLower()) {
 			Number lo = left1.lower(), hi = left1.upper();
 
 			if (lo == left2.lower() && !lo.isInfinite() && lo != hi)
-				newLeft = numberFactory.newInterval(integral,
+				newIntervals.set(0, numberFactory.newInterval(integral,
 						integral ? numberFactory.negativeInfinityInteger()
 								: numberFactory.negativeInfinityRational(),
-						true, hi, left1.strictUpper());
+						true, hi, left1.strictUpper()));
 		}
 
-		Interval right1 = n1 == 1 && newLeft != null ? newLeft : ia1[n1 - 1];
-		Interval right2 = ia2[ia2.length - 1];
+		Interval right1 = newIntervals.get(n1-1);
+		Interval right2 = ia2[n2 - 1];
 
 		if (right1.strictUpper() == right2.strictUpper()) {
 			Number lo = right1.lower(), hi = right1.upper();
 
 			if (hi == right2.upper() && !hi.isInfinite() && lo != hi)
-				newRight = numberFactory.newInterval(integral, lo,
+				newIntervals.set(n1-1, numberFactory.newInterval(integral, lo,
 						right1.strictLower(),
 						integral ? numberFactory.positiveInfinityInteger()
 								: numberFactory.positiveInfinityRational(),
-						true);
+						true));
 		}
-		if (newLeft == null && newRight == null)
-			return ius;
-		if (n1 == 1)
-			return newRange(newRight != null ? newRight : newLeft);
-
-		Interval[] newIntervals = new Interval[n1];
-
-		newIntervals[0] = newLeft == null ? ia1[0] : newLeft;
-		newIntervals[n1 - 1] = newRight == null ? ia1[n1 - 1] : newRight;
-		for (int i = 1; i < n1 - 1; i++)
-			newIntervals[i] = ia1[i];
-		return newRange(newIntervals);
+		
+		for (int i = 1; i < n2; i++) {
+			Interval leftInterval2 = ia2[i - 1],
+					rightInterval2 = ia2[i];
+			for (int j = 1; j < newIntervals.size(); j++) {
+				Interval leftInterval1 = newIntervals.get(j - 1),
+						rightInterval1 = newIntervals.get(j);
+				if (leftInterval2.upper() == leftInterval1.upper()
+						&& rightInterval2.lower() == rightInterval1.lower()
+						&& leftInterval2.strictUpper() == leftInterval1
+								.strictUpper()
+						&& rightInterval2.strictLower() == rightInterval1
+								.strictLower()) {
+					newIntervals.set(j - 1, numberFactory.newInterval(integral,
+							leftInterval1.lower(), leftInterval1.strictLower(),
+							rightInterval1.upper(),
+							rightInterval1.strictUpper()));
+					newIntervals.remove(j);
+					break;
+				}
+			}
+		}
+		return newRange(newIntervals.toArray(new Interval[0]));
 	}
-
 }

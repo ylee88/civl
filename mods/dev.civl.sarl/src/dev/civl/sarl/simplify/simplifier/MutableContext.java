@@ -1110,7 +1110,7 @@ public class MutableContext implements Context {
 	/**
 	 * Clears the "weak" caches
 	 */
-	private void clearSimplificationCache() {
+	public void clearSimplificationCache() {
 		// subContextCache.clear();
 		if (simplificationCache != null)
 			simplificationCache.clear();
