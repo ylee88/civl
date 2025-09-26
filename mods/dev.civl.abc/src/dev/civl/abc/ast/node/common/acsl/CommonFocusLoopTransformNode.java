@@ -173,17 +173,10 @@ public class CommonFocusLoopTransformNode extends CommonFocusTransformNode
 		trueBranchItems.add(nodeFactory
 				.newExpressionStatementNode(functionCall("$mem_havoc",
 						Arrays.asList(identifierExpression(approxMemName)))));
-		trueBranchItems
-				.add(nodeFactory
-						.newExpressionStatementNode(
-								nodeFactory.newOperatorNode(
-										newSource(thisFuncName,
-												loopVarName + " = "
-														+ focusVarName),
-										Operator.ASSIGN,
-										identifierExpression(loopVarName),
-										genFocusIterValueExpr(focusVarName,
-												loopStartVarName))));
+		
+		trueBranchItems.addAll(genFocusIterAssignment(loopVarName, focusVarName,
+				loopStartVarName));
+		
 		String focusLoopBoundVarName = null;
 		if (windowUpper != null) {
 			focusLoopBoundVarName = getNewTmpVarName();
@@ -205,7 +198,17 @@ public class CommonFocusLoopTransformNode extends CommonFocusTransformNode
 							identifier(focusLoopBoundVarName),
 							nodeFactory.newBasicTypeNode(
 									focusLoopBoundVarSource, BasicTypeKind.INT),
-							minExpression(lastFocusValExpr, lastLoopIterValExpr)));
+							lastFocusValExpr));
+			StatementNode focusLoopBoundVarMinAssignment = nodeFactory
+					.newExpressionStatementNode(nodeFactory.newOperatorNode(
+							focusLoopBoundVarSource, Operator.ASSIGN,
+							identifierExpression(focusLoopBoundVarName),
+							lastLoopIterValExpr));
+			trueBranchItems.add(nodeFactory.newIfNode(focusLoopBoundVarSource,
+					nodeFactory.newOperatorNode(focusLoopBoundVarSource,
+							Operator.GT, lastFocusValExpr.copy(),
+							lastLoopIterValExpr.copy()),
+					focusLoopBoundVarMinAssignment));
 		}
 
 		trueBranchItems.add(nodeFactory.newExpressionStatementNode(
@@ -363,20 +366,33 @@ public class CommonFocusLoopTransformNode extends CommonFocusTransformNode
 						upperBound));
 	}
 	
-	private ExpressionNode genFocusIterValueExpr(String focusVarName, String loopStartVarName) {
-		String thisFuncName = "genFocusIterValueExpr";
-		Source thisSource = newSource(thisFuncName, focusVarName+" iteration value");
+	private List<BlockItemNode> genFocusIterAssignment(String loopVarName, String focusVarName,
+			String loopStartVarName) {
+		String thisFuncName = "genFocusIterAssignment";
+		Source thisSource = newSource(thisFuncName, focusVarName+" iteration assignment");
+		List<BlockItemNode> items = new LinkedList<>();
 		ExpressionNode focusValueExpr = identifierExpression(focusVarName);
 		ExpressionNode windowLower = getWindowLower();
 		if (windowLower != null)
 			focusValueExpr = nodeFactory.newOperatorNode(thisSource, Operator.PLUS,
 					focusValueExpr, windowLower.copy());
-		
-		if (getWindowUpper() != null) {
-			ExpressionNode loopStartVarExpr = identifierExpression(loopStartVarName);
-			return maxExpression(focusValueExpr, loopStartVarExpr);
-		}
-		return focusValueExpr;
+		items.add(nodeFactory
+				.newExpressionStatementNode(nodeFactory.newOperatorNode(
+						newSource(thisFuncName,
+								loopVarName + " = " + focusVarName),
+						Operator.ASSIGN, identifierExpression(loopVarName),
+						focusValueExpr)));
+
+		StatementNode trueBranchItem = nodeFactory.newExpressionStatementNode(
+				nodeFactory.newOperatorNode(thisSource, Operator.ASSIGN,
+						identifierExpression(loopVarName),
+						identifierExpression(loopStartVarName)));
+		items.add(nodeFactory.newIfNode(thisSource,
+				nodeFactory.newOperatorNode(thisSource, Operator.LT,
+						focusValueExpr.copy(),
+						identifierExpression(loopStartVarName)),
+				trueBranchItem));
+		return items;
 	}
 
 	private ExpressionNode genAltFocusAssumption(String focusVarName, String altFocusVarName,

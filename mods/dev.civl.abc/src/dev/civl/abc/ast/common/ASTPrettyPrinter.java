@@ -3764,18 +3764,23 @@ public class ASTPrettyPrinter {
 		
 		switch (kind) {
 			case ARRAY : {
-				ArrayTypeNode arrayType = (ArrayTypeNode) type;
-				ExpressionNode extent = arrayType.getExtent();
-
+				StringBuffer extentBuffer = new StringBuffer();
+				while (type.kind() == TypeNodeKind.ARRAY) {
+					ArrayTypeNode arrayType = (ArrayTypeNode) type;
+					ExpressionNode extent = arrayType.getExtent();
+					extentBuffer.append("[");
+					if (extent != null)
+						extentBuffer.append(expression2Pretty(extent,
+								vacantLength(maxLength, result)));
+					extentBuffer.append("]");
+					type = arrayType.getElementType();
+				}
 				// result.append("(");
-				result.append(type2Pretty("", arrayType.getElementType(),
+				result.append(type2Pretty("", type,
 						isTypeDeclaration, maxLength));
+				result.append(extentBuffer);
 				// result.append(")");
-				result.append("[");
-				if (extent != null)
-					result.append(expression2Pretty(extent,
-							vacantLength(maxLength, result)));
-				result.append("]");
+				
 			}
 				break;
 			case DOMAIN : {

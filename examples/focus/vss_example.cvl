@@ -1,0 +1,200 @@
+#include<assert.h>
+#include<mem.cvh>
+
+#pragma CIVL ACSL
+/* Filename : vss_example.cvl
+   Author   : Stephen F. Siegel
+   Created  : 2023-08-03
+   Modified : 2023-08-07
+
+   Verification of matrix-vector multiplication routine using
+   Compressed Sparse Row representation for the matrix.  Start with an
+   arbitrary CSR matrix with N and M under specified bounds.  Take an
+   arbitrary vector v of length M.  Call sparse matrix-vector
+   multiplication routine to compute "actual" resulting vector.
+   Convert the sparse matrix to a dense matrix and compute dense
+   matrix-vector product to get "expected" result.  Check the actual
+   and expected agree.
+*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <pointer.cvh>
+
+/* Compressed Sparse Row (CSR) sparse matrix representation. */
+
+struct csr_matrix {
+  double *val; // length NZ (number of non-0s)
+  int *col_ind; // length NZ
+  int *row_ptr; // length N+1.  row_ptr[N]=NZ.
+  int rows, cols; // number of rows (N), number of columns
+};
+
+/* Multiplies matrix m and (dense) vector v, storing result in already
+   allocated vector p.  If m has dimensions NxM then v has length M
+   and p has length N. */
+/* Implementation of CSR matrix-vector multiplication from "LAProof: A
+   Library of Formal Proofs of Accuracy and Correctness for Linear
+   Algebra Programs" by Kellison, Appel, Tekriwal, and Bindel, IEEE
+   30th Symposium on Computer Arithmetic, 2023.  That paper cites
+   Barrett et al., "Templates for the Solution of Linear Systems:
+   Building Blocks for Iterative Methods", SIAM, 1994, as the source
+   of the algorithm. */
+void csr_matrix_vector_multiply(struct csr_matrix *m, double *v, double *p) {
+  int i, rows=m->rows;
+  double *val = m->val;
+  int *col_ind = m->col_ind;
+  int *row_ptr = m->row_ptr;
+  int next=row_ptr[0];
+  /*@ loop invariant next == row_ptr[i];
+    @ loop assigns p[0..rows-1], next;
+    @ focus F | p[F];
+    @*/
+  for (i=0; i<rows; i++) {
+    double s=0.0;
+    int h=next;
+    next=row_ptr[i+1];
+    for (; h<next; h++) {
+      double x = val[h];
+      int j = col_ind[h];
+      double y = v[j];
+      s = x*y+s;
+    }
+    p[i]=s;
+  }
+}
+
+typedef struct $mat {
+  int n, m; // num rows, columns;
+  double data[][];
+} $mat;
+
+void $mat_vec_mul($mat mat, double * v, double *p) {
+  int n = mat.n, m = mat.m;
+  /*@ loop assigns p[0..n-1];
+    @ focus F | p[F];
+    @*/
+  for (int i=0; i<n; i++) {
+    double s = 0.0;
+    for (int j=0; j<m; j++) s += mat.data[i][j]*v[j];
+    p[i] = s;
+  }
+}
+
+$mat $mat_csr(struct csr_matrix csr) {
+  int n = csr.rows, m = csr.cols;
+  $mat mat;
+  mat.n = n;
+  mat.m = m;
+  mat.data = (double[n][m])$lambda(int i,j) 0.0;
+  /*@ loop assigns mat.data[0..n-1][0..m-1];
+    @ focus F | mat.data[F][0..m-1];
+    @*/
+  for (int i=0; i<n; i++) {
+    int r = csr.row_ptr[i], rnxt = csr.row_ptr[i+1];
+    for (int k=r; k<rnxt; k++)
+      mat.data[i][csr.col_ind[k]] = csr.val[k];
+  }
+  return mat;
+}
+
+// N,M=number of rows,columns.  N_B,M_B=upper bounds on N,M
+$input int N_B, M_B = 3, N, M;
+$assume (1<=N && N<=N_B && 1<=M && M<=M_B);
+// the non-0 entries for the matrix and the (dense) vector
+$input double A[N*M], V[M];
+
+/* Fills in p[0],...,p[len-1] with a strictly increasing sequence
+   of integers in [0,max].  Precondition: 0 <= len <= max+1 */
+void strict_inc(int * p, int len, int max) {
+  for (int i=0; i<len; i++) {
+    int a = (i == 0 ? 0 : p[i-1]+1), b = max - len + i + 1;
+    p[i] = a + $choose_int(b-a+1); // choose in a..b
+  }
+}
+
+/* Nondeterministically create a CSR matrix with n rows and
+   m columns */
+struct csr_matrix make_csr(int n, int m) {
+  int * row_ptr = malloc((n+1)*sizeof(int));
+  row_ptr[0] = 0;
+  /*@ loop invariant 0 <= row_ptr[i-1] && row_ptr[i-1] <= (i-1)*m;
+    @ loop assigns row_ptr[1..n];
+    @ focus F+{0..1} | row_ptr[F..F+1];
+    @*/
+  for (int i=1; i<=n; i++) {
+    row_ptr[i] = row_ptr[i-1]+$choose_int(m+1);
+  }
+  //@ focus ordered(<=, F : 0..n | row_ptr[F]);
+  int NZ = row_ptr[n];
+  $assert(0<=NZ && NZ<=n*m);
+  int * col_ind = malloc(NZ*sizeof(int));
+  /*@ loop assigns col_ind[0..NZ-1];
+    @ focus F | col_ind[row_ptr[F]..row_ptr[F+1]-1];
+    @*/
+  for (int i=0; i<n; i++) {
+    strict_inc(col_ind+row_ptr[i], row_ptr[i+1]-row_ptr[i], m-1);
+  }
+  double * val = malloc(NZ*sizeof(double));
+  /*@ loop assigns val[0..NZ-1];
+    @ focus Z | val[Z];
+    @*/
+  for (int i=0; i<NZ; i++) val[i] = A[i];
+  //@ focus Z;
+  $assert($forall(int i:0..NZ-1) val[i] == A[i]);
+  return (struct csr_matrix){ val, col_ind, row_ptr, n, m };
+}
+
+void print_int_array(int * p, int n) {
+  printf("{ ");
+  for (int i=0; i<n; i++) printf("%d ", p[i]);
+  printf("}");
+}
+
+void print_dbl_array(double * p, int n) {
+  printf("{ ");
+  for (int i=0; i<n; i++) printf("%lf ", p[i]);
+  printf("}");
+}
+
+void print_csr(struct csr_matrix mat) {
+  int nz = mat.row_ptr[mat.rows];
+  printf("begin CSR[nrow=%d, ncol=%d, nz=%d]",
+	 mat.rows, mat.cols, nz);
+  printf("\n  row_ptr = ");
+  print_int_array(mat.row_ptr, mat.rows+1);
+  printf("\n  col_ind = ");
+  print_int_array(mat.col_ind, nz);
+  printf("\n  val     = ");
+  print_dbl_array(mat.val, nz);
+  printf("\nend CSR\n");
+}
+
+void destroy_csr(struct csr_matrix mat) {
+  free(mat.row_ptr);
+  free(mat.col_ind);
+  free(mat.val);
+}
+
+int main(void) {
+  double v[M], actual[N], expected[N];
+  for (int i=0; i<M; i++) v[i] = V[i];
+  struct csr_matrix mat = make_csr(N, M);
+  csr_matrix_vector_multiply(&mat, v, actual);
+  $mat dense = $mat_csr(mat);
+  $mat_vec_mul(dense, v, expected);
+#ifdef VERBOSE
+  printf("\n");
+  print_csr(mat);
+  printf("v         = ");
+  print_dbl_array(v, M);
+  printf("\nactual    = ");
+  print_dbl_array(actual, N);
+  printf("\nexpected  = ");
+  print_dbl_array(expected, N);
+  printf("\n");
+#endif
+  destroy_csr(mat);
+
+  //@ focus F;
+  $assert($forall(int i:0..N-1) actual[i] == expected[i]);
+}

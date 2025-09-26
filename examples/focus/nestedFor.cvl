@@ -1,5 +1,3 @@
-#include<assert.h>
-
 #pragma CIVL ACSL
 $input int M;
 $assume(0 < M);

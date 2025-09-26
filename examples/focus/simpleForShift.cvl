@@ -5,10 +5,10 @@ int a[N];
 
 int main() {
   /*@ loop assigns a[0..N-1];
-    @ focus F | a[F];
+    @ focus F+1 | a[F];
     @*/
-  for (int i = 0; i < N; i++) {
-    a[i] = 0;
+  for (int i = 1; i <= N; i++) {
+    a[i-1] = 0;
   }
 
   

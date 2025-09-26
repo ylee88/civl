@@ -5,13 +5,14 @@ int a[N];
 
 int main() {
   /*@ loop assigns a[0..N-1];
-    @ focus F | a[F];
+    @ focus F+{0..1} | a[F..F+1];
     @*/
   for (int i = 0; i < N; i++) {
-    a[i] = 0;
+    a[i] = i;
   }
 
+  //@ focus ordered(<, F : 0..N-1 | a[F]);
   
   //@ focus F;
-  $assert($forall(int i:0..N-1) a[i] == 0);
+  $assert($forall(int i:1..N-2) a[0] < a[i] && a[i] < a[N-1]);
 }
