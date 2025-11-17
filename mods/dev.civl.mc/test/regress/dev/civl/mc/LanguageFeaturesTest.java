@@ -1008,6 +1008,12 @@ public class LanguageFeaturesTest {
 		assertFalse(ui.run(VERIFY, filename("lambdaBad.cvl")));
 	}
 
+	@Test
+	public void arrayWriteBad() throws ABCException {
+		assertFalse(ui.run(VERIFY, "-showQueries", "-showProverQueries",
+				filename("arrayWriteBad.cvl")));
+	}
+
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
 		ui = null;

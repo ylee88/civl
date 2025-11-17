@@ -2556,7 +2556,7 @@ public class CommonEvaluator implements Evaluator {
 		CIVLSource arraySource = expression.array().getSource();
 		CIVLSource indexSource = expression.index().getSource();
 
-		if (!this.civlConfig.svcomp() && arrayType.isComplete()) {
+		if (!this.civlConfig.svcomp()) {
 			NumericExpression length = universe.length(array);
 			BooleanExpression assumption = state.getPathCondition(universe);
 			BooleanExpression claim, notNegative;

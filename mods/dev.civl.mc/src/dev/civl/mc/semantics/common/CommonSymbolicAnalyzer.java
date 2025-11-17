@@ -2817,35 +2817,25 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 					NumericExpression index = arrayEleRef.getIndex();
 					NumericExpression length = universe.length(targetValue);
 
-					if (targetValue
-							.type() instanceof SymbolicCompleteArrayType) {
-						BooleanExpression claim = derefable
-								? universe.lessThan(index, length)
-								: universe.lessThanEquals(index, length);
-						ResultType result = reasoner.valid(claim)
-								.getResultType();
+					BooleanExpression claim = derefable
+							? universe.lessThan(index, length)
+							: universe.lessThanEquals(index, length);
+					ResultType result = reasoner.valid(claim).getResultType();
 
-						claim = reasoner.simplify(claim);
-						if (result == ResultType.YES) {
-							// TODO shouldn't it be .getResultType() ==
-							// ResultType.YES?
-							if (!derefable && reasoner
-									.valid(universe.equals(length, index))
-									.getResultType() != ResultType.NO) {
-								return new Triple<>(null, claim, result);
-							} else {
-								return new Triple<>(
-										universe.arrayRead(targetValue, index),
-										claim, result);
-							}
-						} else if (result == ResultType.MAYBE)
+					claim = reasoner.simplify(claim);
+					if (result == ResultType.YES) {
+						if (!derefable && reasoner
+								.valid(universe.equals(length, index))
+								.getResultType() != ResultType.NO) {
 							return new Triple<>(null, claim, result);
-						predicate = claim;
-					} else {
-						return new Triple<>(
-								universe.arrayRead(targetValue, index),
-								universe.trueExpression(), ResultType.YES);
-					}
+						} else {
+							return new Triple<>(
+									universe.arrayRead(targetValue, index),
+									claim, result);
+						}
+					} else if (result == ResultType.MAYBE)
+						return new Triple<>(null, claim, result);
+					predicate = claim;
 				}
 			} else if (ref.isTupleComponentReference()) {
 				TupleComponentReference tupleCompRef = (TupleComponentReference) ref;

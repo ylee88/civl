@@ -1417,7 +1417,7 @@ public class CommonExecutor implements Executor {
 	 */
 	private State assignToPointer(CIVLSource source, State state, int pid,
 			SymbolicExpression pointer, SymbolicExpression value,
-			boolean isInitialization, boolean toCheckPointer)
+			boolean isInitialization)
 			throws UnsatisfiablePathConditionException {
 		Pair<BooleanExpression, ResultType> checkPointer = symbolicAnalyzer
 				.isDerefablePointer(state, pointer);
@@ -1568,12 +1568,9 @@ public class CommonExecutor implements Executor {
 						eval.value, false);
 			}
 		} else {
-			boolean toCheckPointer = kind == LHSExpressionKind.DEREFERENCE;
-
 			eval = evaluator.reference(state, pid, lhs);
-
 			state = assignToPointer(lhs.getSource(), eval.state, pid,
-					eval.value, value, isInitializer, toCheckPointer);
+					eval.value, value, isInitializer);
 		}
 		if (captureRead) {
 			this.evaluator = getReadSetCollectEvaluator();
@@ -1656,8 +1653,7 @@ public class CommonExecutor implements Executor {
 	public State assign(CIVLSource source, State state, int pid,
 			SymbolicExpression pointer, SymbolicExpression value)
 			throws UnsatisfiablePathConditionException {
-		return this.assignToPointer(source, state, pid, pointer, value, false,
-				true);
+		return this.assignToPointer(source, state, pid, pointer, value, false);
 	}
 
 	@Override
