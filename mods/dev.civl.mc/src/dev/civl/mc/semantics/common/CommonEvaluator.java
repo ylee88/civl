@@ -2565,8 +2565,8 @@ public class CommonEvaluator implements Evaluator {
 
 			notNegative = universe.lessThanEquals(zero, index);
 			if (addressOnly)
-				claim = universe.and(notNegative,
-						universe.lessThanEquals(index, length));
+				claim = universe.or(universe.equals(zero, index), universe.and(
+						notNegative, universe.lessThanEquals(index, length)));
 			else
 				claim = universe.and(notNegative,
 						universe.lessThan(index, length));

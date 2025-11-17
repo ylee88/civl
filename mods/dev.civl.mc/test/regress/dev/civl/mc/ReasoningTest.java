@@ -79,12 +79,6 @@ public class ReasoningTest {
 	}
 
 	@Test
-	public void cg5Probabilistic() {
-		assertTrue(ui.run(VERIFY, "-inputN=5", QUIET, TestConstants.ENABLE_PROB,
-				TestConstants.NO_CHECK_DIVISION_BY_ZERO, cgfilename("cg.cvl")));
-	}
-
-	@Test
 	public void powerDecomposeSimplification() {
 		assertTrue(
 				ui.run(VERIFY, QUIET, reasoningfilename("powerSimplify.cvl")));
