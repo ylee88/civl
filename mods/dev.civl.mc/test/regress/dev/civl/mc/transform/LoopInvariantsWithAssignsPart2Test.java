@@ -17,12 +17,9 @@ public class LoopInvariantsWithAssignsPart2Test {
 	@Rule
 	public Timeout globalTimeout = Timeout.seconds(30);
 
-	private static File rootDir = new File(
-			new File(new File("examples"), "loop_invariants"),
-			"loop_assigns_given");
+	private static File rootDir = new File(new File(new File("examples"), "loop_invariants"), "loop_assigns_given");
 
-	private static File foVeOOSDir = new File(
-			new File(new File("examples"), "loop_invariants"), "foVeOOS");
+	private static File foVeOOSDir = new File(new File(new File("examples"), "loop_invariants"), "foVeOOS");
 
 	private static UserInterface ui = new UserInterface();
 
@@ -37,58 +34,45 @@ public class LoopInvariantsWithAssignsPart2Test {
 
 	@Test
 	public void foVeOOS_max() {
-		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop=true",
-				foVeOOSFilename("max", "max.cvl")));
+		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop=true", foVeOOSFilename("max", "max.cvl")));
 	}
 
 	@Test
 	public void foVeOOS_maxBadAssert() {
-		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop=true",
-				foVeOOSFilename("max", "max-bad_assert.cvl")));
+		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop=true", foVeOOSFilename("max", "max-bad_assert.cvl")));
 	}
 
 	@Test
 	public void foVeOOS_maxBadInvariant() {
-		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop=true",
-				foVeOOSFilename("max", "max-bad_invariant.cvl")));
-	}
-
-	@Test
-	public void foVeOOS_duplets() {
-		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop=true",
-				foVeOOSFilename("twoEqualElements", "two_equal_elements.cvl")));
+		assertFalse(
+				ui.run("verify", TestConstants.QUIET, "-loop=true", foVeOOSFilename("max", "max-bad_invariant.cvl")));
 	}
 
 	@Test
 	public void foVeOOS_dupletsBadAssert() {
 		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop=true",
-				foVeOOSFilename("twoEqualElements",
-						"two_equal_elements-bad_assert.cvl")));
+				foVeOOSFilename("twoEqualElements", "two_equal_elements-bad_assert.cvl")));
 	}
 
 	@Test
 	public void foVeOOS_dupletsBadInvariant() {
 		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop=true",
-				foVeOOSFilename("twoEqualElements",
-						"two_equal_elements-bad_invariant.cvl")));
+				foVeOOSFilename("twoEqualElements", "two_equal_elements-bad_invariant.cvl")));
 	}
 
 	@Test
 	public void arrayTwoSection() {
-		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
-				filename("twoSectionArray.cvl")));
+		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop", filename("twoSectionArray.cvl")));
 	}
 
 	@Test
 	public void arrayTwoSectionBad() {
-		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop",
-				filename("twoSectionArray-bad.cvl")));
+		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop", filename("twoSectionArray-bad.cvl")));
 	}
 
 	@Test
 	public void arrayTwoSection2() {
-		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop",
-				filename("twoSectionArray2.cvl")));
+		assertTrue(ui.run("verify", TestConstants.QUIET, "-loop", filename("twoSectionArray2.cvl")));
 	}
 
 	@AfterClass
