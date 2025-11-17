@@ -59,7 +59,7 @@ public class SARLConstants {
 	 * the array size within it. Otherwise, the Z3 translator will just use
 	 * regular "Array".
 	 */
-	public static boolean z3UseBigArray = false;
+	public static boolean z3UseBigArray = true;
 
 	/**
 	 * Set to true to let the Z3 translator translate a SARL power operation to
