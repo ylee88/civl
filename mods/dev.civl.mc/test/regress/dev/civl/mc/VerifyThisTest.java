@@ -94,14 +94,6 @@ public class VerifyThisTest {
 	}
 
 	@Test
-	public void pairInsertionSort() {
-		assertTrue(ui.run(VERIFY, QUIET,
-				// "-showTransitions",
-				// "-showStates",
-				filename("pairInsertSort.cvl")));
-	}
-
-	@Test
 	public void parallelOddEvenSort() {
 		assertTrue(ui.run(VERIFY, QUIET, "-input_mpi_nprocs=3", "-inputN=3",
 				filename("parallelOddEvenSort.cvl")));

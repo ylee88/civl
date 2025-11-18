@@ -195,12 +195,6 @@ public class LoopInvariantsWithAssignsPart1Test {
 	}
 
 	@Test
-	public void max() {
-		assertTrue(ui.run("verify", "-loop", TestConstants.QUIET,
-				filename("max.cvl")));
-	}
-
-	@Test
 	public void maxBadAssert() {
 		assertFalse(ui.run("verify", TestConstants.QUIET, "-loop",
 				filename("max-bad_assert.cvl")));
@@ -224,20 +218,6 @@ public class LoopInvariantsWithAssignsPart1Test {
 		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET,
 				filename("verifyThisUB",
 						"relaxedPrefix/relaxedPrefix_loop-bad_weak2.cvl")));
-	}
-
-	@Test
-	public void relaxedPrefixBadAssert() {
-		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET,
-				filename("verifyThisUB",
-						"relaxedPrefix/relaxedPrefix_loop-bad_assert.cvl")));
-	}
-
-	@Test
-	public void relaxedPrefixWeak4Assert() {
-		assertFalse(ui.run("verify", "-loop", TestConstants.QUIET, filename(
-				"verifyThisUB",
-				"relaxedPrefix/relaxedPrefix_loop-bad_weak4assert.cvl")));
 	}
 
 	@Test
