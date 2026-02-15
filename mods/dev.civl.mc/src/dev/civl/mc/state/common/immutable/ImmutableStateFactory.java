@@ -3412,6 +3412,11 @@ public class ImmutableStateFactory implements StateFactory {
 		if (isRead) {
 			DynamicMemoryLocationSet[] rsStack = imuState.getProcessState(pid)
 					.getReadSets(true);
+
+			if (rsStack.length == 0)
+				throw new CIVLInternalException(
+						"Attempt to pop an empty read set stack",
+						imuState.getProcessState(pid).getLocation());
 			DynamicMemoryLocationSet[] newRsStack = Arrays.copyOf(rsStack,
 					rsStack.length - 1);
 
@@ -3419,6 +3424,11 @@ public class ImmutableStateFactory implements StateFactory {
 		} else {
 			DynamicMemoryLocationSet[] wsStack = imuState.getProcessState(pid)
 					.getWriteSets(true);
+
+			if (wsStack.length == 0)
+				throw new CIVLInternalException(
+						"Attempt to pop an empty write set stack",
+						imuState.getProcessState(pid).getLocation());
 			DynamicMemoryLocationSet[] newWsStack = Arrays.copyOf(wsStack,
 					wsStack.length - 1);
 

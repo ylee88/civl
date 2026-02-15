@@ -9,6 +9,7 @@ import dev.civl.mc.dynamic.IF.SymbolicUtility;
 import dev.civl.mc.library.common.BaseLibraryExecutor;
 import dev.civl.mc.library.mem.MemoryLocationMap.MemLocMapEntry;
 import dev.civl.mc.model.IF.CIVLInternalException;
+import dev.civl.mc.model.IF.CIVLProperty;
 import dev.civl.mc.model.IF.CIVLSource;
 import dev.civl.mc.model.IF.ModelFactory;
 import dev.civl.mc.model.IF.expression.Expression;
@@ -28,6 +29,7 @@ import dev.civl.mc.state.IF.StateValueHelper;
 import dev.civl.mc.state.IF.UnsatisfiablePathConditionException;
 import dev.civl.mc.util.IF.Pair;
 import dev.civl.sarl.IF.Reasoner;
+import dev.civl.sarl.IF.ValidityResult.ResultType;
 import dev.civl.sarl.IF.UnaryOperator;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
@@ -219,6 +221,15 @@ public class LibmemExecutor extends BaseLibraryExecutor
 		DynamicMemoryLocationSet rwSet = stateFactory.peekReadWriteSet(state,
 				pid, isRead);
 
+		if (rwSet == null) {
+			String setKind = isRead ? "read" : "write";
+
+			state = errorLogger.logError(source, state, pid,
+					symbolicAnalyzer.stateInformation(state),
+					universe.falseExpression(), ResultType.NO,
+					CIVLProperty.OTHER,
+					"Attempt to pop an empty " + setKind + " set stack");
+		}
 		state = stateFactory.popReadWriteSet(state, pid, isRead);
 		memValue = rwSet.getMemValue();
 		return new Evaluation(state, memValue);
