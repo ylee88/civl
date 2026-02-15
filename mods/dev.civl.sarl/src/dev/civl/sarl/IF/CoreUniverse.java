@@ -2634,8 +2634,9 @@ public interface CoreUniverse {
 	SymbolicExpression valueSetUnion(SymbolicExpression vst0,
 			SymbolicExpression vst1);
 
-	SymbolicExpression valueSetHavoc(SymbolicExpression value,
-			SymbolicExpression valueSetTemplate);
+	Pair<SymbolicExpression, Integer> valueSetHavoc(SymbolicExpression value,
+			SymbolicExpression valueSetTemplate, String prefix,
+			int startCount);
 	
 	/**
 	 * <p>

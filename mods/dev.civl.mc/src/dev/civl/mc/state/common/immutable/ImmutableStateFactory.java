@@ -2561,6 +2561,21 @@ public class ImmutableStateFactory implements StateFactory {
 	}
 
 	@Override
+	public Pair<State, SymbolicExpression> valueSetHavoc(State state,
+			SymbolicExpression value, SymbolicExpression valueSetTemplate) {
+		ImmutableState immutableState = (ImmutableState) state;
+		int index = ModelConfiguration.HAVOC_PREFIX_INDEX;
+		int count = immutableState.collectibleCounts[index];
+		String prefix = ModelConfiguration.SYMBOL_PREFIXES[index];
+		dev.civl.sarl.util.Pair<SymbolicExpression, Integer> result = universe
+				.valueSetHavoc(value, valueSetTemplate, prefix, count);
+		State newState = immutableState.updateCollectibleCount(index,
+				result.right);
+
+		return new Pair<>(newState, result.left);
+	}
+
+	@Override
 	public SymbolicExpression getStateSnapshot(State state, int pid,
 			int topDyscope) {
 		int scopeIDSnapshot2Curr[] = new int[state.numDyscopes()];

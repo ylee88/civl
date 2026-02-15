@@ -205,10 +205,6 @@ public class CommonPreUniverse implements PreUniverse {
 	 */
 	private NumericSymbolicConstant arrayIndex;
 	
-	final private String MEM_HAVOC_SYMB_CONST_PREFIX = "M";
-	
-	private int memHavocSuffix = 0;
-	
 	final private String MEM_ASSIGN_INCOMPLETE_ERROR_MSG = "Attempt to assign to a section of $mem which is not fully complete.";
 
 	private int validCount = 0;
@@ -4814,10 +4810,14 @@ public class CommonPreUniverse implements PreUniverse {
 	}
 
 	@Override
-	public SymbolicExpression valueSetHavoc(SymbolicExpression value,
-			SymbolicExpression valueSetTemplate) {
+	public Pair<SymbolicExpression, Integer> valueSetHavoc(
+			SymbolicExpression value,
+			SymbolicExpression valueSetTemplate, String prefix,
+			int startCount) {
 		SymbolicType rootType = getValueTypeOfValueSetTemplate(valueSetTemplate);
 		SymbolicExpression result = value;
+		int[] count = {startCount};
+
 		for (SymbolicObject ref : tupleRead(valueSetTemplate, intObject(1))
 				.getArguments()) {
 			LinkedList<ValueSetReference> refStack = new LinkedList<>();
@@ -4828,10 +4828,12 @@ public class CommonPreUniverse implements PreUniverse {
 				vsRef = ((NTValueSetReference) vsRef).getParent();
 			}
 			if (refStack.isEmpty())
-				return freshMemHavocSymbolicConstant(rootType);
-			result = valueSetHavocWorker(result, refStack);
+				return new Pair<>(
+						freshMemHavocSymbolicConstant(rootType, prefix, count),
+						count[0]);
+			result = valueSetHavocWorker(result, refStack, prefix, count);
 		}
-		return result;
+		return new Pair<>(result, count[0]);
 	}
 
 	/*
@@ -4840,7 +4842,8 @@ public class CommonPreUniverse implements PreUniverse {
 	 * this point, we have a set of memory locations and can no longer defer)
 	 */
 	private SymbolicExpression valueSetHavocWorker(SymbolicExpression value,
-			LinkedList<ValueSetReference> vsRefStack) {
+			LinkedList<ValueSetReference> vsRefStack, String prefix,
+			int[] count) {
 		ValueSetReference vsRef = vsRefStack.pop();
 
 		switch (vsRef.valueSetReferenceKind()) {
@@ -4849,25 +4852,28 @@ public class CommonPreUniverse implements PreUniverse {
 						.getIndex();
 				SymbolicArrayType arrayType = (SymbolicArrayType) value.type();
 				SymbolicExpression newElement = vsRefStack.isEmpty()
-						? freshMemHavocSymbolicConstant(arrayType.elementType())
+						? freshMemHavocSymbolicConstant(
+								arrayType.elementType(), prefix, count)
 						: valueSetHavocWorker(arrayRead(value, index),
-								vsRefStack);
+								vsRefStack, prefix, count);
 				return arrayWrite(value, index, newElement);
 			}
 			case ARRAY_SECTION : {
 				vsRefStack.push(vsRef);
 				return valueSetAssignsWorker(value,
 						new LinkedList<>(vsRefStack),
-						freshMemHavocSymbolicConstant(value.type()));
+						freshMemHavocSymbolicConstant(value.type(), prefix,
+								count));
 			}
 			case TUPLE_COMPONENT : {
 				IntObject idx = ((VSTupleComponentReference) vsRef).getIndex();
 				SymbolicTupleType tupleType = (SymbolicTupleType) value.type();
 				SymbolicExpression newElement = vsRefStack.isEmpty()
 						? freshMemHavocSymbolicConstant(
-								tupleType.sequence().getType(idx.getInt()))
+								tupleType.sequence().getType(idx.getInt()),
+								prefix, count)
 						: valueSetHavocWorker(tupleRead(value, idx),
-								vsRefStack);
+								vsRefStack, prefix, count);
 				return tupleWrite(value, idx, newElement);
 			}
 			case UNION_MEMBER :
@@ -4875,9 +4881,10 @@ public class CommonPreUniverse implements PreUniverse {
 				SymbolicUnionType unionType = (SymbolicUnionType) value.type();
 				SymbolicExpression newElement = vsRefStack.isEmpty()
 						? freshMemHavocSymbolicConstant(
-								unionType.sequence().getType(idx.getInt()))
+								unionType.sequence().getType(idx.getInt()),
+								prefix, count)
 						: valueSetHavocWorker(unionExtract(idx, value),
-								vsRefStack);
+								vsRefStack, prefix, count);
 				return unionInject(unionType, idx, newElement);
 			case OFFSET :
 				throw new SARLException("unsupported value set reference kind "
@@ -4890,10 +4897,8 @@ public class CommonPreUniverse implements PreUniverse {
 	}
 	
 	private SymbolicConstant freshMemHavocSymbolicConstant(
-			SymbolicType valueType) {
-		return symbolicConstant(
-				stringObject(MEM_HAVOC_SYMB_CONST_PREFIX + memHavocSuffix++),
-				valueType);
+			SymbolicType valueType, String prefix, int[] count) {
+		return symbolicConstant(stringObject(prefix + count[0]++), valueType);
 	}
 	
 	@Override

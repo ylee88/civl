@@ -714,6 +714,25 @@ public interface StateFactory {
 	Pair<State, SymbolicConstant> getFreshSymbol(State state, int index,
 			SymbolicType type);
 
+	/**
+	 * Performs a value-set havoc operation that replaces parts of a value
+	 * specified by a value set template with fresh symbolic constants using
+	 * the havoc prefix (Y). The fresh constants are tracked in the state's
+	 * collectible counts so they can be renumbered during state
+	 * normalization.
+	 *
+	 * @param state
+	 *            the current state
+	 * @param value
+	 *            the value to havoc
+	 * @param valueSetTemplate
+	 *            the value set template specifying which parts to havoc
+	 * @return a pair of the new state (with updated collectible count) and
+	 *         the havoced value
+	 */
+	Pair<State, SymbolicExpression> valueSetHavoc(State state,
+			SymbolicExpression value, SymbolicExpression valueSetTemplate);
+
 	/* ****************** Snapshots related method ****************** */
 	/* Note: Snapshots are objects with type ImmutableMonoState */
 	/**

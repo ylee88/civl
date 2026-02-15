@@ -26,6 +26,7 @@ import dev.civl.mc.semantics.IF.SymbolicAnalyzer;
 import dev.civl.mc.state.IF.State;
 import dev.civl.mc.state.IF.StateValueHelper;
 import dev.civl.mc.state.IF.UnsatisfiablePathConditionException;
+import dev.civl.mc.util.IF.Pair;
 import dev.civl.sarl.IF.Reasoner;
 import dev.civl.sarl.IF.UnaryOperator;
 import dev.civl.sarl.IF.expr.BooleanExpression;
@@ -750,9 +751,13 @@ public class LibmemExecutor extends BaseLibraryExecutor
 			oldValueType = var.type().getDynamicType(universe);
 		}
 		SymbolicExpression vst = memRef.valueSetTemplate();
+		Pair<State, SymbolicExpression> havocResult = stateFactory
+				.valueSetHavoc(state, oldValue, vst);
+
+		state = havocResult.left;
 		Evaluation eval = new Evaluation(
 				primaryExecutor.assign2(source, state, pid, rootPointer,
-						universe.valueSetHavoc(oldValue, vst), vst),
+						havocResult.right, vst),
 				universe.nullExpression());
 		return eval;
 	}
