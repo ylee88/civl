@@ -100,6 +100,7 @@ tokens
 	TYPEOF_TYPE;
 	TYPE_NAME;                // type specification without identifier
 	TYPE_QUALIFIER_LIST;      // list of type qualifiers
+	SUM;                      // $sum extended quantification
 }
 
 scope Symbols {
@@ -413,6 +414,7 @@ scope DeclarationScope;
         -> ^(VALUE_AT $b+ RPAREN)
 	| spawnExpression
     | callsExpression
+	| sumExpression
 	;
 
 /* CIVL-C $spawn expression: $spawn f(...). */
@@ -428,6 +430,20 @@ callsExpression
         argumentExpressionList RPAREN RPAREN
         -> ^(CALLS LPAREN postfixExpressionRoot ABSENT
             argumentExpressionList RPAREN)
+	;
+
+/* CIVL-C $sum expression: $sum(type var, lo, hi, body). */
+sumExpression
+scope DeclarationScope;
+@init{
+	$DeclarationScope::isTypedef = false;
+	$DeclarationScope::hasTypeSpec = false;
+}
+	: SUM LPAREN typeName IDENTIFIER COMMA
+	    lo=assignmentExpression COMMA
+	    hi=assignmentExpression COMMA
+	    (body=assignmentExpression | body=quantifiedExpression) RPAREN
+	    -> ^(SUM typeName IDENTIFIER $lo $hi $body)
 	;
 
 /* 6.5.3.  The unary operators &, *, +, -, ~, !, and $O.   The $O

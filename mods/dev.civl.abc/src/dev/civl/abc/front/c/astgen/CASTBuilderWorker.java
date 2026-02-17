@@ -36,7 +36,10 @@ import dev.civl.abc.ast.node.IF.declaration.FunctionDeclarationNode;
 import dev.civl.abc.ast.node.IF.declaration.FunctionDefinitionNode;
 import dev.civl.abc.ast.node.IF.declaration.InitializerNode;
 import dev.civl.abc.ast.node.IF.declaration.VariableDeclarationNode;
+import dev.civl.abc.ast.node.IF.acsl.ExtendedQuantifiedExpressionNode;
+import dev.civl.abc.ast.node.IF.acsl.ExtendedQuantifiedExpressionNode.ExtendedQuantifier;
 import dev.civl.abc.ast.node.IF.expression.ArrayLambdaNode;
+import dev.civl.abc.ast.node.IF.expression.LambdaNode;
 import dev.civl.abc.ast.node.IF.expression.CharacterConstantNode;
 import dev.civl.abc.ast.node.IF.expression.CompoundLiteralNode;
 import dev.civl.abc.ast.node.IF.expression.DerivativeExpressionNode;
@@ -915,6 +918,9 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 			case VALUE_AT :
 				return translateValueAtExpression(source, expressionTree,
 						scope);
+			case SUM :
+				return translateSumExpression(source, expressionTree,
+						scope);
 			default :
 				throw error("Unknown expression kind", expressionTree);
 		} // end switch
@@ -931,6 +937,28 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 				.translateExpression((CommonTree) valueAt.getChild(2), scope);
 
 		return nodeFactory.newValueAtNode(source, state, pid, expr);
+	}
+
+	private ExtendedQuantifiedExpressionNode translateSumExpression(
+			Source source, CommonTree sumTree, SimpleScope scope)
+			throws SyntaxException {
+		SimpleScope newScope = new SimpleScope(scope);
+		CommonTree typeTree = (CommonTree) sumTree.getChild(0);
+		CommonTree identTree = (CommonTree) sumTree.getChild(1);
+		CommonTree loTree = (CommonTree) sumTree.getChild(2);
+		CommonTree hiTree = (CommonTree) sumTree.getChild(3);
+		CommonTree bodyTree = (CommonTree) sumTree.getChild(4);
+		TypeNode type = translateTypeName(typeTree, scope);
+		IdentifierNode identNode = translateIdentifier(identTree);
+		VariableDeclarationNode varDecl = nodeFactory
+				.newVariableDeclarationNode(source, identNode, type);
+		ExpressionNode lo = translateExpression(loTree, scope);
+		ExpressionNode hi = translateExpression(hiTree, scope);
+		ExpressionNode body = translateExpression(bodyTree, newScope);
+		LambdaNode lambda = nodeFactory.newLambdaNode(source, varDecl, body);
+
+		return nodeFactory.newExtendedQuantifiedExpressionNode(source,
+				ExtendedQuantifier.SUM, lo, hi, lambda);
 	}
 
 	private ArrayLambdaNode translateArrayLambdaExpression(Source source,

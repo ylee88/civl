@@ -1,0 +1,12 @@
+$input int N;
+$assume(N > 0 && N <= 10);
+$input int a[N];
+
+int main() {
+    int sum = 0;
+    for (int i = 0; i < N; i++) {
+        sum += a[i];
+    }
+    $assert(sum == $sum(int t, 0, N-1, a[t]));
+    return 0;
+}
