@@ -388,6 +388,11 @@ public class LanguageFeaturesTest {
 	}
 
 	@Test
+	public void forall4() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, filename("forall4.cvl")));
+	}
+
+	@Test
 	public void forLoop() throws ABCException {
 		assertTrue(ui.run(VERIFY, QUIET, filename("for.cvl")));
 	}

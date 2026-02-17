@@ -1,0 +1,7 @@
+$input int n;
+$assume(n>=1);
+$input int a[n], b[n];
+int main() {
+  $assume($forall (int j: 0..n-1) a[j] == 0 && b[j] == a[j]);
+  $assert($forall (int j: 0..n-1) b[j]==a[j]);
+}
