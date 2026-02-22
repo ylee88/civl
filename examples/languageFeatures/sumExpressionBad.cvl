@@ -1,0 +1,20 @@
+typedef double T;
+$input int B1=6, B2=6, B3=6, N1, N2, N3;
+$assume(1<=N1 && N1<=B1 && 1<=N2 && N2<=B2 && 1<=N3 && N3<=B3);
+$input T A[N1][N2], B[N2][N3];
+T C[N1][N3];
+
+void mul(T a[][], T b[][], T c[][], int n1, int n2, int n3) {
+  for (int i=0; i<n1; i++)
+    for (int j=0; j<n3; j++) {
+      T sum = (T)0;
+      for (int k=0; k<n2; k++)
+        sum += a[i][k]*b[k][j];
+      c[i][j] = sum;
+    }
+}
+
+int main(void) {
+  mul(A, B, C, N1, N2, N3);
+  $assert($forall(int i : 0 .. N1-1) $forall(int j : 0 .. N3-1) $sum(int k : 0..N2-1) A[i][k]*B[k][j] == C[i][j]);
+}

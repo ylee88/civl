@@ -609,6 +609,16 @@ public class LanguageFeaturesTest {
 	}
 
 	@Test
+	public void sumExpression2() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, filename("sumExpression2.cvl")));
+	}
+
+	@Test
+	public void sumExpressionBad() throws ABCException {
+		assertFalse(ui.run(VERIFY, QUIET, filename("sumExpressionBad.cvl")));
+	}
+
+	@Test
 	public void structArray() throws ABCException {
 		assertTrue(ui.run(VERIFY, QUIET, filename("structArray.cvl")));
 	}

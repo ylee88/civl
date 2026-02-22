@@ -14,6 +14,7 @@ import dev.civl.mc.dynamic.IF.SymbolicUtility;
 import dev.civl.mc.log.IF.CIVLErrorLogger;
 import dev.civl.mc.model.IF.CIVLInternalException;
 import dev.civl.mc.model.IF.CIVLSource;
+import dev.civl.mc.model.IF.CIVLSyntaxException;
 import dev.civl.mc.model.IF.CIVLUnimplementedFeatureException;
 import dev.civl.mc.model.IF.ModelFactory;
 import dev.civl.mc.model.IF.expression.ArrayLambdaExpression;
@@ -471,15 +472,30 @@ public class QuantifiedExpressionEvaluator
 					? universe.zeroInt()
 					: universe.zeroReal();
 
-		NumericExpression result = (NumericExpression) universe.apply(lambda,
+		SymbolicExpression applied = universe.apply(lambda,
 				Arrays.asList(universe.integer(low)));
+
+		if (!(applied instanceof NumericExpression))
+			throw new CIVLSyntaxException(
+					"the body of $sum must have a numeric type "
+							+ "(int, float, etc.), but the body produced "
+							+ "a value of type " + applied.type(),
+					source);
+		NumericExpression result = (NumericExpression) applied;
 
 		for (int i = low + 1; i <= high; i++) {
 			NumericExpression index = universe.integer(i);
 			NumericExpression current;
-
-			current = (NumericExpression) universe.apply(lambda,
+			SymbolicExpression currentVal = universe.apply(lambda,
 					Arrays.asList(index));
+
+			if (!(currentVal instanceof NumericExpression))
+				throw new CIVLSyntaxException(
+						"the body of $sum must have a numeric type "
+								+ "(int, float, etc.), but the body produced "
+								+ "a value of type " + currentVal.type(),
+						source);
+			current = (NumericExpression) currentVal;
 			switch (quant) {
 				case SUM :
 					result = universe.add(result, current);
