@@ -134,7 +134,12 @@ public class CommonFocusLoopTransformNode extends CommonFocusTransformNode
 				loopLowerBoundExpr, loopUpperBoundExpr);
 
 		items.add(nodeFactory.newExpressionStatementNode(
-				functionCall("$assert", Arrays.asList(newLoopInvars))));
+				functionCall("$assert", Arrays.asList(
+						newLoopInvars,
+						stringLiteralExpression("Focus loop invariant check failed"
+								+ " at start of focused iteration for tag "
+								+ focusTag + " = %d\\n"),
+						identifierExpression(focusVarName)))));
 
 		String assignsMemName = getNewTmpVarName();
 		Source assignsMemSource = newSource(thisFuncName,
@@ -246,8 +251,12 @@ public class CommonFocusLoopTransformNode extends CommonFocusTransformNode
 						nodeFactory.newIntConstantNode(
 								newSource(thisFuncName, "1"), 1)));
 		bodyItems.add(nodeFactory.newExpressionStatementNode(functionCall(
-				"$assert", Arrays.asList(andExpr(newLoopInvars.copy(),
-						loopIncrementAssertion, boundIsSameExpr)))));
+				"$assert", Arrays.asList(
+						andExpr(newLoopInvars.copy(), loopIncrementAssertion,
+								boundIsSameExpr),
+						stringLiteralExpression("Focus loop increment check failed"
+								+ " for tag " + focusTag + " = %d\\n"),
+						identifierExpression(focusVarName)))));
 		
 		StatementNode focusWorkStatement = nodeFactory
 				.newCompoundStatementNode(loopNode.getSource(), bodyItems);
@@ -290,11 +299,27 @@ public class CommonFocusLoopTransformNode extends CommonFocusTransformNode
 				functionCall("$mem_diff",
 						Arrays.asList(identifierExpression(assignsMemName),
 								identifierExpression(altMemVarName)))));
-		trueBranchItems.add(nodeFactory.newExpressionStatementNode(functionCall(
-				"$assert",
-				Arrays.asList(functionCall("$mem_contains",
-						Arrays.asList(identifierExpression(altApproxMemName),
-								identifierExpression(writeSetVarName)))))));
+		trueBranchItems.add(nodeFactory.newExpressionStatementNode(
+				functionCall("$assert", Arrays.asList(
+						functionCall("$mem_contains",
+								Arrays.asList(identifierExpression(altApproxMemName),
+										identifierExpression(writeSetVarName))),
+						stringLiteralExpression("Focus $mem-set check failed"
+								+ " for tag " + focusTag + " = %d.\\n"
+								+ "Expected write set to be a subset"
+								+ " of %s \\\\ %s,\\n"
+								+ "  where %d != %d and %d in [%d, %d"
+								+ (inclusive ? "]" : ")") + "\\n"
+								+ "Write set: %s\\n"),
+						identifierExpression(focusVarName),
+						identifierExpression(assignsMemName),
+						identifierExpression(altMemVarName),
+						identifierExpression(altFocusVarName),
+						identifierExpression(focusVarName),
+						identifierExpression(altFocusVarName),
+						identifierExpression(loopStartVarName),
+						identifierExpression(oldBoundVarName),
+						identifierExpression(writeSetVarName)))));
 		
 		trueBranchItems.add(nodeFactory
 				.newExpressionStatementNode(functionCall("$assume_pop")));

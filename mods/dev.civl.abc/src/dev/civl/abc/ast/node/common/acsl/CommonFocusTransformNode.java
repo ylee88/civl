@@ -14,6 +14,7 @@ import dev.civl.abc.ast.node.IF.expression.ExpressionNode;
 import dev.civl.abc.ast.node.IF.expression.FunctionCallNode;
 import dev.civl.abc.ast.node.IF.expression.IdentifierExpressionNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode;
+import dev.civl.abc.ast.node.IF.expression.StringLiteralNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode.Operator;
 import dev.civl.abc.ast.node.IF.expression.RegularRangeNode;
 import dev.civl.abc.front.IF.CivlcTokenConstant;
@@ -21,6 +22,8 @@ import dev.civl.abc.token.IF.CivlcToken;
 import dev.civl.abc.token.IF.CivlcToken.TokenVocabulary;
 import dev.civl.abc.token.IF.Formation;
 import dev.civl.abc.token.IF.Source;
+import dev.civl.abc.token.IF.StringToken;
+import dev.civl.abc.token.IF.SyntaxException;
 import dev.civl.abc.token.IF.TokenFactory;
 
 public abstract class CommonFocusTransformNode extends CommonTransformNode
@@ -134,6 +137,21 @@ public abstract class CommonFocusTransformNode extends CommonTransformNode
 	protected IdentifierNode identifier(String name) {
 		return nodeFactory.newIdentifierNode(newSource("identifier", name),
 				name);
+	}
+
+	protected StringLiteralNode stringLiteralExpression(String value)
+			throws SyntaxException {
+		// value should use C escape sequences (e.g., "\\n" for newline)
+		String representation = "\"" + value + "\"";
+		Formation formation = tokenFactory.newTransformFormation(
+				"CommonFocusTransformNode", "stringLiteralExpression");
+		CivlcToken token = tokenFactory.newCivlcToken(
+				CivlcTokenConstant.STRING_LITERAL, representation, formation,
+				TokenVocabulary.DUMMY);
+		StringToken stringToken = tokenFactory.newStringToken(token);
+		Source source = tokenFactory.newSource(stringToken);
+		return nodeFactory.newStringLiteralNode(source, representation,
+				stringToken.getStringLiteral());
 	}
 	
 	protected ExpressionNode addIntExpr(ExpressionNode expr, int offset) {
