@@ -943,17 +943,34 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 			Source source, CommonTree sumTree, SimpleScope scope)
 			throws SyntaxException {
 		SimpleScope newScope = new SimpleScope(scope);
-		CommonTree typeTree = (CommonTree) sumTree.getChild(0);
-		CommonTree identTree = (CommonTree) sumTree.getChild(1);
-		CommonTree loTree = (CommonTree) sumTree.getChild(2);
-		CommonTree hiTree = (CommonTree) sumTree.getChild(3);
-		CommonTree bodyTree = (CommonTree) sumTree.getChild(4);
+		CommonTree boundVarDeclListTree = (CommonTree) sumTree.getChild(0);
+		CommonTree bodyTree = (CommonTree) sumTree.getChild(1);
+
+		if (boundVarDeclListTree.getChildCount() != 1)
+			throw error(
+					"$sum requires exactly one bound variable declaration",
+					sumTree);
+
+		CommonTree boundVarDeclTree = (CommonTree) boundVarDeclListTree
+				.getChild(0);
+		CommonTree typeTree = (CommonTree) boundVarDeclTree.getChild(0);
+		CommonTree namesTree = (CommonTree) boundVarDeclTree.getChild(1);
+		CommonTree domainTree = (CommonTree) boundVarDeclTree.getChild(2);
+
+		if (namesTree.getChildCount() != 1)
+			throw error("$sum requires exactly one bound variable", sumTree);
+		if (domainTree == null || domainTree.getType() != DOTDOT)
+			throw error("$sum requires a range domain (lo .. hi)", sumTree);
+
 		TypeNode type = translateTypeName(typeTree, scope);
-		IdentifierNode identNode = translateIdentifier(identTree);
+		IdentifierNode identNode = translateIdentifier(
+				(CommonTree) namesTree.getChild(0));
 		VariableDeclarationNode varDecl = nodeFactory
 				.newVariableDeclarationNode(source, identNode, type);
-		ExpressionNode lo = translateExpression(loTree, scope);
-		ExpressionNode hi = translateExpression(hiTree, scope);
+		ExpressionNode lo = translateExpression(
+				(CommonTree) domainTree.getChild(0), scope);
+		ExpressionNode hi = translateExpression(
+				(CommonTree) domainTree.getChild(1), scope);
 		ExpressionNode body = translateExpression(bodyTree, newScope);
 		LambdaNode lambda = nodeFactory.newLambdaNode(source, varDecl, body);
 

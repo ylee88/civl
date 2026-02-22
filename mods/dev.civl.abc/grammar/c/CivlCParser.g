@@ -432,18 +432,16 @@ callsExpression
             argumentExpressionList RPAREN)
 	;
 
-/* CIVL-C $sum expression: $sum(type var, lo, hi, body). */
+/* CIVL-C $sum expression: $sum(type var : lo .. hi) body. */
 sumExpression
 scope DeclarationScope;
 @init{
 	$DeclarationScope::isTypedef = false;
 	$DeclarationScope::hasTypeSpec = false;
 }
-	: SUM LPAREN typeName IDENTIFIER COMMA
-	    lo=assignmentExpression COMMA
-	    hi=assignmentExpression COMMA
-	    (body=assignmentExpression | body=quantifiedExpression) RPAREN
-	    -> ^(SUM typeName IDENTIFIER $lo $hi $body)
+	: SUM LPAREN boundVariableDeclarationList RPAREN
+	    (body=assignmentExpression | body=quantifiedExpression)
+	    -> ^(SUM boundVariableDeclarationList $body)
 	;
 
 /* 6.5.3.  The unary operators &, *, +, -, ~, !, and $O.   The $O
