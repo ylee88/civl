@@ -984,6 +984,12 @@ int $mpi_comm_dup($scope scope, MPI_Comm comm, MPI_Comm * newcomm, char * routNa
   return 0;
 }
 
+$mpi_gcomm $mpi_comm_self_create($scope scope, MPI_Comm * mpi_comm_self) {
+  $mpi_gcomm newgcomm = $mpi_gcomm_create(scope, /*size=*/1);
+  *mpi_comm_self = $mpi_comm_create(scope, newgcomm, /*rank=*/0);
+  return newgcomm;
+}
+
 int $mpi_comm_free(MPI_Comm *comm, $mpi_state mpi_state) {
   int place = $comm_place((*comm)->col);
   int size = $comm_size((*comm)->col);

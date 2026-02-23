@@ -1,0 +1,16 @@
+typedef struct Complex {
+  double real;
+  double imag;
+} Complex;
+
+typedef struct {
+  int len;
+  Complex data[];
+} Vector;
+
+int main() {
+  Vector v;
+  v.len = 1;
+  v.data = (Complex[3])$lambda(int i) ((struct Complex) { 1.0 * i, 2.0 * i });
+  $assert(v.data[1].real == 1.0 && v.data[1].imag == 2.0);
+}
