@@ -27,9 +27,7 @@ import dev.civl.sarl.IF.type.SymbolicType;
  * @author zirkel
  * 
  */
-public class CommonStructOrUnionType extends CommonType
-		implements
-			CIVLStructOrUnionType {
+public class CommonStructOrUnionType extends CommonType implements CIVLStructOrUnionType {
 
 	private boolean isStruct;
 
@@ -46,10 +44,8 @@ public class CommonStructOrUnionType extends CommonType
 	/**
 	 * Create a new (incomplete) struct or union.
 	 * 
-	 * @param name
-	 *            The name of this struct or union.
-	 * @param isStruct
-	 *            True if a struct, false if a union.
+	 * @param name     The name of this struct or union.
+	 * @param isStruct True if a struct, false if a union.
 	 */
 	public CommonStructOrUnionType(Identifier name, boolean isStruct) {
 		this.name = name;
@@ -110,9 +106,7 @@ public class CommonStructOrUnionType extends CommonType
 	@Override
 	public void complete(Collection<StructOrUnionField> fields) {
 		if (isComplete())
-			throw new CIVLInternalException(
-					(isStruct ? "Struct" : "Union") + " already complete",
-					(CIVLSource) null);
+			throw new CIVLInternalException((isStruct ? "Struct" : "Union") + " already complete", (CIVLSource) null);
 		else {
 			int numFields = fields.size();
 			int count = 0;
@@ -129,9 +123,7 @@ public class CommonStructOrUnionType extends CommonType
 	@Override
 	public void complete(StructOrUnionField[] fields) {
 		if (isComplete())
-			throw new CIVLInternalException(
-					(isStruct ? "Struct" : "Union") + "  already complete",
-					(CIVLSource) null);
+			throw new CIVLInternalException((isStruct ? "Struct" : "Union") + "  already complete", (CIVLSource) null);
 		else {
 			int numFields = fields.length;
 			int count = 0;
@@ -150,28 +142,21 @@ public class CommonStructOrUnionType extends CommonType
 		if (dynamicType == null) {
 			if (!isComplete())
 				throw new CIVLInternalException(
-						"cannot get dynamic type of incomplete "
-								+ (isStruct ? "struct" : "union") + " type: "
-								+ this,
+						"cannot get dynamic type of incomplete " + (isStruct ? "struct" : "union") + " type: " + this,
 						(CIVLSource) null);
 			else {
 				LinkedList<SymbolicType> fieldDynamicTypes = new LinkedList<SymbolicType>();
 
 				for (StructOrUnionField field : fields) {
-					SymbolicType fieldDynamicType = field.type()
-							.getDynamicType(universe);
+					SymbolicType fieldDynamicType = field.type().getDynamicType(universe);
 
 					fieldDynamicTypes.add(fieldDynamicType);
 				}
 				if (this.isStruct) {
-					dynamicType = universe.tupleType(
-							universe.stringObject(name.name()),
-							fieldDynamicTypes);
+					dynamicType = universe.tupleType(universe.stringObject(name.name()), fieldDynamicTypes);
 				} else {
 					try {
-						dynamicType = universe.unionType(
-								universe.stringObject(name.name()),
-								fieldDynamicTypes);
+						dynamicType = universe.unionType(universe.stringObject(name.name()), fieldDynamicTypes);
 					} catch (IllegalArgumentException ex) {
 						throw new CIVLException(ex.getMessage(), null);
 					}
@@ -215,10 +200,8 @@ public class CommonStructOrUnionType extends CommonType
 	@Override
 	public CIVLType copyAs(CIVLPrimitiveType type, SymbolicUniverse universe) {
 		String newName = "CIVL" + name;
-		Identifier newId = new CommonIdentifier(name.getSource(),
-				universe.stringObject(newName));
-		CIVLStructOrUnionType newType = new CommonStructOrUnionType(newId,
-				isHandleObject);
+		Identifier newId = new CommonIdentifier(name.getSource(), universe.stringObject(newName));
+		CIVLStructOrUnionType newType = new CommonStructOrUnionType(newId, isHandleObject);
 		List<StructOrUnionField> newFields = new ArrayList<>(this.numFields());
 
 		for (StructOrUnionField field : fields)
@@ -237,13 +220,12 @@ public class CommonStructOrUnionType extends CommonType
 	}
 
 	@Override
-	protected void addFreeVariables(Set<Variable> result,
-			Set<CIVLType> seenTypes) {
-		if (seenTypes.add(this))
+	protected void addFreeVariables(Set<Variable> result, Set<CIVLType> seenTypes) {
+		if (seenTypes.add(this) && fields != null) {
 			for (StructOrUnionField field : fields) {
-				((CommonType) ((CommonStructOrUnionField) field).type())
-						.addFreeVariables(result, seenTypes);
+				((CommonType) ((CommonStructOrUnionField) field).type()).addFreeVariables(result, seenTypes);
 			}
+		}
 	}
 
 	@Override
