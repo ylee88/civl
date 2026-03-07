@@ -68,10 +68,8 @@ public class MixedArithmeticTest {
 
 	@Test
 	public void test12herbrand() {
-		NumericExpression one = (NumericExpression) universe.cast(herbrandReal,
-				universe.rational(1));
-		NumericExpression two = (NumericExpression) universe.cast(herbrandReal,
-				universe.rational(2));
+		NumericExpression one = (NumericExpression) universe.cast(herbrandReal, universe.rational(1));
+		NumericExpression two = (NumericExpression) universe.cast(herbrandReal, universe.rational(2));
 		NumericExpression a = universe.add(one, two);
 		NumericExpression b = universe.add(two, one);
 
@@ -82,10 +80,8 @@ public class MixedArithmeticTest {
 
 	@Test
 	public void herbrandSame() {
-		NumericExpression one = (NumericExpression) universe.cast(herbrandReal,
-				universe.rational(1));
-		NumericExpression two = (NumericExpression) universe.cast(herbrandReal,
-				universe.rational(2));
+		NumericExpression one = (NumericExpression) universe.cast(herbrandReal, universe.rational(1));
+		NumericExpression two = (NumericExpression) universe.cast(herbrandReal, universe.rational(2));
 		NumericExpression a = universe.multiply(one, two);
 		NumericExpression b = universe.multiply(one, two);
 
@@ -96,12 +92,10 @@ public class MixedArithmeticTest {
 
 	@Test
 	public void herbrandSimplify() {
-		NumericExpression one = (NumericExpression) universe
-				.cast(herbrandInteger, universe.integer(1));
-		NumericExpression two = (NumericExpression) universe
-				.cast(herbrandInteger, universe.integer(2));
-		NumericSymbolicConstant x = (NumericSymbolicConstant) universe
-				.symbolicConstant(universe.stringObject("X"), herbrandInteger);
+		NumericExpression one = (NumericExpression) universe.cast(herbrandInteger, universe.integer(1));
+		NumericExpression two = (NumericExpression) universe.cast(herbrandInteger, universe.integer(2));
+		NumericSymbolicConstant x = (NumericSymbolicConstant) universe.symbolicConstant(universe.stringObject("X"),
+				herbrandInteger);
 		NumericExpression e1 = universe.add(x, one); // X+1h
 		BooleanExpression p = universe.equals(x, two); // X=2h
 		Reasoner reasoner = universe.reasoner(p);
@@ -111,19 +105,15 @@ public class MixedArithmeticTest {
 		out.println("herbrandSimplify: e1 = " + e1); // X+1h
 		out.println("herbrandSimplify: p  = " + p); // X=2h
 		out.println("herbrandSimplify: e2 = " + e2); // 2h+1h
-		boolean b = expected.equals(e2);
 		assertEquals(expected, e2);
 	}
 
 	@Test
 	public void hrelations() {
-		NumericExpression one = (NumericExpression) universe
-				.cast(herbrandInteger, universe.integer(1));
-		NumericSymbolicConstant x = (NumericSymbolicConstant) universe
-				.symbolicConstant(universe.stringObject("X"), herbrandInteger);
-		BooleanExpression assumption = universe.and(
-				universe.lessThanEquals(x, one),
-				universe.lessThanEquals(one, x));
+		NumericExpression one = (NumericExpression) universe.cast(herbrandInteger, universe.integer(1));
+		NumericSymbolicConstant x = (NumericSymbolicConstant) universe.symbolicConstant(universe.stringObject("X"),
+				herbrandInteger);
+		BooleanExpression assumption = universe.and(universe.lessThanEquals(x, one), universe.lessThanEquals(one, x));
 		Reasoner reasoner = universe.reasoner(assumption);
 		BooleanExpression newAssumption = reasoner.getReducedCollapsedContext();
 

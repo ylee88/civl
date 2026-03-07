@@ -4,30 +4,26 @@
 package dev.civl.sarl.ideal.simplify;
 
 import static dev.civl.sarl.ideal.simplify.CommonObjects.bigMixedXYTermPoly;
-import static dev.civl.sarl.ideal.simplify.CommonObjects.standardStrategy;
-import static dev.civl.sarl.ideal.simplify.CommonObjects.testContext;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.int0;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.int1;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.intNeg1;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.mixedXYTermPoly;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.newContext;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.preUniv;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.rat0;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.standardStrategy;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.testContext;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.x;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.xInt;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.xSqrLess1;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.xSqrP1;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.y;
-import static dev.civl.sarl.ideal.simplify.CommonObjects.newContext;
 import static org.junit.Assert.assertEquals;
-
-import java.util.Arrays;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import dev.civl.sarl.prove.IF.Prove;
 
 /**
  * Testing on IdealSimplifier with expressions that have a variable and its
@@ -39,12 +35,9 @@ import dev.civl.sarl.prove.IF.Prove;
  */
 public class SimplifyEqualsZeroTest {
 
-	private final static boolean useBackwardSubstitution = true;
-
 	/**
-	 * Calls the setUp() method in CommonObjects to make use of consolidated
-	 * SARL object declarations and initializations for testing of "Simplify"
-	 * module.
+	 * Calls the setUp() method in CommonObjects to make use of consolidated SARL
+	 * object declarations and initializations for testing of "Simplify" module.
 	 * 
 	 * @throws java.lang.Exception
 	 */
@@ -78,8 +71,7 @@ public class SimplifyEqualsZeroTest {
 		// out.println(xSqrLess1);
 		// out.println(idealSimplifier.simplifyExpression(xSqrLess1));
 		// assumption: x=0. Simplify x^2-1 -> -1
-		assertEquals(intNeg1,
-				testContext.simplify(xSqrLess1, standardStrategy));
+		assertEquals(intNeg1, testContext.simplify(xSqrLess1, standardStrategy));
 		assertEquals(int1, testContext.simplify(xSqrP1, standardStrategy));
 		// out.println(idealSimplifier.apply(symbExpr_xpyInt));
 		// out.println(idealSimplifier.simplifyExpression(symbExpr_xpyInt));
@@ -90,21 +82,18 @@ public class SimplifyEqualsZeroTest {
 	}
 
 	/**
-	 * Testing of IdealSimplifier with expressions of two two variables, when
-	 * one is dropped by being set equal to 0.
+	 * Testing of IdealSimplifier with expressions of two two variables, when one is
+	 * dropped by being set equal to 0.
 	 */
 	@Test
 	public void assumptionOnPolyTest() {
 		testContext = newContext(preUniv.equals(x, rat0));
 
 		// out.println(idealSimplifier.apply(bigMixedXYTermPoly));
-		assertEquals(
-				testContext.simplify(bigMixedXYTermPoly, standardStrategy)
-						.toString(),
+		assertEquals(testContext.simplify(bigMixedXYTermPoly, standardStrategy).toString(),
 				preUniv.multiply(y, preUniv.multiply(y, y)).toString());
 		// out.println(idealSimplifier.simplifyExpression(mixedXYTermPoly));
-		assertEquals(testContext.simplify(mixedXYTermPoly, standardStrategy),
-				y);
+		assertEquals(testContext.simplify(mixedXYTermPoly, standardStrategy), y);
 	}
 
 }

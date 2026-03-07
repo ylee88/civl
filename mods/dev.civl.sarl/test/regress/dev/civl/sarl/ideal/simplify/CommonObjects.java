@@ -1,7 +1,6 @@
 package dev.civl.sarl.ideal.simplify;
 
 import java.io.PrintStream;
-import java.util.Arrays;
 
 import dev.civl.sarl.IF.Reasoner;
 import dev.civl.sarl.IF.expr.BooleanExpression;
@@ -17,13 +16,9 @@ import dev.civl.sarl.preuniverse.IF.FactorySystem;
 import dev.civl.sarl.preuniverse.IF.PreUniverse;
 import dev.civl.sarl.preuniverse.IF.PreUniverses;
 import dev.civl.sarl.prove.IF.Prove;
-import dev.civl.sarl.prove.IF.ProverFunctionInterpretation;
 import dev.civl.sarl.prove.IF.TheoremProver;
-import dev.civl.sarl.reason.IF.Reason;
-import dev.civl.sarl.reason.IF.ReasonerFactory;
 import dev.civl.sarl.simplify.simplification.Strategy;
 import dev.civl.sarl.simplify.simplifier.Context;
-import dev.civl.sarl.simplify.simplifier.MutableContext;
 import dev.civl.sarl.type.IF.SymbolicTypeFactory;
 
 /**

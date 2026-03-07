@@ -4,19 +4,17 @@
 package dev.civl.sarl.ideal.simplify;
 
 import static dev.civl.sarl.ideal.simplify.CommonObjects.claim1;
-import static dev.civl.sarl.ideal.simplify.CommonObjects.standardStrategy;
-import static dev.civl.sarl.ideal.simplify.CommonObjects.testContext2;
-import static dev.civl.sarl.ideal.simplify.CommonObjects.testContext;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.newContext;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.preUniv;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.rat5;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.standardStrategy;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.testContext;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.testContext2;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.x;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.xeq5;
-import static dev.civl.sarl.ideal.simplify.CommonObjects.newContext;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
-
-import java.util.Arrays;
 
 import org.junit.After;
 import org.junit.Before;
@@ -25,7 +23,6 @@ import org.junit.Test;
 
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
-import dev.civl.sarl.prove.IF.Prove;
 
 /**
  * Testing on IdealSimplifier on the basis of boolean and BooleanExpressions for
@@ -38,13 +35,11 @@ import dev.civl.sarl.prove.IF.Prove;
  */
 public class SimpBoolTest {
 
-	private final static boolean useBackwardSubstitution = true;
-
 	/**
-	 * Calls the setUp() method in CommonObjects to make use of consolidated
-	 * SARL object declarations and initializations for testing of "Simplify"
-	 * module. Also initialized objects in the CommonObjects class that are used
-	 * often and therefore not given an initial value.
+	 * Calls the setUp() method in CommonObjects to make use of consolidated SARL
+	 * object declarations and initializations for testing of "Simplify" module.
+	 * Also initialized objects in the CommonObjects class that are used often and
+	 * therefore not given an initial value.
 	 * 
 	 * @throws java.lang.Exception
 	 */
@@ -68,21 +63,19 @@ public class SimpBoolTest {
 	}
 
 	/**
-	 * Test on IdealSimplifier to check if a boolean-assigned value/evaluation
-	 * for a variable, when applied, evaluates to the intended value.
+	 * Test on IdealSimplifier to check if a boolean-assigned value/evaluation for a
+	 * variable, when applied, evaluates to the intended value.
 	 */
 	@Test
 	public void boolExprTest() {
 		testContext = newContext(xeq5);
-		assertEquals(rat5.type(),
-				((SymbolicExpression) testContext.simplify(x, standardStrategy))
-						.type());
+		assertEquals(rat5.type(), ((SymbolicExpression) testContext.simplify(x, standardStrategy)).type());
 		assertEquals(rat5, testContext.simplify(x, standardStrategy));
 	}
 
 	/**
-	 * Test on IdealSimplifier to be sure that opposing claims applied to the
-	 * same variable to not evaluate to equal to one another.
+	 * Test on IdealSimplifier to be sure that opposing claims applied to the same
+	 * variable to not evaluate to equal to one another.
 	 */
 	@Test
 	public void boolValTest() {
@@ -95,13 +88,9 @@ public class SimpBoolTest {
 		testContext2 = newContext(claim1);
 
 		// check that type-matching is in place
-		assertEquals(
-				((SymbolicExpression) testContext.simplify(x, standardStrategy))
-						.type(),
-				((SymbolicExpression) testContext2.simplify(x,
-						standardStrategy)).type());
-		assertNotEquals(testContext.simplify(x, standardStrategy),
-				testContext2.simplify(x, standardStrategy));
+		assertEquals(((SymbolicExpression) testContext.simplify(x, standardStrategy)).type(),
+				((SymbolicExpression) testContext2.simplify(x, standardStrategy)).type());
+		assertNotEquals(testContext.simplify(x, standardStrategy), testContext2.simplify(x, standardStrategy));
 		assertEquals(claim1, preUniv.not(assumption));
 		assertEquals(assumption, preUniv.not(claim1));
 		// out.println(claim1);
@@ -110,15 +99,14 @@ public class SimpBoolTest {
 
 	/**
 	 * Test on IdealSimplifier to confirm that the return value from
-	 * assumptionAsInterval is null when the provided assumption is counter to
-	 * the defined value of the target variable.
+	 * assumptionAsInterval is null when the provided assumption is counter to the
+	 * defined value of the target variable.
 	 * 
 	 * @see IdealSimplifer.assumptionAsInterval
 	 */
 	@Test
 	public void assumptionCounterValueTest() {
-		testContext = newContext(
-				preUniv.equals(xeq5, preUniv.falseExpression()));
+		testContext = newContext(preUniv.equals(xeq5, preUniv.falseExpression()));
 		assertNull(testContext.assumptionAsInterval(x));
 	}
 

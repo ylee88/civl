@@ -1,9 +1,7 @@
 package dev.civl.sarl.ideal.simplify;
 
-import static dev.civl.sarl.ideal.simplify.CommonObjects.useBackwardSubstitution;
-import static dev.civl.sarl.ideal.simplify.CommonObjects.standardStrategy;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.newContext;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.onePxPxSqdP3x4th;
-import static dev.civl.sarl.ideal.simplify.CommonObjects.testContext;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.out;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.preUniv;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.rat0;
@@ -16,11 +14,13 @@ import static dev.civl.sarl.ideal.simplify.CommonObjects.rat4;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.rat5;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.rat6;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.ratNeg300;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.standardStrategy;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.testContext;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.useBackwardSubstitution;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.x;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.xx;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.xy;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.y;
-import static dev.civl.sarl.ideal.simplify.CommonObjects.newContext;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -35,7 +35,6 @@ import dev.civl.sarl.IF.SymbolicUniverse;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.NumericExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
-import dev.civl.sarl.prove.IF.Prove;
 
 /**
  * Testing on IdealSimplifier based on Polynomials for both assumptions and

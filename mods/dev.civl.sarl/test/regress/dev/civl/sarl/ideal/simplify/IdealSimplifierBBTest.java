@@ -4,25 +4,23 @@
 package dev.civl.sarl.ideal.simplify;
 
 import static dev.civl.sarl.ideal.simplify.CommonObjects.bigMixedXYTermPoly;
-import static dev.civl.sarl.ideal.simplify.CommonObjects.standardStrategy;
-import static dev.civl.sarl.ideal.simplify.CommonObjects.testContext;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.newContext;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.out;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.preUniv;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.rat0;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.rat1;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.ratNeg1;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.standardStrategy;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.testContext;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.threeX4th;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.trueExpr;
+import static dev.civl.sarl.ideal.simplify.CommonObjects.useBackwardSubstitution;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.x;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.x4th;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.xNE;
 import static dev.civl.sarl.ideal.simplify.CommonObjects.yNE;
-import static dev.civl.sarl.ideal.simplify.CommonObjects.useBackwardSubstitution;
-import static dev.civl.sarl.ideal.simplify.CommonObjects.newContext;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-
-import java.util.Arrays;
 
 import org.junit.After;
 import org.junit.Before;
@@ -30,7 +28,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import dev.civl.sarl.IF.expr.SymbolicExpression;
-import dev.civl.sarl.prove.IF.Prove;
 
 /**
  * Set of tests on IdealSimplifier based about assigning values to single

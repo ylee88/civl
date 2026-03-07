@@ -1,6 +1,5 @@
 package dev.civl.mc;
 
-import static dev.civl.mc.TestConstants.QUIET;
 import static dev.civl.mc.TestConstants.VERIFY;
 import static org.junit.Assert.assertTrue;
 
