@@ -1,6 +1,6 @@
 #pragma CIVL ACSL
 typedef double T;
-$input int B1, B2=6, B3, N1, N2, N3;
+$input int B1, B2, B3, N1, N2, N3;
 $assume(1<=N1 && N1<=B1 && 1<=N2 && N2<=B2 && 1<=N3 && N3<=B3);
 $input T A[N1][N2], B[N2][N3];
 T C[N1][N3];
@@ -15,6 +15,9 @@ void mul(T a[][], T b[][], T c[][], int n1, int n2, int n3) {
       @*/
     for (int j=0; j<n3; j++) {
       T sum = (T)0;
+      /*@ loop invariant 0 <= k <= n2;
+        @ loop invariant sum == \sum(0, k-1, \lambda int t; a[i][t]*b[t][j]);
+        @*/
       for (int k=0; k<n2; k++) {
         sum += a[i][k]*b[k][j];
       }
