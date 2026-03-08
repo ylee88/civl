@@ -613,8 +613,18 @@ public class LibmemExecutor extends BaseLibraryExecutor
 				.memValueIterator().apply(memValue);
 		Evaluation eval = new Evaluation(state, universe.nullExpression());
 
-		for (MemoryLocationReference memRef : memRefs)
+		for (MemoryLocationReference memRef : memRefs) {
+			if (civlConfig.isPropertyToggled(CIVLProperty.OUT_OF_BOUNDS)) {
+				SymbolicExpression vst = memRef.valueSetTemplate();
+				SymbolicType valueType = universe.valueType(vst);
+
+				for (ValueSetReference vsRef : universe.valueSetReferences(vst))
+					eval.state = evaluator.memEvaluator()
+							.checkValueSetReferenceOutOfBound(eval.state, pid,
+									valueType, vsRef, source);
+			}
 			eval = havoc(eval.state, pid, memRef, source);
+		}
 		return eval;
 	}
 

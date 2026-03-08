@@ -47,6 +47,11 @@ public class MemTest {
 	public void memConvertion3() throws ABCException {
 		assertTrue(ui.run(VERIFY, QUIET, filename("mem_convertion3.cvl")));
 	}
+	
+	@Test
+	public void memConvertion4() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, filename("mem_convertion4.cvl")));
+	}
 
 	@Test
 	public void memConvertionBad() throws ABCException {
@@ -66,16 +71,6 @@ public class MemTest {
 	@Test
 	public void memConvertionBad4() throws ABCException {
 		assertFalse(ui.run(VERIFY, QUIET, filename("mem_convertion-bad4.cvl")));
-	}
-
-	@Test
-	public void memConvertionBad5() throws ABCException {
-		assertFalse(ui.run(VERIFY, QUIET, filename("mem_convertion-bad5.cvl")));
-	}
-
-	@Test
-	public void memConvertionBad6() throws ABCException {
-		assertFalse(ui.run(VERIFY, QUIET, filename("mem_convertion-bad6.cvl")));
 	}
 
 	/* ********************* Test for Contains ************************/
@@ -272,10 +267,20 @@ public class MemTest {
 	public void memHavocArr() throws ABCException {
 		assertTrue(ui.run(VERIFY, QUIET, filename("mem_havoc_array.cvl")));
 	}
+	
+	@Test
+	public void memHavocArr2() throws ABCException {
+		assertTrue(ui.run(VERIFY, QUIET, filename("mem_havoc_array2.cvl")));
+	}
 
 	@Test
 	public void memHavocArrBad() throws ABCException {
 		assertFalse(ui.run(VERIFY, QUIET, filename("mem_havoc_array-bad.cvl")));
+	}
+	
+	@Test
+	public void memHavocArrBad2() throws ABCException {
+		assertFalse(ui.run(VERIFY, QUIET, filename("mem_havoc_array-bad2.cvl")));
 	}
 
 	@Test

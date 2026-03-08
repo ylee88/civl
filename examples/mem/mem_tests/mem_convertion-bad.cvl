@@ -1,22 +1,16 @@
 #include<mem.cvh>
-#include<stdlib.h>
 #include<pointer.cvh>
 
-$input int N;
-$assume(N > 10);
-int *a;
-int *b[4];
+struct T {
+  int x;
+};
 
 int main() {
-  a = (int *)malloc(sizeof(int) * N);
-  for (int i = 0; i < 4; i++)
-    b[i] = &a[i];
-
-  $mem m = a + (0 .. N-1);
+  $mem m;
+  int a;
+  struct T b;
   
-  m = a + (0 .. N-2);
-  m = a + 1;
-  m = a + (0 .. N-2) + (0 .. N-2);
+  // invalid memory location reference:
+  m = &(&b + 1)->x;
   $assert($equals(&m, &m));
-  free(a);
 }

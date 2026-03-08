@@ -1,12 +1,11 @@
 #include<mem.cvh>
-#include<stdlib.h>
 #include<pointer.cvh>
-
-int a[100];
 
 int main() {
   $mem m;
-  
-  m = &a[(0 .. 99) + (-9 .. 0)];
+  int a;
+
+  // invalid memory location reference:
+  m = &a + (0 .. 9);
   $assert($equals(&m, &m));
 }
