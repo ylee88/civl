@@ -64,6 +64,8 @@ public class CommonFocusLoopTransformNode extends CommonFocusTransformNode
 
 		ForLoopNode loopNode = (ForLoopNode) root;
 		String thisFuncName = "transform";
+		String focusSourceLocation = loopNode.getSource().getLocation(false)
+				.replace("\\", "\\\\").replace("\"", "\\\"");
 		String focusVarName = focusData.getVarNameFromTag(focusTag);
 		String altFocusVarName = focusData.getAltVarNameFromTag(focusTag);
 		String loopVarName = ((IdentifierExpressionNode) ((OperatorNode) loopNode
@@ -136,7 +138,8 @@ public class CommonFocusLoopTransformNode extends CommonFocusTransformNode
 		items.add(nodeFactory.newExpressionStatementNode(
 				functionCall("$assert", Arrays.asList(
 						newLoopInvars,
-						stringLiteralExpression("Focus loop invariant check failed"
+						stringLiteralExpression(focusSourceLocation
+								+ ": Focus loop invariant check failed"
 								+ " at start of focused iteration for tag "
 								+ focusTag + " = %d\\n"),
 						identifierExpression(focusVarName)))));
@@ -254,7 +257,8 @@ public class CommonFocusLoopTransformNode extends CommonFocusTransformNode
 				"$assert", Arrays.asList(
 						andExpr(newLoopInvars.copy(), loopIncrementAssertion,
 								boundIsSameExpr),
-						stringLiteralExpression("Focus loop increment check failed"
+						stringLiteralExpression(focusSourceLocation
+								+ ": Focus loop increment check failed"
 								+ " for tag " + focusTag + " = %d\\n"),
 						identifierExpression(focusVarName)))));
 		
@@ -304,7 +308,8 @@ public class CommonFocusLoopTransformNode extends CommonFocusTransformNode
 						functionCall("$mem_contains",
 								Arrays.asList(identifierExpression(altApproxMemName),
 										identifierExpression(writeSetVarName))),
-						stringLiteralExpression("Focus $mem-set check failed"
+						stringLiteralExpression(focusSourceLocation
+								+ ": Focus $mem-set check failed"
 								+ " for tag " + focusTag + " = %d.\\n"
 								+ "Expected write set to be a subset"
 								+ " of %s \\\\ %s,\\n"
