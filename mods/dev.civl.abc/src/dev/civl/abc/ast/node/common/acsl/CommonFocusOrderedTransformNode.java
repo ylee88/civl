@@ -49,9 +49,10 @@ public class CommonFocusOrderedTransformNode extends CommonFocusTransformNode
 								genOrderContext(focusVarName, 0, 1),
 								genOrderExpression(focusVarName, 0, 1))))));
 		SortedSet<Integer> offsets = focusData.getFocusOffsets(focusTag);
-		int lastOffset = -1;
+		int firstOffset = offsets.first();
+		int lastOffset = firstOffset - 1;
 		for (Integer offset : offsets) {
-			if (lastOffset != -1) {
+			if (lastOffset != firstOffset-1) {
 				result.add(nodeFactory.newExpressionStatementNode(functionCall(
 						"$assume",
 						Arrays.asList(implies(
@@ -70,7 +71,6 @@ public class CommonFocusOrderedTransformNode extends CommonFocusTransformNode
 
 			lastOffset = offset;
 		}
-		int firstOffset = offsets.first();
 		result.add(nodeFactory.newExpressionStatementNode(functionCall(
 				"$assume", Arrays
 						.asList(implies(
