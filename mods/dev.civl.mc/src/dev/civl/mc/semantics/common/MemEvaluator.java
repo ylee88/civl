@@ -218,6 +218,15 @@ public class MemEvaluator extends CommonEvaluator {
 					universe.intObject(2));
 		}
 		int vid = symbolicUtil.getVariableId(expr.getSource(), eval.value);
+
+		if (vid < 0) {
+			// vid < 0 indicates a null/invalid pointer. We only reach here
+			// without an earlier error when the range was provably empty
+			// (handled in valueSetPointerAdd), so the result is empty $mem.
+			return new Evaluation(state, typeFactory.civlMemType()
+					.memValueCreator(universe).apply(new LinkedList<>()));
+		}
+
 		int sid = stateFactory
 				.getDyscopeId(symbolicUtil.getScopeValue(eval.value));
 
@@ -666,15 +675,33 @@ public class MemEvaluator extends CommonEvaluator {
 				range[1] = universe.add(index, range[1]);
 				range[1] = universe.add(range[1], one); // to be exclusive
 			} else {
-				errorLogger.logSimpleError(source, state, pid,
-						state.getProcessState(pid).name(),
-						symbolicAnalyzer.stateInformation(state),
-						CIVLProperty.OTHER,
-						"Invalid pointer value for pointer addition:s\n"
-								+ "Pointer: " + expr.left() + "\nOffsets: "
-								+ expr.right() + "\nPointer value: " + ptrVal
-								+ "\nOffsets value: " + oftVal);
-				throw new UnsatisfiablePathConditionException();
+				// The pointer is not an array element reference (e.g. a null
+				// pointer or a pointer to the root of a scalar variable).
+				// If the range is provably empty, no memory is referenced and
+				// the result is an empty set, so pointer validity need not be
+				// checked.
+				Reasoner reasoner = universe
+						.reasoner(state.getPathCondition(universe));
+				BooleanExpression isEmpty = universe.lessThan(range[1],
+						range[0]);
+
+				if (reasoner.valid(isEmpty).getResultType() == ResultType.YES) {
+					// Empty range: use the pointer's own reference as parent
+					// and make range[1] exclusive, mirroring the array element
+					// case above.
+					parent = ref;
+					range[1] = universe.add(range[1], one); // to be exclusive
+				} else {
+					errorLogger.logSimpleError(source, state, pid,
+							state.getProcessState(pid).name(),
+							symbolicAnalyzer.stateInformation(state),
+							CIVLProperty.OTHER,
+							"Invalid pointer value for pointer addition:s\n"
+									+ "Pointer: " + expr.left() + "\nOffsets: "
+									+ expr.right() + "\nPointer value: "
+									+ ptrVal + "\nOffsets value: " + oftVal);
+					throw new UnsatisfiablePathConditionException();
+				}
 			}
 		} else {
 			/*
