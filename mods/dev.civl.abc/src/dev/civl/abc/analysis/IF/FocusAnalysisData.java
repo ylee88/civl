@@ -1,10 +1,13 @@
 package dev.civl.abc.analysis.IF;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import dev.civl.abc.ast.node.IF.expression.ExpressionNode;
 import dev.civl.abc.token.IF.SyntaxException;
 
 public class FocusAnalysisData {
@@ -16,6 +19,7 @@ public class FocusAnalysisData {
 		String focusVarName;
 		String altFocusVarName;
 		SortedSet<Integer> offsets = new TreeSet<>();
+		List<ExpressionNode> protectedMemExprs = new ArrayList<>();
 	}
 	private HashMap<String, TagData> tagMap;
 
@@ -46,6 +50,14 @@ public class FocusAnalysisData {
 	
 	public SortedSet<Integer> getFocusOffsets(String tag) {
 		return tagData(tag).offsets;
+	}
+
+	public void addProtectedMemExpr(String tag, ExpressionNode expr) {
+		tagData(tag).protectedMemExprs.add(expr);
+	}
+
+	public List<ExpressionNode> getProtectedMemExprs(String tag) {
+		return tagData(tag).protectedMemExprs;
 	}
 
 	private TagData tagData(String tag) {

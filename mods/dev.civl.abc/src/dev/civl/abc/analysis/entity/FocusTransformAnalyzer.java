@@ -234,6 +234,12 @@ public class FocusTransformAnalyzer {
 		int upperOffset = windowValues.right == null ? windowValues.left : windowValues.right;
 		for (int i = windowValues.left; i <= upperOffset; i++)
 			focusData.addFocusOffset(focusTag, i);
+		SequenceNode<ExpressionNode> memList = focusNode.getMemoryList();
+		if (memList != null) {
+			for (ExpressionNode memExpr : memList) {
+				focusData.addProtectedMemExpr(focusTag, memExpr);
+			}
+		}
 		process(loopNode.getBody());
 	}
 	
