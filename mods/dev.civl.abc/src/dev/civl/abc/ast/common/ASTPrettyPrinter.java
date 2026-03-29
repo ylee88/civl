@@ -538,6 +538,13 @@ public class ASTPrettyPrinter {
 				out.print("\n");
 				currentFile = sourceFile;
 			}
+			int childLine = firstToken.getLine();
+			if (childLine > 0) {
+				out.print("// ");
+				out.print(sourceFile);
+				out.print(":");
+				out.println(childLine);
+			}
 			pPrintBlockItem(out, "", child);
 			out.println();
 		}
@@ -546,6 +553,56 @@ public class ASTPrettyPrinter {
 	private static void printBar(int length, char symbol, PrintStream out) {
 		for (int i = 0; i < length; i++)
 			out.print(symbol);
+	}
+
+	/**
+	 * Returns a concise source location string (e.g. {@code "foo.c:42"}) for
+	 * the given node, derived from the line number of its first token. Returns
+	 * an empty string for synthetic/generated nodes that have no meaningful
+	 * position (line &le; 0 or no token available).
+	 */
+	private static String sourceLocation(ASTNode node) {
+		try {
+			CivlcToken tok = node.getSource().getFirstToken();
+			if (tok == null)
+				return "";
+			int line = tok.getLine();
+			if (line <= 0)
+				return "";
+			return tok.getSourceFile().getName() + ":" + line;
+		} catch (Exception e) {
+			return "";
+		}
+	}
+
+	/** Returns the source filename (basename) of a node's first token, or {@code ""}. */
+	private static String sourceFileName(ASTNode node) {
+		try {
+			CivlcToken tok = node.getSource().getFirstToken();
+			return tok != null ? tok.getSourceFile().getName() : "";
+		} catch (Exception e) {
+			return "";
+		}
+	}
+
+	/** Returns the line number of a node's first token, or 0 if unavailable. */
+	private static int sourceStartLine(ASTNode node) {
+		try {
+			CivlcToken tok = node.getSource().getFirstToken();
+			return tok != null ? tok.getLine() : 0;
+		} catch (Exception e) {
+			return 0;
+		}
+	}
+
+	/** Returns the line number of a node's last token, or 0 if unavailable. */
+	private static int sourceEndLine(ASTNode node) {
+		try {
+			CivlcToken tok = node.getSource().getLastToken();
+			return tok != null ? tok.getLine() : 0;
+		} catch (Exception e) {
+			return 0;
+		}
 	}
 
 	/* *************************** Private Methods ************************* */
@@ -1395,16 +1452,80 @@ public class ASTPrettyPrinter {
 			myIndent = prefix + indention;
 		}
 		out.print("{\n");
-		for (int i = 0; i < numChildren; i++) {
+		// Group consecutive block items that share the same source file into
+		// a single range comment (// file.c:start-end).  Items with no source
+		// location break any open group and are printed without a comment.
+		// Multi-item groups are preceded by a blank separator line (unless they
+		// are the very first thing in the block).
+		int i = 0;
+		boolean hasPrinted = false;
+		while (i < numChildren) {
 			BlockItemNode child = compound.getSequenceChild(i);
-
-			if (child != null) {
-				if (isSwitchBody && !(child instanceof LabeledStatementNode))
-					pPrintBlockItem(out, myIndent + indention, child);
-				else
-					pPrintBlockItem(out, myIndent, child);
-				out.print("\n");
+			if (child == null) {
+				i++;
+				continue;
 			}
+			
+			String file = sourceFileName(child);
+			int startLine = sourceStartLine(child);
+
+			// Extend the group as long as consecutive children share the same
+			// source file and have a valid location.
+			int groupEnd = i;
+			int endLine = sourceEndLine(child);
+			if (endLine <= 0)
+				endLine = startLine;
+
+			while (groupEnd + 1 < numChildren) {
+				BlockItemNode next = compound.getSequenceChild(groupEnd + 1);
+				if (next == null)
+					break;
+				String nextFile = sourceFileName(next);
+				int nextLine = sourceStartLine(next);
+				if (!file.equals(nextFile) || nextLine < endLine)
+					break;
+				int nextEnd = sourceEndLine(next);
+				endLine = nextEnd > 0 ? nextEnd : nextLine;
+				groupEnd++;
+			}
+
+			// Blank separator line before a multi-item group (not the first).
+			if (hasPrinted)
+				out.print("\n");
+
+			String indent = (isSwitchBody && !(child instanceof LabeledStatementNode))
+					? myIndent + indention : myIndent;
+			out.print(indent);
+			if (!file.isEmpty() && startLine > 0) {
+				// Emit a line-range comment (no range if only 1 line)
+				out.print("// ");
+				out.print(file);
+				out.print(":");
+				if (endLine > startLine) {
+					out.print(startLine);
+					out.print("-");
+					out.println(endLine);
+				} else {
+					out.println(startLine);
+				}
+			} else {
+				out.println("// Missing source");
+			}
+
+			// Print every item in the group.
+			for (int j = i; j <= groupEnd; j++) {
+				BlockItemNode item = compound.getSequenceChild(j);
+				if (item != null) {
+					String jIndent = (isSwitchBody
+							&& !(item instanceof LabeledStatementNode))
+									? myIndent + indention : myIndent;
+					pPrintBlockItem(out, jIndent, item);
+					out.print("\n");
+				}
+			}
+
+			hasPrinted = true;
+			i = groupEnd + 1;
 		}
 		out.print(myPrefix);
 		out.print("}");
