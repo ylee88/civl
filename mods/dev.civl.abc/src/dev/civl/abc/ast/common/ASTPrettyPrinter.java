@@ -1,6 +1,9 @@
 package dev.civl.abc.ast.common;
 
 import java.io.PrintStream;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.Stack;
 
 import dev.civl.abc.ast.IF.AST;
@@ -119,6 +122,9 @@ import dev.civl.abc.err.IF.ABCException;
 import dev.civl.abc.err.IF.ABCRuntimeException;
 import dev.civl.abc.err.IF.ABCUnsupportedException;
 import dev.civl.abc.token.IF.CivlcToken;
+import dev.civl.abc.token.IF.Formation;
+import dev.civl.abc.token.IF.Inclusion;
+import dev.civl.abc.token.IF.SourceFile;
 import dev.civl.abc.util.IF.Pair;
 
 /**
@@ -138,6 +144,31 @@ public class ASTPrettyPrinter {
 	private static int headerLength = 60;
 
 	private static final StringBuffer EMPTY_STRING_BUFFER = new StringBuffer(0);
+
+	/**
+	 * Path prefix shared by all CIVL internal resource files — both the ABC
+	 * header directory ({@code dev/civl/abc/include/}) and the MC library
+	 * implementation directory ({@code dev/civl/mc/src/}). Files whose path
+	 * starts with this prefix are CIVL-managed, not user-written code.
+	 * Uses the OS-specific file separator so the check works on all platforms.
+	 */
+	private static final String CIVL_RESOURCE_PREFIX = "dev" + java.io.File.separator
+			+ "civl" + java.io.File.separator;
+
+	/**
+	 * Path segment identifying CIVL's ABC header directory specifically.
+	 * Used to confirm a file is a header (rather than implementation) when
+	 * deciding whether to emit an {@code #include} directive for it.
+	 */
+	private static final String ABC_LIB_PATH = new java.io.File(
+			"dev/civl/abc/include").getPath();
+
+	/**
+	 * CIVL bootstrap headers that are added automatically and should be omitted
+	 * entirely from the pretty-printed output (no {@code #include} emitted).
+	 */
+	private static final Set<String> OMIT_ENTIRELY = new HashSet<>(
+			java.util.Arrays.asList("implicit_defs.h", "gnuc.h", "svcomp.h"));
 
 	/* ******************* Package-private Static Methods ****************** */
 
@@ -375,83 +406,140 @@ public class ASTPrettyPrinter {
 		return trimStringBuffer(result, maxLength);
 	}
 
+	/**
+	 * Determines whether a root-level node should be replaced by an
+	 * {@code #include} directive, skipped entirely, or printed as-is.
+	 *
+	 * @param firstToken
+	 *            the first token of the root-level node
+	 * @return the {@code #include} directive string (e.g.
+	 *         {@code "#include <stdio.h>"}) if one should be emitted; {@code null}
+	 *         if the node should be skipped with no output; or the sentinel
+	 *         {@code ""} if the node's content should be printed normally.
+	 */
+	private static String getIncludeDirective(CivlcToken firstToken) {
+		SourceFile sf = firstToken.getSourceFile();
+		String filename = sf.getName();
+		String path = sf.getPath();
+
+		// All CIVL internal resource files: dev/civl/abc/include/* (headers)
+		// and dev/civl/mc/src/* (library implementations).
+		if (path.startsWith(CIVL_RESOURCE_PREFIX)) {
+			if (OMIT_ENTIRELY.contains(filename) || filename.endsWith(".cvl"))
+				return null; // skip entirely
+			// Headers (.h, .cvh) from the ABC include dir get an #include
+			if (path.contains(ABC_LIB_PATH))
+				return "#include <" + filename + ">";
+			// Other CIVL resource files that aren't headers — skip
+			return null;
+		}
+
+		// Check how this node's file got into the AST
+		Formation formation = firstToken.getFormation();
+		if (!(formation instanceof Inclusion))
+			return ""; // user source file — print normally
+
+		Inclusion inc = (Inclusion) formation;
+		CivlcToken includeToken = inc.getIncludeToken();
+
+		if (includeToken == null)
+			return ""; // user source file (top-level, no #include parent)
+
+		String includeText = includeToken.getText();
+
+		if (includeText.startsWith("\""))
+			return ""; // user include with quotes — expand inline
+
+		// Angle-bracket include: determine if direct (emit) or transitive (skip)
+		SourceFile parentSF = includeToken.getSourceFile();
+
+		// Parent is a CIVL internal file → transitive from CIVL header → skip
+		if (parentSF.getPath().startsWith(CIVL_RESOURCE_PREFIX))
+			return null;
+
+		// Parent was itself angle-bracket included → transitive system include
+		Formation parentFormation = includeToken.getFormation();
+		if (parentFormation instanceof Inclusion) {
+			CivlcToken parentIncludeToken = ((Inclusion) parentFormation)
+					.getIncludeToken();
+			if (parentIncludeToken != null
+					&& parentIncludeToken.getText().startsWith("<"))
+				return null; // transitive — skip, no #include
+		}
+
+		// Direct angle-bracket include from user code (or CIVL top level)
+		if (filename.endsWith(".cvl"))
+			return null; // .cvl implementation files — skip entirely
+		return "#include " + includeText;
+	}
+
 	static void prettyPrint(AST ast, PrintStream out, boolean ignoreStdLibs) {
 		SequenceNode<BlockItemNode> root = ast.getRootNode();
 		int numChildren = root.numChildren();
+
+		// Pass 1: collect #include directives and the set of library source files
+		// whose content should be suppressed.
+		LinkedHashSet<String> includeDirectives = new LinkedHashSet<>();
+		Set<SourceFile> librarySourceFiles = new HashSet<>();
+
+		for (int i = 0; i < numChildren; i++) {
+			BlockItemNode child = root.getSequenceChild(i);
+
+			if (child == null)
+				continue;
+			CivlcToken firstToken = child.getSource().getFirstToken();
+			String directive = getIncludeDirective(firstToken);
+
+			if (directive == null) {
+				// Skip entirely — no include emitted, content suppressed
+				librarySourceFiles.add(firstToken.getSourceFile());
+			} else if (!directive.isEmpty()) {
+				// Emit an #include directive and suppress content
+				includeDirectives.add(directive);
+				librarySourceFiles.add(firstToken.getSourceFile());
+			}
+			// directive == "" means print content normally
+		}
+
+		// Emit collected #include directives
+		for (String directive : includeDirectives) {
+			out.println(directive);
+		}
+		if (!includeDirectives.isEmpty())
+			out.println();
+
+		// Pass 2: print non-library content
 		String currentFile = null;
 
 		for (int i = 0; i < numChildren; i++) {
 			BlockItemNode child = root.getSequenceChild(i);
 
-			if (child != null) {
-				String sourceFile = child.getSource().getFirstToken()
-						.getSourceFile().getName();
+			if (child == null)
+				continue;
+			CivlcToken firstToken = child.getSource().getFirstToken();
 
-				if (ignoreStdLibs)
-					switch (sourceFile) {
-						case "assert.h" :
-						case "cuda.h" :
-						case "civlc.cvh" :
-						case "bundle.cvh" :
-						case "comm.cvh" :
-						case "concurrency.cvh" :
-						case "pointer.cvh" :
-						case "scope.cvh" :
-						case "seq.cvh" :
-						case "float.h" :
-						case "math.h" :
-						case "mpi.h" :
-						case "omp.h" :
-						case "op.h" :
-						case "pthread.h" :
-						case "stdarg.h" :
-						case "stdbool.h" :
-						case "stddef.h" :
-						case "stdio.h" :
-						case "stdlib.h" :
-						case "string.h" :
-						case "time.h" :
-						case "civl-omp.cvh" :
-						case "civl-mpi.cvh" :
-						case "civl-cuda.cvh" :
-						case "civl-omp.cvl" :
-						case "civl-mpi.cvl" :
-						case "civl-cuda.cvl" :
-						case "civlc.cvl" :
-						case "concurrency.cvl" :
-						case "stdio-c.cvl" :
-						case "stdio.cvl" :
-						case "omp.cvl" :
-						case "cuda.cvl" :
-						case "mpi.cvl" :
-						case "pthread-c.cvl" :
-						case "pthread.cvl" :
-						case "math.cvl" :
-						case "seq.cvl" :
-						case "string.cvl" :
-							continue;
-						default :
-					}
-				if (currentFile == null || !currentFile.equals(sourceFile)) {
-					int fileLength = sourceFile.length();
-					int leftBarLength, rightBarLength;
+			if (librarySourceFiles.contains(firstToken.getSourceFile()))
+				continue;
 
-					rightBarLength = (headerLength - fileLength - 4) / 2;
-					leftBarLength = headerLength - fileLength - 4
-							- rightBarLength;
-					out.print("//");
-					printBar(leftBarLength, '=', out);
-					out.print(" ");
-					out.print(sourceFile);
-					out.print(" ");
-					printBar(rightBarLength, '=', out);
-					out.print("\n");
-					currentFile = sourceFile;
-				}
-				// pPrintExternalDef(out, child);
-				pPrintBlockItem(out, "", child);
-				out.println();
+			String sourceFile = firstToken.getSourceFile().getName();
+
+			if (currentFile == null || !currentFile.equals(sourceFile)) {
+				int fileLength = sourceFile.length();
+				int leftBarLength, rightBarLength;
+
+				rightBarLength = (headerLength - fileLength - 4) / 2;
+				leftBarLength = headerLength - fileLength - 4 - rightBarLength;
+				out.print("//");
+				printBar(leftBarLength, '=', out);
+				out.print(" ");
+				out.print(sourceFile);
+				out.print(" ");
+				printBar(rightBarLength, '=', out);
+				out.print("\n");
+				currentFile = sourceFile;
 			}
+			pPrintBlockItem(out, "", child);
+			out.println();
 		}
 	}
 
@@ -3805,7 +3893,7 @@ public class ASTPrettyPrinter {
 				result.append(type2Pretty("", lambdaType.freeVariableType(),
 						false, vacantLength(maxLength, result)));
 				result.append(":");
-				result.append(type2Pretty("", lambdaType.freeVariableType(),
+				result.append(type2Pretty("", lambdaType.lambdaFunctionType(),
 						false, vacantLength(maxLength, result)));
 				result.append(")");
 				break;

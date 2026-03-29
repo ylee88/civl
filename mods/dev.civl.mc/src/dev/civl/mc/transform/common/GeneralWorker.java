@@ -183,7 +183,20 @@ public class GeneralWorker extends BaseWorker {
 			newExternalList.add(scopeType);
 		if (this.mallocDeclaration != null)
 			newExternalList.add(mallocDeclaration);
-		newExternalList.add(this.generalRootScopeNode());
+		// Only add _civl_root if it is not already declared (e.g., from a
+		// previously pretty-printed program being re-compiled).
+		boolean civlRootAlreadyDeclared = false;
+		for (BlockItemNode child : root) {
+			if (child instanceof VariableDeclarationNode) {
+				VariableDeclarationNode vdn = (VariableDeclarationNode) child;
+				if (GENERAL_ROOT.equals(vdn.getName())) {
+					civlRootAlreadyDeclared = true;
+					break;
+				}
+			}
+		}
+		if (!civlRootAlreadyDeclared)
+			newExternalList.add(this.generalRootScopeNode());
 		for (BlockItemNode child : root) {
 			if (child != null) {
 				child.remove();
