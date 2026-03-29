@@ -221,7 +221,7 @@ public class ASTPrettyPrinter {
 			case PRAGMA :
 				return pragma2Pretty("", (PragmaNode) node, maxLength);
 			case STATEMENT :
-				return statement2Pretty("", (StatementNode) node, true, false,
+				return statement2Pretty("", (StatementNode) node, false,
 						maxLength);
 			case STATIC_ASSERTION :
 				return staticAssertion2Pretty("", (StaticAssertionNode) node,
@@ -250,8 +250,6 @@ public class ASTPrettyPrinter {
 		}
 	}
 
-	// FIX ME : I am public now
-	@SuppressWarnings("unchecked")
 	/**
 	 * Pretty print an AST node to the given output stream in a user-friendly
 	 * way.
@@ -262,93 +260,7 @@ public class ASTPrettyPrinter {
 	 *            the output stream
 	 */
 	public static void prettyPrint(ASTNode node, PrintStream out) {
-		NodeKind kind = node.nodeKind();
-
-		switch (kind) {
-			case DECLARATION_LIST :
-				out.print(
-						declarationList2Pretty((DeclarationListNode) node, -1));
-				break;
-			case ENUMERATOR_DECLARATION :
-				out.print(enumeratorDeclaration2Pretty(
-						(EnumeratorDeclarationNode) node, -1));
-				break;
-			case EXPRESSION :
-				out.print(expression2Pretty((ExpressionNode) node, -1));
-				break;
-			case FIELD_DECLARATION :
-				out.print(fieldDeclaration2Pretty("",
-						(FieldDeclarationNode) node, -1));
-				break;
-			case FUNCTION_DECLARATION :
-				pPrintFunctionDeclaration(out, "",
-						(FunctionDeclarationNode) node);
-				break;
-			case FUNCTION_DEFINITION :
-				pPrintFunctionDeclaration(out, "",
-						(FunctionDeclarationNode) node);
-				break;
-			case IDENTIFIER :
-				out.print(((IdentifierNode) node).name());
-				break;
-			case OMP_NODE :
-				pPrintOmpNode(out, "", (OmpNode) node);
-				break;
-			case OMP_REDUCTION_OPERATOR :
-				out.print(ompReduction2Pretty((OmpReductionNode) node, -1));
-				break;
-			case ORDINARY_LABEL :
-			case SWITCH_LABEL :
-				out.print(labelNode2Pretty((LabelNode) node, -1));
-				break;
-			case PRAGMA :
-				pPrintPragma(out, "", (PragmaNode) node);
-				break;
-			case STATEMENT :
-				pPrintStatement(out, "", (StatementNode) node, true, false);
-				break;
-			case STATIC_ASSERTION :
-				pPrintStaticAssertion(out, "", (StaticAssertionNode) node);
-				break;
-			case TYPE :
-				out.print(type2Pretty("", (TypeNode) node, true, -1));
-				break;
-			case TYPEDEF :
-				pPrintTypedefDeclaration(out, "",
-						(TypedefDeclarationNode) node);
-				break;
-			case VARIABLE_DECLARATION :
-				out.print(variableDeclaration2Pretty("",
-						(VariableDeclarationNode) node, -1));
-				break;
-			case SEQUENCE :
-				pPrintSequenceNode((SequenceNode<ASTNode>) node, out);
-				break;
-			case PAIR :
-				pPrintPairNode((PairNode<ASTNode, ASTNode>) node, out);
-				break;
-			default :
-				throw new ABCUnsupportedException(
-						"the pretty printing of AST node of " + kind
-								+ " kind is not supported yet.",
-						node.getSource().getLocation(false));
-		}
-	}
-
-	private static void pPrintPairNode(PairNode<ASTNode, ASTNode> pair,
-			PrintStream out) {
-		ASTNode left = pair.getLeft(), right = pair.getRight();
-
-		out.print("(");
-		if (left != null)
-			prettyPrint(left, out);
-		else
-			out.print("NULL");
-		out.print(",");
-		if (right != null)
-			prettyPrint(right, out);
-		else
-			out.print("NULL");
+		out.print(prettyRepresentation(node, -1));
 	}
 
 	private static StringBuffer pairNode2Pretty(PairNode<ASTNode, ASTNode> pair,
@@ -372,18 +284,6 @@ public class ASTPrettyPrinter {
 		else
 			result.append("NULL");
 		return trimStringBuffer(result, maxLength);
-	}
-
-	private static void pPrintSequenceNode(
-			SequenceNode<? extends ASTNode> sequence, PrintStream out) {
-		int numChildren = sequence.numChildren();
-		for (int i = 0; i < numChildren; i++) {
-			ASTNode node = sequence.getSequenceChild(i);
-			if (i != 0)
-				out.print(", ");
-			if (node != null)
-				prettyPrint(node, out);
-		}
 	}
 
 	private static StringBuffer sequenceNode2Pretty(
@@ -545,7 +445,7 @@ public class ASTPrettyPrinter {
 				out.print(":");
 				out.println(childLine);
 			}
-			pPrintBlockItem(out, "", child);
+			out.print(blockItem2Pretty("", child, -1));
 			out.println();
 		}
 	}
@@ -553,26 +453,6 @@ public class ASTPrettyPrinter {
 	private static void printBar(int length, char symbol, PrintStream out) {
 		for (int i = 0; i < length; i++)
 			out.print(symbol);
-	}
-
-	/**
-	 * Returns a concise source location string (e.g. {@code "foo.c:42"}) for
-	 * the given node, derived from the line number of its first token. Returns
-	 * an empty string for synthetic/generated nodes that have no meaningful
-	 * position (line &le; 0 or no token available).
-	 */
-	private static String sourceLocation(ASTNode node) {
-		try {
-			CivlcToken tok = node.getSource().getFirstToken();
-			if (tok == null)
-				return "";
-			int line = tok.getLine();
-			if (line <= 0)
-				return "";
-			return tok.getSourceFile().getName() + ":" + line;
-		} catch (Exception e) {
-			return "";
-		}
 	}
 
 	/** Returns the source filename (basename) of a node's first token, or {@code ""}. */
@@ -606,19 +486,6 @@ public class ASTPrettyPrinter {
 	}
 
 	/* *************************** Private Methods ************************* */
-
-	private static void pPrintOmpNode(PrintStream out, String prefix,
-			OmpNode ompNode) {
-		OmpNodeKind kind = ompNode.ompNodeKind();
-
-		switch (kind) {
-			case DECLARATIVE :
-				out.print(ompDeclarative2Pretty(prefix,
-						(OmpDeclarativeNode) ompNode, -1));
-			default :// EXECUTABLE
-				pPrintOmpStatement(out, prefix, (OmpExecutableNode) ompNode);
-		}
-	}
 
 	private static StringBuffer ompNode2Pretty(String prefix, OmpNode ompNode,
 			int maxLength) {
@@ -712,16 +579,6 @@ public class ASTPrettyPrinter {
 		return trimStringBuffer(result, maxLength);
 	}
 
-	private static void pPrintStaticAssertion(PrintStream out, String prefix,
-			StaticAssertionNode assertion) {
-		out.print(prefix);
-		out.print("(");
-		out.print(expression2Pretty(assertion.getExpression(), -1));
-		out.print(", \"");
-		out.print(assertion.getMessage().getStringRepresentation());
-		out.print("\")");
-	}
-
 	private static StringBuffer staticAssertion2Pretty(String prefix,
 			StaticAssertionNode assertion, int maxLength) {
 		if (maxLength == 0)
@@ -737,20 +594,6 @@ public class ASTPrettyPrinter {
 		result.append(assertion.getMessage().getStringRepresentation());
 		result.append("\")");
 		return trimStringBuffer(result, maxLength);
-	}
-
-	private static void pPrintPragma(PrintStream out, String prefix,
-			PragmaNode pragma) {
-		Iterable<CivlcToken> tokens = pragma.getTokens();
-
-		out.print(prefix);
-		out.print("#pragma ");
-		out.print(pragma.getPragmaIdentifier().name());
-
-		for (CivlcToken token : tokens) {
-			out.print(" ");
-			out.print(token.getText());
-		}
 	}
 
 	private static StringBuffer pragma2Pretty(String prefix, PragmaNode pragma,
@@ -862,100 +705,6 @@ public class ASTPrettyPrinter {
 		return trimStringBuffer(result, maxLength);
 	}
 
-	private static void pPrintFunctionDeclaration(PrintStream out,
-			String prefix, FunctionDeclarationNode function) {
-		TypeNode typeNode = function.getTypeNode();
-		SequenceNode<ContractNode> contracts = function.getContract();
-
-		if (contracts != null && contracts.numChildren() > 0)
-			pPrintContracts(out, prefix, contracts);
-		out.print(prefix);
-		if (function instanceof AbstractFunctionDefinitionNode) {
-			out.print("$abstract ");
-
-			AbstractFunctionDefinitionNode af = (AbstractFunctionDefinitionNode) function;
-			SequenceNode<PairNode<ExpressionNode, ExpressionNode>> intervals = af
-					.getIntervals();
-
-			if (intervals != null) {
-				out.print("$differentiable(" + af.continuity() + ", ");
-				for (PairNode<ExpressionNode, ExpressionNode> interval : intervals) {
-					out.print("[");
-					out.print(expression2Pretty(interval.getLeft(), -1));
-					out.print(",");
-					out.print(expression2Pretty(interval.getRight(), -1));
-					out.print("]");
-				}
-				out.print(") ");
-			}
-		}
-		if (function.hasGlobalFunctionSpecifier())
-			out.print("__global__ ");
-		if (function.hasAtomicFunctionSpecifier())
-			out.print("$atomic_f ");
-		if (function.hasSystemFunctionSpecifier()) {
-			String fileName = function.getSource().getFirstToken()
-					.getSourceFile().getName();
-			int dotIndex = fileName.lastIndexOf(".");
-
-			out.print("$system");
-			if (dotIndex >= 0) {
-				String systemLib = function.getSystemLibrary();
-
-				out.print("[");
-				if (systemLib != null)
-					out.print(systemLib);
-				else
-					out.print(fileName.substring(0, fileName.lastIndexOf(".")));
-				out.print("] ");
-			}
-		}
-		if (function.hasStatefFunctionSpecifier())
-			out.print("$state_f ");
-		if (function.hasPureFunctionSpecifier())
-			out.print("$pure ");
-		if (function.hasInlineFunctionSpecifier())
-			out.print("inline ");
-		if (function.hasNoreturnFunctionSpecifier())
-			out.print("_Noreturn ");
-
-		if (typeNode instanceof FunctionTypeNode) {
-			FunctionTypeNode functionTypeNode = (FunctionTypeNode) typeNode;
-
-			TypeNode returnType = functionTypeNode.getReturnType();
-			SequenceNode<VariableDeclarationNode> paras = functionTypeNode
-					.getParameters();
-			int numOfParas = paras.numChildren();
-
-			out.print(type2Pretty("", returnType, false, -1));
-			out.print(" ");
-			out.print(function.getName());
-			out.print("(");
-			for (int i = 0; i < numOfParas; i++) {
-				if (i != 0)
-					out.print(", ");
-				out.print(variableDeclaration2Pretty("",
-						paras.getSequenceChild(i), -1));
-			}
-			if (functionTypeNode.hasVariableArgs())
-				out.print(", ...");
-			out.print(")");
-		} else {
-			out.print(type2Pretty("", typeNode, false, -1));
-			out.print(" ");
-			out.print(function.getName());
-		}
-		if (function instanceof FunctionDefinitionNode) {
-			CompoundStatementNode body = ((FunctionDefinitionNode) function)
-					.getBody();
-
-			out.print(" ");
-			pPrintCompoundStatement(out, prefix + indention, body, true, false);
-		} else {
-			out.print(";");
-		}
-	}
-
 	private static StringBuffer functionDeclaration2Pretty(String prefix,
 			FunctionDeclarationNode function, int maxLength) {
 		if (maxLength == 0)
@@ -1057,36 +806,13 @@ public class ASTPrettyPrinter {
 			CompoundStatementNode body = ((FunctionDefinitionNode) function)
 					.getBody();
 
-			result.append(" ");
-			compoundStatement2Pretty(prefix + indention, body, true, false,
-					vacantLength(maxLength, result));
+			result.append("\n");
+			result.append(compoundStatement2Pretty(prefix, body, false,
+					vacantLength(maxLength, result)));
 		} else {
 			result.append(";");
 		}
 		return trimStringBuffer(result, maxLength);
-	}
-
-	private static void pPrintContracts(PrintStream out, String prefix,
-			SequenceNode<ContractNode> contracts) {
-		String newLinePrefix = "\n" + prefix + "  @ ";
-		int numContracts = contracts.numChildren();
-		boolean isFirst = true;
-
-		out.print(prefix);
-		out.print("/*@ ");
-		for (int i = 0; i < numContracts; i++) {
-			ContractNode contract = contracts.getSequenceChild(i);
-
-			if (isFirst)
-				isFirst = false;
-			else
-				out.print(newLinePrefix);
-			out.print(contractNode2Pretty(newLinePrefix, contract, -1));
-		}
-		out.print("\n");
-		out.print(prefix);
-		out.print("  @*/\n");
-
 	}
 
 	private static StringBuffer contracts2Pretty(String prefix,
@@ -1364,99 +1090,18 @@ public class ASTPrettyPrinter {
 		return trimStringBuffer(result, maxLength);
 	}
 
-	@SuppressWarnings("unused")
-	private static void pPrintContract(PrintStream out, String prefix,
-			ContractNode contract) {
-		ContractKind kind = contract.contractKind();
+	private static StringBuffer compoundStatement2Pretty(String prefix,
+			CompoundStatementNode compound, boolean isSwitchBody, int maxLength) {
+		if (maxLength == 0)
+			return EMPTY_STRING_BUFFER;
 
-		out.print(prefix);
-		switch (kind) {
-			case ASSIGNS_READS : {
-				AssignsOrReadsNode assignsOrReads = (AssignsOrReadsNode) contract;
-				// ExpressionNode condition = assignsOrReads.getCondition();
-
-				if (assignsOrReads.isAssigns())
-					out.print("$assigns");
-				else
-					out.print("$reads");
-				// if (condition != null) {
-				// out.print(" [");
-				// out.print(expression2Pretty(condition));
-				// out.print("] ");
-				// }
-				out.print("{");
-				pPrintSequenceNode(assignsOrReads.getMemoryList(), out);
-				out.print("}");
-				break;
-			}
-			case DEPENDS : {
-				DependsNode depends = (DependsNode) contract;
-				// ExpressionNode condition = depends.getCondition();
-
-				out.print("depends");
-				// if (condition != null) {
-				// out.print(" [");
-				// out.print(expression2Pretty(condition));
-				// out.print("] ");
-				// }
-				out.print("{");
-				// out.print(sequenceExpression2Pretty(depends.getEventList()));
-				out.print("}");
-				break;
-			}
-			case ENSURES : {
-				EnsuresNode ensures = (EnsuresNode) contract;
-
-				out.print("$ensures");
-				out.print("{");
-				out.print(expression2Pretty(ensures.getExpression(), -1));
-				out.print("}");
-				break;
-			}
-			case GUARDS : {
-				GuardsNode guard = (GuardsNode) contract;
-
-				out.print("$guard");
-				out.print("{");
-				out.print(expression2Pretty(guard.getExpression(), -1));
-				out.print("}");
-				break;
-			}
-			case REQUIRES : {
-				RequiresNode requires = (RequiresNode) contract;
-
-				out.print("$requires");
-				out.print("{");
-				out.print(expression2Pretty(requires.getExpression(), -1));
-				out.print("}");
-				break;
-			}
-			default :
-				throw new ABCUnsupportedException(
-						"pretty printing contract node of " + kind + " kind");
-		}
-	}
-
-	private static void pPrintCompoundStatement(PrintStream out, String prefix,
-			CompoundStatementNode compound, boolean isBody,
-			boolean isSwitchBody) {
+		StringBuffer result = new StringBuffer();
 		int numChildren = compound.numChildren();
-		String myIndent = prefix;
-		String myPrefix = prefix;
+		String myIndent = prefix + indention;
 
-		if (isBody) {
-			myPrefix = prefix.substring(0,
-					prefix.length() - 2 > 0 ? prefix.length() - 2 : 0);
-		} else {
-			out.print(myPrefix);
-			myIndent = prefix + indention;
-		}
-		out.print("{\n");
-		// Group consecutive block items that share the same source file into
-		// a single range comment (// file.c:start-end).  Items with no source
-		// location break any open group and are printed without a comment.
-		// Multi-item groups are preceded by a blank separator line (unless they
-		// are the very first thing in the block).
+		result.append(prefix);
+		result.append("{\n");
+
 		int i = 0;
 		boolean hasPrinted = false;
 		while (i < numChildren) {
@@ -1465,7 +1110,7 @@ public class ASTPrettyPrinter {
 				i++;
 				continue;
 			}
-			
+
 			String file = sourceFileName(child);
 			int startLine = sourceStartLine(child);
 
@@ -1489,27 +1134,28 @@ public class ASTPrettyPrinter {
 				groupEnd++;
 			}
 
-			// Blank separator line before a multi-item group (not the first).
+			// Blank separator line before a group (not the first).
 			if (hasPrinted)
-				out.print("\n");
+				result.append("\n");
 
-			String indent = (isSwitchBody && !(child instanceof LabeledStatementNode))
-					? myIndent + indention : myIndent;
-			out.print(indent);
+			String indent = (isSwitchBody
+					&& !(child instanceof LabeledStatementNode))
+							? myIndent + indention : myIndent;
+			result.append(indent);
 			if (!file.isEmpty() && startLine > 0) {
-				// Emit a line-range comment (no range if only 1 line)
-				out.print("// ");
-				out.print(file);
-				out.print(":");
+				result.append("// ");
+				result.append(file);
+				result.append(":");
 				if (endLine > startLine) {
-					out.print(startLine);
-					out.print("-");
-					out.println(endLine);
+					result.append(startLine);
+					result.append("-");
+					result.append(endLine);
 				} else {
-					out.println(startLine);
+					result.append(startLine);
 				}
+				result.append("\n");
 			} else {
-				out.println("// Missing source");
+				result.append("// Missing source\n");
 			}
 
 			// Print every item in the group.
@@ -1519,101 +1165,18 @@ public class ASTPrettyPrinter {
 					String jIndent = (isSwitchBody
 							&& !(item instanceof LabeledStatementNode))
 									? myIndent + indention : myIndent;
-					pPrintBlockItem(out, jIndent, item);
-					out.print("\n");
+					result.append(blockItem2Pretty(jIndent, item,
+							vacantLength(maxLength, result)));
+					result.append("\n");
 				}
 			}
 
 			hasPrinted = true;
 			i = groupEnd + 1;
 		}
-		out.print(myPrefix);
-		out.print("}");
-	}
-
-	private static StringBuffer compoundStatement2Pretty(String prefix,
-			CompoundStatementNode compound, boolean isBody,
-			boolean isSwitchBody, int maxLength) {
-		if (maxLength == 0)
-			return EMPTY_STRING_BUFFER;
-
-		StringBuffer result = new StringBuffer();
-		int numChildren = compound.numChildren();
-		String myIndent = prefix;
-		String myPrefix = prefix;
-
-		if (isBody) {
-			myPrefix = prefix.substring(0,
-					prefix.length() - 2 > 0 ? prefix.length() - 2 : 0);
-			// result.append(myPrefix);
-		} else {
-			result.append(myPrefix);
-			myIndent = prefix + indention;
-		}
-		result.append("{\n");
-		for (int i = 0; i < numChildren; i++) {
-			BlockItemNode child = compound.getSequenceChild(i);
-
-			if (child != null) {
-				if (isSwitchBody && !(child instanceof LabeledStatementNode))
-					result.append(blockItem2Pretty(myIndent + indention, child,
-							vacantLength(maxLength, result)));
-				else
-					result.append(blockItem2Pretty(myIndent, child,
-							vacantLength(maxLength, result)));
-				result.append("\n");
-			}
-		}
-		result.append(myPrefix);
+		result.append(prefix);
 		result.append("}");
 		return trimStringBuffer(result, maxLength);
-	}
-
-	private static void pPrintBlockItem(PrintStream out, String prefix,
-			BlockItemNode block) {
-		BlockItemKind kind = block.blockItemKind();
-
-		switch (kind) {
-			case STATEMENT :
-				pPrintStatement(out, prefix, (StatementNode) block, false,
-						false);
-				break;
-			case ORDINARY_DECLARATION :
-				if (block instanceof VariableDeclarationNode) {
-					out.print(variableDeclaration2Pretty(prefix,
-							(VariableDeclarationNode) block, -1));
-
-					out.print(";");
-				} else if (block instanceof FunctionDeclarationNode)
-					pPrintFunctionDeclaration(out, prefix,
-							(FunctionDeclarationNode) block);
-				break;
-			case TYPEDEF :
-				pPrintTypedefDeclaration(out, prefix,
-						(TypedefDeclarationNode) block);
-				out.print(";");
-				break;
-			case ENUMERATION :
-				out.print(
-						enumType2Pretty(prefix, (EnumerationTypeNode) block, -1)
-								+ ";");
-				break;
-			case OMP_DECLARATIVE :
-				out.print(ompDeclarative2Pretty(prefix,
-						(OmpDeclarativeNode) block, -1));
-				break;
-			case PRAGMA :
-				pPrintPragma(out, prefix, (PragmaNode) block);
-				break;
-			case STRUCT_OR_UNION :
-				out.print(structOrUnion2Pretty(prefix,
-						(StructureOrUnionTypeNode) block, true, -1));
-				out.print(";");
-				break;
-			default :
-				throw new ABCUnsupportedException(
-						"pretty print of block item node of " + kind + " kind");
-		}
 	}
 
 	private static StringBuffer blockItem2Pretty(String prefix,
@@ -1627,7 +1190,7 @@ public class ASTPrettyPrinter {
 		switch (kind) {
 			case STATEMENT :
 				return statement2Pretty(prefix, (StatementNode) block, false,
-						false, maxLength);
+						maxLength);
 			case ORDINARY_DECLARATION :
 				if (block instanceof VariableDeclarationNode) {
 					result.append(variableDeclaration2Pretty(prefix,
@@ -1665,16 +1228,6 @@ public class ASTPrettyPrinter {
 		return trimStringBuffer(result, maxLength);
 	}
 
-	private static void pPrintTypedefDeclaration(PrintStream out, String prefix,
-			TypedefDeclarationNode typedef) {
-
-		out.print(prefix);
-		out.print("typedef ");
-		out.print(type2Pretty(prefix, typedef.getTypeNode(), true, -1));
-		out.print(" ");
-		out.print(typedef.getName());
-	}
-
 	private static StringBuffer typedefDeclaration2Pretty(String prefix,
 			TypedefDeclarationNode typedef, int maxLength) {
 		if (maxLength == 0)
@@ -1691,78 +1244,8 @@ public class ASTPrettyPrinter {
 		return trimStringBuffer(result, maxLength);
 	}
 
-	private static void pPrintStatement(PrintStream out, String prefix,
-			StatementNode statement, boolean isBody, boolean isSwitchBody) {
-		StatementKind kind = statement.statementKind();
-
-		switch (kind) {
-			// case ASSUME:
-			// pPrintAssume(out, prefix, (AssumeNode) statement);
-			// break;
-			// case ASSERT:
-			// pPrintAssert(out, prefix, (AssertNode) statement);
-			// break;
-			case ATOMIC :
-				pPrintAtomic(out, prefix, (AtomicNode) statement);
-				break;
-			case COMPOUND :
-				pPrintCompoundStatement(out, prefix,
-						(CompoundStatementNode) statement, isBody,
-						isSwitchBody);
-				break;
-			case EXPRESSION :
-				pPrintExpressionStatement(out, prefix,
-						(ExpressionStatementNode) statement);
-				break;
-			case CHOOSE :
-				pPrintChooseStatement(out, prefix,
-						(ChooseStatementNode) statement);
-				break;
-			case CIVL_FOR :
-				pPrintCivlForStatement(out, prefix, (CivlForNode) statement);
-				break;
-			case IF :
-				pPrintIf(out, prefix, (IfNode) statement);
-				break;
-			case JUMP :
-				pPrintJump(out, prefix, (JumpNode) statement);
-				break;
-			case LABELED :
-				pPrintLabeled(out, prefix, (LabeledStatementNode) statement);
-				break;
-			case LOOP :
-				pPrintLoop(out, prefix, (LoopNode) statement);
-				break;
-			case NULL :
-				out.print(prefix);
-				out.print(";");
-				break;
-			case OMP :
-				pPrintOmpStatement(out, prefix, (OmpExecutableNode) statement);
-				break;
-			case RUN :
-				out.print(run2Pretty(prefix, (RunNode) statement, -1));
-				break;
-			case SWITCH :
-				pPrintSwitch(out, prefix, (SwitchNode) statement);
-				break;
-			case UPDATE :
-				pPrintUpdate(out, prefix, (UpdateNode) statement);
-				break;
-			case WHEN :
-				pPrintWhen(out, prefix, (WhenNode) statement);
-				break;
-			case WITH :
-				out.print(with2Pretty(prefix, (WithNode) statement, -1));
-				break;
-			default :
-				throw new ABCUnsupportedException(
-						"pretty print of statement node of " + kind + " kind");
-		}
-	}
-
 	private static StringBuffer statement2Pretty(String prefix,
-			StatementNode statement, boolean isBody, boolean isSwitchBody,
+			StatementNode statement, boolean isSwitchBody,
 			int maxLength) {
 		if (maxLength == 0)
 			return EMPTY_STRING_BUFFER;
@@ -1774,7 +1257,7 @@ public class ASTPrettyPrinter {
 				return atomic2Pretty(prefix, (AtomicNode) statement, maxLength);
 			case COMPOUND :
 				return compoundStatement2Pretty(prefix,
-						(CompoundStatementNode) statement, isBody, isSwitchBody,
+						(CompoundStatementNode) statement, isSwitchBody,
 						maxLength);
 			case EXPRESSION :
 				return expressionStatement2Pretty(prefix,
@@ -1821,21 +1304,12 @@ public class ASTPrettyPrinter {
 		}
 	}
 
-	private static void pPrintChooseStatement(PrintStream out, String prefix,
-			ChooseStatementNode choose) {
-		int numChildren = choose.numChildren();
-		String myIndent = prefix + indention;
-
-		out.print(prefix);
-		out.println("$choose {");
-		for (int i = 0; i < numChildren; i++) {
-			StatementNode statement = choose.getSequenceChild(i);
-
-			pPrintStatement(out, myIndent, statement, false, true);
-			out.print("\n");
-		}
-		out.print(prefix);
-		out.print("}");
+	private static StringBuffer bodyStatement2Pretty(String prefix,
+			StatementNode body, boolean isSwitchBody, int maxLength) {
+		if (body.statementKind() == StatementKind.COMPOUND)
+			return statement2Pretty(prefix, body, isSwitchBody, maxLength);
+		return statement2Pretty(prefix + indention, body, isSwitchBody,
+				maxLength);
 	}
 
 	private static StringBuffer chooseStatement2Pretty(String prefix,
@@ -1853,87 +1327,13 @@ public class ASTPrettyPrinter {
 		for (int i = 0; i < numChildren; i++) {
 			StatementNode statement = choose.getSequenceChild(i);
 
-			result.append(statement2Pretty(myIndent, statement, false, true,
+			result.append(statement2Pretty(myIndent, statement, true,
 					vacantLength(maxLength, result)));
 			result.append("\n");
 		}
 		result.append(prefix);
 		result.append("}");
 		return trimStringBuffer(result, maxLength);
-	}
-
-	private static void pPrintOmpStatement(PrintStream out, String prefix,
-			OmpExecutableNode ompStmt) {
-		OmpExecutableKind kind = ompStmt.ompExecutableKind();
-		SequenceNode<IdentifierExpressionNode> privateList = ompStmt
-				.privateList(), firstPrivateList = ompStmt.firstprivateList(),
-				sharedList = ompStmt.sharedList(),
-				copyinList = ompStmt.copyinList(),
-				copyPrivateList = ompStmt.copyprivateList(),
-				lastPrivateList = ompStmt.lastprivateList();
-		SequenceNode<OmpReductionNode> reductionList = ompStmt.reductionList();
-		boolean nowait = ompStmt.nowait();
-		// String myIndent = prefix + indention;
-		StatementNode block = ompStmt.statementNode();
-
-		out.print(prefix);
-		out.print("#pragma omp ");
-		switch (kind) {
-			case PARALLEL :
-				out.print(ompParallel2Pretty(prefix, (OmpParallelNode) ompStmt,
-						-1));
-				break;
-			case SYNCHRONIZATION :
-				out.print(ompSync2Pretty(prefix, (OmpSyncNode) ompStmt, -1));
-				break;
-			case SIMD :
-				out.print(ompSimd2Pretty(prefix, (OmpSimdNode) ompStmt, -1));
-				break;
-			default : // case WORKSHARING:
-				out.print(ompWorksharing2Pretty(prefix,
-						(OmpWorksharingNode) ompStmt, -1));
-				break;
-		}
-		if (nowait)
-			out.print("nowait");
-		if (privateList != null) {
-			out.print("private(");
-			out.print(sequenceExpression2Pretty(privateList, -1));
-			out.print(") ");
-		}
-		if (firstPrivateList != null) {
-			out.print("firstprivate(");
-			out.print(sequenceExpression2Pretty(firstPrivateList, -1));
-			out.print(") ");
-		}
-		if (sharedList != null) {
-			out.print("shared(");
-			out.print(sequenceExpression2Pretty(sharedList, -1));
-			out.print(") ");
-		}
-		if (copyinList != null) {
-			out.print("copyin(");
-			out.print(sequenceExpression2Pretty(copyinList, -1));
-			out.print(") ");
-		}
-		if (copyPrivateList != null) {
-			out.print("copyprivate(");
-			out.print(sequenceExpression2Pretty(copyPrivateList, -1));
-			out.print(") ");
-		}
-		if (lastPrivateList != null) {
-			out.print("lastprivate(");
-			out.print(sequenceExpression2Pretty(lastPrivateList, -1));
-			out.print(") ");
-		}
-		if (reductionList != null) {
-			out.print(sequenceReduction2Pretty(reductionList, -1));
-		}
-
-		if (block != null) {
-			out.print("\n");
-			pPrintStatement(out, prefix, block, false, false);
-		}
 	}
 
 	private static StringBuffer ompStatement2Pretty(String prefix,
@@ -2020,7 +1420,7 @@ public class ASTPrettyPrinter {
 		}
 		if (block != null) {
 			result.append("\n");
-			result.append(statement2Pretty(prefix, block, false, false,
+			result.append(statement2Pretty(prefix, block, false,
 					vacantLength(maxLength, result)));
 		}
 		return trimStringBuffer(result, maxLength);
@@ -2295,33 +1695,6 @@ public class ASTPrettyPrinter {
 		return trimStringBuffer(result, maxLength);
 	}
 
-	private static void pPrintCivlForStatement(PrintStream out, String prefix,
-			CivlForNode civlFor) {
-		DeclarationListNode vars = civlFor.getVariables();
-		int numVars = vars.numChildren();
-		StatementNode body = civlFor.getBody();
-
-		out.print(prefix);
-		if (civlFor.isParallel())
-			out.print("$parfor");
-		else
-			out.print("$for");
-		out.print(" (int ");
-		for (int i = 0; i < numVars; i++) {
-			if (i != 0)
-				out.print(", ");
-			out.print(vars.getSequenceChild(i).getName());
-		}
-		out.print(": ");
-		out.print(expression2Pretty(civlFor.getDomain(), -1));
-		out.print(")");
-		if (body.statementKind() == StatementKind.COMPOUND)
-			out.print(" ");
-		else
-			out.println();
-		pPrintStatement(out, prefix + indention, body, true, false);
-	}
-
 	private static StringBuffer civlForStatement2Pretty(String prefix,
 			CivlForNode civlFor, int maxLength) {
 		if (maxLength == 0)
@@ -2347,68 +1720,10 @@ public class ASTPrettyPrinter {
 		result.append(expression2Pretty(civlFor.getDomain(),
 				vacantLength(maxLength, result)));
 		result.append(")");
-		if (body.statementKind() == StatementKind.COMPOUND)
-			result.append(" ");
-		else
-			result.append("\n");
-		result.append(statement2Pretty(prefix + indention, civlFor.getBody(),
-				true, false, vacantLength(maxLength, result)));
+		result.append("\n");
+		result.append(bodyStatement2Pretty(prefix, civlFor.getBody(),
+				false, vacantLength(maxLength, result)));
 		return trimStringBuffer(result, maxLength);
-	}
-
-	private static void pPrintLoop(PrintStream out, String prefix,
-			LoopNode loop) {
-		LoopKind loopKind = loop.getKind();
-		StringBuffer condition = new StringBuffer();
-		String myIndent = prefix + indention;
-		StatementNode bodyNode = loop.getBody();
-		SequenceNode<ContractNode> contracts = loop.loopContracts();
-
-		if (contracts != null)
-			pPrintContracts(out, prefix, contracts);
-		if (loop.getCondition() != null)
-			condition = expression2Pretty(loop.getCondition(), -1);
-		switch (loopKind) {
-			case WHILE :
-				out.print(prefix);
-				out.print("while (");
-				out.print(condition);
-				out.print(")");
-				if (bodyNode == null)
-					out.print(";");
-				else {
-					if (bodyNode.statementKind() == StatementKind.COMPOUND)
-						out.print(" ");
-					else
-						out.println();
-					pPrintStatement(out, myIndent, bodyNode, true, false);
-
-				}
-				break;
-			case DO_WHILE :
-				out.print(prefix);
-				out.print("do");
-				if (bodyNode == null)
-					out.print(";");
-				else {
-					if (bodyNode.statementKind() == StatementKind.COMPOUND)
-						out.print(" ");
-					else
-						out.println();
-					pPrintStatement(out, myIndent, bodyNode, true, false);
-				}
-				if (bodyNode != null
-						&& !(bodyNode instanceof CompoundStatementNode)) {
-					out.print("\n");
-					out.print(prefix);
-				}
-				out.print("while (");
-				out.print(condition);
-				out.print(");");
-				break;
-			default : // case FOR:
-				pPrintFor(out, prefix, (ForLoopNode) loop);
-		}
 	}
 
 	private static StringBuffer loop2Pretty(String prefix, LoopNode loop,
@@ -2419,7 +1734,6 @@ public class ASTPrettyPrinter {
 		StringBuffer result = new StringBuffer();
 		LoopKind loopKind = loop.getKind();
 		StringBuffer condition = new StringBuffer();
-		String myIndent = prefix + indention;
 		StatementNode bodyNode = loop.getBody();
 		SequenceNode<ContractNode> contracts = loop.loopContracts();
 
@@ -2438,8 +1752,8 @@ public class ASTPrettyPrinter {
 					result.append(";");
 				else {
 					result.append("\n");
-					result.append(statement2Pretty(myIndent, bodyNode, true,
-							false, vacantLength(maxLength, result)));
+					result.append(bodyStatement2Pretty(prefix, bodyNode, false,
+							vacantLength(maxLength, result)));
 				}
 				break;
 			case DO_WHILE :
@@ -2449,8 +1763,8 @@ public class ASTPrettyPrinter {
 					result.append(";");
 				else {
 					result.append("\n");
-					result.append(statement2Pretty(myIndent, bodyNode, true,
-							false, vacantLength(maxLength, result)));
+					result.append(bodyStatement2Pretty(prefix, bodyNode, false,
+							vacantLength(maxLength, result)));
 				}
 				if (bodyNode != null
 						&& !(bodyNode instanceof CompoundStatementNode)) {
@@ -2468,19 +1782,6 @@ public class ASTPrettyPrinter {
 		return trimStringBuffer(result, maxLength);
 	}
 
-	private static void pPrintAtomic(PrintStream out, String prefix,
-			AtomicNode atomicNode) {
-		StatementNode body = atomicNode.getBody();
-
-		out.print(prefix);
-		out.print("$atomic");
-		if (body.statementKind() == StatementKind.COMPOUND)
-			out.print(" ");
-		else
-			out.println();
-		pPrintStatement(out, prefix + indention, body, true, false);
-	}
-
 	private static StringBuffer atomic2Pretty(String prefix,
 			AtomicNode atomicNode, int maxLength) {
 		if (maxLength == 0)
@@ -2489,8 +1790,8 @@ public class ASTPrettyPrinter {
 		StringBuffer result = new StringBuffer();
 		result.append(prefix);
 		result.append("$atomic\n");
-		result.append(statement2Pretty(prefix + indention, atomicNode.getBody(),
-				true, false, vacantLength(maxLength, result)));
+		result.append(bodyStatement2Pretty(prefix, atomicNode.getBody(),
+				false, vacantLength(maxLength, result)));
 		return trimStringBuffer(result, maxLength);
 
 	}
@@ -2508,18 +1809,6 @@ public class ASTPrettyPrinter {
 		return trimStringBuffer(result, maxLength);
 	}
 
-	private static void pPrintLabeled(PrintStream out, String prefix,
-			LabeledStatementNode labeled) {
-		LabelNode label = labeled.getLabel();
-		StatementNode statement = labeled.getStatement();
-		String myIndent = prefix + indention;
-
-		out.print(prefix);
-		out.print(labelNode2Pretty(label, -1));
-		out.println("");
-		pPrintStatement(out, myIndent, statement, true, false);
-	}
-
 	private static StringBuffer labeled2Pretty(String prefix,
 			LabeledStatementNode labeled, int maxLength) {
 		if (maxLength == 0)
@@ -2528,12 +1817,11 @@ public class ASTPrettyPrinter {
 		StringBuffer result = new StringBuffer();
 		LabelNode label = labeled.getLabel();
 		StatementNode statement = labeled.getStatement();
-		String myIndent = prefix + indention;
 
 		result.append(prefix);
 		result.append(labelNode2Pretty(label, maxLength));
 		result.append("\n");
-		result.append(statement2Pretty(myIndent, statement, true, false,
+		result.append(bodyStatement2Pretty(prefix, statement, false,
 				vacantLength(maxLength, result)));
 		return trimStringBuffer(result, maxLength);
 	}
@@ -2566,16 +1854,6 @@ public class ASTPrettyPrinter {
 		return trimStringBuffer(result, maxLength);
 	}
 
-	private static void pPrintSwitch(PrintStream out, String prefix,
-			SwitchNode switchNode) {
-		out.print(prefix);
-		out.print("switch (");
-		out.print(expression2Pretty(switchNode.getCondition(), -1));
-		out.print(") ");
-		pPrintStatement(out, prefix + indention, switchNode.getBody(), true,
-				true);
-	}
-
 	private static StringBuffer switch2Pretty(String prefix,
 			SwitchNode switchNode, int maxLength) {
 		if (maxLength == 0)
@@ -2588,30 +1866,9 @@ public class ASTPrettyPrinter {
 		result.append(expression2Pretty(switchNode.getCondition(),
 				vacantLength(maxLength, result)));
 		result.append(")\n");
-		result.append(statement2Pretty(prefix + indention, switchNode.getBody(),
-				true, true, vacantLength(maxLength, result)));
+		result.append(bodyStatement2Pretty(prefix, switchNode.getBody(),
+				true, vacantLength(maxLength, result)));
 		return trimStringBuffer(result, maxLength);
-	}
-
-	private static void pPrintJump(PrintStream out, String prefix,
-			JumpNode jump) {
-		JumpKind kind = jump.getKind();
-
-		switch (kind) {
-			case GOTO :
-				out.print(goto2Pretty(prefix, (GotoNode) jump, -1));
-				break;
-			case CONTINUE :
-				out.print(prefix);
-				out.print("continue;");
-				break;
-			case BREAK :
-				out.print(prefix);
-				out.print("break;");
-				break;
-			default : // case RETURN:
-				pPrintReturn(out, prefix, (ReturnNode) jump);
-		}
 	}
 
 	private static StringBuffer jump2Pretty(String prefix, JumpNode jump,
@@ -2639,32 +1896,6 @@ public class ASTPrettyPrinter {
 		return trimStringBuffer(result, maxLength);
 	}
 
-	private static void pPrintUpdate(PrintStream out, String prefix,
-			UpdateNode update) {
-		ExpressionNode collator = update.getCollator();
-		FunctionCallNode call = update.getFunctionCall();
-
-		out.print(prefix);
-		out.print("$update (");
-		out.print(expression2Pretty(collator, -1));
-		out.print(") ");
-		out.print(expression2Pretty(call, -1));
-		out.print(";");
-	}
-
-	private static void pPrintReturn(PrintStream out, String prefix,
-			ReturnNode returnNode) {
-		ExpressionNode expr = returnNode.getExpression();
-
-		out.print(prefix);
-		out.print("return");
-		if (expr != null) {
-			out.print(" ");
-			out.print(expression2Pretty(expr, -1));
-		}
-		out.print(";");
-	}
-
 	private static StringBuffer return2Pretty(String prefix,
 			ReturnNode returnNode, int maxLength) {
 		if (maxLength == 0)
@@ -2684,39 +1915,6 @@ public class ASTPrettyPrinter {
 		return trimStringBuffer(result, maxLength);
 	}
 
-	private static void pPrintIf(PrintStream out, String prefix,
-			IfNode ifNode) {
-		ExpressionNode condition = ifNode.getCondition();
-		StatementNode trueBranch = ifNode.getTrueBranch();
-		StatementNode falseBranch = ifNode.getFalseBranch();
-		String myIndent = prefix + indention;
-
-		out.print(prefix);
-		out.print("if (");
-		if (condition != null)
-			out.print(expression2Pretty(condition, -1));
-		out.print(")");
-		if (trueBranch == null)
-			out.print(";");
-		else {
-			if (trueBranch.statementKind() == StatementKind.COMPOUND)
-				out.print(" ");
-			else
-				out.println();
-			pPrintStatement(out, myIndent, trueBranch, true, false);
-		}
-		if (falseBranch != null) {
-			out.print("\n");
-			out.print(prefix);
-			out.print("else");
-			if (falseBranch.statementKind() == StatementKind.COMPOUND)
-				out.print(" ");
-			else
-				out.println();
-			pPrintStatement(out, myIndent, falseBranch, true, false);
-		}
-	}
-
 	private static StringBuffer if2Pretty(String prefix, IfNode ifNode,
 			int maxLength) {
 		if (maxLength == 0)
@@ -2727,7 +1925,6 @@ public class ASTPrettyPrinter {
 		ExpressionNode condition = ifNode.getCondition();
 		StatementNode trueBranch = ifNode.getTrueBranch();
 		StatementNode falseBranch = ifNode.getFalseBranch();
-		String myIndent = prefix + indention;
 
 		result.append(prefix);
 		result.append("if (");
@@ -2739,65 +1936,18 @@ public class ASTPrettyPrinter {
 		if (trueBranch == null)
 			result.append(";");
 		else {
-			if (trueBranch.statementKind() == StatementKind.COMPOUND)
-				result.append(" ");
-			else
-				result.append("\n");
-			result.append(statement2Pretty(myIndent, trueBranch, true, false,
+			result.append("\n");
+			result.append(bodyStatement2Pretty(prefix, trueBranch, false,
 					vacantLength(maxLength, result)));
 		}
 		if (falseBranch != null) {
 			result.append("\n");
 			result.append(prefix);
-			result.append("else");
-			if (falseBranch.statementKind() == StatementKind.COMPOUND)
-				result.append(" ");
-			else
-				result.append("\n");
-			result.append(statement2Pretty(myIndent, falseBranch, true, false,
+			result.append("else\n");
+			result.append(bodyStatement2Pretty(prefix, falseBranch, false,
 					vacantLength(maxLength, result)));
 		}
 		return trimStringBuffer(result, maxLength);
-	}
-
-	private static void pPrintFor(PrintStream out, String prefix,
-			ForLoopNode loop) {
-		ForLoopInitializerNode init = loop.getInitializer();
-		ExpressionNode condition = loop.getCondition();
-		ExpressionNode incrementer = loop.getIncrementer();
-		StatementNode body = loop.getBody();
-		String myIndent = prefix + indention;
-		SequenceNode<ContractNode> contracts = loop.loopContracts();
-
-		if (contracts != null)
-			pPrintContracts(out, prefix, contracts);
-		out.print(prefix);
-		out.print("for (");
-		if (init != null) {
-			if (init instanceof ExpressionNode)
-				out.print(expression2Pretty((ExpressionNode) init, -1));
-			else if (init instanceof DeclarationListNode)
-				out.print(
-						declarationList2Pretty((DeclarationListNode) init, -1));
-		}
-		out.print("; ");
-		if (condition != null) {
-			out.print(expression2Pretty(condition, -1));
-		}
-		out.print("; ");
-		if (incrementer != null) {
-			out.print(expression2Pretty(incrementer, -1));
-		}
-		out.print(")");
-		if (body == null)
-			out.print(";");
-		else {
-			if (body.statementKind() == StatementKind.COMPOUND)
-				out.print(" ");
-			else
-				out.println();
-			pPrintStatement(out, myIndent, body, true, false);
-		}
 	}
 
 	private static StringBuffer for2Pretty(String prefix, ForLoopNode loop,
@@ -2810,7 +1960,6 @@ public class ASTPrettyPrinter {
 		ExpressionNode condition = loop.getCondition();
 		ExpressionNode incrementer = loop.getIncrementer();
 		StatementNode body = loop.getBody();
-		String myIndent = prefix + indention;
 		SequenceNode<ContractNode> contracts = loop.loopContracts();
 
 		if (contracts != null)
@@ -2840,7 +1989,7 @@ public class ASTPrettyPrinter {
 			result.append(";");
 		else {
 			result.append("\n");
-			result.append(statement2Pretty(myIndent, body, true, false,
+			result.append(bodyStatement2Pretty(prefix, body, false,
 					vacantLength(maxLength, result)));
 		}
 		return trimStringBuffer(result, maxLength);
@@ -2864,13 +2013,6 @@ public class ASTPrettyPrinter {
 		return trimStringBuffer(result, maxLength);
 	}
 
-	private static void pPrintExpressionStatement(PrintStream out,
-			String prefix, ExpressionStatementNode expr) {
-		out.print(prefix);
-		out.print(expression2Pretty(expr.getExpression(), -1));
-		out.print(";");
-	}
-
 	private static StringBuffer expressionStatement2Pretty(String prefix,
 			ExpressionStatementNode expr, int maxLength) {
 		if (maxLength == 0)
@@ -2884,36 +2026,19 @@ public class ASTPrettyPrinter {
 		return trimStringBuffer(result, maxLength);
 	}
 
-	private static void pPrintWhen(PrintStream out, String prefix,
-			WhenNode when) {
-		String myIndent = prefix + indention;
-		StatementNode body = when.getBody();
-
-		out.print(prefix);
-		out.print("$when (");
-		out.print(expression2Pretty(when.getGuard(), -1));
-		out.print(")");
-		if (body.statementKind() == StatementKind.COMPOUND)
-			out.print(" ");
-		else
-			out.println();
-		pPrintStatement(out, myIndent, body, true, false);
-	}
-
 	private static StringBuffer when2Pretty(String prefix, WhenNode when,
 			int maxLength) {
 		if (maxLength == 0)
 			return EMPTY_STRING_BUFFER;
 
 		StringBuffer result = new StringBuffer();
-		String myIndent = prefix + indention;
 
 		result.append(prefix);
 		result.append("$when (");
 		result.append(expression2Pretty(when.getGuard(),
 				vacantLength(maxLength, result)));
 		result.append(")\n");
-		result.append(statement2Pretty(myIndent, when.getBody(), true, false,
+		result.append(bodyStatement2Pretty(prefix, when.getBody(), false,
 				vacantLength(maxLength, result)));
 		return trimStringBuffer(result, maxLength);
 
@@ -2947,18 +2072,14 @@ public class ASTPrettyPrinter {
 	 */
 	private static StringBuffer with2Pretty(String prefix, WithNode withNode,
 			int maxLength) {
-		StatementNode stmt;
-		String myIndent = prefix + indention;
 		StringBuffer result = new StringBuffer();
 
 		result.append(prefix);
 		result.append("$with(");
 		result.append(expression2Pretty(withNode.getStateReference(),
 				vacantLength(maxLength, result)));
-		result.append(") ");
-		stmt = withNode.getBodyNode();
-		result.append("\n");
-		result.append(statement2Pretty(myIndent, stmt, true, false,
+		result.append(")\n");
+		result.append(bodyStatement2Pretty(prefix, withNode.getBodyNode(), false,
 				vacantLength(maxLength, result)));
 		return result;
 	}
@@ -2977,13 +2098,12 @@ public class ASTPrettyPrinter {
 	 */
 	private static StringBuffer run2Pretty(String prefix, RunNode runNode,
 			int maxLength) {
-		String myIndent = prefix + indention;
 		StringBuffer result = new StringBuffer();
 
 		result.append(prefix);
-		result.append("$run");
-		result.append(statement2Pretty(myIndent, runNode.getStatement(), true,
-				false, vacantLength(maxLength, result)));
+		result.append("$run\n");
+		result.append(bodyStatement2Pretty(prefix, runNode.getStatement(), false,
+				vacantLength(maxLength, result)));
 		return result;
 	}
 
@@ -3405,7 +2525,7 @@ public class ASTPrettyPrinter {
 				.getCompoundStatement();
 
 		result.append("(");
-		result.append(compoundStatement2Pretty("", compound, false, false,
+		result.append(compoundStatement2Pretty("", compound, false,
 				maxLength));
 		result.append(")");
 		return trimStringBuffer(result, maxLength);
