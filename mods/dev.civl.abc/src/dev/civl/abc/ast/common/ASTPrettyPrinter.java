@@ -4,7 +4,6 @@ import java.io.PrintStream;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.Stack;
 
 import dev.civl.abc.ast.IF.AST;
 import dev.civl.abc.ast.node.IF.ASTNode;
@@ -2162,30 +2161,9 @@ public class ASTPrettyPrinter {
 		return trimStringBuffer(result, maxLength);
 	}
 
-	// TODO need to be improved for more complicated types
-	// currently works for multiple dimension arrays
-	// e.g. translating (int [20])[10] into int [10][20]
 	private static Pair<String, String> processArrayType(String type) {
 		int start = type.indexOf('[');
-		String typeSuffix = type.substring(start);
-		int length = typeSuffix.length();
-		Stack<String> extents = new Stack<>();
-		String newSuffix = "";
-		String extent = "";
-
-		for (int i = 0; i < length; i++) {
-			char current = typeSuffix.charAt(i);
-
-			extent += current;
-			if (current == ']') {
-				extents.push(extent);
-				extent = "";
-			}
-		}
-		while (!extents.empty()) {
-			newSuffix += extents.pop();
-		}
-		return new Pair<>(type.substring(0, start), newSuffix);
+		return new Pair<>(type.substring(0, start), type.substring(start));
 	}
 
 	private static StringBuffer initializer2Pretty(InitializerNode init,
