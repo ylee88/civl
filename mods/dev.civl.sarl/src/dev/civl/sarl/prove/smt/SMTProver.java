@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with SARL. If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
-package dev.civl.sarl.prove.z3;
+package dev.civl.sarl.prove.smt;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -29,7 +29,6 @@ import dev.civl.sarl.IF.SARLException;
 import dev.civl.sarl.IF.TheoremProverException;
 import dev.civl.sarl.IF.ValidityResult;
 import dev.civl.sarl.IF.config.ProverInfo;
-import dev.civl.sarl.IF.config.ProverInfo.ProverKind;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.preuniverse.IF.PreUniverse;
 import dev.civl.sarl.prove.IF.Prove;
@@ -72,7 +71,7 @@ import dev.civl.sarl.util.ProcessControl;
  * 
  * @author Stephen F. Siegel
  */
-public class RobustZ3TheoremProver implements TheoremProver {
+public class SMTProver implements TheoremProver {
 
 	// ************************** Static Fields *************************** //
 
@@ -85,8 +84,7 @@ public class RobustZ3TheoremProver implements TheoremProver {
 	// ****************************** Fields ****************************** //
 
 	/**
-	 * Info object on underlying theorem prover, which will have {@link ProverKind}
-	 * {@link ProverKind#Z3}.
+	 * Info object on underlying SMT theorem prover.
 	 */
 	private ProverInfo info;
 
@@ -103,10 +101,10 @@ public class RobustZ3TheoremProver implements TheoremProver {
 	private PreUniverse universe;
 
 	/**
-	 * The translation of the given context to a Z3 expression. Created once during
-	 * instantiation and never modified.
+	 * The translation of the given context to an SMT expression. Created once
+	 * during instantiation and never modified.
 	 */
-	private Z3Translator assumptionTranslator;
+	private SMTTranslator assumptionTranslator;
 
 	// *************************** Constructors *************************** //
 
@@ -116,12 +114,11 @@ public class RobustZ3TheoremProver implements TheoremProver {
 	 * @param universe       the controlling symbolic universe
 	 * @param context        the assumption(s) the prover will use for queries
 	 * @param ProverInfo     information object on the underlying theorem prover,
-	 *                       which must have {@link ProverKind}
-	 *                       {@link ProverKind#Z3}
+	 *                       which must be an SMT prover
 	 * @param logicFunctions a list of {@link ProverFunctionInterpretation}s which
 	 *                       are the logic function definitions
 	 */
-	RobustZ3TheoremProver(PreUniverse universe, BooleanExpression context, ProverInfo info,
+	SMTProver(PreUniverse universe, BooleanExpression context, ProverInfo info,
 			ProverFunctionInterpretation logicFunctions[]) throws TheoremProverException {
 		LinkedList<String> command = new LinkedList<>();
 
@@ -131,28 +128,28 @@ public class RobustZ3TheoremProver implements TheoremProver {
 		this.universe = universe;
 		this.info = info;
 		context = (BooleanExpression) universe.cleanBoundVariables(context);
-		this.assumptionTranslator = new Z3Translator(universe, context, logicFunctions);
-		command.add(info.getPath().getAbsolutePath());
-		command.addAll(info.getOptions());
+		this.assumptionTranslator = new SMTTranslator(universe, info.getKind(), context, logicFunctions);
+		command.add(info.getPath().getAbsolutePath()); // the name of the tool
+		command.addAll(info.getOptions()); // tool-specific options
 		this.processBuilder = new ProcessBuilder(command);
 	}
 
-	// a little different: checking sat or unsat
-	private ValidityResult readZ3Output(BufferedReader z3Out, BufferedReader z3Err) {
+	// checking sat or unsat
+	private ValidityResult readSmtOutput(BufferedReader smtOut, BufferedReader smtErr) {
 		try {
-			String line = z3Out.readLine();
+			String line = smtOut.readLine();
 
 			if (line == null) {
 				if (info.getShowErrors() || info.getShowInconclusives()) {
 					try {
-						if (z3Err.ready()) {
+						if (smtErr.ready()) {
 							PrintStream exp = new PrintStream(new File(universe.getErrFile()));
 
-							printProverUnexpectedException(z3Err, exp);
+							printProverUnexpectedException(smtErr, exp);
 							exp.close();
 						}
 					} catch (IOException e) {
-						printProverUnexpectedException(z3Err, err);
+						printProverUnexpectedException(smtErr, err);
 					}
 				}
 				return Prove.RESULT_MAYBE;
@@ -164,13 +161,13 @@ public class RobustZ3TheoremProver implements TheoremProver {
 				return Prove.RESULT_NO;
 			if (info.getShowInconclusives()) {
 				err.println(info.getFirstAlias() + " inconclusive with message: " + line);
-				for (line = z3Out.readLine(); line != null; line = z3Out.readLine()) {
+				for (line = smtOut.readLine(); line != null; line = smtOut.readLine()) {
 					err.println(line);
 				}
 			}
 			if ("unknown".equals(line))
 				return Prove.RESULT_MAYBE;
-			throw new SARLException("Z3 prover unexpected message: " + line);
+			throw new SARLException(info.getFirstAlias() + " unexpected message: " + line);
 		} catch (IOException e) {
 			if (info.getShowErrors())
 				err.println("I/O error reading " + info.getFirstAlias() + " output: " + e.getMessage());
@@ -180,33 +177,32 @@ public class RobustZ3TheoremProver implements TheoremProver {
 
 	/**
 	 * <p>
-	 * Run z3 to reason about the given predicate <code>p</code> under the context
-	 * <code>c</code>.
+	 * Run the SMT prover to reason about the given predicate <code>p</code> under
+	 * the context <code>c</code>.
 	 * </p>
 	 * 
 	 * <p>
 	 * if the purpose is to test if <code>p</code> is unsatisfiable (the argument
-	 * testUNSAT set to true), then z3 checks if <code>c && p</code> is UNSAT.
+	 * testUNSAT set to true), then the tool checks if <code>c && p</code> is UNSAT.
 	 * </p>
 	 * 
 	 * <p>
 	 * if the purpose is to test if <code>p</code> is valid under the context (the
-	 * argument testUNSAT set to false), then z3 checks if <code>c && !p</code> is
-	 * UNSAT.
+	 * argument testUNSAT set to false), then the tool checks if
+	 * <code>c && !p</code> is UNSAT.
 	 * </p>
 	 * 
 	 * @param predicate  the boolean expression representing the predicate
-	 * @param checkUNSAT a flag setting to true indicates testing unsatisfiability
-	 *                   of the given predicate; setting to false indicates testing
-	 *                   if the context entails the predicate.
+	 * @param checkUNSAT true means check unsatisfiability of the given predicate;
+	 *                   false means test if the context entails the predicate.
 	 * @param id         the ID number of this prover call
-	 * @param show       a flag indicating whether printing the z3 script
+	 * @param show       a flag indicating whether printing the prover script
 	 * @param out        the output stream
 	 * @return a {@link ValidityResult}
 	 * @throws TheoremProverException
 	 */
-	private ValidityResult runZ3(BooleanExpression predicate, boolean checkUNSAT, int id, boolean show, PrintStream out)
-			throws TheoremProverException {
+	private ValidityResult runProver(BooleanExpression predicate, boolean checkUNSAT, int id, boolean show,
+			PrintStream out) throws TheoremProverException {
 		Process process = null;
 		ValidityResult result = null;
 
@@ -231,7 +227,7 @@ public class RobustZ3TheoremProver implements TheoremProver {
 				stdin.println(")");
 				predicate = (BooleanExpression) universe.cleanBoundVariables(predicate);
 
-				Z3Translator translator = new Z3Translator(assumptionTranslator, predicate);
+				SMTTranslator translator = new SMTTranslator(assumptionTranslator, predicate);
 				FastList<String> predicateDecls = translator.getDeclarations();
 				FastList<String> predicateText = translator.getTranslation();
 
@@ -267,7 +263,7 @@ public class RobustZ3TheoremProver implements TheoremProver {
 						err.println(info.getFirstAlias() + " query       " + id + ": time out");
 					result = Prove.RESULT_MAYBE;
 				} else {
-					result = readZ3Output(stdout, stderr);
+					result = readSmtOutput(stdout, stderr);
 				}
 			}
 		} catch (Exception e) {
@@ -302,7 +298,7 @@ public class RobustZ3TheoremProver implements TheoremProver {
 		ValidityResult result;
 
 		try {
-			result = runZ3(predicate, false, id, show, out);
+			result = runProver(predicate, false, id, show, out);
 		} catch (TheoremProverException e) {
 			if (show)
 				err.println("Warning: " + e.getMessage());
@@ -322,7 +318,7 @@ public class RobustZ3TheoremProver implements TheoremProver {
 
 	@Override
 	public String toString() {
-		return "RobustZ3TheoremProver[" + info.getFirstAlias() + "]";
+		return "SMTProver[" + info.getFirstAlias() + "]";
 	}
 
 	void printProverUnexpectedException(BufferedReader proverErr, PrintStream exp) throws IOException {
@@ -357,7 +353,7 @@ public class RobustZ3TheoremProver implements TheoremProver {
 		ValidityResult result;
 
 		try {
-			result = runZ3(predicate, true, id, show, out);
+			result = runProver(predicate, true, id, show, out);
 		} catch (TheoremProverException e) {
 			if (show)
 				err.println("Warning: " + e.getMessage());

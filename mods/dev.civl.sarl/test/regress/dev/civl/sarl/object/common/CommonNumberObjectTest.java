@@ -65,8 +65,8 @@ public class CommonNumberObjectTest {
 	ObjectFactory objectfactory;
 
 	/**
-	 * Initializes realint, newrealint, realreational, newrealrational, zero,
-	 * one, negint, realfactory
+	 * Initializes realint, newrealint, realreational, newrealrational, zero, one,
+	 * negint, realfactory
 	 * 
 	 * @throws Exception
 	 */
@@ -75,21 +75,16 @@ public class CommonNumberObjectTest {
 		// must create RealIntegers through factory for hash codes to be equal
 		// should make RealInteger constructor private, or implement hash code.
 		FactorySystem system = PreUniverses.newIdealFactorySystem();
-		
+
 		this.realfactory = system.numberFactory();
 		this.objectfactory = system.objectFactory();
-		this.realint = new CommonNumberObject(
-				realfactory.integer(new BigInteger("12345678901234567890")));
-		this.newrealint = new CommonNumberObject(
-				realfactory.integer(new BigInteger("12345678901234567890")));
-		this.realrational = new CommonNumberObject(realfactory.rational(
-				new BigInteger("1"), new BigInteger("2")));
-		this.newrealrational = new CommonNumberObject(realfactory.rational(
-				new BigInteger("1"), new BigInteger("2")));
+		this.realint = new CommonNumberObject(realfactory.integer(new BigInteger("12345678901234567890")));
+		this.newrealint = new CommonNumberObject(realfactory.integer(new BigInteger("12345678901234567890")));
+		this.realrational = new CommonNumberObject(realfactory.rational(new BigInteger("1"), new BigInteger("2")));
+		this.newrealrational = new CommonNumberObject(realfactory.rational(new BigInteger("1"), new BigInteger("2")));
 		this.zero = new CommonNumberObject(realfactory.integer(BigInteger.ZERO));
 		this.one = new CommonNumberObject(realfactory.integer(BigInteger.ONE));
-		this.negint = new CommonNumberObject(
-				realfactory.integer(new BigInteger("-123")));
+		this.negint = new CommonNumberObject(realfactory.integer(new BigInteger("-123")));
 	}
 
 	/**
@@ -104,12 +99,9 @@ public class CommonNumberObjectTest {
 
 	@Test
 	public void testIntrinsicEquals() {
-		NumberObject num1 = this.objectfactory.numberObject(this.realfactory
-				.number("1"));
-		NumberObject num2 = this.objectfactory.numberObject(this.realfactory
-				.number("1"));
-		assertTrue(((CommonNumberObject) num1)
-				.intrinsicEquals((CommonNumberObject) num2));
+		NumberObject num1 = this.objectfactory.numberObject(this.realfactory.number("1"));
+		NumberObject num2 = this.objectfactory.numberObject(this.realfactory.number("1"));
+		assertTrue(((CommonNumberObject) num1).intrinsicEquals((CommonNumberObject) num2));
 	}
 
 	/**
@@ -128,14 +120,13 @@ public class CommonNumberObjectTest {
 	 */
 	@Test
 	public void testGetNumber() {
-		assertEquals("12345678901234567890", this.realint.getNumber()
-				.toString());
+		assertEquals("12345678901234567890", this.realint.getNumber().toString());
 		assertEquals("1/2", this.realrational.getNumber().toString());
 	}
 
 	/**
-	 * Verifies that signum returns 1 for CommonIntObjects with a positive
-	 * value, -1 for negatives, 0 otherwise.
+	 * Verifies that signum returns 1 for CommonIntObjects with a positive value, -1
+	 * for negatives, 0 otherwise.
 	 */
 	@Test
 	public void testSignum() {
@@ -145,8 +136,8 @@ public class CommonNumberObjectTest {
 	}
 
 	/**
-	 * Verifies that isZero returns true for CommonNumberObjects with a value of
-	 * 0, and false otherwise
+	 * Verifies that isZero returns true for CommonNumberObjects with a value of 0,
+	 * and false otherwise
 	 */
 	@Test
 	public void testIsZero() {
@@ -155,8 +146,8 @@ public class CommonNumberObjectTest {
 	}
 
 	/**
-	 * Verifies that isOne returns true for CommonNumberObjects with a value of
-	 * 1, and false otherwise
+	 * Verifies that isOne returns true for CommonNumberObjects with a value of 1,
+	 * and false otherwise
 	 */
 	@Test
 	public void testIsOne() {
@@ -165,8 +156,8 @@ public class CommonNumberObjectTest {
 	}
 
 	/**
-	 * Verifies that isInteger returns true if the CommonNumberObject represents
-	 * an integer, false otherwise
+	 * Verifies that isInteger returns true if the CommonNumberObject represents an
+	 * integer, false otherwise
 	 */
 	@Test
 	public void testIsInteger() {
@@ -185,9 +176,9 @@ public class CommonNumberObjectTest {
 	}
 
 	/**
-	 * Verifies that compareTo returns 0 for equivalent CommonNumberObjects, <0
-	 * if the first is less than the second, and >0 if the first is greater than
-	 * the second.
+	 * Verifies that compareTo returns 0 for equivalent CommonNumberObjects, <0 if
+	 * the first is less than the second, and >0 if the first is greater than the
+	 * second.
 	 */
 	@Test
 	public void testCompareTo() {
@@ -203,39 +194,26 @@ public class CommonNumberObjectTest {
 	 */
 	@Test
 	public void testToStringBuffer() {
-		assertEquals("12345678901234567890", this.realint.toStringBuffer(false)
-				.toString());
+		assertEquals("12345678901234567890", this.realint.toStringBuffer(false).toString());
 		assertEquals("1/2", this.realrational.toStringBuffer(false).toString());
 	}
 
 	/**
-	 * Verifies that toStringBufferLong returns the CommonNumberObject's value
-	 * as a string buffer
+	 * Verifies that toStringBufferLong returns the CommonNumberObject's value as a
+	 * string buffer
 	 */
 	@Test
 	public void testToStringBufferLong() {
-		assertEquals("12345678901234567890", this.realint.toStringBufferLong()
-				.toString());
+		assertEquals("12345678901234567890", this.realint.toStringBufferLong().toString());
 		assertEquals("1/2", this.realrational.toStringBufferLong().toString());
 	}
-
-	// /**
-	// * Test for CommonSymbolicObject.setOrder() and getOrder()
-	// */
-	// @Test
-	// public void testSetGetOrder() {
-	// this.newrealint.setOrder(this.realfactory.oneRational());
-	// assertEquals("1", this.newrealint.getOrder().toString());
-	// }
 
 	/**
 	 * Test for CommonSymbolicObject.equals()
 	 */
 	@Test
 	public void testEquals() {
-		assertFalse(this.objectfactory.intObject(1).equals(
-				this.objectfactory.booleanObject(false)));
-		assertFalse(this.objectfactory.intObject(1).equals(1));
+		assertFalse(this.objectfactory.intObject(1).equals(this.objectfactory.booleanObject(false)));
 	}
 
 }

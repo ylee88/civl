@@ -23,22 +23,21 @@ import dev.civl.sarl.prove.z3.Z3Translator;
 import dev.civl.sarl.util.FastList;
 
 public class ControlDependence {
-	
+
 	ErrorAutomaton trace;
-	Map<CfaLoc,CfaLoc> ipdMap; /* One big map */
-	Map<Location,CfaLoc> locToCfaLoc; /* One big map */
+	Map<CfaLoc, CfaLoc> ipdMap; /* One big map */
+	Map<Location, CfaLoc> locToCfaLoc; /* One big map */
 	Stack<ControlDependencyElement> cds;
-	Map<ErrorCfaLoc,Stack<ControlDependencyElement>> cdsMap;
+	Map<ErrorCfaLoc, Stack<ControlDependencyElement>> cdsMap;
 	Set<BooleanExpression> slicedPC;
 	Set<BooleanExpression> minimizedSlice;
 	boolean debug = false;
-	
+
 	/** Stdout: where most output is going to go, including error reports */
 	private PrintStream out = System.out;
-	
-	public ControlDependence (ErrorAutomaton tr, Map<CfaLoc,CfaLoc> ipd,
-			Map<Location,CfaLoc> locationMap) {
-		
+
+	public ControlDependence(ErrorAutomaton tr, Map<CfaLoc, CfaLoc> ipd, Map<Location, CfaLoc> locationMap) {
+
 		trace = tr;
 		ipdMap = ipd;
 		locToCfaLoc = locationMap;
@@ -46,15 +45,17 @@ public class ControlDependence {
 		cdsMap = new HashMap<>();
 		slicedPC = new HashSet<>();
 		minimizedSlice = new HashSet<>();
-		
+
 	}
-	
-	public Stack<ControlDependencyElement> collectControlDependencyStack () throws IOException {
-		
-		for (ErrorCfaLoc l : trace.errorTrace) {	
-			if (isMerging(l)) mergingLogic(l);
-			if (isBranching(l)) branchingLogic(l);
-			updateCdsMap(l,cds);
+
+	public Stack<ControlDependencyElement> collectControlDependencyStack() throws IOException {
+
+		for (ErrorCfaLoc l : trace.errorTrace) {
+			if (isMerging(l))
+				mergingLogic(l);
+			if (isBranching(l))
+				branchingLogic(l);
+			updateCdsMap(l, cds);
 		}
 		if (debug) {
 			out.println("\nControl Dependence Stack:\n");
@@ -63,12 +64,11 @@ public class ControlDependence {
 				for (ErrorCfaLoc bp : e.branchPoints) {
 					BooleanExpression symExpr = bp.branchConstraint;
 					String branchTaken = bp.nextTransition().statement.toString();
-					out.println("   -> Conjunct from this region: "+symExpr+
-							" (Branch taken: "+branchTaken+")");
+					out.println("   -> Conjunct from this region: " + symExpr + " (Branch taken: " + branchTaken + ")");
 				}
 			}
 		}
-		
+
 		assert BranchConstraints.evaluator != null : "BranchConstraints has no evaluator";
 		for (ControlDependencyElement e : cds) {
 			for (ErrorCfaLoc bp : e.branchPoints) {
@@ -83,16 +83,18 @@ public class ControlDependence {
 		} else {
 			minimizedSlice = slicedPC;
 		}
-		
+
 		/* Test CdsMap collection */
-		if (debug) printCdsMap();
+		if (debug)
+			printCdsMap();
 		/* Test smt2 output format */
-		if (debug) smt2SliceStrings();
-		
+		if (debug)
+			smt2SliceStrings();
+
 		return cds;
-		
+
 	}
-	
+
 	private void updateCdsMap(ErrorCfaLoc l, Stack<ControlDependencyElement> currentCds) {
 		Stack<ControlDependencyElement> cdsValue = new Stack<>();
 		List<ControlDependencyElement> cdsList = new ArrayList<>();
@@ -102,21 +104,22 @@ public class ControlDependence {
 		cdsValue.addAll(cdsList);
 		cdsMap.put(l, cdsValue);
 		if (debug) {
-			out.println("Updating map for ErrorCfaLoc: "+l);
+			out.println("Updating map for ErrorCfaLoc: " + l);
 			for (ControlDependencyElement e : cdsValue) {
-				out.println("     "+e);
+				out.println("     " + e);
 			}
 		}
 	}
-	
+
 	private void printCdsMap() {
 		out.println("\n  Printing CDS map: \n\n");
 		for (ErrorCfaLoc l : cdsMap.keySet()) {
-			if (l.isExitLocation()) continue;
-			out.println("   Stmt: "+l.nextTransition());
+			if (l.isExitLocation())
+				continue;
+			out.println("   Stmt: " + l.nextTransition());
 			out.println("    Stack:");
 			for (ControlDependencyElement e : cdsMap.get(l)) {
-				out.println("     "+e);
+				out.println("     " + e);
 			}
 			out.println();
 		}
@@ -125,72 +128,79 @@ public class ControlDependence {
 	public Set<BooleanExpression> getSlicedPC() {
 		return slicedPC;
 	}
-	
-	/* This is setup to make the merging call as presented 
-	 * in the 2007 paper */
+
+	/*
+	 * This is setup to make the merging call as presented in the 2007 paper
+	 */
 	private void mergingLogic(ErrorCfaLoc l) {
-		
-		if (debug) out.println("Line "+l.sourceLine+" is a merge point");
-		
+
+		if (debug)
+			out.println("Line " + l.sourceLine + " is a merge point");
+
 		Location loc = l.getCIVLLocation();
 		CfaLoc mergePoint = locToCfaLoc.get(loc);
-		
+
 		merging(mergePoint, l.callingContext);
-		
+
 	}
-	
-	/* This is setup to make the branching call as presented 
-	 * in the 2007 paper */
+
+	/*
+	 * This is setup to make the branching call as presented in the 2007 paper
+	 */
 	private void branchingLogic(ErrorCfaLoc branchPoint) {
-		
-		if (debug) out.println("Line "+branchPoint.sourceLine+" is a branch point");
-		
+
+		if (debug)
+			out.println("Line " + branchPoint.sourceLine + " is a branch point");
+
 		Location branchLoc = branchPoint.getCIVLLocation();
 		CfaLoc branch = locToCfaLoc.get(branchLoc);
 		CfaLoc mergePoint = ipdMap.get(branch);
-		assert mergePoint != null : branchPoint.getCIVLLocation()+"'s merge point is null";
-		
+		assert mergePoint != null : branchPoint.getCIVLLocation() + "'s merge point is null";
+
 		branching(branchPoint, mergePoint, branchPoint.callingContext);
-		
+
 	}
 
 	private boolean isMerging(ErrorCfaLoc l) {
-		
+
 		if (l.isExitLocation()) {
 			return false;
 		} else {
 			Location loc = l.getCIVLLocation();
-			assert loc != null : "No CIVL Location found for: "+l;
+			assert loc != null : "No CIVL Location found for: " + l;
 			CfaLoc cfaLoc = locToCfaLoc.get(loc);
-			
-			/* The instrumented branch directives don't have 
-			 * corresponding cfaLocs */
+
+			/*
+			 * The instrumented branch directives don't have corresponding cfaLocs
+			 */
 			if (cfaLoc == null) {
 				return false;
 			} else {
 				return cfaLoc.isIPD;
 			}
-			
+
 		}
 	}
-	
+
 	private boolean isBranching(ErrorCfaLoc l) {
 
 		if (l.isExitLocation()) {
 			return false;
 		} else {
-			//if (debug) out.println("Determining if "+l.nextTransition().statement
-				//	+" (line "+l.sourceLine+") ("+l.getCIVLLocation().getSource().toString()+") is branching");
-		
+			// if (debug) out.println("Determining if "+l.nextTransition().statement
+			// +" (line "+l.sourceLine+") ("+l.getCIVLLocation().getSource().toString()+")
+			// is branching");
+
 			Location loc = l.getCIVLLocation();
 			CfaLoc cfaLoc = locToCfaLoc.get(loc);
-			
-			/* The instrumented branch directives don't have 
-			 * corresponding cfaLocs */
+
+			/*
+			 * The instrumented branch directives don't have corresponding cfaLocs
+			 */
 			if (cfaLoc == null) {
 				return false;
 			} else if (cfaLoc.isBranching) {
-				String guardString = cfaLoc.location.getOutgoing(0).guard().toString(); 
+				String guardString = cfaLoc.location.getOutgoing(0).guard().toString();
 				if (guardString.startsWith("$sef$")) {
 					return false; // This is an instrumented branch directive
 				} else {
@@ -201,100 +211,106 @@ public class ControlDependence {
 			}
 		}
 	}
-	
-	public void merging (CfaLoc mergePoint, int callingContext) {
-		
-		if (cds.isEmpty()) return;
+
+	public void merging(CfaLoc mergePoint, int callingContext) {
+
+		if (cds.isEmpty())
+			return;
 		CfaLoc mergePointOnStack = cds.peek().mergePoint;
 		int stackContext = cds.peek().context;
-		
-		if (mergePointOnStack.equals(mergePoint) &&
-				(stackContext == callingContext)) {
+
+		if (mergePointOnStack.equals(mergePoint) && (stackContext == callingContext)) {
 			ControlDependencyElement c = cds.pop();
-			if (debug) out.println("\n--- Just popped: "+c+"\n");
+			if (debug)
+				out.println("\n--- Just popped: " + c + "\n");
 		}
-		
+
 	}
 
-	public void branching (ErrorCfaLoc branchPoint, CfaLoc mergePoint, int callingContext) {
-		
+	public void branching(ErrorCfaLoc branchPoint, CfaLoc mergePoint, int callingContext) {
+
 		if (!cds.isEmpty()) {
 			CfaLoc mergePointOnStack = cds.peek().mergePoint;
 			int stackContext = cds.peek().context;
-			
-			if (mergePointOnStack.equals(mergePoint) && 
-					(stackContext == callingContext)) {
-				if (debug) out.println("Branch points have the same merge point: "+mergePoint);
-				if (debug) out.println("\n+++ Pushing "+branchPoint+" (line "+
-						branchPoint.sourceLine+") onto the stack. Context: "+callingContext+"\n");
+
+			if (mergePointOnStack.equals(mergePoint) && (stackContext == callingContext)) {
+				if (debug)
+					out.println("Branch points have the same merge point: " + mergePoint);
+				if (debug)
+					out.println("\n+++ Pushing " + branchPoint + " (line " + branchPoint.sourceLine
+							+ ") onto the stack. Context: " + callingContext + "\n");
 				cds.peek().branchPoints.add(branchPoint);
 			} else {
-				ControlDependencyElement c = new ControlDependencyElement(branchPoint,
-						mergePoint, callingContext);
-				if (debug) out.println("\n+++ Pushing "+c+" onto the stack. Context: "+c.context+"\n");
+				ControlDependencyElement c = new ControlDependencyElement(branchPoint, mergePoint, callingContext);
+				if (debug)
+					out.println("\n+++ Pushing " + c + " onto the stack. Context: " + c.context + "\n");
 				cds.push(c);
 			}
 		} else {
 			ControlDependencyElement c = new ControlDependencyElement(branchPoint, mergePoint, callingContext);
-			if (debug) out.println("\n+++ Pushing "+c+" onto the stack");
+			if (debug)
+				out.println("\n+++ Pushing " + c + " onto the stack");
 			cds.push(c);
 		}
-		
-		
+
 	}
-	
+
 	private Set<BooleanExpression> makeMinimizedPC(Set<BooleanExpression> clauses) {
-		
+
 		boolean localDebug = true;
 		Set<BooleanExpression> impliedClauses = new HashSet<BooleanExpression>();
-		
+
 		SymbolicUniverse universe = SARL.newStandardUniverse();
 		Reasoner trueContextReasoner = universe.reasoner(universe.trueExpression());
-		
+
 		for (BooleanExpression c : clauses) {
 			BooleanExpression antecedent = universe.trueExpression();
 			for (BooleanExpression other : clauses) {
-				if (other.equals(c)) continue;
+				if (other.equals(c))
+					continue;
 				antecedent = universe.and(antecedent, other);
 			}
 			// Print out antecedent and c
-			if (localDebug) out.println("Antecedent of stalling implication: "+antecedent);
-			if (localDebug) out.println("Consequent of stalling implication: "+c);
+			if (localDebug)
+				out.println("Antecedent of stalling implication: " + antecedent);
+			if (localDebug)
+				out.println("Consequent of stalling implication: " + c);
 			BooleanExpression implication = universe.implies(antecedent, c);
-			if (localDebug) out.println("Stalling implication: "+implication);
-			
+			if (localDebug)
+				out.println("Stalling implication: " + implication);
+
 			if (trueContextReasoner.isValid(implication)) {
 				impliedClauses.add(c);
 			}
 		}
-		
+
 		Set<BooleanExpression> minimizedClauses = new HashSet<BooleanExpression>();
 		minimizedClauses.addAll(clauses);
 		minimizedClauses.removeAll(impliedClauses);
-		
+
 		return minimizedClauses;
 	}
-	
-	private String smt2SliceStrings () {
+
+	private String smt2SliceStrings() {
 		String s = "";
-		
+
 		FactorySystem factorySystem = PreUniverses.newIdealFactorySystem();
 		PreUniverse universe = PreUniverses.newPreUniverse(factorySystem);
 		BooleanExpression context = universe.trueExpression();
-		
-		Z3Translator startingContext = new Z3Translator(universe,context,true);
-		
+
+		Z3Translator startingContext = new Z3Translator(universe, context);
+
 		for (BooleanExpression expression : minimizedSlice) {
 			Z3Translator translator = new Z3Translator(startingContext, expression);
 			FastList<String> predicateDecls = translator.getDeclarations();
 			FastList<String> predicateText = translator.getTranslation();
-			
-			out.println("SMT2 Representation of "+expression+":\n");
+
+			out.println("SMT2 Representation of " + expression + ":\n");
 			predicateDecls.print(out);
 			predicateText.print(out);
 			out.println();
 		}
-		
+
 		return s;
 	}
 

@@ -21,7 +21,6 @@ package dev.civl.sarl.prove.IF;
 import java.util.Map;
 
 import dev.civl.sarl.IF.ModelResult;
-import dev.civl.sarl.IF.SARLException;
 import dev.civl.sarl.IF.SARLInternalException;
 import dev.civl.sarl.IF.ValidityResult;
 import dev.civl.sarl.IF.ValidityResult.ResultType;
@@ -35,7 +34,7 @@ import dev.civl.sarl.prove.common.CommonValidityResult;
 import dev.civl.sarl.prove.common.MultiProverFactory;
 import dev.civl.sarl.prove.common.TrivialProverFactory;
 import dev.civl.sarl.prove.cvc.RobustCVCTheoremProverFactory;
-import dev.civl.sarl.prove.z3.RobustZ3TheoremProverFactory;
+import dev.civl.sarl.prove.smt.SMTProverFactory;
 
 /**
  * This is the entry point for module prove. It provides:
@@ -55,43 +54,37 @@ public class Prove {
 	 * A constant of type {@link ValidityResult} which has {@link ResultType}
 	 * {@link ResultType.YES}.
 	 */
-	public final static ValidityResult RESULT_YES = new CommonValidityResult(
-			ResultType.YES);
+	public final static ValidityResult RESULT_YES = new CommonValidityResult(ResultType.YES);
 
 	/**
 	 * A constant of type {@link ValidityResult} which has {@link ResultType}
 	 * {@link ResultType.NO}.
 	 */
-	public final static ValidityResult RESULT_NO = new CommonValidityResult(
-			ResultType.NO);
+	public final static ValidityResult RESULT_NO = new CommonValidityResult(ResultType.NO);
 
 	/**
 	 * A constant of type {@link ValidityResult} which has {@link ResultType}
 	 * {@link ResultType.MAYBE}.
 	 */
-	public final static ValidityResult RESULT_MAYBE = new CommonValidityResult(
-			ResultType.MAYBE);
+	public final static ValidityResult RESULT_MAYBE = new CommonValidityResult(ResultType.MAYBE);
 
 	private final static TrivialProverFactory trivialProverFactory = new TrivialProverFactory();
-	
+
 	/**
-	 * Constructs a new theorem prover factory based on the given configuration.
-	 * A resulting prover resolves a query as follows: it starts by using the
-	 * first external prover in the given config. If that result is
-	 * inconclusive, it goes to the next, and so on.
+	 * Constructs a new theorem prover factory based on the given configuration. A
+	 * resulting prover resolves a query as follows: it starts by using the first
+	 * external prover in the given config. If that result is inconclusive, it goes
+	 * to the next, and so on.
 	 * 
-	 * @param universe
-	 *                     the symbolic universe used to manage and produce
-	 *                     symbolic expressions
-	 * @param config
-	 *                     a SARL configuration object specifying some sequence
-	 *                     of theorem provers which are available
+	 * @param universe the symbolic universe used to manage and produce symbolic
+	 *                 expressions
+	 * @param config   a SARL configuration object specifying some sequence of
+	 *                 theorem provers which are available
 	 * @return a new theorem prover factory which may use all of the provers
 	 *         specified in the config, in order, until a conclusive result is
 	 *         reached or all provers have been exhausted
 	 */
-	public static TheoremProverFactory newMultiProverFactory(
-			PreUniverse universe, SARLConfig config) {
+	public static TheoremProverFactory newMultiProverFactory(PreUniverse universe, SARLConfig config) {
 		int numProvers = config.getNumProvers();
 		TheoremProverFactory[] factories = new TheoremProverFactory[numProvers];
 		int count = 0;
@@ -104,45 +97,39 @@ public class Prove {
 	}
 
 	/**
-	 * Constructs a new theorem prover factory based on a single underlying
-	 * theorem prover.
+	 * Constructs a new theorem prover factory based on a single underlying theorem
+	 * prover.
 	 * 
-	 * @param universe
-	 *                     the symbolic universe used to produce and manipulate
-	 *                     symbolic expressions
-	 * @param prover
-	 *                     a {@link ProverInfo} object providing information on
-	 *                     the specific underlying theorem prover which will be
-	 *                     used
+	 * @param universe the symbolic universe used to produce and manipulate symbolic
+	 *                 expressions
+	 * @param prover   a {@link ProverInfo} object providing information on the
+	 *                 specific underlying theorem prover which will be used
 	 * @return the new theorem prover factory based on the given prover
 	 */
-	public static TheoremProverFactory newProverFactory(PreUniverse universe,
-			ProverInfo prover) {
+	public static TheoremProverFactory newProverFactory(PreUniverse universe, ProverInfo prover) {
 		switch (prover.getKind()) {
-			case CVC4 :
-				return new RobustCVCTheoremProverFactory(universe, prover);
-			case Z3 :
-				return new RobustZ3TheoremProverFactory(universe, prover);
-			case CVC4_API :
-			case Z3_API :
-				// return new Z3TheoremProverFactory(universe, prover);
-				throw new SARLException(
-						"Unsupported theorem prover: " + prover.getKind());
-			default :
-				throw new SARLInternalException(
-						"Unknown kind of theorem prover: " + prover.getKind());
+		case CVC4:
+			return new RobustCVCTheoremProverFactory(universe, prover);
+		case CVC5:
+			return new SMTProverFactory(universe, prover);
+		case Z3:
+			// return new RobustZ3TheoremProverFactory(universe, prover);
+			return new SMTProverFactory(universe, prover);
+
+		default:
+			throw new SARLInternalException("Unknown kind of theorem prover: " + prover.getKind());
 		}
 	}
-	
+
 	public static TheoremProverFactory trivialProverFactory() {
 		return trivialProverFactory;
 	}
+
 	/**
 	 * Returns one of the constants {@link #RESULT_YES}, {@link #RESULT_NO},
 	 * {@link #RESULT_MAYBE}, corresponding to the given type.
 	 * 
-	 * @param type
-	 *                 a non-null {@link ResultType}
+	 * @param type a non-null {@link ResultType}
 	 * @return either {@link #RESULT_YES}, {@link #RESULT_NO}, or
 	 *         {@link #RESULT_MAYBE}, depending on whether <code>type</code> is
 	 *         {@link ResultType#YES}, {@link ResultType#NO}, or
@@ -150,34 +137,32 @@ public class Prove {
 	 */
 	public static ValidityResult validityResult(ResultType type) {
 		switch (type) {
-			case YES :
-				return RESULT_YES;
-			case NO :
-				return RESULT_NO;
-			case MAYBE :
-				return RESULT_MAYBE;
-			default :
-				throw new SARLInternalException("unreachable");
+		case YES:
+			return RESULT_YES;
+		case NO:
+			return RESULT_NO;
+		case MAYBE:
+			return RESULT_MAYBE;
+		default:
+			throw new SARLInternalException("unreachable");
 		}
 	}
 
 	/**
-	 * Constructs a new {@link ModelResult} wrapping the given mapping from
-	 * symbolic constants to symbolic expressions. The represents the case where
-	 * a validity result is {@link ResultType#NO} and, in addition, a specific
-	 * counter example has been found. The counterexample specifies a concrete
-	 * value for each symbolic constant which was used in the query, in such a
-	 * way that the queried predicate evaluates to <code>false</code> and the
-	 * queried assumption evaluates to <code>true</code>.
+	 * Constructs a new {@link ModelResult} wrapping the given mapping from symbolic
+	 * constants to symbolic expressions. The represents the case where a validity
+	 * result is {@link ResultType#NO} and, in addition, a specific counter example
+	 * has been found. The counterexample specifies a concrete value for each
+	 * symbolic constant which was used in the query, in such a way that the queried
+	 * predicate evaluates to <code>false</code> and the queried assumption
+	 * evaluates to <code>true</code>.
 	 * 
-	 * @param model
-	 *                  mapping giving concrete value to each symbolic constant
-	 *                  occurring in the query
+	 * @param model mapping giving concrete value to each symbolic constant
+	 *              occurring in the query
 	 * @return new instance of {@link ModelResult} wrapping the given
 	 *         <code>mode</code>.
 	 */
-	public static ModelResult modelResult(
-			Map<SymbolicConstant, SymbolicExpression> model) {
+	public static ModelResult modelResult(Map<SymbolicConstant, SymbolicExpression> model) {
 		return new CommonModelResult(model);
 	}
 

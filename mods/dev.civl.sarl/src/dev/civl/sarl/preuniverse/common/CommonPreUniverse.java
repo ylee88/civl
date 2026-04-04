@@ -59,7 +59,7 @@ import dev.civl.sarl.IF.object.SymbolicSequence;
 import dev.civl.sarl.IF.type.SymbolicArrayType;
 import dev.civl.sarl.IF.type.SymbolicCompleteArrayType;
 import dev.civl.sarl.IF.type.SymbolicFunctionType;
-import dev.civl.sarl.IF.type.SymbolicFunctionType.SpeicalRelationKind;
+import dev.civl.sarl.IF.type.SymbolicFunctionType.SpecialRelationKind;
 import dev.civl.sarl.IF.type.SymbolicIntegerType;
 import dev.civl.sarl.IF.type.SymbolicMapType;
 import dev.civl.sarl.IF.type.SymbolicRealType;
@@ -1310,7 +1310,7 @@ public class CommonPreUniverse implements PreUniverse {
 	@Override
 	public SymbolicFunctionType functionType(
 			Iterable<? extends SymbolicType> inputTypes,
-			SymbolicType outputType, SpeicalRelationKind relKind) {
+			SymbolicType outputType, SpecialRelationKind relKind) {
 		return typeFactory.functionType(typeSequence(inputTypes), outputType,
 				relKind);
 	}

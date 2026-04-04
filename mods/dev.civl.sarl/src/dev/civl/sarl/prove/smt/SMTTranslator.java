@@ -1,5 +1,6 @@
-package dev.civl.sarl.prove.z3;
+package dev.civl.sarl.prove.smt;
 
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,6 +12,7 @@ import java.util.Stack;
 
 import dev.civl.sarl.IF.SARLInternalException;
 import dev.civl.sarl.IF.TheoremProverException;
+import dev.civl.sarl.IF.config.ProverInfo.ProverKind;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.NumericExpression;
 import dev.civl.sarl.IF.expr.NumericSymbolicConstant;
@@ -18,6 +20,7 @@ import dev.civl.sarl.IF.expr.SymbolicConstant;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
 import dev.civl.sarl.IF.number.IntegerNumber;
+import dev.civl.sarl.IF.number.Number;
 import dev.civl.sarl.IF.number.RationalNumber;
 import dev.civl.sarl.IF.object.BooleanObject;
 import dev.civl.sarl.IF.object.CharObject;
@@ -42,151 +45,129 @@ import dev.civl.sarl.util.Pair;
 
 /**
  * <p>
- * Translates SARL {@link SymbolicExpression}s to the language of the automated
- * theorem prover Z3.
+ * Translates SARL {@link SymbolicExpression}s to SMT-LIB v.2. See
+ * {@link https://smt-lib.org}.
  * </p>
  * 
- * Notes on the Z3 language:
+ * Notes on SMT-LIB:
  * 
  * <pre>
- * // Invocation:
- * z3 -smt2 -in
- * 
- * // Commands:
- * (assert expr)
- * (check-sat).
- * 
- * To check if predicate is valid under context:
- * (assert context)
- * (assert (not predicate))
- * (check-sat)
- * if result is "sat": answer is NO (not valid)
- * if result is "unsat": answer is YES (valid)
- * otherwise, MAYBE
- * 
- * // Basic Types:
- * Int
- * Bool
- * Real
- * 
- * // Constants
- * true
- * false
- * integers, decimals, fractions can be written (/ a b)
- * 
- * // Boolean ops
- * and or not ite =>
- *  
- * // Symbolic constants:
- * (declare-const all1 (Array Int Int))
- * 
- * // Symbolic constants of functional type:
- * (declare-fun f (Int Bool) Int)
- * 
- * // Tuples:
- * (declare-datatypes () ((T1 (mk-T1 (proj_0 Int) (proj_1 Real)))))
- * (declare-datatypes () ((T2 (mk-T2 (proj_0 Real) (proj_1 Int)))))
- * (simplify (mk-T1 2 3.1))
- * (simplify (proj_0 (mk-T1 2 3.1)))
- * (simplify (= (mk-T1 2 3.1) (mk-T1 2 3.1)))
- * update(t, i, new_val) is equivalent to mk_tuple(proj_0(t), ..., new_val, ..., proj_n(t))
- * 
- * // Arrays:
- * (declare-const a1 (Array Int Int))
- * (select a1 index)
- * (store a index value)
- * 
- * // Constant arrays:
- * (declare-const all1 (Array Int Int))
- * (assert (= all1 ((as const (Array Int Int)) 1)))
- * 
- * // Lambdas: no lambda expressions; use macros:
- * (define-fun mydiv ((x Real) (y Real)) Real
- *   (if (not (= y 0.0))
- *       (/ x y)
- *       0.0))
- * 
- * declare them and then use the function name where the macro was called for
- * 
- * // Array lambdas:
- * just make an assertion that says the elements of the array are equal to the
- * evaluation of the function
- * 
- * // Union types
- * // union of Int and Real:
- * (declare-datatypes () ((U1 (inject_1_0 (extract_1_0 Int)) (inject_1_1 (extract_1_1 Real)))))
- * (simplify (inject_1_0 34))
- * (simplify (is-inject_1_0 (inject_1_0 34)))
- * 
- * // Integer division and modulus
- * There is both mod and remainder:
- * 
- * (assert (= r1 (div a 4))) ; integer division
- * (assert (= r2 (mod a 4))) ; mod
- * (assert (= r3 (rem a 4))) ; remainder
- * (assert (= r4 (div a (- 4)))) ; integer division
- * (assert (= r5 (mod a (- 4)))) ; mod
- * (assert (= r6 (rem a (- 4)))) ; remainder
- * 
- * (simplify (mod 10 -4))
- * 2
- * (simplify (rem 10 -4))
- * (- 2)
- * (simplify (div 10 -4))
- * (- 2)
- * 
- * First order quantifiers:
- * 
- * (forall ((x Int)) (p x))
- * 
+   Basic commands:  (assert expr) and (check-sat)
+   To check if predicate is valid under context:
+     (assert context)
+     (assert (not predicate))
+     (check-sat)
+   If result is "sat": answer is NO (not valid)
+   If result is "unsat": answer is YES (valid)
+   Otherwise, MAYBE
+   
+   Basic Types: Int Bool Real
+   Constants: true false integers, decimals, fractions can be written (/ a b)
+   Boolean operations: and or not ite =>
+   Symbolic constants: (declare-const all1 (Array Int Int))
+   Symbolic constants of functional type: (declare-fun f (Int Bool) Int)
+   
+   Tuples...
+     (declare-datatype T1 ((mk-T1 (proj_0 Int) (proj_1 Real))))
+     (declare-datatype T2 ((mk-T2 (proj_0 Real) (proj_1 Int)))) 
+     (simplify (mk-T1 2 3.1))
+     (simplify (proj_0 (mk-T1 2 3.1)))
+     (simplify (= (mk-T1 2 3.1) (mk-T1 2 3.1)))
+     update(t, i, new_val) is equivalent to mk_tuple(proj_0(t), ..., new_val, ..., proj_n(t))
+     
+   Parameterized algebraic datatype...
+     (declare-datatype Lst (par (E) ((nil) (cons (car E) (cdr (Lst E))))))
+     (simplify (cons 1 (as nil (Lst Int))))
+     (simplify (car (cons 1 (as nil (Lst Int)))))
+     
+   Arrays:
+     (declare-const a1 (Array Int Int))
+     (select a1 10)
+     (store a1 10 100)
+  
+   Constant arrays: this works for CVC5 and Z3 though I can't find it in the SMT-LIB
+     documentation.   It appears the value (1, in this example) has to be a constant
+     for CVC5.  Maybe it's better to not use this.  Instead use the standard select.
+     
+     (declare-const all1 (Array Int Int))
+     (assert (= all1 ((as const (Array Int Int)) 1)))
+     (simplify (select all1 10))
+   
+   Functions: there is declare-fun, define-fun, define-fun-rec, and define-funs-rec.
+   
+   Lambdas expressions: coming in SMT-LIB 2.7 as follows:
+     (lambda ((x Real) (y Real))
+       (ite (not (= y 0.0))
+            (/ x y)
+            0.0))
+   Above is supported in Z3 but not yet CVC5 1.3.3.
+  
+   Array lambdas:
+    No support. Just make an assertion that says the elements of the array are
+    equal to the evaluation of the function.   This works in outermost scope.
+   
+   Union types: example: union of Int and Real:
+     (declare-datatype U1 (
+       (inject_1_0 (extract_1_0 Int))
+       (inject_1_1 (extract_1_1 Real))))
+     (simplify (inject_1_0 34))
+     (simplify ((_ is inject_1_0) (inject_1_0 34)))
+     (simplify (is-inject_1_0 (inject_1_0 34)))
+   Note: the first form of the tester (_ is inject_1_0) is what is described in the
+   SMT-LIB spec 2.6.  But the second one seems to work also in both Z3 and CVC5.
+   
+   Integer operations: See https://smt-lib.org/theories-Ints.shtml
+     +, - (unary and binary), *, div, mod, ** (exponentiation), abs
+     
+   Casting Int to Real: (to_real x)
+   
+   First order quantifiers:
+     (forall ((x Int)) (p x))
+     (forall ((x Int) (y Real)) (blah x y))
+     (exists ...)
+     (let ((x t1) (y t2)) (blah x y)) ; note: parallel assignment
+   
+   Uninterpreted type t: a unique algebraic datatype with one int field.
+   Symbolic expressions of type t with {@link SymbolicOperator#CONCRETE}
+   operator will be translated using the constructor Cons_t as
+   (Const_t key). Selector Select_key_t will never be used for now.
+
  * </pre>
- * 
- * <p>
- * // Uninterpreted type:
- *
- * Translation of expressions of uninterpreted types: For an uninterpreted type
- * <code>t</code>, it will be translated to a type definition with a single key
- * of int type:
- * <code>(declare-datatypes (Int) (Unintpret_t (Cons-t (Select_key_t Int))))</code>
- * . Symbolic expressions of type t with {@link SymbolicOperator#CONCRETE}
- * operator will be translated using the constructor <code>Cons_t</code> as
- * <code>(Const_t key)</code>. Selector <code>Select_key_t</code> will never be
- * used for now.
- * </p>
  * 
  * @author Stephen F. Siegel
  */
-public class Z3Translator {
+public class SMTTranslator {
 
 	/**
-	 * Set to true to let the SMT translator translate a SARL array to a BigArray,
-	 * which is a tuple of an integer and an array. BigArray encodes the array size
-	 * within it. Otherwise, the translator will just use regular "Array".
+	 * When n is at or below this threshold, expressions of the form base^n will be
+	 * translated using repeated multiplication: (let ((tmp base)) (* tmp tmp ...
+	 * tmp)). TODO: move these somewhere else?
 	 */
-	public static boolean smtUseBigArray = true;
+	public static final int EXP_THRESHOLD = 10;
 
 	/**
-	 * Set to true to let the SMT translator translate a SARL power operation to
-	 * multiply operations in SMT iff the exponent of the power operation is a
-	 * concrete positive integer.
+	 * If the size of the context or a predicate exceeds this threshold, this
+	 * translator is working in a compressed way.
 	 */
-	public static boolean smtPowerToMultiply = true;
+	public static final int FULL_EXPR_SIZE_THRESHOLD = 100;
 
 	/**
-	 * <p>
-	 * Whether to enable IntDiv simplification during translation for provers.
-	 * </p>
-	 * <p>
-	 * e.g. a/b will be transformed into: value: q (q is the result of a/b)
-	 * constraints: b * q + r = a && r >= 0 && r < b. Similar to modulo operation.
-	 * </p>
+	 * If the size of a single symbolic expression exceeds this threshold, it will
+	 * be translated into a binding and keep being used in a compressed way.
 	 */
-	public static boolean enableProverIntDivSimplification = false;
+	public static final int SINGLE_EXPR_SIZE_THRESHOLD = 10;
 
 	/**
-	 * The length of bit-vector represents an integer;
+	 * The length of bit-vector represents an integer. TODO: this constant should be
+	 * obtained from somewhere else.
 	 */
 	private String BITLEN_INT = "32";
+
+	/**
+	 * The kind of SMT theorem prover this translator targets. E.g., Z3, CVC5, etc.
+	 * There are some differences in the languages they accept.
+	 */
+	private ProverKind proverKind;
 
 	/**
 	 * The symbolic universe used to create and manipulate SARL symbolic
@@ -195,11 +176,11 @@ public class Z3Translator {
 	private PreUniverse universe;
 
 	/**
-	 * The number of auxiliary Z3 variables created. These are the variables that do
-	 * not correspond to any SARL variable but are needed for some reason to
-	 * translate an expression. Includes both ordinary and bound Z3 variables.
+	 * The number of auxiliary SMT variables created. These are the variables that
+	 * do not correspond to any SARL variable but are needed for some reason to
+	 * translate an expression. Includes both ordinary and bound SMT variables.
 	 */
-	private int z3AuxVarCount;
+	private int smtAuxVarCount;
 
 	/**
 	 * The number of auxiliary SARL variables created. These are used for integer
@@ -208,7 +189,7 @@ public class Z3Translator {
 	private int sarlAuxVarCount;
 
 	/**
-	 * Mapping of SARL symbolic expression to corresponding Z3 expression. Used to
+	 * Mapping of SARL symbolic expression to corresponding SMT expression. Used to
 	 * cache the results of translation.
 	 */
 	private Map<SymbolicExpression, FastList<String>> expressionMap;
@@ -221,21 +202,21 @@ public class Z3Translator {
 	private Map<Pair<SymbolicType, SymbolicType>, String> castMap;
 
 	/**
-	 * Map from SARL symbolic constants to corresponding Z3 expressions. Entries are
-	 * a subset of those of {@link #expressionMap}.
+	 * The set of names of SARL symbolic constants which have been translated to
+	 * SMT.
 	 */
-	private Set<String> variableMap;
+	private Set<String> variableSet;
 
 	/**
-	 * Mapping of SARL symbolic type to corresponding Z3 type. Used to cache results
-	 * of translation.
+	 * Mapping of SARL symbolic type to corresponding SMT type. Used to cache
+	 * results of translation.
 	 */
 	private Map<SymbolicType, FastList<String>> typeMap;
 
 	/**
-	 * A set of pairs of declared Z3 function names and their declaration texts.
-	 * Used to avoid duplicated function declarations. Z3 allows functions of
-	 * different types share the same function name.
+	 * A set of pairs of declared SMT function names and their declaration texts.
+	 * Used to avoid duplicated function declarations. SMT allows functions of
+	 * different types to share the same function name.
 	 */
 	private Set<Pair<String, String>> functionSet;
 
@@ -245,16 +226,40 @@ public class Z3Translator {
 	private boolean bigArrayDefined = false;
 
 	/**
-	 * The declarations section resulting from the translation. This contains all
-	 * the declarations of symbols used in the resulting CVC input.
+	 * Has the function which computes x^y, where x and y are integers, been
+	 * defined?
 	 */
-	private FastList<String> z3Declarations;
+	private boolean powIntIntDefined = false;
 
 	/**
-	 * The expression which is the result of translating the given symbolic
+	 * Has the function which computes x^y, where x is real and y is an integer,
+	 * been defined?
+	 */
+	private boolean powRealIntDefined = false;
+
+	/**
+	 * Has the function which computes x^y, where x and y are reals, been defined?
+	 */
+	private boolean powRealRealDefined = false;
+
+	/**
+	 * Has the function which computes the i-th root of a real number x been defined
+	 * (where i is an integer)?
+	 */
+	private boolean rootDefined = false;
+
+	/**
+	 * The declarations section resulting from the translation. This contains all
+	 * the declarations of symbols used in the resulting SMT input. Also contains
+	 * side assertions that were added in the process of translation.
+	 */
+	private FastList<String> smtDeclarations;
+
+	/**
+	 * The SMT expression which is the result of translating the given symbolic
 	 * expression.
 	 */
-	private FastList<String> z3Translation;
+	private FastList<String> smtTranslation;
 
 	/**
 	 * A map that maps {@link SymbolicExpression}s to temporary binding names so
@@ -271,21 +276,9 @@ public class Z3Translator {
 	private List<FastList<String>> subExpressionBindings = null;
 
 	/**
-	 * If the size of the context or a predicate exceends this threshold, this
-	 * translator is working in a compressed way.
-	 */
-	private static final int FULL_EXPR_SIZE_THRESHOLD = 100;
-
-	/**
-	 * If the size of a single symbolic expression exceeds this threshold, it will
-	 * be translated into a binding and keep being used in a compressed way.
-	 */
-	private static final int SINGLE_EXPR_SIZE_THRESHOLD = 10;
-
-	/**
 	 * A stack of bound variables. A new entry will be pushed onto this stack once
-	 * the translation enters a quantified expression, and a top entry will gets
-	 * popped out once the translation finishes a quantified expression.
+	 * the translation enters a quantified expression, and a top entry is popped
+	 * once the translation finishes a quantified expression.
 	 */
 	private Stack<SymbolicConstant> boundVariableStack = new Stack<>();
 
@@ -298,21 +291,18 @@ public class Z3Translator {
 
 	// Constructors...
 
-	public Z3Translator(PreUniverse universe, SymbolicExpression theExpression) {
-		this(universe, theExpression, new ProverFunctionInterpretation[0]);
-	}
-
-	public Z3Translator(PreUniverse universe, SymbolicExpression theExpression,
+	public SMTTranslator(PreUniverse universe, ProverKind proverKind, SymbolicExpression theExpression,
 			ProverFunctionInterpretation logicFunctions[]) {
 		this.universe = universe;
-		this.z3AuxVarCount = 0;
+		this.proverKind = proverKind;
+		this.smtAuxVarCount = 0;
 		this.sarlAuxVarCount = 0;
 		this.expressionMap = new HashMap<>();
 		this.castMap = new HashMap<>();
-		this.variableMap = new HashSet<>();
+		this.variableSet = new HashSet<>();
 		this.typeMap = new HashMap<>();
 		this.functionSet = new HashSet<>();
-		this.z3Declarations = new FastList<>();
+		this.smtDeclarations = new FastList<>();
 		if (theExpression.size() >= FULL_EXPR_SIZE_THRESHOLD) {
 			this.subExpressionsBindingNames = new HashMap<>();
 			this.subExpressionBindings = new LinkedList<>();
@@ -320,18 +310,19 @@ public class Z3Translator {
 		// translate logic functions:
 		for (ProverFunctionInterpretation logicFunction : logicFunctions)
 			translateLogicFunction(logicFunction);
-		this.z3Translation = translate(theExpression);
+		this.smtTranslation = translate(theExpression);
 	}
 
-	public Z3Translator(Z3Translator startingContext, SymbolicExpression theExpression) {
+	public SMTTranslator(SMTTranslator startingContext, SymbolicExpression theExpression) {
 		this.universe = startingContext.universe;
-		this.z3AuxVarCount = startingContext.z3AuxVarCount;
+		this.proverKind = startingContext.proverKind;
+		this.smtAuxVarCount = startingContext.smtAuxVarCount;
 		this.sarlAuxVarCount = startingContext.sarlAuxVarCount;
 		this.castMap = new HashMap<>(startingContext.castMap);
 		this.typeMap = new HashMap<>(startingContext.typeMap);
 		this.functionSet = new HashSet<>(startingContext.functionSet);
 		this.expressionMap = new HashMap<>(startingContext.expressionMap);
-		this.variableMap = new HashSet<>(startingContext.variableMap);
+		this.variableSet = new HashSet<>(startingContext.variableSet);
 		if (theExpression.size() >= FULL_EXPR_SIZE_THRESHOLD || startingContext.subExpressionBindings != null) {
 			this.subExpressionsBindingNames = new HashMap<>();
 			this.subExpressionBindings = new LinkedList<>();
@@ -341,16 +332,16 @@ public class Z3Translator {
 				this.subExpressionBindings.addAll(startingContext.subExpressionBindings);
 		}
 		this.bigArrayDefined = startingContext.bigArrayDefined;
-		this.z3Declarations = new FastList<>();
-		this.z3Translation = translate(theExpression);
+		this.smtDeclarations = new FastList<>();
+		this.smtTranslation = translate(theExpression);
 	}
 
 	// Private methods...
+
 	private void requireBigArray() {
-		assert smtUseBigArray;
 		if (!bigArrayDefined) {
-			z3Declarations.add(
-					"(declare-datatypes (T) ((BigArray (mk-BigArray (bigArray-len Int) (bigArray-val (Array Int T))))))\n");
+			smtDeclarations.add(
+					"(declare-datatype BigArray (par (T) ((mk-BigArray (bigArray-len Int) (bigArray-val (Array Int T))))))\n");
 			bigArrayDefined = true;
 		}
 	}
@@ -408,25 +399,36 @@ public class Z3Translator {
 	}
 
 	private String unionTester(SymbolicUnionType unionType, int index) {
-		return "is-" + unionConstructor(unionType, index);
+		return "(_ is " + unionConstructor(unionType, index) + ")";
+
 	}
 
 	/**
-	 * Creates a new Z3 (ordinary) variable of given type with unique name;
-	 * increments {@link #z3AuxVarCount}. CANNOT be used for a function type.
+	 * Returns a fresh identifier for an SMT variable. Increments
+	 * {@link #smtAuxVarCount}. This does not declare the variable or have any other
+	 * side-effects.
 	 * 
-	 * @param type a Z3 type; it is consumed, so cannot be used after invoking this
-	 *             method
-	 * @return the new Z3 variable
+	 * @return the name of the new variable
 	 */
-	private String newZ3AuxVar(FastList<String> type) {
-		String name = "t" + z3AuxVarCount;
+	private String newSmtVarName() {
+		return "_smt" + (smtAuxVarCount++);
+	}
 
-		z3Declarations.addAll("(declare-const ", name);
+	/**
+	 * Creates a new SMT (ordinary) variable of given type with unique name;
+	 * increments {@link #smtAuxVarCount}. CANNOT be used for a function type.
+	 * 
+	 * @param type an SMT type; it is consumed, so cannot be used after invoking
+	 *             this method
+	 * @return the new SMT variable
+	 */
+	private String newSmtAuxVar(FastList<String> type) {
+		String name = newSmtVarName();
+		smtDeclarations.addAll("(declare-const ", name);
 		type.addFront(" ");
-		z3Declarations.append(type);
-		z3Declarations.add(")\n");
-		z3AuxVarCount++;
+		smtDeclarations.append(type);
+		smtDeclarations.add(")\n");
+		smtAuxVarCount++;
 		return name;
 	}
 
@@ -449,31 +451,28 @@ public class Z3Translator {
 	 * expression which is the length of the array, and an expression of array type
 	 * which is the contents.
 	 * 
-	 * @param length Z3 expression yielding length of array; it is consumed (so
+	 * @param length SMT expression yielding length of array; it is consumed (so
 	 *               cannot be used after invoking this method)
-	 * @param value  Z3 expression of type "array-of-T"; it is consumed (so cannot
+	 * @param value  SMT expression of type "array-of-T"; it is consumed (so cannot
 	 *               be used after invoking this method)
 	 * @return ordered pair (tuple), consisting of length and value
 	 */
 	private FastList<String> bigArray(FastList<String> length, FastList<String> value) {
 		FastList<String> result = new FastList<String>();
-
-		if (smtUseBigArray) {
-			requireBigArray();
-			result.addAll("(mk-BigArray ");
-			result.append(length);
-			result.add(" ");
-			result.append(value);
-			result.add(")");
-		} else
-			result.append(value);
+		// TODO: Do we need to specify the element type E using (as mk-BigArray E)?
+		requireBigArray();
+		result.addAll("(mk-BigArray ");
+		result.append(length);
+		result.add(" ");
+		result.append(value);
+		result.add(")");
 		return result;
 	}
 
 	/**
 	 * <p>
-	 * Given a SARL expression of array type, this method computes the Z3
-	 * representation of the length of that array. This is a Z3 expression of
+	 * Given a SARL expression of array type, this method computes the SMT
+	 * representation of the length of that array. This is an SMT expression of
 	 * integer type.
 	 * </p>
 	 * 
@@ -486,39 +485,34 @@ public class Z3Translator {
 	 * </p>
 	 * 
 	 * @param array a SARL expression of array type
-	 * @return translation into Z3 of length of that array
+	 * @return translation into SMT of length of that array
 	 */
 	private FastList<String> lengthOfArray(SymbolicExpression array) {
 		SymbolicArrayType type = (SymbolicArrayType) array.type();
 
 		// imagine translating "length(a)" for a symbolic constant a.
 		// this calls lengthOfArray(a). This calls translate(a).
-		// Since a is a symbolic constant, this yields a CVC symbolic
+		// Since a is a symbolic constant, this yields an SMT symbolic
 		// constant A. The result returned is "(A).0".
 
 		if (type instanceof SymbolicCompleteArrayType)
 			return translate(((SymbolicCompleteArrayType) type).extent());
-		if (smtUseBigArray) {
-			// there are three kinds of array expressions for which translation
-			// results in a literal ordered pair [int,array]: SEQUENCE,
-			// ARRAY_WRITE, DENSE_ARRAY_WRITE. A concrete (SEQUENCE) array
-			// always
-			// has complete type.
-			switch (array.operator()) {
-			case ARRAY:
-				throw new SARLInternalException("Unreachable");
-			case ARRAY_WRITE:
-			case DENSE_ARRAY_WRITE:
-				return lengthOfArray((SymbolicExpression) array.argument(0));
-			default:
-				FastList<String> result = new FastList<>("(bigArray-len ");
-
-				result.append(translate(array));
-				result.add(")");
-				return result;
-			}
-		} else
-			throw new SARLInternalException("Unimplemented feature: translate LENGTH when BigArray is not used");
+		// there are three kinds of array expressions for which translation
+		// results in a literal ordered pair [int,array]: SEQUENCE,
+		// ARRAY_WRITE, DENSE_ARRAY_WRITE. A concrete (SEQUENCE) array
+		// always has complete type.
+		switch (array.operator()) {
+		case ARRAY:
+			throw new SARLInternalException("Unreachable");
+		case ARRAY_WRITE:
+		case DENSE_ARRAY_WRITE:
+			return lengthOfArray((SymbolicExpression) array.argument(0));
+		default:
+			FastList<String> result = new FastList<>("(bigArray-len ");
+			result.append(translate(array));
+			result.add(")");
+			return result;
+		}
 	}
 
 	private FastList<String> pretranslateConcreteArray(SymbolicExpression array) {
@@ -527,13 +521,13 @@ public class Z3Translator {
 		NumericExpression extentExpression = arrayType.extent();
 		IntegerNumber extentNumber = (IntegerNumber) universe.extractNumber(extentExpression);
 		int size = array.numArguments();
-		FastList<String> z3ArrayType = new FastList<>("(Array Int ");
+		FastList<String> smtArrayType = new FastList<>("(Array Int ");
 
-		z3ArrayType.append(translateType(elementType));
-		z3ArrayType.add(")");
+		smtArrayType.append(translateType(elementType));
+		smtArrayType.add(")");
 		assert extentNumber != null && extentNumber.intValue() == size;
 
-		FastList<String> result = new FastList<>(newZ3AuxVar(z3ArrayType));
+		FastList<String> result = new FastList<>(newSmtAuxVar(smtArrayType));
 
 		for (int i = 0; i < size; i++) {
 			result.addFront("(store ");
@@ -581,12 +575,12 @@ public class Z3Translator {
 	}
 
 	/**
-	 * Given a SARL expression of array type, this method computes the Z3
+	 * Given a SARL expression of array type, this method computes the SMT
 	 * representation of array type corresponding to that array. The result will be
-	 * a Z3 expression of type array-of-T, where T is the element type.
+	 * an SMT expression of type array-of-T, where T is the element type.
 	 * 
-	 * @param array
-	 * @return
+	 * @param array symbolic expression of array type
+	 * @return SMT representation of array expression
 	 */
 	private FastList<String> valueOfArray(SymbolicExpression array) {
 		// the idea is to catch any expression which would be translated
@@ -602,20 +596,16 @@ public class Z3Translator {
 		case DENSE_ARRAY_WRITE:
 			return pretranslateDenseArrayWrite(array);
 		default: {
-			if (smtUseBigArray) {
-				FastList<String> result = new FastList<>("(bigArray-val ");
-
-				result.append(translate(array));
-				result.add(")");
-				return result;
-			} else
-				return translate(array);
+			FastList<String> result = new FastList<>("(bigArray-val ");
+			result.append(translate(array));
+			result.add(")");
+			return result;
 		}
 		}
 	}
 
 	/**
-	 * Translates a concrete SARL array into language of Z3.
+	 * Translates a concrete SARL array into SMT.
 	 * 
 	 * @param arrayType a SARL complete array type
 	 * @param elements  a sequence of elements whose types are all the element type
@@ -648,6 +638,23 @@ public class Z3Translator {
 		return result;
 	}
 
+	private FastList<String> translateNumberObj(NumberObject obj) {
+		Number num = obj.getNumber();
+		String str;
+		if (num instanceof IntegerNumber) {
+			str = num.toString();
+		} else {
+			RationalNumber rat = (RationalNumber) num;
+			String numerator = rat.numerator().toString(), denominator = rat.denominator().toString();
+
+			if (denominator.equals("1"))
+				str = numerator + ".0";
+			else
+				str = "(/ " + numerator + " " + denominator + ")";
+		}
+		return new FastList<>(str);
+	}
+
 	/**
 	 * Translates any concrete SymbolicExpression with concrete type to equivalent
 	 * Z3 expression using the ExprManager.
@@ -669,18 +676,8 @@ public class Z3Translator {
 			result = new FastList<>(Integer.toString((int) ((CharObject) object).getChar()));
 			break;
 		case INTEGER:
-			result = new FastList<>(object.toString());
-			break;
-		case REAL: {
-			RationalNumber number = (RationalNumber) ((NumberObject) object).getNumber();
-			String numerator = number.numerator().toString(), denominator = number.denominator().toString();
-
-			if (denominator.equals("1"))
-				result = new FastList<>(numerator);
-			else
-				result = new FastList<>("(/ ", numerator, " ", denominator, ")");
-			break;
-		}
+		case REAL:
+			return translateNumberObj((NumberObject) object);
 		case UNINTERPRETED: {
 			SymbolicUninterpretedType uintType = (SymbolicUninterpretedType) type;
 			int key = uintType.soleSelector().apply(expr).getInt();
@@ -693,16 +690,16 @@ public class Z3Translator {
 			throw new SARLInternalException("Unknown concrete object: " + expr);
 		}
 		return result;
+
 	}
 
+	// need to return not only the function declaration, but in the case of special
+	// binary relation types, also additional assertions.
 	private FastList<String> functionDeclaration(String name, SymbolicFunctionType functionType) {
-		String funDeclPrefix;
-
-		if (functionType.specialRelationKind() != SpecialRelationKind.NONE) {
-			funDeclPrefix = "(define-fun ";
-		} else
-			funDeclPrefix = "(declare-fun ";
-
+		// Use special Z3 features for special relations...
+		SpecialRelationKind relKind = functionType.specialRelationKind();
+		boolean useZ3Special = proverKind == ProverKind.Z3 && relKind != SpecialRelationKind.NONE;
+		String funDeclPrefix = useZ3Special ? "(define-fun " : "(declare-fun ";
 		FastList<String> result = new FastList<>(funDeclPrefix, name, " (");
 		boolean first = true;
 		int i = 0;
@@ -712,7 +709,7 @@ public class Z3Translator {
 				first = false;
 			else
 				result.add(" ");
-			if (functionType.specialRelationKind() != SpecialRelationKind.NONE) {
+			if (useZ3Special) {
 				result.add("(x" + i + " ");
 				result.append(translateType(inputType));
 				result.add(")");
@@ -722,16 +719,22 @@ public class Z3Translator {
 		}
 		result.add(") ");
 		result.append(translateType(functionType.outputType()));
-		if (functionType.specialRelationKind() != SpecialRelationKind.NONE) {
-			switch (functionType.specialRelationKind()) {
+		/*
+		 * These attributes are supported by Z3 only:
+		 * https://microsoft.github.io/z3guide/docs/theories/Special%20Relations/ See
+		 * CVCTranslator to see how to translate these attributes when they are not
+		 * supported directly.
+		 */
+		if (proverKind == ProverKind.Z3) {
+			switch (relKind) {
+			case PARTIAL_ORDER:
+				result.add("((_ partial-order 0) x0 x1)");
+				break;
 			case LINEAR_ORDER:
 				result.add("((_ linear-order 0) x0 x1)");
 				break;
 			case PIECEWISE_LINEAR_ORDER:
 				result.add("((_ piecewise-linear-order 0) x0 x1)");
-				break;
-			case PARTIAL_ORDER:
-				result.add("((_ partial-order 0) x0 x1)");
 				break;
 			case TREE_ORDER:
 				result.add("((_ tree-order 0) x0 x1)");
@@ -739,16 +742,114 @@ public class Z3Translator {
 			case NONE:
 			default:
 				break;
-
 			}
 		}
 		result.add(")\n");
-
 		Pair<String, String> key = new Pair<>(name, result.toString());
-
 		if (functionSet.contains(key))
 			return new FastList<>();
 		functionSet.add(key);
+		if (proverKind != ProverKind.Z3 && relKind != SpecialRelationKind.NONE) {
+			SymbolicType type = functionType.inputTypes().getType(0);
+			switch (relKind) {
+			case PARTIAL_ORDER:
+				result.append(partialOrderAssumption(name, type));
+				break;
+			case LINEAR_ORDER:
+				result.append(linearOrderAssumption(name, type));
+				break;
+			case TREE_ORDER:
+				result.append(treeOrderAssumption(name, type));
+				break;
+			case PIECEWISE_LINEAR_ORDER:
+				result.append(piecewiseLinearOrderAssumption(name, type));
+				break;
+			case NONE:
+			default:
+				throw new RuntimeException("Unreachable");
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * Produces:
+	 * 
+	 * <pre>
+	  	(assert (forall ((x A)) (R x x)))
+		(assert (forall ((x A) (y A)) (=> (and (R x y) (R y x)) (= x y))))
+		(assert (forall ((x A) (y A) (z A)) (=> (and (R x y) (R y z)) (R x z))))
+	 * </pre>
+	 * 
+	 * where R is name and A is translation of type.
+	 */
+	private FastList<String> partialOrderAssumption(String r, SymbolicType type) {
+		String a = translateType(type).toString();
+		String x = newSmtVarName(), y = newSmtVarName();
+		FastList<String> result = new FastList<>(
+				"(assert (forall ((" + x + " " + a + ")) (" + r + " " + x + " " + x + ")))\n");
+		result.add("(assert (forall ((" + x + " " + a + ") (" + y + " " + a + ")) (=> (and (" + r + " " + x + " " + y
+				+ ") (" + r + " " + y + " " + x + ")) (= " + x + " " + y + "))))\n");
+		result.add("(assert (forall ((" + x + " " + a + ") (" + y + " " + a + ") (z " + a + ")) (=> (and (" + r + " "
+				+ x + " " + y + ") (" + r + " " + y + " z)) (" + r + " " + x + " z))))\n");
+		return result;
+	}
+
+	/**
+	 * Produces: everything in partial order, plus
+	 * 
+	 * <pre>
+	  	(assert (forall ((x A) (y A)) (or (R x y) (R y x))))
+	 * </pre>
+	 * 
+	 * where R is name and A is translation of type.
+	 */
+	private FastList<String> linearOrderAssumption(String r, SymbolicType type) {
+		String a = translateType(type).toString();
+		FastList<String> result = partialOrderAssumption(r, type);
+		String x = newSmtVarName(), y = newSmtVarName();
+		result.add("(assert (forall ((" + x + " " + a + ") (" + y + " " + a + ")) (or (" + r + " " + x + " " + y + ") ("
+				+ r + " " + y + " " + x + "))))\n");
+		return result;
+	}
+
+	/**
+	 * Produces: everything in partial order, plus
+	 * 
+	 * <pre>
+		(assert (forall ((x A) (y A) (z A)) (=> (and (R y x) (R z x)) (or (R y z) (R z y)))))
+	 * 
+	 * </pre>
+	 * 
+	 * where R is name and A is translation of type.
+	 */
+	private FastList<String> treeOrderAssumption(String r, SymbolicType type) {
+		String a = translateType(type).toString();
+		FastList<String> result = partialOrderAssumption(r, type);
+		String x = newSmtVarName(), y = newSmtVarName(), z = newSmtVarName();
+		result.add("(assert (forall ((" + x + " " + a + ") (" + y + " " + a + ") (" + z + " " + a + ")) (=> (and (" + r
+				+ " " + y + " " + x + ") (" + r + " " + z + " " + x + ")) (or (" + r + " " + y + " " + z + ") (" + r
+				+ " " + z + " " + y + ")))))\n");
+		return result;
+	}
+
+	/**
+	 * Produces: everything in tree order, plus
+	 * 
+	 * <pre>
+		(assert (forall ((x A) (y A) (z A)) (=> (and (R x y) (R x z)) (or (R y z) (R z y)))))
+	 * 
+	 * </pre>
+	 * 
+	 * where R is name and A is translation of type.
+	 */
+	private FastList<String> piecewiseLinearOrderAssumption(String r, SymbolicType type) {
+		String a = translateType(type).toString();
+		FastList<String> result = treeOrderAssumption(r, type);
+		String x = newSmtVarName(), y = newSmtVarName(), z = newSmtVarName();
+		result.add("(assert (forall ((" + x + " " + a + ") (" + y + " " + a + ") (" + z + " " + a + ")) (=> (and (" + r
+				+ " " + x + " " + y + ") (" + r + " " + x + " " + z + ")) (or (" + r + " " + y + " " + z + ") (" + r
+				+ " " + z + " " + y + ")))))\n");
 		return result;
 	}
 
@@ -756,7 +857,7 @@ public class Z3Translator {
 	 * Translates a symbolic constant. It returns simply the name of the symbolic
 	 * constant (in the form of a <code>FastList</code> of strings). For an ordinary
 	 * (i.e., not quantified) symbolic constant, this method also adds to
-	 * {@link #z3Declarations} a declaration of the symbolic constant.
+	 * {@link #smtDeclarations} a declaration of the symbolic constant.
 	 * 
 	 * @param symbolicConstant a SARL symbolic constant
 	 * @param isBoundVariable  is this a bound variable?
@@ -768,23 +869,23 @@ public class Z3Translator {
 		SymbolicType symbolicType = symbolicConstant.type();
 
 		if (symbolicType.typeKind() == SymbolicTypeKind.FUNCTION) {
-			z3Declarations.append(functionDeclaration(name, (SymbolicFunctionType) symbolicType));
+			smtDeclarations.append(functionDeclaration(name, (SymbolicFunctionType) symbolicType));
 		} else {
-			if (!isBoundVariable && !variableMap.contains(name)) {
-				FastList<String> z3Type = translateType(symbolicType);
+			if (!isBoundVariable && !variableSet.contains(name)) {
+				FastList<String> smtType = translateType(symbolicType);
 
-				z3Declarations.addAll("(declare-const ", name, " ");
-				z3Declarations.append(z3Type);
-				z3Declarations.add(")\n");
+				smtDeclarations.addAll("(declare-const ", name, " ");
+				smtDeclarations.append(smtType);
+				smtDeclarations.add(")\n");
 			}
 		}
-		this.variableMap.add(name);
+		this.variableSet.add(name);
 		this.expressionMap.put(symbolicConstant, result);
 		return result.clone();
 	}
 
 	/**
-	 * There is no lambda expression in Z3, but you can use the macro facility
+	 * There is no lambda expression in SMT-LIB v2.6, but you can use
 	 * 
 	 * <pre>
 	 * (define-fun funcName ((x1 T1) (x2 T2) ...) T expr)
@@ -792,51 +893,84 @@ public class Z3Translator {
 	 * 
 	 * where T1, T2, ... are the input types, T is the output type, x1, x2, ..., are
 	 * the formal parameters, and expr is the function body. This method creates a
-	 * fresh function symbol, and adds the macro to {@link #z3Declarations}.
+	 * fresh function symbol, and adds it to {@link #smtDeclarations}. This only
+	 * works in the outermost scope.
+	 * 
+	 * Note: lambda is supported in v2.7, but CVC5 1.3.3 still uses v2.6 standard.
 	 * 
 	 * @param lambdaExpression symbolic expression of kind
 	 *                         {@link SymbolicOperator#LAMBDA}
-	 * @return new function macro symbol representing the lambda
+	 * @return new function symbol representing the lambda
 	 */
 	private FastList<String> translateLambda(SymbolicExpression lambdaExpression) {
 		int argsNum = lambdaExpression.numArguments();
 		SymbolicFunctionType functionType = (SymbolicFunctionType) lambdaExpression.type();
 		SymbolicExpression body = (SymbolicExpression) lambdaExpression.argument(argsNum - 1);
-		String name = "_lambda_" + z3AuxVarCount;
-		FastList<String> z3SymbolicConstants = new FastList<>();
+		String name = newSmtVarName();
+		FastList<String> smtSymbolicConstants = new FastList<>();
 
 		for (int i = 0; i < argsNum - 1; i++) {
 			SymbolicConstant inputVar = (SymbolicConstant) lambdaExpression.argument(i);
 
-			z3SymbolicConstants.add("(");
-			z3SymbolicConstants.append(translateSymbolicConstant(inputVar, true));
-			z3SymbolicConstants.add(" ");
-			z3SymbolicConstants.append(translateType(inputVar.type()));
-			z3SymbolicConstants.add(")");
+			smtSymbolicConstants.add("(");
+			smtSymbolicConstants.append(translateSymbolicConstant(inputVar, true));
+			smtSymbolicConstants.add(" ");
+			smtSymbolicConstants.append(translateType(inputVar.type()));
+			smtSymbolicConstants.add(")");
 			if (i != argsNum - 2) {
-				z3SymbolicConstants.add(" ");
+				smtSymbolicConstants.add(" ");
 			}
 		}
-		FastList<String> z3OutputType = translateType(functionType.outputType());
-		FastList<String> z3Body = translate(body);
+		FastList<String> smtOutputType = translateType(functionType.outputType());
+		FastList<String> smtBody = translate(body);
 
-		z3Declarations.addAll("(define-fun ", name, "(");
-		z3Declarations.append(z3SymbolicConstants);
-		z3Declarations.add(") ");
-		z3Declarations.append(z3OutputType);
-		z3Declarations.add(" ");
-		z3Declarations.append(z3Body);
-		z3Declarations.add(")\n");
-		z3AuxVarCount++;
+		smtDeclarations.addAll("(define-fun ", name, "(");
+		smtDeclarations.append(smtSymbolicConstants);
+		smtDeclarations.add(") ");
+		smtDeclarations.append(smtOutputType);
+		smtDeclarations.add(" ");
+		smtDeclarations.append(smtBody);
+		smtDeclarations.add(")\n");
 		return new FastList<>(name);
 	}
 
 	/**
-	 * Translates an array-read expression a[i] into equivalent Z3 expression.
+	 * No array lambdas in SMT-LIB either. But at least in outermost scope, you can
+	 * declare a fresh variable to have array type and assert each element is as
+	 * specified. Hence this method has the side-effect of adding to the
+	 * {@link #smtDeclarations}.
+	 * 
+	 * @param arrayLambda the SARL expression of kind ARRAY_LAMBDA.
+	 * @return expression translated to SMT-LIB
+	 */
+	private FastList<String> translateArrayLambda(SymbolicExpression arrayLambda) {
+		NumericExpression length = universe.length(arrayLambda);
+		SymbolicArrayType arrayType = (SymbolicArrayType) arrayLambda.type();
+		SymbolicType elementType = arrayType.elementType();
+		SymbolicExpression function = (SymbolicExpression) arrayLambda.argument(0);
+		FastList<String> smtLength = translate(length);
+		FastList<String> smtArrayType = new FastList<>("(Array Int ");
+		smtArrayType.append(translateType(elementType));
+		smtArrayType.add(")");
+		String smtArrayVar = newSmtAuxVar(smtArrayType);
+		NumericSymbolicConstant index = newSarlAuxVar();
+		FastList<String> smtIndex = translateSymbolicConstant(index, true);
+		FastList<String> assertion = new FastList<>(
+				"(assert (forall ((" + smtIndex + " Int)) (=> (and (<= 0 " + smtIndex + ") (< " + smtIndex + " ");
+		assertion.append(smtLength.clone());
+		assertion.addAll(")) (= (select " + smtArrayVar + " " + smtIndex + ") ");
+		assertion.append(translate(universe.apply(function, Arrays.asList(index))));
+		assertion.add("))))\n");
+		smtDeclarations.append(assertion);
+		return bigArray(smtLength, new FastList<>(smtArrayVar));
+	}
+
+	/**
+	 * Translates an array-read expression a[i] into equivalent SMT expression.
 	 * Syntax: <code>(select a index)</code>.
 	 * 
 	 * @param expr a SARL symbolic expression of form a[i]
-	 * @return an equivalent Z3 expression
+	 * @return an equivalent SMT expression
 	 */
 	private FastList<String> translateArrayRead(SymbolicExpression expr) {
 		SymbolicExpression arrayExpression = (SymbolicExpression) expr.argument(0);
@@ -851,14 +985,14 @@ public class Z3Translator {
 	}
 
 	/**
-	 * Translates a tuple-read expression t.i into equivalent Z3 expression.
+	 * Translates a tuple-read expression t.i into equivalent SMT expression.
 	 * 
 	 * Recall: TUPLE_READ: 2 arguments: arg0 is the tuple expression. arg1 is an
 	 * IntObject giving the index in the tuple.
 	 * 
 	 * @param expr a SARL symbolic expression of kind
 	 *             {@link SymbolicOperator#TUPLE_READ}
-	 * @return an equivalent Z3 expression
+	 * @return an equivalent SMT expression
 	 */
 	private FastList<String> translateTupleRead(SymbolicExpression expr) {
 		// we can assume the tuple type has already been declared
@@ -874,11 +1008,11 @@ public class Z3Translator {
 
 	/**
 	 * Translates an array-write (or array update) SARL symbolic expression to
-	 * equivalent Z3 expression.
+	 * equivalent SMT expression.
 	 * 
 	 * @param expr a SARL array expression of kind
 	 *             {@link SymbolicOperator#ARRAY_WRITE}
-	 * @return the result of translating to Z3
+	 * @return the result of translating to SMT
 	 */
 	private FastList<String> translateArrayWrite(SymbolicExpression expr) {
 		FastList<String> result = pretranslateArrayWrite(expr);
@@ -890,7 +1024,7 @@ public class Z3Translator {
 	/**
 	 * <p>
 	 * Translates a tuple-write (or tuple update) SARL symbolic expression to
-	 * equivalent Z3 expression.
+	 * equivalent SMT expression.
 	 * </p>
 	 * 
 	 * <p>
@@ -905,7 +1039,7 @@ public class Z3Translator {
 	 * </pre>
 	 * 
 	 * @param expr a SARL expression of kind {@link SymbolicOperator#TUPLE_WRITE}
-	 * @return the result of translating to Z3
+	 * @return the result of translating to SMT
 	 */
 	private FastList<String> translateTupleWrite(SymbolicExpression expr) {
 		SymbolicExpression tupleExpression = (SymbolicExpression) expr.argument(0);
@@ -932,11 +1066,11 @@ public class Z3Translator {
 
 	/**
 	 * Translates a multiple array-write (or array update) SARL symbolic expression
-	 * to equivalent Z3 expression.
+	 * to equivalent SMT expression.
 	 * 
 	 * @param expr a SARL expression of kind
 	 *             {@link SymbolicOperator#DENSE_ARRAY_WRITE}
-	 * @return the result of translating expr to Z3
+	 * @return the result of translating expr to SMT
 	 */
 	private FastList<String> translateDenseArrayWrite(SymbolicExpression expr) {
 		FastList<String> result = pretranslateDenseArrayWrite(expr);
@@ -948,7 +1082,7 @@ public class Z3Translator {
 	/**
 	 * <p>
 	 * Translates a multiple tuple-write (or tuple update) SARL symbolic expression
-	 * to equivalent Z3 expression.
+	 * to equivalent SMT expression.
 	 * </p>
 	 * 
 	 * <p>
@@ -960,7 +1094,7 @@ public class Z3Translator {
 	 * 
 	 * @param expr a SARL expression of kind
 	 *             {@link SymbolicOperator#DENSE_TUPLE_WRITE}
-	 * @return result of translating to Z3
+	 * @return result of translating to SMT
 	 */
 	private FastList<String> translateDenseTupleWrite(SymbolicExpression expr) {
 		SymbolicExpression tupleExpression = (SymbolicExpression) expr.argument(0);
@@ -1001,11 +1135,11 @@ public class Z3Translator {
 	}
 
 	/**
-	 * Translates SymbolicExpressions of the type "exists" and "forall" into the Z3
+	 * Translates SymbolicExpressions of the type "exists" and "forall" into the SMT
 	 * equivalent.
 	 * 
 	 * @param expr a SARL "exists" or "forall" expression
-	 * @return result of translating to Z3
+	 * @return result of translating to SMT
 	 */
 	private FastList<String> translateQuantifier(SymbolicExpression expr) {
 		// syntax: (forall ((x T)) expr)
@@ -1048,14 +1182,13 @@ public class Z3Translator {
 	 * @param expr1 a SARL symbolic expression
 	 * @param expr2 a SARL symbolic expression of type compatible with that of
 	 *              <code>expr1</code>
-	 * @return result of translating into Z3 the assertion "expr1=expr2"
+	 * @return result of translating into SMT the assertion "expr1=expr2"
 	 */
 	private FastList<String> processEquality(SymbolicExpression expr1, SymbolicExpression expr2) {
 		FastList<String> result;
 
 		if (expr1.type().typeKind() == SymbolicTypeKind.ARRAY) {
-			// lengths are equal and forall i (0<=i<length).a[i]=b[i].
-			// syntax:
+			// lengths are equal and forall i (0<=i<length).a[i]=b[i]. Syntax:
 			// (and (= len1 len2)
 			// (forall ((i Int)) (=> (and (<= 0 i) (< i len1)) <rec-call>)))
 			FastList<String> extent1 = lengthOfArray(expr1);
@@ -1085,12 +1218,12 @@ public class Z3Translator {
 	}
 
 	/**
-	 * Translates a SymbolicExpression that represents a = b into the CVC
+	 * Translates a SymbolicExpression that represents a = b into the SMT
 	 * equivalent.
 	 * 
 	 * @param expr SARL symbolic expression with kind
 	 *             {@link SymbolicOperator.EQUALS}
-	 * @return the equivalent CVC
+	 * @return the equivalent SMT
 	 */
 	private FastList<String> translateEquality(SymbolicExpression expr) {
 		SymbolicExpression leftExpression = (SymbolicExpression) expr.argument(0);
@@ -1126,11 +1259,11 @@ public class Z3Translator {
 	 * Note that the union type will be declared as follows:
 	 * 
 	 * <pre>
-	 * (declare-datatypes () ((UT
+	 * (declare-datatype UT (
 	 *     (UT-inject_0 (UT-extract_0 T0))
 	 *     (UT-inject_1 (UT-extract_1 T1))
 	 *     ...
-	 *  )))
+	 *   ))
 	 * </pre>
 	 * 
 	 * Usage:
@@ -1144,7 +1277,7 @@ public class Z3Translator {
 	 * 
 	 * @param expr a "union extract" expression, kind
 	 *             {@link SymbolicOperator#UNION_EXTRACT}
-	 * @return result of translating to Z3
+	 * @return result of translating to SMT
 	 */
 	private FastList<String> translateUnionExtract(SymbolicExpression expr) {
 		int index = ((IntObject) expr.argument(0)).getInt();
@@ -1180,7 +1313,7 @@ public class Z3Translator {
 	 * </p>
 	 * 
 	 * @param expr a "union inject" expression
-	 * @return the Z3 translation of that expression
+	 * @return the SMT translation of that expression
 	 */
 	private FastList<String> translateUnionInject(SymbolicExpression expr) {
 		int index = ((IntObject) expr.argument(0)).getInt();
@@ -1199,7 +1332,7 @@ public class Z3Translator {
 	 * Translates a union-test expression. The result has the form
 	 * 
 	 * <pre>
-	 * (is-UT-inject_i y)
+	 * ( (_ is UT-inject_i) y)
 	 * </pre>
 	 * 
 	 * where <code>UT</code> is the name of the union type, <code>y</code> is the
@@ -1215,7 +1348,7 @@ public class Z3Translator {
 	 * </p>
 	 * 
 	 * @param expr a "union test" expression
-	 * @return the Z3 translation of that expression
+	 * @return the SMT translation of that expression
 	 */
 	private FastList<String> translateUnionTest(SymbolicExpression expr) {
 		int index = ((IntObject) expr.argument(0)).getInt();
@@ -1234,21 +1367,25 @@ public class Z3Translator {
 		SymbolicType originalType = argument.type();
 		SymbolicType newType = expression.type();
 
-		if (originalType.equals(newType) || (originalType.isInteger() && newType.isReal()))
+		if (originalType.equals(newType))
 			return translate(argument);
+		if (originalType.isInteger() && newType.isReal()) {
+			FastList<String> result = new FastList<>("(to_real ");
+			result.append(translate(argument));
+			result.add(")");
+			return result;
+		}
 
 		Pair<SymbolicType, SymbolicType> key = new Pair<>(originalType, newType);
 		String castFunction = castMap.get(key);
 
 		if (castFunction == null) {
 			castFunction = "cast" + castMap.size();
-			z3Declarations.append(
+			smtDeclarations.append(
 					functionDeclaration(castFunction, universe.functionType(Arrays.asList(originalType), newType)));
 			castMap.put(key, castFunction);
 		}
-
 		FastList<String> result = new FastList<>("(", castFunction, " ");
-
 		result.append(translate(argument));
 		result.add(")");
 		return result;
@@ -1293,36 +1430,199 @@ public class Z3Translator {
 		return result;
 	}
 
-	private FastList<String> translatePower(SymbolicExpression expression) {
-		// apparently "^" but not documented
-		SymbolicObject exponent = expression.argument(1);
-		FastList<String> result = new FastList<>(), base, exp;
+	private String powIntInt() {
+		String name = "_powIntInt";
+		if (!powIntIntDefined) {
+			smtDeclarations.add("(define-fun-rec " + name + " ((x Int) (y Int)) Int\n" + "  (ite (<= y 0) 1 (* x ("
+					+ name + " x (- y 1)))))\n");
+			powIntIntDefined = true;
+		}
+		return name;
+	}
 
-		base = translate((SymbolicExpression) expression.argument(0));
-		if (exponent instanceof NumberObject) {
-			NumberObject expNumObj = (NumberObject) exponent;
+	private String powRealInt() {
+		String name = "_powRealInt";
+		if (!powRealIntDefined) {
+			smtDeclarations.add("(define-fun-rec _powRealIntAux ((x Real) (y Int)) Real\n"
+					+ "  (ite (<= y 0) 1.0 (* x (_powRealIntAux x (- y 1)))))\n" + "(define-fun " + name
+					+ " ((x Real) (y Int)) Real\n" + "  (ite (>= y 0)\n" + "       (_powRealIntAux x y)\n"
+					+ "       (/ 1.0 (_powRealIntAux x (- y)))))\n");
+			powRealIntDefined = true;
+		}
+		return name;
+	}
 
-			if (smtPowerToMultiply && expNumObj.isInteger() && expNumObj.signum() > 0) {
-				// optimize: avoid using POWER operator if exponent is concrete
-				// positive integer:
-				int expIntNum = ((IntegerNumber) ((NumberObject) exponent).getNumber()).intValue();
+	private String root() {
+		String name = "_root";
+		if (!rootDefined) {
+			smtDeclarations.add("(declare-fun " + name + " (Int Real) Real)\n");
+			smtDeclarations.add("(assert (forall ((n Int) (x Real))\n"
+					+ "  (=> (and (>= n 2) (= (mod n 2) 0) (>= x 0.0))\n" + "      (and (= (" + powRealInt() + " ("
+					+ name + " n x) n) x)\n" + "           (>= (" + name + " n x) 0.0)))))\n");
+			smtDeclarations.add("(assert (forall ((n Int) (x Real))\n" + "  (=> (and (>= n 1) (= (mod n 2) 1))\n"
+					+ "      (= (" + powRealInt() + " (" + name + " n x) n) x))))\n");
+			rootDefined = true;
+		}
+		return name;
+	}
 
-				result.add("(* ");
-				for (int i = 0; i < expIntNum; i++) {
-					result.append(base.clone());
-					result.add(" ");
-				}
-				result.add(")");
-				return result;
-			}
-			exp = new FastList<>(expNumObj.toString());
-		} else
-			exp = translate((SymbolicExpression) exponent);
+	private String powRealReal() {
+		String name = "_powRealReal";
+		if (!powRealRealDefined) {
+			smtDeclarations.add("(declare-fun " + name + " (Real Real) Real)\n");
+			// TODO: add some axioms about this function...
+			powRealRealDefined = true;
+		}
+		return name;
+	}
 
-		result.add("(^ ");
+	private FastList<String> translatePowerAsCarrot(FastList<String> base, FastList<String> exp) {
+		FastList<String> result = new FastList<>("(^ ");
 		result.append(base);
 		result.add(" ");
 		result.append(exp);
+		result.add(")");
+		return result;
+	}
+
+	/**
+	 * An exponent is either a SymbolicExpression (of integer or real type) or a
+	 * {@link NumberObject} wrapping a concrete positive int.
+	 * 
+	 * @param exp exponent from a POWER expression
+	 * @return translation to SMT
+	 */
+	private FastList<String> translateExponent(SymbolicObject obj) {
+		return obj instanceof NumberObject ? translateNumberObj((NumberObject) obj)
+				: translate((SymbolicExpression) obj);
+	}
+
+	/**
+	 * Power operation: x to the y-th power.
+	 * 
+	 * <p>
+	 * It appears both CVC5 and Z3 support a '^' operator. More research is needed
+	 * to understand the precision of the reasoning for this operator in these
+	 * tools. In any case, if the exponent is a nonnegative integer of reasonable
+	 * size, both tools appear to behave reasonably.
+	 * </p>
+	 * 
+	 * <p>
+	 * An error message from CVC5: "The exponent of the POW(^) operator can only be
+	 * a positive integral constant below 67108864" in "(^ 4.0 (/ 1 2))". For
+	 * concrete rational exponent p/q, define a function mypow(x, p, q) and assume
+	 * it satisfies if y=mypow(x,p,q) then y^q=x^p. CVC5 also has sqrt.
+	 * </p>
+	 * 
+	 * <p>
+	 * CVC5 also has an operator (exp Real): Real, computing e^x.
+	 * </p>
+	 * 
+	 * Current protocol:
+	 * 
+	 * If Z3, use ^.
+	 * 
+	 * Otherwise, if exponent is 1, translate base and forget the exponent.
+	 * 
+	 * Otherwise, if exponent is a concrete positive int at most EXP_THRESHOLD,
+	 * translate as repeated multiplication using "let".
+	 * 
+	 * Otherwise, if using CVC5 and exponent is a concrete positive int at most
+	 * 67108864, use ^.
+	 * 
+	 * Otherwise, if exponent has integer type, use one of the functions powIntInt
+	 * or powRealInt.
+	 * 
+	 * Otherwise, if the exponent is a concrete rational number p/q, where q>0, take
+	 * the q-th root of x and raise to the p-th power.
+	 * 
+	 * Otherwise, use the abstract function powRealReal.
+	 * 
+	 */
+	private FastList<String> translatePower(SymbolicExpression expression) {
+		SymbolicExpression base = (SymbolicExpression) expression.argument(0);
+		SymbolicObject exponent = expression.argument(1);
+
+		if (proverKind == ProverKind.Z3)
+			return translatePowerAsCarrot(translate(base), translateExponent(exponent));
+
+		// try to extract a concrete number from exponent. Result could be
+		// an IntegerNumber, a RationalNumber, or null...
+		Number expNum = null;
+		BigInteger expBig = null; // if expNum is non-null and integral
+		if (exponent instanceof NumberObject) {
+			expNum = ((NumberObject) exponent).getNumber();
+			expBig = ((IntegerNumber) expNum).bigIntegerValue();
+		} else {
+			expNum = universe.extractNumber((NumericExpression) exponent);
+			if (expNum != null) {
+				if (expNum instanceof IntegerNumber) {
+					expBig = ((IntegerNumber) expNum).bigIntegerValue();
+				} else {
+					RationalNumber rat = (RationalNumber) expNum;
+					if (rat.denominator().equals(BigInteger.ONE))
+						expBig = rat.numerator();
+				}
+			}
+		}
+
+		// base^1 = base:
+		if (expBig != null && expBig.equals(BigInteger.ONE))
+			return translate(base);
+
+		// small concrete positive integer exponent:
+		if (expBig != null && expBig.signum() == 1 && expBig.compareTo(BigInteger.valueOf(EXP_THRESHOLD)) <= 0) {
+			int expInt = expBig.intValue();
+			String tmpVar = newSmtVarName();
+			FastList<String> result = new FastList<>("(let ((" + tmpVar + " ");
+			result.append(translate(base));
+			result.add(")) (*");
+			for (int i = 0; i < expInt; i++)
+				result.add(" " + tmpVar);
+			result.add("))");
+			return result;
+		}
+
+		// CVC5 can use ^ if exponent is concrete and at most 67108864:
+		if (proverKind == ProverKind.CVC5 && expBig != null && expBig.signum() == 1
+				&& expBig.compareTo(BigInteger.valueOf(67108864)) <= 0) {
+			String expStr = expBig.toString();
+			if (base.type().isReal())
+				expStr += ".0"; // CVC5 insists base and exponent have same type
+			return translatePowerAsCarrot(translate(base), new FastList<String>(expStr));
+		}
+
+		// The following should work for any generic SMT solver...
+		FastList<String> result = new FastList<>("(");
+		if (expBig != null || ((SymbolicExpression) exponent).type().isInteger()) {
+			// exponent has integer type: use powIntInt or powRealInt
+			if (base.type().isInteger()) {
+				result.add(powIntInt());
+			} else {
+				result.add(powRealInt());
+			}
+			result.append(translate(base));
+			result.add(" ");
+			result.append(translateExponent(exponent));
+		} else if (expNum != null) { // exponent is a concrete rational
+			assert base.type().isReal();
+			RationalNumber rat = (RationalNumber) expNum;
+			BigInteger numerator = rat.numerator(), denominator = rat.denominator();
+			result.add(root() + " " + denominator + " ");
+			result.append(translate(base));
+			if (!numerator.equals(BigInteger.ONE)) {
+				FastList<String> result2 = new FastList<>("(" + powRealInt() + " (");
+				result2.append(result);
+				result2.add(") " + numerator.toString());
+				result = result2;
+			}
+		} else { // exponent is real but not a concrete rational
+			assert base.type().isReal();
+			result.add(powRealReal() + " ");
+			result.append(translate(base));
+			result.add(" ");
+			result.append(translateExponent(exponent));
+		}
 		result.add(")");
 		return result;
 	}
@@ -1340,6 +1640,12 @@ public class Z3Translator {
 		return result;
 	}
 
+	/**
+	 * This is used to translate an expression that involves applying a binary
+	 * operator to a list of arguments. The argument list can be empty. Examples
+	 * include +, *, AND, OR. In each case, there is a default value, which is the
+	 * identify for the operation (e.g., 0, 1, true, false).
+	 */
 	private FastList<String> translateKeySet(String operator, String defaultValue, SymbolicExpression expression) {
 		int size = expression.numArguments();
 
@@ -1372,10 +1678,10 @@ public class Z3Translator {
 	}
 
 	/**
-	 * Translates a SARL symbolic expression to the language of CVC.
+	 * Translates a SARL symbolic expression to SMT.
 	 * 
 	 * @param expression a non-null SymbolicExpression
-	 * @return translation to CVC as a fast list of strings
+	 * @return translation to SMT as a fast list of strings
 	 */
 	private FastList<String> translateWork(SymbolicExpression expression) throws TheoremProverException {
 		SymbolicOperator operator = expression.operator();
@@ -1395,9 +1701,7 @@ public class Z3Translator {
 			result = translateConcreteArray(expression);
 			break;
 		case ARRAY_LAMBDA:
-			// throw new TheoremProverException(
-			// "Z3 does not handle array lambdas");
-			result = new FastList<>(newZ3AuxVar(translateType(expression.type())));
+			result = translateArrayLambda(expression);
 			break;
 		case ARRAY_READ:
 			result = translateArrayRead(expression);
@@ -1525,8 +1829,8 @@ public class Z3Translator {
 		case DERIV:
 		case DIFFERENTIABLE: {
 			// just create fresh symbolic constants
-			FastList<String> z3Type = translateType(expression.type());
-			String name = newZ3AuxVar(z3Type.clone());
+			FastList<String> smtType = translateType(expression.type());
+			String name = newSmtAuxVar(smtType.clone());
 
 			// the call to newZ3AuxVar added the declaration
 			result = new FastList<String>(name);
@@ -1579,17 +1883,10 @@ public class Z3Translator {
 			break;
 		case ARRAY: {
 			SymbolicArrayType arrayType = (SymbolicArrayType) type;
-
-			if (smtUseBigArray) {
-				requireBigArray();
-				result = new FastList<>("(BigArray ");
-				result.append(translateType(arrayType.elementType()));
-				result.add(")");
-			} else {
-				result = new FastList<>("(Array Int ");
-				result.append(translateType(arrayType.elementType()));
-				result.add(")");
-			}
+			requireBigArray();
+			result = new FastList<>("(BigArray ");
+			result.append(translateType(arrayType.elementType()));
+			result.add(")");
 			break;
 		}
 		case TUPLE: {
@@ -1599,36 +1896,35 @@ public class Z3Translator {
 			String typeName = tupleTypeName(tupleType);
 
 			// before doing anything translate the member types,
-			// because these could modify z3Declarations.
+			// because these could modify smtDeclarations.
 			// check if this happens in CVC translator?
 			for (SymbolicType memberType : sequence)
 				translateType(memberType);
 
-			z3Declarations.add("(declare-datatypes () ((");
-			z3Declarations.addAll(typeName, " (", tupleConstructor(tupleType));
+			smtDeclarations.addAll("(declare-datatype ", typeName, " ((", tupleConstructor(tupleType));
 
 			for (int i = 0; i < numTypes; i++) {
 				SymbolicType memberType = sequence.getType(i);
 
-				z3Declarations.addAll(" (", tupleProjector(tupleType, i), " ");
-				z3Declarations.append(translateType(memberType));
-				z3Declarations.add(")");
+				smtDeclarations.addAll(" (", tupleProjector(tupleType, i), " ");
+				smtDeclarations.append(translateType(memberType));
+				smtDeclarations.add(")");
 			}
-			z3Declarations.add("))))\n");
+			smtDeclarations.add(")))\n");
 			result = new FastList<>(typeName);
 			break;
 		}
 		case FUNCTION: {
-			throw new TheoremProverException("Z3 does not have a function type");
+			throw new TheoremProverException("SMT-LIB does not have a function type");
 		}
 		case UNION: {
 			/**
 			 * <pre>
-			 * 			 (declare-datatypes () ((UT
+			 * 			 (declare-datatype UT (
 			 * 			     (UT-inject_0 (UT-extract_0 T0))
 			 * 			     (UT-inject_1 (UT-extract_1 T1))
 			 * 			     ...
-			 * 			  )))
+			 * 			  ))
 			 * </pre>
 			 */
 			SymbolicUnionType unionType = (SymbolicUnionType) type;
@@ -1636,22 +1932,21 @@ public class Z3Translator {
 			SymbolicTypeSequence sequence = unionType.sequence();
 			int n = sequence.numTypes();
 
-			// before doing anything translate the member types,
-			// because these could modify z3Declarations.
-			// check if this happens in CVC translator?
+			// before doing anything translate the member types, because these could modify
+			// smtDeclarations.
 			for (SymbolicType memberType : sequence)
 				translateType(memberType);
 
-			z3Declarations.addAll("(declare-datatypes () ((", typeName);
+			smtDeclarations.addAll("(declare-datatype ", typeName, " (");
 			for (int i = 0; i < n; i++) {
 				SymbolicType memberType = sequence.getType(i);
 
-				z3Declarations.addAll("\n    (", unionConstructor(unionType, i), " (", unionSelector(unionType, i),
+				smtDeclarations.addAll("\n    (", unionConstructor(unionType, i), " (", unionSelector(unionType, i),
 						" ");
-				z3Declarations.append(translateType(memberType));
-				z3Declarations.add("))");
+				smtDeclarations.append(translateType(memberType));
+				smtDeclarations.add("))");
 			}
-			z3Declarations.add("\n)))\n");
+			smtDeclarations.add("\n))\n");
 			result = new FastList<>(typeName);
 			break;
 		}
@@ -1659,10 +1954,9 @@ public class Z3Translator {
 			SymbolicUninterpretedType uninterpretedType = (SymbolicUninterpretedType) type;
 			String typeName = uninterpretedTypeName(uninterpretedType);
 			String consName = uninterpretedTypeConstructor(uninterpretedType);
-			String typeDef = "() ((" + typeName + " (" + consName + " (Selector-" + uninterpretedType.name()
-					+ " Int))))";
+			String typeDef = "((" + consName + " (Selector-" + uninterpretedType.name() + " Int)))";
 
-			z3Declarations.addAll("(declare-datatypes ", typeDef, ")\n");
+			smtDeclarations.addAll("(declare-datatype ", typeName, typeDef, ")\n");
 			result = new FastList<>(typeName);
 			break;
 		}
@@ -1704,9 +1998,8 @@ public class Z3Translator {
 	 */
 	private FastList<String> translateExpression2binding(SymbolicExpression expression, FastList<String> translation) {
 		// in compressed translation mode:
-		FastList<String> tmpVarName = new FastList<>("t" + z3AuxVarCount++);
+		FastList<String> tmpVarName = new FastList<>(newSmtVarName());
 		FastList<String> binding = letTempVarRepresentExpression(tmpVarName.clone(), translation.clone());
-
 		subExpressionBindings.add(binding);
 		subExpressionsBindingNames.put(expression, tmpVarName.clone());
 		return tmpVarName;
@@ -1751,11 +2044,11 @@ public class Z3Translator {
 				suffixes.add(")");
 			}
 			result.add(" ");
-			result.append(z3Translation.clone());
+			result.append(smtTranslation.clone());
 			result.append(suffixes);
 			return result;
 		} else
-			return z3Translation;
+			return smtTranslation;
 	}
 
 	/**
@@ -1766,7 +2059,7 @@ public class Z3Translator {
 	 * @return the declarations of the Z3 symbols
 	 */
 	public FastList<String> getDeclarations() {
-		return z3Declarations;
+		return smtDeclarations;
 	}
 
 	/**
@@ -1775,7 +2068,7 @@ public class Z3Translator {
 	 * named after their corresponding logic functions.
 	 * 
 	 * @param logicFunction a {@link LogicFunction} that will be translated into the
-	 *                      SMT2.0 function with body
+	 *                      SMT function with body
 	 */
 	private void translateLogicFunction(ProverFunctionInterpretation logicFunction) {
 		int argsNum = logicFunction.parameters.length;
@@ -1788,33 +2081,33 @@ public class Z3Translator {
 		SymbolicExpression body = logicFunction.definition;
 
 		String name = logicFunction.identifier;
-		FastList<String> z3SymbolicConstants = new FastList<>();
+		FastList<String> smtSymbolicConstants = new FastList<>();
 
 		for (int i = 0; i < argsNum; i++) {
 			SymbolicConstant inputVar = logicFunction.parameters[i];
 
-			z3SymbolicConstants.add("(");
-			z3SymbolicConstants.append(translateSymbolicConstant(inputVar, true));
-			z3SymbolicConstants.add(" ");
-			z3SymbolicConstants.append(translateType(inputVar.type()));
-			z3SymbolicConstants.add(")");
+			smtSymbolicConstants.add("(");
+			smtSymbolicConstants.append(translateSymbolicConstant(inputVar, true));
+			smtSymbolicConstants.add(" ");
+			smtSymbolicConstants.append(translateType(inputVar.type()));
+			smtSymbolicConstants.add(")");
 		}
-		FastList<String> z3OutputType = translateType(functionType.outputType());
+		FastList<String> smtOutputType = translateType(functionType.outputType());
 		boolean oldCompressionOption = this.enableCompression;
 
 		// no compression should be performed for the function body:
 		enableCompression = false;
 
-		FastList<String> z3Body = translate(body);
+		FastList<String> smtBody = translate(body);
 
 		enableCompression = oldCompressionOption;
-		z3Declarations.addAll("(define-fun ", name, "(");
-		z3Declarations.append(z3SymbolicConstants);
-		z3Declarations.add(") ");
-		z3Declarations.append(z3OutputType);
-		z3Declarations.add(" ");
-		z3Declarations.append(z3Body);
-		z3Declarations.add(")\n");
+		smtDeclarations.addAll("(define-fun ", name, "(");
+		smtDeclarations.append(smtSymbolicConstants);
+		smtDeclarations.add(") ");
+		smtDeclarations.append(smtOutputType);
+		smtDeclarations.add(" ");
+		smtDeclarations.append(smtBody);
+		smtDeclarations.add(")\n");
 		// add result into expression map so that translating calls to this
 		// logic function will not create declarations again:
 		this.expressionMap.put(logicFunction.function, new FastList<>(name));

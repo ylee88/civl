@@ -711,19 +711,19 @@ public class CommonEvaluator implements Evaluator {
 		switch (function.getAttribute()) {
 			case PARTIAL_ORDER :
 				functionType = universe.functionType(argumentTypes, returnType,
-						SymbolicFunctionType.SpeicalRelationKind.PARTIAL_ORDER);
+						SymbolicFunctionType.SpecialRelationKind.PARTIAL_ORDER);
 				break;
 			case TREE_ORDER :
 				functionType = universe.functionType(argumentTypes, returnType,
-						SymbolicFunctionType.SpeicalRelationKind.TREE_ORDER);
+						SymbolicFunctionType.SpecialRelationKind.TREE_ORDER);
 				break;
 			case LINEAR_ORDER :
 				functionType = universe.functionType(argumentTypes, returnType,
-						SymbolicFunctionType.SpeicalRelationKind.LINEAR_ORDER);
+						SymbolicFunctionType.SpecialRelationKind.LINEAR_ORDER);
 				break;
 			case PIECEWISE_LINEAR_ORDER :
 				functionType = universe.functionType(argumentTypes, returnType,
-						SymbolicFunctionType.SpeicalRelationKind.PIECEWISE_LINEAR_ORDER);
+						SymbolicFunctionType.SpecialRelationKind.PIECEWISE_LINEAR_ORDER);
 				break;
 			default :
 				functionType = universe.functionType(argumentTypes, returnType);

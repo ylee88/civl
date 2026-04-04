@@ -38,7 +38,7 @@ public class CommonSymbolicFunctionType extends CommonSymbolicType
 
 	private SymbolicType outputType;
 	
-	private SpeicalRelationKind relKind;
+	private SpecialRelationKind relKind;
 
 	/**
 	 * Cache of the "pure" version of this type: the version that is recursively
@@ -53,11 +53,11 @@ public class CommonSymbolicFunctionType extends CommonSymbolicType
 		assert outputType != null;
 		this.inputTypes = inputTypes;
 		this.outputType = outputType;
-		this.relKind = SpeicalRelationKind.NONE;
+		this.relKind = SpecialRelationKind.NONE;
 	}
 	
 	CommonSymbolicFunctionType(SymbolicTypeSequence inputTypes,
-			SymbolicType outputType, SpeicalRelationKind relKind) {
+			SymbolicType outputType, SpecialRelationKind relKind) {
 		super(SymbolicTypeKind.FUNCTION);
 		assert inputTypes != null;
 		assert outputType != null;
@@ -137,7 +137,7 @@ public class CommonSymbolicFunctionType extends CommonSymbolicType
 	}
 
 	@Override
-	public SpeicalRelationKind specialRelationKind() {
+	public SpecialRelationKind specialRelationKind() {
 		return relKind;
 	}
 

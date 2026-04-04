@@ -971,7 +971,7 @@ public class LanguageFeaturesTest {
 
 	@Test
 	public void arrayWriteBad() throws ABCException {
-		assertFalse(ui.run(VERIFY, "-showQueries", "-showProverQueries", filename("arrayWriteBad.cvl")));
+		assertFalse(ui.run(VERIFY, QUIET, filename("arrayWriteBad.cvl")));
 	}
 
 	@AfterClass

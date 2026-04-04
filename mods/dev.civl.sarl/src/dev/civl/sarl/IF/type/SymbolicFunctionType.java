@@ -43,7 +43,7 @@ public interface SymbolicFunctionType extends SymbolicType {
 	 */
 	SymbolicType outputType();
 
-	public enum SpeicalRelationKind {
+	public enum SpecialRelationKind {
 		/** Not special relation */
 		NONE,
 		/**
@@ -65,10 +65,10 @@ public interface SymbolicFunctionType extends SymbolicType {
 	}
 
 	/**
-	 * @return the {@link SpeicalRelationKind} if this function type represents
-	 *         a special relation kind. Note {@link SpeicalRelationKind#NONE}
+	 * @return the {@link SpecialRelationKind} if this function type represents
+	 *         a special relation kind. Note {@link SpecialRelationKind#NONE}
 	 *         means the function type is not representing a special relation.
 	 */
-	SpeicalRelationKind specialRelationKind();
+	SpecialRelationKind specialRelationKind();
 
 }

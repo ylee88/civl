@@ -19,7 +19,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import dev.civl.sarl.IF.SARLException;
@@ -50,48 +49,36 @@ public class ConfigFactory {
 	public final static PrintStream out = System.out;
 
 	/**
-	 * Map from the typical file names of the executable theorem provers to the
-	 * kind of theorem prover. Add more entries as needed.
+	 * Map from the typical file names of the executable theorem provers to the kind
+	 * of theorem prover. Add more entries as needed.
 	 */
 	private static Map<String, ProverKind> executableMap = new HashMap<>();
 
 	static {
-		executableMap.put("cvc4", ProverKind.CVC4); // working
-		executableMap.put("z3", ProverKind.Z3); // working
-		executableMap.put("why3", ProverKind.Why3); // working
-	}
-
-	/**
-	 * Map from the names of the (JNI) dynamic libraries to the kind of the
-	 * theorem prover. Add more entries as needed.
-	 */
-	private static Map<String, ProverKind> dylibMap = new HashMap<>();
-
-	static {
-		// dylibMap.put("cvc3jni", ProverKind.CVC3_API); // too fragile
-		// dylibMap.put("cvc4jni", ProverKind.CVC4_API); // crashes too much
-		// dylibMap.put("z3java", ProverKind.Z3_API); // not yet implemented
+		executableMap.put("z3", ProverKind.Z3);
+		executableMap.put("cvc5", ProverKind.CVC5);
+		executableMap.put("cvc4", ProverKind.CVC4);
+		executableMap.put("why3", ProverKind.Why3);
 	}
 
 	// Private methods...
 
 	/**
 	 * <p>
-	 * Function converting a string representation of the theorem prover kind to
-	 * an actual {@link ProverKind} object.
+	 * Function converting a string representation of the theorem prover kind to an
+	 * actual {@link ProverKind} object.
 	 * </p>
 	 * 
 	 * <p>
 	 * The {@link ProverKind} enumerated type provides some classification of
-	 * theorem provers. There might be multiple entries for one actual prover,
-	 * for example, because one entry is needed for the executable version using
-	 * one input language, another entry is needed for the executable version
-	 * using a different input language, and another version is needed for the
-	 * API version. Add entries as needed.
+	 * theorem provers. There might be multiple entries for one actual prover, for
+	 * example, because one entry is needed for the executable version using one
+	 * input language, another entry is needed for the executable version using a
+	 * different input language, and another version is needed for the API version.
+	 * Add entries as needed.
 	 * </p>
 	 * 
-	 * @param kindString
-	 *            the exact string representation of the kind
+	 * @param kindString the exact string representation of the kind
 	 * @return the kind which corresponds exactly to that string, or
 	 *         <code>null</code> is there is no such kind
 	 */
@@ -99,12 +86,10 @@ public class ConfigFactory {
 		switch (kindString) {
 		case "CVC4":
 			return ProverKind.CVC4;
-		case "CVC4_API":
-			return ProverKind.CVC4_API;
+		case "CVC5":
+			return ProverKind.CVC5;
 		case "Z3":
 			return ProverKind.Z3;
-		case "Z3_API":
-			return ProverKind.Z3_API;
 		case "Why3":
 			return ProverKind.Why3;
 		default:
@@ -114,23 +99,20 @@ public class ConfigFactory {
 
 	/**
 	 * Returns the command argument(s) for the given kind of theorem prover that
-	 * causes that prover to print its version number. Add new entries as
-	 * needed.
+	 * causes that prover to print its version number. Add new entries as needed.
 	 * 
-	 * @param kind
-	 *            the kind of theorem prover
+	 * @param kind the kind of theorem prover
 	 * @return the command line arguments that cause the version number to be
 	 *         printed
-	 * @throws SARLException
-	 *             if the kind is not of the executable variety
+	 * @throws SARLException if the kind is not of the executable variety
 	 */
 	private static String versionCommand(ProverKind kind) {
 		switch (kind) {
 		case CVC4:
+		case CVC5:
 		case Why3:
-			return "--version";
 		case Z3:
-			return "-version";
+			return "--version";
 		default:
 			throw new SARLException("Unknown executable prover kind: " + kind);
 		}
@@ -140,10 +122,8 @@ public class ConfigFactory {
 	 * Compares two version strings. Both are assumed to have form
 	 * something.something....
 	 * 
-	 * @param version1
-	 *            a version string
-	 * @param version2
-	 *            a version string
+	 * @param version1 a version string
+	 * @param version2 a version string
 	 * @return a negative int if version1 is lower than version2; 0 if they are
 	 *         equal; a positive int if version1 is higher that version2
 	 */
@@ -193,21 +173,16 @@ public class ConfigFactory {
 	}
 
 	/**
-	 * Returns an exception object in the case where a SARL configuration file
-	 * has incorrect syntax.
+	 * Returns an exception object in the case where a SARL configuration file has
+	 * incorrect syntax.
 	 * 
-	 * @param file
-	 *            the SARL configuration file being parsed
-	 * @param st
-	 *            the stream tokenizer being used to parse the configuration
-	 *            file
-	 * @param msg
-	 *            an error message
+	 * @param file the SARL configuration file being parsed
+	 * @param st   the stream tokenizer being used to parse the configuration file
+	 * @param msg  an error message
 	 * @return a {@link SARLException} with a nice presentation of the error
 	 *         message, file name, and line number
 	 */
-	private static SARLException parseErr(File file, StreamTokenizer st,
-			String msg) {
+	private static SARLException parseErr(File file, StreamTokenizer st, String msg) {
 		return new SARLException(file + " " + st.toString() + " " + msg);
 	}
 
@@ -215,13 +190,11 @@ public class ConfigFactory {
 	 * Determines whether a file with a specified name exists in a specified
 	 * directory. The file must be a regular file, not a directory.
 	 * 
-	 * @param dir
-	 *            directory in which to look
-	 * @param filename
-	 *            name of file
-	 * @return if the directory exists and the file exists and is a regular file
-	 *         in that directory: the {@link File} object corresponding to the
-	 *         file; otherwise <code>null</code>
+	 * @param dir      directory in which to look
+	 * @param filename name of file
+	 * @return if the directory exists and the file exists and is a regular file in
+	 *         that directory: the {@link File} object corresponding to the file;
+	 *         otherwise <code>null</code>
 	 */
 	private static File getFile(File dir, String filename) {
 		if (dir.isDirectory()) {
@@ -237,18 +210,14 @@ public class ConfigFactory {
 	 * Checks that an executable prover actually can be executed and creates a
 	 * corresponding {@link ProverInfo} object for it.
 	 * 
-	 * @param kind
-	 *            the kind of theorem prover
-	 * @param alias
-	 *            the alias string to use in the configuration entry
-	 * @param executableFile
-	 *            the executable theorem prover
+	 * @param kind           the kind of theorem prover
+	 * @param alias          the alias string to use in the configuration entry
+	 * @param executableFile the executable theorem prover
 	 * @return a new {@link ProverInfo} object corresponding to the specified
 	 *         prover, or <code>null</code> if the prover could not be executed
 	 *         correctly
 	 */
-	private static ProverInfo processExecutableProver(ProverKind kind,
-			String alias, File executableFile) {
+	private static ProverInfo processExecutableProver(ProverKind kind, String alias, File executableFile) {
 		String fullPath = executableFile.getAbsolutePath();
 		ProcessBuilder pb = new ProcessBuilder(fullPath, versionCommand(kind));
 		Process process = null;
@@ -257,8 +226,7 @@ public class ConfigFactory {
 		try {
 			process = pb.start();
 
-			BufferedReader stdout = new BufferedReader(
-					new InputStreamReader(process.getInputStream()));
+			BufferedReader stdout = new BufferedReader(new InputStreamReader(process.getInputStream()));
 
 			line = stdout.readLine().trim();
 			process.destroy();
@@ -283,11 +251,19 @@ public class ConfigFactory {
 		info.setKind(kind);
 		info.setPath(executableFile);
 		info.setVersion(version);
-		info.setTimeout(10.0);
+		info.setTimeout(5.0); // default timeout
 		info.setShowQueries(false);
 		info.setShowInconclusives(false);
 		info.setShowErrors(true);
-		if (kind == ProverKind.Why3) {
+		if (kind == ProverKind.CVC4) {
+
+		} else if (kind == ProverKind.CVC5) {
+			info.addOption("--lang=smt2"); // language is SMT-LIB2
+			info.addOption("--arrays-exp"); // experimental array features help
+		} else if (kind == ProverKind.Z3) {
+			info.addOption("-in"); // read input from stdin
+			info.addOption("-smt2"); // language is SMT-LIB2
+		} else if (kind == ProverKind.Why3) {
 			for (String why3prover : executableMap.keySet()) {
 				if (why3prover.equals("why3"))
 					continue;
@@ -302,58 +278,16 @@ public class ConfigFactory {
 		return info;
 	}
 
-	/**
-	 * Checks that a candidate dynamic library prover can be loaded, and, if so,
-	 * returns a new {@link ProverInfo} object corresponding to it.
-	 * 
-	 * @param kind
-	 *            the kind of the candidate theorem prover (should end in
-	 *            "_API")
-	 * @param alias
-	 *            the alias to assign to this prover in the configuration file
-	 * @param jnidylib
-	 *            the name of the JNI dynamic library that should be loaded,
-	 *            e.g. "cvc3jni"
-	 * @return a new {@link ProverInfo} object if that dynamic library was
-	 *         loaded successfully; otherwise, <code>null</code>
-	 */
-	private static ProverInfo processDynamicProver(ProverKind kind,
-			String alias, String jnidylib) {
-		String libraryName;
-
-		try {
-			libraryName = System.mapLibraryName(jnidylib);
-			System.loadLibrary(jnidylib);
-		} catch (Throwable e) {
-			return null;
-		}
-
-		ProverInfo info = new CommonProverInfo();
-
-		info.addAlias(alias);
-		info.setKind(kind);
-		info.setPath(new File(libraryName));
-		info.setVersion("UNKNOWN");
-		info.setTimeout(10.0);
-		info.setShowQueries(false);
-		info.setShowInconclusives(false);
-		info.setShowErrors(true);
-		return info;
-	}
-
 	// Public methods...
 
 	/**
 	 * Parses a SARL configuration file.
 	 * 
-	 * @param configFile
-	 *            the configuration file
+	 * @param configFile the configuration file
 	 * @return the {@link SARLConfig} object resulting from parsing that file
-	 * @throws IOException
-	 *             if anything goes wrong reading the file
-	 * @throws SARLException
-	 *             if the configuration file does not conform to the proper
-	 *             syntax
+	 * @throws IOException   if anything goes wrong reading the file
+	 * @throws SARLException if the configuration file does not conform to the
+	 *                       proper syntax
 	 */
 	public static SARLConfig fromFile(File configFile) throws IOException {
 		BufferedReader reader = new BufferedReader(new FileReader(configFile));
@@ -371,8 +305,7 @@ public class ConfigFactory {
 		st.slashStarComments(true);
 		st.lowerCaseMode(false);
 		st.wordChars('_', '_');
-		for (int token = st.nextToken(); token != TT_EOF; token = st
-				.nextToken()) {
+		for (int token = st.nextToken(); token != TT_EOF; token = st.nextToken()) {
 			if (token != TT_WORD || !"prover".equalsIgnoreCase(st.sval))
 				throw parseErr(configFile, st, "expected \"prover\"");
 			token = st.nextToken();
@@ -394,32 +327,27 @@ public class ConfigFactory {
 				case "aliases": {
 					int numAliases = 0;
 
-					for (token = st.nextToken(); token != ';'; token = st
-							.nextToken()) {
+					for (token = st.nextToken(); token != ';'; token = st.nextToken()) {
 						if (numAliases > 0) {
 							if (token != ',')
 								throw parseErr(configFile, st, "expected ','");
 							token = st.nextToken();
 						}
 						if (token != TT_WORD)
-							throw parseErr(configFile, st,
-									"expected a plain word to be used as alias");
+							throw parseErr(configFile, st, "expected a plain word to be used as alias");
 						if (!allAliases.add(st.sval))
-							throw parseErr(configFile, st,
-									"alias used more than once");
+							throw parseErr(configFile, st, "alias used more than once");
 						info.addAlias(st.sval);
 						numAliases++;
 					}
 					if (numAliases == 0)
-						throw parseErr(configFile, st,
-								"expected at least one alias");
+						throw parseErr(configFile, st, "expected at least one alias");
 					break;
 				}
 				case "path": {
 					token = st.nextToken();
 					if (token != '"' && token != '\'')
-						throw parseErr(configFile, st,
-								"expected quoted string");
+						throw parseErr(configFile, st, "expected quoted string");
 					if (info.getPath() != null)
 						throw parseErr(configFile, st, "more than one path");
 					info.setPath(new File(st.sval));
@@ -431,8 +359,7 @@ public class ConfigFactory {
 				case "options": {
 					boolean first = true;
 
-					for (token = st.nextToken(); token != ';'; token = st
-							.nextToken()) {
+					for (token = st.nextToken(); token != ';'; token = st.nextToken()) {
 						if (first)
 							first = false;
 						else {
@@ -441,8 +368,7 @@ public class ConfigFactory {
 							token = st.nextToken();
 						}
 						if (token != '"' && token != '\'')
-							throw parseErr(configFile, st,
-									"expected a quoted string");
+							throw parseErr(configFile, st, "expected a quoted string");
 						info.addOption(st.sval);
 					}
 					break;
@@ -450,8 +376,7 @@ public class ConfigFactory {
 				case "version": {
 					token = st.nextToken();
 					if (token != '"' && token != '\'')
-						throw parseErr(configFile, st,
-								"expected quoted string");
+						throw parseErr(configFile, st, "expected quoted string");
 					if (info.getVersion() != null)
 						throw parseErr(configFile, st, "more than one version");
 					info.setVersion(st.sval);
@@ -494,8 +419,7 @@ public class ConfigFactory {
 						value = false;
 						break;
 					default:
-						throw parseErr(configFile, st,
-								"expected true or false");
+						throw parseErr(configFile, st, "expected true or false");
 					}
 					switch (keyword) {
 					case "showQueries":
@@ -518,8 +442,7 @@ public class ConfigFactory {
 				case "timeout": {
 					token = st.nextToken();
 					if (token != TT_NUMBER)
-						throw parseErr(configFile, st,
-								"expected number (time in seconds)");
+						throw parseErr(configFile, st, "expected number (time in seconds)");
 					info.setTimeout(st.nval);
 					token = st.nextToken();
 					if (token != ';')
@@ -529,8 +452,7 @@ public class ConfigFactory {
 				case "environment": {
 					token = st.nextToken();
 					if (token != '"' && token != '\'')
-						throw parseErr(configFile, st,
-								"expected quoted string");
+						throw parseErr(configFile, st, "expected quoted string");
 					info.setEnv(st.sval);
 					token = st.nextToken();
 					if (token != ';')
@@ -538,8 +460,7 @@ public class ConfigFactory {
 					break;
 				}
 				default:
-					throw parseErr(configFile, st,
-							"unknown keyword: " + keyword);
+					throw parseErr(configFile, st, "unknown keyword: " + keyword);
 				} // end of switch
 			} // end of for
 			if (info.getKind() != ProverKind.Why3)
@@ -556,12 +477,12 @@ public class ConfigFactory {
 	}
 
 	/**
-	 * Looks for a SARL configuration file by first looking in the current
-	 * working directory for a file named <code>.sarl</code>. If no file by that
-	 * name is found, it looks in the user's home directory for
-	 * <code>.sarl</code>. If that is not found, it looks in the current working
-	 * directory for a file named <code>.sarl_default</code>. If that is not
-	 * found, it looks in the home directory for <code>.sarl_default</code>.
+	 * Looks for a SARL configuration file by first looking in the current working
+	 * directory for a file named <code>.sarl</code>. If no file by that name is
+	 * found, it looks in the user's home directory for <code>.sarl</code>. If that
+	 * is not found, it looks in the current working directory for a file named
+	 * <code>.sarl_default</code>. If that is not found, it looks in the home
+	 * directory for <code>.sarl_default</code>.
 	 * 
 	 * @return the SARL configuration file, or <code>null</code> if not found
 	 */
@@ -587,8 +508,8 @@ public class ConfigFactory {
 	/**
 	 * gets the user home directory:
 	 * 
-	 * if the vm argument -Duser.home=$HOME, the value of the environment
-	 * variable needs to be figured out.
+	 * if the vm argument -Duser.home=$HOME, the value of the environment variable
+	 * needs to be figured out.
 	 * 
 	 * @return
 	 */
@@ -605,49 +526,27 @@ public class ConfigFactory {
 	}
 
 	/**
-	 * Checks that a {@link SARLConfig} object corresponds to the actual system
-	 * on which we are running.
+	 * Checks that a {@link SARLConfig} object corresponds to the actual system on
+	 * which we are running.
 	 * 
-	 * @param config
-	 *            a {@link SARLConfig} object
-	 * @throws SARLException
-	 *             if a theorem prover specified in the config is not found, or
-	 *             cannot be executed/loaded, or does not have the version
-	 *             specified
+	 * @param config a {@link SARLConfig} object
+	 * @throws SARLException if a theorem prover specified in the config is not
+	 *                       found, or cannot be executed/loaded, or does not have
+	 *                       the version specified
 	 */
 	public static void checkConfig(SARLConfig config) throws SARLException {
 		for (ProverInfo info : config.getProvers()) {
 			if (info.isExecutable()) {
-				ProverInfo reread = processExecutableProver(info.getKind(),
-						info.getFirstAlias(), info.getPath());
+				ProverInfo reread = processExecutableProver(info.getKind(), info.getFirstAlias(), info.getPath());
 
 				if (reread == null)
-					throw new SARLException("no theorem prover "
-							+ info.getFirstAlias() + " at " + info.getPath());
+					throw new SARLException("no theorem prover " + info.getFirstAlias() + " at " + info.getPath());
 				if (!reread.getVersion().equals(info.getVersion()))
-					throw new SARLException("expected version "
-							+ info.getVersion() + " for " + info.getFirstAlias()
+					throw new SARLException("expected version " + info.getVersion() + " for " + info.getFirstAlias()
 							+ " but found " + reread.getVersion());
 			} else {
-				for (Entry<String, ProverKind> entry : dylibMap.entrySet()) {
-					if (entry.getValue() == info.getKind()) {
-						File path = new File(
-								System.mapLibraryName(entry.getKey()));
-
-						if (path.equals(info.getPath())) {
-							try {
-								System.loadLibrary(entry.getKey());
-								return;
-							} catch (Throwable e) {
-								throw new SARLException(
-										"unable to load dynamic library "
-												+ path);
-							}
-						}
-					}
-				}
-				throw new SARLException("dynamic library " + info.getPath()
-						+ " for " + info.getFirstAlias() + " not found");
+				throw new SARLException(
+						"dynamic library " + info.getPath() + " for " + info.getFirstAlias() + " not found");
 			}
 		}
 	}
@@ -655,14 +554,11 @@ public class ConfigFactory {
 	/**
 	 * Finds and parses the SARL configuration file.
 	 * 
-	 * @return {@link SARLConfig} object resulting from parsing the
-	 *         configuration file, or <code>null</code> if a configuration file
-	 *         was not found
-	 * @throws IOException
-	 *             if anything goes wrong reading the configuration file
-	 * @throws SARLException
-	 *             if the configuration file does not conform to the proper
-	 *             syntax
+	 * @return {@link SARLConfig} object resulting from parsing the configuration
+	 *         file, or <code>null</code> if a configuration file was not found
+	 * @throws IOException   if anything goes wrong reading the configuration file
+	 * @throws SARLException if the configuration file does not conform to the
+	 *                       proper syntax
 	 */
 	public static SARLConfig findConfig() throws IOException {
 		File configFile = findSARLConfigFile();
@@ -676,9 +572,8 @@ public class ConfigFactory {
 	 * Searches for theorem provers on the user's system and creates a SARL
 	 * configuration file <code>.sarl</code> in the user's home directory.
 	 * 
-	 * @throws FileNotFoundException
-	 *             if the configuration file cannot be created in the home
-	 *             directory
+	 * @throws FileNotFoundException if the configuration file cannot be created in
+	 *                               the home directory
 	 */
 	public static void makeConfigFile() throws FileNotFoundException {
 		File userHomeDir = getHomeDir();
@@ -688,13 +583,11 @@ public class ConfigFactory {
 			if (configFile.isFile()) {
 				File newLocation = new File(userHomeDir, ".sarl.old");
 
-				out.println("Moving existing SARL configuration file to "
-						+ newLocation.getAbsolutePath());
+				out.println("Moving existing SARL configuration file to " + newLocation.getAbsolutePath());
 				out.flush();
 				configFile.renameTo(newLocation);
 			} else {
-				System.err.println("Remove the non-ordinary-file "
-						+ configFile.getAbsolutePath() + " and try again.");
+				System.err.println("Remove the non-ordinary-file " + configFile.getAbsolutePath() + " and try again.");
 				System.err.flush();
 				System.exit(2);
 			}
@@ -710,18 +603,13 @@ public class ConfigFactory {
 		out.println("Creating SARL configuration file in " + configFile);
 		out.flush();
 		stream.println("/* This is a SARL configuration file.");
-		stream.println(
-				" * It contains one entry for each theorem prover SARL may use.");
-		stream.println(
-				" * To resolve a query, by default, SARL will use the first prover here.");
-		stream.println(
-				" * If that result in inconclusive, it will try the second prover.");
-		stream.println(
-				" * And so on, until a conclusive result has been reached, or all provers");
+		stream.println(" * It contains one entry for each theorem prover SARL may use.");
+		stream.println(" * To resolve a query, by default, SARL will use the first prover here.");
+		stream.println(" * If that result in inconclusive, it will try the second prover.");
+		stream.println(" * And so on, until a conclusive result has been reached, or all provers");
 		stream.println(" * have been exhausted.");
 		stream.println(" * ");
-		stream.println(
-				" * SARL looks for a configuration file by looking in the following");
+		stream.println(" * SARL looks for a configuration file by looking in the following");
 		stream.println(" * places in order:");
 		stream.println(" * 1. .sarl in current working directory");
 		stream.println(" * 2. .sarl in user's home directory");
@@ -750,19 +638,14 @@ public class ConfigFactory {
 
 					if (kind != null) {
 						String alias = kind.toString().toLowerCase();
-						ProverInfo prover = processExecutableProver(kind, alias,
-								file);
+						ProverInfo prover = processExecutableProver(kind, alias, file);
 
 						if (prover != null) {
-							String msg = kind + " version "
-									+ prover.getVersion() + " at "
-									+ prover.getPath();
+							String msg = kind + " version " + prover.getVersion() + " at " + prover.getPath();
 							ProverInfo oldProver = executableFoundMap.get(kind);
 
 							if (oldProver != null) {
-								int compare = compareVersions(
-										prover.getVersion(),
-										oldProver.getVersion());
+								int compare = compareVersions(prover.getVersion(), oldProver.getVersion());
 
 								if (compare == 0) {
 									out.println("Ignoring equivalent " + msg);
@@ -774,8 +657,7 @@ public class ConfigFactory {
 									out.flush();
 									continue;
 								}
-								out.println("Replacing previous " + kind
-										+ " with " + msg);
+								out.println("Replacing previous " + kind + " with " + msg);
 								out.flush();
 							} else {
 								out.println("Adding " + msg);
@@ -787,20 +669,6 @@ public class ConfigFactory {
 			}
 		}
 		provers.addAll(executableFoundMap.values());
-		// now the dynamic libraries...
-		for (Entry<String, ProverKind> entry : dylibMap.entrySet()) {
-			String libraryName = entry.getKey();
-			ProverKind kind = entry.getValue();
-			String alias = kind.toString().toLowerCase();
-			ProverInfo prover = processDynamicProver(kind, alias, libraryName);
-
-			if (prover != null) {
-				out.println("Found " + kind + " implemented as native library "
-						+ libraryName);
-				out.flush();
-				provers.add(prover);
-			}
-		}
 		Collections.sort(provers);
 		for (ProverInfo prover : provers) {
 			prover.print(stream);
@@ -808,21 +676,15 @@ public class ConfigFactory {
 		}
 		stream.close();
 		if (provers.isEmpty()) {
-			err.println(
-					"No appropriate theorem provers were found in your PATH.");
-			err.println(
-					"SARL's theorem proving capability will be very limited.");
-			err.println(
-					"Consider installing at least one of CVC3, CVC4, or Z3.");
+			err.println("No appropriate theorem provers were found in your PATH.");
+			err.println("SARL's theorem proving capability will be very limited.");
+			err.println("Consider installing at least one of CVC3, CVC4, or Z3.");
 			err.flush();
 		}
-		out.println("SARL configuration file created successfully in "
-				+ configFile.getAbsolutePath());
-		out.println(
-				"By default, SARL will use all provers listed in the configuration file,");
+		out.println("SARL configuration file created successfully in " + configFile.getAbsolutePath());
+		out.println("By default, SARL will use all provers listed in the configuration file,");
 		out.println("in order, until a conclusive result is obtained.");
-		out.println(
-				"Edit the file as necessary to remove or change the order of provers.");
+		out.println("Edit the file as necessary to remove or change the order of provers.");
 		out.flush();
 	}
 }

@@ -263,12 +263,10 @@ public class CommonProverInfo implements ProverInfo {
 	public boolean isExecutable() {
 		switch (kind) {
 		case CVC4:
+		case CVC5:
 		case Z3:
 		case Why3:
 			return true;
-		case CVC4_API:
-		case Z3_API:
-			return false;
 		default:
 			throw new SARLInternalException("unreachable");
 		}

@@ -307,7 +307,7 @@ public class MemTest {
 	
 	@Test
 	public void memHavoc2Mallocs() throws ABCException {
-		assertTrue(ui.run(VERIFY, "-checkMemoryLeak=false", filename("mem_havoc_2mallocs.cvl")));
+		assertTrue(ui.run(VERIFY, QUIET, "-checkMemoryLeak=false", filename("mem_havoc_2mallocs.cvl")));
 	}
 
 	@Test

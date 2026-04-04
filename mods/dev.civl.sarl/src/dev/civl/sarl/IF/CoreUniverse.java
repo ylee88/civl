@@ -38,7 +38,7 @@ import dev.civl.sarl.IF.object.SymbolicObject;
 import dev.civl.sarl.IF.type.SymbolicArrayType;
 import dev.civl.sarl.IF.type.SymbolicCompleteArrayType;
 import dev.civl.sarl.IF.type.SymbolicFunctionType;
-import dev.civl.sarl.IF.type.SymbolicFunctionType.SpeicalRelationKind;
+import dev.civl.sarl.IF.type.SymbolicFunctionType.SpecialRelationKind;
 import dev.civl.sarl.IF.type.SymbolicIntegerType;
 import dev.civl.sarl.IF.type.SymbolicMapType;
 import dev.civl.sarl.IF.type.SymbolicRealType;
@@ -429,7 +429,7 @@ public interface CoreUniverse {
 	 */
 	SymbolicFunctionType functionType(
 			Iterable<? extends SymbolicType> inputTypes,
-			SymbolicType outputType, SpeicalRelationKind relKind);
+			SymbolicType outputType, SpecialRelationKind relKind);
 
 	// 	@formatter:off
 

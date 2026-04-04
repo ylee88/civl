@@ -45,8 +45,7 @@ import dev.civl.sarl.util.autotg.TestTranslator;
  * 
  * @author siegel
  */
-public class CommonSymbolicUniverse extends CommonPreUniverse
-		implements SymbolicUniverse {
+public class CommonSymbolicUniverse extends CommonPreUniverse implements SymbolicUniverse {
 
 	/**
 	 * The factory for producing new Reasoner instances.
@@ -60,26 +59,23 @@ public class CommonSymbolicUniverse extends CommonPreUniverse
 
 	/**
 	 * A reference to a {@link TestTranslator}, which is instantiated when
-	 * {@link #enableSARLTestGeneration(boolean)} is called with argument equals
-	 * to true.
+	 * {@link #enableSARLTestGeneration(boolean)} is called with argument equals to
+	 * true.
 	 */
 	private TestTranslator sarlTestGenerator = null;
 
 	/**
-	 * A list of logic function definitions that will be sent to a reasoner
-	 * whenever a reasoner is created because a prover query may invloves logic
-	 * functions.
+	 * A list of logic function definitions that will be sent to a reasoner whenever
+	 * a reasoner is created because a prover query may involve logic functions.
 	 */
 	private ProverFunctionInterpretation logicFunctions[] = new ProverFunctionInterpretation[0];
 
 	// Constructor...
 
 	/**
-	 * Constructs a new CommonSymbolicUniverse from the given system of
-	 * factories.
+	 * Constructs a new CommonSymbolicUniverse from the given system of factories.
 	 * 
-	 * @param system
-	 *            a factory system
+	 * @param system a factory system
 	 */
 	public CommonSymbolicUniverse(FactorySystem system) {
 		super(system);
@@ -96,8 +92,7 @@ public class CommonSymbolicUniverse extends CommonPreUniverse
 
 	@Override
 	public Reasoner reasoner(List<BooleanExpression> contextStack) {
-		return reasonerFactory.getReasoner(contextStack,
-				getUseBackwardSubstitution(), logicFunctions);
+		return reasonerFactory.getReasoner(contextStack, getUseBackwardSubstitution(), logicFunctions);
 	}
 
 	public void setReasonerFactory(ReasonerFactory reasonerFactory) {
@@ -105,8 +100,7 @@ public class CommonSymbolicUniverse extends CommonPreUniverse
 	}
 
 	@Override
-	public Number extractNumber(BooleanExpression assumption,
-			NumericExpression expression) {
+	public Number extractNumber(BooleanExpression assumption, NumericExpression expression) {
 		Number result = extractNumber(expression);
 
 		if (result != null)
@@ -115,22 +109,18 @@ public class CommonSymbolicUniverse extends CommonPreUniverse
 	}
 
 	@Override
-	public SymbolicExpression valueSetWidening(BooleanExpression context,
-			SymbolicExpression valueSetTemplate) {
+	public SymbolicExpression valueSetWidening(BooleanExpression context, SymbolicExpression valueSetTemplate) {
 		if (!expressionFactory.isValueSetTemplateType(valueSetTemplate.type()))
 			throw new SARLException("the operand: " + valueSetTemplate
 					+ " of the widening operator does not have value set template type");
-		SymbolicType valueType = getValueTypeOfValueSetTemplate(
-				valueSetTemplate);
+		SymbolicType valueType = getValueTypeOfValueSetTemplate(valueSetTemplate);
 		SymbolicExpression refArr = tupleRead(valueSetTemplate, intObject(1));
 
-		return expressionFactory.valueSetWidening(reasoner(context), valueType,
-				refArr);
+		return expressionFactory.valueSetWidening(reasoner(context), valueType, refArr);
 	}
 
 	@Override
-	public SymbolicExpression valueSetProtectiveWidening(
-			BooleanExpression context, SymbolicExpression vstM,
+	public SymbolicExpression valueSetProtectiveWidening(BooleanExpression context, SymbolicExpression vstM,
 			SymbolicExpression vstP) {
 		assert vstM != null && vstP != null;
 		if (!expressionFactory.isValueSetTemplateType(vstM.type()))
@@ -142,48 +132,39 @@ public class CommonSymbolicUniverse extends CommonPreUniverse
 		SymbolicType valueTypeM = getValueTypeOfValueSetTemplate(vstM);
 		SymbolicType valueTypeP = getValueTypeOfValueSetTemplate(vstP);
 		if (!valueTypeM.equals(valueTypeP)) {
-			throw new SARLException(
-					"Value types of m and p in protective widening are not the same."
-							+ " m value type: " + valueTypeM
-							+ ". p value type: " + valueTypeP + ".");
+			throw new SARLException("Value types of m and p in protective widening are not the same."
+					+ " m value type: " + valueTypeM + ". p value type: " + valueTypeP + ".");
 		}
 		SymbolicExpression refArrM = tupleRead(vstM, intObject(1));
 		SymbolicExpression refArrP = tupleRead(vstP, intObject(1));
 
-		return expressionFactory.valueSetProtectiveWidening(reasoner(context),
-				valueTypeM, refArrM, refArrP);
+		return expressionFactory.valueSetProtectiveWidening(reasoner(context), valueTypeM, refArrM, refArrP);
 	}
 
 	@Override
-	public SymbolicExpression valueSetElimWidening(BooleanExpression context,
-			SymbolicExpression vst, SymbolicExpression elimExpr,
-			SymbolicExpression lower, SymbolicExpression upper) {
+	public SymbolicExpression valueSetElimWidening(BooleanExpression context, SymbolicExpression vst,
+			SymbolicExpression elimExpr, SymbolicExpression lower, SymbolicExpression upper) {
 		if (!expressionFactory.isValueSetTemplateType(vst.type())) {
-			throw new SARLException("the operand: " + vst
-					+ " of the elim widening"
+			throw new SARLException("the operand: " + vst + " of the elim widening"
 					+ " operator does not have value set template type");
 		}
 		if (elimExpr.type().typeKind() != SymbolicTypeKind.INTEGER) {
 			throw new SARLException(
-					"the operand: " + elimExpr + " of the elim widening"
-							+ " operator does not have integer type");
+					"the operand: " + elimExpr + " of the elim widening" + " operator does not have integer type");
 		}
 		if (lower.type().typeKind() != SymbolicTypeKind.INTEGER) {
 			throw new SARLException(
-					"the operand: " + lower + " of the elim widening"
-							+ " operator does not have integer type");
+					"the operand: " + lower + " of the elim widening" + " operator does not have integer type");
 		}
 		if (upper.type().typeKind() != SymbolicTypeKind.INTEGER) {
 			throw new SARLException(
-					"the operand: " + upper + " of the elim widening"
-							+ " operator does not have integer type");
+					"the operand: " + upper + " of the elim widening" + " operator does not have integer type");
 		}
 		SymbolicType valueType = getValueTypeOfValueSetTemplate(vst);
 		SymbolicExpression refArr = tupleRead(vst, intObject(1));
 
-		return expressionFactory.valueSetElimWidening(reasoner(context),
-				valueType, refArr, elimExpr, (NumericExpression) lower,
-				(NumericExpression) upper);
+		return expressionFactory.valueSetElimWidening(reasoner(context), valueType, refArr, elimExpr,
+				(NumericExpression) lower, (NumericExpression) upper);
 	}
 
 	@Override
@@ -191,8 +172,7 @@ public class CommonSymbolicUniverse extends CommonPreUniverse
 		if (why3ReasonerFactory == null)
 			return reasoner(context);
 		else
-			return why3ReasonerFactory.getReasoner(context,
-					getUseBackwardSubstitution(), logicFunctions);
+			return why3ReasonerFactory.getReasoner(context, getUseBackwardSubstitution(), logicFunctions);
 	}
 
 	public void setWhy3ReasonerFactory(ReasonerFactory reasonerFactory) {
@@ -209,12 +189,10 @@ public class CommonSymbolicUniverse extends CommonPreUniverse
 	}
 
 	@Override
-	public void saveValidCallAsSARLTest(BooleanExpression context,
-			BooleanExpression predicate, ResultType expectedResult,
-			boolean useWhy3, String testName, String... comments) {
+	public void saveValidCallAsSARLTest(BooleanExpression context, BooleanExpression predicate,
+			ResultType expectedResult, boolean useWhy3, String testName, String... comments) {
 		if (sarlTestGenerator != null)
-			sarlTestGenerator.generateValidCheckMethod(context, predicate,
-					expectedResult, useWhy3, testName, comments);
+			sarlTestGenerator.generateValidCheckMethod(context, predicate, expectedResult, useWhy3, testName, comments);
 	}
 
 	@Override
@@ -224,8 +202,7 @@ public class CommonSymbolicUniverse extends CommonPreUniverse
 	}
 
 	@Override
-	public void setLogicFunctions(
-			ProverFunctionInterpretation[] logicFunctions) {
+	public void setLogicFunctions(ProverFunctionInterpretation[] logicFunctions) {
 		if (logicFunctions != null)
 			this.logicFunctions = logicFunctions;
 		else

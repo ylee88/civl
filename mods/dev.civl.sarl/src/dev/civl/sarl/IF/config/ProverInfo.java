@@ -15,36 +15,31 @@ import java.util.Set;
 public interface ProverInfo extends Comparable<ProverInfo> {
 
 	/**
-	 * A classification of the different kinds of theorem provers. They are
-	 * ordered from most preferred to least preferred by SARL.
+	 * A classification of the different kinds of theorem provers. They are ordered
+	 * from most preferred to least preferred by SARL.
 	 */
 	public static enum ProverKind {
-		/**
-		 * CVC4 using CVC4's presentation language through its command line
-		 * interface.
-		 */
-		CVC4,
 		/**
 		 * Microsoft's Z3, using SMT-LIB2 through Z3's command line interface.
 		 */
 		Z3,
 		/**
-		 * Microsoft's Z3, using its Java API.
+		 * CVC4, using SMT-LIB2 through CVC5's command line interface.
 		 */
-		Z3_API,
+		CVC5,
 		/**
-		 * CVC4, using its Java API.
+		 * CVC4 using CVC4's presentation language through its command line interface.
 		 */
-		CVC4_API,
+		CVC4,
 		/**
-		 * Why3-prove-platform, calling through commandline.
+		 * Why3-prove-platform, calling through command line.
 		 */
 		Why3
 	};
 
 	/**
-	 * Returns the set of aliases associated to this theorem prover. The set
-	 * should not be modified.
+	 * Returns the set of aliases associated to this theorem prover. The set should
+	 * not be modified.
 	 * 
 	 * @return the set of aliases associated to this theorem prover
 	 */
@@ -60,10 +55,9 @@ public interface ProverInfo extends Comparable<ProverInfo> {
 	/**
 	 * Adds the given string to the set of aliases.
 	 * 
-	 * @param value
-	 *            the string to add to the set of aliases
-	 * @return <code>true</code> if the set of aliases did not already contain
-	 *         the given value
+	 * @param value the string to add to the set of aliases
+	 * @return <code>true</code> if the set of aliases did not already contain the
+	 *         given value
 	 */
 	boolean addAlias(String value);
 
@@ -78,8 +72,7 @@ public interface ProverInfo extends Comparable<ProverInfo> {
 	/**
 	 * Adds the given string to the end of the list of options.
 	 * 
-	 * @param value
-	 *            the string to add
+	 * @param value the string to add
 	 */
 	void addOption(String value);
 
@@ -93,14 +86,13 @@ public interface ProverInfo extends Comparable<ProverInfo> {
 	/**
 	 * Sets the timeout, i.e., the time limit in seconds.
 	 * 
-	 * @param value
-	 *            the time limit in seconds or -1 if the time is unlimited
+	 * @param value the time limit in seconds or -1 if the time is unlimited
 	 */
 	void setTimeout(double value);
 
 	/**
-	 * The kind of theorem prover this is. This is a classification by kind of
-	 * input language the prover expects.
+	 * The kind of theorem prover this is. This is a classification by kind of input
+	 * language the prover expects.
 	 * 
 	 * @return kind of this prover
 	 */
@@ -109,37 +101,35 @@ public interface ProverInfo extends Comparable<ProverInfo> {
 	/**
 	 * Sets the prover kind.
 	 * 
-	 * @param value
-	 *            the prover kind
+	 * @param value the prover kind
 	 */
 	void setKind(ProverKind value);
 
 	/**
-	 * The path to the executable theorem prover. This should be an absolute
-	 * path to an executable file.
+	 * The path to the executable theorem prover. This should be an absolute path to
+	 * an executable file.
 	 * 
 	 * @return path to executable
 	 */
 	File getPath();
 
 	/**
-	 * Sets the path to the executable theorem prover. This should be an
-	 * absolute path to an executable file.
+	 * Sets the path to the executable theorem prover. This should be an absolute
+	 * path to an executable file.
 	 * 
 	 * @param value
 	 */
 	void setPath(File value);
 
 	/**
-	 * @return The environment (the PATH for looking for executables) that is
-	 *         needed by why3 to run the provers.
+	 * @return The environment (the PATH for looking for executables) that is needed
+	 *         by why3 to run the provers.
 	 */
 	String getEnv();
 
 	/**
-	 * @param environment
-	 *            Set the environment (the PATH for looking for executables)
-	 *            that is needed by why3 to run the provers.
+	 * @param environment Set the environment (the PATH for looking for executables)
+	 *                    that is needed by why3 to run the provers.
 	 */
 	void setEnv(String environment);
 
@@ -153,8 +143,7 @@ public interface ProverInfo extends Comparable<ProverInfo> {
 	/**
 	 * Sets the version string.
 	 * 
-	 * @param value
-	 *            the version string
+	 * @param value the version string
 	 */
 	void setVersion(String value);
 
@@ -168,8 +157,7 @@ public interface ProverInfo extends Comparable<ProverInfo> {
 	/**
 	 * Tell this prover whether it should print every query.
 	 * 
-	 * @param value
-	 *            <code>true</code> if this prover should print queries
+	 * @param value <code>true</code> if this prover should print queries
 	 */
 	void setShowQueries(boolean value);
 
@@ -186,28 +174,26 @@ public interface ProverInfo extends Comparable<ProverInfo> {
 	 * Sets whether the prover prints a message every time it reports an
 	 * inconclusive result.
 	 * 
-	 * @param value
-	 *            <code>true</code> if a message should be printed for every
-	 *            inconclusive result
+	 * @param value <code>true</code> if a message should be printed for every
+	 *              inconclusive result
 	 */
 	void setShowInconclusives(boolean value);
 
 	/**
-	 * Should the prover print a message every time the underlying theorem
-	 * prover reports an error? (In any case, the error is interpreted as an
-	 * inconclusive result.)
+	 * Should the prover print a message every time the underlying theorem prover
+	 * reports an error? (In any case, the error is interpreted as an inconclusive
+	 * result.)
 	 * 
 	 * @return <code>true</code> if a message should be printed for every error
 	 */
 	boolean getShowErrors();
 
 	/**
-	 * Sets whether the prover prints a message every time the underlying
-	 * theorem prover reports an error. (In any case, the error is interpreted
-	 * as an inconclusive result.)
+	 * Sets whether the prover prints a message every time the underlying theorem
+	 * prover reports an error. (In any case, the error is interpreted as an
+	 * inconclusive result.)
 	 * 
-	 * @param <code>true</code>
-	 *            if a message should be printed for every error
+	 * @param <code>true</code> if a message should be printed for every error
 	 */
 	void setShowErrors(boolean value);
 
@@ -215,8 +201,7 @@ public interface ProverInfo extends Comparable<ProverInfo> {
 	 * Prints a complete representation of this object in the format that is
 	 * expected in a SARL configuration file.
 	 * 
-	 * @param out
-	 *            where to print
+	 * @param out where to print
 	 */
 	void print(PrintStream out);
 

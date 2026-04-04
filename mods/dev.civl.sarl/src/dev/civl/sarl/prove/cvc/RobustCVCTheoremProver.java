@@ -25,7 +25,6 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.LinkedList;
 
-import dev.civl.sarl.IF.SARLConstants;
 import dev.civl.sarl.IF.SARLException;
 import dev.civl.sarl.IF.TheoremProverException;
 import dev.civl.sarl.IF.ValidityResult;
@@ -52,16 +51,15 @@ public class RobustCVCTheoremProver implements TheoremProver {
 	// ************************** Static Fields *************************** //
 
 	/**
-	 * Nick-name for <code>stderr</code>, where warnings and error messages will
-	 * be sent.
+	 * Nick-name for <code>stderr</code>, where warnings and error messages will be
+	 * sent.
 	 */
 	public static final PrintStream err = System.err;
 	// ****************************** Fields ****************************** //
 
 	/**
-	 * Info object on underlying theorem prover, which will have
-	 * {@link ProverKind} either {@link ProverKind#CVC3} or
-	 * {@link ProverKind#CVC4}
+	 * Info object on underlying theorem prover, which will have {@link ProverKind}
+	 * either {@link ProverKind#CVC3} or {@link ProverKind#CVC4}
 	 */
 	private ProverInfo info;
 
@@ -72,8 +70,8 @@ public class RobustCVCTheoremProver implements TheoremProver {
 	private ProcessBuilder processBuilder;
 
 	/**
-	 * The symbolic universe used for managing symbolic expressions. Initialized
-	 * by constructor and never changes.
+	 * The symbolic universe used for managing symbolic expressions. Initialized by
+	 * constructor and never changes.
 	 */
 	private PreUniverse universe;
 
@@ -88,23 +86,18 @@ public class RobustCVCTheoremProver implements TheoremProver {
 	/**
 	 * Constructs new CVC theorem prover for the given context.
 	 * 
-	 * @param universe
-	 *            the controlling symbolic universe
-	 * @param context
-	 *            the assumption(s) the prover will use for queries
-	 * @param ProverInfo
-	 *            information object on the underlying theorem prover, which
-	 *            must have {@link ProverKind} either {@link ProverKind#CVC3} or
-	 *            {@link ProverKind#CVC4}
-	 * @param logicFunctions
-	 *            a list of {@link ProverFunctionInterpretation}s which are the
-	 *            logic function definitions
-	 * @throws TheoremProverException
-	 *             if the context contains something CVC just can't handle
+	 * @param universe       the controlling symbolic universe
+	 * @param context        the assumption(s) the prover will use for queries
+	 * @param ProverInfo     information object on the underlying theorem prover,
+	 *                       which must have {@link ProverKind} either
+	 *                       {@link ProverKind#CVC3} or {@link ProverKind#CVC4}
+	 * @param logicFunctions a list of {@link ProverFunctionInterpretation}s which
+	 *                       are the logic function definitions
+	 * @throws TheoremProverException if the context contains something CVC just
+	 *                                can't handle
 	 */
-	RobustCVCTheoremProver(PreUniverse universe, BooleanExpression context,
-			ProverInfo info, ProverFunctionInterpretation[] logicFunctions)
-			throws TheoremProverException {
+	RobustCVCTheoremProver(PreUniverse universe, BooleanExpression context, ProverInfo info,
+			ProverFunctionInterpretation[] logicFunctions) throws TheoremProverException {
 		LinkedList<String> command = new LinkedList<>();
 
 		assert universe != null;
@@ -119,14 +112,13 @@ public class RobustCVCTheoremProver implements TheoremProver {
 		// free variable with the same name because it is caching translation
 		// Also, this translator requires this assumption too now.
 		context = (BooleanExpression) universe.cleanBoundVariables(context);
-		this.assumptionTranslator = new CVCTranslator(universe, context,
-				SARLConstants.enableProverIntDivSimplification, logicFunctions);
+		this.assumptionTranslator = new CVCTranslator(universe, context, logicFunctions);
 		command.add(info.getPath().getAbsolutePath());
 		command.addAll(info.getOptions());
 		command.add("--quiet");
 		command.add("--lang=cvc4");
 		command.add("--no-interactive");
-		//command.add("--rewrite-divk"); // this appears to be gone in v1.8
+		// command.add("--rewrite-divk"); // this appears to be gone in v1.8
 		// solve non_linear
 		// command.add("--force-logic=AUFNIRA");
 		// also try "--use-theory=idl", which can sometimes solve non-linear
@@ -134,8 +126,7 @@ public class RobustCVCTheoremProver implements TheoremProver {
 		this.processBuilder = new ProcessBuilder(command);
 	}
 
-	private ValidityResult readCVCOutput(BufferedReader cvcOut,
-			BufferedReader cvcErr) {
+	private ValidityResult readCVCOutput(BufferedReader cvcOut, BufferedReader cvcErr) {
 		try {
 			String line = cvcOut.readLine();
 
@@ -143,8 +134,7 @@ public class RobustCVCTheoremProver implements TheoremProver {
 				if (info.getShowErrors() || info.getShowInconclusives()) {
 					try {
 						if (cvcErr.ready()) {
-							PrintStream exp = new PrintStream(
-									new File(universe.getErrFile()));
+							PrintStream exp = new PrintStream(new File(universe.getErrFile()));
 
 							printProverUnexpectedException(cvcErr, exp);
 							exp.close();
@@ -161,10 +151,8 @@ public class RobustCVCTheoremProver implements TheoremProver {
 			if (("invalid").equals(line) || ("not_entailed").equals(line))
 				return Prove.RESULT_NO;
 			if (info.getShowInconclusives()) {
-				err.println(info.getFirstAlias()
-						+ " inconclusive with message: " + line);
-				for (line = cvcOut.readLine(); line != null; line = cvcOut
-						.readLine()) {
+				err.println(info.getFirstAlias() + " inconclusive with message: " + line);
+				for (line = cvcOut.readLine(); line != null; line = cvcOut.readLine()) {
 					err.println(line);
 				}
 			}
@@ -173,8 +161,7 @@ public class RobustCVCTheoremProver implements TheoremProver {
 			throw new SARLException("Unexpected cvc4 output: " + line);
 		} catch (IOException e) {
 			if (info.getShowErrors())
-				err.println("I/O error reading " + info.getFirstAlias()
-						+ " output: " + e.getMessage());
+				err.println("I/O error reading " + info.getFirstAlias() + " output: " + e.getMessage());
 			return Prove.RESULT_MAYBE;
 		}
 	}
@@ -182,23 +169,17 @@ public class RobustCVCTheoremProver implements TheoremProver {
 	/**
 	 * Run cvc3/cvc4 to reason about the predicate
 	 * 
-	 * @param predicate
-	 *            a boolean expression representing the predicate
-	 * @param id
-	 *            the ID number of the prover call
-	 * @param show
-	 *            true to print the CVC script
-	 * @param out
-	 *            the output stream
-	 * @param checkUNSAT
-	 *            true for testing if the predicate and the context is
-	 *            unsatisfiable; false for testing if the context entails the
-	 *            predicate
+	 * @param predicate  a boolean expression representing the predicate
+	 * @param id         the ID number of the prover call
+	 * @param show       true to print the CVC script
+	 * @param out        the output stream
+	 * @param checkUNSAT true for testing if the predicate and the context is
+	 *                   unsatisfiable; false for testing if the context entails the
+	 *                   predicate
 	 * @return
 	 */
-	private ValidityResult runCVC(BooleanExpression predicate,
-			boolean checkUNSAT, int id, boolean show, PrintStream out)
-			throws TheoremProverException {
+	private ValidityResult runCVC(BooleanExpression predicate, boolean checkUNSAT, int id, boolean show,
+			PrintStream out) throws TheoremProverException {
 		Process process = null;
 		ValidityResult result = null;
 
@@ -206,35 +187,27 @@ public class RobustCVCTheoremProver implements TheoremProver {
 			process = processBuilder.start();
 		} catch (IOException e) {
 			if (info.getShowErrors())
-				err.println("I/O exception reading " + info.getFirstAlias()
-						+ " output: " + e.getMessage());
+				err.println("I/O exception reading " + info.getFirstAlias() + " output: " + e.getMessage());
 			result = Prove.RESULT_MAYBE;
 		}
 		try {
 			if (result == null) {
 				PrintStream stdin = new PrintStream(process.getOutputStream());
-				BufferedReader stdout = new BufferedReader(
-						new InputStreamReader(process.getInputStream()));
-				BufferedReader stderr = new BufferedReader(
-						new InputStreamReader(process.getErrorStream()));
-				FastList<String> assumptionDecls = assumptionTranslator
-						.getDeclarations();
-				FastList<String> assumptionText = assumptionTranslator
-						.getTranslation();
+				BufferedReader stdout = new BufferedReader(new InputStreamReader(process.getInputStream()));
+				BufferedReader stderr = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+				FastList<String> assumptionDecls = assumptionTranslator.getDeclarations();
+				FastList<String> assumptionText = assumptionTranslator.getTranslation();
 
-				predicate = (BooleanExpression) universe
-						.cleanBoundVariables(predicate);
+				predicate = (BooleanExpression) universe.cleanBoundVariables(predicate);
 
-				CVCTranslator translator = new CVCTranslator(
-						assumptionTranslator, predicate);
+				CVCTranslator translator = new CVCTranslator(assumptionTranslator, predicate);
 				FastList<String> predicateDecls = translator.getDeclarations();
 				FastList<String> predicateText = translator.getTranslation();
 
 				if (show) {
 					String queryKind = checkUNSAT ? "check-unsat" : "";
 
-					out.print("\n" + info.getFirstAlias() + queryKind
-							+ " predicate   " + id + ":\n");
+					out.print("\n" + info.getFirstAlias() + queryKind + " predicate   " + id + ":\n");
 					predicateDecls.print(out);
 					predicateText.print(out);
 					out.println();
@@ -265,11 +238,9 @@ public class RobustCVCTheoremProver implements TheoremProver {
 				}
 				stdin.flush();
 				stdin.close();
-				if (info.getTimeout() > 0 && !ProcessControl
-						.waitForProcess(process, info.getTimeout())) {
+				if (info.getTimeout() > 0 && !ProcessControl.waitForProcess(process, info.getTimeout())) {
 					if (info.getShowErrors() || info.getShowInconclusives())
-						err.println(info.getFirstAlias() + " query       " + id
-								+ ": time out");
+						err.println(info.getFirstAlias() + " query       " + id + ": time out");
 					result = Prove.RESULT_MAYBE;
 				} else {
 					result = readCVCOutput(stdout, stderr);
@@ -290,8 +261,7 @@ public class RobustCVCTheoremProver implements TheoremProver {
 	public ValidityResult valid(BooleanExpression predicate) {
 		PrintStream out = universe.getOutputStream();
 		int id = universe.numProverValidCalls();
-		FastList<String> assumptionDecls = assumptionTranslator
-				.getDeclarations();
+		FastList<String> assumptionDecls = assumptionTranslator.getDeclarations();
 		FastList<String> assumptionText = assumptionTranslator.getTranslation();
 		boolean show = universe.getShowProverQueries() || info.getShowQueries();
 
@@ -315,8 +285,7 @@ public class RobustCVCTheoremProver implements TheoremProver {
 			result = Prove.RESULT_MAYBE;
 		}
 		if (show) {
-			out.println(info.getFirstAlias() + " result      " + id + ": "
-					+ result);
+			out.println(info.getFirstAlias() + " result      " + id + ": " + result);
 			out.flush();
 		}
 		return result;
@@ -332,8 +301,7 @@ public class RobustCVCTheoremProver implements TheoremProver {
 		return "RobustCVCTheoremProver[" + info.getFirstAlias() + "]";
 	}
 
-	void printProverUnexpectedException(BufferedReader proverErr,
-			PrintStream exp) throws IOException {
+	void printProverUnexpectedException(BufferedReader proverErr, PrintStream exp) throws IOException {
 		String errline;
 
 		do {
@@ -345,12 +313,10 @@ public class RobustCVCTheoremProver implements TheoremProver {
 	}
 
 	@Override
-	public ValidityResult unsat(BooleanExpression predicate)
-			throws TheoremProverException {
+	public ValidityResult unsat(BooleanExpression predicate) throws TheoremProverException {
 		PrintStream out = universe.getOutputStream();
 		int id = universe.numProverValidCalls();
-		FastList<String> assumptionDecls = assumptionTranslator
-				.getDeclarations();
+		FastList<String> assumptionDecls = assumptionTranslator.getDeclarations();
 		FastList<String> assumptionText = assumptionTranslator.getTranslation();
 		boolean show = universe.getShowProverQueries() || info.getShowQueries();
 
@@ -374,8 +340,7 @@ public class RobustCVCTheoremProver implements TheoremProver {
 			result = Prove.RESULT_MAYBE;
 		}
 		if (show) {
-			out.println(info.getFirstAlias() + " result      " + id + ": "
-					+ result);
+			out.println(info.getFirstAlias() + " result      " + id + ": " + result);
 			out.flush();
 		}
 		return result;

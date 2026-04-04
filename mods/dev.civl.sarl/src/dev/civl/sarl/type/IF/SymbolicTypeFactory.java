@@ -26,7 +26,7 @@ import dev.civl.sarl.IF.object.StringObject;
 import dev.civl.sarl.IF.type.SymbolicArrayType;
 import dev.civl.sarl.IF.type.SymbolicCompleteArrayType;
 import dev.civl.sarl.IF.type.SymbolicFunctionType;
-import dev.civl.sarl.IF.type.SymbolicFunctionType.SpeicalRelationKind;
+import dev.civl.sarl.IF.type.SymbolicFunctionType.SpecialRelationKind;
 import dev.civl.sarl.IF.type.SymbolicIntegerType;
 import dev.civl.sarl.IF.type.SymbolicMapType;
 import dev.civl.sarl.IF.type.SymbolicRealType;
@@ -209,7 +209,7 @@ public interface SymbolicTypeFactory {
 	 * @return a SymbolicFunctionType of sequence inputTypes and outputType.
 	 */
 	SymbolicFunctionType functionType(SymbolicTypeSequence inputTypes,
-			SymbolicType outputType, SpeicalRelationKind relKind);
+			SymbolicType outputType, SpecialRelationKind relKind);
 
 	SymbolicSetType setType(SymbolicType elementType);
 
