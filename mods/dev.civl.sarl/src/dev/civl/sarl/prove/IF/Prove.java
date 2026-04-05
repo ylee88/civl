@@ -114,7 +114,8 @@ public class Prove {
 			return new SMTProverFactory(universe, prover);
 		case Z3:
 			return new SMTProverFactory(universe, prover);
-
+		case ALT_ERGO:
+			return new SMTProverFactory(universe, prover);
 		default:
 			throw new SARLInternalException("Unknown kind of theorem prover: " + prover.getKind());
 		}

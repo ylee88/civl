@@ -24,6 +24,10 @@ public interface ProverInfo extends Comparable<ProverInfo> {
 		 */
 		Z3,
 		/**
+		 * Alt-Ergo, https://alt-ergo.ocamlpro.com.  Accepts SMT-LIB2.
+		 */
+		ALT_ERGO,
+		/**
 		 * CVC4, using SMT-LIB2 through CVC5's command line interface.
 		 */
 		CVC5,

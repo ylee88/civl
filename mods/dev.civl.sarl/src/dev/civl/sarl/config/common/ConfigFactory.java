@@ -59,6 +59,7 @@ public class ConfigFactory {
 		executableMap.put("cvc5", ProverKind.CVC5);
 		executableMap.put("cvc4", ProverKind.CVC4);
 		executableMap.put("why3", ProverKind.Why3);
+		executableMap.put("alt-ergo", ProverKind.ALT_ERGO);
 	}
 
 	// Private methods...
@@ -92,6 +93,8 @@ public class ConfigFactory {
 			return ProverKind.Z3;
 		case "Why3":
 			return ProverKind.Why3;
+		case "ALT_ERGO":
+			return ProverKind.ALT_ERGO;
 		default:
 			return null;
 		}
@@ -112,6 +115,7 @@ public class ConfigFactory {
 		case CVC5:
 		case Why3:
 		case Z3:
+		case ALT_ERGO:
 			return "--version";
 		default:
 			throw new SARLException("Unknown executable prover kind: " + kind);
@@ -237,16 +241,22 @@ public class ConfigFactory {
 			return null;
 		}
 
+		// try to find version string following usual conventions...
+		String version = null;
 		int pos = line.lastIndexOf("version ");
-
-		if (pos < 0) {
-			out.println("Unexpected output from " + fullPath);
-			return null;
+		if (pos >= 0) {
+			version = line.substring(pos + "version ".length());
+		} else {
+			pos = line.indexOf('v');
+			if (pos >= 0) {
+				version = line.substring(pos + 1);
+			} else {
+				out.println("Unexpected output from " + fullPath);
+				return null;
+			}
 		}
 
-		String version = line.substring(pos + "version ".length());
 		ProverInfo info = new CommonProverInfo();
-
 		info.addAlias(alias);
 		info.setKind(kind);
 		info.setPath(executableFile);
@@ -274,6 +284,9 @@ public class ConfigFactory {
 			info.setTimeout(5.0);
 			// set environment for helping why3 finding prover executables:
 			info.setEnv(System.getenv("PATH"));
+		} else if (kind == ProverKind.ALT_ERGO) {
+			info.addOption("-i smtlib2"); // input language is SMT-LIB2
+			info.addOption("-o smtlib2"); // output language is SMT-LIB2
 		}
 		return info;
 	}

@@ -637,19 +637,27 @@ public class SMTTranslator {
 		return result;
 	}
 
+	private String translateBigAsInt(BigInteger big) {
+		return big.signum() < 0 ? "(- " + big.abs() + ")" : big.toString();
+	}
+
+	private String translateBigAsReal(BigInteger big) {
+		return big.signum() < 0 ? "(- " + big.abs() + ".0)" : big.toString() + ".0";
+	}
+
 	private FastList<String> translateNumberObj(NumberObject obj) {
 		Number num = obj.getNumber();
 		String str;
 		if (num instanceof IntegerNumber) {
-			str = num.toString();
+			str = translateBigAsInt(((IntegerNumber) num).bigIntegerValue());
 		} else {
 			RationalNumber rat = (RationalNumber) num;
-			String numerator = rat.numerator().toString(), denominator = rat.denominator().toString();
+			BigInteger numerator = rat.numerator(), denominator = rat.denominator();
 
-			if (denominator.equals("1"))
-				str = numerator + ".0";
+			if (denominator.equals(BigInteger.ONE))
+				str = translateBigAsReal(numerator);
 			else
-				str = "(/ " + numerator + " " + denominator + ")";
+				str = "(/ " + translateBigAsReal(numerator) + " " + translateBigAsReal(denominator) + ")";
 		}
 		return new FastList<>(str);
 	}

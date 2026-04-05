@@ -266,6 +266,7 @@ public class CommonProverInfo implements ProverInfo {
 		case CVC5:
 		case Z3:
 		case Why3:
+		case ALT_ERGO:
 			return true;
 		default:
 			throw new SARLInternalException("unreachable");

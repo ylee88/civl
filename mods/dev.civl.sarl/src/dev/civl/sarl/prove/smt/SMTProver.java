@@ -155,40 +155,46 @@ public class SMTProver implements TheoremProver {
 		this.processBuilder = new ProcessBuilder(command);
 	}
 
-	// checking sat or unsat
 	private ValidityResult readSmtOutput(BufferedReader smtOut, BufferedReader smtErr) {
 		try {
-			String line = smtOut.readLine();
+			while (true) {
+				// save a copy of the original line for error reporting...
+				String line = smtOut.readLine(), originalLine = line;
+				if (line == null) {
+					if (info.getShowErrors() || info.getShowInconclusives()) {
+						try {
+							if (smtErr.ready()) {
+								PrintStream exp = new PrintStream(new File(universe.getErrFile()));
 
-			if (line == null) {
-				if (info.getShowErrors() || info.getShowInconclusives()) {
-					try {
-						if (smtErr.ready()) {
-							PrintStream exp = new PrintStream(new File(universe.getErrFile()));
-
-							printProverUnexpectedException(smtErr, exp);
-							exp.close();
+								printProverUnexpectedException(smtErr, exp);
+								exp.close();
+							}
+						} catch (IOException e) {
+							printProverUnexpectedException(smtErr, err);
 						}
-					} catch (IOException e) {
-						printProverUnexpectedException(smtErr, err);
+					}
+					return Prove.RESULT_MAYBE;
+				}
+				int commentStart = line.indexOf(';');
+				if (commentStart >= 0)
+					line = line.substring(0, commentStart);
+				line = line.trim();
+				if (line.isEmpty())
+					continue;
+				if ("unsat".equals(line))
+					return Prove.RESULT_YES;
+				if ("sat".equals(line))
+					return Prove.RESULT_NO;
+				if (info.getShowInconclusives()) {
+					err.println(info.getFirstAlias() + " inconclusive with message: " + originalLine);
+					for (line = smtOut.readLine(); line != null; line = smtOut.readLine()) {
+						err.println(line);
 					}
 				}
-				return Prove.RESULT_MAYBE;
+				if ("unknown".equals(line))
+					return Prove.RESULT_MAYBE;
+				throw new SARLException(info.getFirstAlias() + " unexpected message: " + originalLine);
 			}
-			line = line.trim();
-			if ("unsat".equals(line))
-				return Prove.RESULT_YES;
-			if ("sat".equals(line))
-				return Prove.RESULT_NO;
-			if (info.getShowInconclusives()) {
-				err.println(info.getFirstAlias() + " inconclusive with message: " + line);
-				for (line = smtOut.readLine(); line != null; line = smtOut.readLine()) {
-					err.println(line);
-				}
-			}
-			if ("unknown".equals(line))
-				return Prove.RESULT_MAYBE;
-			throw new SARLException(info.getFirstAlias() + " unexpected message: " + line);
 		} catch (IOException e) {
 			if (info.getShowErrors())
 				err.println("I/O error reading " + info.getFirstAlias() + " output: " + e.getMessage());
@@ -242,6 +248,9 @@ public class SMTProver implements TheoremProver {
 				FastList<String> assumptionDecls = assumptionTranslator.getDeclarations();
 				FastList<String> assumptionText = assumptionTranslator.getTranslation();
 
+				// this harms Z3. takes away ability to use special relations...
+				if (info.getKind() != ProverKind.Z3)
+					stdin.println("(set-logic ALL)");
 				assumptionDecls.print(stdin);
 				stdin.print("(assert ");
 				assumptionText.print(stdin);
