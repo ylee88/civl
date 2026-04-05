@@ -29,7 +29,9 @@ import dev.civl.sarl.IF.SARLException;
 import dev.civl.sarl.IF.TheoremProverException;
 import dev.civl.sarl.IF.ValidityResult;
 import dev.civl.sarl.IF.config.ProverInfo;
+import dev.civl.sarl.IF.config.ProverInfo.ProverKind;
 import dev.civl.sarl.IF.expr.BooleanExpression;
+import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.preuniverse.IF.PreUniverse;
 import dev.civl.sarl.prove.IF.Prove;
 import dev.civl.sarl.prove.IF.ProverFunctionInterpretation;
@@ -38,17 +40,10 @@ import dev.civl.sarl.util.FastList;
 import dev.civl.sarl.util.ProcessControl;
 
 /**
- * An implementation of {@link TheoremProver} using the automated theorem
- * provers Z3. Transforms a theorem proving query into the language of Z3,
- * invokes Z3 through its command line interface in a new process, and
- * interprets the output.
- * 
- * <p>
- * Invocation:
- * 
- * <pre>
- * z3 - smt2 - in
- * </pre>
+ * An implementation of {@link TheoremProver} for an SMT-based prover that
+ * follows the SMT-LIB standard. Transforms a theorem proving query into
+ * SMT-LIB, invokes the tool through its command line interface in a new
+ * process, and interprets the output.
  * 
  * Commands:
  * 
@@ -106,10 +101,36 @@ public class SMTProver implements TheoremProver {
 	 */
 	private SMTTranslator assumptionTranslator;
 
+	// *************************** Factory Methods ************************ //
+
+	private static SMTTranslator newSMTTranslator(ProverKind kind, SMTTranslator startingContext,
+			SymbolicExpression theExpression) {
+		switch (kind) {
+		case Z3:
+			return new Z3Translator((Z3Translator) startingContext, theExpression);
+		case CVC5:
+			return new CVC5Translator((CVC5Translator) startingContext, theExpression);
+		default:
+			return new SMTTranslator(startingContext, theExpression);
+		}
+	}
+
+	private static SMTTranslator newSMTTranslator(ProverKind kind, PreUniverse universe,
+			SymbolicExpression theExpression, ProverFunctionInterpretation logicFunctions[]) {
+		switch (kind) {
+		case Z3:
+			return new Z3Translator(universe, theExpression, logicFunctions);
+		case CVC5:
+			return new CVC5Translator(universe, theExpression, logicFunctions);
+		default:
+			return new SMTTranslator(universe, kind, theExpression, logicFunctions);
+		}
+	}
+
 	// *************************** Constructors *************************** //
 
 	/**
-	 * Constructs new Z3 theorem prover for the given context.
+	 * Constructs new SMT theorem prover for the given context.
 	 * 
 	 * @param universe       the controlling symbolic universe
 	 * @param context        the assumption(s) the prover will use for queries
@@ -128,7 +149,7 @@ public class SMTProver implements TheoremProver {
 		this.universe = universe;
 		this.info = info;
 		context = (BooleanExpression) universe.cleanBoundVariables(context);
-		this.assumptionTranslator = new SMTTranslator(universe, info.getKind(), context, logicFunctions);
+		this.assumptionTranslator = newSMTTranslator(info.getKind(), universe, context, logicFunctions);
 		command.add(info.getPath().getAbsolutePath()); // the name of the tool
 		command.addAll(info.getOptions()); // tool-specific options
 		this.processBuilder = new ProcessBuilder(command);
@@ -227,7 +248,7 @@ public class SMTProver implements TheoremProver {
 				stdin.println(")");
 				predicate = (BooleanExpression) universe.cleanBoundVariables(predicate);
 
-				SMTTranslator translator = new SMTTranslator(assumptionTranslator, predicate);
+				SMTTranslator translator = newSMTTranslator(info.getKind(), assumptionTranslator, predicate);
 				FastList<String> predicateDecls = translator.getDeclarations();
 				FastList<String> predicateText = translator.getTranslation();
 

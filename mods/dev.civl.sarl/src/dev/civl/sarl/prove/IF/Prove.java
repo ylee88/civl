@@ -113,7 +113,6 @@ public class Prove {
 		case CVC5:
 			return new SMTProverFactory(universe, prover);
 		case Z3:
-			// return new RobustZ3TheoremProverFactory(universe, prover);
 			return new SMTProverFactory(universe, prover);
 
 		default:

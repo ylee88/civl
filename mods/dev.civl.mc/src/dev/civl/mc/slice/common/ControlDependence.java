@@ -19,7 +19,7 @@ import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.preuniverse.IF.FactorySystem;
 import dev.civl.sarl.preuniverse.IF.PreUniverse;
 import dev.civl.sarl.preuniverse.IF.PreUniverses;
-import dev.civl.sarl.prove.z3.Z3Translator;
+import dev.civl.sarl.prove.smt.Z3Translator;
 import dev.civl.sarl.util.FastList;
 
 public class ControlDependence {

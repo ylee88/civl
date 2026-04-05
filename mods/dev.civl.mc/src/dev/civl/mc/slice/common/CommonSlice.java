@@ -8,18 +8,18 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import dev.civl.gmc.Trace;
 import dev.civl.mc.model.IF.Model;
 import dev.civl.mc.semantics.IF.Transition;
 import dev.civl.mc.slice.IF.Slice;
 import dev.civl.mc.state.IF.State;
-import dev.civl.gmc.Trace;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.SymbolicConstant;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.preuniverse.IF.FactorySystem;
 import dev.civl.sarl.preuniverse.IF.PreUniverse;
 import dev.civl.sarl.preuniverse.IF.PreUniverses;
-import dev.civl.sarl.prove.z3.Z3Translator;
+import dev.civl.sarl.prove.smt.Z3Translator;
 import dev.civl.sarl.util.FastList;
 
 public class CommonSlice implements Slice {

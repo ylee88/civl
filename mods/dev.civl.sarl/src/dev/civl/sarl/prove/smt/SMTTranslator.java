@@ -100,7 +100,7 @@ import dev.civl.sarl.util.Pair;
        (ite (not (= y 0.0))
             (/ x y)
             0.0))
-   Above is supported in Z3 but not yet CVC5 1.3.3.
+     Above is supported in Z3 but not yet CVC5 1.3.3.
   
    Array lambdas:
     No support. Just make an assertion that says the elements of the array are
@@ -218,7 +218,7 @@ public class SMTTranslator {
 	 * Used to avoid duplicated function declarations. SMT allows functions of
 	 * different types to share the same function name.
 	 */
-	private Set<Pair<String, String>> functionSet;
+	protected Set<Pair<String, String>> functionSet;
 
 	/**
 	 * Has the "bigArray" type been defined?
@@ -410,7 +410,7 @@ public class SMTTranslator {
 	 * 
 	 * @return the name of the new variable
 	 */
-	private String newSmtVarName() {
+	protected String newSmtVarName() {
 		return "_smt" + (smtAuxVarCount++);
 	}
 
@@ -422,7 +422,7 @@ public class SMTTranslator {
 	 *             this method
 	 * @return the new SMT variable
 	 */
-	private String newSmtAuxVar(FastList<String> type) {
+	protected String newSmtAuxVar(FastList<String> type) {
 		String name = newSmtVarName();
 		smtDeclarations.addAll("(declare-const ", name);
 		type.addFront(" ");
@@ -438,7 +438,7 @@ public class SMTTranslator {
 	 * 
 	 * @return new symbolic constant of integer type
 	 */
-	private NumericSymbolicConstant newSarlAuxVar() {
+	protected NumericSymbolicConstant newSarlAuxVar() {
 		NumericSymbolicConstant result = (NumericSymbolicConstant) universe
 				.symbolicConstant(universe.stringObject("_i" + sarlAuxVarCount), universe.integerType());
 
@@ -459,7 +459,6 @@ public class SMTTranslator {
 	 */
 	private FastList<String> bigArray(FastList<String> length, FastList<String> value) {
 		FastList<String> result = new FastList<String>();
-		// TODO: Do we need to specify the element type E using (as mk-BigArray E)?
 		requireBigArray();
 		result.addAll("(mk-BigArray ");
 		result.append(length);
@@ -605,12 +604,12 @@ public class SMTTranslator {
 	}
 
 	/**
-	 * Translates a concrete SARL array into SMT.
+	 * Translates a concrete SARL array into SMT-LIB.
 	 * 
 	 * @param arrayType a SARL complete array type
 	 * @param elements  a sequence of elements whose types are all the element type
 	 *                  of the arrayType
-	 * @return Z3 translation of the concrete array
+	 * @return SMT-LIB translation of the concrete array
 	 */
 	private FastList<String> translateConcreteArray(SymbolicExpression array) {
 		FastList<String> result = pretranslateConcreteArray(array);
@@ -657,10 +656,10 @@ public class SMTTranslator {
 
 	/**
 	 * Translates any concrete SymbolicExpression with concrete type to equivalent
-	 * Z3 expression using the ExprManager.
+	 * SMT-LIB expression using the ExprManager.
 	 * 
 	 * @param expr any symbolic expression of kind CONCRETE
-	 * @return the Z3 equivalent expression
+	 * @return the SMT-LIB equivalent expression
 	 */
 	private FastList<String> translateConcrete(SymbolicExpression expr) {
 		SymbolicType type = expr.type();
@@ -695,61 +694,26 @@ public class SMTTranslator {
 
 	// need to return not only the function declaration, but in the case of special
 	// binary relation types, also additional assertions.
-	private FastList<String> functionDeclaration(String name, SymbolicFunctionType functionType) {
-		// Use special Z3 features for special relations...
+	protected FastList<String> functionDeclaration(String name, SymbolicFunctionType functionType) {
 		SpecialRelationKind relKind = functionType.specialRelationKind();
-		boolean useZ3Special = proverKind == ProverKind.Z3 && relKind != SpecialRelationKind.NONE;
-		String funDeclPrefix = useZ3Special ? "(define-fun " : "(declare-fun ";
-		FastList<String> result = new FastList<>(funDeclPrefix, name, " (");
+		FastList<String> result = new FastList<>("(declare-fun ", name, " (");
 		boolean first = true;
-		int i = 0;
 
 		for (SymbolicType inputType : functionType.inputTypes()) {
 			if (first)
 				first = false;
 			else
 				result.add(" ");
-			if (useZ3Special) {
-				result.add("(x" + i + " ");
-				result.append(translateType(inputType));
-				result.add(")");
-			} else
-				result.append(translateType(inputType));
-			i++;
+			result.append(translateType(inputType));
 		}
 		result.add(") ");
 		result.append(translateType(functionType.outputType()));
-		/*
-		 * These attributes are supported by Z3 only:
-		 * https://microsoft.github.io/z3guide/docs/theories/Special%20Relations/ See
-		 * CVCTranslator to see how to translate these attributes when they are not
-		 * supported directly.
-		 */
-		if (proverKind == ProverKind.Z3) {
-			switch (relKind) {
-			case PARTIAL_ORDER:
-				result.add("((_ partial-order 0) x0 x1)");
-				break;
-			case LINEAR_ORDER:
-				result.add("((_ linear-order 0) x0 x1)");
-				break;
-			case PIECEWISE_LINEAR_ORDER:
-				result.add("((_ piecewise-linear-order 0) x0 x1)");
-				break;
-			case TREE_ORDER:
-				result.add("((_ tree-order 0) x0 x1)");
-				break;
-			case NONE:
-			default:
-				break;
-			}
-		}
 		result.add(")\n");
 		Pair<String, String> key = new Pair<>(name, result.toString());
 		if (functionSet.contains(key))
 			return new FastList<>();
 		functionSet.add(key);
-		if (proverKind != ProverKind.Z3 && relKind != SpecialRelationKind.NONE) {
+		if (relKind != SpecialRelationKind.NONE) {
 			SymbolicType type = functionType.inputTypes().getType(0);
 			switch (relKind) {
 			case PARTIAL_ORDER:
@@ -1171,9 +1135,9 @@ public class SMTTranslator {
 	}
 
 	/**
-	 * Given two SARL symbolic expressions of compatible type, this returns the Z3
-	 * translation of the assertion that the two expressions are equal. Special
-	 * handling is needed for arrays, to basically say:
+	 * Given two SARL symbolic expressions of compatible type, this returns the
+	 * SMT-LIB translation of the assertion that the two expressions are equal.
+	 * Special handling is needed for arrays, to basically say:
 	 * 
 	 * <pre>
 	 * lengths are equal and forall i: 0<=i<length -> expr1[i]=expr2[i].
@@ -1476,7 +1440,7 @@ public class SMTTranslator {
 		return name;
 	}
 
-	private FastList<String> translatePowerAsCarrot(FastList<String> base, FastList<String> exp) {
+	protected FastList<String> translatePowerAsCarrot(FastList<String> base, FastList<String> exp) {
 		FastList<String> result = new FastList<>("(^ ");
 		result.append(base);
 		result.add(" ");
@@ -1492,86 +1456,38 @@ public class SMTTranslator {
 	 * @param exp exponent from a POWER expression
 	 * @return translation to SMT
 	 */
-	private FastList<String> translateExponent(SymbolicObject obj) {
+	protected FastList<String> translateExponent(SymbolicObject obj) {
 		return obj instanceof NumberObject ? translateNumberObj((NumberObject) obj)
 				: translate((SymbolicExpression) obj);
 	}
 
-	/**
-	 * Power operation: x to the y-th power.
-	 * 
-	 * <p>
-	 * It appears both CVC5 and Z3 support a '^' operator. More research is needed
-	 * to understand the precision of the reasoning for this operator in these
-	 * tools. In any case, if the exponent is a nonnegative integer of reasonable
-	 * size, both tools appear to behave reasonably.
-	 * </p>
-	 * 
-	 * <p>
-	 * An error message from CVC5: "The exponent of the POW(^) operator can only be
-	 * a positive integral constant below 67108864" in "(^ 4.0 (/ 1 2))". For
-	 * concrete rational exponent p/q, define a function mypow(x, p, q) and assume
-	 * it satisfies if y=mypow(x,p,q) then y^q=x^p. CVC5 also has sqrt.
-	 * </p>
-	 * 
-	 * <p>
-	 * CVC5 also has an operator (exp Real): Real, computing e^x.
-	 * </p>
-	 * 
-	 * Current protocol:
-	 * 
-	 * If Z3, use ^.
-	 * 
-	 * Otherwise, if exponent is 1, translate base and forget the exponent.
-	 * 
-	 * Otherwise, if exponent is a concrete positive int at most EXP_THRESHOLD,
-	 * translate as repeated multiplication using "let".
-	 * 
-	 * Otherwise, if using CVC5 and exponent is a concrete positive int at most
-	 * 67108864, use ^.
-	 * 
-	 * Otherwise, if exponent has integer type, use one of the functions powIntInt
-	 * or powRealInt.
-	 * 
-	 * Otherwise, if the exponent is a concrete rational number p/q, where q>0, take
-	 * the q-th root of x and raise to the p-th power.
-	 * 
-	 * Otherwise, use the abstract function powRealReal.
-	 * 
-	 */
-	private FastList<String> translatePower(SymbolicExpression expression) {
-		SymbolicExpression base = (SymbolicExpression) expression.argument(0);
-		SymbolicObject exponent = expression.argument(1);
-
-		if (proverKind == ProverKind.Z3)
-			return translatePowerAsCarrot(translate(base), translateExponent(exponent));
-
-		// try to extract a concrete number from exponent. Result could be
-		// an IntegerNumber, a RationalNumber, or null...
-		Number expNum = null;
-		BigInteger expBig = null; // if expNum is non-null and integral
-		if (exponent instanceof NumberObject) {
-			expNum = ((NumberObject) exponent).getNumber();
-			expBig = ((IntegerNumber) expNum).bigIntegerValue();
-		} else {
-			expNum = universe.extractNumber((NumericExpression) exponent);
-			if (expNum != null) {
-				if (expNum instanceof IntegerNumber) {
-					expBig = ((IntegerNumber) expNum).bigIntegerValue();
-				} else {
-					RationalNumber rat = (RationalNumber) expNum;
-					if (rat.denominator().equals(BigInteger.ONE))
-						expBig = rat.numerator();
-				}
-			}
+	protected Number extractConcreteNumber(SymbolicObject obj) {
+		Number num = null;
+		if (obj instanceof NumberObject) {
+			num = ((NumberObject) obj).getNumber();
+		} else if (obj instanceof NumericExpression) {
+			num = universe.extractNumber((NumericExpression) obj);
 		}
+		return num;
+	}
 
+	protected BigInteger extractConcreteInt(Number num) {
+		if (num == null)
+			return null;
+		if (num instanceof IntegerNumber)
+			return ((IntegerNumber) num).bigIntegerValue();
+		else {
+			RationalNumber rat = (RationalNumber) num;
+			return rat.denominator().equals(BigInteger.ONE) ? rat.numerator() : null;
+		}
+	}
+
+	protected FastList<String> translatePowerSmall(SymbolicExpression base, BigInteger expBig) {
 		// base^1 = base:
-		if (expBig != null && expBig.equals(BigInteger.ONE))
+		if (expBig.equals(BigInteger.ONE))
 			return translate(base);
-
 		// small concrete positive integer exponent:
-		if (expBig != null && expBig.signum() == 1 && expBig.compareTo(BigInteger.valueOf(EXP_THRESHOLD)) <= 0) {
+		if (expBig.signum() == 1 && expBig.compareTo(BigInteger.valueOf(EXP_THRESHOLD)) <= 0) {
 			int expInt = expBig.intValue();
 			String tmpVar = newSmtVarName();
 			FastList<String> result = new FastList<>("(let ((" + tmpVar + " ");
@@ -1582,17 +1498,12 @@ public class SMTTranslator {
 			result.add("))");
 			return result;
 		}
+		return null;
+	}
 
-		// CVC5 can use ^ if exponent is concrete and at most 67108864:
-		if (proverKind == ProverKind.CVC5 && expBig != null && expBig.signum() == 1
-				&& expBig.compareTo(BigInteger.valueOf(67108864)) <= 0) {
-			String expStr = expBig.toString();
-			if (base.type().isReal())
-				expStr += ".0"; // CVC5 insists base and exponent have same type
-			return translatePowerAsCarrot(translate(base), new FastList<String>(expStr));
-		}
-
-		// The following should work for any generic SMT solver...
+	protected FastList<String> translatePowerGeneric(SymbolicExpression base, SymbolicObject exponent) {
+		Number expNum = extractConcreteNumber(exponent);
+		BigInteger expBig = extractConcreteInt(expNum);
 		FastList<String> result = new FastList<>("(");
 		if (expBig != null || ((SymbolicExpression) exponent).type().isInteger()) {
 			// exponent has integer type: use powIntInt or powRealInt
@@ -1627,10 +1538,26 @@ public class SMTTranslator {
 		return result;
 	}
 
+	/**
+	 * Power operation: x to the y-th power. This is a generic implementation using
+	 * only standard SMT-LIB features.
+	 */
+	protected FastList<String> translatePower(SymbolicExpression expression) {
+		SymbolicExpression base = (SymbolicExpression) expression.argument(0);
+		SymbolicObject exponent = expression.argument(1);
+		BigInteger expBig = extractConcreteInt(extractConcreteNumber(exponent));
+		if (expBig != null) {
+			FastList<String> result = translatePowerSmall(base, expBig);
+			if (result != null)
+				return result;
+		}
+		return translatePowerGeneric(base, exponent);
+
+	}
+
 	private FastList<String> translateCond(SymbolicExpression expression) {
 		// syntax: (ite b x y)
 		FastList<String> result = new FastList<>("(ite ");
-
 		result.append(translate((SymbolicExpression) expression.argument(0)));
 		result.add(" ");
 		result.append(translate((SymbolicExpression) expression.argument(1)));
@@ -1831,8 +1758,6 @@ public class SMTTranslator {
 			// just create fresh symbolic constants
 			FastList<String> smtType = translateType(expression.type());
 			String name = newSmtAuxVar(smtType.clone());
-
-			// the call to newZ3AuxVar added the declaration
 			result = new FastList<String>(name);
 			break;
 		}
@@ -1862,7 +1787,7 @@ public class SMTTranslator {
 		return result;
 	}
 
-	private FastList<String> translateType(SymbolicType type) {
+	protected FastList<String> translateType(SymbolicType type) {
 		FastList<String> result = typeMap.get(type);
 
 		if (result != null)
@@ -1897,7 +1822,6 @@ public class SMTTranslator {
 
 			// before doing anything translate the member types,
 			// because these could modify smtDeclarations.
-			// check if this happens in CVC translator?
 			for (SymbolicType memberType : sequence)
 				translateType(memberType);
 
@@ -1967,7 +1891,7 @@ public class SMTTranslator {
 		return result.clone();
 	}
 
-	private FastList<String> translate(SymbolicExpression expression) throws TheoremProverException {
+	protected FastList<String> translate(SymbolicExpression expression) throws TheoremProverException {
 		FastList<String> result = expressionMap.get(expression);
 
 		if (result == null) {
@@ -2023,7 +1947,7 @@ public class SMTTranslator {
 
 	/**
 	 * Returns the result of translating the symbolic expression specified at
-	 * construction into the language of Z3. The result is returned as a
+	 * construction into the SMT-LIB language. The result is returned as a
 	 * {@link FastList}. The elements of that list are Strings, which, concatenated,
 	 * yield the translation result. In most cases you never want to convert the
 	 * result to a single string. Rather, you should iterate over this list,
@@ -2052,11 +1976,11 @@ public class SMTTranslator {
 	}
 
 	/**
-	 * Returns the text of the declarations of the Z3 symbols that occur in the
-	 * translated expression. Typically, the declarations are submitted to CVC
-	 * first, followed by a query or assertion of the translated expression.
+	 * Returns the text of the declarations of the SMT-LIB symbols that occur in the
+	 * translated expression. Typically, the declarations are submitted to the
+	 * prover first, followed by a query or assertion of the translated expression.
 	 * 
-	 * @return the declarations of the Z3 symbols
+	 * @return the declarations of the SMT-LIB symbols
 	 */
 	public FastList<String> getDeclarations() {
 		return smtDeclarations;

@@ -14,7 +14,7 @@ module dev.civl.sarl {
 	exports dev.civl.sarl.util;
 	exports dev.civl.sarl.expr.cnf;
 	exports dev.civl.sarl.preuniverse.IF;
-	exports dev.civl.sarl.prove.z3;
+	exports dev.civl.sarl.prove.smt;
 	exports dev.civl.sarl.expr.IF;
 	exports dev.civl.sarl.type.IF;
 	exports dev.civl.sarl.simplify.IF;
