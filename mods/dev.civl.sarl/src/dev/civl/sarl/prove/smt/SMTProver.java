@@ -47,12 +47,15 @@ import dev.civl.sarl.util.ProcessControl;
  * 
  * Commands:
  * 
+ * To check whether predicate is unsatisfiable under context:
+ * 
  * <pre>
- * (assert expr)
+ * (assert context)
+ * (assert predicate)
  * (check-sat)
  * </pre>
  * 
- * To check if predicate is valid under context:
+ * To check whether predicate is entailed by context:
  * 
  * <pre>
  * (assert context)
@@ -60,8 +63,8 @@ import dev.civl.sarl.util.ProcessControl;
  * (check-sat)
  * </pre>
  * 
- * If result is "sat": answer is NO (not valid). If result is "unsat": answer is
- * YES (valid). Otherwise, MAYBE.
+ * In both cases, if result is "sat", answer is NO. If result is "unsat", answer
+ * is YES. Otherwise, MAYBE.
  * </p>
  * 
  * @author Stephen F. Siegel
@@ -76,32 +79,10 @@ public class SMTProver implements TheoremProver {
 	 */
 	public static final PrintStream err = System.err;
 
-	// ****************************** Fields ****************************** //
+	// ************************** Static Methods ************************** //
 
-	/**
-	 * Info object on underlying SMT theorem prover.
-	 */
-	private ProverInfo info;
-
-	/**
-	 * Java object for producing new OS-level processes executing a specified
-	 * command.
-	 */
-	private ProcessBuilder processBuilder;
-
-	/**
-	 * The symbolic universe used for managing symbolic expressions. Initialized by
-	 * constructor and never changes.
-	 */
-	private PreUniverse universe;
-
-	/**
-	 * The translation of the given context to an SMT expression. Created once
-	 * during instantiation and never modified.
-	 */
-	private SMTTranslator assumptionTranslator;
-
-	// *************************** Factory Methods ************************ //
+	// TODO: probably better to make this a base class and introduce new subclasses
+	// Z3Prover, CVC5Prover, etc.
 
 	private static SMTTranslator newSMTTranslator(ProverKind kind, SMTTranslator startingContext,
 			SymbolicExpression theExpression) {
@@ -126,6 +107,60 @@ public class SMTProver implements TheoremProver {
 			return new SMTTranslator(universe, kind, theExpression, logicFunctions);
 		}
 	}
+
+	private static void print(String str, PrintStream stream1, PrintStream stream2) {
+		stream1.print(str);
+		if (stream2 != null)
+			stream2.print(str);
+	}
+
+	private static void println(String str, PrintStream stream1, PrintStream stream2) {
+		stream1.println(str);
+		if (stream2 != null)
+			stream2.println(str);
+	}
+
+	private static void print(FastList<String> fl, PrintStream stream1, PrintStream stream2) {
+		fl.print(stream1);
+		if (stream2 != null)
+			fl.print(stream2);
+	}
+
+	private static void printProverUnexpectedException(BufferedReader proverErr, PrintStream exp) throws IOException {
+		String errline;
+
+		do {
+			errline = proverErr.readLine();
+			if (errline == null)
+				break;
+			exp.append(errline + "\n");
+		} while (errline != null);
+	}
+
+	// **************************** Instance Fields **************************** //
+
+	/**
+	 * Info object on underlying SMT theorem prover.
+	 */
+	private ProverInfo info;
+
+	/**
+	 * Java object for producing new OS-level processes executing a specified
+	 * command.
+	 */
+	private ProcessBuilder processBuilder;
+
+	/**
+	 * The symbolic universe used for managing symbolic expressions. Initialized by
+	 * constructor and never changes.
+	 */
+	private PreUniverse universe;
+
+	/**
+	 * The translation of the given context to an SMT expression. Created once
+	 * during instantiation and never modified.
+	 */
+	private SMTTranslator assumptionTranslator;
 
 	// *************************** Constructors *************************** //
 
@@ -155,6 +190,17 @@ public class SMTProver implements TheoremProver {
 		this.processBuilder = new ProcessBuilder(command);
 	}
 
+	// ************************* Instance Methods ************************* //
+
+	/**
+	 * Parse SMT tool's output. Whether asking about unsatisfiability or validity, a
+	 * result of "unsat" means the answer is "yes", "sat" means the answer is "no",
+	 * and anything else means the answer is "maybe".
+	 * 
+	 * @param smtOut stdout output from prover
+	 * @param smtErr stderr output from prover
+	 * @return the answer to the unsatisfiability or validity question
+	 */
 	private ValidityResult readSmtOutput(BufferedReader smtOut, BufferedReader smtErr) {
 		try {
 			while (true) {
@@ -220,24 +266,36 @@ public class SMTProver implements TheoremProver {
 	 * </p>
 	 * 
 	 * @param predicate  the boolean expression representing the predicate
-	 * @param checkUNSAT true means check unsatisfiability of the given predicate;
-	 *                   false means test if the context entails the predicate.
+	 * @param checkUNSAT true means check unsatisfiability of the given predicate in
+	 *                   the context; false means check if the context entails the
+	 *                   predicate.
 	 * @param id         the ID number of this prover call
 	 * @param show       a flag indicating whether printing the prover script
 	 * @param out        the output stream
 	 * @return a {@link ValidityResult}
-	 * @throws TheoremProverException
 	 */
-	private ValidityResult runProver(BooleanExpression predicate, boolean checkUNSAT, int id, boolean show,
-			PrintStream out) throws TheoremProverException {
+	private ValidityResult runProver(BooleanExpression predicate, boolean checkUNSAT) {
+		boolean show = universe.getShowProverQueries() || info.getShowQueries();
+		// out2 is used only if showing prover queries...
+		PrintStream out2 = show ? universe.getOutputStream() : null;
+		int id = universe.numProverValidCalls();
 		Process process = null;
 		ValidityResult result = null;
 
+		universe.incrementProverValidCount();
+		if (show) {
+			String queryKind = checkUNSAT ? "unsat?" : "valid?";
+			out2.println();
+			out2.println("; " + info.getFirstAlias() + " query " + id + " (" + queryKind + "):");
+			out2.println();
+		}
 		try {
 			process = processBuilder.start();
-		} catch (Throwable e) {
-			if (info.getShowErrors())
-				err.println("I/O exception reading " + info.getFirstAlias() + " output: " + e.getMessage());
+		} catch (Exception e) {
+			if (info.getShowErrors()) {
+				err.println("Exception occurred executing command: " + processBuilder.command() + ":");
+				err.println(e.getMessage());
+			}
 			result = Prove.RESULT_MAYBE;
 		}
 		try {
@@ -247,50 +305,38 @@ public class SMTProver implements TheoremProver {
 				BufferedReader stderr = new BufferedReader(new InputStreamReader(process.getErrorStream()));
 				FastList<String> assumptionDecls = assumptionTranslator.getDeclarations();
 				FastList<String> assumptionText = assumptionTranslator.getTranslation();
-
-				// this harms Z3. takes away ability to use special relations...
-				if (info.getKind() != ProverKind.Z3)
-					stdin.println("(set-logic ALL)");
-				assumptionDecls.print(stdin);
-				stdin.print("(assert ");
-				assumptionText.print(stdin);
-				stdin.println(")");
 				predicate = (BooleanExpression) universe.cleanBoundVariables(predicate);
-
 				SMTTranslator translator = newSMTTranslator(info.getKind(), assumptionTranslator, predicate);
 				FastList<String> predicateDecls = translator.getDeclarations();
 				FastList<String> predicateText = translator.getTranslation();
 
-				predicateDecls.print(stdin);
+				// set-logic harms Z3. takes away ability to use special relations...
+				if (info.getKind() != ProverKind.Z3)
+					println("(set-logic ALL)", stdin, out2);
+				print(assumptionDecls, stdin, out2);
+				print("(assert ", stdin, out2);
+				print(assumptionText, stdin, out2);
+				println(")", stdin, out2);
+				print(predicateDecls, stdin, out2);
 				if (checkUNSAT) {
-					// the conjunction of a predicate `p` and a context `c` is
-					// UNSAT, iff p && c is UNSAT
-					stdin.print("(assert  ");
-					predicateText.print(stdin);
-					stdin.println(")");
+					// p is unsat in context c iff p && c is UNSAT:
+					println("(assert  ", stdin, out2);
+					print(predicateText, stdin, out2);
+					println(")", stdin, out2);
 				} else {
-					// a predicate p is valid under a context c,
-					// iff `c` && `!p` is UNSAT
-					stdin.print("(assert (not ");
-					predicateText.print(stdin);
-					stdin.println("))");
+					// p is entailed by context c iff c && !p is UNSAT:
+					println("(assert (not ", stdin, out2);
+					print(predicateText, stdin, out2);
+					println("))", stdin, out2);
 				}
-				stdin.println("(check-sat)");
+				println("(check-sat)", stdin, out2);
 				stdin.flush();
+				if (show)
+					out2.flush();
 				stdin.close();
-				if (show) {
-					String queryKind = checkUNSAT ? "check-unsat" : "";
-
-					out.print("\n" + info.getFirstAlias() + queryKind + " predicate   " + id + ":\n");
-					predicateDecls.print(out);
-					predicateText.print(out);
-					out.println();
-					out.println();
-					out.flush();
-				}
 				if (info.getTimeout() > 0 && !ProcessControl.waitForProcess(process, info.getTimeout())) {
 					if (info.getShowErrors() || info.getShowInconclusives())
-						err.println(info.getFirstAlias() + " query       " + id + ": time out");
+						err.println("; " + info.getFirstAlias() + " query " + id + ": time out");
 					result = Prove.RESULT_MAYBE;
 				} else {
 					result = readSmtOutput(stdout, stderr);
@@ -304,46 +350,11 @@ public class SMTProver implements TheoremProver {
 		}
 		if (process != null)
 			process.destroy();
-		return result;
-	}
-
-	@Override
-	public ValidityResult valid(BooleanExpression predicate) {
-		PrintStream out = universe.getOutputStream();
-		int id = universe.numProverValidCalls();
-		FastList<String> assumptionDecls = assumptionTranslator.getDeclarations();
-		FastList<String> assumptionText = assumptionTranslator.getTranslation();
-		boolean show = universe.getShowProverQueries() || info.getShowQueries();
-
-		universe.incrementProverValidCount();
 		if (show) {
-			out.println();
-			out.print(info.getFirstAlias() + " assumptions " + id + ":\n");
-			assumptionDecls.print(out);
-			assumptionText.print(out);
-			out.println();
-			out.flush();
-		}
-
-		ValidityResult result;
-
-		try {
-			result = runProver(predicate, false, id, show, out);
-		} catch (TheoremProverException e) {
-			if (show)
-				err.println("Warning: " + e.getMessage());
-			result = Prove.RESULT_MAYBE;
-		}
-		if (show) {
-			out.println(info.getFirstAlias() + " result      " + id + ": " + result);
-			out.flush();
+			out2.println();
+			out2.println("; " + info.getFirstAlias() + " query " + id + " result :" + result);
 		}
 		return result;
-	}
-
-	@Override
-	public ValidityResult validOrModel(BooleanExpression predicate) {
-		return Prove.RESULT_MAYBE;
 	}
 
 	@Override
@@ -351,48 +362,19 @@ public class SMTProver implements TheoremProver {
 		return "SMTProver[" + info.getFirstAlias() + "]";
 	}
 
-	void printProverUnexpectedException(BufferedReader proverErr, PrintStream exp) throws IOException {
-		String errline;
-
-		do {
-			errline = proverErr.readLine();
-			if (errline == null)
-				break;
-			exp.append(errline + "\n");
-		} while (errline != null);
+	@Override
+	public ValidityResult valid(BooleanExpression predicate) {
+		return runProver(predicate, false);
 	}
 
 	@Override
 	public ValidityResult unsat(BooleanExpression predicate) throws TheoremProverException {
-		PrintStream out = universe.getOutputStream();
-		int id = universe.numProverValidCalls();
-		FastList<String> assumptionDecls = assumptionTranslator.getDeclarations();
-		FastList<String> assumptionText = assumptionTranslator.getTranslation();
-		boolean show = universe.getShowProverQueries() || info.getShowQueries();
+		return runProver(predicate, true);
+	}
 
-		universe.incrementProverValidCount();
-		if (show) {
-			out.println();
-			out.print(info.getFirstAlias() + " assumptions " + id + ":\n");
-			assumptionDecls.print(out);
-			assumptionText.print(out);
-			out.println();
-			out.flush();
-		}
-
-		ValidityResult result;
-
-		try {
-			result = runProver(predicate, true, id, show, out);
-		} catch (TheoremProverException e) {
-			if (show)
-				err.println("Warning: " + e.getMessage());
-			result = Prove.RESULT_MAYBE;
-		}
-		if (show) {
-			out.println(info.getFirstAlias() + " result      " + id + ": " + result);
-			out.flush();
-		}
-		return result;
+	@Override
+	public ValidityResult validOrModel(BooleanExpression predicate) {
+		// TODO: not yet implemented.
+		return Prove.RESULT_MAYBE;
 	}
 }
