@@ -1702,7 +1702,7 @@ public class ASTPrettyPrinter {
 		StringBuffer result = new StringBuffer();
 		DeclarationListNode vars = civlFor.getVariables();
 		int numVars = vars.numChildren();
-		StatementNode body = civlFor.getBody();
+		//StatementNode body = civlFor.getBody();
 
 		result.append(prefix);
 		if (civlFor.isParallel())
