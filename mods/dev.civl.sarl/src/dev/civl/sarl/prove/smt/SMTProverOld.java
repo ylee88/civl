@@ -23,10 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.LinkedList;
-import java.util.List;
 
 import dev.civl.sarl.IF.SARLException;
 import dev.civl.sarl.IF.TheoremProverException;
@@ -69,13 +66,13 @@ import dev.civl.sarl.util.ProcessControl;
  * In both cases, if result is "sat", answer is NO. If result is "unsat", answer
  * is YES. Otherwise, MAYBE.
  * 
- * Note: need a temporary directory to store the prover input files. Should this
- * be another argument to the constructor?
+ * Note: need a temporary directory to store the prover input files.
+ * Should this be another argument to the constructor?
  * </p>
  * 
  * @author Stephen F. Siegel
  */
-public class SMTProver implements TheoremProver {
+public class SMTProverOld implements TheoremProver {
 
 	// ************************** Static Fields *************************** //
 
@@ -150,7 +147,11 @@ public class SMTProver implements TheoremProver {
 	 */
 	private ProverInfo info;
 
-	private Path workingDirectory;
+	/**
+	 * Java object for producing new OS-level processes executing a specified
+	 * command.
+	 */
+	private ProcessBuilder processBuilder;
 
 	/**
 	 * The symbolic universe used for managing symbolic expressions. Initialized by
@@ -164,12 +165,6 @@ public class SMTProver implements TheoremProver {
 	 */
 	private SMTTranslator assumptionTranslator;
 
-	/**
-	 * First part of command to execute: the path to the executable tool and the
-	 * command line options. The filename must be appended to complete the command.
-	 */
-	private LinkedList<String> command0 = new LinkedList<>();
-
 	// *************************** Constructors *************************** //
 
 	/**
@@ -182,31 +177,23 @@ public class SMTProver implements TheoremProver {
 	 * @param logicFunctions a list of {@link ProverFunctionInterpretation}s which
 	 *                       are the logic function definitions
 	 */
-	SMTProver(PreUniverse universe, BooleanExpression context, ProverInfo info, Path workingDirectory,
+	SMTProverOld(PreUniverse universe, BooleanExpression context, ProverInfo info,
 			ProverFunctionInterpretation logicFunctions[]) {
+		LinkedList<String> command = new LinkedList<>();
+
 		assert universe != null;
 		assert context != null;
 		assert info != null;
 		this.universe = universe;
 		this.info = info;
-		this.workingDirectory = workingDirectory;
 		context = (BooleanExpression) universe.cleanBoundVariables(context);
 		this.assumptionTranslator = newSMTTranslator(info.getKind(), universe, context, logicFunctions);
-		command0.add(info.getPath().getAbsolutePath()); // the name of the tool
-		command0.addAll(info.getOptions()); // tool-specific options
+		command.add(info.getPath().getAbsolutePath()); // the name of the tool
+		command.addAll(info.getOptions()); // tool-specific options
+		this.processBuilder = new ProcessBuilder(command);
 	}
 
 	// ************************* Instance Methods ************************* //
-
-	// Prover query 15:32 (cvc5)
-
-	private String queryName(int id1, int id2) {
-		return "Prover query " + id1 + ":" + id2 + " (" + info.getFirstAlias() + ")";
-	}
-
-	private String queryFilename(int id1, int id2) {
-		return "query_" + id2 + ".smt2";
-	}
 
 	/**
 	 * Parse SMT tool's output. Whether asking about unsatisfiability or validity, a
@@ -217,21 +204,17 @@ public class SMTProver implements TheoremProver {
 	 * @param smtErr stderr output from prover
 	 * @return the answer to the unsatisfiability or validity question
 	 */
-	private ValidityResult readSmtOutput(BufferedReader smtOut, BufferedReader smtErr, int id1, int id2,
-			PrintStream out2) {
-		if (out2 != null) {
-			out2.println(queryName(id1, id2) + " output:");
-		}
+	private ValidityResult readSmtOutput(BufferedReader smtOut, BufferedReader smtErr) {
 		try {
 			while (true) {
 				// save a copy of the original line for error reporting...
 				String line = smtOut.readLine(), originalLine = line;
 				if (line == null) {
-					if (universe.getShowProverQueries() || info.getShowQueries() || info.getShowErrors()
-							|| info.getShowInconclusives()) {
+					if (info.getShowErrors() || info.getShowInconclusives()) {
 						try {
 							if (smtErr.ready()) {
 								PrintStream exp = new PrintStream(new File(universe.getErrFile()));
+
 								printProverUnexpectedException(smtErr, exp);
 								exp.close();
 							}
@@ -240,8 +223,6 @@ public class SMTProver implements TheoremProver {
 						}
 					}
 					return Prove.RESULT_MAYBE;
-				} else if (out2 != null) {
-					out2.println(line);
 				}
 				int commentStart = line.indexOf(';');
 				if (commentStart >= 0)
@@ -253,126 +234,21 @@ public class SMTProver implements TheoremProver {
 					return Prove.RESULT_YES;
 				if ("sat".equals(line))
 					return Prove.RESULT_NO;
-				if ("timeout".equals(line) || "unknown".equals(line))
+				if (info.getShowInconclusives()) {
+					err.println(info.getFirstAlias() + " inconclusive with message: " + originalLine);
+					for (line = smtOut.readLine(); line != null; line = smtOut.readLine()) {
+						err.println(line);
+					}
+				}
+				if ("unknown".equals(line))
 					return Prove.RESULT_MAYBE;
-				throw new SARLException(queryName(id1, id2) + " unexpected message: " + originalLine);
+				throw new SARLException(info.getFirstAlias() + " unexpected message: " + originalLine);
 			}
 		} catch (IOException e) {
 			if (info.getShowErrors())
-				err.println(queryName(id1, id2) + " I/O error reading output: " + e.getMessage());
+				err.println("I/O error reading " + info.getFirstAlias() + " output: " + e.getMessage());
 			return Prove.RESULT_MAYBE;
 		}
-	}
-
-	private boolean createSmtFile(BooleanExpression predicate, boolean checkUNSAT, Path inputPath, PrintStream out2) {
-		// First, create the SMT input file. This first creates a new empty file
-		// if a file named inputFilename doesn't exist; or truncates to 0 if it does.
-		// The try-with-resources thing automatically closes the file when it goes
-		// out of scope.
-		try (PrintStream out1 = new PrintStream(Files.newOutputStream(inputPath))) {
-			FastList<String> assumptionDecls = assumptionTranslator.getDeclarations();
-			FastList<String> assumptionText = assumptionTranslator.getTranslation();
-			predicate = (BooleanExpression) universe.cleanBoundVariables(predicate);
-			SMTTranslator translator = newSMTTranslator(info.getKind(), assumptionTranslator, predicate);
-			FastList<String> predicateDecls = translator.getDeclarations();
-			FastList<String> predicateText = translator.getTranslation();
-
-			// set-logic harms Z3. takes away ability to use special relations...
-			if (info.getKind() != ProverKind.Z3)
-				println("(set-logic ALL)", out1, out2);
-			print(assumptionDecls, out1, out2);
-			print("(assert ", out1, out2);
-			print(assumptionText, out1, out2);
-			println(")", out1, out2);
-			print(predicateDecls, out1, out2);
-			if (checkUNSAT) {
-				// p is unsat in context c iff p && c is UNSAT:
-				println("(assert  ", out1, out2);
-				print(predicateText, out1, out2);
-				println(")", out1, out2);
-			} else {
-				// p is entailed by context c iff c && !p is UNSAT:
-				println("(assert (not ", out1, out2);
-				print(predicateText, out1, out2);
-				println("))", out1, out2);
-			}
-			println("(check-sat)", out1, out2);
-			if (out2 != null)
-				out2.flush();
-		} catch (IOException e) {
-			err.println("I/O exception occurred writing to " + inputPath + ":");
-			err.println(e.getMessage());
-			return false;
-		}
-		return true;
-	}
-
-	/**
-	 * Given timeout in seconds, returns the command line option for the tool.
-	 * 
-	 * @param timeout desired timeout, in second
-	 * @return strings to append to the command to invoke the prover. If there is no
-	 *         known way to specify the timeout, returns an empty list.
-	 */
-	protected List<String> timeoutOption(double timeout) {
-		List<String> result = new LinkedList<>();
-		if (timeout > 0) {
-			switch (info.getKind()) {
-			case CVC5:
-				result.add("--tlimit=" + (int) (1000.0 * timeout));
-				break;
-			case Z3:
-				result.add("-T:" + (int) Math.ceil(timeout));
-				break;
-			case ALT_ERGO:
-				result.add("-t");
-				result.add("" + timeout);
-				break;
-			default:
-			}
-		}
-		return result;
-	}
-
-	/**
-	 * Invokes prover and captures output.
-	 * 
-	 * @param inputPath
-	 * @param id
-	 * @return
-	 */
-	private ValidityResult executeCommand(Path inputPath, int id1, int id2, PrintStream out2) {
-		LinkedList<String> command = new LinkedList<>(command0);
-		double timeout = info.getTimeout();
-		command.addAll(timeoutOption(timeout));
-		command.add(inputPath.toString());
-		ProcessBuilder processBuilder = new ProcessBuilder(command);
-		if (out2 != null) {
-			out2.println();
-			out2.println(queryName(id1, id2) + " command:");
-			out2.println(String.join(" ", command));
-		}
-		Process process = null;
-		ValidityResult result;
-		try {
-			process = processBuilder.start();
-			BufferedReader stdout = new BufferedReader(new InputStreamReader(process.getInputStream()));
-			BufferedReader stderr = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-			if (info.getTimeout() > 0 && !ProcessControl.waitForProcess(process, 1.0 + timeout)) {
-				result = Prove.RESULT_MAYBE;
-//				if (info.getShowQueries() || info.getShowErrors() || info.getShowInconclusives()
-//						|| universe.getShowProverQueries())
-//					err.println(queryName(id1, id2) + ": process had to be forcibly destroyed");
-				process.destroyForcibly();
-			} else {
-				result = readSmtOutput(stdout, stderr, id1, id2, out2);
-			}
-		} catch (IOException e) {
-			result = Prove.RESULT_MAYBE;
-			err.println("IO exception occurred executing " + command + ":");
-			err.println(e.getMessage());
-		}
-		return result;
 	}
 
 	/**
@@ -405,32 +281,81 @@ public class SMTProver implements TheoremProver {
 		boolean show = universe.getShowProverQueries() || info.getShowQueries();
 		// out2 is used only if showing prover queries...
 		PrintStream out2 = show ? universe.getOutputStream() : null;
-		int id1 = universe.numValidCalls() - 1; // number of valid calls made to SARL
-		int id2 = universe.numProverValidCalls(); // number of valid calls made to provers
+		int id = universe.numProverValidCalls();
+		Process process = null;
+		ValidityResult result = null;
+
 		universe.incrementProverValidCount();
 		if (show) {
-			String queryKind = checkUNSAT ? "unsat" : "valid";
+			String queryKind = checkUNSAT ? "unsat?" : "valid?";
 			out2.println();
-			out2.println(queryName(id1, id2) + "(" + queryKind + "):");
+			out2.println("; " + info.getFirstAlias() + " query " + id + " (" + queryKind + "):");
 			out2.println();
 		}
-		String inputFilename = queryFilename(id1, id2);
-		Path inputPath = workingDirectory.resolve(inputFilename);
-		ValidityResult result;
-		if (!createSmtFile(predicate, checkUNSAT, inputPath, out2))
-			result = Prove.RESULT_MAYBE;
-		else
-			result = executeCommand(inputPath, id1, id2, out2);
-		if (show || (result == Prove.RESULT_MAYBE && info.getShowInconclusives())) {
-			out2.println();
-			out2.println(queryName(id1, id2) + " result: " + result);
-		}
-		// TODO: make this an option: -keepQueries (default: false)
 		try {
-			Files.delete(inputPath);
+			process = processBuilder.start();
 		} catch (Exception e) {
-			err.println("Error attempting to delete " + inputPath + ":");
-			err.println(e);
+			if (info.getShowErrors()) {
+				err.println("Exception occurred executing command: " + processBuilder.command() + ":");
+				err.println(e.getMessage());
+			}
+			result = Prove.RESULT_MAYBE;
+		}
+		try {
+			if (result == null) {
+				PrintStream stdin = new PrintStream(process.getOutputStream());
+				BufferedReader stdout = new BufferedReader(new InputStreamReader(process.getInputStream()));
+				BufferedReader stderr = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+				FastList<String> assumptionDecls = assumptionTranslator.getDeclarations();
+				FastList<String> assumptionText = assumptionTranslator.getTranslation();
+				predicate = (BooleanExpression) universe.cleanBoundVariables(predicate);
+				SMTTranslator translator = newSMTTranslator(info.getKind(), assumptionTranslator, predicate);
+				FastList<String> predicateDecls = translator.getDeclarations();
+				FastList<String> predicateText = translator.getTranslation();
+
+				// set-logic harms Z3. takes away ability to use special relations...
+				if (info.getKind() != ProverKind.Z3)
+					println("(set-logic ALL)", stdin, out2);
+				print(assumptionDecls, stdin, out2);
+				print("(assert ", stdin, out2);
+				print(assumptionText, stdin, out2);
+				println(")", stdin, out2);
+				print(predicateDecls, stdin, out2);
+				if (checkUNSAT) {
+					// p is unsat in context c iff p && c is UNSAT:
+					println("(assert  ", stdin, out2);
+					print(predicateText, stdin, out2);
+					println(")", stdin, out2);
+				} else {
+					// p is entailed by context c iff c && !p is UNSAT:
+					println("(assert (not ", stdin, out2);
+					print(predicateText, stdin, out2);
+					println("))", stdin, out2);
+				}
+				println("(check-sat)", stdin, out2);
+				stdin.flush();
+				if (show)
+					out2.flush();
+				stdin.close();
+				if (info.getTimeout() > 0 && !ProcessControl.waitForProcess(process, info.getTimeout())) {
+					if (info.getShowErrors() || info.getShowInconclusives())
+						err.println("; " + info.getFirstAlias() + " query " + id + ": time out");
+					result = Prove.RESULT_MAYBE;
+				} else {
+					result = readSmtOutput(stdout, stderr);
+				}
+			}
+		} catch (Exception e) {
+			if (process != null)
+				process.destroyForcibly();
+			process = null;
+			throw e;
+		}
+		if (process != null)
+			process.destroy();
+		if (show) {
+			out2.println();
+			out2.println("; " + info.getFirstAlias() + " query " + id + " result :" + result);
 		}
 		return result;
 	}

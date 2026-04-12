@@ -22,6 +22,7 @@ import dev.civl.sarl.preuniverse.IF.PreUniverse;
 import dev.civl.sarl.preuniverse.IF.PreUniverses;
 import dev.civl.sarl.prove.IF.Prove;
 import dev.civl.sarl.prove.IF.TheoremProver;
+import dev.civl.sarl.universe.IF.Universes;
 
 /**
  * Tests translation of expressions involving quantifiers, all under the
@@ -47,11 +48,9 @@ public class QuantifierTest {
 
 	// Static fields: instantiated once and used for all tests...
 
-	private static FactorySystem factorySystem = PreUniverses
-			.newIdealFactorySystem();
+	private static FactorySystem factorySystem = PreUniverses.newIdealFactorySystem();
 
-	private static PreUniverse universe = PreUniverses
-			.newPreUniverse(factorySystem);
+	private static PreUniverse universe = PreUniverses.newPreUniverse(factorySystem);
 
 	private static SymbolicType integerType = universe.integerType();
 
@@ -67,8 +66,7 @@ public class QuantifierTest {
 	private static NumericSymbolicConstant y = (NumericSymbolicConstant) universe
 			.symbolicConstant(universe.stringObject("y"), integerType);
 
-	private static BooleanExpression context = universe.and(
-			universe.equals(x, five), universe.lessThan(y, ten));
+	private static BooleanExpression context = universe.and(universe.equals(x, five), universe.lessThan(y, ten));
 
 	private static Collection<TheoremProver> provers;
 
@@ -76,10 +74,8 @@ public class QuantifierTest {
 	public static void setUpBeforeClass() throws Exception {
 		universe.setShowProverQueries(false); // for debugging
 		provers = new LinkedList<TheoremProver>();
-		for (ProverInfo info : Configurations.getDefaultConfiguration()
-				.getProvers()) {
-			provers.add(Prove.newProverFactory(universe, info).newProver(
-					context));
+		for (ProverInfo info : Configurations.getDefaultConfiguration().getProvers()) {
+			provers.add(Prove.newProverFactory(universe, info, Universes.makeProverDir()).newProver(context));
 		}
 	}
 
@@ -92,24 +88,21 @@ public class QuantifierTest {
 	}
 
 	/**
-	 * Checks that the result of applying the prover to the given predicate is
-	 * as expected.
+	 * Checks that the result of applying the prover to the given predicate is as
+	 * expected.
 	 * 
-	 * @param expected
-	 *            expected result type (YES, NO, or MAYBE)
-	 * @param predicate
-	 *            boolean expression to be checked for validity
+	 * @param expected  expected result type (YES, NO, or MAYBE)
+	 * @param predicate boolean expression to be checked for validity
 	 */
 	private void check(ResultType expected, BooleanExpression predicate) {
 		for (TheoremProver prover : provers) {
-			assertEquals(prover.toString(), expected, prover.valid(predicate)
-					.getResultType());
+			assertEquals(prover.toString(), expected, prover.valid(predicate).getResultType());
 		}
 	}
 
 	/**
-	 * Checks whether "all x:INT.x=3" is valid. Answer should be NO. Note that
-	 * the prover should not confuse the bound x with the free x which is 5.
+	 * Checks whether "all x:INT.x=3" is valid. Answer should be NO. Note that the
+	 * prover should not confuse the bound x with the free x which is 5.
 	 */
 	@Test
 	public void simpleForall1() {
@@ -117,8 +110,8 @@ public class QuantifierTest {
 	}
 
 	/**
-	 * Checks whether "all x:INT.x=5" is valid. Answer should be NO. Note that
-	 * the prover should not confuse the bound x with the free x which is 5.
+	 * Checks whether "all x:INT.x=5" is valid. Answer should be NO. Note that the
+	 * prover should not confuse the bound x with the free x which is 5.
 	 */
 	@Test
 	public void simpleForall2() {
@@ -126,8 +119,8 @@ public class QuantifierTest {
 	}
 
 	/**
-	 * Checks whether "exists x:INT.x=3" is valid. Answer should be YES. Note
-	 * the bound x should not be confused with the free x.
+	 * Checks whether "exists x:INT.x=3" is valid. Answer should be YES. Note the
+	 * bound x should not be confused with the free x.
 	 */
 	@Test
 	public void exists1() {
@@ -140,30 +133,23 @@ public class QuantifierTest {
 	 */
 	@Test
 	public void allOrExists() {
-		check(ResultType.YES, universe.or(
-				universe.forall(x, universe.equals(x, three)),
+		check(ResultType.YES, universe.or(universe.forall(x, universe.equals(x, three)),
 				universe.exists(x, universe.equals(x, three))));
 	}
 
 	/**
-	 * Checks whether "all x:INT.(exists x:INT.x=3)" is valid. Answer should be
-	 * YES.
+	 * Checks whether "all x:INT.(exists x:INT.x=3)" is valid. Answer should be YES.
 	 */
 	@Test
 	public void allExists1() {
-		check(ResultType.YES,
-				universe.forall(x,
-						universe.exists(x, universe.equals(x, three))));
+		check(ResultType.YES, universe.forall(x, universe.exists(x, universe.equals(x, three))));
 	}
 
 	/**
-	 * Checks whether "exists x:INT.(all x:INT.x=3)" is valid. Answer should be
-	 * NO.
+	 * Checks whether "exists x:INT.(all x:INT.x=3)" is valid. Answer should be NO.
 	 */
 	@Test
 	public void existsAll1() {
-		check(ResultType.NO,
-				universe.exists(x,
-						universe.forall(x, universe.equals(x, three))));
+		check(ResultType.NO, universe.exists(x, universe.forall(x, universe.equals(x, three))));
 	}
 }

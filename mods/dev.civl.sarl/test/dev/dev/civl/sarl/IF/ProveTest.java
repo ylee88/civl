@@ -16,6 +16,7 @@ import dev.civl.sarl.preuniverse.IF.PreUniverse;
 import dev.civl.sarl.preuniverse.IF.PreUniverses;
 import dev.civl.sarl.prove.IF.Prove;
 import dev.civl.sarl.prove.IF.TheoremProver;
+import dev.civl.sarl.universe.IF.Universes;
 import performance.PerformanceTest;
 
 public class ProveTest {
@@ -24,13 +25,12 @@ public class ProveTest {
 
 	@Before
 	public void setUp() throws Exception {
-		universe = PreUniverses
-				.newPreUniverse(PreUniverses.newIdealFactorySystem());
+		universe = PreUniverses.newPreUniverse(PreUniverses.newIdealFactorySystem());
 	}
 
 	/**
-	 * The same formula as the one in the {@link PerformanceTest#slowNegation()}
-	 * . Negating the formula is slow but prover can directly test the
+	 * The same formula as the one in the {@link PerformanceTest#slowNegation()} .
+	 * Negating the formula is slow but prover can directly test the
 	 * unsatisfiability of it without negating it.
 	 */
 	@Test
@@ -38,15 +38,12 @@ public class ProveTest {
 		SARLConfig config = Configurations.getDefaultConfiguration();
 		ProverInfo cvc = config.getProverWithKind(ProverKind.CVC4);
 
-		assertEquals("CVC3/CVC4 must be installed for passing this " + "test",
-				true, cvc != null);
+		assertEquals("CVC3/CVC4 must be installed for passing this " + "test", true, cvc != null);
 		SymbolicUniverse su = SARL.newStandardUniverse(config, cvc);
-		BooleanExpression unsatFormula = PerformanceTest
-				.slowNegationFormula(false, su);
+		BooleanExpression unsatFormula = PerformanceTest.slowNegationFormula(false, su);
 
 		su.setShowProverQueries(true);
-		assertEquals(ResultType.NO, su.reasoner(su.trueExpression())
-				.unsat(unsatFormula).getResultType());
+		assertEquals(ResultType.NO, su.reasoner(su.trueExpression()).unsat(unsatFormula).getResultType());
 	}
 
 	@Test
@@ -54,18 +51,15 @@ public class ProveTest {
 		SARLConfig config = Configurations.getDefaultConfiguration();
 		ProverInfo cvc = config.getProverWithKind(ProverKind.CVC4);
 
-		assertEquals("CVC3/CVC4 must be installed for passing this " + "test",
-				true, cvc != null);
+		assertEquals("CVC3/CVC4 must be installed for passing this " + "test", true, cvc != null);
 		SymbolicUniverse su = SARL.newStandardUniverse(config, cvc);
-		BooleanExpression unsatFormula = PerformanceTest
-				.slowNegationFormula(true, su);
+		BooleanExpression unsatFormula = PerformanceTest.slowNegationFormula(true, su);
 
 		su.setShowProverQueries(true);
 
-		TheoremProver prover = Prove.newProverFactory((PreUniverse) su, cvc)
+		TheoremProver prover = Prove.newProverFactory((PreUniverse) su, cvc, Universes.makeProverDir())
 				.newProver(su.trueExpression());
 
-		assertEquals(ResultType.YES,
-				prover.unsat(unsatFormula).getResultType());
+		assertEquals(ResultType.YES, prover.unsat(unsatFormula).getResultType());
 	}
 }

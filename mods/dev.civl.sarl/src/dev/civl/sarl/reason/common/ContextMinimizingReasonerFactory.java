@@ -1,5 +1,6 @@
 package dev.civl.sarl.reason.common;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -22,8 +23,8 @@ import dev.civl.sarl.reason.IF.ReasonerFactory;
 public class ContextMinimizingReasonerFactory implements ReasonerFactory {
 
 	/**
-	 * Factory used to produce new {@link TheoremProver}s, which will be used by
-	 * the reasoners to check validity.
+	 * Factory used to produce new {@link TheoremProver}s, which will be used by the
+	 * reasoners to check validity.
 	 */
 	private TheoremProverFactory proverFactory;
 
@@ -35,30 +36,27 @@ public class ContextMinimizingReasonerFactory implements ReasonerFactory {
 	private IdealFactory idealFactory;
 
 	/**
-	 * Caches the {@link Reasoner}s associated to each boolean expression. In
-	 * this way there is at most one {@link Reasoner} associated to each
-	 * equivalence class of a {@link ReasonerCacheKey}, where the equivalence
-	 * relation is determined by the {@link ReasonerCacheKey#equals(Object)}
-	 * method.
+	 * Caches the {@link Reasoner}s associated to each boolean expression. In this
+	 * way there is at most one {@link Reasoner} associated to each equivalence
+	 * class of a {@link ReasonerCacheKey}, where the equivalence relation is
+	 * determined by the {@link ReasonerCacheKey#equals(Object)} method.
 	 */
 	private Map<ReasonerCacheKey, ContextMinimizingReasoner> reasonerMap = new ConcurrentHashMap<>();
 
 	/**
 	 * Creates new factory based on the given symbolic universe, theorem prover
-	 * factory, and simplifier factory. Those objects will be used by the
-	 * reasoners produced by this factory.
+	 * factory, and simplifier factory. Those objects will be used by the reasoners
+	 * produced by this factory.
 	 * 
-	 * @param universe
-	 *            symbolic universe used to produce new symbolic expressions
-	 * @param proverFactory
-	 *            used to produce new {@link TheoremProver}s, which will be used
-	 *            by the reasoners to check validity
-	 * @param simplifierFactory
-	 *            used to produce new {@link Simplifier}s, which will be used by
-	 *            the reasoners to simplify expressions
+	 * @param universe          symbolic universe used to produce new symbolic
+	 *                          expressions
+	 * @param proverFactory     used to produce new {@link TheoremProver}s, which
+	 *                          will be used by the reasoners to check validity
+	 * @param simplifierFactory used to produce new {@link Simplifier}s, which will
+	 *                          be used by the reasoners to simplify expressions
 	 */
-	public ContextMinimizingReasonerFactory(PreUniverse universe,
-			IdealFactory idealFactory, TheoremProverFactory proverFactory) {
+	public ContextMinimizingReasonerFactory(PreUniverse universe, IdealFactory idealFactory,
+			TheoremProverFactory proverFactory) {
 		this.universe = universe;
 		this.idealFactory = idealFactory;
 		this.proverFactory = proverFactory;
@@ -66,34 +64,33 @@ public class ContextMinimizingReasonerFactory implements ReasonerFactory {
 	}
 
 	@Override
-	public ContextMinimizingReasoner getReasoner(BooleanExpression context,
-			boolean useBackwardSubstitution,
+	public ContextMinimizingReasoner getReasoner(BooleanExpression context, boolean useBackwardSubstitution,
 			ProverFunctionInterpretation logicFunctions[]) {
 		List<BooleanExpression> contextStack = new ArrayList<>(1);
 		contextStack.add(context);
-		return getReasoner(contextStack, useBackwardSubstitution,
-				logicFunctions);
+		return getReasoner(contextStack, useBackwardSubstitution, logicFunctions);
 	}
 
 	@Override
-	public ContextMinimizingReasoner getReasoner(
-			List<BooleanExpression> contextStack,
-			boolean useBackwardSubstitution,
+	public ContextMinimizingReasoner getReasoner(List<BooleanExpression> contextStack, boolean useBackwardSubstitution,
 			ProverFunctionInterpretation logicFunctions[]) {
 		for (BooleanExpression subContext : contextStack)
 			assert subContext.isCanonic();
-		ReasonerCacheKey key = new ReasonerCacheKey(contextStack,
-				logicFunctions);
+		ReasonerCacheKey key = new ReasonerCacheKey(contextStack, logicFunctions);
 		ContextMinimizingReasoner result = reasonerMap.get(key);
 
 		if (result == null) {
-			ContextMinimizingReasoner newContextMinimizingReasoner = new ContextMinimizingReasoner(
-					universe, idealFactory, proverFactory, this, contextStack,
-					useBackwardSubstitution, logicFunctions);
+			ContextMinimizingReasoner newContextMinimizingReasoner = new ContextMinimizingReasoner(universe,
+					idealFactory, proverFactory, this, contextStack, useBackwardSubstitution, logicFunctions);
 
 			result = reasonerMap.putIfAbsent(key, newContextMinimizingReasoner);
 			return result == null ? newContextMinimizingReasoner : result;
 		}
 		return result;
+	}
+
+	@Override
+	public Path workingDirectory() {
+		return proverFactory.workingDirectory();
 	}
 }

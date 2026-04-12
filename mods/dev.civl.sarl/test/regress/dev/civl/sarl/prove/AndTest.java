@@ -28,20 +28,18 @@ import dev.civl.sarl.preuniverse.IF.PreUniverse;
 import dev.civl.sarl.preuniverse.IF.PreUniverses;
 import dev.civl.sarl.prove.IF.Prove;
 import dev.civl.sarl.prove.IF.TheoremProver;
+import dev.civl.sarl.universe.IF.Universes;
 
 @RunWith(JUnit4.class)
 public class AndTest {
 
 	// Static fields: instantiated once and used for all tests...
 
-	private static FactorySystem factorySystem = PreUniverses
-			.newIdealFactorySystem();
+	private static FactorySystem factorySystem = PreUniverses.newIdealFactorySystem();
 
-	private static PreUniverse universe = PreUniverses
-			.newPreUniverse(factorySystem);
+	private static PreUniverse universe = PreUniverses.newPreUniverse(factorySystem);
 
-	private static ExpressionFactory expressionFactory = factorySystem
-			.expressionFactory();
+	private static ExpressionFactory expressionFactory = factorySystem.expressionFactory();
 
 	private static SymbolicType boolType = universe.booleanType();
 
@@ -64,10 +62,8 @@ public class AndTest {
 	public static void setUpBeforeClass() throws Exception {
 		universe.setShowProverQueries(false);
 		provers = new LinkedList<TheoremProver>();
-		for (ProverInfo info : Configurations.getDefaultConfiguration()
-				.getProvers()) {
-			provers.add(
-					Prove.newProverFactory(universe, info).newProver(context));
+		for (ProverInfo info : Configurations.getDefaultConfiguration().getProvers()) {
+			provers.add(Prove.newProverFactory(universe, info, Universes.makeProverDir()).newProver(context));
 		}
 	}
 
@@ -80,27 +76,23 @@ public class AndTest {
 	}
 
 	/**
-	 * Checks that the result of applying the prover to the given predicate is
-	 * as expected.
+	 * Checks that the result of applying the prover to the given predicate is as
+	 * expected.
 	 * 
-	 * @param expected
-	 *            expected result type (YES, NO, or MAYBE)
-	 * @param predicate
-	 *            boolean expression to be checked for validity
+	 * @param expected  expected result type (YES, NO, or MAYBE)
+	 * @param predicate boolean expression to be checked for validity
 	 */
 	private void check(ResultType expected, BooleanExpression predicate) {
 		for (TheoremProver prover : provers) {
-			assertEquals(prover.toString(), expected,
-					prover.valid(predicate).getResultType());
+			assertEquals(prover.toString(), expected, prover.valid(predicate).getResultType());
 		}
 	}
 
 	@Test
 	@Ignore
 	public void testTranslateAndOneArg() {
-		BooleanExpression andExp = (BooleanExpression) expressionFactory
-				.expression(SymbolicOperator.AND, boolType, boolFalse,
-						boolTrue);
+		BooleanExpression andExp = (BooleanExpression) expressionFactory.expression(SymbolicOperator.AND, boolType,
+				boolFalse, boolTrue);
 
 		for (TheoremProver prover : provers) {
 			ValidityResult result = prover.valid(andExp);
@@ -120,8 +112,7 @@ public class AndTest {
 
 	@Test
 	public void translateBitPred() {
-		check(ResultType.NO, universe.lessThan(
-				(NumericExpression) universe.bitand(five, five), five));
+		check(ResultType.NO, universe.lessThan((NumericExpression) universe.bitand(five, five), five));
 	}
 
 }

@@ -18,6 +18,8 @@
  ******************************************************************************/
 package dev.civl.sarl;
 
+import java.nio.file.Path;
+
 import dev.civl.sarl.IF.SymbolicUniverse;
 import dev.civl.sarl.IF.config.Configurations;
 import dev.civl.sarl.IF.config.ProverInfo;
@@ -39,28 +41,28 @@ import dev.civl.sarl.universe.IF.Universes;
 public class SARL {
 
 	/**
-	 * Returns a new standard symbolic universe, which supports all symbolic
-	 * types, including Herbrand integer and real types, and ideal
-	 * (mathematical) integers and reals.
+	 * Returns a new standard symbolic universe, which supports all symbolic types,
+	 * including Herbrand integer and real types, and ideal (mathematical) integers
+	 * and reals.
 	 * 
-	 * @param config
-	 *            a SARL configuration object providing information on the
-	 *            external theorem provers available to SARL
-	 * @param prover
-	 *            either one of the {@link ProverInfo} objects in the
-	 *            configuration, or <code>null</code>. If non-null, this
-	 *            specifies the sole prover to use for resolving queries. If
-	 *            null, a query will be resolved by starting with the first
-	 *            prover in the configuration, and, if that result is
-	 *            inconclusive, going to the second, and so on, until either a
-	 *            conclusive result is achieved or every prover in the
-	 *            configuration has been exhausted.
+	 * @param config a SARL configuration object providing information on the
+	 *               external theorem provers available to SARL
+	 * @param prover either one of the {@link ProverInfo} objects in the
+	 *               configuration, or <code>null</code>. If non-null, this
+	 *               specifies the sole prover to use for resolving queries. If
+	 *               null, a query will be resolved by starting with the first
+	 *               prover in the configuration, and, if that result is
+	 *               inconclusive, going to the second, and so on, until either a
+	 *               conclusive result is achieved or every prover in the
+	 *               configuration has been exhausted.
 	 * 
 	 * @return a new standard symbolic universe
 	 */
-	public static SymbolicUniverse newStandardUniverse(SARLConfig config,
-			ProverInfo prover) {
+	public static SymbolicUniverse newStandardUniverse(SARLConfig config, ProverInfo prover, Path workingDirectory) {
+		return Universes.newStandardUniverse(config, prover, workingDirectory);
+	}
 
+	public static SymbolicUniverse newStandardUniverse(SARLConfig config, ProverInfo prover) {
 		return Universes.newStandardUniverse(config, prover);
 	}
 
@@ -69,51 +71,55 @@ public class SARL {
 	 * integers and reals. There might be slight performance advantages over the
 	 * standard universe (if no non-ideal expressions are used).
 	 * 
-	 * @param config
-	 *            a SARL configuration object providing information on the
-	 *            external theorem provers available to SARL
-	 * @param prover
-	 *            either one of the {@link ProverInfo} objects in the
-	 *            configuration, or <code>null</code>. If non-null, this
-	 *            specifies the sole prover to use for resolving queries. If
-	 *            null, a query will be resolved by starting with the first
-	 *            prover in the configuration, and, if that result is
-	 *            inconclusive, going to the second, and so on, until either a
-	 *            conclusive result is achieved or every prover in the
-	 *            configuration has been exhausted.
+	 * @param config a SARL configuration object providing information on the
+	 *               external theorem provers available to SARL
+	 * @param prover either one of the {@link ProverInfo} objects in the
+	 *               configuration, or <code>null</code>. If non-null, this
+	 *               specifies the sole prover to use for resolving queries. If
+	 *               null, a query will be resolved by starting with the first
+	 *               prover in the configuration, and, if that result is
+	 *               inconclusive, going to the second, and so on, until either a
+	 *               conclusive result is achieved or every prover in the
+	 *               configuration has been exhausted.
 	 * @return an ideal symbolic universe
 	 */
-	public static SymbolicUniverse newIdealUniverse(SARLConfig config,
-			ProverInfo prover) {
+	public static SymbolicUniverse newIdealUniverse(SARLConfig config, ProverInfo prover, Path workingDirectory) {
+		return Universes.newIdealUniverse(config, prover, workingDirectory);
+	}
+
+	public static SymbolicUniverse newIdealUniverse(SARLConfig config, ProverInfo prover) {
 		return Universes.newIdealUniverse(config, prover);
 	}
 
 	/**
 	 * <p>
-	 * Returns a new standard symbolic universe, which supports all symbolic
-	 * types, including Herbrand integer and real types, and ideal
-	 * (mathematical) integers and reals.
+	 * Returns a new standard symbolic universe, which supports all symbolic types,
+	 * including Herbrand integer and real types, and ideal (mathematical) integers
+	 * and reals.
 	 * </p>
 	 * 
 	 * <p>
 	 * The SARL configuration is determined by looking for a SARL configuration
-	 * file. See {@link Configurations#findOrMakeConfiguration()} for details on
-	 * how the configuration file is found.
+	 * file. See {@link Configurations#findOrMakeConfiguration()} for details on how
+	 * the configuration file is found.
 	 * </p>
 	 * 
 	 * <p>
 	 * A query will be resolved by starting with the first prover in the
-	 * configuration, and, if that result is inconclusive, going to the second,
-	 * and so on, until either a conclusive result is achieved or every prover
-	 * in the configuration has been exhausted.
+	 * configuration, and, if that result is inconclusive, going to the second, and
+	 * so on, until either a conclusive result is achieved or every prover in the
+	 * configuration has been exhausted.
 	 * </p>
 	 * 
 	 * @return a new standard symbolic universe
 	 */
-	public static SymbolicUniverse newStandardUniverse() {
+	public static SymbolicUniverse newStandardUniverse(Path workingDirectory) {
 		SARLConfig config = Configurations.getDefaultConfiguration();
+		return Universes.newStandardUniverse(config, null, workingDirectory);
+	}
 
-		return Universes.newStandardUniverse(config, null);
+	public static SymbolicUniverse newStandardUniverse() {
+		return Universes.newStandardUniverse();
 	}
 
 	/**
@@ -125,22 +131,26 @@ public class SARL {
 	 * 
 	 * <p>
 	 * The SARL configuration is determined by looking for a SARL configuration
-	 * file. See {@link Configurations#findOrMakeConfiguration()} for details on
-	 * how the configuration file is found.
+	 * file. See {@link Configurations#findOrMakeConfiguration()} for details on how
+	 * the configuration file is found.
 	 * </p>
 	 * 
 	 * <p>
 	 * A query will be resolved by starting with the first prover in the
-	 * configuration, and, if that result is inconclusive, going to the second,
-	 * and so on, until either a conclusive result is achieved or every prover
-	 * in the configuration has been exhausted.
+	 * configuration, and, if that result is inconclusive, going to the second, and
+	 * so on, until either a conclusive result is achieved or every prover in the
+	 * configuration has been exhausted.
 	 * </p>
 	 *
 	 * @return an ideal symbolic universe
 	 */
-	public static SymbolicUniverse newIdealUniverse() {
+	public static SymbolicUniverse newIdealUniverse(Path workingDirectory) {
 		SARLConfig config = Configurations.getDefaultConfiguration();
 
-		return Universes.newIdealUniverse(config, null);
+		return Universes.newIdealUniverse(config, null, workingDirectory);
+	}
+
+	public static SymbolicUniverse newIdealUniverse() {
+		return Universes.newIdealUniverse();
 	}
 }

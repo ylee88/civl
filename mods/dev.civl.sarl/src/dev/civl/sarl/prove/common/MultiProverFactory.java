@@ -1,5 +1,6 @@
 package dev.civl.sarl.prove.common;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 
 import dev.civl.sarl.IF.TheoremProverException;
@@ -18,8 +19,16 @@ public class MultiProverFactory implements TheoremProverFactory {
 
 	private TheoremProverFactory[] factories;
 
-	public MultiProverFactory(TheoremProverFactory[] factories) {
+	/**
+	 * Working directory for this multi-prover. Note that each constituent prover
+	 * has its own working directory, which may be different from this one, or may
+	 * be the same as this one.
+	 */
+	private Path workingDirectory;
+
+	public MultiProverFactory(TheoremProverFactory[] factories, Path workingDirectory) {
 		this.factories = factories;
+		this.workingDirectory = workingDirectory;
 	}
 
 	@Override
@@ -28,15 +37,13 @@ public class MultiProverFactory implements TheoremProverFactory {
 	}
 
 	@Override
-	public TheoremProver newProver(BooleanExpression context,
-			ProverFunctionInterpretation[] logicFunctions) {
+	public TheoremProver newProver(BooleanExpression context, ProverFunctionInterpretation[] logicFunctions) {
 		int numProvers = factories.length;
 		ArrayList<TheoremProver> provers = new ArrayList<>();
 
 		for (int i = 0; i < numProvers; i++) {
 			try {
-				TheoremProver prover = factories[i].newProver(context,
-						logicFunctions);
+				TheoremProver prover = factories[i].newProver(context, logicFunctions);
 
 				provers.add(prover);
 			} catch (TheoremProverException e) {
@@ -46,6 +53,11 @@ public class MultiProverFactory implements TheoremProverFactory {
 			}
 		}
 		return new MultiProver(provers.toArray(new TheoremProver[0]));
+	}
+
+	@Override
+	public Path workingDirectory() {
+		return workingDirectory;
 	}
 
 }

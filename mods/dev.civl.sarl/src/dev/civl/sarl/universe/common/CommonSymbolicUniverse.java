@@ -18,6 +18,9 @@
  ******************************************************************************/
 package dev.civl.sarl.universe.common;
 
+import java.lang.ref.Cleaner;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,12 +48,50 @@ import dev.civl.sarl.util.autotg.TestTranslator;
  * 
  * @author siegel
  */
-public class CommonSymbolicUniverse extends CommonPreUniverse implements SymbolicUniverse {
+public class CommonSymbolicUniverse extends CommonPreUniverse implements SymbolicUniverse, AutoCloseable {
+
+	/**
+	 * A cleaner which will be called whenever a universe becomes unreachable. It
+	 * will be used to delete the working directory used by the
+	 * {@link #reasonerFactory}.
+	 */
+	private static final Cleaner CLEANER = Cleaner.create();
+
+	/**
+	 * An instance of this Runnable class will be created for each universe. When
+	 * the universe is ready to be reclaimed by the garbage collector, a thread will
+	 * be created to delete the specified directory.
+	 * 
+	 * Note: the directory will only be deleted if it is empty.
+	 */
+	private static class DeletionTask implements Runnable {
+		private final Path path;
+
+		DeletionTask(Path path) {
+			this.path = path;
+		}
+
+		@Override
+		public void run() {
+			try {
+				Files.deleteIfExists(path);
+			} catch (Exception e) {
+				// deletion failed. nothing to do.
+			}
+		}
+	}
 
 	/**
 	 * The factory for producing new Reasoner instances.
 	 */
 	private ReasonerFactory reasonerFactory;
+
+	/**
+	 * The object representing the cleaning action that will take place when this
+	 * universe is ready to be reclaimed. It is created by the {@link #CLEANER}. It
+	 * will be created when the ReasonerRactory is specified.
+	 */
+	private Cleaner.Cleanable cleanable = null;
 
 	/**
 	 * The factory for producing new {@link Why3Reasoner} instances.
@@ -97,6 +138,7 @@ public class CommonSymbolicUniverse extends CommonPreUniverse implements Symboli
 
 	public void setReasonerFactory(ReasonerFactory reasonerFactory) {
 		this.reasonerFactory = reasonerFactory;
+		this.cleanable = CLEANER.register(this, new DeletionTask(reasonerFactory.workingDirectory()));
 	}
 
 	@Override
@@ -207,5 +249,10 @@ public class CommonSymbolicUniverse extends CommonPreUniverse implements Symboli
 			this.logicFunctions = logicFunctions;
 		else
 			this.logicFunctions = new ProverFunctionInterpretation[0];
+	}
+
+	@Override
+	public void close() throws Exception {
+		cleanable.clean();
 	}
 }

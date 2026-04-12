@@ -22,6 +22,7 @@ import dev.civl.sarl.preuniverse.IF.PreUniverse;
 import dev.civl.sarl.preuniverse.IF.PreUniverses;
 import dev.civl.sarl.prove.IF.Prove;
 import dev.civl.sarl.prove.IF.TheoremProverFactory;
+import dev.civl.sarl.universe.IF.Universes;
 
 /**
  * Tests involving proving things related to union types, including union
@@ -31,20 +32,17 @@ import dev.civl.sarl.prove.IF.TheoremProverFactory;
  */
 public class UnionTest {
 
-	private static FactorySystem factorySystem = PreUniverses
-			.newIdealFactorySystem();
+	private static FactorySystem factorySystem = PreUniverses.newIdealFactorySystem();
 
-	private static PreUniverse universe = PreUniverses
-			.newPreUniverse(factorySystem);
+	private static PreUniverse universe = PreUniverses.newPreUniverse(factorySystem);
 
 	private static Collection<TheoremProverFactory> proverFactories = new LinkedList<>();
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
 		universe.setShowProverQueries(true);
-		for (ProverInfo info : Configurations.getDefaultConfiguration()
-				.getProvers())
-			proverFactories.add(Prove.newProverFactory(universe, info));
+		for (ProverInfo info : Configurations.getDefaultConfiguration().getProvers())
+			proverFactories.add(Prove.newProverFactory(universe, info, Universes.makeProverDir()));
 	}
 
 	@AfterClass
@@ -56,30 +54,22 @@ public class UnionTest {
 
 	@Test
 	public void test() {
-		SymbolicUnionType unionType = universe.unionType(
-				universe.stringObject("U"),
+		SymbolicUnionType unionType = universe.unionType(universe.stringObject("U"),
 				Arrays.asList(universe.integerType(), universe.realType()));
-		SymbolicExpression zeroI = universe.unionInject(unionType,
-				universe.intObject(0), universe.zeroInt());
-		SymbolicConstant realX = universe.symbolicConstant(
-				universe.stringObject("X"), universe.realType());
+		SymbolicExpression zeroI = universe.unionInject(unionType, universe.intObject(0), universe.zeroInt());
+		SymbolicConstant realX = universe.symbolicConstant(universe.stringObject("X"), universe.realType());
 		BooleanExpression t = universe.trueExpression();
-		BooleanExpression pred1 = universe.equals(
-				universe.unionExtract(universe.intObject(1), zeroI), realX);
+		BooleanExpression pred1 = universe.equals(universe.unionExtract(universe.intObject(1), zeroI), realX);
 
 		for (TheoremProverFactory factory : proverFactories)
-			assertEquals(factory.toString(), ResultType.NO,
-					factory.newProver(t).valid(pred1).getResultType());
+			assertEquals(factory.toString(), ResultType.NO, factory.newProver(t).valid(pred1).getResultType());
 
-		SymbolicExpression zeroR = universe.unionInject(unionType,
-				universe.intObject(1), universe.zeroReal());
+		SymbolicExpression zeroR = universe.unionInject(unionType, universe.intObject(1), universe.zeroReal());
 		BooleanExpression xeq0 = universe.equals(realX, universe.zeroReal());
-		BooleanExpression pred2 = universe.equals(
-				universe.unionExtract(universe.intObject(1), zeroR), realX);
+		BooleanExpression pred2 = universe.equals(universe.unionExtract(universe.intObject(1), zeroR), realX);
 
 		for (TheoremProverFactory factory : proverFactories)
-			assertEquals(factory.toString(), ResultType.YES,
-					factory.newProver(xeq0).valid(pred2).getResultType());
+			assertEquals(factory.toString(), ResultType.YES, factory.newProver(xeq0).valid(pred2).getResultType());
 	}
 
 }

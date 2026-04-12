@@ -18,6 +18,7 @@
  ******************************************************************************/
 package dev.civl.sarl.prove.IF;
 
+import java.nio.file.Path;
 import java.util.Map;
 
 import dev.civl.sarl.IF.ModelResult;
@@ -84,16 +85,17 @@ public class Prove {
 	 *         specified in the config, in order, until a conclusive result is
 	 *         reached or all provers have been exhausted
 	 */
-	public static TheoremProverFactory newMultiProverFactory(PreUniverse universe, SARLConfig config) {
+	public static TheoremProverFactory newMultiProverFactory(PreUniverse universe, SARLConfig config,
+			Path workingDirectory) {
 		int numProvers = config.getNumProvers();
 		TheoremProverFactory[] factories = new TheoremProverFactory[numProvers];
 		int count = 0;
 
 		for (ProverInfo prover : config.getProvers()) {
-			factories[count] = newProverFactory(universe, prover);
+			factories[count] = newProverFactory(universe, prover, workingDirectory);
 			count++;
 		}
-		return new MultiProverFactory(factories);
+		return new MultiProverFactory(factories, workingDirectory);
 	}
 
 	/**
@@ -106,16 +108,17 @@ public class Prove {
 	 *                 specific underlying theorem prover which will be used
 	 * @return the new theorem prover factory based on the given prover
 	 */
-	public static TheoremProverFactory newProverFactory(PreUniverse universe, ProverInfo prover) {
+	public static TheoremProverFactory newProverFactory(PreUniverse universe, ProverInfo prover,
+			Path workingDirectory) {
 		switch (prover.getKind()) {
 		case CVC4:
-			return new RobustCVCTheoremProverFactory(universe, prover);
+			return new RobustCVCTheoremProverFactory(universe, prover, workingDirectory);
 		case CVC5:
-			return new SMTProverFactory(universe, prover);
+			return new SMTProverFactory(universe, prover, workingDirectory);
 		case Z3:
-			return new SMTProverFactory(universe, prover);
+			return new SMTProverFactory(universe, prover, workingDirectory);
 		case ALT_ERGO:
-			return new SMTProverFactory(universe, prover);
+			return new SMTProverFactory(universe, prover, workingDirectory);
 		default:
 			throw new SARLInternalException("Unknown kind of theorem prover: " + prover.getKind());
 		}

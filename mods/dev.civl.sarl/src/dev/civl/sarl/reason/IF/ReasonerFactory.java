@@ -18,10 +18,13 @@
  ******************************************************************************/
 package dev.civl.sarl.reason.IF;
 
+import java.nio.file.Path;
 import java.util.List;
+
 import dev.civl.sarl.IF.Reasoner;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.prove.IF.ProverFunctionInterpretation;
+import dev.civl.sarl.prove.common.TrivialProver;
 
 /**
  * <p>
@@ -44,33 +47,39 @@ import dev.civl.sarl.prove.IF.ProverFunctionInterpretation;
 public interface ReasonerFactory {
 
 	/**
-	 * Gets a {@link Reasoner} for the given <code>context</code>. If this
-	 * method is called twice with two contexts that are equal (according to
-	 * method {@link BooleanExpression#equals(Object)}), the second call may
-	 * return the same instance as the first call (i.e., the factory may cache
-	 * the results).
+	 * Returns the working directory for the theorem provers created by this
+	 * factory. This is the directory where temporary files are stored, such as
+	 * query files.
 	 * 
-	 * @param context
-	 *            a non-<code>null</code> boolean expression to be used as the
-	 *            context for the {@link Reasoner}
-	 * @param useBackwardSubstitution
-	 *            shall the reasoner use backwards substitution to solve for
-	 *            certain numeric expressions in terms of others when
-	 *            simplifying?
-	 * @param simplifyWithTrivialProver
-	 *            should the reasoner's {@link Simplifier} use a
-	 *            {@link TrivialProver} or the one constructed by the factory
-	 *            returned by {@link getTheoremProverFactory}?
-	 * @param proverPredicates
-	 *            {@link ProverFunctionInterpretation}s which factor out common
-	 *            boolean expressions from complex prover contexts and queries
+	 * @return working directory
+	 */
+	Path workingDirectory();
+
+	/**
+	 * Gets a {@link Reasoner} for the given <code>context</code>. If this method is
+	 * called twice with two contexts that are equal (according to method
+	 * {@link BooleanExpression#equals(Object)}), the second call may return the
+	 * same instance as the first call (i.e., the factory may cache the results).
+	 * 
+	 * @param context                   a non-<code>null</code> boolean expression
+	 *                                  to be used as the context for the
+	 *                                  {@link Reasoner}
+	 * @param useBackwardSubstitution   shall the reasoner use backwards
+	 *                                  substitution to solve for certain numeric
+	 *                                  expressions in terms of others when
+	 *                                  simplifying?
+	 * @param simplifyWithTrivialProver should the reasoner's {@link Simplifier} use
+	 *                                  a {@link TrivialProver} or the one
+	 *                                  constructed by the factory returned by
+	 *                                  {@link getTheoremProverFactory}?
+	 * @param proverPredicates          {@link ProverFunctionInterpretation}s which
+	 *                                  factor out common boolean expressions from
+	 *                                  complex prover contexts and queries
 	 * @return a {@link Reasoner} based on the given <code>context</code>
 	 */
-	Reasoner getReasoner(BooleanExpression context,
-			boolean useBackwardSubstitution,
+	Reasoner getReasoner(BooleanExpression context, boolean useBackwardSubstitution,
 			ProverFunctionInterpretation[] proverPredicates);
 
-	Reasoner getReasoner(List<BooleanExpression> contextStack,
-			boolean useBackwardSubstitution,
+	Reasoner getReasoner(List<BooleanExpression> contextStack, boolean useBackwardSubstitution,
 			ProverFunctionInterpretation[] proverPredicates);
 }

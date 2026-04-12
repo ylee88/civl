@@ -269,9 +269,8 @@ public class ConfigFactory {
 
 		} else if (kind == ProverKind.CVC5) {
 			info.addOption("--lang=smt2"); // language is SMT-LIB2
-			info.addOption("--arrays-exp"); // experimental array features help
+			// info.addOption("--arrays-exp"); // experimental array features sometimes help
 		} else if (kind == ProverKind.Z3) {
-			info.addOption("-in"); // read input from stdin
 			info.addOption("-smt2"); // language is SMT-LIB2
 		} else if (kind == ProverKind.Why3) {
 			for (String why3prover : executableMap.keySet()) {
@@ -285,8 +284,10 @@ public class ConfigFactory {
 			// set environment for helping why3 finding prover executables:
 			info.setEnv(System.getenv("PATH"));
 		} else if (kind == ProverKind.ALT_ERGO) {
-			info.addOption("-i smtlib2"); // input language is SMT-LIB2
-			info.addOption("-o smtlib2"); // output language is SMT-LIB2
+			info.addOption("-i");
+			info.addOption("smtlib2"); // input language is SMT-LIB2
+			info.addOption("-o");
+			info.addOption("smtlib2"); // output language is SMT-LIB2
 		}
 		return info;
 	}

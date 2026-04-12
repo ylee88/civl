@@ -19,6 +19,7 @@
 package dev.civl.sarl.reason.common;
 
 import java.util.List;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,9 +41,8 @@ import dev.civl.sarl.reason.IF.ReasonerFactory;
 public class CommonReasonerFactory implements ReasonerFactory {
 
 	/**
-	 * Cached results of previous creation of @{link Reasoner}s. The idea is to
-	 * have at most one {@link Reasoner} for each boolean expression
-	 * ("context").
+	 * Cached results of previous creation of @{link Reasoner}s. The idea is to have
+	 * at most one {@link Reasoner} for each boolean expression ("context").
 	 */
 	private Map<List<BooleanExpression>, Reasoner> reasonerCache = new ConcurrentHashMap<>();
 
@@ -51,9 +51,9 @@ public class CommonReasonerFactory implements ReasonerFactory {
 	private IdealFactory idealFactory;
 
 	/**
-	 * The theorem prover factory associated to this reasoner factory. It will
-	 * be used by the {@link Reasoner}s produced by this factory to instantiate
-	 * new {@link TheoremProver}s as the need arises.
+	 * The theorem prover factory associated to this reasoner factory. It will be
+	 * used by the {@link Reasoner}s produced by this factory to instantiate new
+	 * {@link TheoremProver}s as the need arises.
 	 */
 	private TheoremProverFactory proverFactory;
 
@@ -61,45 +61,43 @@ public class CommonReasonerFactory implements ReasonerFactory {
 	 * Produces a new {@link CommonReasonerFactory} based on the given
 	 * <code>simplifierFactory</code> and <code>proverFactory</code>.
 	 * 
-	 * @param simplifierFactory
-	 *            the factory that will be used by {@link Reasoner}s produced by
-	 *            this factory to create new {@link Simplifier}s when the need
-	 *            arises
-	 * @param proverFactory
-	 *            the factory that will be used by {@link Reasoner}s produced by
-	 *            this factory to create new {@link TheoremProver}s when the
-	 *            need arises
+	 * @param simplifierFactory the factory that will be used by {@link Reasoner}s
+	 *                          produced by this factory to create new
+	 *                          {@link Simplifier}s when the need arises
+	 * @param proverFactory     the factory that will be used by {@link Reasoner}s
+	 *                          produced by this factory to create new
+	 *                          {@link TheoremProver}s when the need arises
 	 */
-	public CommonReasonerFactory(PreUniverse universe,
-			IdealFactory idealFactory, TheoremProverFactory proverFactory) {
+	public CommonReasonerFactory(PreUniverse universe, IdealFactory idealFactory, TheoremProverFactory proverFactory) {
 		this.universe = universe;
 		this.idealFactory = idealFactory;
 		this.proverFactory = proverFactory;
 	}
 
 	@Override
-	public Reasoner getReasoner(BooleanExpression context,
-			boolean useBackwardSubstitution,
+	public Reasoner getReasoner(BooleanExpression context, boolean useBackwardSubstitution,
 			ProverFunctionInterpretation[] proverPredicates) {
 		List<BooleanExpression> contextStack = new ArrayList<>(1);
 		contextStack.add(context);
-		return getReasoner(contextStack, useBackwardSubstitution,
-				proverPredicates);
+		return getReasoner(contextStack, useBackwardSubstitution, proverPredicates);
 	}
 
 	@Override
-	public Reasoner getReasoner(List<BooleanExpression> assumptionStack,
-			boolean useBackwardSubstitution,
+	public Reasoner getReasoner(List<BooleanExpression> assumptionStack, boolean useBackwardSubstitution,
 			ProverFunctionInterpretation[] proverPredicates) {
 		Reasoner result = reasonerCache.get(assumptionStack);
 
 		if (result == null) {
-			Reasoner newReasoner = new CommonReasoner(universe, idealFactory,
-					proverFactory, this, assumptionStack);
+			Reasoner newReasoner = new CommonReasoner(universe, idealFactory, proverFactory, this, assumptionStack);
 
 			result = reasonerCache.putIfAbsent(assumptionStack, newReasoner);
 			return result == null ? newReasoner : result;
 		}
 		return result;
+	}
+
+	@Override
+	public Path workingDirectory() {
+		return proverFactory.workingDirectory();
 	}
 }

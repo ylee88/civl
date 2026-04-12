@@ -15,21 +15,19 @@ import dev.civl.sarl.preuniverse.IF.PreUniverses;
 import dev.civl.sarl.prove.IF.Prove;
 import dev.civl.sarl.prove.IF.TheoremProver;
 import dev.civl.sarl.prove.IF.TheoremProverFactory;
+import dev.civl.sarl.universe.IF.Universes;
 
 public class TheoremProverBenchmarkEquality {
 
 	public final static int N = 1000;
 
-	public final static FactorySystem factorySystem = PreUniverses
-			.newIdealFactorySystem();
+	public final static FactorySystem factorySystem = PreUniverses.newIdealFactorySystem();
 
-	public final static PreUniverse universe = PreUniverses
-			.newPreUniverse(factorySystem);
+	public final static PreUniverse universe = PreUniverses.newPreUniverse(factorySystem);
 
 	public final static SymbolicRealType realType = universe.realType();
 
-	private static BooleanExpression booleanExprTrue = universe
-			.trueExpression();
+	private static BooleanExpression booleanExprTrue = universe.trueExpression();
 
 	public final static NumericSymbolicConstant a = (NumericSymbolicConstant) universe
 			.symbolicConstant(universe.stringObject("a"), realType);
@@ -37,15 +35,12 @@ public class TheoremProverBenchmarkEquality {
 	public final static NumericSymbolicConstant b = (NumericSymbolicConstant) universe
 			.symbolicConstant(universe.stringObject("b"), realType);
 
-	public final static TheoremProverFactory proverFactory = Prove
-			.newMultiProverFactory(universe,
-					Configurations.getDefaultConfiguration());
+	public final static TheoremProverFactory proverFactory = Prove.newMultiProverFactory(universe,
+			Configurations.getDefaultConfiguration(), Universes.makeProverDir());
 
-	public static TheoremProver cvcProver = proverFactory
-			.newProver(booleanExprTrue);
+	public static TheoremProver cvcProver = proverFactory.newProver(booleanExprTrue);
 
-	public final static ExpressionFactory expressionFactory = factorySystem
-			.expressionFactory();
+	public final static ExpressionFactory expressionFactory = factorySystem.expressionFactory();
 
 	public static void main(String[] args) {
 
@@ -55,8 +50,7 @@ public class TheoremProverBenchmarkEquality {
 		List<NumericSymbolicConstant> expressions = new ArrayList<NumericSymbolicConstant>();
 		for (int i = 0; i < N; i++) {
 			NumericSymbolicConstant x = (NumericSymbolicConstant) universe
-					.symbolicConstant(universe.stringObject("x" + i),
-							universe.integerType());
+					.symbolicConstant(universe.stringObject("x" + i), universe.integerType());
 			expressions.add(x);
 			// double percentDone = (i / N) * 100;
 			// System.out.println(percentDone + "%");
@@ -64,10 +58,8 @@ public class TheoremProverBenchmarkEquality {
 		System.out.println("Building context expression...");
 		List<BooleanExpression> boolExpressions = new ArrayList<BooleanExpression>();
 		for (int i = 1; i < expressions.size(); i++) {
-			BooleanExpression xEqualsx = (BooleanExpression) expressionFactory
-					.expression(SymbolicOperator.EQUALS,
-							universe.booleanType(), expressions.get(i),
-							expressions.get(i));
+			BooleanExpression xEqualsx = (BooleanExpression) expressionFactory.expression(SymbolicOperator.EQUALS,
+					universe.booleanType(), expressions.get(i), expressions.get(i));
 			boolExpressions.add(xEqualsx);
 			// double percentDone = (i / N) * 100;
 			// System.out.println(percentDone + "%");;
@@ -86,8 +78,7 @@ public class TheoremProverBenchmarkEquality {
 		long totalQueryTime = 0;
 		System.out.println("Querying CVC3...");
 		for (int i = 1; i < expressions.size(); i++) {
-			BooleanExpression EqualsPrevious = universe.equals(
-					expressions.get(i), expressions.get(i - 1));
+			BooleanExpression EqualsPrevious = universe.equals(expressions.get(i), expressions.get(i - 1));
 
 			long queryStartTime = System.nanoTime();
 			cvcProver.valid(EqualsPrevious);
@@ -99,14 +90,8 @@ public class TheoremProverBenchmarkEquality {
 
 		stopTime = System.nanoTime();
 		System.out.println("Time(s):");
-		System.out.println("Total: "
-				+ (((double) (stopTime - startTime)) / 1000000000.0)
-				+ " seconds");
-		System.out
-				.println("Constructor: "
-						+ (((double) totalConstructorTime) / 1000000000.0)
-						+ " seconds");
-		System.out.println("CVC3 Queries: "
-				+ (((double) totalQueryTime) / 1000000000.0) + " seconds");
+		System.out.println("Total: " + (((double) (stopTime - startTime)) / 1000000000.0) + " seconds");
+		System.out.println("Constructor: " + (((double) totalConstructorTime) / 1000000000.0) + " seconds");
+		System.out.println("CVC3 Queries: " + (((double) totalQueryTime) / 1000000000.0) + " seconds");
 	}
 }

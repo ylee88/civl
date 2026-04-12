@@ -52,6 +52,12 @@ public class SARLConstants {
 	// public static boolean cycleDetection = true;
 
 	/**
+	 * Default directory name for theorem provers to use. Will be created in the
+	 * system's temporary directory (e.g., /tmp) if it doesn't already exist.
+	 */
+	public static String defaultProofDir = "civl-proofs";
+
+	/**
 	 * Simplifies an expression such as (a WITH i:=x)[j] to i==j?x:a[j]. This
 	 * happens immediately in the universe, so the first expression is never even
 	 * created.

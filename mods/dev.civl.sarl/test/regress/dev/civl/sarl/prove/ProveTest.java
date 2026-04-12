@@ -30,6 +30,7 @@ import dev.civl.sarl.prove.IF.Prove;
 import dev.civl.sarl.prove.IF.TheoremProver;
 import dev.civl.sarl.prove.IF.TheoremProverFactory;
 import dev.civl.sarl.prove.smt.SMTProverFactory;
+import dev.civl.sarl.universe.IF.Universes;
 
 public class ProveTest {
 
@@ -40,7 +41,8 @@ public class ProveTest {
 	@Before
 	public void setUp() throws Exception {
 		universe = PreUniverses.newPreUniverse(PreUniverses.newIdealFactorySystem());
-		proverFactory = Prove.newMultiProverFactory(universe, Configurations.getDefaultConfiguration());
+		proverFactory = Prove.newMultiProverFactory(universe, Configurations.getDefaultConfiguration(),
+				Universes.makeProverDir());
 	}
 
 	@Test
@@ -184,8 +186,8 @@ public class ProveTest {
 		BooleanExpression equation = su.equals(su.tupleRead(su.tupleRead(myTuple, su.intObject(0)), su.intObject(0)),
 				su.zeroInt());
 		BooleanExpression assumption = su.not(equation);
-		ResultType result = new SMTProverFactory((PreUniverse) su, z3).newProver(assumption).valid(equation)
-				.getResultType();
+		ResultType result = new SMTProverFactory((PreUniverse) su, z3, Universes.makeProverDir()).newProver(assumption)
+				.valid(equation).getResultType();
 
 		assertEquals(ResultType.NO, result);
 	}
@@ -210,7 +212,7 @@ public class ProveTest {
 		NumericExpression read = (NumericExpression) su.tupleRead(su.tupleRead(myTuple, su.intObject(0)),
 				su.intObject(0));
 		BooleanExpression assumption = su.equals(read, su.oneInt());
-		ResultType result = new SMTProverFactory((PreUniverse) su, z3).newProver(assumption)
+		ResultType result = new SMTProverFactory((PreUniverse) su, z3, Universes.makeProverDir()).newProver(assumption)
 				.valid(su.and(su.lessThan(su.zeroInt(), read), su.lessThan(read, su.integer(2)))).getResultType();
 
 		assertEquals(ResultType.YES, result);
@@ -245,7 +247,8 @@ public class ProveTest {
 		BooleanExpression unsatFormula = TestConstants.slowNegationFormula(true, su);
 
 		su.setShowProverQueries(true);
-		TheoremProver prover = Prove.newProverFactory((PreUniverse) su, z3).newProver(su.trueExpression());
+		TheoremProver prover = Prove.newProverFactory((PreUniverse) su, z3, Universes.makeProverDir())
+				.newProver(su.trueExpression());
 
 		assertEquals(ResultType.YES, prover.unsat(unsatFormula).getResultType());
 	}
