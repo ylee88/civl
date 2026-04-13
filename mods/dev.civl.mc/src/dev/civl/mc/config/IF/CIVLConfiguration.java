@@ -33,17 +33,16 @@ public class CIVLConfiguration {
 	 */
 	private DeadlockKind checkDeadlockKind = DeadlockKind.ABSOLUTE;
 	/*
-	 * private boolean checkDivisionByZero = true; private boolean
-	 * checkMemoryLeak = true; private boolean checkAssertionViolation = true;
-	 * private boolean checkCommErr = true; private boolean checkConstWrite =
-	 * true; private boolean checkInputWrite = true; private boolean
-	 * checkInvalidCast = true; private boolean checkMallocErr = true; private
-	 * boolean checkMpiErr = true; private boolean checkOutOfBounds = true;
-	 * private boolean checkOutputRead = true; private boolean checkPointerErr =
-	 * true; private boolean checkUndefVal = true; private boolean checkUnionErr
-	 * = true; private boolean checkProcLeak = true; private boolean checkSeqErr
-	 * = true; private boolean checkMemManageErr = true; private boolean
-	 * checkTermination = true;
+	 * private boolean checkDivisionByZero = true; private boolean checkMemoryLeak =
+	 * true; private boolean checkAssertionViolation = true; private boolean
+	 * checkCommErr = true; private boolean checkConstWrite = true; private boolean
+	 * checkInputWrite = true; private boolean checkInvalidCast = true; private
+	 * boolean checkMallocErr = true; private boolean checkMpiErr = true; private
+	 * boolean checkOutOfBounds = true; private boolean checkOutputRead = true;
+	 * private boolean checkPointerErr = true; private boolean checkUndefVal = true;
+	 * private boolean checkUnionErr = true; private boolean checkProcLeak = true;
+	 * private boolean checkSeqErr = true; private boolean checkMemManageErr = true;
+	 * private boolean checkTermination = true;
 	 */
 
 	Map<CIVLProperty, Boolean> toggleableCivlProps;
@@ -54,10 +53,10 @@ public class CIVLConfiguration {
 	private boolean debug = false;
 
 	/**
-	 * Should CIVL actually print the stuff that the program it is analyzing
-	 * sends to <code>stdout</code>? Could lead to a lot of printing, esp. when
-	 * searching a state space, which may entail executing the same statement
-	 * over and over again.
+	 * Should CIVL actually print the stuff that the program it is analyzing sends
+	 * to <code>stdout</code>? Could lead to a lot of printing, esp. when searching
+	 * a state space, which may entail executing the same statement over and over
+	 * again.
 	 */
 	private boolean enablePrintf = true;
 
@@ -70,20 +69,20 @@ public class CIVLConfiguration {
 	private boolean saveStates = true;
 
 	/**
-	 * Should CIVL show the Abstract Syntax Tree (AST) that it produces from
-	 * parsing the source code (before any transformations)?
+	 * Should CIVL show the Abstract Syntax Tree (AST) that it produces from parsing
+	 * the source code (before any transformations)?
 	 */
 	private boolean showAST = false;
 
 	/**
-	 * Should CIVL show the ample set when there are more than one processes in
-	 * the ample set?
+	 * Should CIVL show the ample set when there are more than one processes in the
+	 * ample set?
 	 */
 	private boolean showAmpleSet = false;
 
 	/**
-	 * Should CIVL show the ample set with the state when there are more than
-	 * one processes in the ample set?
+	 * Should CIVL show the ample set with the state when there are more than one
+	 * processes in the ample set?
 	 */
 	private boolean showAmpleSetWtStates = false;
 
@@ -98,8 +97,7 @@ public class CIVLConfiguration {
 	private boolean showSavedStates = false;
 
 	/**
-	 * Should CIVL show all states, including saved states and intermediate
-	 * states?
+	 * Should CIVL show all states, including saved states and intermediate states?
 	 */
 	private boolean showStates = false;
 
@@ -240,8 +238,8 @@ public class CIVLConfiguration {
 	private boolean prob = false;
 
 	/**
-	 * The maximal number of processes allowed in a state. -1 means infinitely
-	 * many processes are allowed.
+	 * The maximal number of processes allowed in a state. -1 means infinitely many
+	 * processes are allowed.
 	 */
 	private int procBound = -1;
 
@@ -254,15 +252,15 @@ public class CIVLConfiguration {
 	private int ompLoopDecomp = ModelConfiguration.DECOMP_ROUND_ROBIN;
 
 	/**
-	 * The error state equivalence semantics to suppress logging of redundant
-	 * error states. All equivalences use the "kind" of error, but they vary in
-	 * the portions of the state considered. LOC by default.
+	 * The error state equivalence semantics to suppress logging of redundant error
+	 * states. All equivalences use the "kind" of error, but they vary in the
+	 * portions of the state considered. LOC by default.
 	 */
 	private ErrorStateEquivalence errorStateEquiv = ErrorStateEquivalence.LOC;
 
 	/**
-	 * Direct symbolic execution based on file designating branches to direct
-	 * and how to subset their outcomes.
+	 * Direct symbolic execution based on file designating branches to direct and
+	 * how to subset their outcomes.
 	 */
 	private String directSymEx = null;
 
@@ -299,13 +297,8 @@ public class CIVLConfiguration {
 	 * set to true iff loop invariant option is enabled.
 	 */
 	private boolean loopInvariantEnabled = false;
-	
-	private boolean convergeWithMemEq = false;
 
-	/**
-	 * set to true iff CIVL will generate Junit test class for SARL:
-	 */
-	private boolean generateTestsForSARL;
+	private boolean convergeWithMemEq = false;
 
 	/**
 	 * whether updater thread is in used for printing update info periodically
@@ -313,9 +306,9 @@ public class CIVLConfiguration {
 	private boolean runtimeUpdate;
 
 	/**
-	 * Upper bound on the number of preemptions allowed in an execution, if
-	 * doing a preemptive-bounded search. If it is -1 for a normal (not
-	 * preemption-bounded) search.
+	 * Upper bound on the number of preemptions allowed in an execution, if doing a
+	 * preemptive-bounded search. If it is -1 for a normal (not preemption-bounded)
+	 * search.
 	 */
 	private int preemptionBound;
 
@@ -325,13 +318,12 @@ public class CIVLConfiguration {
 	private boolean disableLocalBlock;
 
 	/**
-	 * If this is true, and termination is being checked, then a cycle in which
-	 * some process remains enabled at each state will not be considered a
-	 * violation of non-termination (as it is not considered to represent a real
-	 * execution).
+	 * If this is true, and termination is being checked, then a cycle in which some
+	 * process remains enabled at each state will not be considered a violation of
+	 * non-termination (as it is not considered to represent a real execution).
 	 */
 	private boolean fair;
-	
+
 	/**
 	 * If this is true then DPOR algorithm is used. Note that collectProcesses
 	 * becomes false when this is set to true.
@@ -342,95 +334,79 @@ public class CIVLConfiguration {
 	 * Constructs a new CIVL configuration object from the command line
 	 * configuration.
 	 * 
-	 * @param config
-	 *                   The command line configuration.
+	 * @param config The command line configuration.
 	 */
 	public CIVLConfiguration(GMCSection config) {
 		this.toggleableCivlProps = new HashMap<CIVLProperty, Boolean>();
 		// Fill out CIVLProperty config info
 		for (CIVLProperty prop : CIVLProperty.getAllConfigurableProperties()) {
 			if (prop.getOption().type() == OptionType.BOOLEAN) {
-				this.toggleableCivlProps.put(prop,
-						config.isTrue(prop.getOption()));
+				this.toggleableCivlProps.put(prop, config.isTrue(prop.getOption()));
 			} else if (prop == CIVLProperty.DEADLOCK) {
-				String deadlockString = (String) config
-						.getValue(CIVLProperty.DEADLOCK.getOption());
+				String deadlockString = (String) config.getValue(CIVLProperty.DEADLOCK.getOption());
 				if (deadlockString != null) {
 					switch (deadlockString) {
-						case "absolute" :
-							this.checkDeadlockKind = DeadlockKind.ABSOLUTE;
-							break;
-						case "potential" :
-							this.checkDeadlockKind = DeadlockKind.POTENTIAL;
-							break;
-						case "none" :
-							this.checkDeadlockKind = DeadlockKind.NONE;
-							break;
-						default :
-							throw new CIVLInternalException(
-									"invalid deadlock kind " + deadlockString,
-									(CIVLSource) null);
+					case "absolute":
+						this.checkDeadlockKind = DeadlockKind.ABSOLUTE;
+						break;
+					case "potential":
+						this.checkDeadlockKind = DeadlockKind.POTENTIAL;
+						break;
+					case "none":
+						this.checkDeadlockKind = DeadlockKind.NONE;
+						break;
+					default:
+						throw new CIVLInternalException("invalid deadlock kind " + deadlockString, (CIVLSource) null);
 					}
 				}
 			} else {
 				throw new CIVLInternalException(
-						"Configurable CIVLProperty declared but not recorded in CIVLConfiguration",
-						(CIVLSource) null);
+						"Configurable CIVLProperty declared but not recorded in CIVLConfiguration", (CIVLSource) null);
 			}
 		}
 
-		String ompLoopDecompString = (String) config
-				.getValue(CIVLConstants.ompLoopDecompO);
-		String errorStateEquivString = (String) config
-				.getValue(CIVLConstants.errorStateEquivO);
+		String ompLoopDecompString = (String) config.getValue(CIVLConstants.ompLoopDecompO);
+		String errorStateEquivString = (String) config.getValue(CIVLConstants.errorStateEquivO);
 
-		this.setMpiModel(MPIModelKind.select(
-				(String) config.getValueOrDefault(CIVLConstants.mpiModelO)));
+		this.setMpiModel(MPIModelKind.select((String) config.getValueOrDefault(CIVLConstants.mpiModelO)));
 		if (ompLoopDecompString != null) {
 			switch (ompLoopDecompString) {
-				case "ALL" :
-					this.setOmpLoopDecomp(ModelConfiguration.DECOMP_ALL);
-					break;
-				case "ROUND_ROBIN" :
-					this.setOmpLoopDecomp(
-							ModelConfiguration.DECOMP_ROUND_ROBIN);
-					break;
-				case "RANDOM" :
-					this.setOmpLoopDecomp(ModelConfiguration.DECOMP_RANDOM);
-					break;
-				default :
-					throw new CIVLInternalException(
-							"invalid OpenMP loop decomposition strategy "
-									+ ompLoopDecompString,
-							(CIVLSource) null);
+			case "ALL":
+				this.setOmpLoopDecomp(ModelConfiguration.DECOMP_ALL);
+				break;
+			case "ROUND_ROBIN":
+				this.setOmpLoopDecomp(ModelConfiguration.DECOMP_ROUND_ROBIN);
+				break;
+			case "RANDOM":
+				this.setOmpLoopDecomp(ModelConfiguration.DECOMP_RANDOM);
+				break;
+			default:
+				throw new CIVLInternalException("invalid OpenMP loop decomposition strategy " + ompLoopDecompString,
+						(CIVLSource) null);
 			}
 		}
 		if (errorStateEquivString != null)
 			switch (errorStateEquivString) {
-				case "LOC" :
-					this.errorStateEquiv = ErrorStateEquivalence.LOC;
-					break;
-				case "CALLSTACK" :
-					this.errorStateEquiv = ErrorStateEquivalence.CALLSTACK;
-					break;
-				case "FULL" :
-					this.errorStateEquiv = ErrorStateEquivalence.FULL;
-					break;
-				default :
-					throw new CIVLInternalException(
-							"invalid error state equivalence"
-									+ errorStateEquivString,
-							(CIVLSource) null);
+			case "LOC":
+				this.errorStateEquiv = ErrorStateEquivalence.LOC;
+				break;
+			case "CALLSTACK":
+				this.errorStateEquiv = ErrorStateEquivalence.CALLSTACK;
+				break;
+			case "FULL":
+				this.errorStateEquiv = ErrorStateEquivalence.FULL;
+				break;
+			default:
+				throw new CIVLInternalException("invalid error state equivalence" + errorStateEquivString,
+						(CIVLSource) null);
 			}
-		this.intOperationTransiformer = config
-				.isTrue(CIVLConstants.intOperationTransformer);
+		this.intOperationTransiformer = config.isTrue(CIVLConstants.intOperationTransformer);
 		this.setShowMemoryUnits(config.isTrue(CIVLConstants.showMemoryUnitsO));
 		this.debug = config.isTrue(CIVLConstants.debugO);
 		this.enablePrintf = config.isTrue(CIVLConstants.enablePrintfO);
 		this.saveStates = config.isTrue(CIVLConstants.saveStatesO);
 		this.showAmpleSet = config.isTrue(CIVLConstants.showAmpleSetO);
-		this.showAmpleSetWtStates = config
-				.isTrue(CIVLConstants.showAmpleSetWtStatesO);
+		this.showAmpleSetWtStates = config.isTrue(CIVLConstants.showAmpleSetWtStatesO);
 		this.showSavedStates = config.isTrue(CIVLConstants.showSavedStatesO);
 		this.showStates = config.isTrue(CIVLConstants.showStatesO);
 		this.showTransitions = config.isTrue(CIVLConstants.showTransitionsO);
@@ -442,13 +418,11 @@ public class CIVLConfiguration {
 		this.svcomp16 = config.isTrue(CIVLConstants.svcomp16O);
 		this.svcomp17 = config.isTrue(CIVLConstants.svcomp17O);
 		this.setShowProgram(config.isTrue(CIVLConstants.showProgramO));
-		this.showPathConditon = (String) config
-				.getValue(CIVLConstants.showPathConditionO);
+		this.showPathConditon = (String) config.getValue(CIVLConstants.showPathConditionO);
 		if (this.showPathConditon == null)
 			showPathConditon = "NONE";
 		this.ompNoSimplify = config.isTrue(CIVLConstants.ompNoSimplifyO);
-		this.ompOnlySimplifier = config
-				.isTrue(CIVLConstants.ompOnlySimplifierO);
+		this.ompOnlySimplifier = config.isTrue(CIVLConstants.ompOnlySimplifierO);
 		this.collectProcesses = config.isTrue(CIVLConstants.collectProcessesO);
 		this.collectScopes = config.isTrue(CIVLConstants.collectScopesO);
 		this.setCollectHeaps(config.isTrue(CIVLConstants.collectHeapsO));
@@ -459,15 +433,12 @@ public class CIVLConfiguration {
 		this.showInputVars = config.isTrue(CIVLConstants.showInputVarsO);
 		this.setUnpreproc(config.isTrue(CIVLConstants.unpreprocO));
 		this.showTime = config.isTrue(CIVLConstants.showTimeO);
-		this.procBound = (Integer) config
-				.getValueOrDefault(CIVLConstants.procBoundO);
+		this.procBound = (Integer) config.getValueOrDefault(CIVLConstants.procBoundO);
 		this.intBit = (Integer) config.getValueOrDefault(CIVLConstants.intBit);
 		this.setInputVariables(config.getMapValue(CIVLConstants.inputO));
 		this.collectOutputs = config.isTrue(CIVLConstants.collectOutputO);
-		this.maxProcs = (Integer) config
-				.getValueOrDefault(CIVLConstants.maxProcsO);
-		this.setMpiContractFunction(
-				(String) config.getValueOrDefault(CIVLConstants.mpiContractO));
+		this.maxProcs = (Integer) config.getValueOrDefault(CIVLConstants.maxProcsO);
+		this.setMpiContractFunction((String) config.getValueOrDefault(CIVLConstants.mpiContractO));
 		if (this.isEnableMpiContract())
 			this.intOperationTransiformer = false;
 		this.loopInvariantEnabled = config.isTrue(CIVLConstants.loopO);
@@ -476,20 +447,12 @@ public class CIVLConfiguration {
 			this.setToggleableProperty(CIVLProperty.TERMINATION, false);
 		}
 		this.convergeWithMemEq = config.isTrue(CIVLConstants.memEqO);
-		this.collectSymbolicNames = config
-				.isTrue(CIVLConstants.collectSymbolicConstantsO)
-				|| loopInvariantEnabled;
+		this.collectSymbolicNames = config.isTrue(CIVLConstants.collectSymbolicConstantsO) || loopInvariantEnabled;
 		this.setTimeout((int) config.getValueOrDefault(CIVLConstants.timeoutO));
 		this.quiet = config.isTrue(CIVLConstants.quietO);
 		this.sliceAnalysis = config.isTrue(CIVLConstants.sliceAnalysisO);
 		this.witness = config.isTrue(CIVLConstants.witnessO);
 		this.prob = config.isTrue(CIVLConstants.probO);
-		if (config.getValue(CIVLConstants.SARLTestGenO) != null)
-			this.generateTestsForSARL = (boolean) config
-					.getValue(CIVLConstants.SARLTestGenO);
-		else
-			this.generateTestsForSARL = (boolean) CIVLConstants.SARLTestGenO
-					.defaultValue();
 		if (this.svcomp16) {
 			if (config.getValue(CIVLProperty.MEMORY_LEAK.getOption()) == null)
 				this.toggleableCivlProps.put(CIVLProperty.MEMORY_LEAK, false);
@@ -520,10 +483,8 @@ public class CIVLConfiguration {
 		}
 		this.directSymEx = (String) config.getValue(CIVLConstants.direct0);
 		this.runtimeUpdate = config.isTrue(CIVLConstants.runtimeUpdateO);
-		this.preemptionBound = (Integer) config
-				.getValueOrDefault(CIVLConstants.preemptionBoundO);
-		this.disableLocalBlock = config
-				.isTrue(CIVLConstants.disableLocalBlockO);
+		this.preemptionBound = (Integer) config.getValueOrDefault(CIVLConstants.preemptionBoundO);
+		this.disableLocalBlock = config.isTrue(CIVLConstants.disableLocalBlockO);
 		this.fair = config.isTrue(CIVLConstants.fairO);
 		this.dpor = config.isTrue(CIVLConstants.dporO);
 		if (dpor) {
@@ -534,8 +495,7 @@ public class CIVLConfiguration {
 
 	public CIVLConfiguration(CIVLConfiguration config) {
 		this.checkDeadlockKind = config.checkDeadlockKind;
-		this.toggleableCivlProps = new HashMap<CIVLProperty, Boolean>(
-				config.toggleableCivlProps);
+		this.toggleableCivlProps = new HashMap<CIVLProperty, Boolean>(config.toggleableCivlProps);
 		this.absAnalysis = config.absAnalysis;
 		this.collectHeaps = config.collectHeaps;
 		this.collectOutputs = config.collectOutputs;
@@ -595,23 +555,21 @@ public class CIVLConfiguration {
 	public DeadlockKind checkDeadlockKind() {
 		return checkDeadlockKind;
 	}
+
 	/**
 	 * Sets the kind of deadlocks we want to check for
 	 * 
-	 * @param checkDeadlockKind
-	 *                              The new kind of deadlock we want to check
-	 *                              for
+	 * @param checkDeadlockKind The new kind of deadlock we want to check for
 	 */
 	public void setCheckDeadlockKind(DeadlockKind checkDeadlockKind) {
 		this.checkDeadlockKind = checkDeadlockKind;
 	}
 
 	/**
-	 * Determines whether a CIVLProperty is toggleable. A CIVLProperty is
-	 * toggleable if it is controlled by a boolean command line option.
+	 * Determines whether a CIVLProperty is toggleable. A CIVLProperty is toggleable
+	 * if it is controlled by a boolean command line option.
 	 * 
-	 * @param prop
-	 *                 The CIVLProperty that we want to check is toggleable
+	 * @param prop The CIVLProperty that we want to check is toggleable
 	 * @return whether prop is toggleable
 	 */
 	public boolean isToggleableProperty(CIVLProperty prop) {
@@ -621,9 +579,8 @@ public class CIVLConfiguration {
 	/**
 	 * Determines if a toggleable property is toggled, i.e. is turned on.
 	 * 
-	 * @param prop
-	 *                 The property we want to query. The property must be
-	 *                 toggleable. Otherwise it is an error.
+	 * @param prop The property we want to query. The property must be toggleable.
+	 *             Otherwise it is an error.
 	 * @return returns whether prop is toggled.
 	 */
 	public boolean isPropertyToggled(CIVLProperty prop) {
@@ -635,10 +592,8 @@ public class CIVLConfiguration {
 	/**
 	 * Sets a CIVLProperty to be toggleable and to be either turned on or off
 	 * 
-	 * @param prop
-	 *                  The CIVLProperty we want to control
-	 * @param value
-	 *                  The value of the CIVLProperty
+	 * @param prop  The CIVLProperty we want to control
+	 * @param value The value of the CIVLProperty
 	 */
 	public void setToggleableProperty(CIVLProperty prop, boolean value) {
 		this.toggleableCivlProps.put(prop, value);
@@ -661,10 +616,8 @@ public class CIVLConfiguration {
 		String yes = " + ";
 		String no = "   ";
 
-		List<CIVLProperty> unconfigProps = CIVLProperty
-				.getAllUnconfigurableProperties();
-		List<CIVLProperty> configProps = CIVLProperty
-				.getAllConfigurableProperties();
+		List<CIVLProperty> unconfigProps = CIVLProperty.getAllUnconfigurableProperties();
+		List<CIVLProperty> configProps = CIVLProperty.getAllConfigurableProperties();
 		int numProps = unconfigProps.size() + configProps.size();
 		List<CIVLProperty> props = new ArrayList<CIVLProperty>(numProps);
 
@@ -684,15 +637,15 @@ public class CIVLConfiguration {
 			} else if (prop == CIVLProperty.DEADLOCK) {
 				// Print deadlock property
 				switch (checkDeadlockKind) {
-					case ABSOLUTE :
-						summTitle = "Absolute " + summTitle.toLowerCase();
-						break;
-					case POTENTIAL :
-						summTitle = "Potential " + summTitle.toLowerCase();
-						break;
-					case NONE :
-						checked = false;
-						break;
+				case ABSOLUTE:
+					summTitle = "Absolute " + summTitle.toLowerCase();
+					break;
+				case POTENTIAL:
+					summTitle = "Potential " + summTitle.toLowerCase();
+					break;
+				case NONE:
+					checked = false;
+					break;
 				}
 			}
 			summary += (checked ? yes : no) + summTitle;
@@ -1046,8 +999,7 @@ public class CIVLConfiguration {
 	}
 
 	/**
-	 * @param showUnreach
-	 *                        the showUnreach to set
+	 * @param showUnreach the showUnreach to set
 	 */
 	public void setShowUnreach(boolean showUnreach) {
 		this.showUnreach = showUnreach;
@@ -1061,8 +1013,7 @@ public class CIVLConfiguration {
 	}
 
 	/**
-	 * @param absAnalysis
-	 *                        the absAnalysis to set
+	 * @param absAnalysis the absAnalysis to set
 	 */
 	public void setAbsAnalysis(boolean absAnalysis) {
 		this.absAnalysis = absAnalysis;
@@ -1076,8 +1027,7 @@ public class CIVLConfiguration {
 	}
 
 	/**
-	 * @param inputVariables
-	 *                           the inputVariables to set
+	 * @param inputVariables the inputVariables to set
 	 */
 	public void setInputVariables(Map<String, Object> inputVariables) {
 		this.inputVariables = inputVariables;
@@ -1091,8 +1041,7 @@ public class CIVLConfiguration {
 	}
 
 	/**
-	 * @param collectOutputs
-	 *                           the collectOutputs to set
+	 * @param collectOutputs the collectOutputs to set
 	 */
 	public void setCollectOutputs(boolean collectOutputs) {
 		this.collectOutputs = collectOutputs;
@@ -1130,8 +1079,7 @@ public class CIVLConfiguration {
 	}
 
 	/**
-	 * @param timeout
-	 *                    the timeout to set
+	 * @param timeout the timeout to set
 	 */
 	public void setTimeout(int timeout) {
 		this.timeout = timeout;
@@ -1146,10 +1094,10 @@ public class CIVLConfiguration {
 	}
 
 	/**
-	 * @return the target function name which is the only one will be verified
-	 *         under (mpi-)contract mode. Absent of the target function name
-	 *         will cause this method returns <code>null</code> which means
-	 *         verify all annotated functions.
+	 * @return the target function name which is the only one will be verified under
+	 *         (mpi-)contract mode. Absent of the target function name will cause
+	 *         this method returns <code>null</code> which means verify all
+	 *         annotated functions.
 	 */
 	public String mpiContractFunction() {
 		return this.mpiContractFunction;
@@ -1163,8 +1111,7 @@ public class CIVLConfiguration {
 	}
 
 	/**
-	 * @param collectSymbolicNames
-	 *                                 the collectSymbolicNames to set
+	 * @param collectSymbolicNames the collectSymbolicNames to set
 	 */
 	public void setCollectSymbolicNames(boolean collectSymbolicNames) {
 		this.collectSymbolicNames = collectSymbolicNames;
@@ -1178,8 +1125,7 @@ public class CIVLConfiguration {
 	}
 
 	/**
-	 * @param checkExpressionError
-	 *                                 the checkExpressionError to set
+	 * @param checkExpressionError the checkExpressionError to set
 	 */
 	public void setCheckExpressionError(boolean checkExpressionError) {
 		this.checkExpressionError = checkExpressionError;
@@ -1205,8 +1151,7 @@ public class CIVLConfiguration {
 	}
 
 	/**
-	 * @param svcomp17
-	 *                     the svcomp17 to set
+	 * @param svcomp17 the svcomp17 to set
 	 */
 	public void setSvcomp17(boolean svcomp17) {
 		this.svcomp17 = svcomp17;
@@ -1237,28 +1182,20 @@ public class CIVLConfiguration {
 	}
 
 	/**
-	 * @return true iff the SARL test generation has been specified as enabled
-	 *         from UI.
-	 */
-	public boolean isSARLTestGenerationEnabled() {
-		return this.generateTestsForSARL;
-	}
-
-	/**
 	 * @return true iff loop invariant is enabled
 	 */
 	public boolean loopInvariantEnabled() {
 		return this.loopInvariantEnabled;
 	}
-	
+
 	public boolean convergeWithMemEquality() {
 		return this.convergeWithMemEq;
 	}
 
 	/**
 	 * An upper bound on the number of preemptions allowed in an execution. Only
-	 * used if doing a preemptive-bounded search. If doing a regular search,
-	 * this will be -1, the default value. Otherwise, it should be nonnegative.
+	 * used if doing a preemptive-bounded search. If doing a regular search, this
+	 * will be -1, the default value. Otherwise, it should be nonnegative.
 	 * 
 	 * @return the preemption bound or -1
 	 */
@@ -1269,11 +1206,11 @@ public class CIVLConfiguration {
 	public boolean disableLocalBlock() {
 		return this.disableLocalBlock;
 	}
+
 	/**
-	 * If this is true, and termination is being checked, then a cycle in which
-	 * some process remains enabled at each state will not be considered a
-	 * violation of non-termination (as it is not considered to represent a real
-	 * execution).
+	 * If this is true, and termination is being checked, then a cycle in which some
+	 * process remains enabled at each state will not be considered a violation of
+	 * non-termination (as it is not considered to represent a real execution).
 	 */
 	public boolean isFair() {
 		return fair;
@@ -1282,14 +1219,14 @@ public class CIVLConfiguration {
 	public void setFair(boolean val) {
 		this.fair = val;
 	}
-	
+
 	/**
 	 * Returns whether we are using dynamic partial order reduction
 	 */
 	public boolean dporEnabled() {
 		return dpor;
 	}
-	
+
 	public void setDpor(boolean val) {
 		this.dpor = val;
 		if (dpor)

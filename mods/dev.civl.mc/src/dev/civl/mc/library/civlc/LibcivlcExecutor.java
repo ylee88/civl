@@ -59,9 +59,7 @@ import dev.civl.sarl.IF.type.SymbolicTypeSequence;
  * @author Manchun Zheng (zmanchun)
  * 
  */
-public class LibcivlcExecutor extends BaseLibraryExecutor
-		implements
-			LibraryExecutor {
+public class LibcivlcExecutor extends BaseLibraryExecutor implements LibraryExecutor {
 	private Evaluator errSideEffectFreeEvaluator;
 
 	/* **************************** Constructors *************************** */
@@ -69,38 +67,28 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 	/**
 	 * Creates a new instance of the library executor for civlc.h.
 	 * 
-	 * @param name
-	 *            The name of the library, which is concurrency.
-	 * @param primaryExecutor
-	 *            The executor for normal CIVL execution.
-	 * @param modelFactory
-	 *            The model factory of the system.
-	 * @param symbolicUtil
-	 *            The symbolic utility to be used.
-	 * @param civlConfig
-	 *            The CIVL configuration configured by the user.
+	 * @param name            The name of the library, which is concurrency.
+	 * @param primaryExecutor The executor for normal CIVL execution.
+	 * @param modelFactory    The model factory of the system.
+	 * @param symbolicUtil    The symbolic utility to be used.
+	 * @param civlConfig      The CIVL configuration configured by the user.
 	 */
-	public LibcivlcExecutor(String name, Executor primaryExecutor,
-			ModelFactory modelFactory, SymbolicUtility symbolicUtil,
-			SymbolicAnalyzer symbolicAnalyzer, CIVLConfiguration civlConfig,
-			LibraryExecutorLoader libExecutorLoader,
-			LibraryEvaluatorLoader libEvaluatorLoader) {
-		super(name, primaryExecutor, modelFactory, symbolicUtil,
-				symbolicAnalyzer, civlConfig, libExecutorLoader,
+	public LibcivlcExecutor(String name, Executor primaryExecutor, ModelFactory modelFactory,
+			SymbolicUtility symbolicUtil, SymbolicAnalyzer symbolicAnalyzer, CIVLConfiguration civlConfig,
+			LibraryExecutorLoader libExecutorLoader, LibraryEvaluatorLoader libEvaluatorLoader) {
+		super(name, primaryExecutor, modelFactory, symbolicUtil, symbolicAnalyzer, civlConfig, libExecutorLoader,
 				libEvaluatorLoader);
-		this.errSideEffectFreeEvaluator = Semantics
-				.newErrorSideEffectFreeEvaluator(modelFactory, stateFactory,
-						libEvaluatorLoader, libExecutorLoader, symbolicUtil,
-						symbolicAnalyzer, stateFactory.memUnitFactory(),
-						errorLogger, civlConfig);
+		this.errSideEffectFreeEvaluator = Semantics.newErrorSideEffectFreeEvaluator(modelFactory, stateFactory,
+				libEvaluatorLoader, libExecutorLoader, symbolicUtil, symbolicAnalyzer, stateFactory.memUnitFactory(),
+				errorLogger, civlConfig);
 	}
 
 	/*
 	 * ******************** Methods from BaseLibraryExecutor *******************
 	 */
 	@Override
-	public Evaluation execute(State state, int pid, CallOrSpawnStatement call,
-			String functionName) throws UnsatisfiablePathConditionException {
+	public Evaluation execute(State state, int pid, CallOrSpawnStatement call, String functionName)
+			throws UnsatisfiablePathConditionException {
 		Evaluation eval;
 		LHSExpression lhs = call.lhs();
 		Location target = call.target();
@@ -113,9 +101,7 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 		numArgs = call.arguments().size();
 		arguments = new Expression[numArgs];
 		argumentValues = new SymbolicExpression[numArgs];
-		if (functionName.equals("$assume")
-				|| functionName.equals("$assume_push")
-				|| functionName.equals("$assume_pop")
+		if (functionName.equals("$assume") || functionName.equals("$assume_push") || functionName.equals("$assume_pop")
 				|| functionName.equals("$assert"))
 			theEvaluator = this.errSideEffectFreeEvaluator;
 		for (int i = 0; i < numArgs; i++) {
@@ -124,12 +110,10 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 			argumentValues[i] = eval.value;
 			state = eval.state;
 		}
-		eval = this.executeValue(state, pid, process, call.getSource(),
-				functionName, arguments, argumentValues);
+		eval = this.executeValue(state, pid, process, call.getSource(), functionName, arguments, argumentValues);
 		state = eval.state;
 		if (lhs != null && eval.value != null)
-			state = this.primaryExecutor.assign(state, pid, process, lhs,
-					eval.value, call.isInitializer());
+			state = this.primaryExecutor.assign(state, pid, process, lhs, eval.value, call.isInitializer());
 		if (target != null && !state.getProcessState(pid).hasEmptyStack())
 			state = this.stateFactory.setLocation(state, pid, target);
 		eval.state = state;
@@ -137,179 +121,143 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 	}
 
 	@Override
-	protected Evaluation executeValue(State state, int pid, String process,
-			CIVLSource source, String functionName, Expression[] arguments,
-			SymbolicExpression[] argumentValues)
-			throws UnsatisfiablePathConditionException {
+	protected Evaluation executeValue(State state, int pid, String process, CIVLSource source, String functionName,
+			Expression[] arguments, SymbolicExpression[] argumentValues) throws UnsatisfiablePathConditionException {
 		Evaluation callEval = null;
 
 		switch (functionName) {
-			case "$assert" :
-				state = this.executeAssert(state, pid, process, arguments,
-						argumentValues, source);
-				callEval = new Evaluation(state, null);
-				break;
-			case "$assume_push" :
-				callEval = executeAssumePush(state, pid, arguments,
-						argumentValues, source);
-				break;
-			case "$assume_pop" :
-				callEval = executeAssumePop(state, pid, arguments,
-						argumentValues, source);
-				break;
-			case "$assume" :
-				callEval = this.executeAssume(state, pid, process, arguments,
-						argumentValues, source);
-				break;
-			case "$choose_int_work" :
-				callEval = new Evaluation(state, argumentValues[0]);
-				break;
-			case "$default_value" :
-				callEval = executeDefaultValue(state, pid, arguments,
-						argumentValues, source);
-				break;
-			case "$heap_size" :
-				callEval = executeGetHeapSize(state, pid, process, arguments,
-						argumentValues, source);
-				break;
-			case "$exit" :// return immediately since no transitions needed
-							// after an
-				// exit, because the process no longer exists.
-				callEval = executeExit(state, pid);
-				break;
-			case "$get_state" :
-				callEval = executeGetState(state, pid, process, arguments,
-						argumentValues, false, source);
-				break;
-			case "$get_full_state" :
-				callEval = executeGetState(state, pid, process, arguments,
-						argumentValues, true, source);
-				break;
-			case "$free" :
-				callEval = executeFree(state, pid, process, arguments,
-						argumentValues, source);
-				break;
-			case "$havoc" :
-				callEval = executeHavoc(state, pid, process, arguments,
-						argumentValues, source);
-				break;
-			case "$reveal" :
-				callEval = executeReveal(state, pid, process, arguments,
-						argumentValues, source);
-				break;
-			case "$hidden" :
-				callEval = executeHidden(state, pid, process, arguments,
-						argumentValues, source);
-				break;
-			case "$is_concrete_int" :
-				callEval = this.executeIsConcreteInt(state, pid, process,
-						arguments, argumentValues, source);
-				break;
-			case "$is_derefable" :
-				callEval = this.executeIsDerefable(state, pid, process,
-						arguments, argumentValues);
-				break;
-			case "$is_terminated" :
-				callEval = this.executeIsTerminated(state, pid, process,
-						arguments, argumentValues, source);
-				break;
-			case "$pathCondition" :
-				callEval = this.executePathCondition(state, pid, process,
-						arguments, argumentValues, source);
-				break;
-			case "$pow" :
-			case "$powr" :
-				callEval = this.executePow(state, pid, process, arguments,
-						argumentValues);
-				break;
-			case "$proc_defined" :
-				callEval = this.executeProcDefined(state, pid, process,
-						arguments, argumentValues);
-				break;
-			case "$scope_defined" :
-				callEval = this.executeScopeDefined(state, pid, process,
-						arguments, argumentValues);
-				break;
-			case "$wait" :
-				callEval = executeWait(state, pid, arguments, argumentValues,
-						source);
-				break;
-			case "$waitall" :
-				callEval = executeWaitAll(state, pid, arguments, argumentValues,
-						source);
-				break;
-			case "$variable_reference" :
-				callEval = executeVariableReference(state, pid, process,
-						arguments, argumentValues);
-				break;
-			case "$next_time_count" :
-				callEval = this.executeNextTimeCount(state, pid, process,
-						arguments, argumentValues);
-				break;
-			case "$array_base_address_of" :
-				callEval = executeArrayBaseAddressof(state, pid, process,
-						arguments, argumentValues);
-				break;
-			case "$yield" :
-				/*
-				 * $yield was implemented in a extremely easy way. In this
-				 * executor, it is just a no-op. At the same time, this function
-				 * has a POR contract which states that 1) this system function
-				 * has a "non-trivial guard" (by simply leaving the guard
-				 * unspecified in the POR contract); and 2) this function writes
-				 * nothing.
-				 *
-				 * For such a system function, since the guard is non-trivial,
-				 * the verifier will always assume that it can block an atomic
-				 * process. So it will force an atomic process to release the
-				 * lock. Then at enabler, the actual guard of this function will
-				 * be evaluated (which is trivially true), hence a call to this
-				 * function can be enabled and the enabled transition will grab
-				 * the atomic lock back. Note that due to the fact that the lock
-				 * was released when enabler is enabling a transition for a call
-				 * to this function, other processes can interrupt as long as
-				 * the POR algorithm allows it.
-				 */
-				callEval = new Evaluation(state, universe.nullExpression());
-				break;
-			case "$print_helper" :
-				callEval = executePrintHelper(state, pid, process, arguments, argumentValues);
-				break;
-			default :
-				throw new CIVLInternalException(
-						"Unknown civlc function: " + functionName, source);
+		case "$assert":
+			state = this.executeAssert(state, pid, process, arguments, argumentValues, source);
+			callEval = new Evaluation(state, null);
+			break;
+		case "$assume_push":
+			callEval = executeAssumePush(state, pid, arguments, argumentValues, source);
+			break;
+		case "$assume_pop":
+			callEval = executeAssumePop(state, pid, arguments, argumentValues, source);
+			break;
+		case "$assume":
+			callEval = this.executeAssume(state, pid, process, arguments, argumentValues, source);
+			break;
+		case "$choose_int_work":
+			callEval = new Evaluation(state, argumentValues[0]);
+			break;
+		case "$default_value":
+			callEval = executeDefaultValue(state, pid, arguments, argumentValues, source);
+			break;
+		case "$heap_size":
+			callEval = executeGetHeapSize(state, pid, process, arguments, argumentValues, source);
+			break;
+		case "$exit":// return immediately since no transitions needed
+						// after an
+			// exit, because the process no longer exists.
+			callEval = executeExit(state, pid);
+			break;
+		case "$get_state":
+			callEval = executeGetState(state, pid, process, arguments, argumentValues, false, source);
+			break;
+		case "$get_full_state":
+			callEval = executeGetState(state, pid, process, arguments, argumentValues, true, source);
+			break;
+		case "$free":
+			callEval = executeFree(state, pid, process, arguments, argumentValues, source);
+			break;
+		case "$havoc":
+			callEval = executeHavoc(state, pid, process, arguments, argumentValues, source);
+			break;
+		case "$reveal":
+			callEval = executeReveal(state, pid, process, arguments, argumentValues, source);
+			break;
+		case "$hidden":
+			callEval = executeHidden(state, pid, process, arguments, argumentValues, source);
+			break;
+		case "$is_concrete_int":
+			callEval = this.executeIsConcreteInt(state, pid, process, arguments, argumentValues, source);
+			break;
+		case "$is_derefable":
+			callEval = this.executeIsDerefable(state, pid, process, arguments, argumentValues);
+			break;
+		case "$is_terminated":
+			callEval = this.executeIsTerminated(state, pid, process, arguments, argumentValues, source);
+			break;
+		case "$pathCondition":
+			callEval = this.executePathCondition(state, pid, process, arguments, argumentValues, source);
+			break;
+		case "$pow":
+		case "$powr":
+			callEval = this.executePow(state, pid, process, arguments, argumentValues);
+			break;
+		case "$proc_defined":
+			callEval = this.executeProcDefined(state, pid, process, arguments, argumentValues);
+			break;
+		case "$scope_defined":
+			callEval = this.executeScopeDefined(state, pid, process, arguments, argumentValues);
+			break;
+		case "$wait":
+			callEval = executeWait(state, pid, arguments, argumentValues, source);
+			break;
+		case "$waitall":
+			callEval = executeWaitAll(state, pid, arguments, argumentValues, source);
+			break;
+		case "$variable_reference":
+			callEval = executeVariableReference(state, pid, process, arguments, argumentValues);
+			break;
+		case "$next_time_count":
+			callEval = this.executeNextTimeCount(state, pid, process, arguments, argumentValues);
+			break;
+		case "$array_base_address_of":
+			callEval = executeArrayBaseAddressof(state, pid, process, arguments, argumentValues);
+			break;
+		case "$yield":
+			/*
+			 * $yield was implemented in a extremely easy way. In this executor, it is just
+			 * a no-op. At the same time, this function has a POR contract which states that
+			 * 1) this system function has a "non-trivial guard" (by simply leaving the
+			 * guard unspecified in the POR contract); and 2) this function writes nothing.
+			 *
+			 * For such a system function, since the guard is non-trivial, the verifier will
+			 * always assume that it can block an atomic process. So it will force an atomic
+			 * process to release the lock. Then at enabler, the actual guard of this
+			 * function will be evaluated (which is trivially true), hence a call to this
+			 * function can be enabled and the enabled transition will grab the atomic lock
+			 * back. Note that due to the fact that the lock was released when enabler is
+			 * enabling a transition for a call to this function, other processes can
+			 * interrupt as long as the POR algorithm allows it.
+			 */
+			callEval = new Evaluation(state, universe.nullExpression());
+			break;
+		case "$print_helper":
+			callEval = executePrintHelper(state, pid, process, arguments, argumentValues);
+			break;
+		default:
+			throw new CIVLInternalException("Unknown civlc function: " + functionName, source);
 		}
 		return callEval;
 	}
 
-	private Evaluation executePrintHelper(State state, int pid, String process,
-			Expression[] arguments, SymbolicExpression[] argumentValues)
-			throws UnsatisfiablePathConditionException {
+	private Evaluation executePrintHelper(State state, int pid, String process, Expression[] arguments,
+			SymbolicExpression[] argumentValues) throws UnsatisfiablePathConditionException {
 		PrintStream out = civlConfig.out();
 
 		for (int i = 1; i < argumentValues.length; i++) {
 			SymbolicExpression argumentValue = argumentValues[i];
 			CIVLType argumentType = arguments[i].getExpressionType();
 			StringBuffer strOut = new StringBuffer("");
-			
-			if (argumentType instanceof CIVLPointerType
-					&& ((CIVLPointerType) argumentType).baseType().isCharType()
+
+			if (argumentType instanceof CIVLPointerType && ((CIVLPointerType) argumentType).baseType().isCharType()
 					&& argumentValue.operator() == SymbolicOperator.TUPLE) {
-				Triple<State, StringBuffer, Boolean> concreteString = this.evaluator
-						.getString(arguments[i].getSource(), state, pid,
-								process, arguments[i], argumentValue);
+				Triple<State, StringBuffer, Boolean> concreteString = this.evaluator.getString(arguments[i].getSource(),
+						state, pid, process, arguments[i], argumentValue);
 				state = concreteString.first;
 				strOut = concreteString.second;
 			} else if (argumentValue.operator() == SymbolicOperator.ARRAY
-					&& ((CIVLArrayType)argumentType).elementType().isCharType()) {
-				strOut = symbolicUtil.charArrayToString(
-						arguments[i].getSource(), argumentValue, 0, false);
+					&& ((CIVLArrayType) argumentType).elementType().isCharType()) {
+				strOut = symbolicUtil.charArrayToString(arguments[i].getSource(), argumentValue, 0, false);
 			} else {
-				strOut = new StringBuffer(this.symbolicAnalyzer
-						.symbolicExpressionToString(arguments[i].getSource(),
-								state, argumentType, argumentValue));
+				strOut = new StringBuffer(this.symbolicAnalyzer.symbolicExpressionToString(arguments[i].getSource(),
+						state, argumentType, argumentValue));
 			}
-			
+
 			if (!civlConfig.isQuiet() && civlConfig.enablePrintf()) {
 				int strLen = strOut.length();
 				if (strLen > 0) {
@@ -326,25 +274,24 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 	/* ************************** Private Methods ************************** */
 	/**
 	 * <p>
-	 * The <code>$heap_size($scope s)</code> system function returns the size of
-	 * the heap of the given scope.
+	 * The <code>$heap_size($scope s)</code> system function returns the size of the
+	 * heap of the given scope.
 	 * </p>
 	 * <p>
-	 * The heap value is a tuple of 2d-arrays. Each tuple field is associated to
-	 * a unique lexical "malloc". The heap size is computed with the following
+	 * The heap value is a tuple of 2d-arrays. Each tuple field is associated to a
+	 * unique lexical "malloc". The heap size is computed with the following
 	 * algorithm:<code>
 	 *   for each tule-field t:
 	 *     for each 2d-array element e: 
 	 *       result += sizeof(e);
-	 * </code> Note that the extent of the 2d array must concrete since it is
-	 * the number times a same lexical malloc gets called.
+	 * </code> Note that the extent of the 2d array must concrete since it is the
+	 * number times a same lexical malloc gets called.
 	 * </p>
 	 * 
 	 * @return the evaluation of this function call.
 	 */
-	private Evaluation executeGetHeapSize(State state, int pid, String process,
-			Expression[] arguments, SymbolicExpression[] argumentValues,
-			CIVLSource source) {
+	private Evaluation executeGetHeapSize(State state, int pid, String process, Expression[] arguments,
+			SymbolicExpression[] argumentValues, CIVLSource source) {
 		int dyscopeId = stateFactory.getDyscopeId(argumentValues[0]);
 		DynamicScope dyscope = state.getDyscope(dyscopeId);
 		SymbolicExpression heap = dyscope.getValue(0);
@@ -361,56 +308,47 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 			int array2dExtent; // must be concrete
 
 			array2d = universe.tupleRead(heap, universe.intObject(i));
-			elementType = ((SymbolicArrayType) ((SymbolicArrayType) array2d
-					.type()).elementType()).elementType();
-			array2dExtent = ((IntegerNumber) universe
-					.extractNumber(universe.length(array2d))).intValue();
+			elementType = ((SymbolicArrayType) ((SymbolicArrayType) array2d.type()).elementType()).elementType();
+			array2dExtent = ((IntegerNumber) universe.extractNumber(universe.length(array2d))).intValue();
 			for (int j = 0; j < array2dExtent; j++) {
 				array1d = universe.arrayRead(array2d, universe.integer(j));
 				if (array1d == symbolicUtil.invalidHeapObject(array1d.type()))
 					continue;
 				result = universe.add(result,
-						universe.multiply(universe.length(array1d),
-								typeFactory.sizeofDynamicType(elementType)));
+						universe.multiply(universe.length(array1d), typeFactory.sizeofDynamicType(elementType)));
 			}
 		}
 		return new Evaluation(state, result);
 	}
 
-	private Evaluation executeGetState(State state, int pid, String process,
-			Expression[] arguments, SymbolicExpression[] argumentValues,
-			boolean isFull, CIVLSource source) {
+	private Evaluation executeGetState(State state, int pid, String process, Expression[] arguments,
+			SymbolicExpression[] argumentValues, boolean isFull, CIVLSource source) {
 		int topDyscope = state.getProcessState(pid).peekStack().scope();
 		SymbolicExpression snapshotValue;
 
 		if (!isFull)
-			snapshotValue = stateFactory.getStateSnapshot(state, pid,
-					topDyscope);
+			snapshotValue = stateFactory.getStateSnapshot(state, pid, topDyscope);
 		else {
 			int snapshotStateID = stateFactory.saveState(state).left;
-			SymbolicExpression currentScopes[] = new SymbolicExpression[state
-					.numDyscopes()];
+			SymbolicExpression currentScopes[] = new SymbolicExpression[state.numDyscopes()];
 
 			for (int i = 0; i < currentScopes.length; i++)
 				currentScopes[i] = stateFactory.scopeValue(i);
-			snapshotValue = typeFactory.stateType().buildStateValue(universe,
-					snapshotStateID, universe.array(
-							typeFactory.scopeSymbolicType(), currentScopes));
+			snapshotValue = typeFactory.stateType().buildStateValue(universe, snapshotStateID,
+					universe.array(typeFactory.scopeSymbolicType(), currentScopes));
 		}
 		return new Evaluation(state, snapshotValue);
 	}
 
-	private Evaluation executeIsDerefable(State state, int pid, String process,
-			Expression[] arguments, SymbolicExpression[] argumentValues) {
-		SymbolicExpression result = this.symbolicAnalyzer
-				.isDerefablePointer(state, argumentValues[0]).left;
+	private Evaluation executeIsDerefable(State state, int pid, String process, Expression[] arguments,
+			SymbolicExpression[] argumentValues) {
+		SymbolicExpression result = this.symbolicAnalyzer.isDerefablePointer(state, argumentValues[0]).left;
 
 		return new Evaluation(state, result);
 	}
 
-	private Evaluation executeIsTerminated(State state, int pid, String process,
-			Expression[] arguments, SymbolicExpression[] argumentValues,
-			CIVLSource source) {
+	private Evaluation executeIsTerminated(State state, int pid, String process, Expression[] arguments,
+			SymbolicExpression[] argumentValues, CIVLSource source) {
 		SymbolicExpression proc = argumentValues[0];
 		int processID = this.modelFactory.getProcessId(proc);
 		SymbolicExpression result = this.trueValue;
@@ -422,128 +360,92 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 		return new Evaluation(state, result);
 	}
 
-	private Evaluation executeHavoc(State state, int pid, String process,
-			Expression[] arguments, SymbolicExpression[] argumentValues,
-			CIVLSource source) throws UnsatisfiablePathConditionException {
+	private Evaluation executeHavoc(State state, int pid, String process, Expression[] arguments,
+			SymbolicExpression[] argumentValues, CIVLSource source) throws UnsatisfiablePathConditionException {
 		SymbolicExpression pointer = argumentValues[0];
-		Pair<BooleanExpression, ResultType> checkPointer = symbolicAnalyzer
-				.isDerefablePointer(state, pointer);
+		Pair<BooleanExpression, ResultType> checkPointer = symbolicAnalyzer.isDerefablePointer(state, pointer);
 
 		if (checkPointer.right != ResultType.YES)
-			state = this.errorLogger.logError(source, state, pid,
-					this.symbolicAnalyzer.stateInformation(state),
-					checkPointer.left, checkPointer.right,
-					CIVLProperty.MEMORY_MANAGE,
-					"can't apply $havoc to a pointer that can't be dereferenced.\n"
-							+ "pointer: "
-							+ this.symbolicAnalyzer.symbolicExpressionToString(
-									source, state, null, pointer));
+			state = this.errorLogger.logError(source, state, pid, this.symbolicAnalyzer.stateInformation(state),
+					checkPointer.left, checkPointer.right, CIVLProperty.MEMORY_MANAGE,
+					"can't apply $havoc to a pointer that can't be dereferenced.\n" + "pointer: "
+							+ this.symbolicAnalyzer.symbolicExpressionToString(source, state, null, pointer));
 
 		Evaluation havocEval;
-		CIVLType objType = symbolicAnalyzer.civlTypeOfObjByPointer(source,
-				state, pointer);
-		TypeEvaluation teval = evaluator.getDynamicType(state, pid, objType,
-				source, false);
+		CIVLType objType = symbolicAnalyzer.civlTypeOfObjByPointer(source, state, pointer);
+		TypeEvaluation teval = evaluator.getDynamicType(state, pid, objType, source, false);
 
 		havocEval = this.evaluator.havoc(teval.state, teval.type);
-		state = this.primaryExecutor.assign(source, havocEval.state, pid,
-				pointer, havocEval.value);
+		state = this.primaryExecutor.assign(source, havocEval.state, pid, pointer, havocEval.value);
 		return new Evaluation(state, null);
 	}
 
-	private Evaluation executeReveal(State state, int pid, String process,
-			Expression[] arguments, SymbolicExpression[] argumentValues,
-			CIVLSource source) throws UnsatisfiablePathConditionException {
+	private Evaluation executeReveal(State state, int pid, String process, Expression[] arguments,
+			SymbolicExpression[] argumentValues, CIVLSource source) throws UnsatisfiablePathConditionException {
 		SymbolicExpression pointer = argumentValues[0];
-		Pair<BooleanExpression, ResultType> checkPointer = symbolicAnalyzer
-				.isDerefablePointer(state, pointer);
+		Pair<BooleanExpression, ResultType> checkPointer = symbolicAnalyzer.isDerefablePointer(state, pointer);
 
 		if (checkPointer.right != ResultType.YES)
-			state = this.errorLogger.logError(source, state, pid,
-					this.symbolicAnalyzer.stateInformation(state),
-					checkPointer.left, checkPointer.right,
-					CIVLProperty.MEMORY_MANAGE,
-					"can't call $reveal on a pointer that can't be dereferenced.\n"
-							+ "pointer: "
-							+ this.symbolicAnalyzer.symbolicExpressionToString(
-									source, state, null, pointer));
-		Evaluation eval = evaluator.dereference(source, state, pid, process,
-				pointer, false, true);
+			state = this.errorLogger.logError(source, state, pid, this.symbolicAnalyzer.stateInformation(state),
+					checkPointer.left, checkPointer.right, CIVLProperty.MEMORY_MANAGE,
+					"can't call $reveal on a pointer that can't be dereferenced.\n" + "pointer: "
+							+ this.symbolicAnalyzer.symbolicExpressionToString(source, state, null, pointer));
+		Evaluation eval = evaluator.dereference(source, state, pid, process, pointer, false, true);
 
-		return new Evaluation(primaryExecutor.assign(source, eval.state, pid,
-				pointer, revealObject(eval.value)), null);
+		return new Evaluation(primaryExecutor.assign(source, eval.state, pid, pointer, revealObject(eval.value)), null);
 	}
 
 	private SymbolicExpression revealObject(SymbolicExpression expr) {
 		@SuppressWarnings("unchecked")
-		UnaryOperator<SymbolicExpression> subDefn = e -> e
-				.operator() == SymbolicOperator.APPLY
+		UnaryOperator<SymbolicExpression> subDefn = e -> e.operator() == SymbolicOperator.APPLY
 				&& e.argument(0) == modelFactory.getHideConstant()
-						? ((Iterable<? extends SymbolicExpression>) e
-								.argument(1)).iterator().next()
+						? ((Iterable<? extends SymbolicExpression>) e.argument(1)).iterator().next()
 						: null;
 		return universe.mapSubstituter(subDefn).apply(expr);
 	}
 
-	private Evaluation executeHidden(State state, int pid, String process,
-			Expression[] arguments, SymbolicExpression[] argumentValues,
-			CIVLSource source) throws UnsatisfiablePathConditionException {
-		return new Evaluation(state, universe
-				.bool(argumentValues[0] != revealObject(argumentValues[0])));
+	private Evaluation executeHidden(State state, int pid, String process, Expression[] arguments,
+			SymbolicExpression[] argumentValues, CIVLSource source) throws UnsatisfiablePathConditionException {
+		return new Evaluation(state, universe.bool(argumentValues[0] != revealObject(argumentValues[0])));
 	}
 
-	private Evaluation executePow(State state, int pid, String process,
-			Expression[] arguments, SymbolicExpression[] argumentValues)
-			throws UnsatisfiablePathConditionException {
-		SymbolicExpression result = this.universe.power(
-				(NumericExpression) argumentValues[0],
+	private Evaluation executePow(State state, int pid, String process, Expression[] arguments,
+			SymbolicExpression[] argumentValues) throws UnsatisfiablePathConditionException {
+		SymbolicExpression result = this.universe.power((NumericExpression) argumentValues[0],
 				(NumericExpression) argumentValues[1]);
 
 		return new Evaluation(state, result);
 	}
 
-	private Evaluation executeVariableReference(State state, int pid,
-			String process, Expression[] arguments,
+	private Evaluation executeVariableReference(State state, int pid, String process, Expression[] arguments,
 			SymbolicExpression[] argumentValues) {
 		// TODO Auto-generated method stub
 		// dd
 		return null;
 	}
 
-	private Evaluation executeIsConcreteInt(State state, int pid,
-			String process, Expression[] arguments,
-			SymbolicExpression[] argumentValues, CIVLSource source)
-			throws UnsatisfiablePathConditionException {
+	private Evaluation executeIsConcreteInt(State state, int pid, String process, Expression[] arguments,
+			SymbolicExpression[] argumentValues, CIVLSource source) throws UnsatisfiablePathConditionException {
 		SymbolicExpression value = argumentValues[0];
-		BooleanExpression result = value.operator() == SymbolicOperator.CONCRETE
-				? this.trueValue
-				: this.falseValue;
+		BooleanExpression result = value.operator() == SymbolicOperator.CONCRETE ? this.trueValue : this.falseValue;
 		if (result.isTrue()) {
-			Reasoner reasoner = universe
-					.reasoner(state.getPathCondition(universe));
+			Reasoner reasoner = universe.reasoner(state.getPathCondition(universe));
 
-			result = reasoner.extractNumber((NumericExpression) value) != null
-					? trueValue
-					: falseValue;
+			result = reasoner.extractNumber((NumericExpression) value) != null ? trueValue : falseValue;
 		}
 		return new Evaluation(state, result);
 	}
 
-	private Evaluation executePathCondition(State state, int pid,
-			String process, Expression[] arguments,
-			SymbolicExpression[] argumentValues, CIVLSource source)
-			throws UnsatisfiablePathConditionException {
+	private Evaluation executePathCondition(State state, int pid, String process, Expression[] arguments,
+			SymbolicExpression[] argumentValues, CIVLSource source) throws UnsatisfiablePathConditionException {
 		if (this.civlConfig.enablePrintf())
-			this.civlConfig.out()
-					.println("path condition: " + this.symbolicAnalyzer
-							.symbolicExpressionToString(source, state, null,
-									state.getPathCondition(universe)));
+			this.civlConfig.out().println("path condition: " + this.symbolicAnalyzer.symbolicExpressionToString(source,
+					state, null, state.getPathCondition(universe)));
 		return new Evaluation(state, null);
 	}
 
-	private Evaluation executeAssume(State state, int pid, String process,
-			Expression[] arguments, SymbolicExpression[] argumentValues,
-			CIVLSource source) {
+	private Evaluation executeAssume(State state, int pid, String process, Expression[] arguments,
+			SymbolicExpression[] argumentValues, CIVLSource source) {
 		BooleanExpression assumeValue = (BooleanExpression) argumentValues[0];
 
 		state = stateFactory.addToPathcondition(state, pid, assumeValue);
@@ -553,79 +455,61 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 
 	/**
 	 * <p>
-	 * Corresponds to CIVL-C function:
-	 * <code>$system void $default_value(void *ptr);
+	 * Corresponds to CIVL-C function: <code>$system void $default_value(void *ptr);
 	 * </code> which assigns default value to the object referred by the given
-	 * pointer "ptr" as if the object has static storage. The definition of
-	 * default values of objects having static storage conforms C11 standard.
+	 * pointer "ptr" as if the object has static storage. The definition of default
+	 * values of objects having static storage conforms C11 standard.
 	 * </p>
 	 * 
 	 * <p>
 	 * The object pointed by "ptr" must have some type.
 	 * </p>
 	 * 
-	 * @param state
-	 *            the current state
-	 * @param pid
-	 *            the PID of the running process
-	 * @param arguments
-	 *            {@link Expression}s of function arguments:
-	 *            <code>{void * ptr}</code>
-	 * @param argumentValues
-	 *            values, which are instances of {@link SymbolicExpression}s, of
-	 *            function arguments
-	 * @param source
-	 *            the {@link CIVLSource} that is related to the function call
+	 * @param state          the current state
+	 * @param pid            the PID of the running process
+	 * @param arguments      {@link Expression}s of function arguments:
+	 *                       <code>{void * ptr}</code>
+	 * @param argumentValues values, which are instances of
+	 *                       {@link SymbolicExpression}s, of function arguments
+	 * @param source         the {@link CIVLSource} that is related to the function
+	 *                       call
 	 * @return an {@link Evaluation} consists of the state after return and the
 	 *         returning value
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	private Evaluation executeDefaultValue(State state, int pid,
-			Expression[] arguments, SymbolicExpression[] argumentValues,
-			CIVLSource source) throws UnsatisfiablePathConditionException {
+	private Evaluation executeDefaultValue(State state, int pid, Expression[] arguments,
+			SymbolicExpression[] argumentValues, CIVLSource source) throws UnsatisfiablePathConditionException {
 		// check if the object pointed by the pointer has some type:
 		SymbolicExpression pointer = argumentValues[0];
 		CIVLSource argSource = arguments[0].getSource();
 		String process = state.getProcessState(pid).name();
 
-		if (civlConfig.isPropertyToggled(CIVLProperty.POINTER)
-				&& !symbolicUtil.isConcretePointer(pointer))
-			errorLogger.logSimpleError(argSource, state, pid, process,
-					symbolicAnalyzer.stateInformation(state),
+		if (civlConfig.isPropertyToggled(CIVLProperty.POINTER) && !symbolicUtil.isConcretePointer(pointer))
+			errorLogger.logSimpleError(argSource, state, pid, process, symbolicAnalyzer.stateInformation(state),
 					CIVLProperty.POINTER,
-					"Attempt to assign to a non-concrete pointer: "
-							+ arguments[0] + "\nValue: " + pointer);
+					"Attempt to assign to a non-concrete pointer: " + arguments[0] + "\nValue: " + pointer);
 
 		SymbolicExpression scope = symbolicUtil.getScopeValue(pointer);
 
-		if (civlConfig.isPropertyToggled(CIVLProperty.POINTER)
-				&& stateFactory.undefinedScopeValue() == scope)
-			errorLogger.logSimpleError(argSource, state, pid, process,
-					symbolicAnalyzer.stateInformation(state),
+		if (civlConfig.isPropertyToggled(CIVLProperty.POINTER) && stateFactory.undefinedScopeValue() == scope)
+			errorLogger.logSimpleError(argSource, state, pid, process, symbolicAnalyzer.stateInformation(state),
 					CIVLProperty.POINTER,
-					"Attempt to assign to a invalid pointer: " + arguments[0]
-							+ "\nValue: " + pointer);
+					"Attempt to assign to a invalid pointer: " + arguments[0] + "\nValue: " + pointer);
 
-		CIVLType type = symbolicAnalyzer.civlTypeOfObjByPointer(
-				arguments[0].getSource(), state, argumentValues[0]);
+		CIVLType type = symbolicAnalyzer.civlTypeOfObjByPointer(arguments[0].getSource(), state, argumentValues[0]);
 		Evaluation eval = evaluator.initialValueOfType(state, pid, type);
 
-		eval.state = primaryExecutor.assign(source, eval.state, pid, pointer,
-				eval.value);
+		eval.state = primaryExecutor.assign(source, eval.state, pid, pointer, eval.value);
 		eval.value = universe.nullExpression();
 		return eval;
 	}
 
-	private Evaluation executeNextTimeCount(State state, int pid,
-			String process, Expression[] arguments,
-			SymbolicExpression[] argumentValues)
-			throws UnsatisfiablePathConditionException {
+	private Evaluation executeNextTimeCount(State state, int pid, String process, Expression[] arguments,
+			SymbolicExpression[] argumentValues) throws UnsatisfiablePathConditionException {
 		Variable timeCountVar = this.modelFactory.timeCountVariable();
-		NumericExpression timeCountValue = (NumericExpression) state
-				.valueOf(pid, timeCountVar);
+		NumericExpression timeCountValue = (NumericExpression) state.valueOf(pid, timeCountVar);
 
-		state = stateFactory.setVariable(state, timeCountVar, pid,
-				universe.add(timeCountValue, one));
+		state = stateFactory.setVariable(state, timeCountVar, pid, universe.add(timeCountValue, one));
 		return new Evaluation(state, timeCountValue);
 	}
 
@@ -638,18 +522,16 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 	 *
 	 * 1. <code>q = p</code>, if p points anything other than an array element.
 	 *
-	 * 2. <code>q</code> := a pointer to the first element of the array referred
-	 * by <code>p</code>, if <code>p</code> points an array element.
+	 * 2. <code>q</code> := a pointer to the first element of the array referred by
+	 * <code>p</code>, if <code>p</code> points an array element.
 	 *
 	 * Note that an "array" here means the physical array which is always
-	 * one-dimensional. And a sequence of memory spaces allocated by malloc will
-	 * be seen as an array.
+	 * one-dimensional. And a sequence of memory spaces allocated by malloc will be
+	 * seen as an array.
 	 * </p>
 	 */
-	private Evaluation executeArrayBaseAddressof(State state, int pid,
-			String process, Expression[] arguments,
-			SymbolicExpression[] argumentValues)
-			throws UnsatisfiablePathConditionException {
+	private Evaluation executeArrayBaseAddressof(State state, int pid, String process, Expression[] arguments,
+			SymbolicExpression[] argumentValues) throws UnsatisfiablePathConditionException {
 		SymbolicExpression pointer = argumentValues[0];
 		ReferenceExpression ref = symbolicUtil.getSymRef(pointer);
 
@@ -673,26 +555,19 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 	/**
 	 * Checks if a process reference is defined, i.e., its id is non-negative.
 	 * 
-	 * @param state
-	 *            The state where the checking happens.
-	 * @param pid
-	 *            The ID of the process that this computation belongs to.
-	 * @param lhs
-	 *            The left hand side expression of this function call.
-	 * @param arguments
-	 *            The static arguments of the function call.
-	 * @param argumentValues
-	 *            The symbolic values of the arguments of the function call
+	 * @param state          The state where the checking happens.
+	 * @param pid            The ID of the process that this computation belongs to.
+	 * @param lhs            The left hand side expression of this function call.
+	 * @param arguments      The static arguments of the function call.
+	 * @param argumentValues The symbolic values of the arguments of the function
+	 *                       call
 	 * @return The new state after executing the function call.
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	private Evaluation executeProcDefined(State state, int pid, String process,
-			Expression[] arguments, SymbolicExpression[] argumentValues)
-			throws UnsatisfiablePathConditionException {
+	private Evaluation executeProcDefined(State state, int pid, String process, Expression[] arguments,
+			SymbolicExpression[] argumentValues) throws UnsatisfiablePathConditionException {
 		int procValue = modelFactory.getProcessId(argumentValues[0]);
-		SymbolicExpression result = modelFactory.isPocessIdDefined(procValue)
-				? trueValue
-				: falseValue;
+		SymbolicExpression result = modelFactory.isPocessIdDefined(procValue) ? trueValue : falseValue;
 
 		return new Evaluation(state, result);
 	}
@@ -700,78 +575,62 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 	/**
 	 * Checks if a scope reference is defined, i.e., its id is non-negative.
 	 * 
-	 * @param state
-	 *            The state where the checking happens.
-	 * @param pid
-	 *            The ID of the process that this computation belongs to.
-	 * @param lhs
-	 *            The left hand side expression of this function call.
-	 * @param arguments
-	 *            The static arguments of the function call.
-	 * @param argumentValues
-	 *            The symbolic values of the arguments of the function call
+	 * @param state          The state where the checking happens.
+	 * @param pid            The ID of the process that this computation belongs to.
+	 * @param lhs            The left hand side expression of this function call.
+	 * @param arguments      The static arguments of the function call.
+	 * @param argumentValues The symbolic values of the arguments of the function
+	 *                       call
 	 * @return The new state after executing the function call.
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	private Evaluation executeScopeDefined(State state, int pid, String process,
-			Expression[] arguments, SymbolicExpression[] argumentValues)
-			throws UnsatisfiablePathConditionException {
+	private Evaluation executeScopeDefined(State state, int pid, String process, Expression[] arguments,
+			SymbolicExpression[] argumentValues) throws UnsatisfiablePathConditionException {
 		int scopeValue = stateFactory.getDyscopeId(argumentValues[0]);
-		SymbolicExpression result = stateFactory.isScopeIdDefined(scopeValue)
-				? trueValue
-				: falseValue;
+		SymbolicExpression result = stateFactory.isScopeIdDefined(scopeValue) ? trueValue : falseValue;
 
 		return new Evaluation(state, result);
 	}
 
 	/**
-	 * Executes the $wait system function call. Only enabled when the waited
-	 * process has terminated.
+	 * Executes the $wait system function call. Only enabled when the waited process
+	 * has terminated.
 	 * 
 	 * * @param state The current state.
 	 * 
-	 * @param pid
-	 *            The ID of the process that the function call belongs to.
-	 * @param arguments
-	 *            The static representation of the arguments of the function
-	 *            call.
-	 * @param argumentValues
-	 *            The dynamic representation of the arguments of the function
-	 *            call.
-	 * @param source
-	 *            The source code element to be used for error report.
-	 * @param target
-	 *            The target location of the wait function call.
+	 * @param pid            The ID of the process that the function call belongs
+	 *                       to.
+	 * @param arguments      The static representation of the arguments of the
+	 *                       function call.
+	 * @param argumentValues The dynamic representation of the arguments of the
+	 *                       function call.
+	 * @param source         The source code element to be used for error report.
+	 * @param target         The target location of the wait function call.
 	 * @return The new state after executing the function call.
 	 * @return
 	 */
-	private Evaluation executeWait(State state, int pid, Expression[] arguments,
-			SymbolicExpression[] argumentValues, CIVLSource source) {
+	private Evaluation executeWait(State state, int pid, Expression[] arguments, SymbolicExpression[] argumentValues,
+			CIVLSource source) {
 		SymbolicExpression procVal = argumentValues[0];
 		int joinedPid = modelFactory.getProcessId(procVal);
 
 		// state = stateFactory.setLocation(state, pid, target);
-		if (modelFactory.isPocessIdDefined(joinedPid)
-				&& !modelFactory.isProcessIdNull(joinedPid))
+		if (modelFactory.isPocessIdDefined(joinedPid) && !modelFactory.isProcessIdNull(joinedPid))
 			state = stateFactory.removeProcess(state, joinedPid);
 		return new Evaluation(state, null);
 	}
 
-	private Evaluation executeWaitAll(State state, int pid,
-			Expression[] arguments, SymbolicExpression[] argumentValues,
+	private Evaluation executeWaitAll(State state, int pid, Expression[] arguments, SymbolicExpression[] argumentValues,
 			CIVLSource source) throws UnsatisfiablePathConditionException {
 		SymbolicExpression procsPointer = argumentValues[0];
 		SymbolicExpression numOfProcs = argumentValues[1];
 		Reasoner reasoner = universe.reasoner(state.getPathCondition(universe));
-		IntegerNumber number_nprocs = (IntegerNumber) reasoner
-				.extractNumber((NumericExpression) numOfProcs);
+		IntegerNumber number_nprocs = (IntegerNumber) reasoner.extractNumber((NumericExpression) numOfProcs);
 		String process = state.getProcessState(pid).name() + "(id=" + pid + ")";
 
 		if (number_nprocs == null) {
-			this.errorLogger.logSimpleError(source, state, pid, process,
-					symbolicAnalyzer.stateInformation(state),
-					CIVLProperty.OTHER, "the number of processes for $waitall "
-							+ "shoud be a concrete value");
+			this.errorLogger.logSimpleError(source, state, pid, process, symbolicAnalyzer.stateInformation(state),
+					CIVLProperty.OTHER, "the number of processes for $waitall " + "shoud be a concrete value");
 			throw new UnsatisfiablePathConditionException();
 		} else {
 			int numOfProcs_int = number_nprocs.intValue();
@@ -783,17 +642,14 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 				SymbolicExpression procPointer, proc;
 				int pidValue;
 
-				eval = evaluator.arrayElementReferenceAdd(state, pid,
-						procsPointer, offSetV, procsSource).left;
+				eval = evaluator.arrayElementReferenceAdd(state, pid, procsPointer, offSetV, procsSource).left;
 				procPointer = eval.value;
 				state = eval.state;
-				eval = evaluator.dereference(procsSource, state, pid, process,
-						procPointer, false, true);
+				eval = evaluator.dereference(procsSource, state, pid, process, procPointer, false, true);
 				proc = eval.value;
 				state = eval.state;
 				pidValue = modelFactory.getProcessId(proc);
-				if (!modelFactory.isProcessIdNull(pidValue)
-						&& modelFactory.isPocessIdDefined(pidValue))
+				if (!modelFactory.isProcessIdNull(pidValue) && modelFactory.isPocessIdDefined(pidValue))
 					state = stateFactory.removeProcess(state, pidValue);
 			}
 		}
@@ -805,29 +661,24 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 	 * Executing the system function:<code>$assume_push()</code>. <br>
 	 * <br>
 	 * 
-	 * Push a boolean expression as a partial path condition onto the partial
-	 * path condition stack associated with the calling process.
+	 * Push a boolean expression as a partial path condition onto the partial path
+	 * condition stack associated with the calling process.
 	 * 
 	 * </p>
 	 * 
-	 * @param state
-	 *            The current state.
-	 * @param pid
-	 *            The ID of the process that the function call belongs to.
-	 * @param arguments
-	 *            The static representation of the arguments of the function
-	 *            call.
-	 * @param argumentValues
-	 *            The dynamic representation of the arguments of the function
-	 *            call.
-	 * @param source
-	 *            The {@link CIVLSource} associates to the function call.
+	 * @param state          The current state.
+	 * @param pid            The ID of the process that the function call belongs
+	 *                       to.
+	 * @param arguments      The static representation of the arguments of the
+	 *                       function call.
+	 * @param argumentValues The dynamic representation of the arguments of the
+	 *                       function call.
+	 * @param source         The {@link CIVLSource} associates to the function call.
 	 * @return The new state after executing the function call.
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	private Evaluation executeAssumePush(State state, int pid,
-			Expression[] arguments, SymbolicExpression[] argumentValues,
-			CIVLSource source) {
+	private Evaluation executeAssumePush(State state, int pid, Expression[] arguments,
+			SymbolicExpression[] argumentValues, CIVLSource source) {
 		BooleanExpression assumeValue = (BooleanExpression) argumentValues[0];
 
 		state = stateFactory.pushAssumption(state, pid, assumeValue);
@@ -844,85 +695,69 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 	 * 
 	 * </p>
 	 * 
-	 * @param state
-	 *            The current state.
-	 * @param pid
-	 *            The ID of the process that the function call belongs to.
-	 * @param arguments
-	 *            The static representation of the arguments of the function
-	 *            call.
-	 * @param argumentValues
-	 *            The dynamic representation of the arguments of the function
-	 *            call.
-	 * @param source
-	 *            The {@link CIVLSource} associates to the function call.
+	 * @param state          The current state.
+	 * @param pid            The ID of the process that the function call belongs
+	 *                       to.
+	 * @param arguments      The static representation of the arguments of the
+	 *                       function call.
+	 * @param argumentValues The dynamic representation of the arguments of the
+	 *                       function call.
+	 * @param source         The {@link CIVLSource} associates to the function call.
 	 * @return The new state after executing the function call.
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	private Evaluation executeAssumePop(State state, int pid,
-			Expression[] arguments, SymbolicExpression[] argumentValues,
-			CIVLSource source) {
-		//state = stateFactory.simplify(state, pid, getAggressiveSet(state, pid));
+	private Evaluation executeAssumePop(State state, int pid, Expression[] arguments,
+			SymbolicExpression[] argumentValues, CIVLSource source) {
+		// state = stateFactory.simplify(state, pid, getAggressiveSet(state, pid));
 		state = stateFactory.simplify(state, pid, null);
 		state = stateFactory.popAssumption(state, pid);
 		return new Evaluation(state, null);
 	}
-	
-	
+
 	@SuppressWarnings("unused")
 	private Set<SymbolicConstant> getAggressiveSet(State state, int pid) {
 		ProcessState proc = state.getProcessState(pid);
-		
+
 		if (proc == null)
 			return null;
-		BooleanExpression[] ppc = state.getProcessState(pid)
-				.getPartialPathConditions();
-		
+		BooleanExpression[] ppc = state.getProcessState(pid).getPartialPathConditions();
+
 		if (ppc.length == 0)
 			return null;
 		BooleanExpression pcAfterPop = state.getPermanentPathCondition();
-		for (int i = 0; i < ppc.length-1; i++)
+		for (int i = 0; i < ppc.length - 1; i++)
 			pcAfterPop = universe.and(pcAfterPop, ppc[i]);
-		
+
 		Set<SymbolicConstant> otherFreeSet = pcAfterPop.getFreeVars();
 		Set<SymbolicConstant> ppcTopFreeSet = ppc[ppc.length - 1].getFreeVars();
 		Set<SymbolicConstant> aggressiveSet = new HashSet<>();
-		
-		for(SymbolicConstant c : ppcTopFreeSet) {
+
+		for (SymbolicConstant c : ppcTopFreeSet) {
 			if (!otherFreeSet.contains(c))
 				aggressiveSet.add(c);
 		}
 		return aggressiveSet;
 	}
 
-	private State executeAssert(State state, int pid, String process,
-			Expression[] arguments, SymbolicExpression[] argumentValues,
-			CIVLSource source) throws UnsatisfiablePathConditionException {
+	private State executeAssert(State state, int pid, String process, Expression[] arguments,
+			SymbolicExpression[] argumentValues, CIVLSource source) throws UnsatisfiablePathConditionException {
 		BooleanExpression assertValue = (BooleanExpression) argumentValues[0];
 		BooleanExpression context = state.getPathCondition(universe);
 		ResultType resultType = ResultType.MAYBE;
 
 		if (!civlConfig.prob()) {
-			Query query = (new Heuristics(universe))
-					.applyHeuristicSimplifications(context, assertValue);
+			Query query = (new Heuristics(universe)).applyHeuristicSimplifications(context, assertValue);
 
 			context = query.context;
 			assertValue = query.query;
-			if (!ReservedLogicFunctionCallEvaluator
-					.hasReservedLogicFunctionCalls(universe, assertValue))
-				resultType = universe.reasoner(context).valid(assertValue)
-						.getResultType();
-			if (resultType == ResultType.MAYBE)
-				resultType = universe.why3Reasoner(context).valid(assertValue)
-						.getResultType();
+			if (!ReservedLogicFunctionCallEvaluator.hasReservedLogicFunctionCalls(universe, assertValue))
+				resultType = universe.reasoner(context).valid(assertValue).getResultType();
 		} else
-			resultType = universe.reasoner(context).valid(assertValue)
-					.getResultType();
-		if (resultType != ResultType.YES && civlConfig
-				.isPropertyToggled(CIVLProperty.ASSERTION_VIOLATION)) {
+			resultType = universe.reasoner(context).valid(assertValue).getResultType();
+		if (resultType != ResultType.YES && civlConfig.isPropertyToggled(CIVLProperty.ASSERTION_VIOLATION)) {
 			StringBuilder message = new StringBuilder();
-			Pair<State, String> messageResult = this.symbolicAnalyzer
-					.expressionEvaluation(state, pid, arguments[0], false);
+			Pair<State, String> messageResult = this.symbolicAnalyzer.expressionEvaluation(state, pid, arguments[0],
+					false);
 			String firstEvaluation, secondEvaluation, result;
 
 			state = messageResult.left;
@@ -931,8 +766,7 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 			message.append("\n -> ");
 			message.append(messageResult.right);
 			firstEvaluation = messageResult.right;
-			messageResult = this.symbolicAnalyzer.expressionEvaluation(state,
-					pid, arguments[0], true);
+			messageResult = this.symbolicAnalyzer.expressionEvaluation(state, pid, arguments[0], true);
 			state = messageResult.left;
 			secondEvaluation = messageResult.right;
 			if (!firstEvaluation.equals(secondEvaluation)) {
@@ -940,25 +774,16 @@ public class LibcivlcExecutor extends BaseLibraryExecutor
 				message.append(secondEvaluation);
 			}
 			result = this.symbolicAnalyzer
-					.symbolicExpressionToString(arguments[0].getSource(), state,
-							typeFactory.booleanType(), assertValue)
+					.symbolicExpressionToString(arguments[0].getSource(), state, typeFactory.booleanType(), assertValue)
 					.toString();
 			if (!secondEvaluation.equals(result)) {
 				message.append("\n -> ");
 				message.append(result);
 			}
-			state = this.reportAssertionFailure(state, pid, process, resultType,
-					message.toString(), arguments, argumentValues, source,
-					assertValue, 1);
-			state = stateFactory.addToPathcondition(state, pid,
-					(BooleanExpression) argumentValues[0]);
+			state = this.reportAssertionFailure(state, pid, process, resultType, message.toString(), arguments,
+					argumentValues, source, assertValue, 1);
+			state = stateFactory.addToPathcondition(state, pid, (BooleanExpression) argumentValues[0]);
 		}
-		if (civlConfig.isSARLTestGenerationEnabled())
-			if (resultType == ResultType.YES)
-				universe.saveValidCallAsSARLTest(context, assertValue,
-						resultType, false,
-						"assert_" + universe.numProverValidCalls(),
-						"context: " + context, "predicate: " + assertValue);
 		return state;
 	}
 }

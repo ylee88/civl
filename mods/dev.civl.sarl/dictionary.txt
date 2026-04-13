@@ -17,3 +17,9 @@ const
 blah
 datatype
 spec
+canonic
+herbrand
+rationals
+ints
+stateless
+inlining

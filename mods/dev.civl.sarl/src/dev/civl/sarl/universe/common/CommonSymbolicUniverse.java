@@ -27,7 +27,6 @@ import java.util.List;
 import dev.civl.sarl.IF.Reasoner;
 import dev.civl.sarl.IF.SARLException;
 import dev.civl.sarl.IF.SymbolicUniverse;
-import dev.civl.sarl.IF.ValidityResult.ResultType;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.NumericExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression;
@@ -39,7 +38,6 @@ import dev.civl.sarl.preuniverse.IF.FactorySystem;
 import dev.civl.sarl.preuniverse.common.CommonPreUniverse;
 import dev.civl.sarl.prove.IF.ProverFunctionInterpretation;
 import dev.civl.sarl.reason.IF.ReasonerFactory;
-import dev.civl.sarl.util.autotg.TestTranslator;
 
 /**
  * A standard implementation of {@link SymbolicUniverse}, relying heavily on a
@@ -92,18 +90,6 @@ public class CommonSymbolicUniverse extends CommonPreUniverse implements Symboli
 	 * will be created when the ReasonerRactory is specified.
 	 */
 	private Cleaner.Cleanable cleanable = null;
-
-	/**
-	 * The factory for producing new {@link Why3Reasoner} instances.
-	 */
-	private ReasonerFactory why3ReasonerFactory = null;
-
-	/**
-	 * A reference to a {@link TestTranslator}, which is instantiated when
-	 * {@link #enableSARLTestGeneration(boolean)} is called with argument equals to
-	 * true.
-	 */
-	private TestTranslator sarlTestGenerator = null;
 
 	/**
 	 * A list of logic function definitions that will be sent to a reasoner whenever
@@ -207,40 +193,6 @@ public class CommonSymbolicUniverse extends CommonPreUniverse implements Symboli
 
 		return expressionFactory.valueSetElimWidening(reasoner(context), valueType, refArr, elimExpr,
 				(NumericExpression) lower, (NumericExpression) upper);
-	}
-
-	@Override
-	public Reasoner why3Reasoner(BooleanExpression context) {
-		if (why3ReasonerFactory == null)
-			return reasoner(context);
-		else
-			return why3ReasonerFactory.getReasoner(context, getUseBackwardSubstitution(), logicFunctions);
-	}
-
-	public void setWhy3ReasonerFactory(ReasonerFactory reasonerFactory) {
-		this.why3ReasonerFactory = reasonerFactory;
-	}
-
-	@Override
-	public void enableSARLTestGeneration(boolean enable) {
-		if (enable) {
-			if (sarlTestGenerator == null)
-				sarlTestGenerator = new TestTranslator();
-		} else
-			sarlTestGenerator = null;
-	}
-
-	@Override
-	public void saveValidCallAsSARLTest(BooleanExpression context, BooleanExpression predicate,
-			ResultType expectedResult, boolean useWhy3, String testName, String... comments) {
-		if (sarlTestGenerator != null)
-			sarlTestGenerator.generateValidCheckMethod(context, predicate, expectedResult, useWhy3, testName, comments);
-	}
-
-	@Override
-	public void generateTestClass(String name) {
-		if (sarlTestGenerator != null)
-			sarlTestGenerator.generateTestClass(name);
 	}
 
 	@Override

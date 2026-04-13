@@ -294,8 +294,6 @@ public class UserInterface {
 					commandLine.getCoreFileName());
 			boolean result;
 
-			if (modelTranslator.config.isSARLTestGenerationEnabled())
-				modelTranslator.universe.enableSARLTestGeneration(true);
 			switch (kind) {
 			case SHOW:
 				result = runShow(modelTranslator);
@@ -314,8 +312,6 @@ public class UserInterface {
 						"missing implementation for command of " + commandLine.normalCommandKind() + " kind",
 						(CIVLSource) null);
 			}
-			if (modelTranslator.config.isSARLTestGenerationEnabled())
-				modelTranslator.universe.generateTestClass(commandLine.getCoreFileName());
 			return result;
 		}
 		return true;

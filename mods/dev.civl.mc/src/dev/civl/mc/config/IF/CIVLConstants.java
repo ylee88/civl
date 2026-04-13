@@ -62,13 +62,13 @@ public class CIVLConstants {
 		 */
 		static public MPIModelKind select(String name) {
 			switch (name) {
-				case "nonblocking" :
-					return NON_BLOCKING;
-				case "contract" :
-					return CONTRACT;
-				case "blocking" :
-				default :
-					return BLOCKING; // default value
+			case "nonblocking":
+				return NON_BLOCKING;
+			case "contract":
+				return CONTRACT;
+			case "blocking":
+			default:
+				return BLOCKING; // default value
 			}
 		}
 	}
@@ -81,22 +81,20 @@ public class CIVLConstants {
 	/**
 	 * Resource path to the CIVL library implementations files (.cvl).
 	 */
-	public final static File CIVL_LIB_SRC_PATH = new File(
-			ROOT_RESOURCE_PATH_STR + "mc/src/");
+	public final static File CIVL_LIB_SRC_PATH = new File(ROOT_RESOURCE_PATH_STR + "mc/src/");
 
 	/**
-	 * Where the CIVL header files (suffix .h and .cvh) are located. This path
-	 * is relative to the class path.
+	 * Where the CIVL header files (suffix .h and .cvh) are located. This path is
+	 * relative to the class path.
 	 */
-	public final static File CIVL_LIB_INCLUDE_PATH = new File(
-			ROOT_RESOURCE_PATH_STR + "abc/include/");
+	public final static File CIVL_LIB_INCLUDE_PATH = new File(ROOT_RESOURCE_PATH_STR + "abc/include/");
 
 	/** The version of this release of CIVL. */
 	public final static String version = "1.22.r5959";
 
 	/**
-	 * The date of this release of CIVL. Format: YYYY-MM-DD in accordance with
-	 * ISO 8601.
+	 * The date of this release of CIVL. Format: YYYY-MM-DD in accordance with ISO
+	 * 8601.
 	 */
 	public final static String date = "2025-03-17";
 
@@ -106,8 +104,8 @@ public class CIVLConstants {
 	public final static String LIBRARY_PREFIX = "dev.civl.mc.library.";
 
 	/**
-	 * A string printed before and after titles of sections of output to make
-	 * them stand out among the clutter.
+	 * A string printed before and after titles of sections of output to make them
+	 * stand out among the clutter.
 	 */
 	public final static String bar = "===================";
 
@@ -217,7 +215,6 @@ public class CIVLConstants {
 	public static String WITNESS = "witness";
 	public static String DIRECT = "direct";
 	public static String INTBIT = "int_bit";
-	public static String TEST_GEN = "testGen";
 	public static String CYCLES_VIOLATE = "cyclesViolate";
 	public static String RUNTIME_UPDATE = "runtimeUpdate";
 	public static String PREEMPTION_BOUND = "preemptionBound";
@@ -239,57 +236,49 @@ public class CIVLConstants {
 	/**
 	 * Debug option, false by default.
 	 */
-	public final static Option debugO = Option.newScalarOption(DEBUG,
-			OptionType.BOOLEAN, "debug mode: print very detailed information",
-			false);
+	public final static Option debugO = Option.newScalarOption(DEBUG, OptionType.BOOLEAN,
+			"debug mode: print very detailed information", false);
 
-	public final static Option timeoutO = Option.newScalarOption(TIMEOUT,
-			OptionType.INTEGER,
+	public final static Option timeoutO = Option.newScalarOption(TIMEOUT, OptionType.INTEGER,
 			"time out in seconds, default is never time out", -1);
 
 	/**
-	 * Enables printf? true by default. When false, nothing is printed for
-	 * printf function.
+	 * Enables printf? true by default. When false, nothing is printed for printf
+	 * function.
 	 */
-	public final static Option enablePrintfO = Option.newScalarOption(
-			ENABLE_PRINTF, OptionType.BOOLEAN, "enable printf function", true);
+	public final static Option enablePrintfO = Option.newScalarOption(ENABLE_PRINTF, OptionType.BOOLEAN,
+			"enable printf function", true);
 
 	/**
-	 * The maximal number of errors allowed before terminating CIVL. 1 by
-	 * default.
+	 * The maximal number of errors allowed before terminating CIVL. 1 by default.
 	 */
-	public final static Option errorBoundO = Option.newScalarOption(ERROR_BOUND,
-			OptionType.INTEGER, "stop after finding this many errors", 1);
+	public final static Option errorBoundO = Option.newScalarOption(ERROR_BOUND, OptionType.INTEGER,
+			"stop after finding this many errors", 1);
 
-	public final static Option maxProcsO = Option.newScalarOption(MAX_PROCS,
-			OptionType.INTEGER, "the maximum number of processes", 1000);
+	public final static Option maxProcsO = Option.newScalarOption(MAX_PROCS, OptionType.INTEGER,
+			"the maximum number of processes", 1000);
 
 	/**
-	 * The semantics for used to determine when error states are equivalent;
-	 * CIVL suppresses logging of equivalent states. All semantics use the kind
-	 * of error, but they may vary in the portion of the state that is checked.
-	 * Current options include using the current location (LOC), the call stacks
+	 * The semantics for used to determine when error states are equivalent; CIVL
+	 * suppresses logging of equivalent states. All semantics use the kind of error,
+	 * but they may vary in the portion of the state that is checked. Current
+	 * options include using the current location (LOC), the call stacks
 	 * (CALLSTACK), and the full trace (FULL), but others are possible. LOC by
 	 * default.
 	 */
-	public final static Option errorStateEquivO = Option.newScalarOption(
-			ERROR_STATE_EQUIV, OptionType.STRING,
-			"semantics for equivalent error states: (LOC|CALLSTACK|FULL)",
-			"LOC");
+	public final static Option errorStateEquivO = Option.newScalarOption(ERROR_STATE_EQUIV, OptionType.STRING,
+			"semantics for equivalent error states: (LOC|CALLSTACK|FULL)", "LOC");
 
 	/**
 	 * User guided simulation?
 	 */
-	public final static Option guidedO = Option.newScalarOption(GUIDED,
-			OptionType.BOOLEAN,
-			"user guided simulation; applies only to run command",
-			null);
+	public final static Option guidedO = Option.newScalarOption(GUIDED, OptionType.BOOLEAN,
+			"user guided simulation; applies only to run command", null);
 
 	/**
 	 * The id of the trace for replay, 0 by default.
 	 */
-	public final static Option idO = Option.newScalarOption(ID,
-			OptionType.INTEGER,
+	public final static Option idO = Option.newScalarOption(ID, OptionType.INTEGER,
 			"ID number of trace to replay; applies only to replay command", 0);
 
 	/**
@@ -301,441 +290,381 @@ public class CIVLConstants {
 	/**
 	 * The maximal depth for search. Infinite by default.
 	 */
-	public final static Option maxdepthO = Option.newScalarOption(MAX_DEPTH,
-			OptionType.INTEGER, "bound on search depth", Integer.MAX_VALUE);
+	public final static Option maxdepthO = Option.newScalarOption(MAX_DEPTH, OptionType.INTEGER,
+			"bound on search depth", Integer.MAX_VALUE);
 
 	/**
 	 * Search for the minimum counterexample? false by default.
 	 */
-	public final static Option minO = Option.newScalarOption(MIN,
-			OptionType.BOOLEAN, "search for minimal counterexample", false);
+	public final static Option minO = Option.newScalarOption(MIN, OptionType.BOOLEAN,
+			"search for minimal counterexample", false);
 
 	/**
 	 * MPI contract mode? Disable by default.
 	 */
-	public final static Option mpiContractO = Option.newScalarOption(
-			MPI_CONTRACT, OptionType.STRING,
-			"Name of annotated MPI function.",
-			CONTRACT_CHECK_NONE);
+	public final static Option mpiContractO = Option.newScalarOption(MPI_CONTRACT, OptionType.STRING,
+			"Name of annotated MPI function.", CONTRACT_CHECK_NONE);
 
 	/**
 	 * Chooses MPI implementation models (see {@link MPIModelKind}).
 	 * {@link MPIModelKind#BLOCKING} is the default setting.
 	 */
-	public final static Option mpiModelO = Option.newScalarOption(MPI_MODEL,
-			OptionType.STRING,
-			"MPI implementation model. Available values: blocking, nonblocking, contract",
-			"blocking");
+	public final static Option mpiModelO = Option.newScalarOption(MPI_MODEL, OptionType.STRING,
+			"MPI implementation model. Available values: blocking, nonblocking, contract", "blocking");
 
 	/**
 	 * Enable all settings that are required for verifying with loop invariants.
 	 * Disable by default.
 	 */
-	public final static Option loopO = Option.newScalarOption(LOOP_INV,
-			OptionType.BOOLEAN,
-			"Enable all settings that are required for verifying with loop invariants",
-			false);
+	public final static Option loopO = Option.newScalarOption(LOOP_INV, OptionType.BOOLEAN,
+			"Enable all settings that are required for verifying with loop invariants", false);
 
-	public final static Option memEqO = Option.newScalarOption(
-			CONVERGE_W_MEM_EQ, OptionType.BOOLEAN,
-			"Use mem equality to converge annotated loops rather than state convergence.",
-			false);
+	public final static Option memEqO = Option.newScalarOption(CONVERGE_W_MEM_EQ, OptionType.BOOLEAN,
+			"Use mem equality to converge annotated loops rather than state convergence.", false);
 
 	/**
 	 * The bound on number of live processes (no bound if negative). No bound by
 	 * default.
 	 */
-	public final static Option procBoundO = Option.newScalarOption(PROC_BOUND,
-			OptionType.INTEGER,
+	public final static Option procBoundO = Option.newScalarOption(PROC_BOUND, OptionType.INTEGER,
 			"bound on number of live processes (no bound if negative)", -1);
 
 	/**
 	 * Use probabilistic techniques for verifying numeric identifies. False by
 	 * default.
 	 */
-	public final static Option probO = Option.newScalarOption(PROB,
-			OptionType.BOOLEAN,
-			"use probabilistic techniques for verifying numeric identifies",
-			false);
+	public final static Option probO = Option.newScalarOption(PROB, OptionType.BOOLEAN,
+			"use probabilistic techniques for verifying numeric identifies", false);
 
-	public final static Option randomO = Option.newScalarOption(RANDOM,
-			OptionType.BOOLEAN,
-			"select enabled transitions randomly",
-			null);
+	public final static Option randomO = Option.newScalarOption(RANDOM, OptionType.BOOLEAN,
+			"select enabled transitions randomly", null);
 
 	/**
-	 * set <code>false</code> to disable CIVL {@link UpdaterRunnable} thread.
-	 * The default value is <code>true</code>
+	 * set <code>false</code> to disable CIVL {@link UpdaterRunnable} thread. The
+	 * default value is <code>true</code>
 	 */
-	public final static Option runtimeUpdateO = Option.newScalarOption(
-			RUNTIME_UPDATE, OptionType.BOOLEAN,
-			"print update-info periodically?",
-			true);
+	public final static Option runtimeUpdateO = Option.newScalarOption(RUNTIME_UPDATE, OptionType.BOOLEAN,
+			"print update-info periodically?", true);
 
 	/**
 	 * Save states during depth-first search? true by default.
 	 */
-	public final static Option saveStatesO = Option.newScalarOption(SAVE_STATES,
-			OptionType.BOOLEAN, "save states during depth-first search", true);
+	public final static Option saveStatesO = Option.newScalarOption(SAVE_STATES, OptionType.BOOLEAN,
+			"save states during depth-first search", true);
 
 	/**
 	 * Set the random seed for run mode.
 	 */
-	public final static Option seedO = Option.newScalarOption(SEED,
-			OptionType.INTEGER, "set the random seed; applies only to run",
-			null);
+	public final static Option seedO = Option.newScalarOption(SEED, OptionType.INTEGER,
+			"set the random seed; applies only to run", null);
 
 	/**
 	 * Set the upper bound of integers.
 	 */
-	public final static Option intBit = Option.newScalarOption(INTBIT,
-			OptionType.INTEGER, "set the number of bits of integer", 32);
+	public final static Option intBit = Option.newScalarOption(INTBIT, OptionType.INTEGER,
+			"set the number of bits of integer", 32);
 
 	/**
 	 * Analyze abs calls? false by default.
 	 */
-	public final static Option analyzeAbsO = Option.newScalarOption(ANALYZE_ABS,
-			OptionType.BOOLEAN, "analyze abs calls? false by default", false);
+	public final static Option analyzeAbsO = Option.newScalarOption(ANALYZE_ABS, OptionType.BOOLEAN,
+			"analyze abs calls? false by default", false);
 
 	/**
 	 * Show the AST of the program? false by default.
 	 */
-	public final static Option astO = Option.newScalarOption(AST,
-			OptionType.BOOLEAN, "print the AST of the program", false);
+	public final static Option astO = Option.newScalarOption(AST, OptionType.BOOLEAN, "print the AST of the program",
+			false);
 
 	/**
 	 * Print the ample set when it contains more than one processes? false by
 	 * default.
 	 */
-	public final static Option showAmpleSetO = Option.newScalarOption(
-			SHOW_AMPLE_SET, OptionType.BOOLEAN,
-			"print the ample set when it contains more than one processes",
-			false);
+	public final static Option showAmpleSetO = Option.newScalarOption(SHOW_AMPLE_SET, OptionType.BOOLEAN,
+			"print the ample set when it contains more than one processes", false);
 
 	/**
-	 * Print ample set and state when ample set contains more than one
+	 * Print ample set and state when ample set contains more than one processes?
+	 * false by default.
+	 */
+	public final static Option showAmpleSetWtStatesO = Option.newScalarOption(SHOW_AMPLE_SET_STATES, OptionType.BOOLEAN,
+			"print ample set and state when ample set contains >1 processes", false);
+
+	/**
+	 * Print the impact/reachable memory units when the state contains more than one
 	 * processes? false by default.
 	 */
-	public final static Option showAmpleSetWtStatesO = Option.newScalarOption(
-			SHOW_AMPLE_SET_STATES, OptionType.BOOLEAN,
-			"print ample set and state when ample set contains >1 processes",
-			false);
-
-	/**
-	 * Print the impact/reachable memory units when the state contains more than
-	 * one processes? false by default.
-	 */
-	public final static Option showMemoryUnitsO = Option.newScalarOption(
-			SHOW_MEM_UNITS, OptionType.BOOLEAN,
-			"print the impact/reachable memory units when the state contains more than one processes",
-			false);
+	public final static Option showMemoryUnitsO = Option.newScalarOption(SHOW_MEM_UNITS, OptionType.BOOLEAN,
+			"print the impact/reachable memory units when the state contains more than one processes", false);
 
 	/**
 	 * Show the CIVL model of the program? false by default.
 	 */
-	public final static Option showModelO = Option.newScalarOption(SHOW_MODEL,
-			OptionType.BOOLEAN, "print the model", false);
+	public final static Option showModelO = Option.newScalarOption(SHOW_MODEL, OptionType.BOOLEAN, "print the model",
+			false);
 
 	/**
 	 * Show theorem prover queries? false by default.
 	 */
-	public final static Option showProverQueriesO = Option.newScalarOption(
-			SHOW_PROVER_QUERIES, OptionType.BOOLEAN,
+	public final static Option showProverQueriesO = Option.newScalarOption(SHOW_PROVER_QUERIES, OptionType.BOOLEAN,
 			"print theorem prover queries only", false);
 
 	/**
 	 * Show all SARL queries? false by default.
 	 */
-	public final static Option showQueriesO = Option.newScalarOption(
-			SHOW_QUERIES, OptionType.BOOLEAN, "print all queries", false);
+	public final static Option showQueriesO = Option.newScalarOption(SHOW_QUERIES, OptionType.BOOLEAN,
+			"print all queries", false);
 
 	/**
 	 * Show all states that are saved? false by default.
 	 */
-	public final static Option showSavedStatesO = Option.newScalarOption(
-			SHOW_SAVED_STATES, OptionType.BOOLEAN, "print saved states only",
-			false);
+	public final static Option showSavedStatesO = Option.newScalarOption(SHOW_SAVED_STATES, OptionType.BOOLEAN,
+			"print saved states only", false);
 
 	/**
 	 * Show all states? false by default.
 	 */
-	public final static Option showStatesO = Option.newScalarOption(SHOW_STATES,
-			OptionType.BOOLEAN, "print all states", false);
+	public final static Option showStatesO = Option.newScalarOption(SHOW_STATES, OptionType.BOOLEAN, "print all states",
+			false);
 
 	/**
 	 * Show the time used by each translation phase? false by default.
 	 */
-	public final static Option showTimeO = Option.newScalarOption(SHOW_TIME,
-			OptionType.BOOLEAN, "print timings", false);
+	public final static Option showTimeO = Option.newScalarOption(SHOW_TIME, OptionType.BOOLEAN, "print timings",
+			false);
 
 	/**
 	 * Show all transitions? false by default;
 	 */
-	public final static Option showTransitionsO = Option.newScalarOption(
-			SHOW_TRANSITIONS, OptionType.BOOLEAN, "print transitions", false);
+	public final static Option showTransitionsO = Option.newScalarOption(SHOW_TRANSITIONS, OptionType.BOOLEAN,
+			"print transitions", false);
 
 	/**
 	 * Show unreachable code? false by default;
 	 */
-	public final static Option showUnreachedCodeO = Option.newScalarOption(
-			SHOW_UNREACHED, OptionType.BOOLEAN, "print the unreachable code",
-			false);
+	public final static Option showUnreachedCodeO = Option.newScalarOption(SHOW_UNREACHED, OptionType.BOOLEAN,
+			"print the unreachable code", false);
 
 	/**
 	 * Simplify states using path conditions? true by default.
 	 */
-	public final static Option simplifyO = Option.newScalarOption(SIMPLIFY,
-			OptionType.BOOLEAN, "simplify states?", true);
+	public final static Option simplifyO = Option.newScalarOption(SIMPLIFY, OptionType.BOOLEAN, "simplify states?",
+			true);
 
 	/**
 	 * Try to solve for concrete counterexample? false by default.
 	 */
-	public final static Option solveO = Option.newScalarOption(SOLVE,
-			OptionType.BOOLEAN, "try to solve for concrete counterexample",
-			false);
+	public final static Option solveO = Option.newScalarOption(SOLVE, OptionType.BOOLEAN,
+			"try to solve for concrete counterexample", false);
 
 	/**
 	 * Don't modify file system when running printf? true by default.
 	 */
-	public final static Option statelessPrintfO = Option.newScalarOption(
-			STATELESS_PRINTF, OptionType.BOOLEAN,
+	public final static Option statelessPrintfO = Option.newScalarOption(STATELESS_PRINTF, OptionType.BOOLEAN,
 			"prevent printf function modifying the file system", true);
 
 	/**
-	 * Print the impact/reachable memory units when the state contains more than
-	 * one processes? false by default.
+	 * Print the impact/reachable memory units when the state contains more than one
+	 * processes? false by default.
 	 */
-	public final static Option strictCompareO = Option.newScalarOption(STRICT,
-			OptionType.BOOLEAN, "check strict functional equivalence?", true);
+	public final static Option strictCompareO = Option.newScalarOption(STRICT, OptionType.BOOLEAN,
+			"check strict functional equivalence?", true);
 
 	/**
 	 * Set the system include path.
 	 */
-	public final static Option sysIncludePathO = Option.newScalarOption(
-			SYS_INCLUDE_PATH, OptionType.STRING,
-			"set the system include path, using : to separate multiple paths",
-			null);
+	public final static Option sysIncludePathO = Option.newScalarOption(SYS_INCLUDE_PATH, OptionType.STRING,
+			"set the system include path, using : to separate multiple paths", null);
 
 	/**
 	 * Unpreprocess the source? false by default.
 	 */
-	public final static Option unpreprocO = Option.newScalarOption(UNPREPROC,
-			OptionType.BOOLEAN, "unpreprocess the source?", false);
+	public final static Option unpreprocO = Option.newScalarOption(UNPREPROC, OptionType.BOOLEAN,
+			"unpreprocess the source?", false);
 
 	/**
 	 * File name of trace to replay
 	 */
-	public final static Option traceO = Option.newScalarOption(TRACE,
-			OptionType.STRING, "filename of trace to replay", null);
+	public final static Option traceO = Option.newScalarOption(TRACE, OptionType.STRING, "filename of trace to replay",
+			null);
 
 	/**
 	 * Sets user include path.
 	 */
-	public final static Option userIncludePathO = Option.newScalarOption(
-			USER_INCLUDE_PATH, OptionType.STRING,
-			"set the user include path, using : to separate multiple paths",
-			null);
+	public final static Option userIncludePathO = Option.newScalarOption(USER_INCLUDE_PATH, OptionType.STRING,
+			"set the user include path, using : to separate multiple paths", null);
 
 	/**
 	 * Verbose mode? false by default
 	 */
-	public final static Option verboseO = Option.newScalarOption(VERBOSE,
-			OptionType.BOOLEAN, "verbose mode", false);
+	public final static Option verboseO = Option.newScalarOption(VERBOSE, OptionType.BOOLEAN, "verbose mode", false);
 
 	/**
 	 * Perform svcomp16 transformation? false by default.
 	 */
-	public final static Option svcomp16O = Option.newScalarOption(SVCOMP16,
-			OptionType.BOOLEAN, "translate program for sv-comp 2016?", false);
+	public final static Option svcomp16O = Option.newScalarOption(SVCOMP16, OptionType.BOOLEAN,
+			"translate program for sv-comp 2016?", false);
 
 	/**
 	 * Perform svcomp transformation? false by default.
 	 */
-	public final static Option svcomp17O = Option.newScalarOption(SVCOMP17,
-			OptionType.BOOLEAN, "translate program for sv-comp 2017?", false);
+	public final static Option svcomp17O = Option.newScalarOption(SVCOMP17, OptionType.BOOLEAN,
+			"translate program for sv-comp 2017?", false);
 
 	/**
 	 * Show the input variables of this model? false by default.
 	 */
-	public final static Option showInputVarsO = Option.newScalarOption(
-			SHOW_INPUTS, OptionType.BOOLEAN,
+	public final static Option showInputVarsO = Option.newScalarOption(SHOW_INPUTS, OptionType.BOOLEAN,
 			"show input variables of my program?", false);
 
 	/**
 	 * Show the preprocessing result? false by default.
 	 */
-	public final static Option preprocO = Option.newScalarOption(PREPROC,
-			OptionType.BOOLEAN, "show the preprocessing result?", false);
+	public final static Option preprocO = Option.newScalarOption(PREPROC, OptionType.BOOLEAN,
+			"show the preprocessing result?", false);
 
 	/**
 	 * Show the program after all applicable transformations? false by default.
 	 */
-	public final static Option showProgramO = Option.newScalarOption(
-			SHOW_PROGRAM, OptionType.BOOLEAN,
+	public final static Option showProgramO = Option.newScalarOption(SHOW_PROGRAM, OptionType.BOOLEAN,
 			"show my program after transformations?", false);
 
 	/**
 	 * Show the path condition of each state? false by default.
 	 */
-	public final static Option showPathConditionO = Option.newScalarOption(
-			SHOW_PATH_CONDITION, OptionType.STRING,
-			"show path condition of each state as one line (LINE) or on multiple lines (BLOCK)?",
-			"LINE");
+	public final static Option showPathConditionO = Option.newScalarOption(SHOW_PATH_CONDITION, OptionType.STRING,
+			"show path condition of each state as one line (LINE) or on multiple lines (BLOCK)?", "LINE");
 
 	/**
 	 * Don't simplify OpenMP pragmas? false by default.
 	 */
-	public final static Option ompNoSimplifyO = Option.newScalarOption(
-			OMP_NO_SIMPLIFY, OptionType.BOOLEAN, "don't simplify omp pragmas",
-			true);
+	public final static Option ompNoSimplifyO = Option.newScalarOption(OMP_NO_SIMPLIFY, OptionType.BOOLEAN,
+			"don't simplify omp pragmas", true);
 
 	/**
-	 * Only relies on the OpenMP simplifier ? i.e., either simplify an omp
-	 * program or report possible data-race
+	 * Only relies on the OpenMP simplifier ? i.e., either simplify an omp program
+	 * or report possible data-race
 	 */
-	public final static Option ompOnlySimplifierO = Option.newScalarOption(
-			OMP_ONLY_SIMPLIFIER, OptionType.BOOLEAN,
-			"rely on the OpenMP simplifier only, i.e. no data-race checking.",
-			false);
+	public final static Option ompOnlySimplifierO = Option.newScalarOption(OMP_ONLY_SIMPLIFIER, OptionType.BOOLEAN,
+			"rely on the OpenMP simplifier only, i.e. no data-race checking.", false);
 
 	/**
 	 * Collect output? false by default.
 	 */
-	public final static Option collectOutputO = Option.newScalarOption(
-			COLLECT_OUTPUT, OptionType.BOOLEAN, "collect output?", false);
+	public final static Option collectOutputO = Option.newScalarOption(COLLECT_OUTPUT, OptionType.BOOLEAN,
+			"collect output?", false);
 
 	/**
 	 * Collect processes? true by default.
 	 */
-	public final static Option collectProcessesO = Option.newScalarOption(
-			COLLECT_PROCESSES, OptionType.BOOLEAN, "collect processes?", true);
+	public final static Option collectProcessesO = Option.newScalarOption(COLLECT_PROCESSES, OptionType.BOOLEAN,
+			"collect processes?", true);
 
 	/**
 	 * Collect scopes? true by default.
 	 */
-	public final static Option collectScopesO = Option.newScalarOption(
-			COLLECT_SCOPES, OptionType.BOOLEAN, "collect dyscopes?", true);
+	public final static Option collectScopesO = Option.newScalarOption(COLLECT_SCOPES, OptionType.BOOLEAN,
+			"collect dyscopes?", true);
 
 	/**
 	 * Collect symbolic constants ? false by default.
 	 */
-	public final static Option collectSymbolicConstantsO = Option
-			.newScalarOption(COLLECT_SYMBOLIC_CONSTANTS, OptionType.BOOLEAN,
-					"collect symbolic constant?", false);
+	public final static Option collectSymbolicConstantsO = Option.newScalarOption(COLLECT_SYMBOLIC_CONSTANTS,
+			OptionType.BOOLEAN, "collect symbolic constant?", false);
 
 	/**
 	 * Collect heaps? true by default.
 	 */
-	public final static Option collectHeapsO = Option.newScalarOption(
-			COLLECT_HEAPS, OptionType.BOOLEAN, "collect heaps?", true);
+	public final static Option collectHeapsO = Option.newScalarOption(COLLECT_HEAPS, OptionType.BOOLEAN,
+			"collect heaps?", true);
 
 	/**
 	 * Link a source file with the target program.
 	 */
-	public final static Option linkO = Option.newScalarOption(LINK,
-			OptionType.STRING, "link a source file with the target program",
-			null);
+	public final static Option linkO = Option.newScalarOption(LINK, OptionType.STRING,
+			"link a source file with the target program", null);
 
 	/**
 	 * Define macros.
 	 */
-	public final static Option macroO = Option.newMapOption(MACRO,
-			"macro definitions: <macro> or <macro>=<object>");
+	public final static Option macroO = Option.newMapOption(MACRO, "macro definitions: <macro> or <macro>=<object>");
 
 	/**
 	 * Write output for web app? false by default.
 	 */
-	public final static Option webO = Option.newScalarOption(WEB,
-			OptionType.BOOLEAN, "write output for web app?", false);
+	public final static Option webO = Option.newScalarOption(WEB, OptionType.BOOLEAN, "write output for web app?",
+			false);
 
 	/**
-	 * Set the loop decomposition strategy for OpenMP transformer. Round robin
-	 * by default.
+	 * Set the loop decomposition strategy for OpenMP transformer. Round robin by
+	 * default.
 	 */
-	public final static Option ompLoopDecompO = Option.newScalarOption(
-			OMP_LOOP_DECOMP, OptionType.STRING,
-			"loop decomposition strategy? (ALL|ROUND_ROBIN|RANDOM)",
-			"ROUND_ROBIN");
+	public final static Option ompLoopDecompO = Option.newScalarOption(OMP_LOOP_DECOMP, OptionType.STRING,
+			"loop decomposition strategy? (ALL|ROUND_ROBIN|RANDOM)", "ROUND_ROBIN");
 
 	/**
 	 * Collect heaps? true by default.
 	 */
-	public final static Option CIVLMacroO = Option.newScalarOption(CIVL_MACRO,
-			OptionType.BOOLEAN, "Define _CIVL macro?", true);
+	public final static Option CIVLMacroO = Option.newScalarOption(CIVL_MACRO, OptionType.BOOLEAN,
+			"Define _CIVL macro?", true);
 
 	/**
 	 * Ignore the output? false by default.
 	 */
-	public final static Option quietO = Option.newScalarOption(QUIET,
-			OptionType.BOOLEAN, "ignore output?", false);
+	public final static Option quietO = Option.newScalarOption(QUIET, OptionType.BOOLEAN, "ignore output?", false);
 
 	/**
 	 * apply int operation transformer? true by default.
 	 */
-	public final static Option intOperationTransformer = Option.newScalarOption(
-			INT_OPERATION_TRANSFORMER, OptionType.BOOLEAN,
-			"apply int operation transformer?", false);
+	public final static Option intOperationTransformer = Option.newScalarOption(INT_OPERATION_TRANSFORMER,
+			OptionType.BOOLEAN, "apply int operation transformer?", false);
 
 	/**
 	 * Perform slice analysis on trace? false by default.
 	 */
-	public final static Option sliceAnalysisO = Option.newScalarOption(
-			SLICE_ANALYSIS, OptionType.BOOLEAN,
+	public final static Option sliceAnalysisO = Option.newScalarOption(SLICE_ANALYSIS, OptionType.BOOLEAN,
 			"Perform slice analysis on trace?", false);
 
 	/**
 	 * Generate witness from trace? false by default.
 	 */
-	public final static Option witnessO = Option.newScalarOption(WITNESS,
-			OptionType.BOOLEAN, "Generate witness from trace?", false);
+	public final static Option witnessO = Option.newScalarOption(WITNESS, OptionType.BOOLEAN,
+			"Generate witness from trace?", false);
 
 	/**
-	 * Inject instrumentation to direct the branches at the line numbers in
-	 * given file so as to explore a sub-space of execution. Note: currently
-	 * assumes you are given one C file (no linking)
+	 * Inject instrumentation to direct the branches at the line numbers in given
+	 * file so as to explore a sub-space of execution. Note: currently assumes you
+	 * are given one C file (no linking)
 	 */
-	public final static Option direct0 = Option.newScalarOption(DIRECT,
-			OptionType.STRING,
+	public final static Option direct0 = Option.newScalarOption(DIRECT, OptionType.STRING,
 			"Direct branching at line numbers in the given file", null);
 
-	/**
-	 * An option to enable test generation for SARL, i.e. generate SARL tests
-	 * for some validity checks that CIVL encounters during a run.
-	 */
-	public final static Option SARLTestGenO = Option.newScalarOption(TEST_GEN,
-			OptionType.BOOLEAN,
-			"Generating SARL Junit tests for some validity tests that CIVL encountered",
-			false);
-
-	public final static Option preemptionBoundO = Option.newScalarOption(
-			PREEMPTION_BOUND, OptionType.INTEGER, "preemption bound", -1);
+	public final static Option preemptionBoundO = Option.newScalarOption(PREEMPTION_BOUND, OptionType.INTEGER,
+			"preemption bound", -1);
 
 	/**
 	 * Disable the local block, which optimizes the POR impl. false by default
 	 */
-	public final static Option disableLocalBlockO = Option.newScalarOption(
-			DISABLE_LOCAL_BLOCK, OptionType.BOOLEAN, "disable local block",
-			false);
+	public final static Option disableLocalBlockO = Option.newScalarOption(DISABLE_LOCAL_BLOCK, OptionType.BOOLEAN,
+			"disable local block", false);
 
 	/**
-	 * If this is true, and termination is being checked, then a cycle in which
-	 * some process remains enabled at each state will not be considered a
-	 * violation of non-termination (as it is not considered to represent a real
-	 * execution).
+	 * If this is true, and termination is being checked, then a cycle in which some
+	 * process remains enabled at each state will not be considered a violation of
+	 * non-termination (as it is not considered to represent a real execution).
 	 */
-	public final static Option fairO = Option.newScalarOption(FAIR,
-			OptionType.BOOLEAN, "ignore unfair cycles", false);
+	public final static Option fairO = Option.newScalarOption(FAIR, OptionType.BOOLEAN, "ignore unfair cycles", false);
 
 	/**
-	 * Specifies whether to use DPOR algorithm for model checking. Currently,
-	 * this is incompatible with the "collectProcesses" option. So when dpor is
-	 * marked true, process collection is turned off.
+	 * Specifies whether to use DPOR algorithm for model checking. Currently, this
+	 * is incompatible with the "collectProcesses" option. So when dpor is marked
+	 * true, process collection is turned off.
 	 */
-	public final static Option dporO = Option.newScalarOption(DPOR,
-			OptionType.BOOLEAN, "dynamic partial order reduction", false);
+	public final static Option dporO = Option.newScalarOption(DPOR, OptionType.BOOLEAN,
+			"dynamic partial order reduction", false);
 	/**
-	 * The name of the CIVL system function, which is the starting point of a
-	 * CIVL model.
+	 * The name of the CIVL system function, which is the starting point of a CIVL
+	 * model.
 	 */
 	public final static String civlSystemFunction = "main";
 
@@ -745,26 +674,17 @@ public class CIVLConstants {
 	 * @return all options defined for CIVL in alphabetic order.
 	 */
 	public final static Option[] getAllOptions() {
-		return Stream.concat(Stream.of(astO, collectHeapsO, collectProcessesO,
-				collectScopesO, collectSymbolicConstantsO, debugO,
-				enablePrintfO, errorBoundO, errorStateEquivO, guidedO, idO,
-				inputO, linkO, loopO, memEqO, macroO, maxdepthO, minO, mpiContractO,
-				mpiModelO, ompLoopDecompO, ompNoSimplifyO, ompOnlySimplifierO,
-				probO, preprocO, procBoundO, randomO, runtimeUpdateO,
-				saveStatesO, seedO, showAmpleSetO, showAmpleSetWtStatesO,
-				showInputVarsO, showMemoryUnitsO, showModelO,
-				showPathConditionO, showProgramO, showProverQueriesO,
-				showQueriesO, showSavedStatesO, showStatesO, showTimeO,
-				showTransitionsO, showUnreachedCodeO, simplifyO, solveO,
-				statelessPrintfO, svcomp16O, svcomp17O, quietO, sysIncludePathO,
-				traceO, userIncludePathO, verboseO, webO, CIVLMacroO,
-				analyzeAbsO, strictCompareO, collectOutputO, timeoutO,
-				unpreprocO, sliceAnalysisO, witnessO, direct0, intBit,
-				intOperationTransformer, maxProcsO, SARLTestGenO,
-				preemptionBoundO, disableLocalBlockO, fairO, dporO),
-				CIVLProperty.getAllConfigurableProperties().stream()
-						.map(e -> e.getOption()))
-				.toArray(Option[]::new);
+		return Stream.concat(Stream.of(astO, collectHeapsO, collectProcessesO, collectScopesO,
+				collectSymbolicConstantsO, debugO, enablePrintfO, errorBoundO, errorStateEquivO, guidedO, idO, inputO,
+				linkO, loopO, memEqO, macroO, maxdepthO, minO, mpiContractO, mpiModelO, ompLoopDecompO, ompNoSimplifyO,
+				ompOnlySimplifierO, probO, preprocO, procBoundO, randomO, runtimeUpdateO, saveStatesO, seedO,
+				showAmpleSetO, showAmpleSetWtStatesO, showInputVarsO, showMemoryUnitsO, showModelO, showPathConditionO,
+				showProgramO, showProverQueriesO, showQueriesO, showSavedStatesO, showStatesO, showTimeO,
+				showTransitionsO, showUnreachedCodeO, simplifyO, solveO, statelessPrintfO, svcomp16O, svcomp17O, quietO,
+				sysIncludePathO, traceO, userIncludePathO, verboseO, webO, CIVLMacroO, analyzeAbsO, strictCompareO,
+				collectOutputO, timeoutO, unpreprocO, sliceAnalysisO, witnessO, direct0, intBit,
+				intOperationTransformer, maxProcsO, preemptionBoundO, disableLocalBlockO, fairO, dporO),
+				CIVLProperty.getAllConfigurableProperties().stream().map(e -> e.getOption())).toArray(Option[]::new);
 	}
 
 	/*** Library headers ***/
@@ -889,26 +809,20 @@ public class CIVLConstants {
 	 * @return all standard c library headers.
 	 */
 	public final static Set<String> getCStdLibHeaders() {
-		return new HashSet<String>(Arrays.asList(SYS_MMAN, SYS_RESOURCE,
-				SYS_TIME, SYS_TIMES, SYS_TYPES, ASSERT, COMPLEX, CTYPE,
-				CUDA_RUNTIME_API, CUDA, ERRNO, FENV, FLOAT, GD_IO, GD, GDFX,
-				GNUC, INTTYPES, ISO646, LIMITS, LOCALE, MATH, MPI, OMP, OP,
-				PTHREAD, SCHED, SETJMP, SIGNAL, STDALIGN, STDARG, STDATOMIC,
-				STDBOOL, STDDEF, STDINT, STDIO, STDLIB, STDNORETURN, STRING,
-				STRINGS, SVCOMP, TGMATH, THREADS, TIME, UCHAR, UNISTD, WCHAR,
-				WCTYPE));
+		return new HashSet<String>(Arrays.asList(SYS_MMAN, SYS_RESOURCE, SYS_TIME, SYS_TIMES, SYS_TYPES, ASSERT,
+				COMPLEX, CTYPE, CUDA_RUNTIME_API, CUDA, ERRNO, FENV, FLOAT, GD_IO, GD, GDFX, GNUC, INTTYPES, ISO646,
+				LIMITS, LOCALE, MATH, MPI, OMP, OP, PTHREAD, SCHED, SETJMP, SIGNAL, STDALIGN, STDARG, STDATOMIC,
+				STDBOOL, STDDEF, STDINT, STDIO, STDLIB, STDNORETURN, STRING, STRINGS, SVCOMP, TGMATH, THREADS, TIME,
+				UCHAR, UNISTD, WCHAR, WCTYPE));
 	}
 
 	/**
 	 * @return all CIVL-C library headers.
 	 */
 	public final static Set<String> getCivlLibHeaders() {
-		return new HashSet<String>(Arrays.asList(BUNDLE, CIVLC, CIVL_CUDA,
-				CIVL_MPI, CIVL_MPI_BLOCKING, CIVL_MPI_NONBLOCKING, CIVL_OMP,
-				CIVL_PTHREAD, CIVL_STDIO, COLLATE, COMM, COMM2,
-				CONCURRENCY_CONTRACT, CONCURRENCY, DOMAIN, FORTRAN_ARRAY,
-				FORTRAN_SIGP, LOOP_ASSIGNS_GEN, MEM, MEMORY, POINTER, SCOPE,
-				SEQ));
+		return new HashSet<String>(Arrays.asList(BUNDLE, CIVLC, CIVL_CUDA, CIVL_MPI, CIVL_MPI_BLOCKING,
+				CIVL_MPI_NONBLOCKING, CIVL_OMP, CIVL_PTHREAD, CIVL_STDIO, COLLATE, COMM, COMM2, CONCURRENCY_CONTRACT,
+				CONCURRENCY, DOMAIN, FORTRAN_ARRAY, FORTRAN_SIGP, LOOP_ASSIGNS_GEN, MEM, MEMORY, POINTER, SCOPE, SEQ));
 	}
 
 	/**
@@ -921,19 +835,16 @@ public class CIVLConstants {
 	}
 
 	public final static Set<String> getCStdLibSrcs() {
-		return new HashSet<String>(Arrays.asList(ASSERT_SRC, CUDA_SRC, MATH_SRC,
-				MPI_SRC, OMP_SRC, PTHREAD_SRC, SCHED_SRC, STDING_SRC, STDIO_SRC,
-				STDLIB_SRC, STRING_SRC, SYS_TIME_SRC, SVCOMP_SRC, TIME_SRC,
-				TIMES_SRC, UNISTD_SRC));
+		return new HashSet<String>(
+				Arrays.asList(ASSERT_SRC, CUDA_SRC, MATH_SRC, MPI_SRC, OMP_SRC, PTHREAD_SRC, SCHED_SRC, STDING_SRC,
+						STDIO_SRC, STDLIB_SRC, STRING_SRC, SYS_TIME_SRC, SVCOMP_SRC, TIME_SRC, TIMES_SRC, UNISTD_SRC));
 	}
 
 	public final static Set<String> getCivlLibSrcs() {
-		return new HashSet<String>(Arrays.asList(BUNDLE_SRC, CIVLC_SRC,
-				CIVL_CUDA_SRC, CIVL_MPI_BLOCKING_SRC, CIVL_MPI_NONBLOCKING_SRC,
-				CIVL_OMP_SRC, CIVL_OMP2_SRC, CIVL_PTHREAD_SRC, COLLATE_SRC,
-				COMM_SRC, CONCURRENCY_SRC, FORTRAN_ARRAY_SRC, FORTRAN_SIGP_SRC,
-				INT_DIV_NO_CHECKING_SRC, INT_DIV_SRC, LOOP_ASSIGNS_GEN_SRC,
-				SEQ_SRC, UNSIGNED_ARITH_SRC));
+		return new HashSet<String>(Arrays.asList(BUNDLE_SRC, CIVLC_SRC, CIVL_CUDA_SRC, CIVL_MPI_BLOCKING_SRC,
+				CIVL_MPI_NONBLOCKING_SRC, CIVL_OMP_SRC, CIVL_OMP2_SRC, CIVL_PTHREAD_SRC, COLLATE_SRC, COMM_SRC,
+				CONCURRENCY_SRC, FORTRAN_ARRAY_SRC, FORTRAN_SIGP_SRC, INT_DIV_NO_CHECKING_SRC, INT_DIV_SRC,
+				LOOP_ASSIGNS_GEN_SRC, SEQ_SRC, UNSIGNED_ARITH_SRC));
 	}
 
 	/**
