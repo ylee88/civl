@@ -34,8 +34,6 @@ public class CommonSARLConfig implements SARLConfig {
 
 	private Map<String, ProverInfo> aliasMap = new LinkedHashMap<>();
 
-	private ProverInfo why3Info = null;
-
 	private Path outputDir = null;
 
 	public CommonSARLConfig(Collection<ProverInfo> provers) {
@@ -54,8 +52,7 @@ public class CommonSARLConfig implements SARLConfig {
 				ProverInfo old = aliasMap.put(alias, prover);
 
 				if (old != null)
-					throw new SARLException("Alias " + alias
-							+ " used more than once:\n" + old + "\n" + prover);
+					throw new SARLException("Alias " + alias + " used more than once:\n" + old + "\n" + prover);
 			}
 		}
 		this.outputDir = outputDir;
@@ -88,16 +85,6 @@ public class CommonSARLConfig implements SARLConfig {
 				return prover;
 		}
 		return null;
-	}
-
-	@Override
-	public ProverInfo getWhy3ProvePlatform() {
-		return why3Info;
-	}
-
-	@Override
-	public void setWhy3ProvePlatform(ProverInfo why3Info) {
-		this.why3Info = why3Info;
 	}
 
 	@Override

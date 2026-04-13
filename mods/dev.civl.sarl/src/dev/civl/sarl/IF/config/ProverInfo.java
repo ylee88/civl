@@ -24,7 +24,7 @@ public interface ProverInfo extends Comparable<ProverInfo> {
 		 */
 		Z3,
 		/**
-		 * Alt-Ergo, https://alt-ergo.ocamlpro.com.  Accepts SMT-LIB2.
+		 * Alt-Ergo, https://alt-ergo.ocamlpro.com. Accepts SMT-LIB2.
 		 */
 		ALT_ERGO,
 		/**
@@ -34,11 +34,7 @@ public interface ProverInfo extends Comparable<ProverInfo> {
 		/**
 		 * CVC4 using CVC4's presentation language through its command line interface.
 		 */
-		CVC4,
-		/**
-		 * Why3-prove-platform, calling through command line.
-		 */
-		Why3
+		CVC4
 	};
 
 	/**

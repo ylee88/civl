@@ -143,8 +143,8 @@ public class UserInterface {
 	/* ************************* Instance fields *************************** */
 
 	/**
-	 * stderr: used only if something goes wrong, like a bad command line arg,
-	 * or internal exception
+	 * stderr: used only if something goes wrong, like a bad command line arg, or
+	 * internal exception
 	 */
 	private PrintStream err = System.err;
 
@@ -160,8 +160,8 @@ public class UserInterface {
 	});
 
 	/**
-	 * The parser from the Generic Model Checking package used to parse the
-	 * command line.
+	 * The parser from the Generic Model Checking package used to parse the command
+	 * line.
 	 */
 	private CommandLineParser parser;
 
@@ -199,8 +199,7 @@ public class UserInterface {
 	/**
 	 * Runs the appropriate CIVL tools based on the command line arguments.
 	 * 
-	 * @param args
-	 *                 command line arguments
+	 * @param args command line arguments
 	 * @return true iff everything succeeded and no errors were found
 	 */
 	public boolean run(String... args) {
@@ -216,11 +215,9 @@ public class UserInterface {
 
 	/**
 	 * Runs the appropriate CIVL tools based on the command line arguments. This
-	 * variant is provided in case a collection is more convenient than an
-	 * array.
+	 * variant is provided in case a collection is more convenient than an array.
 	 * 
-	 * @param args
-	 *                 command line arguments as collection
+	 * @param args command line arguments as collection
 	 * @return true iff everything succeeded and no errors were found
 	 */
 	public boolean run(Collection<String> args) {
@@ -230,9 +227,8 @@ public class UserInterface {
 	/**
 	 * Runs command specified as one big String.
 	 * 
-	 * @param argsString
-	 *                       a single string containing command and all options;
-	 *                       what would be typed on the command line by a user
+	 * @param argsString a single string containing command and all options; what
+	 *                   would be typed on the command line by a user
 	 * @return true iff everything succeeded and no errors were found
 	 */
 	public boolean run(String argsString) {
@@ -242,35 +238,25 @@ public class UserInterface {
 	}
 
 	/**
-	 * Runs any command other than compare. The command is one of show, run,
-	 * replay, verify, help, or config.
+	 * Runs any command other than compare. The command is one of show, run, replay,
+	 * verify, help, or config.
 	 * 
-	 * @param commandLine
-	 *                        the command line object to be run, resulting from
-	 *                        parsing the command line
+	 * @param commandLine the command line object to be run, resulting from parsing
+	 *                    the command line
 	 * @return true iff everything succeeded and no errors were found
-	 * @throws CommandLineException
-	 *                                         if there is a syntax error in the
-	 *                                         command
-	 * @throws ABCException
-	 *                                         if anything goes wrong in
-	 *                                         preprocessing, parsing, building
-	 *                                         or transforming the AST; usually
-	 *                                         this means a syntax error in the
-	 *                                         program
-	 * @throws IOException
-	 *                                         if a file is not found, or
-	 *                                         attempts to create and write to a
-	 *                                         file fail
-	 * @throws MisguidedExecutionException
-	 *                                         in the case of replay, if the
-	 *                                         trace in the trace file is not
-	 *                                         compatible with the specified
-	 *                                         program
+	 * @throws CommandLineException        if there is a syntax error in the command
+	 * @throws ABCException                if anything goes wrong in preprocessing,
+	 *                                     parsing, building or transforming the
+	 *                                     AST; usually this means a syntax error in
+	 *                                     the program
+	 * @throws IOException                 if a file is not found, or attempts to
+	 *                                     create and write to a file fail
+	 * @throws MisguidedExecutionException in the case of replay, if the trace in
+	 *                                     the trace file is not compatible with the
+	 *                                     specified program
 	 */
 	private boolean runNormalCommand(NormalCommandLine commandLine)
-			throws CommandLineException, ABCException, IOException,
-			MisguidedExecutionException {
+			throws CommandLineException, ABCException, IOException, MisguidedExecutionException {
 		this.startTime = System.currentTimeMillis();
 		if (commandLine.normalCommandKind() == NormalCommandKind.HELP)
 			runHelp((HelpCommandLine) commandLine);
@@ -283,104 +269,84 @@ public class UserInterface {
 			File traceFile = null;
 
 			if (kind == NormalCommandKind.REPLAY) {
-				String traceFilename = (String) gmcConfig.getAnonymousSection()
-						.getValue(traceO);
+				String traceFilename = (String) gmcConfig.getAnonymousSection().getValue(traceO);
 
 				if (traceFilename == null) {
 					traceFilename = commandLine.getCoreFileName() + "_"
-							+ gmcConfig.getAnonymousSection()
-									.getValueOrDefault(idO)
-							+ ".trace";
+							+ gmcConfig.getAnonymousSection().getValueOrDefault(idO) + ".trace";
 					traceFile = new File(CIVLConstants.CIVLREP, traceFilename);
 				} else
 					traceFile = new File(traceFilename);
 				gmcConfig = parser.newConfig();
 				parser.parse(gmcConfig, traceFile);
 				gmcSection = gmcConfig.getAnonymousSection();
-				setToDefault(gmcSection, Arrays.asList(showModelO, verboseO,
-						debugO, showStatesO, showSavedStatesO, showQueriesO,
-						showProverQueriesO, enablePrintfO, statelessPrintfO,
-						showTransitionsO, showUnreachedCodeO));
+				setToDefault(gmcSection,
+						Arrays.asList(showModelO, verboseO, debugO, showStatesO, showSavedStatesO, showQueriesO,
+								showProverQueriesO, enablePrintfO, statelessPrintfO, showTransitionsO,
+								showUnreachedCodeO));
 				gmcSection.setScalarValue(collectScopesO, false);
 				gmcSection.setScalarValue(collectProcessesO, false);
 				gmcSection.setScalarValue(collectHeapsO, false);
 				gmcSection.read(commandLine.gmcConfig().getAnonymousSection());
 			}
 
-			ModelTranslator modelTranslator = new ModelTranslator(gmcConfig,
-					gmcSection, commandLine.files(),
+			ModelTranslator modelTranslator = new ModelTranslator(gmcConfig, gmcSection, commandLine.files(),
 					commandLine.getCoreFileName());
 			boolean result;
 
 			if (modelTranslator.config.isSARLTestGenerationEnabled())
 				modelTranslator.universe.enableSARLTestGeneration(true);
 			switch (kind) {
-				case SHOW :
-					result = runShow(modelTranslator);
-					break;
-				case VERIFY :
-					result = runVerify(commandLine.getCommandString(),
-							modelTranslator);
-					break;
-				case REPLAY :
-					result = runReplay(commandLine.getCommandString(),
-							modelTranslator, traceFile);
-					break;
-				case RUN :
-					result = runRun(commandLine.getCommandString(),
-							modelTranslator);
-					break;
-				default :
-					throw new CIVLInternalException(
-							"missing implementation for command of "
-									+ commandLine.normalCommandKind() + " kind",
-							(CIVLSource) null);
+			case SHOW:
+				result = runShow(modelTranslator);
+				break;
+			case VERIFY:
+				result = runVerify(commandLine.getCommandString(), modelTranslator);
+				break;
+			case REPLAY:
+				result = runReplay(commandLine.getCommandString(), modelTranslator, traceFile);
+				break;
+			case RUN:
+				result = runRun(commandLine.getCommandString(), modelTranslator);
+				break;
+			default:
+				throw new CIVLInternalException(
+						"missing implementation for command of " + commandLine.normalCommandKind() + " kind",
+						(CIVLSource) null);
 			}
 			if (modelTranslator.config.isSARLTestGenerationEnabled())
-				modelTranslator.universe
-						.generateTestClass(commandLine.getCoreFileName());
+				modelTranslator.universe.generateTestClass(commandLine.getCoreFileName());
 			return result;
 		}
 		return true;
 	}
 
 	/**
-	 * Runs a command that involves comparing two programs. This is either
-	 * "compare" or a "replay" which specifies a spec and impl (i.e., a replay
-	 * of a trace that resulted from a prior compare command).
+	 * Runs a command that involves comparing two programs. This is either "compare"
+	 * or a "replay" which specifies a spec and impl (i.e., a replay of a trace that
+	 * resulted from a prior compare command).
 	 * 
-	 * @param compareCommand
-	 *                           the compare command to be run; the result of
-	 *                           parsing the command line string
+	 * @param compareCommand the compare command to be run; the result of parsing
+	 *                       the command line string
 	 * @return true iff everything succeeded and no errors were found
-	 * @throws CommandLineException
-	 *                                         if there is a syntax error in the
-	 *                                         command
-	 * @throws ABCException
-	 *                                         if anything goes wrong in
-	 *                                         preprocessing, parsing, building
-	 *                                         or transforming the AST; usually
-	 *                                         this means a syntax error in the
-	 *                                         program
-	 * @throws IOException
-	 *                                         if a file is not found, or
-	 *                                         attempts to create and write to a
-	 *                                         file fail
-	 * @throws MisguidedExecutionException
-	 *                                         in the case of replay, if the
-	 *                                         trace in the trace file is not
-	 *                                         compatible with the specified
-	 *                                         program
+	 * @throws CommandLineException        if there is a syntax error in the command
+	 * @throws ABCException                if anything goes wrong in preprocessing,
+	 *                                     parsing, building or transforming the
+	 *                                     AST; usually this means a syntax error in
+	 *                                     the program
+	 * @throws IOException                 if a file is not found, or attempts to
+	 *                                     create and write to a file fail
+	 * @throws MisguidedExecutionException in the case of replay, if the trace in
+	 *                                     the trace file is not compatible with the
+	 *                                     specified program
 	 */
 	private boolean runCompareCommand(CompareCommandLine compareCommand)
-			throws CommandLineException, ABCException, IOException,
-			MisguidedExecutionException {
+			throws CommandLineException, ABCException, IOException, MisguidedExecutionException {
 		GMCConfiguration gmcConfig = compareCommand.gmcConfig();
 		GMCSection anonymousSection = gmcConfig.getAnonymousSection(),
 				specSection = gmcConfig.getSection(CompareCommandLine.SPEC),
 				implSection = gmcConfig.getSection(CompareCommandLine.IMPL);
-		NormalCommandLine spec = compareCommand.specification(),
-				impl = compareCommand.implementation();
+		NormalCommandLine spec = compareCommand.specification(), impl = compareCommand.implementation();
 		SymbolicUniverse universe = SARL.newStandardUniverse();
 		File traceFile = null;
 
@@ -390,83 +356,70 @@ public class UserInterface {
 
 			traceFilename = (String) anonymousSection.getValue(traceO);
 			if (traceFilename == null) {
-				traceFilename = "Composite_" + spec.getCoreFileName() + "_"
-						+ impl.getCoreFileName() + "_"
+				traceFilename = "Composite_" + spec.getCoreFileName() + "_" + impl.getCoreFileName() + "_"
 						+ anonymousSection.getValueOrDefault(idO) + ".trace";
-				traceFile = new File(new File(CIVLConstants.CIVLREP),
-						traceFilename);
+				traceFile = new File(new File(CIVLConstants.CIVLREP), traceFilename);
 			} else
 				traceFile = new File(traceFilename);
 			gmcConfig = parser.newConfig();
 			parser.parse(gmcConfig, traceFile);
 			anonymousSection = gmcConfig.getAnonymousSection();
-			setToDefault(anonymousSection,
-					Arrays.asList(showModelO, verboseO, debugO, showStatesO,
-							showQueriesO, showProverQueriesO, enablePrintfO,
-							statelessPrintfO, showTransitionsO,
-							showUnreachedCodeO));
+			setToDefault(anonymousSection, Arrays.asList(showModelO, verboseO, debugO, showStatesO, showQueriesO,
+					showProverQueriesO, enablePrintfO, statelessPrintfO, showTransitionsO, showUnreachedCodeO));
 			anonymousSection.setScalarValue(collectScopesO, false);
 			anonymousSection.setScalarValue(collectProcessesO, false);
 			anonymousSection.setScalarValue(collectHeapsO, false);
-			anonymousSection
-					.read(compareCommand.gmcConfig().getAnonymousSection());
+			anonymousSection.read(compareCommand.gmcConfig().getAnonymousSection());
 		} else {
 			setToDefault(anonymousSection, Arrays.asList(showUnreachedCodeO));
 		}
 		specSection = gmcConfig.getSection(CompareCommandLine.SPEC);
 		implSection = gmcConfig.getSection(CompareCommandLine.IMPL);
-		anonymousSection = this.readInputs(
-				this.readInputs(anonymousSection, specSection), implSection);
-		specSection = this.readInputs(specSection,
-				gmcConfig.getAnonymousSection());
-		implSection = this.readInputs(implSection,
-				gmcConfig.getAnonymousSection());
-		specSection = this.readVerboseOrDebugOption(specSection,
-				anonymousSection);
-		implSection = this.readVerboseOrDebugOption(implSection,
-				anonymousSection);
+		anonymousSection = this.readInputs(this.readInputs(anonymousSection, specSection), implSection);
+		specSection = this.readInputs(specSection, gmcConfig.getAnonymousSection());
+		implSection = this.readInputs(implSection, gmcConfig.getAnonymousSection());
+		specSection = this.readVerboseOrDebugOption(specSection, anonymousSection);
+		implSection = this.readVerboseOrDebugOption(implSection, anonymousSection);
 
 		FileIndexer fileIndexer = Tokens.newFileIndexer();
-		ModelTranslator specWorker = new ModelTranslator(gmcConfig, specSection,
-				spec.files(), spec.getCoreFileName(), universe, fileIndexer);
-		ModelTranslator implWorker = new ModelTranslator(gmcConfig, implSection,
-				impl.files(), impl.getCoreFileName(), universe, fileIndexer);
+		ModelTranslator specWorker = new ModelTranslator(gmcConfig, specSection, spec.files(), spec.getCoreFileName(),
+				universe, fileIndexer);
+		ModelTranslator implWorker = new ModelTranslator(gmcConfig, implSection, impl.files(), impl.getCoreFileName(),
+				universe, fileIndexer);
 
 		universe.setShowQueries(anonymousSection.isTrue(showQueriesO));
-		universe.setShowProverQueries(
-				anonymousSection.isTrue(showProverQueriesO));
+		universe.setShowProverQueries(anonymousSection.isTrue(showProverQueriesO));
 		gmcConfig.setAnonymousSection(anonymousSection);
 		if (anonymousSection.isTrue(strictCompareO))
-			return this.strictCompareWorker(compareCommand, specWorker,
-					implWorker, gmcConfig, anonymousSection, traceFile);
+			return this.strictCompareWorker(compareCommand, specWorker, implWorker, gmcConfig, anonymousSection,
+					traceFile);
 		else
-			return this.lessStrictCompareWorker(compareCommand, specWorker,
-					implWorker, gmcConfig, anonymousSection, traceFile);
+			return this.lessStrictCompareWorker(compareCommand, specWorker, implWorker, gmcConfig, anonymousSection,
+					traceFile);
 	}
 
 	/*
-	 * The GUI will call this method to get the input variables of a given
-	 * program. Currently, it is taking a list of files (in fact, the paths of
-	 * files), parsing and linking the given list of files and finding out the
-	 * list of input variables declared. Ultimately, this will take a normal
-	 * command line object, because sometimes macros and some other options
-	 * affect the way CIVL parses/transforms the program, which might result in
-	 * different input variables.
+	 * The GUI will call this method to get the input variables of a given program.
+	 * Currently, it is taking a list of files (in fact, the paths of files),
+	 * parsing and linking the given list of files and finding out the list of input
+	 * variables declared. Ultimately, this will take a normal command line object,
+	 * because sometimes macros and some other options affect the way CIVL
+	 * parses/transforms the program, which might result in different input
+	 * variables.
 	 * 
 	 * @param files the source files to parse
 	 * 
-	 * @return the list of input variable declaration nodes, which contains
-	 * plenty of information about the input variable, e.g., the source, type
-	 * and name, etc.
+	 * @return the list of input variable declaration nodes, which contains plenty
+	 * of information about the input variable, e.g., the source, type and name,
+	 * etc.
 	 * 
-	 * @throws ABCException if anything goes wrong with parsing or constructing
-	 * the AST
+	 * @throws ABCException if anything goes wrong with parsing or constructing the
+	 * AST
 	 *
 	 * private List<VariableDeclarationNode> getInputVariables(String[] files)
 	 * throws ABCException { try { GMCConfiguration gmcConfig = new
-	 * GMCConfiguration( definedOptions.values()); ModelTranslator translator =
-	 * new ModelTranslator(gmcConfig, gmcConfig.getAnonymousSection(), files,
-	 * files[0]);
+	 * GMCConfiguration( definedOptions.values()); ModelTranslator translator = new
+	 * ModelTranslator(gmcConfig, gmcConfig.getAnonymousSection(), files, files[0]);
 	 * 
 	 * return translator.getInputVariables(); } catch (PreprocessorException |
 	 * SyntaxException | ParseException | IOException e) { return new
@@ -478,10 +431,9 @@ public class UserInterface {
 	/**
 	 * If the user set quiet option to true in the command, line
 	 * 
-	 * @param args
-	 *                 the command line arguments, e.g., {"verify", "-verbose",
-	 *                 "foo.c"}. This is an array of strings of length at least
-	 *                 1; element 0 should be the name of the command
+	 * @param args the command line arguments, e.g., {"verify", "-verbose",
+	 *             "foo.c"}. This is an array of strings of length at least 1;
+	 *             element 0 should be the name of the command
 	 * @return true iff user sets quiet option true in the command line.
 	 */
 	private boolean isQuiet(String[] args) {
@@ -502,8 +454,7 @@ public class UserInterface {
 			// "-quiet=false" has 12 characters.
 			if (lastQuietIndex + 12 > commandSize)
 				return true;
-			if (command.substring(lastQuietIndex, lastQuietIndex + 12)
-					.equals("-quiet=false"))
+			if (command.substring(lastQuietIndex, lastQuietIndex + 12).equals("-quiet=false"))
 				return false;
 			else
 				return true;
@@ -512,47 +463,39 @@ public class UserInterface {
 	}
 
 	/**
-	 * Parses command line arguments and runs the CIVL tool(s) as specified by
-	 * those arguments.
+	 * Parses command line arguments and runs the CIVL tool(s) as specified by those
+	 * arguments.
 	 * 
-	 * @param args
-	 *                 the command line arguments, e.g., {"verify", "-verbose",
-	 *                 "foo.c"}. This is an array of strings of length at least
-	 *                 1; element 0 should be the name of the command
+	 * @param args the command line arguments, e.g., {"verify", "-verbose",
+	 *             "foo.c"}. This is an array of strings of length at least 1;
+	 *             element 0 should be the name of the command
 	 * @return true iff everything succeeded and no errors discovered
-	 * @throws CommandLineException
-	 *                                  if the args are not properly formatted
-	 *                                  command line arguments
+	 * @throws CommandLineException if the args are not properly formatted command
+	 *                              line arguments
 	 */
 	private boolean runMain(String[] args) throws CommandLineException {
 		boolean quiet = false;
 
 		quiet = isQuiet(args);
 		if (!quiet) {
-			out.println("CIVL v" + version + " of " + date
-					+ " -- https://civl.dev");
+			out.println("CIVL v" + version + " of " + date + " -- https://civl.dev");
 			out.flush();
 		}
 		if (args == null || args.length < 1) {
-			out.println("Incomplete command. Please type \'civl help\'"
-					+ " for more instructions.");
+			out.println("Incomplete command. Please type \'civl help\'" + " for more instructions.");
 			return false;
 		} else {
-			CommandLine commandLine = CIVLCommandFactory
-					.parseCommand(definedOptions.values(), args);
+			CommandLine commandLine = CIVLCommandFactory.parseCommand(definedOptions.values(), args);
 
 			try {
 				switch (commandLine.commandLineKind()) {
-					case NORMAL :
-						return runNormalCommand(
-								(NormalCommandLine) commandLine);
-					case COMPARE :
-						return runCompareCommand(
-								(CompareCommandLine) commandLine);
-					default :
-						throw new CIVLUnimplementedFeatureException(
-								"command of " + commandLine.commandLineKind()
-										+ " kind");
+				case NORMAL:
+					return runNormalCommand((NormalCommandLine) commandLine);
+				case COMPARE:
+					return runCompareCommand((CompareCommandLine) commandLine);
+				default:
+					throw new CIVLUnimplementedFeatureException(
+							"command of " + commandLine.commandLineKind() + " kind");
 				}
 			} catch (ABCException e) {
 				if (!quiet)
@@ -570,9 +513,7 @@ public class UserInterface {
 					err.println(e);
 			} catch (MisguidedExecutionException e) {
 				// this is almost definitely a bug, so throw it:
-				throw new CIVLInternalException(
-						"Error in replay: " + e.getMessage(),
-						(CIVLSource) null);
+				throw new CIVLInternalException("Error in replay: " + e.getMessage(), (CIVLSource) null);
 			} catch (CIVLInternalException e) {
 				// Something went wrong, report with full stack trace.
 				throw e;
@@ -594,41 +535,30 @@ public class UserInterface {
 	 * </p>
 	 * 
 	 * <p>
-	 * Some of these arguments are however ignored; they are set to their
-	 * default values and then to new values if specified in the replay command.
-	 * These options include things like showModel, verbose, etc. These are
-	 * things that the user probably doesn't want to do the same way in the
-	 * replay as she did in the verify. In contrast, arguments like input values
-	 * have to be exactly the same in both commands.
+	 * Some of these arguments are however ignored; they are set to their default
+	 * values and then to new values if specified in the replay command. These
+	 * options include things like showModel, verbose, etc. These are things that
+	 * the user probably doesn't want to do the same way in the replay as she did in
+	 * the verify. In contrast, arguments like input values have to be exactly the
+	 * same in both commands.
 	 * </p>
 	 * 
-	 * @param modelTranslator
-	 *                            The model translator for this replay command,
-	 *                            which contains the command line section
-	 *                            information.
+	 * @param modelTranslator The model translator for this replay command, which
+	 *                        contains the command line section information.
 	 * @return true iff everything succeeded and no errors were found
-	 * @throws CommandLineException
-	 *                                         if there is a syntax error in the
-	 *                                         command
-	 * @throws ABCException
-	 *                                         if anything goes wrong in
-	 *                                         preprocessing, parsing, building
-	 *                                         or transforming the AST; usually
-	 *                                         this means a syntax error in the
-	 *                                         program
-	 * @throws IOException
-	 *                                         if a file is not found, or
-	 *                                         attempts to create and write to a
-	 *                                         file fail
-	 * @throws MisguidedExecutionException
-	 *                                         in the case of replay, if the
-	 *                                         trace in the trace file is not
-	 *                                         compatible with the specified
-	 *                                         program
+	 * @throws CommandLineException        if there is a syntax error in the command
+	 * @throws ABCException                if anything goes wrong in preprocessing,
+	 *                                     parsing, building or transforming the
+	 *                                     AST; usually this means a syntax error in
+	 *                                     the program
+	 * @throws IOException                 if a file is not found, or attempts to
+	 *                                     create and write to a file fail
+	 * @throws MisguidedExecutionException in the case of replay, if the trace in
+	 *                                     the trace file is not compatible with the
+	 *                                     specified program
 	 */
-	private boolean runReplay(String command, ModelTranslator modelTranslator,
-			File traceFile) throws CommandLineException, IOException,
-			ABCException, MisguidedExecutionException {
+	private boolean runReplay(String command, ModelTranslator modelTranslator, File traceFile)
+			throws CommandLineException, IOException, ABCException, MisguidedExecutionException {
 		boolean result;
 		Model model;
 		TracePlayer replayer;
@@ -638,14 +568,12 @@ public class UserInterface {
 
 		model = modelTranslator.translate();
 		if (model != null) {
-			replayer = TracePlayer.guidedPlayer(modelTranslator.gmcConfig,
-					model, traceFile, out, err);
+			replayer = TracePlayer.guidedPlayer(modelTranslator.gmcConfig, model, traceFile, out, err);
 			trace = replayer.run();
 			result = trace.result();
 			BranchConstraints.evaluator = replayer.evaluator;
 			if (!modelTranslator.config.isQuiet()) {
-				printSourcefiles(out,
-						modelTranslator.frontEnd.getFileIndexer());
+				printSourcefiles(out, modelTranslator.frontEnd.getFileIndexer());
 				printCommand(out, command);
 				List<Pair<String, String>> stats = getCommonStats();
 				stats.addAll(replayer.getStats());
@@ -667,25 +595,21 @@ public class UserInterface {
 	}
 
 	private boolean runRun(String command, ModelTranslator modelTranslator)
-			throws CommandLineException, ABCException, IOException,
-			MisguidedExecutionException {
+			throws CommandLineException, ABCException, IOException, MisguidedExecutionException {
 		boolean result;
 		Model model;
 		TracePlayer player;
 
 		model = modelTranslator.translate();
 		if (model != null) {
-			player = TracePlayer.randomPlayer(modelTranslator.gmcConfig, model,
-					out, err);
+			player = TracePlayer.randomPlayer(modelTranslator.gmcConfig, model, out, err);
 			if (!modelTranslator.config.isQuiet()) {
-				out.println("\nRunning random simulation with seed "
-						+ player.getSeed() + " ...");
+				out.println("\nRunning random simulation with seed " + player.getSeed() + " ...");
 				out.flush();
 			}
 			result = player.run().result();
 			if (!modelTranslator.config.isQuiet()) {
-				printSourcefiles(out,
-						modelTranslator.frontEnd.getFileIndexer());
+				printSourcefiles(out, modelTranslator.frontEnd.getFileIndexer());
 				this.printCommand(out, command);
 				List<Pair<String, String>> stats = getCommonStats();
 				stats.addAll(player.getStats());
@@ -712,8 +636,7 @@ public class UserInterface {
 		if (modelTranslator.config.web())
 			this.createWebLogs(model.program());
 		if (model != null) {
-			verifier = new Verifier(modelTranslator.gmcConfig, model, out, err,
-					startTime);
+			verifier = new Verifier(modelTranslator.gmcConfig, model, out, err, startTime);
 			try {
 				result = verifier.run();
 			} catch (CIVLUnimplementedFeatureException unimplemented) {
@@ -726,13 +649,11 @@ public class UserInterface {
 				if (!isQuiet)
 					err.println(syntax);
 				return false;
-			} catch (CancellationException | ExecutionException
-					| InterruptedException e) {
+			} catch (CancellationException | ExecutionException | InterruptedException e) {
 				// time out
 			} catch (OutOfMemoryError oome) {
 				throw new CIVLException("JVM is running out of memory"
-						+ ", use java flag '-Xmx' to increase the allocated memory sapce for JVM",
-						null);
+						+ ", use java flag '-Xmx' to increase the allocated memory sapce for JVM", null);
 			} catch (VirtualMachineError vme) {
 				throw vme;
 			} catch (Exception e) {
@@ -742,8 +663,7 @@ public class UserInterface {
 			}
 			if (result) {
 				if (modelTranslator.config.collectOutputs()) {
-					printOutput(out, verifier.symbolicAnalyzer,
-							verifier.stateManager.outptutNames(),
+					printOutput(out, verifier.symbolicAnalyzer, verifier.stateManager.outptutNames(),
 							verifier.stateManager.collectedOutputs());
 				}
 				if (modelTranslator.config.showUnreach()) {
@@ -752,17 +672,14 @@ public class UserInterface {
 				}
 				if (modelTranslator.config.analyzeAbs()) {
 					if (modelTranslator.config.isQuiet()) {
-						Analysis.printResults(model.factory().codeAnalyzers(),
-								dump);
+						Analysis.printResults(model.factory().codeAnalyzers(), dump);
 					} else {
-						Analysis.printResults(model.factory().codeAnalyzers(),
-								out);
+						Analysis.printResults(model.factory().codeAnalyzers(), out);
 					}
 				}
 			}
 			if (!isQuiet) {
-				printSourcefiles(out,
-						modelTranslator.frontEnd.getFileIndexer());
+				printSourcefiles(out, modelTranslator.frontEnd.getFileIndexer());
 				printCommand(out, command);
 
 				List<Pair<String, String>> stats = getCommonStats();
@@ -779,44 +696,31 @@ public class UserInterface {
 
 	/**
 	 * Checks strict functional equivalence, i.e., the specification and the
-	 * implementation always has the same output, requiring that there are only
-	 * one possible output for both of them.
+	 * implementation always has the same output, requiring that there are only one
+	 * possible output for both of them.
 	 * 
 	 * @return true iff everything succeeded and no errors were found
-	 * @throws CommandLineException
-	 *                                         if there is a syntax error in the
-	 *                                         command
-	 * @throws ABCException
-	 *                                         if anything goes wrong in
-	 *                                         preprocessing, parsing, building
-	 *                                         or transforming the AST; usually
-	 *                                         this means a syntax error in the
-	 *                                         program
-	 * @throws IOException
-	 *                                         if a file is not found, or
-	 *                                         attempts to create and write to a
-	 *                                         file fail
-	 * @throws MisguidedExecutionException
-	 *                                         in the case of replay, if the
-	 *                                         trace in the trace file is not
-	 *                                         compatible with the specified
-	 *                                         program
+	 * @throws CommandLineException        if there is a syntax error in the command
+	 * @throws ABCException                if anything goes wrong in preprocessing,
+	 *                                     parsing, building or transforming the
+	 *                                     AST; usually this means a syntax error in
+	 *                                     the program
+	 * @throws IOException                 if a file is not found, or attempts to
+	 *                                     create and write to a file fail
+	 * @throws MisguidedExecutionException in the case of replay, if the trace in
+	 *                                     the trace file is not compatible with the
+	 *                                     specified program
 	 */
-	private boolean strictCompareWorker(CompareCommandLine compareCommand,
-			ModelTranslator specWorker, ModelTranslator implWorker,
-			GMCConfiguration gmcConfig, GMCSection anonymousSection,
-			File traceFile) throws CommandLineException, FileNotFoundException,
-			IOException, MisguidedExecutionException, ABCException {
+	private boolean strictCompareWorker(CompareCommandLine compareCommand, ModelTranslator specWorker,
+			ModelTranslator implWorker, GMCConfiguration gmcConfig, GMCSection anonymousSection, File traceFile)
+			throws CommandLineException, FileNotFoundException, IOException, MisguidedExecutionException, ABCException {
 		Combiner combiner = Transform.compareCombiner();
 		AST combinedAST;
-		Program specProgram = specWorker.buildProgram(),
-				implProgram = implWorker.buildProgram(), compositeProgram;
+		Program specProgram = specWorker.buildProgram(), implProgram = implWorker.buildProgram(), compositeProgram;
 		Model model;
-		NormalCommandLine spec = compareCommand.specification(),
-				impl = compareCommand.implementation();
+		NormalCommandLine spec = compareCommand.specification(), impl = compareCommand.implementation();
 		CIVLConfiguration civlConfig = new CIVLConfiguration(anonymousSection);
-		ModelBuilder modelBuilder = Models.newModelBuilder(specWorker.universe,
-				civlConfig);
+		ModelBuilder modelBuilder = Models.newModelBuilder(specWorker.universe, civlConfig);
 
 		if (civlConfig.debugOrVerbose()) {
 			out.println("Spec program...");
@@ -825,10 +729,8 @@ public class UserInterface {
 			implProgram.prettyPrint(out);
 			out.println("Generating composite program...");
 		}
-		combinedAST = combiner.combine(specProgram.getAST(),
-				implProgram.getAST());
-		compositeProgram = specWorker.frontEnd
-				.getProgramFactory(Language.CIVL_C).newProgram(combinedAST);
+		combinedAST = combiner.combine(specProgram.getAST(), implProgram.getAST());
+		compositeProgram = specWorker.frontEnd.getProgramFactory(Language.CIVL_C).newProgram(combinedAST);
 		if (civlConfig.debugOrVerbose() || civlConfig.showAST()) {
 			compositeProgram.print(out);
 		}
@@ -837,57 +739,45 @@ public class UserInterface {
 		}
 		if (civlConfig.debugOrVerbose())
 			out.println("Extracting CIVL model...");
-		model = modelBuilder.buildModel(
-				anonymousSection, compositeProgram, "Composite_"
-						+ spec.getCoreFileName() + "_" + impl.getCoreFileName(),
-				debug, out);
+		model = modelBuilder.buildModel(anonymousSection, compositeProgram,
+				"Composite_" + spec.getCoreFileName() + "_" + impl.getCoreFileName(), debug, out);
 		if (civlConfig.debugOrVerbose() || civlConfig.showModel()) {
 			out.println(bar + " Model " + bar + "\n");
 			model.print(out, civlConfig.debugOrVerbose());
 		}
 		if (compareCommand.isReplay())
-			return this.runCompareReplay(compareCommand.getCommandString(),
-					gmcConfig, traceFile, model,
+			return this.runCompareReplay(compareCommand.getCommandString(), gmcConfig, traceFile, model,
 					specWorker.frontEnd.getFileIndexer(), specWorker.universe);
 		if (civlConfig.web())
 			this.createWebLogs(model.program());
-		return this.runCompareVerify(compareCommand.getCommandString(),
-				compareCommand.gmcConfig(), model,
+		return this.runCompareVerify(compareCommand.getCommandString(), compareCommand.gmcConfig(), model,
 				specWorker.frontEnd.getFileIndexer(), specWorker.universe);
 	}
 
 	/**
 	 * Checks nondeterministic functional equivalence, i.e., for every possible
-	 * output of the implementation, there exists at least one same output in
-	 * the specification.
+	 * output of the implementation, there exists at least one same output in the
+	 * specification.
 	 * 
-	 * TODO make sure the symbolic constants for input variables are the same
-	 * for spec and impl. (make sure they are always the first variables in the
-	 * same order of either program.)
+	 * TODO make sure the symbolic constants for input variables are the same for
+	 * spec and impl. (make sure they are always the first variables in the same
+	 * order of either program.)
 	 * 
 	 * TODO need a way for replay it if there is a counterexample
 	 * 
 	 * @return true iff everything succeeded and no errors were found
-	 * @throws CommandLineException
-	 *                                  if there is a syntax error in the
-	 *                                  command
-	 * @throws ABCException
-	 *                                  if anything goes wrong in preprocessing,
-	 *                                  parsing, building or transforming the
-	 *                                  AST; usually this means a syntax error
-	 *                                  in the program
-	 * @throws IOException
-	 *                                  if a file is not found, or attempts to
-	 *                                  create and write to a file fail
+	 * @throws CommandLineException if there is a syntax error in the command
+	 * @throws ABCException         if anything goes wrong in preprocessing,
+	 *                              parsing, building or transforming the AST;
+	 *                              usually this means a syntax error in the program
+	 * @throws IOException          if a file is not found, or attempts to create
+	 *                              and write to a file fail
 	 */
-	private boolean lessStrictCompareWorker(CompareCommandLine compareCommand,
-			ModelTranslator specWorker, ModelTranslator implWorker,
-			GMCConfiguration gmcConfig, GMCSection anonymousSection,
-			File traceFile)
+	private boolean lessStrictCompareWorker(CompareCommandLine compareCommand, ModelTranslator specWorker,
+			ModelTranslator implWorker, GMCConfiguration gmcConfig, GMCSection anonymousSection, File traceFile)
 			throws ABCException, CommandLineException, IOException {
 		Model model = specWorker.translate();
-		Verifier verifier = new Verifier(gmcConfig, model, out, err, startTime,
-				true);
+		Verifier verifier = new Verifier(gmcConfig, model, out, err, startTime, true);
 		boolean result = verifier.run_work();
 		VerificationStatus statusSpec = verifier.verificationStatus, statusImpl;
 
@@ -895,8 +785,7 @@ public class UserInterface {
 			CIVLStateManager stateManager = verifier.stateManager();
 
 			model = implWorker.translate();
-			verifier = new Verifier(gmcConfig, model, out, err, startTime,
-					stateManager.outptutNames(),
+			verifier = new Verifier(gmcConfig, model, out, err, startTime, stateManager.outptutNames(),
 					stateManager.collectedOutputs());
 			result = verifier.run_work();
 			statusImpl = verifier.verificationStatus;
@@ -905,19 +794,17 @@ public class UserInterface {
 
 			List<Pair<String, String>> stats = new LinkedList<Pair<String, String>>();
 			stats.add(new Pair<String, String>("max process count",
-					Integer.toString(Math.max(statusSpec.maxProcessCount,
-							statusImpl.maxProcessCount))));
-			stats.add(new Pair<String, String>("states", Integer
-					.toString(statusSpec.numStates + statusImpl.numStates)));
-			stats.add(new Pair<String, String>("states saved", Integer.toString(
-					statusSpec.numSavedStates + statusImpl.numSavedStates)));
+					Integer.toString(Math.max(statusSpec.maxProcessCount, statusImpl.maxProcessCount))));
+			stats.add(
+					new Pair<String, String>("states", Integer.toString(statusSpec.numStates + statusImpl.numStates)));
+			stats.add(new Pair<String, String>("states saved",
+					Integer.toString(statusSpec.numSavedStates + statusImpl.numSavedStates)));
 			stats.add(new Pair<String, String>("state matches",
-					Integer.toString(statusSpec.numMatchedStates
-							+ statusImpl.numMatchedStates)));
-			stats.add(new Pair<String, String>("transitions", Long.toString(
-					statusSpec.numTransitions + statusImpl.numTransitions)));
-			stats.add(new Pair<String, String>("trace steps", Integer.toString(
-					statusSpec.numTraceSteps + statusImpl.numTraceSteps)));
+					Integer.toString(statusSpec.numMatchedStates + statusImpl.numMatchedStates)));
+			stats.add(new Pair<String, String>("transitions",
+					Long.toString(statusSpec.numTransitions + statusImpl.numTransitions)));
+			stats.add(new Pair<String, String>("trace steps",
+					Integer.toString(statusSpec.numTraceSteps + statusImpl.numTraceSteps)));
 			stats.addAll(getUniverseStats(specWorker.universe));
 			printStats(out, stats);
 		}
@@ -925,36 +812,30 @@ public class UserInterface {
 			out.println("\nThe standard properties hold for all executions and "
 					+ "the specification and the implementation are functionally equivalent.");
 		else
-			out.println(
-					"\nThe specification and the implementation may NOT be functionally equivalent.");
+			out.println("\nThe specification and the implementation may NOT be functionally equivalent.");
 		return result;
 	}
 
-	private void printOutput(PrintStream out, SymbolicAnalyzer symbolicAnalyzer,
-			String[] outputNames,
+	private void printOutput(PrintStream out, SymbolicAnalyzer symbolicAnalyzer, String[] outputNames,
 			Map<BooleanExpression, Set<Pair<State, SymbolicExpression[]>>> outputValues) {
 		StringBuffer result = new StringBuffer();
 		int numOutputs = outputNames.length;
 
 		result.append("\n=== output ===\n");
-		for (Map.Entry<BooleanExpression, Set<Pair<State, SymbolicExpression[]>>> entry : outputValues
-				.entrySet()) {
+		for (Map.Entry<BooleanExpression, Set<Pair<State, SymbolicExpression[]>>> entry : outputValues.entrySet()) {
 			int j = 0;
 
 			result.append("\npc: ");
-			result.append(symbolicAnalyzer.symbolicExpressionToString(null,
-					null, null, entry.getKey()));
+			result.append(symbolicAnalyzer.symbolicExpressionToString(null, null, null, entry.getKey()));
 			result.append("\ninputs and outputs: \n");
-			for (Pair<State, SymbolicExpression[]> stateAndoutputs : entry
-					.getValue()) {
+			for (Pair<State, SymbolicExpression[]> stateAndoutputs : entry.getValue()) {
 				int l = 0;
 				State state = stateAndoutputs.left;
 				SymbolicExpression[] outputs = stateAndoutputs.right;
 
 				if (j > 0)
 					result.append("or");
-				result.append(
-						symbolicAnalyzer.inputVariablesToStringBuffer(state));
+				result.append(symbolicAnalyzer.inputVariablesToStringBuffer(state));
 				result.append("\nOutput:\n");
 				for (int k = 0; k < numOutputs; k++) {
 					if (l > 0)
@@ -964,8 +845,7 @@ public class UserInterface {
 					l++;
 					result.append(outputNames[k]);
 					result.append(" = ");
-					result.append(symbolicAnalyzer.symbolicExpressionToString(
-							null, state, null, outputs[k]));
+					result.append(symbolicAnalyzer.symbolicExpressionToString(null, state, null, outputs[k]));
 				}
 				j++;
 			}
@@ -994,8 +874,7 @@ public class UserInterface {
 		String interSep = "  ";
 		int numCols = 2;
 		// Each pair represents (width of label, width of value) for a column
-		ArrayList<Pair<Integer, Integer>> colWidths = new ArrayList<Pair<Integer, Integer>>(
-				numCols);
+		ArrayList<Pair<Integer, Integer>> colWidths = new ArrayList<Pair<Integer, Integer>>(numCols);
 		int currCol = 0;
 
 		// Initialize column widths
@@ -1024,8 +903,7 @@ public class UserInterface {
 			if (currCol == 0) {
 				out.print(tab);
 			}
-			out.print(stat.left + whitespace(labelWidth - stat.left.length())
-					+ intraSep + stat.right
+			out.print(stat.left + whitespace(labelWidth - stat.left.length()) + intraSep + stat.right
 					+ whitespace(valueWidth - stat.right.length()));
 
 			if (currCol < numCols - 1) {
@@ -1040,8 +918,7 @@ public class UserInterface {
 	}
 
 	// Rearranges stats so they print in column order rather than by row
-	private List<Pair<String, String>> rearrangeStats(
-			List<Pair<String, String>> stats, int numCols) {
+	private List<Pair<String, String>> rearrangeStats(List<Pair<String, String>> stats, int numCols) {
 		ArrayList<Pair<String, String>> rearrangedStats = new ArrayList<Pair<String, String>>(
 				Collections.nCopies(stats.size(), null));
 		// float rowsPerCol = (float) stats.size() / numCols;
@@ -1064,14 +941,12 @@ public class UserInterface {
 	}
 
 	private List<Pair<String, String>> getCommonStats() {
-		double time = Math.ceil((System.currentTimeMillis() - startTime) / 10.0)
-				/ 100.0;
+		double time = Math.ceil((System.currentTimeMillis() - startTime) / 10.0) / 100.0;
 		long memory = Runtime.getRuntime().totalMemory();
 		List<Pair<String, String>> stats = new LinkedList<Pair<String, String>>();
 
 		stats.add(new Pair<String, String>("time (s)", Double.toString(time)));
-		stats.add(new Pair<String, String>("memory (bytes)",
-				Double.toString(memory)));
+		stats.add(new Pair<String, String>("memory (bytes)", Double.toString(memory)));
 
 		return stats;
 	}
@@ -1079,8 +954,7 @@ public class UserInterface {
 	private void printSourcefiles(PrintStream out, FileIndexer indexer) {
 		out.println("\n" + statsBar + " Source files " + statsBar);
 
-		List<String> ignore = Arrays
-				.asList(CIVLConstants.ROOT_RESOURCE_PATH_STR, "predefined");
+		List<String> ignore = Arrays.asList(CIVLConstants.ROOT_RESOURCE_PATH_STR, "predefined");
 		indexer.printFiltered(out, ignore);
 	}
 
@@ -1116,12 +990,11 @@ public class UserInterface {
 		}
 	}
 
-	private boolean runCompareVerify(String command, GMCConfiguration cmdConfig,
-			Model model, FileIndexer fileIndexer, SymbolicUniverse universe)
-			throws CommandLineException, ABCException, IOException {
+	private boolean runCompareVerify(String command, GMCConfiguration cmdConfig, Model model, FileIndexer fileIndexer,
+			SymbolicUniverse universe) throws CommandLineException, ABCException, IOException {
 		Verifier verifier = new Verifier(cmdConfig, model, out, err, startTime);
 		boolean result = false;
-		boolean quiet = isQuiet(new String[]{command});
+		boolean quiet = isQuiet(new String[] { command });
 
 		try {
 			result = verifier.run_work();
@@ -1152,18 +1025,15 @@ public class UserInterface {
 		return result;
 	}
 
-	private boolean runCompareReplay(String command, GMCConfiguration gmcConfig,
-			File traceFile, Model model, FileIndexer fileIndexer,
-			SymbolicUniverse universe) throws CommandLineException,
-			FileNotFoundException, IOException, SyntaxException,
-			PreprocessorException, ParseException, MisguidedExecutionException {
+	private boolean runCompareReplay(String command, GMCConfiguration gmcConfig, File traceFile, Model model,
+			FileIndexer fileIndexer, SymbolicUniverse universe) throws CommandLineException, FileNotFoundException,
+			IOException, SyntaxException, PreprocessorException, ParseException, MisguidedExecutionException {
 		TracePlayer replayer;
 		Trace<Transition, State> trace;
 		boolean result;
-		boolean quiet = isQuiet(new String[]{command});
+		boolean quiet = isQuiet(new String[] { command });
 
-		replayer = TracePlayer.guidedPlayer(gmcConfig, model, traceFile, out,
-				err);
+		replayer = TracePlayer.guidedPlayer(gmcConfig, model, traceFile, out, err);
 		trace = replayer.run();
 		result = trace.result();
 		if (!quiet) {
@@ -1184,25 +1054,21 @@ public class UserInterface {
 
 		if (inputs != null)
 			for (Map.Entry<String, Object> entry : inputs.entrySet()) {
-				result.putMapEntry(CIVLConstants.inputO, entry.getKey(),
-						entry.getValue());
+				result.putMapEntry(CIVLConstants.inputO, entry.getKey(), entry.getValue());
 			}
 		return result;
 	}
 
 	/**
 	 * If in rhs (anonymous GMCSection), verbose or debug option is set to true,
-	 * then in lhs (spec or impl GMCSection) the verbose or debug option should
-	 * also be set to true.
+	 * then in lhs (spec or impl GMCSection) the verbose or debug option should also
+	 * be set to true.
 	 * 
-	 * @param lhs
-	 *                spec or impl GMCSection.
-	 * @param rhs
-	 *                Anonymous GMCSection.
+	 * @param lhs spec or impl GMCSection.
+	 * @param rhs Anonymous GMCSection.
 	 * @return A modified copy of lhs (spec or impl GMCSection).
 	 */
-	private GMCSection readVerboseOrDebugOption(GMCSection lhs,
-			GMCSection rhs) {
+	private GMCSection readVerboseOrDebugOption(GMCSection lhs, GMCSection rhs) {
 		GMCSection result = lhs.clone();
 		Object rverbose = rhs.getValue(CIVLConstants.verboseO);
 		Object rdebug = rhs.getValue(CIVLConstants.debugO);
@@ -1216,8 +1082,7 @@ public class UserInterface {
 		return result;
 	}
 
-	private boolean runShow(ModelTranslator modelTranslator)
-			throws CommandLineException, IOException, ABCException {
+	private boolean runShow(ModelTranslator modelTranslator) throws CommandLineException, IOException, ABCException {
 		boolean result = modelTranslator.translate() != null;
 
 		if (!modelTranslator.config.isQuiet())
@@ -1233,73 +1098,64 @@ public class UserInterface {
 		else {
 			out.println();
 			switch (arg) {
-				case CommandLine.COMPARE :
-					out.println(
-							"COMPARE the functional equivalence of two programs.");
-					out.println(
-							"\nUsage: civl compare [common options] -spec [spec options] "
-									+ "filename+ -impl [impl options] filename+");
-					out.println("\nOptions:");
-					break;
-				case CommandLine.GUI :
-					out.println("Run the graphical interface of CIVL.");
-					out.println("\nUsage: civl gui");
-					break;
-				case CommandLine.HELP :
-					out.println("Prints the HELP information of CIVL");
-					out.println("\nUsage: civl help [command]");
-					out.println("command can be any of the following: "
-							+ "compare, gui, help, replay, run, show and verify.");
-					break;
-				case CommandLine.REPLAY :
-					out.println(
-							"REPLAY the counterexample trace of some verification result.");
-					out.println("\nUsage: civl replay [options] filename+");
-					out.println(
-							"    or civl replay [common options] -spec [spec options] "
-									+ "filename+ -impl [impl options] filename+");
-					out.println(
-							"the latter replays the counterexample of some comparison result.");
-					out.println("\nOptions:");
-					break;
-				case CommandLine.RUN :
-					out.println("RUN a program randomly.");
-					out.println("\nUsage: civl run [options] filename+");
-					out.println();
-					printMpiSpecificInputs(out);
-					out.println();
-					printOpenMpSpecificInputs(out);
-					out.println();
-					printCudaSpecificInputs(out);
-					out.println("\nOptions:");
-					break;
-				case CommandLine.SHOW :
-					out.println(
-							"SHOW the preprocessing, parsing and translating result of a program.");
-					out.println("\nUsage: civl show [options] filename+");
-					out.println("\nOptions:");
-					break;
-				case CommandLine.CONFIG :
-					out.println(
-							"Configure CIVL.  Detect theorem provers and create .sarl.");
-					out.println("\nUsage: civl config");
-					break;
-				case CommandLine.VERIFY :
-					out.println("VERIFY a certain program.");
-					out.println("\nUsage: civl verify [options] filename+");
-					out.println();
-					printMpiSpecificInputs(out);
-					out.println();
-					printOpenMpSpecificInputs(out);
-					out.println();
-					printCudaSpecificInputs(out);
-					out.println("\nOptions:");
-					break;
-				default :
-					throw new CIVLInternalException(
-							"missing implementation for command of " + arg
-									+ " kind",
-							(CIVLSource) null);
+			case CommandLine.COMPARE:
+				out.println("COMPARE the functional equivalence of two programs.");
+				out.println("\nUsage: civl compare [common options] -spec [spec options] "
+						+ "filename+ -impl [impl options] filename+");
+				out.println("\nOptions:");
+				break;
+			case CommandLine.GUI:
+				out.println("Run the graphical interface of CIVL.");
+				out.println("\nUsage: civl gui");
+				break;
+			case CommandLine.HELP:
+				out.println("Prints the HELP information of CIVL");
+				out.println("\nUsage: civl help [command]");
+				out.println(
+						"command can be any of the following: " + "compare, gui, help, replay, run, show and verify.");
+				break;
+			case CommandLine.REPLAY:
+				out.println("REPLAY the counterexample trace of some verification result.");
+				out.println("\nUsage: civl replay [options] filename+");
+				out.println("    or civl replay [common options] -spec [spec options] "
+						+ "filename+ -impl [impl options] filename+");
+				out.println("the latter replays the counterexample of some comparison result.");
+				out.println("\nOptions:");
+				break;
+			case CommandLine.RUN:
+				out.println("RUN a program randomly.");
+				out.println("\nUsage: civl run [options] filename+");
+				out.println();
+				printMpiSpecificInputs(out);
+				out.println();
+				printOpenMpSpecificInputs(out);
+				out.println();
+				printCudaSpecificInputs(out);
+				out.println("\nOptions:");
+				break;
+			case CommandLine.SHOW:
+				out.println("SHOW the preprocessing, parsing and translating result of a program.");
+				out.println("\nUsage: civl show [options] filename+");
+				out.println("\nOptions:");
+				break;
+			case CommandLine.CONFIG:
+				out.println("Configure CIVL.  Detect theorem provers and create .sarl.");
+				out.println("\nUsage: civl config");
+				break;
+			case CommandLine.VERIFY:
+				out.println("VERIFY a certain program.");
+				out.println("\nUsage: civl verify [options] filename+");
+				out.println();
+				printMpiSpecificInputs(out);
+				out.println();
+				printOpenMpSpecificInputs(out);
+				out.println();
+				printCudaSpecificInputs(out);
+				out.println("\nOptions:");
+				break;
+			default:
+				throw new CIVLInternalException("missing implementation for command of " + arg + " kind",
+						(CIVLSource) null);
 			}
 			CIVLCommand.printOptionsOfCommand(arg, out);
 		}
@@ -1308,13 +1164,11 @@ public class UserInterface {
 	/**
 	 * Prints usage information to the given stream and flushes the stream.
 	 * 
-	 * @param out
-	 *                stream to which to print
+	 * @param out stream to which to print
 	 */
 	private void printUsage(PrintStream out) {
 		out.println("Usage: civl (replay|run|show|verify) [options] filename+");
-		out.println(
-				"    or civl (compare|replay) [common options] -spec [spec options]");
+		out.println("    or civl (compare|replay) [common options] -spec [spec options]");
 		out.println("       filename+ -impl [impl options] filename+");
 		out.println("    or civl config");
 		out.println("    or civl gui");
@@ -1324,8 +1178,7 @@ public class UserInterface {
 		out.println("  replay : replay trace for program filename");
 		out.println("  run    : run program filename");
 		out.println("  help   : print this message");
-		out.println(
-				"  show   : show result of preprocessing and parsing filename(s)");
+		out.println("  show   : show result of preprocessing and parsing filename(s)");
 		out.println("  verify : verify program filename");
 		out.println("  gui    : launch civl in gui mode (beta)");
 		out.println();
@@ -1358,8 +1211,7 @@ public class UserInterface {
 	private void printOpenMpSpecificInputs(PrintStream out) {
 		out.println("OpenMP Specific Inputs:");
 		out.println("  -input_omp_thread_max=INTEGER (default: none)");
-		out.println(
-				"    caps the number of threads spawned by an OpenMP parallel region");
+		out.println("    caps the number of threads spawned by an OpenMP parallel region");
 	}
 
 	private void printCudaSpecificInputs(PrintStream out) {
@@ -1370,26 +1222,20 @@ public class UserInterface {
 
 	/**
 	 * Prints statistics after a run. The end time is marked and compared to the
-	 * start time to compute total elapsed time. Other statistics are taken from
-	 * the symbolic universe created in this class. The remaining statistics are
+	 * start time to compute total elapsed time. Other statistics are taken from the
+	 * symbolic universe created in this class. The remaining statistics are
 	 * provided as parameters to this method.
 	 * 
-	 * @param out
-	 *                          the stream to which to print
-	 * @param maxProcs
-	 *                          the maximum number of processes that existed in
-	 *                          any state encountered
-	 * @param statesSeen
-	 *                          the number of states seen in the run
-	 * @param statesMatched
-	 *                          the number of states encountered which were
-	 *                          determined to have been seen before
-	 * @param transitions
-	 *                          the number of transitions executed in the course
-	 *                          of the run
+	 * @param out           the stream to which to print
+	 * @param maxProcs      the maximum number of processes that existed in any
+	 *                      state encountered
+	 * @param statesSeen    the number of states seen in the run
+	 * @param statesMatched the number of states encountered which were determined
+	 *                      to have been seen before
+	 * @param transitions   the number of transitions executed in the course of the
+	 *                      run
 	 */
-	private List<Pair<String, String>> getUniverseStats(
-			SymbolicUniverse universe) {
+	private List<Pair<String, String>> getUniverseStats(SymbolicUniverse universe) {
 		// round up time to nearest 1/100th of second...
 		long numValidCalls = universe.numValidCalls();
 		long numProverCalls = universe.numProverValidCalls();
@@ -1398,25 +1244,17 @@ public class UserInterface {
 		int i = 0;
 		List<Pair<String, String>> stats = new LinkedList<Pair<String, String>>();
 
-		stats.add(new Pair<String, String>("valid calls",
-				Long.toString(numValidCalls)));
-
+		stats.add(new Pair<String, String>("valid calls", Long.toString(numValidCalls)));
 		provers = sarlConfig.getProvers();
 		String proversStr = "";
-
 		for (ProverInfo prover : provers) {
 			if (i != 0)
 				proversStr += ", ";
 			proversStr += prover;
 			i++;
 		}
-
-		if (sarlConfig.getWhy3ProvePlatform() != null)
-			proversStr += ", why3";
 		stats.add(new Pair<String, String>("provers", proversStr));
-		stats.add(new Pair<String, String>("prover calls",
-				Long.toString(numProverCalls)));
-
+		stats.add(new Pair<String, String>("prover calls", Long.toString(numProverCalls)));
 		return stats;
 	}
 

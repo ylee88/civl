@@ -58,7 +58,6 @@ public class ConfigFactory {
 		executableMap.put("z3", ProverKind.Z3);
 		executableMap.put("cvc5", ProverKind.CVC5);
 		executableMap.put("cvc4", ProverKind.CVC4);
-		executableMap.put("why3", ProverKind.Why3);
 		executableMap.put("alt-ergo", ProverKind.ALT_ERGO);
 	}
 
@@ -91,8 +90,6 @@ public class ConfigFactory {
 			return ProverKind.CVC5;
 		case "Z3":
 			return ProverKind.Z3;
-		case "Why3":
-			return ProverKind.Why3;
 		case "ALT_ERGO":
 			return ProverKind.ALT_ERGO;
 		default:
@@ -113,7 +110,6 @@ public class ConfigFactory {
 		switch (kind) {
 		case CVC4:
 		case CVC5:
-		case Why3:
 		case Z3:
 		case ALT_ERGO:
 			return "--version";
@@ -272,17 +268,6 @@ public class ConfigFactory {
 			// info.addOption("--arrays-exp"); // experimental array features sometimes help
 		} else if (kind == ProverKind.Z3) {
 			info.addOption("-smt2"); // language is SMT-LIB2
-		} else if (kind == ProverKind.Why3) {
-			for (String why3prover : executableMap.keySet()) {
-				if (why3prover.equals("why3"))
-					continue;
-				if (why3prover.equals("cvc4"))
-					why3prover += "-15";
-				info.addOption(why3prover);
-			}
-			info.setTimeout(5.0);
-			// set environment for helping why3 finding prover executables:
-			info.setEnv(System.getenv("PATH"));
 		} else if (kind == ProverKind.ALT_ERGO) {
 			info.addOption("-i");
 			info.addOption("smtlib2"); // input language is SMT-LIB2
@@ -308,7 +293,6 @@ public class ConfigFactory {
 		StreamTokenizer st = new StreamTokenizer(reader);
 		LinkedList<ProverInfo> proverInfos = new LinkedList<>();
 		Set<String> allAliases = new HashSet<>();
-		ProverInfo why3info = null;
 
 		st.commentChar('#');
 		st.quoteChar('"');
@@ -477,16 +461,10 @@ public class ConfigFactory {
 					throw parseErr(configFile, st, "unknown keyword: " + keyword);
 				} // end of switch
 			} // end of for
-			if (info.getKind() != ProverKind.Why3)
-				proverInfos.add(info);
-			else
-				why3info = info;
+			proverInfos.add(info);
 		} // end of for
 		reader.close();
-
 		CommonSARLConfig config = new CommonSARLConfig(proverInfos);
-
-		config.setWhy3ProvePlatform(why3info);
 		return config;
 	}
 

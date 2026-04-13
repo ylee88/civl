@@ -38,8 +38,7 @@ public interface SARLConfig {
 	/**
 	 * Finds a prover supported by this configuration with the given alias.
 	 * 
-	 * @param alias
-	 *            the alias to search for
+	 * @param alias the alias to search for
 	 * @return a prover supported by this configuration with given alias or
 	 *         <code>null</code> if there is no such prover
 	 */
@@ -48,33 +47,14 @@ public interface SARLConfig {
 	/**
 	 * Finds a prover of the given kind supported by this configuration.
 	 * 
-	 * @param kind
-	 *            the kind to search for
+	 * @param kind the kind to search for
 	 * @return a prover supported by this configuration of the given kind, or
 	 *         <code>null</code> if there is no such prover
 	 */
 	ProverInfo getProverWithKind(ProverKind kind);
 
 	/**
-	 * Finds the why3 prove platform supported by this configuration
-	 * 
-	 * @return The {@link ProverInfo} for why3 or null if there is no why3 prove
-	 *         platform.
-	 */
-	ProverInfo getWhy3ProvePlatform();
-
-	/**
-	 * Set the why3 prove platform supported by this configuration
-	 * 
-	 * @param why3Info
-	 *            An object contains all the informations of the why3 prove
-	 *            platform.
-	 */
-	void setWhy3ProvePlatform(ProverInfo why3Info);
-
-	/**
-	 * @return the directory where SARL should put its generated temporary files
-	 *         in
+	 * @return the directory where SARL should put its generated temporary files in
 	 */
 	Path getOutputFileDir();
 
