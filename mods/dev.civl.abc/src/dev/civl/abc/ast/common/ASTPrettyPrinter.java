@@ -167,7 +167,7 @@ public class ASTPrettyPrinter {
 	 * entirely from the pretty-printed output (no {@code #include} emitted).
 	 */
 	private static final Set<String> OMIT_ENTIRELY = new HashSet<>(
-			java.util.Arrays.asList("implicit_defs.h", "gnuc.h", "svcomp.h"));
+			java.util.Arrays.asList("implicit_defs.h", "gnuc.h"));
 
 	/* ******************* Package-private Static Methods ****************** */
 

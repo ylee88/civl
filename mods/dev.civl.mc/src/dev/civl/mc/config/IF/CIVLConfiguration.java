@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import dev.civl.gmc.GMCSection;
+import dev.civl.gmc.Option.OptionType;
 import dev.civl.mc.config.IF.CIVLConstants.DeadlockKind;
 import dev.civl.mc.config.IF.CIVLConstants.ErrorStateEquivalence;
 import dev.civl.mc.config.IF.CIVLConstants.MPIModelKind;
@@ -14,8 +16,6 @@ import dev.civl.mc.model.IF.CIVLInternalException;
 import dev.civl.mc.model.IF.CIVLProperty;
 import dev.civl.mc.model.IF.CIVLSource;
 import dev.civl.mc.model.IF.ModelConfiguration;
-import dev.civl.gmc.GMCSection;
-import dev.civl.gmc.Option.OptionType;
 
 /**
  * A CIVLConfiguration object encompasses all the parameters used to configure
@@ -125,13 +125,6 @@ public class CIVLConfiguration {
 	 * verbose mode?
 	 */
 	private boolean verbose = false;
-
-	/**
-	 * Is svcomp transformation needed?
-	 */
-	private boolean svcomp16 = false;
-
-	private boolean svcomp17 = false;
 
 	/**
 	 * Should CIVL show the program after all applicable transformations?
@@ -415,8 +408,6 @@ public class CIVLConfiguration {
 		this.simplify = config.isTrue(CIVLConstants.simplifyO);
 		this.statelessPrintf = config.isTrue(CIVLConstants.statelessPrintfO);
 		this.verbose = config.isTrue(CIVLConstants.verboseO);
-		this.svcomp16 = config.isTrue(CIVLConstants.svcomp16O);
-		this.svcomp17 = config.isTrue(CIVLConstants.svcomp17O);
 		this.setShowProgram(config.isTrue(CIVLConstants.showProgramO));
 		this.showPathConditon = (String) config.getValue(CIVLConstants.showPathConditionO);
 		if (this.showPathConditon == null)
@@ -431,7 +422,6 @@ public class CIVLConfiguration {
 		this.setShowAST(config.isTrue(CIVLConstants.astO));
 		this.setShowModel(config.isTrue(CIVLConstants.showModelO));
 		this.showInputVars = config.isTrue(CIVLConstants.showInputVarsO);
-		this.setUnpreproc(config.isTrue(CIVLConstants.unpreprocO));
 		this.showTime = config.isTrue(CIVLConstants.showTimeO);
 		this.procBound = (Integer) config.getValueOrDefault(CIVLConstants.procBoundO);
 		this.intBit = (Integer) config.getValueOrDefault(CIVLConstants.intBit);
@@ -453,34 +443,6 @@ public class CIVLConfiguration {
 		this.sliceAnalysis = config.isTrue(CIVLConstants.sliceAnalysisO);
 		this.witness = config.isTrue(CIVLConstants.witnessO);
 		this.prob = config.isTrue(CIVLConstants.probO);
-		if (this.svcomp16) {
-			if (config.getValue(CIVLProperty.MEMORY_LEAK.getOption()) == null)
-				this.toggleableCivlProps.put(CIVLProperty.MEMORY_LEAK, false);
-			if (config.getValue(CIVLConstants.collectHeapsO) == null)
-				this.collectHeaps = false;
-			if (config.getValue(CIVLConstants.simplifyO) == null)
-				this.simplify = false;
-			if (config.getValue(CIVLProperty.DEADLOCK.getOption()) == null)
-				this.checkDeadlockKind = DeadlockKind.NONE;
-			if (config.getValue(CIVLConstants.procBoundO) == null)
-				this.procBound = 6;
-		}
-		if (this.svcomp17) {
-			if (config.getValue(CIVLProperty.MEMORY_LEAK.getOption()) == null)
-				this.toggleableCivlProps.put(CIVLProperty.MEMORY_LEAK, false);
-			if (config.getValue(CIVLConstants.collectHeapsO) == null)
-				this.collectHeaps = false;
-			if (config.getValue(CIVLConstants.simplifyO) == null)
-				this.simplify = false;
-			if (config.getValue(CIVLProperty.DEADLOCK.getOption()) == null)
-				this.checkDeadlockKind = DeadlockKind.NONE;
-			if (config.getValue(CIVLConstants.procBoundO) == null)
-				this.procBound = 6;
-			this.intBit = 2;
-			this.enablePrintf = false;
-			// this.enableIntDivTransformation = false;
-			// 32-bit unsigned int bound
-		}
 		this.directSymEx = (String) config.getValue(CIVLConstants.direct0);
 		this.runtimeUpdate = config.isTrue(CIVLConstants.runtimeUpdateO);
 		this.preemptionBound = (Integer) config.getValueOrDefault(CIVLConstants.preemptionBoundO);
@@ -827,18 +789,6 @@ public class CIVLConfiguration {
 		this.prob = enableProb;
 	}
 
-	public boolean svcomp() {
-		return svcomp16 || svcomp17;
-	}
-
-	public boolean svcomp16() {
-		return svcomp16;
-	}
-
-	public void setSvcomp16(boolean svcomp) {
-		this.svcomp16 = svcomp;
-	}
-
 	public void setCollectProcesses(boolean collectProcesses) {
 		this.collectProcesses = collectProcesses;
 	}
@@ -1141,20 +1091,6 @@ public class CIVLConfiguration {
 
 	public void setInSubprogram(boolean isInSubprogram) {
 		this.isInSubprogram = isInSubprogram;
-	}
-
-	/**
-	 * @return the svcomp17
-	 */
-	public boolean svcomp17() {
-		return svcomp17;
-	}
-
-	/**
-	 * @param svcomp17 the svcomp17 to set
-	 */
-	public void setSvcomp17(boolean svcomp17) {
-		this.svcomp17 = svcomp17;
 	}
 
 	public int getIntBit() {

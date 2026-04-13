@@ -56,7 +56,7 @@ public interface TheoremProverFactory {
 	 * @param context        boolean expression assumed to hold
 	 * @param logicFunctions A list of {@link ProverFunctionInterpretation}s. Some
 	 *                       provers support factoring the common and complex parts
-	 *                       into logic functions (e.g. z3, cvc4, why3)
+	 *                       into logic functions (e.g. z3, cvc4)
 	 * @return a theorem prover operating under the given context
 	 */
 	TheoremProver newProver(BooleanExpression context, ProverFunctionInterpretation logicFunctions[]);

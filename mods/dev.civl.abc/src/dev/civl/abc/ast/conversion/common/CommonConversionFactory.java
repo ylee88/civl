@@ -59,39 +59,34 @@ public class CommonConversionFactory implements ConversionFactory {
 	}
 
 	@Override
-	public ArithmeticConversion arithmeticConversion(ArithmeticType oldType,
-			ArithmeticType newType) {
+	public ArithmeticConversion arithmeticConversion(ArithmeticType oldType, ArithmeticType newType) {
 		return new CommonArithmeticConversion(oldType, newType);
 	}
 
 	@Override
-	public CompatibleStructureOrUnionConversion compatibleStructureOrUnionConversion(
-			StructureOrUnionType type1, StructureOrUnionType type2) {
+	public CompatibleStructureOrUnionConversion compatibleStructureOrUnionConversion(StructureOrUnionType type1,
+			StructureOrUnionType type2) {
 		return new CommonCompatibleStructureOrUnionConversion(type1, type2);
 	}
 
 	@Override
-	public CompatiblePointerConversion compatiblePointerConversion(
-			PointerType type1, PointerType type2) {
+	public CompatiblePointerConversion compatiblePointerConversion(PointerType type1, PointerType type2) {
 		return new CommonCompatiblePointerConversion(type1, type2);
 	}
 
 	@Override
-	public VoidPointerConversion voidPointerConversion(PointerType type1,
-			PointerType type2) {
+	public VoidPointerConversion voidPointerConversion(PointerType type1, PointerType type2) {
 		return new CommonVoidPointerConversion(type1, type2);
 	}
 
 	@Override
-	public NullPointerConversion nullPointerConversion(ObjectType type1,
-			PointerType type2) {
+	public NullPointerConversion nullPointerConversion(ObjectType type1, PointerType type2) {
 		return new CommonNullPointerConversion(type1, type2);
 	}
 
 	@Override
 	public PointerBoolConversion pointerBoolConversion(PointerType oldType) {
-		return new CommonPointerBoolConversion(oldType,
-				typeFactory.unsignedIntegerType(UnsignedIntKind.BOOL));
+		return new CommonPointerBoolConversion(oldType, typeFactory.unsignedIntegerType(UnsignedIntKind.BOOL));
 	}
 
 	@Override
@@ -108,8 +103,7 @@ public class CommonConversionFactory implements ConversionFactory {
 		TypeKind kind = type.kind();
 
 		if (kind == TypeKind.QUALIFIED)
-			return lvalueConversionType(
-					((QualifiedObjectType) type).getBaseType());
+			return lvalueConversionType(((QualifiedObjectType) type).getBaseType());
 		if (kind == TypeKind.ATOMIC)
 			return lvalueConversionType(((AtomicType) type).getBaseType());
 		return (UnqualifiedObjectType) type;
@@ -124,18 +118,16 @@ public class CommonConversionFactory implements ConversionFactory {
 			arrayType = (ArrayType) ((QualifiedObjectType) type).getBaseType();
 		else
 			arrayType = (ArrayType) type;
-		return new CommonArrayConversion(type,
-				typeFactory.pointerType(arrayType.getElementType()));
+		return new CommonArrayConversion(type, typeFactory.pointerType(arrayType.getElementType()));
 	}
 
 	@Override
 	public FunctionConversion functionConversion(FunctionType type) {
-		return new CommonFunctionConversion(type,
-				typeFactory.pointerType(type));
+		return new CommonFunctionConversion(type, typeFactory.pointerType(type));
 	}
 
-	private void checkQualifierConsistency(PointerType type1, PointerType type2,
-			boolean checkBaseCompatibility) throws UnsourcedException {
+	private void checkQualifierConsistency(PointerType type1, PointerType type2, boolean checkBaseCompatibility)
+			throws UnsourcedException {
 		Type base1 = type1.referencedType();
 		Type base2 = type2.referencedType();
 
@@ -145,31 +137,24 @@ public class CommonConversionFactory implements ConversionFactory {
 			QualifiedObjectType qualified2;
 
 			if (!(base2 instanceof QualifiedObjectType))
-				throw error(
-						"Referenced type of left-hand of assignment lacks qualifiers of right-hand side");
+				throw error("Referenced type of left-hand of assignment lacks qualifiers of right-hand side");
 			qualified2 = (QualifiedObjectType) base2;
 			if (qualified1.isConstQualified() && !qualified2.isConstQualified())
-				throw error(
-						"Type referenced by pointer on left-hand side of assignment"
-								+ " lacks const qualifier occurring on right-hand side");
-			if (qualified1.isRestrictQualified()
-					&& !qualified2.isRestrictQualified())
-				throw error(
-						"Type referenced by pointer on left-hand side of assignment"
-								+ " lacks restrict qualifier occurring on right-hand side");
-			if (qualified1.isVolatileQualified()
-					&& !qualified2.isVolatileQualified())
-				throw error(
-						"Type referenced by pointer on left-hand side of assignment"
-								+ " lacks volatile qualifier occurring on right-hand side");
+				throw error("Type referenced by pointer on left-hand side of assignment"
+						+ " lacks const qualifier occurring on right-hand side");
+			if (qualified1.isRestrictQualified() && !qualified2.isRestrictQualified())
+				throw error("Type referenced by pointer on left-hand side of assignment"
+						+ " lacks restrict qualifier occurring on right-hand side");
+			if (qualified1.isVolatileQualified() && !qualified2.isVolatileQualified())
+				throw error("Type referenced by pointer on left-hand side of assignment"
+						+ " lacks volatile qualifier occurring on right-hand side");
 			base1 = qualified1.getBaseType();
 			base2 = qualified2.getBaseType();
 		}
 		if (base1 instanceof AtomicType) {
 			if (!(base2 instanceof AtomicType))
-				throw error(
-						"Type referenced by pointer on left-hand side of assigment "
-								+ "lacks atomic qualifier occurring on right-hand side");
+				throw error("Type referenced by pointer on left-hand side of assigment "
+						+ "lacks atomic qualifier occurring on right-hand side");
 			base1 = ((AtomicType) base1).getBaseType();
 			base2 = ((AtomicType) base2).getBaseType();
 		}
@@ -179,10 +164,8 @@ public class CommonConversionFactory implements ConversionFactory {
 			if (base2 instanceof QualifiedObjectType)
 				base2 = ((QualifiedObjectType) base2).getBaseType();
 			if (!base1.compatibleWith(base2)) {
-				throw error("Type: " + type1
-						+ "\n referenced by pointer on left-hand side of assignment "
-						+ "is incompatible with corresponding type " + type2
-						+ "\n on right-hand side");
+				throw error("Type: " + type1 + "\n referenced by pointer on left-hand side of assignment "
+						+ "is incompatible with corresponding type " + type2 + "\n on right-hand side");
 			}
 		}
 	}
@@ -193,15 +176,13 @@ public class CommonConversionFactory implements ConversionFactory {
 			CastNode castNode = (CastNode) node;
 			Type castType = castNode.getCastType().getType();
 
-			if (castType instanceof PointerType && ((PointerType) castType)
-					.referencedType().kind() == TypeKind.VOID)
+			if (castType instanceof PointerType && ((PointerType) castType).referencedType().kind() == TypeKind.VOID)
 				node = castNode.getArgument();
 			else
 				return false;
 		}
 		if (node instanceof IntegerConstantNode)
-			return ((IntegerConstantNode) node).getConstantValue()
-					.getIntegerValue().signum() == 0;
+			return ((IntegerConstantNode) node).getConstantValue().getIntegerValue().signum() == 0;
 		return false;
 	}
 
@@ -224,122 +205,94 @@ public class CommonConversionFactory implements ConversionFactory {
 	}
 
 	@Override
-	public Conversion assignmentConversion(Configuration config,
-			ExpressionNode rhs, Type newType) throws UnsourcedException {
+	public Conversion assignmentConversion(Configuration config, ExpressionNode rhs, Type newType)
+			throws UnsourcedException {
 		return assignmentConversion(config, rhs, newType, false);
 	}
 
 	@Override
-	public Conversion assignmentConversion(Configuration config,
-			ExpressionNode rhs, Type newType, boolean ignoreQualifier)
-			throws UnsourcedException {
+	public Conversion assignmentConversion(Configuration config, ExpressionNode rhs, Type newType,
+			boolean ignoreQualifier) throws UnsourcedException {
 		Type oldType = rhs.getConvertedType();
 
 		if (rhs instanceof WildcardNode) {
 			// wildcard node has void type, which means that it can be any type
 			return null;
 		}
-		if (typeFactory.isArrayOfCharType(oldType)
-				&& typeFactory.isArrayOfCharType(newType))
+		if (typeFactory.isArrayOfCharType(oldType) && typeFactory.isArrayOfCharType(newType))
 			return null;
 		if (newType.kind() == TypeKind.SCOPE || newType.equals(oldType))
 			return null;
 		if (oldType instanceof DomainType && newType instanceof DomainType)
 			return null;
-		if (oldType instanceof ArithmeticType
-				&& newType instanceof ArithmeticType) {
-			return arithmeticConversion((ArithmeticType) oldType,
-					(ArithmeticType) newType);
+		if (oldType instanceof ArithmeticType && newType instanceof ArithmeticType) {
+			return arithmeticConversion((ArithmeticType) oldType, (ArithmeticType) newType);
 		}
-		if (oldType instanceof StructureOrUnionType
-				&& newType instanceof StructureOrUnionType) {
+		if (oldType instanceof StructureOrUnionType && newType instanceof StructureOrUnionType) {
 			StructureOrUnionType type1 = (StructureOrUnionType) oldType;
 			StructureOrUnionType type2 = (StructureOrUnionType) newType;
 
 			if (!type1.compatibleWith(type2))
-				throw error(
-						"Assignment to incompatible structure or union type");
+				throw error("Assignment to incompatible structure or union type");
 			return new CommonCompatibleStructureOrUnionConversion(type1, type2);
 		}
 		if (newType instanceof PointerType && isNullPointerConstant(rhs))
-			return nullPointerConversion((ObjectType) oldType,
-					(PointerType) newType);
+			return nullPointerConversion((ObjectType) oldType, (PointerType) newType);
 		if (oldType instanceof PointerType && newType instanceof PointerType) {
 			PointerType type1 = (PointerType) oldType;
 			PointerType type2 = (PointerType) newType;
 
 			if (isPointerToObject(type1) && isPointerToVoid(type2)
 					|| isPointerToObject(type2) && isPointerToVoid(type1)) {
-				if (!ignoreQualifier && (config == null || !config.getSVCOMP()))
+				if (!ignoreQualifier)
 					checkQualifierConsistency(type1, type2, false);
 				return voidPointerConversion(type1, type2);
 			}
-			if (!ignoreQualifier && (config == null || !config.getSVCOMP()))
+			if (!ignoreQualifier)
 				checkQualifierConsistency(type1, type2, true);
 			return new CommonCompatiblePointerConversion(type1, type2);
 		}
 		if (oldType instanceof PointerType && isBool(newType))
 			return pointerBoolConversion((PointerType) oldType);
-		if (oldType.kind() == TypeKind.LAMBDA
-				&& newType.kind() == TypeKind.LAMBDA)
+		if (oldType.kind() == TypeKind.LAMBDA && newType.kind() == TypeKind.LAMBDA)
 			return null;
-		if (config != null && config.getSVCOMP()) {
-			if (oldType instanceof PointerType
-					&& newType instanceof IntegerType)
-				return this.pointer2IntegerConversion((PointerType) oldType,
-						(IntegerType) newType);
-			if (oldType instanceof IntegerType
-					&& newType instanceof PointerType)
-				return this.integer2PointerConversion((IntegerType) oldType,
-						(PointerType) newType);
-		}
-		if (newType.kind() == TypeKind.MEM
-				&& rhs.getType().kind() == TypeKind.MEM)
+		if (newType.kind() == TypeKind.MEM && rhs.getType().kind() == TypeKind.MEM)
 			return null;
-		throw error("No conversion from type '" + oldType + "' to type '"
-				+ newType + "'");
+		throw error("No conversion from type '" + oldType + "' to type '" + newType + "'");
 	}
 
 	@Override
-	public MemConversion memConversion(ExpressionNode expr)
-			throws UnsourcedException, SyntaxException {
+	public MemConversion memConversion(ExpressionNode expr) throws UnsourcedException, SyntaxException {
 		Type type = expr.getType();
 		Type elementType = type;
 
 		if (type.kind() != TypeKind.POINTER) {
 			if (type.kind() != TypeKind.SET)
-				throw error("No conversion from non set-type " + type
-						+ " to $mem type.");
+				throw error("No conversion from non set-type " + type + " to $mem type.");
 			if (((SetType) type).elementType().kind() != TypeKind.POINTER)
-				throw error("No conversion from set of non-pointer type " + type
-						+ " to $mem type.");
+				throw error("No conversion from set of non-pointer type " + type + " to $mem type.");
 			elementType = ((SetType) type).elementType();
 		}
 		MemConversionRestriction.check(expr);
-		return new CommonMemoryConversion(type,
-				typeFactory.memType((PointerType) elementType));
+		return new CommonMemoryConversion(type, typeFactory.memType((PointerType) elementType));
 	}
 
 	private boolean isBool(Type type) {
-		return type instanceof StandardBasicType && ((StandardBasicType) type)
-				.getBasicTypeKind() == BasicTypeKind.BOOL;
+		return type instanceof StandardBasicType && ((StandardBasicType) type).getBasicTypeKind() == BasicTypeKind.BOOL;
 	}
 
 	@Override
-	public RegularRangeToDomainConversion regularRangeToDomainConversion(
-			ObjectType rangeType, DomainType domainType) {
+	public RegularRangeToDomainConversion regularRangeToDomainConversion(ObjectType rangeType, DomainType domainType) {
 		return new CommonRegularRangeToDomainConversion(rangeType, domainType);
 	}
 
 	@Override
-	public Pointer2IntegerConversion pointer2IntegerConversion(
-			PointerType oldType, IntegerType newType) {
+	public Pointer2IntegerConversion pointer2IntegerConversion(PointerType oldType, IntegerType newType) {
 		return new CommonPointer2IntegerConversion(oldType, newType);
 	}
 
 	@Override
-	public Integer2PointerConversion integer2PointerConversion(
-			IntegerType oldType, PointerType newType) {
+	public Integer2PointerConversion integer2PointerConversion(IntegerType oldType, PointerType newType) {
 		return new CommonInteger2PointerConversion(oldType, newType);
 	}
 

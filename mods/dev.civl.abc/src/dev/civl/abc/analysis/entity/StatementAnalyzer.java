@@ -84,24 +84,18 @@ public class StatementAnalyzer {
 
 	private ConversionFactory conversionFactory;
 
-	private Configuration configuration;
-
 	private AcslContractAnalyzer acslAnalyzer;
 
 	// ************************** Constructors ****************************
 
-	StatementAnalyzer(EntityAnalyzer entityAnalyzer,
-			ExpressionAnalyzer expressionAnalyzer,
-			ConversionFactory conversionFactory, TypeFactory typeFactory,
-			Configuration config) {
+	StatementAnalyzer(EntityAnalyzer entityAnalyzer, ExpressionAnalyzer expressionAnalyzer,
+			ConversionFactory conversionFactory, TypeFactory typeFactory, Configuration config) {
 		this.entityAnalyzer = entityAnalyzer;
 		this.nodeFactory = entityAnalyzer.nodeFactory;
 		this.expressionAnalyzer = expressionAnalyzer;
 		this.conversionFactory = conversionFactory;
 		this.typeFactory = typeFactory;
-		this.configuration = config;
-		this.acslAnalyzer = new AcslContractAnalyzer(entityAnalyzer,
-				conversionFactory);
+		this.acslAnalyzer = new AcslContractAnalyzer(entityAnalyzer, conversionFactory);
 	}
 
 	// ************************* Private Methods **************************
@@ -114,8 +108,7 @@ public class StatementAnalyzer {
 		return entityAnalyzer.error(e, node);
 	}
 
-	private void processExpression(ExpressionNode expression)
-			throws SyntaxException {
+	private void processExpression(ExpressionNode expression) throws SyntaxException {
 		if (expression != null)
 			expressionAnalyzer.processExpression(expression);
 	}
@@ -128,8 +121,7 @@ public class StatementAnalyzer {
 	}
 
 	private SwitchNode enclosingSwitch(SwitchLabelNode labelNode) {
-		for (ASTNode node = labelNode.parent(); node != null; node = node
-				.parent()) {
+		for (ASTNode node = labelNode.parent(); node != null; node = node.parent()) {
 			if (node instanceof SwitchNode)
 				return (SwitchNode) node;
 		}
@@ -137,17 +129,14 @@ public class StatementAnalyzer {
 	}
 
 	private ASTNode enclosingSwitchOrChoose(SwitchLabelNode labelNode) {
-		for (ASTNode node = labelNode.parent(); node != null; node = node
-				.parent()) {
-			if (node instanceof SwitchNode
-					|| node instanceof ChooseStatementNode)
+		for (ASTNode node = labelNode.parent(); node != null; node = node.parent()) {
+			if (node instanceof SwitchNode || node instanceof ChooseStatementNode)
 				return node;
 		}
 		return null;
 	}
 
-	private void processLabeledStatement(LabeledStatementNode node)
-			throws SyntaxException {
+	private void processLabeledStatement(LabeledStatementNode node) throws SyntaxException {
 		LabelNode labelNode = node.getLabel();
 		StatementNode statementNode = node.getStatement();
 		Function function = entityAnalyzer.enclosingFunction(node);
@@ -165,8 +154,7 @@ public class StatementAnalyzer {
 
 	}
 
-	private void processOrdinaryLabel(OrdinaryLabelNode node, Function function)
-			throws SyntaxException {
+	private void processOrdinaryLabel(OrdinaryLabelNode node, Function function) throws SyntaxException {
 		Label label = entityAnalyzer.entityFactory.newLabel(node);
 
 		node.setFunction(function);
@@ -179,9 +167,8 @@ public class StatementAnalyzer {
 		}
 	}
 
-	private void processSwitchLabel(LabeledStatementNode labeledStatement,
-			SwitchLabelNode switchLabel, Function function)
-			throws SyntaxException {
+	private void processSwitchLabel(LabeledStatementNode labeledStatement, SwitchLabelNode switchLabel,
+			Function function) throws SyntaxException {
 
 		if (switchLabel.isDefault()) {
 			ASTNode enclosing = enclosingSwitchOrChoose(switchLabel);
@@ -191,9 +178,7 @@ public class StatementAnalyzer {
 				LabeledStatementNode oldDefault = choose.getDefaultCase();
 
 				if (oldDefault != null)
-					throw error(
-							"Two default cases in choose statement.  First was at "
-									+ oldDefault.getSource(),
+					throw error("Two default cases in choose statement.  First was at " + oldDefault.getSource(),
 							switchLabel);
 				choose.setDefaultCase(labeledStatement);
 				return;
@@ -203,15 +188,12 @@ public class StatementAnalyzer {
 		SwitchNode switchNode = enclosingSwitch(switchLabel);
 
 		if (switchNode == null)
-			throw error("Switch label occurs outside of any switch statement",
-					switchLabel);
+			throw error("Switch label occurs outside of any switch statement", switchLabel);
 		if (switchLabel.isDefault()) {
 			LabeledStatementNode oldDefault = switchNode.getDefaultCase();
 
 			if (oldDefault != null)
-				throw error(
-						"Two default cases in switch statement.  First was at "
-								+ oldDefault.getSource(),
+				throw error("Two default cases in switch statement.  First was at " + oldDefault.getSource(),
 						switchLabel);
 			switchNode.setDefaultCase(labeledStatement);
 		} else {
@@ -225,16 +207,12 @@ public class StatementAnalyzer {
 			}
 			constant = nodeFactory.getConstantValue(caseExpression);
 			while (cases.hasNext()) {
-				SwitchLabelNode labelNode = (SwitchLabelNode) cases.next()
-						.getLabel();
+				SwitchLabelNode labelNode = (SwitchLabelNode) cases.next().getLabel();
 				ExpressionNode oldExpression = labelNode.getExpression();
 				Value oldConstant = nodeFactory.getConstantValue(oldExpression);
 
 				if (constant.equals(oldConstant))
-					throw error(
-							"Case constant appears twice: first time was at "
-									+ oldExpression,
-							caseExpression);
+					throw error("Case constant appears twice: first time was at " + oldExpression, caseExpression);
 			}
 			switchNode.addCase(labeledStatement);
 		}
@@ -242,38 +220,33 @@ public class StatementAnalyzer {
 
 	private void processJump(JumpNode statement) throws SyntaxException {
 		switch (statement.getKind()) {
-			case RETURN : {
-				ExpressionNode expression = ((ReturnNode) statement)
-						.getExpression();
-				Function function = entityAnalyzer.enclosingFunction(statement);
-				ObjectType returnType = function.getType().getReturnType();
-				boolean returnTypeIsVoid = returnType.kind() == TypeKind.VOID;
+		case RETURN: {
+			ExpressionNode expression = ((ReturnNode) statement).getExpression();
+			Function function = entityAnalyzer.enclosingFunction(statement);
+			ObjectType returnType = function.getType().getReturnType();
+			boolean returnTypeIsVoid = returnType.kind() == TypeKind.VOID;
 
-				if (expression == null) {
-					if (!this.configuration.getSVCOMP() && !returnTypeIsVoid)
-						throw error("Missing expression in return statement",
-								statement);
-				} else {
-					if (returnTypeIsVoid)
-						throw error(
-								"Argument for return in function returning void",
-								statement);
-					if (expression != null)
-						processExpression(expression);
-					try {
-						expressionAnalyzer.processAssignment(returnType,
-								expression);
-					} catch (UnsourcedException e) {
-						throw error(e, expression);
-					}
+			if (expression == null) {
+				if (!returnTypeIsVoid)
+					throw error("Missing expression in return statement", statement);
+			} else {
+				if (returnTypeIsVoid)
+					throw error("Argument for return in function returning void", statement);
+				if (expression != null)
+					processExpression(expression);
+				try {
+					expressionAnalyzer.processAssignment(returnType, expression);
+				} catch (UnsourcedException e) {
+					throw error(e, expression);
 				}
 			}
-			case GOTO : // taken care of later in processGotos
-			case BREAK : // nothing to do
-			case CONTINUE : // nothing to do
-				break;
-			default :
-				throw new RuntimeException("Unreachable");
+		}
+		case GOTO: // taken care of later in processGotos
+		case BREAK: // nothing to do
+		case CONTINUE: // nothing to do
+			break;
+		default:
+			throw new RuntimeException("Unreachable");
 		}
 	}
 
@@ -281,44 +254,41 @@ public class StatementAnalyzer {
 		SequenceNode<ContractNode> loopContracts = loopNode.loopContracts();
 
 		switch (loopNode.getKind()) {
-			case WHILE :
-				processExpression(loopNode.getCondition());
-				processStatement(loopNode.getBody());
-				// processExpression(loopNode.getInvariant());
-				break;
-			case DO_WHILE :
-				processStatement(loopNode.getBody());
-				processExpression(loopNode.getCondition());
-				// processExpression(loopNode.getInvariant());
-				break;
-			case FOR : {
-				ForLoopNode forNode = (ForLoopNode) loopNode;
-				ForLoopInitializerNode initializer = forNode.getInitializer();
+		case WHILE:
+			processExpression(loopNode.getCondition());
+			processStatement(loopNode.getBody());
+			// processExpression(loopNode.getInvariant());
+			break;
+		case DO_WHILE:
+			processStatement(loopNode.getBody());
+			processExpression(loopNode.getCondition());
+			// processExpression(loopNode.getInvariant());
+			break;
+		case FOR: {
+			ForLoopNode forNode = (ForLoopNode) loopNode;
+			ForLoopInitializerNode initializer = forNode.getInitializer();
 
-				if (initializer == null) {
-				} else if (initializer instanceof ExpressionNode) {
-					processExpression((ExpressionNode) initializer);
-				} else if (initializer instanceof DeclarationListNode) {
-					DeclarationListNode declarationList = (DeclarationListNode) initializer;
+			if (initializer == null) {
+			} else if (initializer instanceof ExpressionNode) {
+				processExpression((ExpressionNode) initializer);
+			} else if (initializer instanceof DeclarationListNode) {
+				DeclarationListNode declarationList = (DeclarationListNode) initializer;
 
-					for (VariableDeclarationNode child : declarationList) {
-						if (child == null)
-							continue;
-						entityAnalyzer.declarationAnalyzer
-								.processVariableDeclaration(child);
-					}
-				} else
-					throw error(
-							"Unknown kind of initializer clause in for loop",
-							initializer);
-				processExpression(loopNode.getCondition());
-				processExpression(forNode.getIncrementer());
-				processStatement(loopNode.getBody());
-				// processExpression(loopNode.getInvariant());
-				break;
-			}
-			default :
-				throw new RuntimeException("Unreachable");
+				for (VariableDeclarationNode child : declarationList) {
+					if (child == null)
+						continue;
+					entityAnalyzer.declarationAnalyzer.processVariableDeclaration(child);
+				}
+			} else
+				throw error("Unknown kind of initializer clause in for loop", initializer);
+			processExpression(loopNode.getCondition());
+			processExpression(forNode.getIncrementer());
+			processStatement(loopNode.getBody());
+			// processExpression(loopNode.getInvariant());
+			break;
+		}
+		default:
+			throw new RuntimeException("Unreachable");
 		}
 		if (loopContracts != null) {
 			acslAnalyzer.processLoopContractNodes(loopContracts);
@@ -335,40 +305,30 @@ public class StatementAnalyzer {
 		for (VariableDeclarationNode child : node.getVariables()) {
 			Type type;
 
-			entityAnalyzer.declarationAnalyzer
-					.processVariableDeclaration(child);
+			entityAnalyzer.declarationAnalyzer.processVariableDeclaration(child);
 			if (child.getInitializer() != null)
-				throw error(
-						"Loop variable " + numVars
-								+ " in $for/$parfor statement has initializer",
-						child);
+				throw error("Loop variable " + numVars + " in $for/$parfor statement has initializer", child);
 			type = child.getTypeNode().getType();
 			if (!(type instanceof IntegerType))
-				throw error("Loop variable " + numVars
-						+ " in $for/$parfor has non-integer type: " + type,
+				throw error("Loop variable " + numVars + " in $for/$parfor has non-integer type: " + type,
 						child.getTypeNode());
 			numVars++;
 		}
 		expressionAnalyzer.processExpression(domainNode);
 		domainNodeType = domainNode.getConvertedType();
 		if (domainNodeType.equals(typeFactory.rangeType())) {
-			domainNode.addConversion(conversionFactory
-					.regularRangeToDomainConversion((ObjectType) domainNodeType,
-							typeFactory.domainType(1)));
+			domainNode.addConversion(conversionFactory.regularRangeToDomainConversion((ObjectType) domainNodeType,
+					typeFactory.domainType(1)));
 			domainNodeType = domainNode.getConvertedType();
 		} else if (!(domainNodeType instanceof DomainType))
-			throw error(
-					"Domain expression in $for/$parfor does not have $domain type",
-					domainNode);
+			throw error("Domain expression in $for/$parfor does not have $domain type", domainNode);
 		domainType = (DomainType) domainNodeType;
 		if (!domainType.hasDimension())
-			throw error("Use of incomplete domain type in $for/$parfor",
-					domainNode);
+			throw error("Use of incomplete domain type in $for/$parfor", domainNode);
 		domainDimension = domainType.getDimension();
 		if (domainDimension != numVars)
-			throw error("Dimension of domain (" + domainDimension + ") "
-					+ "does not equal number of loop variables (" + numVars
-					+ ")", domainNode);
+			throw error("Dimension of domain (" + domainDimension + ") " + "does not equal number of loop variables ("
+					+ numVars + ")", domainNode);
 		processStatement(node.getBody());
 		if (node.loopContracts() != null)
 			acslAnalyzer.processLoopContractNodes(node.loopContracts());
@@ -380,93 +340,88 @@ public class StatementAnalyzer {
 		StatementKind kind = statement.statementKind();
 
 		switch (kind) {
-			case COMPOUND :
-				processCompoundStatement((CompoundStatementNode) statement);
-				break;
-			case EXPRESSION :
-				processExpression(
-						((ExpressionStatementNode) statement).getExpression());
-				break;
-			case IF :
-				processIf((IfNode) statement);
-				break;
-			case JUMP :
-				processJump((JumpNode) statement);
-				break;
-			case LABELED :
-				processLabeledStatement((LabeledStatementNode) statement);
-				break;
-			case LOOP :
-				processLoop((LoopNode) statement);
-				break;
-			case SWITCH :
-				processExpression(((SwitchNode) statement).getCondition());
-				processStatement(((SwitchNode) statement).getBody());
-				break;
-			case PRAGMA :
-				entityAnalyzer.processPragma((PragmaNode) statement);
-				break;
-			case RUN :
-				processRunStatement((RunNode) statement);
-				break;
-			case OMP :
-				processOmpNode((OmpNode) statement);
-				break;
-			case NULL :
-				break;
-			case WHEN : {
-				ExpressionNode guard = ((WhenNode) statement).getGuard();
-				Type guardType;
+		case COMPOUND:
+			processCompoundStatement((CompoundStatementNode) statement);
+			break;
+		case EXPRESSION:
+			processExpression(((ExpressionStatementNode) statement).getExpression());
+			break;
+		case IF:
+			processIf((IfNode) statement);
+			break;
+		case JUMP:
+			processJump((JumpNode) statement);
+			break;
+		case LABELED:
+			processLabeledStatement((LabeledStatementNode) statement);
+			break;
+		case LOOP:
+			processLoop((LoopNode) statement);
+			break;
+		case SWITCH:
+			processExpression(((SwitchNode) statement).getCondition());
+			processStatement(((SwitchNode) statement).getBody());
+			break;
+		case PRAGMA:
+			entityAnalyzer.processPragma((PragmaNode) statement);
+			break;
+		case RUN:
+			processRunStatement((RunNode) statement);
+			break;
+		case OMP:
+			processOmpNode((OmpNode) statement);
+			break;
+		case NULL:
+			break;
+		case WHEN: {
+			ExpressionNode guard = ((WhenNode) statement).getGuard();
+			Type guardType;
 
-				processExpression(guard);
-				if (!guard.isSideEffectFree(false))
-					throw this.error(
-							"the guard of a $when statement is not allowed to have side effects.",
-							guard);
-				guardType = guard.getConvertedType();
-				// check guardType can be converted to a boolean...
-				if (!guardType.isScalar())
-					throw error("Guard has non-scalar type " + guardType,
-							guard);
-				processStatement(((WhenNode) statement).getBody());
-				break;
-			}
-			case WITH : {
-				WithNode withNode = (WithNode) statement;
-				ExpressionNode stateRef = withNode.getStateReference();
-				Type stateType;
+			processExpression(guard);
+			if (!guard.isSideEffectFree(false))
+				throw this.error("the guard of a $when statement is not allowed to have side effects.", guard);
+			guardType = guard.getConvertedType();
+			// check guardType can be converted to a boolean...
+			if (!guardType.isScalar())
+				throw error("Guard has non-scalar type " + guardType, guard);
+			processStatement(((WhenNode) statement).getBody());
+			break;
+		}
+		case WITH: {
+			WithNode withNode = (WithNode) statement;
+			ExpressionNode stateRef = withNode.getStateReference();
+			Type stateType;
 
-				processExpression(stateRef);
-				stateType = stateRef.getConvertedType();
-				if (!entityAnalyzer.standardTypes.isCollateStateType(stateType))
-					throw this.error(
-							"The state reference expression of $with doesn't have type of collate statet",
-							statement);
-				processStatement(withNode.getBodyNode());
-				break;
-			}
-			case UPDATE : {
-				UpdateNode updateNode = (UpdateNode) statement;
+			processExpression(stateRef);
+			stateType = stateRef.getConvertedType();
+			if (!entityAnalyzer.standardTypes.isCollateStateType(stateType))
+				throw this.error("The state reference expression of $with doesn't have type of collate statet",
+						statement);
+			processStatement(withNode.getBodyNode());
+			break;
+		}
+		case UPDATE: {
+			UpdateNode updateNode = (UpdateNode) statement;
 
-				processExpression(updateNode.getCollator());
-				processExpression(updateNode.getFunctionCall());
-				break;
-			}
-			case CHOOSE : {
-				ChooseStatementNode chooseStatement = (ChooseStatementNode) statement;
+			processExpression(updateNode.getCollator());
+			processExpression(updateNode.getFunctionCall());
+			break;
+		}
+		case CHOOSE: {
+			ChooseStatementNode chooseStatement = (ChooseStatementNode) statement;
 
-				for (StatementNode child : chooseStatement)
-					processStatement(child);
-				break;
-			}
-			case ATOMIC :
-				processStatement(((AtomicNode) statement).getBody());
-				break;
-			case CIVL_FOR :
-				processCivlFor((CivlForNode) statement);
-				break;
-			default :
-				throw error("Unknown kind of statement", statement);
+			for (StatementNode child : chooseStatement)
+				processStatement(child);
+			break;
+		}
+		case ATOMIC:
+			processStatement(((AtomicNode) statement).getBody());
+			break;
+		case CIVL_FOR:
+			processCivlFor((CivlForNode) statement);
+			break;
+		default:
+			throw error("Unknown kind of statement", statement);
 		}
 	}
 
@@ -474,21 +429,20 @@ public class StatementAnalyzer {
 		OmpNodeKind ompKind = ompNode.ompNodeKind();
 
 		switch (ompKind) {
-			case EXECUTABLE :
-				processOmpExecutableNode((OmpExecutableNode) ompNode);
-				break;
-			case DECLARATIVE :
-			default :
+		case EXECUTABLE:
+			processOmpExecutableNode((OmpExecutableNode) ompNode);
+			break;
+		case DECLARATIVE:
+		default:
 
 		}
 	}
 
 	/**
-	 * Process the body statements of a $run statement. Apply checking for no
-	 * return node is allowed inside the body of the $run statement.
+	 * Process the body statements of a $run statement. Apply checking for no return
+	 * node is allowed inside the body of the $run statement.
 	 * 
-	 * @param runNode
-	 *            The {@link RunNode}
+	 * @param runNode The {@link RunNode}
 	 * @throws SyntaxException
 	 */
 	private void processRunStatement(RunNode runNode) throws SyntaxException {
@@ -504,35 +458,28 @@ public class StatementAnalyzer {
 
 			if (item != null) {
 				if (item.nodeKind() == NodeKind.STATEMENT)
-					if (((StatementNode) item)
-							.statementKind() == StatementKind.JUMP)
+					if (((StatementNode) item).statementKind() == StatementKind.JUMP)
 						if (((JumpNode) item).getKind() == JumpKind.RETURN)
-							throw error(
-									"No return statement is allowed to be inside a $run statement block.",
-									item);
+							throw error("No return statement is allowed to be inside a $run statement block.", item);
 				for (ASTNode child : item.children())
 					children.push(child);
 			}
 		}
 	}
 
-	private void processOmpExecutableNode(OmpExecutableNode statement)
-			throws SyntaxException {
+	private void processOmpExecutableNode(OmpExecutableNode statement) throws SyntaxException {
 		OmpExecutableKind kind = statement.ompExecutableKind();
-		SequenceNode<OmpReductionNode> reductionList = (SequenceNode<OmpReductionNode>) statement
-				.reductionList();
+		SequenceNode<OmpReductionNode> reductionList = (SequenceNode<OmpReductionNode>) statement.reductionList();
 
 		for (int i = 0; i <= 5; i++) {
 			@SuppressWarnings("unchecked")
-			SequenceNode<ExpressionNode> list = (SequenceNode<ExpressionNode>) statement
-					.child(i);
+			SequenceNode<ExpressionNode> list = (SequenceNode<ExpressionNode>) statement.child(i);
 
 			if (list != null) {
 				int count = list.numChildren();
 
 				for (int j = 0; j < count; j++) {
-					this.expressionAnalyzer
-							.processExpression(list.getSequenceChild(j));
+					this.expressionAnalyzer.processExpression(list.getSequenceChild(j));
 				}
 			}
 		}
@@ -544,60 +491,55 @@ public class StatementAnalyzer {
 			}
 		}
 		switch (kind) {
-			case PARALLEL :
-				OmpParallelNode parallel = (OmpParallelNode) statement;
+		case PARALLEL:
+			OmpParallelNode parallel = (OmpParallelNode) statement;
 
-				if (parallel.ifClause() != null)
-					processExpression(parallel.ifClause());
-				if (parallel.numThreads() != null)
-					processExpression(parallel.numThreads());
-				break;
-			case WORKSHARING :
-				OmpWorksharingNode workshare = (OmpWorksharingNode) statement;
+			if (parallel.ifClause() != null)
+				processExpression(parallel.ifClause());
+			if (parallel.numThreads() != null)
+				processExpression(parallel.numThreads());
+			break;
+		case WORKSHARING:
+			OmpWorksharingNode workshare = (OmpWorksharingNode) statement;
 
-				switch (workshare.ompWorkshareNodeKind()) {
-					case FOR :
-						OmpForNode forNode = (OmpForNode) statement;
-						SequenceNode<FunctionCallNode> assertions = forNode
-								.assertions();
-						FunctionCallNode invariant = forNode.invariant();
-						ExpressionNode chunkSize = forNode.chunkSize();
+			switch (workshare.ompWorkshareNodeKind()) {
+			case FOR:
+				OmpForNode forNode = (OmpForNode) statement;
+				SequenceNode<FunctionCallNode> assertions = forNode.assertions();
+				FunctionCallNode invariant = forNode.invariant();
+				ExpressionNode chunkSize = forNode.chunkSize();
 
-						if (assertions != null) {
-							for (FunctionCallNode node : assertions)
-								processExpression(node);
-						}
-						if (invariant != null)
-							processExpression(invariant);
-						if (chunkSize != null)
-							processExpression(chunkSize);
-						break;
-					default :
+				if (assertions != null) {
+					for (FunctionCallNode node : assertions)
+						processExpression(node);
 				}
+				if (invariant != null)
+					processExpression(invariant);
+				if (chunkSize != null)
+					processExpression(chunkSize);
 				break;
-			case SIMD :
-				// TODO: there are more of SIMD clauses under construction
-			case SYNCHRONIZATION :
-				break;
-			default :
-				throw new ABCRuntimeException(
-						"unknown OpenMP executable node kind to StatementAnalyzer: "
-								+ kind + "\nStatement: "
-								+ statement.prettyRepresentation());
+			default:
+			}
+			break;
+		case SIMD:
+			// TODO: there are more of SIMD clauses under construction
+		case SYNCHRONIZATION:
+			break;
+		default:
+			throw new ABCRuntimeException("unknown OpenMP executable node kind to StatementAnalyzer: " + kind
+					+ "\nStatement: " + statement.prettyRepresentation());
 		}
 		if (statement.statementNode() != null)
 			processStatement(statement.statementNode());
 	}
 
-	private void processOmpReductionNode(OmpReductionNode reduction)
-			throws SyntaxException {
+	private void processOmpReductionNode(OmpReductionNode reduction) throws SyntaxException {
 		OmpReductionNodeKind kind = reduction.ompReductionOperatorNodeKind();
 		SequenceNode<IdentifierExpressionNode> list = reduction.variables();
 		int count = list.numChildren();
 
 		if (kind == OmpReductionNodeKind.FUNCTION) {
-			this.expressionAnalyzer.processExpression(
-					((OmpFunctionReductionNode) reduction).function());
+			this.expressionAnalyzer.processExpression(((OmpFunctionReductionNode) reduction).function());
 		}
 		for (int i = 0; i < count; i++) {
 			this.expressionAnalyzer.processExpression(list.getSequenceChild(i));
@@ -618,31 +560,24 @@ public class StatementAnalyzer {
 	 * @param node
 	 * @throws SyntaxException
 	 */
-	void processCompoundStatement(CompoundStatementNode node)
-			throws SyntaxException {
+	void processCompoundStatement(CompoundStatementNode node) throws SyntaxException {
 		for (BlockItemNode item : node) {
 			if (item == null)
 				continue;
 			if (item instanceof StatementNode)
 				processStatement((StatementNode) item);
 			else if (item instanceof StructureOrUnionTypeNode)
-				entityAnalyzer.typeAnalyzer.processStructureOrUnionType(
-						(StructureOrUnionTypeNode) item);
+				entityAnalyzer.typeAnalyzer.processStructureOrUnionType((StructureOrUnionTypeNode) item);
 			else if (item instanceof EnumerationTypeNode)
-				entityAnalyzer.typeAnalyzer
-						.processEnumerationType((EnumerationTypeNode) item);
+				entityAnalyzer.typeAnalyzer.processEnumerationType((EnumerationTypeNode) item);
 			else if (item instanceof StaticAssertionNode)
-				entityAnalyzer
-						.processStaticAssertion((StaticAssertionNode) item);
+				entityAnalyzer.processStaticAssertion((StaticAssertionNode) item);
 			else if (item instanceof VariableDeclarationNode)
-				entityAnalyzer.declarationAnalyzer.processVariableDeclaration(
-						(VariableDeclarationNode) item);
+				entityAnalyzer.declarationAnalyzer.processVariableDeclaration((VariableDeclarationNode) item);
 			else if (item instanceof FunctionDeclarationNode)
-				entityAnalyzer.declarationAnalyzer.processFunctionDeclaration(
-						(FunctionDeclarationNode) item);
+				entityAnalyzer.declarationAnalyzer.processFunctionDeclaration((FunctionDeclarationNode) item);
 			else if (item instanceof TypedefDeclarationNode)
-				entityAnalyzer.declarationAnalyzer.processTypedefDeclaration(
-						(TypedefDeclarationNode) item);
+				entityAnalyzer.declarationAnalyzer.processTypedefDeclaration((TypedefDeclarationNode) item);
 			else
 				throw error("Unknown kind of block item", item);
 		}

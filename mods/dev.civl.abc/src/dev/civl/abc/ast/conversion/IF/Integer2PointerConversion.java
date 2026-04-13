@@ -4,8 +4,8 @@ import dev.civl.abc.ast.type.IF.IntegerType;
 import dev.civl.abc.ast.type.IF.PointerType;
 
 /**
- * some sv-comp examples are using conversions between pointers and integers.
- * this conversion would only be used when -svcomp option is on.
+ * This conversion will usually be undefined behavior, but it is still used and
+ * we try to support it.
  * 
  * @author zmanchun
  *

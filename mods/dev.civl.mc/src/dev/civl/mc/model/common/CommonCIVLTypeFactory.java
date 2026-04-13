@@ -92,10 +92,9 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	CIVLPrimitiveType booleanType;
 
 	/**
-	 * The CIVL bundle type, which is unique for a given CIVL model. A bundle
-	 * type is a union type of all types referenced by a given CIVL model. A
-	 * bundle type needs to be completed at the end of the construction of the
-	 * model.
+	 * The CIVL bundle type, which is unique for a given CIVL model. A bundle type
+	 * is a union type of all types referenced by a given CIVL model. A bundle type
+	 * needs to be completed at the end of the construction of the model.
 	 */
 	CIVLBundleType bundleType;
 
@@ -122,8 +121,8 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	/**
 	 * The unique symbolic function pointer type used in the system. Function
 	 * pointer type need to be different from pointer type, because there is
-	 * analysis particularly for pointers, like heap object reachability,
-	 * reachable memory units, etc.
+	 * analysis particularly for pointers, like heap object reachability, reachable
+	 * memory units, etc.
 	 */
 	SymbolicTupleType functionPointerSymbolicType;
 
@@ -137,18 +136,17 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	Map<CIVLType, Integer> heapFieldTypeMap = new HashMap<>();
 
 	/**
-	 * A map from identifier expressions of symbolic types to their
-	 * corresponding {@link CIVLType}s. An identifier expression of a symbolic
-	 * type is obtained through
-	 * {@link #expressionOfType(CIVLType, SymbolicType)}.
+	 * A map from identifier expressions of symbolic types to their corresponding
+	 * {@link CIVLType}s. An identifier expression of a symbolic type is obtained
+	 * through {@link #expressionOfType(CIVLType, SymbolicType)}.
 	 */
 	Map<SymbolicExpression, CIVLType> dynamicTypeID2staticType = new HashMap<>();
 
 	/**
-	 * The CIVL heap type, which is unique for a given CIVL model. A heap type
-	 * is a struct type of all types appearing in a malloc statement, plus all
-	 * handled object types used by the model. A heap type needs to be completed
-	 * at the end of the construction of the model.
+	 * The CIVL heap type, which is unique for a given CIVL model. A heap type is a
+	 * struct type of all types appearing in a malloc statement, plus all handled
+	 * object types used by the model. A heap type needs to be completed at the end
+	 * of the construction of the model.
 	 */
 	CIVLHeapType heapType;
 
@@ -204,10 +202,10 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	SymbolicType scopeSymbolicType;
 
 	/**
-	 * The map of types of system libraries, e.g., $gcomm/$comm for comm, $file
-	 * for stdio, $gbarrier/$barrier for concurrency, etc. A map is used so that
-	 * in the future if new types are introduced by system libraries, the
-	 * interface won't have to be changed.
+	 * The map of types of system libraries, e.g., $gcomm/$comm for comm, $file for
+	 * stdio, $gbarrier/$barrier for concurrency, etc. A map is used so that in the
+	 * future if new types are introduced by system libraries, the interface won't
+	 * have to be changed.
 	 */
 	Map<String, CIVLType> systemTypes = new HashMap<>();
 
@@ -248,72 +246,49 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	/**
 	 * Constructs a new instance of CIVL type factory.
 	 * 
-	 * @param universe
-	 *            The symbolic universe to be used.
+	 * @param universe The symbolic universe to be used.
 	 */
-	public CommonCIVLTypeFactory(SymbolicUniverse universe,
-			CIVLConfiguration config) {
-		Iterable<SymbolicType> intTypeSingleton = new Singleton<SymbolicType>(
-				universe.integerType());
+	public CommonCIVLTypeFactory(SymbolicUniverse universe, CIVLConfiguration config) {
+		Iterable<SymbolicType> intTypeSingleton = new Singleton<SymbolicType>(universe.integerType());
 		LinkedList<SymbolicType> pointerComponents = new LinkedList<>();
 		LinkedList<SymbolicType> fpointerComponents = new LinkedList<>();
 
 		this.config = config;
 		this.universe = universe;
 		scopeType = (CIVLScopeType) primitiveType(PrimitiveTypeKind.SCOPE,
-				universe.symbolicUninterpretedType(
-						UNINTERPRETED_SCOPE_TYPE_NAME));
+				universe.symbolicUninterpretedType(UNINTERPRETED_SCOPE_TYPE_NAME));
 		scopeSymbolicType = scopeType.getDynamicType(universe);
-		processSymbolicType = universe
-				.tupleType(universe.stringObject("process"), intTypeSingleton);
-		processType = primitiveType(PrimitiveTypeKind.PROCESS,
-				processSymbolicType);
+		processSymbolicType = universe.tupleType(universe.stringObject("process"), intTypeSingleton);
+		processType = primitiveType(PrimitiveTypeKind.PROCESS, processSymbolicType);
 		/*
-		 * A CIVL-C $state type is a tuple of a unique uninterpreted type which
-		 * refers to a state s and an integer array which maps scope values from
-		 * the state s to the current state.
+		 * A CIVL-C $state type is a tuple of a unique uninterpreted type which refers
+		 * to a state s and an integer array which maps scope values from the state s to
+		 * the current state.
 		 */
 		stateSymbolicType = universe.tupleType(universe.stringObject("$state"),
-				Arrays.asList(
-						universe.symbolicUninterpretedType(
-								UNINTERPRETED_STATE_TYPE_NAME),
+				Arrays.asList(universe.symbolicUninterpretedType(UNINTERPRETED_STATE_TYPE_NAME),
 						universe.arrayType(scopeSymbolicType)));
-		stateType = (CIVLStateType) primitiveType(PrimitiveTypeKind.STATE,
-				stateSymbolicType);
-		dynamicSymbolicType = universe.tupleType(
-				universe.stringObject("dynamicType"), intTypeSingleton);
-		dynamicType = primitiveType(PrimitiveTypeKind.DYNAMIC,
-				dynamicSymbolicType);
-		sizeofFunction = universe.symbolicConstant(
-				ModelConfiguration
-						.getSizeofNonPrimitiveTypeFunctionName(universe),
-				universe.functionType(
-						new Singleton<SymbolicType>(dynamicSymbolicType),
-						universe.integerType()));
+		stateType = (CIVLStateType) primitiveType(PrimitiveTypeKind.STATE, stateSymbolicType);
+		dynamicSymbolicType = universe.tupleType(universe.stringObject("dynamicType"), intTypeSingleton);
+		dynamicType = primitiveType(PrimitiveTypeKind.DYNAMIC, dynamicSymbolicType);
+		sizeofFunction = universe.symbolicConstant(ModelConfiguration.getSizeofNonPrimitiveTypeFunctionName(universe),
+				universe.functionType(new Singleton<SymbolicType>(dynamicSymbolicType), universe.integerType()));
 		pointerComponents.add(scopeType.getDynamicType(universe));
 		pointerComponents.add(universe.integerType());
 		pointerComponents.add(universe.referenceType());
-		pointerSymbolicType = universe
-				.tupleType(universe.stringObject("pointer"), pointerComponents);
+		pointerSymbolicType = universe.tupleType(universe.stringObject("pointer"), pointerComponents);
 		fpointerComponents.add(scopeType.getDynamicType(universe));
 		fpointerComponents.add(universe.integerType());
-		functionPointerSymbolicType = universe.tupleType(
-				universe.stringObject("fpointer"), fpointerComponents);
-		this.voidSymbolicType = universe
-				.tupleType(universe.stringObject("void"), new ArrayList<>());
+		functionPointerSymbolicType = universe.tupleType(universe.stringObject("fpointer"), fpointerComponents);
+		this.voidSymbolicType = universe.tupleType(universe.stringObject("void"), new ArrayList<>());
 		this.voidType = primitiveType(PrimitiveTypeKind.VOID, voidSymbolicType);
-		this.integerType = primitiveType(PrimitiveTypeKind.INT,
-				universe.integerType());
-		this.booleanType = primitiveType(PrimitiveTypeKind.BOOL,
-				universe.booleanType());
-		this.realType = primitiveType(PrimitiveTypeKind.REAL,
-				universe.realType());
-		this.charType = primitiveType(PrimitiveTypeKind.CHAR,
-				universe.characterType());
+		this.integerType = primitiveType(PrimitiveTypeKind.INT, universe.integerType());
+		this.booleanType = primitiveType(PrimitiveTypeKind.BOOL, universe.booleanType());
+		this.realType = primitiveType(PrimitiveTypeKind.REAL, universe.realType());
+		this.charType = primitiveType(PrimitiveTypeKind.CHAR, universe.characterType());
 		this.rangeType = new CommonRegularRangeType(
-				new CommonIdentifier(this.systemSource,
-						universe.stringObject("$regular_range")),
-				universe, integerType);
+				new CommonIdentifier(this.systemSource, universe.stringObject("$regular_range")), universe,
+				integerType);
 		this.systemTypes.put(ModelConfiguration.RANGE_TYPE, rangeType);
 
 	}
@@ -321,9 +296,8 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	/* ******************* Methods from CIVLTypeFactory ******************** */
 
 	/*
-	 * *********************************************************************
-	 * CIVL Types
-	 * *********************************************************************
+	 * ********************************************************************* CIVL
+	 * Types *********************************************************************
 	 */
 
 	@Override
@@ -344,12 +318,10 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	}
 
 	@Override
-	public void completeHeapType(CIVLHeapType heapType,
-			Collection<MallocStatement> mallocs) {
+	public void completeHeapType(CIVLHeapType heapType, Collection<MallocStatement> mallocs) {
 		SymbolicTupleType dynamicType = computeDynamicHeapType(mallocs);
 		SymbolicExpression initialValue = computeInitialHeapValue(dynamicType);
-		SymbolicExpression undefinedValue = universe.symbolicConstant(
-				universe.stringObject("UNDEFINED"), dynamicType);
+		SymbolicExpression undefinedValue = universe.symbolicConstant(universe.stringObject("UNDEFINED"), dynamicType);
 
 		heapType.complete(mallocs, dynamicType, initialValue, undefinedValue);
 		this.heapType = heapType;
@@ -361,8 +333,7 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	}
 
 	@Override
-	public CIVLCompleteArrayType completeArrayType(CIVLType elementType,
-			Expression extent) {
+	public CIVLCompleteArrayType completeArrayType(CIVLType elementType, Expression extent) {
 		return new CommonCompleteArrayType(elementType, extent);
 	}
 
@@ -372,14 +343,12 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	}
 
 	@Override
-	public CIVLEnumType enumType(String name,
-			Map<String, BigInteger> valueMap) {
+	public CIVLEnumType enumType(String name, Map<String, BigInteger> valueMap) {
 		return new CommonEnumType(name, valueMap, universe.integerType());
 	}
 
 	@Override
-	public CIVLFunctionType functionType(CIVLType returnType,
-			CIVLType[] paraTypes) {
+	public CIVLFunctionType functionType(CIVLType returnType, CIVLType[] paraTypes) {
 		return new CommonFunctionType(returnType, paraTypes);
 	}
 
@@ -406,8 +375,7 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	@Override
 	public CIVLPointerType pointerType(CIVLType baseType) {
 		if (baseType.isFunction())
-			return new CommonPointerType(baseType,
-					this.functionPointerSymbolicType);
+			return new CommonPointerType(baseType, this.functionPointerSymbolicType);
 		return new CommonPointerType(baseType, pointerSymbolicType);
 	}
 
@@ -427,16 +395,13 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	}
 
 	@Override
-	public StructOrUnionField structField(Identifier name, CIVLType type,
-			int index, boolean isAnonymous,
+	public StructOrUnionField structField(Identifier name, CIVLType type, int index, boolean isAnonymous,
 			CIVLStructOrUnionType enclosingType) {
-		return new CommonStructOrUnionField(name, type, index, isAnonymous,
-				enclosingType);
+		return new CommonStructOrUnionField(name, type, index, isAnonymous, enclosingType);
 	}
 
 	@Override
-	public CIVLStructOrUnionType structOrUnionType(Identifier name,
-			boolean isStruct) {
+	public CIVLStructOrUnionType structOrUnionType(Identifier name, boolean isStruct) {
 		return new CommonStructOrUnionType(name, isStruct);
 	}
 
@@ -466,14 +431,13 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	}
 
 	@Override
-	public CIVLCompleteDomainType completeDomainType(CIVLType rangeType,
-			int dim) {
+	public CIVLCompleteDomainType completeDomainType(CIVLType rangeType, int dim) {
 		return new CommonCompleteDomainType(rangeType, dim);
 	}
 
 	/*
-	 * *********************************************************************
-	 * SARL symbolic types
+	 * ********************************************************************* SARL
+	 * symbolic types
 	 * *********************************************************************
 	 */
 
@@ -526,13 +490,13 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	}
 
 	/*
-	 * *********************************************************************
-	 * Special handling
+	 * ********************************************************************* Special
+	 * handling
 	 * *********************************************************************
 	 */
 	@Override
-	public void completeBundleType(CIVLBundleType bundleType,
-			List<CIVLType> eleTypes, Collection<SymbolicType> elementTypes) {
+	public void completeBundleType(CIVLBundleType bundleType, List<CIVLType> eleTypes,
+			Collection<SymbolicType> elementTypes) {
 		LinkedList<SymbolicType> includedTypes = new LinkedList<SymbolicType>();
 		SymbolicUnionType dynamicType;
 		Set<SymbolicType> seenTypes = new HashSet<>();
@@ -550,8 +514,7 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 				seenTypes.add(arrayType);
 			}
 		}
-		dynamicType = universe.unionType(universe.stringObject("$bundle"),
-				includedTypes);
+		dynamicType = universe.unionType(universe.stringObject("$bundle"), includedTypes);
 		bundleType.complete(eleTypes, includedTypes, dynamicType);
 		this.bundleType = bundleType;
 	}
@@ -561,18 +524,15 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	 * Computes the dynamic heap type, based on the list of malloc statements
 	 * encountered in the model.
 	 * 
-	 * @param mallocStatements
-	 *            The list of malloc statements in the model.
+	 * @param mallocStatements The list of malloc statements in the model.
 	 * @return The symbolic heap type.
 	 */
-	private SymbolicTupleType computeDynamicHeapType(
-			Iterable<MallocStatement> mallocStatements) {
+	private SymbolicTupleType computeDynamicHeapType(Iterable<MallocStatement> mallocStatements) {
 		LinkedList<SymbolicType> fieldTypes = new LinkedList<SymbolicType>();
 		SymbolicTupleType result;
 
 		for (MallocStatement statement : mallocStatements) {
-			SymbolicType fieldType = universe
-					.arrayType(statement.getDynamicObjectType());
+			SymbolicType fieldType = universe.arrayType(statement.getDynamicObjectType());
 
 			fieldTypes.add(fieldType);
 		}
@@ -583,12 +543,10 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	/**
 	 * Computes the symbolic initial value of a specified heap type.
 	 * 
-	 * @param heapDynamicType
-	 *            The heap type to use.
+	 * @param heapDynamicType The heap type to use.
 	 * @return The initial value of the given help type.
 	 */
-	private SymbolicExpression computeInitialHeapValue(
-			SymbolicTupleType heapDynamicType) {
+	private SymbolicExpression computeInitialHeapValue(SymbolicTupleType heapDynamicType) {
 		LinkedList<SymbolicExpression> fields = new LinkedList<SymbolicExpression>();
 		SymbolicExpression result;
 
@@ -607,16 +565,13 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	 * Creates an instance of a CIVL primitive type, including void, integer,
 	 * boolean, real, char, scope, process, and dynamic types.
 	 * 
-	 * @param kind
-	 *            The kind of the primitive type. See also
-	 *            {@link PrimitiveTypeKind}.
-	 * @param dynamicType
-	 *            The corresponding SARL symbolic type of the CIVL primitive
-	 *            type.
+	 * @param kind        The kind of the primitive type. See also
+	 *                    {@link PrimitiveTypeKind}.
+	 * @param dynamicType The corresponding SARL symbolic type of the CIVL primitive
+	 *                    type.
 	 * @return The CIVL primitive type of the given kind.
 	 */
-	private CIVLPrimitiveType primitiveType(PrimitiveTypeKind kind,
-			SymbolicType dynamicType) {
+	private CIVLPrimitiveType primitiveType(PrimitiveTypeKind kind, SymbolicType dynamicType) {
 		CIVLPrimitiveType result;
 		NumericExpression size = null;
 		BooleanExpression fact = null;
@@ -642,8 +597,7 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	 * Create a new numeric expression for a sizeof expression of a certain
 	 * primitive type.
 	 * 
-	 * @param kind
-	 *            The kind of the primitive type of the sizeof expression.
+	 * @param kind The kind of the primitive type of the sizeof expression.
 	 * @return The numeric expression of the sizeof expression.
 	 */
 	private NumericExpression sizeofPrimitiveType(PrimitiveTypeKind kind) {
@@ -651,14 +605,9 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 		if (kind == PrimitiveTypeKind.CHAR)
 			return universe.oneInt();
 
-		if (kind == PrimitiveTypeKind.INT && config.svcomp()) {
-			return universe.integer(this.config.getIntBit());
-		}
-
-		StringObject name = ModelConfiguration
-				.getSizeofPrimitiveTypeName(universe, kind);
-		NumericSymbolicConstant result = (NumericSymbolicConstant) universe
-				.symbolicConstant(name, universe.integerType());
+		StringObject name = ModelConfiguration.getSizeofPrimitiveTypeName(universe, kind);
+		NumericSymbolicConstant result = (NumericSymbolicConstant) universe.symbolicConstant(name,
+				universe.integerType());
 
 		ModelConfiguration.SIZEOF_VARS.add(result);
 		if (!ModelConfiguration.RESERVE_NAMES.contains(name.getString()))
@@ -691,8 +640,7 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 
 			assert arrayType.isComplete();
 			size = sizeofDynamicType(arrayType.elementType());
-			return universe.multiply(size,
-					((SymbolicCompleteArrayType) arrayType).extent());
+			return universe.multiply(size, ((SymbolicCompleteArrayType) arrayType).extent());
 		}
 		CIVLPrimitiveType civlType = primitiveTypeMap.get(dynamicType);
 
@@ -701,29 +649,22 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 		}
 
 		SymbolicExpression id = universe.integer(dynamicType.id());
-		id = universe.tuple(dynamicSymbolicType,
-				new Singleton<SymbolicExpression>(id));
-		return (NumericExpression) universe.apply(sizeofFunction,
-				Arrays.asList(id));
+		id = universe.tuple(dynamicSymbolicType, new Singleton<SymbolicExpression>(id));
+		return (NumericExpression) universe.apply(sizeofFunction, Arrays.asList(id));
 	}
 
 	@Override
 	public BooleanExpression sizeofNonPrimitiveTypesFact() {
-		SymbolicConstant bv = universe.symbolicConstant(
-				universe.stringObject("_t"), dynamicSymbolicType());
+		SymbolicConstant bv = universe.symbolicConstant(universe.stringObject("_t"), dynamicSymbolicType());
 
-		return universe.forall(bv,
-				universe.lessThan(universe.zeroInt(),
-						(NumericExpression) universe.apply(sizeofFunction,
-								Arrays.asList(bv))));
+		return universe.forall(bv, universe.lessThan(universe.zeroInt(),
+				(NumericExpression) universe.apply(sizeofFunction, Arrays.asList(bv))));
 	}
 
 	@Override
-	public SymbolicExpression expressionOfType(CIVLType civlType,
-			SymbolicType type) {
+	public SymbolicExpression expressionOfType(CIVLType civlType, SymbolicType type) {
 		SymbolicExpression id = universe.integer(type.id());
-		SymbolicExpression result = universe.tuple(dynamicSymbolicType,
-				new Singleton<SymbolicExpression>(id));
+		SymbolicExpression result = universe.tuple(dynamicSymbolicType, new Singleton<SymbolicExpression>(id));
 
 		dynamicTypeID2staticType.putIfAbsent(result, civlType);
 		return result;
@@ -734,8 +675,7 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 		assert dynamicTypeExpr.type() == dynamicSymbolicType;
 
 		IntegerNumber id = (IntegerNumber) universe
-				.extractNumber((NumericExpression) universe
-						.tupleRead(dynamicTypeExpr, universe.intObject(0)));
+				.extractNumber((NumericExpression) universe.tupleRead(dynamicTypeExpr, universe.intObject(0)));
 
 		assert id != null;
 		return (SymbolicType) universe.objectWithId(id.intValue());
@@ -754,8 +694,7 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	@Override
 	public CIVLSetType civlSetType(CIVLType elementType) {
 		if (elementType.typeKind() == TypeKind.SET)
-			throw new CIVLInternalException(
-					"Element type of a CIVLSetType shall not be CIVLSetType",
+			throw new CIVLInternalException("Element type of a CIVLSetType shall not be CIVLSetType",
 					this.systemSource);
 		return new CommonSetType(elementType);
 	}
@@ -771,12 +710,9 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 			// there is "$mem" type declared in CIVL-C library hence users will
 			// not be allowed to declare a type with the same name:
 			dynamicMemType = universe.tupleType(universe.stringObject("$mem"),
-					Arrays.asList(universe.arrayType(universe.tupleType(
-							universe.stringObject("$mem_member"),
-							Arrays.asList(universe.integerType(),
-									universe.integerType(),
-									universe.integerType(), scopeSymbolicType(),
-									universe.valueSetTemplateType())))));
+					Arrays.asList(universe.arrayType(universe.tupleType(universe.stringObject("$mem_member"),
+							Arrays.asList(universe.integerType(), universe.integerType(), universe.integerType(),
+									scopeSymbolicType(), universe.valueSetTemplateType())))));
 		}
 		return dynamicMemType;
 	}

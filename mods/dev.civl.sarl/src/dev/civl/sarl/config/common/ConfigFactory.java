@@ -447,16 +447,6 @@ public class ConfigFactory {
 						throw parseErr(configFile, st, "expected ';'");
 					break;
 				}
-				case "environment": {
-					token = st.nextToken();
-					if (token != '"' && token != '\'')
-						throw parseErr(configFile, st, "expected quoted string");
-					info.setEnv(st.sval);
-					token = st.nextToken();
-					if (token != ';')
-						throw parseErr(configFile, st, "expected ';'");
-					break;
-				}
 				default:
 					throw parseErr(configFile, st, "unknown keyword: " + keyword);
 				} // end of switch

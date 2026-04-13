@@ -108,14 +108,14 @@ public class SpecifierAnalysis {
 	CommonTree specifierListNode;
 
 	/**
-	 * The kind of type name represented by these specifiers. One of BASIC,
-	 * VOID, STRUCTURE, UNION, ENUMERATION, TYPEDEF_NAME, or ATOMIC.
+	 * The kind of type name represented by these specifiers. One of BASIC, VOID,
+	 * STRUCTURE, UNION, ENUMERATION, TYPEDEF_NAME, or ATOMIC.
 	 */
 	TypeNodeKind typeNameKind = null;
 
 	/**
-	 * If the type name kind is NOT BASIC, this variable will hold a reference
-	 * to the child of the specifierListNode that is the sole type specifier.
+	 * If the type name kind is NOT BASIC, this variable will hold a reference to
+	 * the child of the specifierListNode that is the sole type specifier.
 	 * 
 	 * If the type name kind is BASIC, this will be null. (Reason: basic types
 	 * require a set of type specifiers, which is why the multisets are needed.)
@@ -166,8 +166,8 @@ public class SpecifierAnalysis {
 	boolean systemSpecifier = false;
 	String systemLibrary = null;
 	/**
-	 * CIVL-C function specifier $state_f (atomic, side-effect free,
-	 * deterministic on state and arguments)
+	 * CIVL-C function specifier $state_f (atomic, side-effect free, deterministic
+	 * on state and arguments)
 	 */
 	boolean statefSpecifier = false;
 	/**
@@ -193,24 +193,23 @@ public class SpecifierAnalysis {
 	// alignment specifiers
 	List<CommonTree> alignmentTypeNodes = new LinkedList<CommonTree>();
 	List<CommonTree> alignmentExpressionNodes = new LinkedList<CommonTree>();
-	private Configuration configuration;
 
 	/**
-	 * A function specifier of the form $differentiable(n, [a1,b1]...[an,bn]). n
-	 * is the degree of differentiability and [a1,b1]x...x[an,bn] is the domain
-	 * on which the function has that many continuous derivatives.
+	 * A function specifier of the form $differentiable(n, [a1,b1]...[an,bn]). n is
+	 * the degree of differentiability and [a1,b1]x...x[an,bn] is the domain on
+	 * which the function has that many continuous derivatives.
 	 */
 	CommonTree differentiableNode = null;
-	
+
 	/**
-	 * An optional abstract function attribute attached to the abstract
-	 * function.  The attribute is a string literal.
+	 * An optional abstract function attribute attached to the abstract function.
+	 * The attribute is a string literal.
 	 */
 	CommonTree abstractAttributeNode = null;
 
 	/**
-	 * If $differentiable is present, this is the conrete int n which is the
-	 * number of derivatives that exist.
+	 * If $differentiable is present, this is the conrete int n which is the number
+	 * of derivatives that exist.
 	 */
 	int differentiableDegree = 0;
 
@@ -223,11 +222,10 @@ public class SpecifierAnalysis {
 	 * @param specifierListNode
 	 * @throws SyntaxException
 	 */
-	SpecifierAnalysis(CommonTree specifierListNode, CParseTree parseTree,
-			Configuration configuration) throws SyntaxException {
+	SpecifierAnalysis(CommonTree specifierListNode, CParseTree parseTree, Configuration configuration)
+			throws SyntaxException {
 		this.specifierListNode = specifierListNode;
 		this.parseTree = parseTree;
-		this.configuration = configuration;
 		analyze();
 	}
 
@@ -239,202 +237,188 @@ public class SpecifierAnalysis {
 		int numChildren = specifierListNode.getChildCount();
 
 		if (numChildren == 0) {
-			if (this.configuration.getSVCOMP()) {
-				typeNameKind = TypeNodeKind.BASIC;
-				basicTypeKind = BasicTypeKind.INT;
-			} else
-				throw error("Declaration is missing a type name",
-						specifierListNode.parent);
+			throw error("Declaration is missing a type name", specifierListNode.parent);
 		} else {
 			for (int i = 0; i < numChildren; i++) {
 				CommonTree node = (CommonTree) specifierListNode.getChild(i);
 				int kind = node.getType();
 
 				switch (kind) {
-					case CHAR :
-					case SHORT :
-					case INT :
-					case LONG :
-					case FLOAT :
-					case DOUBLE :
-					case REAL :
-					case SIGNED :
-					case UNSIGNED :
-					case BOOL :
-					case COMPLEX :
-						set.add(kind);
-						setTypeNameKind(TypeNodeKind.BASIC);
-						if (basicSpecifierNodes == null)
-							basicSpecifierNodes = new LinkedList<CommonTree>();
-						basicSpecifierNodes.add(node);
-						break;
-					case VOID :
-						voidTypeCount++;
-						setTypeNameKind(TypeNodeKind.VOID);
+				case CHAR:
+				case SHORT:
+				case INT:
+				case LONG:
+				case FLOAT:
+				case DOUBLE:
+				case REAL:
+				case SIGNED:
+				case UNSIGNED:
+				case BOOL:
+				case COMPLEX:
+					set.add(kind);
+					setTypeNameKind(TypeNodeKind.BASIC);
+					if (basicSpecifierNodes == null)
+						basicSpecifierNodes = new LinkedList<CommonTree>();
+					basicSpecifierNodes.add(node);
+					break;
+				case VOID:
+					voidTypeCount++;
+					setTypeNameKind(TypeNodeKind.VOID);
+					setTypeSpecifierNode(node);
+					break;
+				case ATOMIC:
+					if (node.getChildCount() > 0) {
+						atomicTypeCount++;
+						setTypeNameKind(TypeNodeKind.ATOMIC);
 						setTypeSpecifierNode(node);
-						break;
-					case ATOMIC :
-						if (node.getChildCount() > 0) {
-							atomicTypeCount++;
-							setTypeNameKind(TypeNodeKind.ATOMIC);
-							setTypeSpecifierNode(node);
-						} else {
-							atomicQualifier = true;
-						}
-						break;
-					case STRUCT :
-						structTypeCount++;
-						setTypeNameKind(TypeNodeKind.STRUCTURE_OR_UNION);
-						setTypeSpecifierNode(node);
-						break;
-					case UNION :
-						unionTypeCount++;
-						setTypeNameKind(TypeNodeKind.STRUCTURE_OR_UNION);
-						setTypeSpecifierNode(node);
-						break;
-					case ENUM :
-						enumTypeCount++;
-						setTypeNameKind(TypeNodeKind.ENUMERATION);
-						setTypeSpecifierNode(node);
-						break;
-					case TYPEDEF_NAME :
-						typedefNameCount++;
-						setTypeNameKind(TypeNodeKind.TYPEDEF_NAME);
-						setTypeSpecifierNode(node);
-						break;
-					case TYPEOF_EXPRESSION :
-					case TYPEOF_TYPE :
-						setTypeNameKind(TypeNodeKind.TYPEOF);
-						setTypeSpecifierNode(node);
-						break;
-					case DOMAIN :
-						domainTypeCount++;
-						setTypeNameKind(TypeNodeKind.DOMAIN);
-						setTypeSpecifierNode(node);
-						break;
-					case MEM_TYPE :
-						setTypeNameKind(TypeNodeKind.MEM);
-						setTypeSpecifierNode(node);
-						break;
-					case RANGE :
-						rangeTypeCount++;
-						setTypeNameKind(TypeNodeKind.RANGE);
-						setTypeSpecifierNode(node);
-						break;
-					case CONST :
-						constQualifier = true;
-						break;
-					case RESTRICT :
-						restrictQualifier = true;
-						break;
-					case VOLATILE :
-						volatileQualifier = true;
-						break;
-					case INPUT :
-						inputQualifier = true;
-						break;
-					case OUTPUT :
-						outputQualifier = true;
-						break;
-					case TYPEDEF :
-						typedefCount++;
-						break;
-					case EXTERN :
-						externCount++;
-						break;
-					case STATIC :
-						staticCount++;
-						break;
-					case THREADLOCAL :
-						threadLocalCount++;
-						break;
-					case AUTO :
-						autoCount++;
-						break;
-					case REGISTER :
-						registerCount++;
-						break;
-					case SHARED :
-						sharedCount++;
-						break;
-					case INLINE :
-						inlineSpecifier = true;
-						break;
-					case NORETURN :
-						noreturnSpecifier = true;
-						break;
-					case GLOBAL :
-						globalSpecifier = true;
-						break;
-					case FATOMIC :
-						fatomicSpecifier = true;
-						break;
-					case ALIGNAS : {
-						int alignKind = ((CommonTree) node.getChild(0))
-								.getType();
-						CommonTree argument = (CommonTree) node.getChild(1);
-
-						if (alignKind == TYPE) {
-							alignmentTypeNodes.add(argument);
-						} else if (kind == EXPR) {
-							alignmentExpressionNodes.add(argument);
-						} else {
-							throw error("Unexpected kind of ALIGN_AS argument",
-									node);
-						}
-						break;
+					} else {
+						atomicQualifier = true;
 					}
-					case ABSTRACT :
-						abstractSpecifier = true;
-						continuity = 0;
-						if (node.getChildCount() > 0) {
-							int childTy = node.getChild(0).getType();
+					break;
+				case STRUCT:
+					structTypeCount++;
+					setTypeNameKind(TypeNodeKind.STRUCTURE_OR_UNION);
+					setTypeSpecifierNode(node);
+					break;
+				case UNION:
+					unionTypeCount++;
+					setTypeNameKind(TypeNodeKind.STRUCTURE_OR_UNION);
+					setTypeSpecifierNode(node);
+					break;
+				case ENUM:
+					enumTypeCount++;
+					setTypeNameKind(TypeNodeKind.ENUMERATION);
+					setTypeSpecifierNode(node);
+					break;
+				case TYPEDEF_NAME:
+					typedefNameCount++;
+					setTypeNameKind(TypeNodeKind.TYPEDEF_NAME);
+					setTypeSpecifierNode(node);
+					break;
+				case TYPEOF_EXPRESSION:
+				case TYPEOF_TYPE:
+					setTypeNameKind(TypeNodeKind.TYPEOF);
+					setTypeSpecifierNode(node);
+					break;
+				case DOMAIN:
+					domainTypeCount++;
+					setTypeNameKind(TypeNodeKind.DOMAIN);
+					setTypeSpecifierNode(node);
+					break;
+				case MEM_TYPE:
+					setTypeNameKind(TypeNodeKind.MEM);
+					setTypeSpecifierNode(node);
+					break;
+				case RANGE:
+					rangeTypeCount++;
+					setTypeNameKind(TypeNodeKind.RANGE);
+					setTypeSpecifierNode(node);
+					break;
+				case CONST:
+					constQualifier = true;
+					break;
+				case RESTRICT:
+					restrictQualifier = true;
+					break;
+				case VOLATILE:
+					volatileQualifier = true;
+					break;
+				case INPUT:
+					inputQualifier = true;
+					break;
+				case OUTPUT:
+					outputQualifier = true;
+					break;
+				case TYPEDEF:
+					typedefCount++;
+					break;
+				case EXTERN:
+					externCount++;
+					break;
+				case STATIC:
+					staticCount++;
+					break;
+				case THREADLOCAL:
+					threadLocalCount++;
+					break;
+				case AUTO:
+					autoCount++;
+					break;
+				case REGISTER:
+					registerCount++;
+					break;
+				case SHARED:
+					sharedCount++;
+					break;
+				case INLINE:
+					inlineSpecifier = true;
+					break;
+				case NORETURN:
+					noreturnSpecifier = true;
+					break;
+				case GLOBAL:
+					globalSpecifier = true;
+					break;
+				case FATOMIC:
+					fatomicSpecifier = true;
+					break;
+				case ALIGNAS: {
+					int alignKind = ((CommonTree) node.getChild(0)).getType();
+					CommonTree argument = (CommonTree) node.getChild(1);
 
-							if (childTy == CivlCParser.INTEGER_CONSTANT)
-								continuity = parseInt(
-										(CommonTree) node.getChild(0));
-							if (childTy == CivlCParser.STRING_LITERAL)
-								abstractAttributeNode = (CommonTree) node
-										.getChild(0);
-						}
-						break;
-					case DIFFERENTIABLE :
-						if (differentiableNode != null)
-							throw error(
-									"More than one $differentiable specifier in function declaration",
-									node);
-						differentiableNode = node;
-						differentiableDegree = parseInt(
-								(CommonTree) node.getChild(0));
-					case DEVICE :
-						this.deviceSpecifier = true;
-						break;
-					case SYSTEM : {
-						CommonTree lib = (CommonTree) node.getChild(0);
-
-						this.systemSpecifier = true;
-						if (lib.getType() == LIB_NAME) {
-							this.systemLibrary = "";
-							for (Object child : lib.getChildren()) {
-								this.systemLibrary += ((CommonTree) child)
-										.getText();
-							}
-						}
-						break;
+					if (alignKind == TYPE) {
+						alignmentTypeNodes.add(argument);
+					} else if (kind == EXPR) {
+						alignmentExpressionNodes.add(argument);
+					} else {
+						throw error("Unexpected kind of ALIGN_AS argument", node);
 					}
-					case STATE_F :
-						statefSpecifier = true;
-						break;
-					case PURE :
-						this.pureSpecifier = true;
-						break;
-					default :
-						throw error("Unknown declaration specifier", node);
+					break;
+				}
+				case ABSTRACT:
+					abstractSpecifier = true;
+					continuity = 0;
+					if (node.getChildCount() > 0) {
+						int childTy = node.getChild(0).getType();
+
+						if (childTy == CivlCParser.INTEGER_CONSTANT)
+							continuity = parseInt((CommonTree) node.getChild(0));
+						if (childTy == CivlCParser.STRING_LITERAL)
+							abstractAttributeNode = (CommonTree) node.getChild(0);
+					}
+					break;
+				case DIFFERENTIABLE:
+					if (differentiableNode != null)
+						throw error("More than one $differentiable specifier in function declaration", node);
+					differentiableNode = node;
+					differentiableDegree = parseInt((CommonTree) node.getChild(0));
+				case DEVICE:
+					this.deviceSpecifier = true;
+					break;
+				case SYSTEM: {
+					CommonTree lib = (CommonTree) node.getChild(0);
+
+					this.systemSpecifier = true;
+					if (lib.getType() == LIB_NAME) {
+						this.systemLibrary = "";
+						for (Object child : lib.getChildren()) {
+							this.systemLibrary += ((CommonTree) child).getText();
+						}
+					}
+					break;
+				}
+				case STATE_F:
+					statefSpecifier = true;
+					break;
+				case PURE:
+					this.pureSpecifier = true;
+					break;
+				default:
+					throw error("Unknown declaration specifier", node);
 				}
 			}
 			if (typeNameKind == null)
-				throw error("Declaration is missing a type name",
-						specifierListNode);
+				throw error("Declaration is missing a type name", specifierListNode);
 			if (typeNameKind == TypeNodeKind.BASIC) {
 				basicTypeKind = BasicMultiset.getBasicTypeKind(set);
 				if (basicTypeKind == null)
@@ -449,30 +433,25 @@ public class SpecifierAnalysis {
 
 	private void setTypeNameKind(TypeNodeKind kind) throws SyntaxException {
 		if (typeNameKind != null && typeNameKind != kind)
-			throw error(
-					"Two different kinds of types specified in declaration specifier list: "
-							+ typeNameKind + " and " + kind,
-					specifierListNode);
+			throw error("Two different kinds of types specified in declaration specifier list: " + typeNameKind
+					+ " and " + kind, specifierListNode);
 		typeNameKind = kind;
 	}
 
 	private void setTypeSpecifierNode(CommonTree node) throws SyntaxException {
 		if (typeSpecifierNode != null)
-			throw error(
-					"Two type specifiers in declaration. Previous specifier was at "
-							+ error("", typeSpecifierNode).getSource(),
-					node);
+			throw error("Two type specifiers in declaration. Previous specifier was at "
+					+ error("", typeSpecifierNode).getSource(), node);
 		typeSpecifierNode = node;
 	}
 
 	/**
 	 * Parses a node expected to contain an integer constant.
 	 * 
-	 * @param node
-	 *            a CommonTree node expected to contain integer constant
+	 * @param node a CommonTree node expected to contain integer constant
 	 * @return the int value of that integer constant
-	 * @throws SyntaxException
-	 *             if the text of the node cannot be parsed to yield an integer
+	 * @throws SyntaxException if the text of the node cannot be parsed to yield an
+	 *                         integer
 	 */
 	private int parseInt(CommonTree node) throws SyntaxException {
 		try {

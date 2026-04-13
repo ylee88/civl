@@ -51,9 +51,7 @@ import dev.civl.sarl.IF.number.Number;
  * @author Manchun Zheng (zmanchun)
  * 
  */
-public class LibcivlcEnabler extends BaseLibraryEnabler
-		implements
-			LibraryEnabler {
+public class LibcivlcEnabler extends BaseLibraryEnabler implements LibraryEnabler {
 
 	private final static int ELABORATE_UPPER_BOUND = 100;
 
@@ -61,37 +59,28 @@ public class LibcivlcEnabler extends BaseLibraryEnabler
 	/**
 	 * Creates a new instance of the library enabler for civlc.h.
 	 * 
-	 * @param primaryEnabler
-	 *            The enabler for normal CIVL execution.
-	 * @param output
-	 *            The output stream to be used in the enabler.
-	 * @param modelFactory
-	 *            The model factory of the system.
+	 * @param primaryEnabler The enabler for normal CIVL execution.
+	 * @param output         The output stream to be used in the enabler.
+	 * @param modelFactory   The model factory of the system.
 	 */
-	public LibcivlcEnabler(String name, Enabler primaryEnabler,
-			Evaluator evaluator, ModelFactory modelFactory,
-			SymbolicUtility symbolicUtil, SymbolicAnalyzer symbolicAnalyzer,
-			CIVLConfiguration civlConfig, LibraryEnablerLoader libEnablerLoader,
-			LibraryEvaluatorLoader libEvaluatorLoader) {
-		super(name, primaryEnabler, evaluator, modelFactory, symbolicUtil,
-				symbolicAnalyzer, civlConfig, libEnablerLoader,
-				libEvaluatorLoader);
+	public LibcivlcEnabler(String name, Enabler primaryEnabler, Evaluator evaluator, ModelFactory modelFactory,
+			SymbolicUtility symbolicUtil, SymbolicAnalyzer symbolicAnalyzer, CIVLConfiguration civlConfig,
+			LibraryEnablerLoader libEnablerLoader, LibraryEvaluatorLoader libEvaluatorLoader) {
+		super(name, primaryEnabler, evaluator, modelFactory, symbolicUtil, symbolicAnalyzer, civlConfig,
+				libEnablerLoader, libEvaluatorLoader);
 	}
 
 	/* ********************* Methods from LibraryEnabler ******************* */
 
 	@Override
-	public BitSet ampleSet(State state, int pid, CallOrSpawnStatement call,
-			MemoryUnitSet[] setsReachableRead,
-			MemoryUnitSet[] setsReachableWrite)
-			throws UnsatisfiablePathConditionException {
+	public BitSet ampleSet(State state, int pid, CallOrSpawnStatement call, MemoryUnitSet[] setsReachableRead,
+			MemoryUnitSet[] setsReachableWrite) throws UnsatisfiablePathConditionException {
 		return this.ampleSetWork(state, pid, call);
 	}
 
 	@Override
-	public List<Transition> enabledTransitions(State state,
-			CallOrSpawnStatement call, BooleanExpression clause, int pid)
-			throws UnsatisfiablePathConditionException {
+	public List<Transition> enabledTransitions(State state, CallOrSpawnStatement call, BooleanExpression clause,
+			int pid) throws UnsatisfiablePathConditionException {
 		String functionName = call.function().name().name();
 		AssignStatement assignmentCall;
 		Expression[] arguments = new Expression[call.arguments().size()];// call.arguments();
@@ -101,84 +90,68 @@ public class LibcivlcEnabler extends BaseLibraryEnabler
 
 		call.arguments().toArray(arguments);
 		switch (functionName) {
-			case "$assume" : {
-				localTransitions.add(
-						Semantics.newTransition(pid, trueValue, call, true));
+		case "$assume": {
+			localTransitions.add(Semantics.newTransition(pid, trueValue, call, true));
+			return localTransitions;
+		}
+		case "$choose_int":
+			if (call.lhs() == null) {
+				// if no left-hand side expression, this is a no-op
+				// transition:
+				localTransitions.add(Semantics.newNoopTransition(pid, clause, call, false));
 				return localTransitions;
 			}
-			case "$choose_int" :
-				if (call.lhs() == null) {
-					// if no left-hand side expression, this is a no-op
-					// transition:
-					localTransitions.add(Semantics.newNoopTransition(pid,
-							clause, call, false));
-					return localTransitions;
-				}
-				argumentsEval = evaluateArguments(state, pid, arguments);
-				state = argumentsEval.left;
+			argumentsEval = evaluateArguments(state, pid, arguments);
+			state = argumentsEval.left;
 
-				IntegerNumber upperNumber = (IntegerNumber) universe
-						.reasoner(state.getPathCondition(universe))
-						.extractNumber(
-								(NumericExpression) argumentsEval.right[0]);
-				int upper;
+			IntegerNumber upperNumber = (IntegerNumber) universe.reasoner(state.getPathCondition(universe))
+					.extractNumber((NumericExpression) argumentsEval.right[0]);
+			int upper;
 
-				if (upperNumber == null) {
-					this.errorLogger.logSimpleError(arguments[0].getSource(),
-							state, pid, process,
-							symbolicAnalyzer.stateInformation(state),
-							CIVLProperty.INTERNAL,
-							"argument to $choose_int not concrete: "
-									+ argumentsEval.right[0]);
-					throw new UnsatisfiablePathConditionException();
-				}
-				upper = upperNumber.intValue();
-				for (int i = 0; i < upper; i++) {
-					Expression singleChoice = modelFactory
-							.integerLiteralExpression(arguments[0].getSource(),
-									BigInteger.valueOf(i));
+			if (upperNumber == null) {
+				this.errorLogger.logSimpleError(arguments[0].getSource(), state, pid, process,
+						symbolicAnalyzer.stateInformation(state), CIVLProperty.INTERNAL,
+						"argument to $choose_int not concrete: " + argumentsEval.right[0]);
+				throw new UnsatisfiablePathConditionException();
+			}
+			upper = upperNumber.intValue();
+			for (int i = 0; i < upper; i++) {
+				Expression singleChoice = modelFactory.integerLiteralExpression(arguments[0].getSource(),
+						BigInteger.valueOf(i));
 
-					assignmentCall = modelFactory.assignStatement(
-							arguments[0].getSource(), call.source(), call.lhs(),
-							singleChoice,
-							(call.lhs() instanceof InitialValueExpression));
-					assignmentCall.setTargetTemp(call.target());
-					assignmentCall.setTarget(call.target());
-					assignmentCall.source().removeOutgoing(assignmentCall);
-					localTransitions.add(Semantics.newTransition(pid, clause,
-							assignmentCall));
-				}
-				return localTransitions;
-			case "$elaborate" :
-				argumentsEval = this.evaluateArguments(state, pid, arguments);
-				return this.elaborateIntWorker(argumentsEval.left, pid, call,
-						call.getSource(), arguments, argumentsEval.right);
-			case "$elaborate_domain" :
-				argumentsEval = this.evaluateArguments(state, pid, arguments);
-				return this.elaborateRectangularDomainWorker(argumentsEval.left,
-						pid, call, call.getSource(), arguments,
-						argumentsEval.right);
-			case "$unidirectional_when" :
-				BooleanExpression condition = (BooleanExpression) evaluateArguments(
-						state, pid, arguments).right[0];
+				assignmentCall = modelFactory.assignStatement(arguments[0].getSource(), call.source(), call.lhs(),
+						singleChoice, (call.lhs() instanceof InitialValueExpression));
+				assignmentCall.setTargetTemp(call.target());
+				assignmentCall.setTarget(call.target());
+				assignmentCall.source().removeOutgoing(assignmentCall);
+				localTransitions.add(Semantics.newTransition(pid, clause, assignmentCall));
+			}
+			return localTransitions;
+		case "$elaborate":
+			argumentsEval = this.evaluateArguments(state, pid, arguments);
+			return this.elaborateIntWorker(argumentsEval.left, pid, call, call.getSource(), arguments,
+					argumentsEval.right);
+		case "$elaborate_domain":
+			argumentsEval = this.evaluateArguments(state, pid, arguments);
+			return this.elaborateRectangularDomainWorker(argumentsEval.left, pid, call, call.getSource(), arguments,
+					argumentsEval.right);
+		case "$unidirectional_when":
+			BooleanExpression condition = (BooleanExpression) evaluateArguments(state, pid, arguments).right[0];
 
-				// This function $unidirectional_when is same as $when but is
-				// guaranteed to be invisible for deadlock property by
-				// programmer.
-				if (condition.isTrue())
-					// If condition is simply true, enables a no-op transition:
-					localTransitions.add(Semantics.newNoopTransition(pid,
-							trueValue, call, false));
-				else if (!universe.reasoner(state.getPathCondition(universe))
-						.isValid(universe.not(condition)))
-					// If condition is satisfiable (or prover cannot prove it is
-					// unsatisfiable), enables a no-op transition and adds the
-					// condition into the path condition:
-					localTransitions.add(Semantics.newNoopTransition(pid,
-							condition, call, true));
-				return localTransitions;
-			default :
-				return super.enabledTransitions(state, call, clause, pid);
+			// This function $unidirectional_when is same as $when but is
+			// guaranteed to be invisible for deadlock property by
+			// programmer.
+			if (condition.isTrue())
+				// If condition is simply true, enables a no-op transition:
+				localTransitions.add(Semantics.newNoopTransition(pid, trueValue, call, false));
+			else if (!universe.reasoner(state.getPathCondition(universe)).isValid(universe.not(condition)))
+				// If condition is satisfiable (or prover cannot prove it is
+				// unsatisfiable), enables a no-op transition and adds the
+				// condition into the path condition:
+				localTransitions.add(Semantics.newNoopTransition(pid, condition, call, true));
+			return localTransitions;
+		default:
+			return super.enabledTransitions(state, call, clause, pid);
 		}
 	}
 
@@ -187,15 +160,12 @@ public class LibcivlcEnabler extends BaseLibraryEnabler
 	/**
 	 * Computes the ample set process ID's from a system function call.
 	 * 
-	 * @param state
-	 *            The current state.
-	 * @param pid
-	 *            The ID of the process that the system function call belongs
-	 *            to.
-	 * @param call
-	 *            The system function call statement.
-	 * @param reachableMemUnitsMap
-	 *            The map of reachable memory units of all active processes.
+	 * @param state                The current state.
+	 * @param pid                  The ID of the process that the system function
+	 *                             call belongs to.
+	 * @param call                 The system function call statement.
+	 * @param reachableMemUnitsMap The map of reachable memory units of all active
+	 *                             processes.
 	 * @return
 	 * @throws UnsatisfiablePathConditionException
 	 */
@@ -223,63 +193,53 @@ public class LibcivlcEnabler extends BaseLibraryEnabler
 		}
 
 		switch (function) {
-			case "$wait" :
-				return ampleSetOfWait(state, pid, arguments, argumentValues);
-			case "$waitall" :
-				return ampleSetOfWaitall(state, pid, arguments, argumentValues);
-			default :
-				return super.ampleSet(state, pid, call, null, null);
+		case "$wait":
+			return ampleSetOfWait(state, pid, arguments, argumentValues);
+		case "$waitall":
+			return ampleSetOfWaitall(state, pid, arguments, argumentValues);
+		default:
+			return super.ampleSet(state, pid, call, null, null);
 		}
 	}
 
-	private BitSet ampleSetOfWait(State state, int pid, Expression[] arguments,
-			SymbolicExpression[] argumentValues) {
+	private BitSet ampleSetOfWait(State state, int pid, Expression[] arguments, SymbolicExpression[] argumentValues) {
 		SymbolicExpression joinProc = argumentValues[0];
 		int joinPid = modelFactory.getProcessId(joinProc);
 		BitSet ampleSet = new BitSet();
 
-		if (modelFactory.isPocessIdDefined(joinPid)
-				&& !modelFactory.isProcNull(joinProc)) {
+		if (modelFactory.isPocessIdDefined(joinPid) && !modelFactory.isProcNull(joinProc)) {
 			ampleSet.set(joinPid);
 		}
 		return ampleSet;
 	}
 
 	/**
-	 * computes the ample set for $waitall. The ample set is the set of
-	 * processes being waited for.
+	 * computes the ample set for $waitall. The ample set is the set of processes
+	 * being waited for.
 	 * 
-	 * @param state
-	 *            the current state
-	 * @param pid
-	 *            the PID of the process which executes the $waitall function
-	 *            call
-	 * @param arguments
-	 *            the arguments of $waitall, where argument 0 is a pointer to
-	 *            the first $proc object, and 1 is the number of processes to
-	 *            wait for.
-	 * @param argumentValues
-	 *            the evaluation results of the arguments of $waitall
+	 * @param state          the current state
+	 * @param pid            the PID of the process which executes the $waitall
+	 *                       function call
+	 * @param arguments      the arguments of $waitall, where argument 0 is a
+	 *                       pointer to the first $proc object, and 1 is the number
+	 *                       of processes to wait for.
+	 * @param argumentValues the evaluation results of the arguments of $waitall
 	 * @return the set of processes being waited for as the ample set
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	private BitSet ampleSetOfWaitall(State state, int pid,
-			Expression[] arguments, SymbolicExpression[] argumentValues)
+	private BitSet ampleSetOfWaitall(State state, int pid, Expression[] arguments, SymbolicExpression[] argumentValues)
 			throws UnsatisfiablePathConditionException {
 		SymbolicExpression procsPointer = argumentValues[0];
 		SymbolicExpression numOfProcs = argumentValues[1];
 		Reasoner reasoner = universe.reasoner(state.getPathCondition(universe));
-		IntegerNumber number_nprocs = (IntegerNumber) reasoner
-				.extractNumber((NumericExpression) numOfProcs);
+		IntegerNumber number_nprocs = (IntegerNumber) reasoner.extractNumber((NumericExpression) numOfProcs);
 		String process = state.getProcessState(pid).name() + "(id=" + pid + ")";
 		BitSet ampleSet = new BitSet();
 
 		if (number_nprocs == null) {
-			this.evaluator.errorLogger().logSimpleError(
-					arguments[1].getSource(), state, pid, process,
-					symbolicAnalyzer.stateInformation(state),
-					CIVLProperty.OTHER, "the number of processes for $waitall "
-							+ "needs a concrete value");
+			this.evaluator.errorLogger().logSimpleError(arguments[1].getSource(), state, pid, process,
+					symbolicAnalyzer.stateInformation(state), CIVLProperty.OTHER,
+					"the number of processes for $waitall " + "needs a concrete value");
 			throw new UnsatisfiablePathConditionException();
 		} else {
 			int numOfProcs_int = number_nprocs.intValue();
@@ -288,25 +248,21 @@ public class LibcivlcEnabler extends BaseLibraryEnabler
 			Evaluation eval;
 
 			for (int i = 0; i < numOfProcs_int; i++) {
-				Expression offSet = modelFactory.integerLiteralExpression(
-						procsSource, BigInteger.valueOf(i));
+				Expression offSet = modelFactory.integerLiteralExpression(procsSource, BigInteger.valueOf(i));
 				NumericExpression offSetV = universe.integer(i);
 				SymbolicExpression procPointer, proc;
 				int pidValue;
 
-				pointerAdd = modelFactory.binaryExpression(procsSource,
-						BINARY_OPERATOR.POINTER_ADD, arguments[0], offSet);
-				eval = evaluator.evaluatePointerAdd(state, pid, pointerAdd,
-						procsPointer, offSetV);
+				pointerAdd = modelFactory.binaryExpression(procsSource, BINARY_OPERATOR.POINTER_ADD, arguments[0],
+						offSet);
+				eval = evaluator.evaluatePointerAdd(state, pid, pointerAdd, procsPointer, offSetV);
 				procPointer = eval.value;
 				state = eval.state;
-				eval = evaluator.dereference(procsSource, state, pid, process,
-						procPointer, false, true);
+				eval = evaluator.dereference(procsSource, state, pid, process, procPointer, false, true);
 				proc = eval.value;
 				state = eval.state;
 				pidValue = modelFactory.getProcessId(proc);
-				if (!modelFactory.isProcessIdNull(pidValue)
-						&& modelFactory.isPocessIdDefined(pidValue))
+				if (!modelFactory.isProcessIdNull(pidValue) && modelFactory.isPocessIdDefined(pidValue))
 					ampleSet.set(pidValue);
 			}
 		}
@@ -325,28 +281,21 @@ public class LibcivlcEnabler extends BaseLibraryEnabler
 	 * @param atomicLockAction
 	 * @return
 	 */
-	private List<Transition> elaborateIntWorker(State state, int pid,
-			Statement call, CIVLSource source, Expression[] arguments,
-			SymbolicExpression[] argumentValues) {
-		Set<SymbolicConstant> symbolicConstants = universe
-				.getFreeSymbolicConstants(argumentValues[0]);
-
-		return this.elaborateSymbolicConstants(state, pid, call, source,
-				symbolicConstants);
-	}
-
-	private List<Transition> elaborateRectangularDomainWorker(State state,
-			int pid, CallOrSpawnStatement call, CIVLSource source,
+	private List<Transition> elaborateIntWorker(State state, int pid, Statement call, CIVLSource source,
 			Expression[] arguments, SymbolicExpression[] argumentValues) {
-		Set<SymbolicConstant> symbolicConstants = universe
-				.getFreeSymbolicConstants(argumentValues[0]);
+		Set<SymbolicConstant> symbolicConstants = universe.getFreeSymbolicConstants(argumentValues[0]);
 
-		return this.elaborateSymbolicConstants(state, pid, call, source,
-				symbolicConstants);
+		return this.elaborateSymbolicConstants(state, pid, call, source, symbolicConstants);
 	}
 
-	private List<Transition> elaborateSymbolicConstants(State state, int pid,
-			Statement call, CIVLSource source,
+	private List<Transition> elaborateRectangularDomainWorker(State state, int pid, CallOrSpawnStatement call,
+			CIVLSource source, Expression[] arguments, SymbolicExpression[] argumentValues) {
+		Set<SymbolicConstant> symbolicConstants = universe.getFreeSymbolicConstants(argumentValues[0]);
+
+		return this.elaborateSymbolicConstants(state, pid, call, source, symbolicConstants);
+	}
+
+	private List<Transition> elaborateSymbolicConstants(State state, int pid, Statement call, CIVLSource source,
 			Set<SymbolicConstant> symbolicConstants) {
 		BooleanExpression pathCondition = state.getPathCondition(universe);
 		List<ConstantBound> bounds = new ArrayList<>();
@@ -357,24 +306,18 @@ public class LibcivlcEnabler extends BaseLibraryEnabler
 
 		if (symbolicConstants.size() < 1) {
 			// noop if no symbolic constant is contained
-			return Arrays.asList((Transition) Semantics.newNoopTransition(pid,
-					trueValue, call, false));
+			return Arrays.asList((Transition) Semantics.newNoopTransition(pid, trueValue, call, false));
 		}
 		for (SymbolicConstant var : symbolicConstants) {
 			// no need to elaborate non-numeric symbolic constants:
 			if (!var.isNumeric())
 				continue;
-			Interval interval = reasoner
-					.intervalApproximation((NumericExpression) var);
+			Interval interval = reasoner.intervalApproximation((NumericExpression) var);
 
 			if (interval.isIntegral()) {
 				Number lowerNum = interval.lower(), upperNum = interval.upper();
 				int lower = Integer.MIN_VALUE, upper = Integer.MAX_VALUE;
 
-				if (this.civlConfig.svcomp()
-						&& (lowerNum.isInfinite() || upperNum.isInfinite())) {
-					continue;
-				}
 				if (!lowerNum.isInfinite()) {
 					lower = ((IntegerNumber) lowerNum).intValue();
 				}
@@ -389,33 +332,30 @@ public class LibcivlcEnabler extends BaseLibraryEnabler
 		// If there is no elaborated constants, return a default unchanged
 		// transition:
 		if (constantBounds.length == 0) {
-			transitions.add(
-					Semantics.newNoopTransition(pid, trueValue, call, true));
+			transitions.add(Semantics.newNoopTransition(pid, trueValue, call, true));
 			return transitions;
 		}
-		concreteValueClauses = this.generateConcreteValueClauses(reasoner,
-				constantBounds, 0);
+		concreteValueClauses = this.generateConcreteValueClauses(reasoner, constantBounds, 0);
 		for (BooleanExpression clause : concreteValueClauses)
-			transitions
-					.add(Semantics.newNoopTransition(pid, clause, call, true));
+			transitions.add(Semantics.newNoopTransition(pid, clause, call, true));
 		return transitions;
 	}
 
 	/**
-	 * generates boolean expressions by elaborating symbolic constants according
-	 * to their upper/lower bound. The result is the permutation of the possible
-	 * values of all symbolic constants. For example, if the constant bounds are
-	 * {(X, [2, 3]), (Y, [6,7]), (Z, [8,9])} then the result will be { X=2 &&
-	 * Y=6 && Z==8, X=2 && Y=6 && Z=9, X=2 && Y=7 && Z=8, X=2 && Y=7 && Z=9, X=3
-	 * && Y=6 && Z=8, X=3 && Y=6 && Z=9, X=3 && Y=7 && Z=8, X=3 && Y=7 && Z=9}.
+	 * generates boolean expressions by elaborating symbolic constants according to
+	 * their upper/lower bound. The result is the permutation of the possible values
+	 * of all symbolic constants. For example, if the constant bounds are {(X, [2,
+	 * 3]), (Y, [6,7]), (Z, [8,9])} then the result will be { X=2 && Y=6 && Z==8,
+	 * X=2 && Y=6 && Z=9, X=2 && Y=7 && Z=8, X=2 && Y=7 && Z=9, X=3 && Y=6 && Z=8,
+	 * X=3 && Y=6 && Z=9, X=3 && Y=7 && Z=8, X=3 && Y=7 && Z=9}.
 	 * 
 	 * @param reasoner
 	 * @param constantBounds
 	 * @param start
 	 * @return
 	 */
-	private Set<BooleanExpression> generateConcreteValueClauses(
-			Reasoner reasoner, ConstantBound[] constantBounds, int start) {
+	private Set<BooleanExpression> generateConcreteValueClauses(Reasoner reasoner, ConstantBound[] constantBounds,
+			int start) {
 		Set<BooleanExpression> myResult = new LinkedHashSet<>();
 		ConstantBound myConstantBound = constantBounds[start];
 		Set<BooleanExpression> subfixResult;
@@ -448,8 +388,7 @@ public class LibcivlcEnabler extends BaseLibraryEnabler
 			myResult.add(universe.lessThan(universe.integer(upper), symbol));
 		if (start == constantBounds.length - 1)
 			return myResult;
-		subfixResult = this.generateConcreteValueClauses(reasoner,
-				constantBounds, start + 1);
+		subfixResult = this.generateConcreteValueClauses(reasoner, constantBounds, start + 1);
 		for (BooleanExpression myClause : myResult) {
 			for (BooleanExpression subfixClause : subfixResult) {
 				result.add(universe.and(myClause, subfixClause));
@@ -481,12 +420,9 @@ class ConstantBound {
 
 	/**
 	 * 
-	 * @param constant
-	 *            the symbolic constant
-	 * @param lower
-	 *            the lower bound
-	 * @param upper
-	 *            the upper bound
+	 * @param constant the symbolic constant
+	 * @param lower    the lower bound
+	 * @param upper    the upper bound
 	 */
 	ConstantBound(SymbolicConstant constant, int lower, int upper) {
 		this.constant = constant;

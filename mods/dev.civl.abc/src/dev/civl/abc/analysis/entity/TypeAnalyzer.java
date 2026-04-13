@@ -76,26 +76,21 @@ public class TypeAnalyzer {
 
 	private Language language;
 
-	private Configuration config;
-
 	/**
-	 * The type used for enumerators, i.e., the elements of enumeration types.
-	 * It is an unspecified integer type according to the C Standard.
+	 * The type used for enumerators, i.e., the elements of enumeration types. It is
+	 * an unspecified integer type according to the C Standard.
 	 */
 	private IntegerType enumeratorType;
 
 	// ************************** Constructors ****************************
 
-	TypeAnalyzer(EntityAnalyzer entityAnalyzer, TypeFactory typeFactory,
-			Configuration config) {
+	TypeAnalyzer(EntityAnalyzer entityAnalyzer, TypeFactory typeFactory, Configuration config) {
 		this.entityAnalyzer = entityAnalyzer;
 		this.nodeFactory = entityAnalyzer.nodeFactory;
 		this.typeFactory = typeFactory;
 		this.valueFactory = entityAnalyzer.valueFactory;
-		this.enumeratorType = (IntegerType) typeFactory
-				.basicType(BasicTypeKind.INT);
+		this.enumeratorType = (IntegerType) typeFactory.basicType(BasicTypeKind.INT);
 		this.language = entityAnalyzer.language;
-		this.config = config;
 	}
 
 	// ************************** Private Methods **************************
@@ -109,8 +104,7 @@ public class TypeAnalyzer {
 	}
 
 	private Type processBasicType(BasicTypeNode node) throws SyntaxException {
-		UnqualifiedObjectType unqualifiedType = typeFactory
-				.basicType(node.getBasicTypeKind());
+		UnqualifiedObjectType unqualifiedType = typeFactory.basicType(node.getBasicTypeKind());
 		boolean constQ = node.isConstQualified();
 		boolean volatileQ = node.isVolatileQualified();
 		boolean inputQ = node.isInputQualified();
@@ -121,8 +115,7 @@ public class TypeAnalyzer {
 		if (node.isAtomicQualified())
 			unqualifiedType = typeFactory.atomicType(unqualifiedType);
 		if (constQ || volatileQ || inputQ || outputQ)
-			return typeFactory.qualifiedType(unqualifiedType, constQ, volatileQ,
-					false, inputQ, outputQ);
+			return typeFactory.qualifiedType(unqualifiedType, constQ, volatileQ, false, inputQ, outputQ);
 		else
 			return unqualifiedType;
 	}
@@ -130,16 +123,15 @@ public class TypeAnalyzer {
 	/**
 	 * 
 	 * C11 6.7.6.2(1): "The element type shall not be an incomplete or function
-	 * type. The optional type qualifiers and the keyword static shall appear
-	 * only in a declaration of a function parameter with an array type, and
-	 * then only in the outermost array type derivation."
+	 * type. The optional type qualifiers and the keyword static shall appear only
+	 * in a declaration of a function parameter with an array type, and then only in
+	 * the outermost array type derivation."
 	 * 
 	 * @param node
 	 * @return
 	 * @throws SyntaxException
 	 */
-	private ObjectType processArrayType(ArrayTypeNode node, boolean isParameter)
-			throws SyntaxException {
+	private ObjectType processArrayType(ArrayTypeNode node, boolean isParameter) throws SyntaxException {
 		TypeNode elementTypeNode = node.getElementType(); // non-null
 		Type tempElementType = processTypeNode(elementTypeNode);
 		ObjectType elementType;
@@ -152,13 +144,10 @@ public class TypeAnalyzer {
 		ObjectType result;
 
 		if (!(tempElementType instanceof ObjectType))
-			throw error("Non-object type used for element type of array type",
-					elementTypeNode);
+			throw error("Non-object type used for element type of array type", elementTypeNode);
 		elementType = (ObjectType) tempElementType;
-		if (this.language == Language.C && !isParameter
-				&& !elementType.isComplete())
-			throw error("Element type of array type is not complete",
-					elementTypeNode);
+		if (this.language == Language.C && !isParameter && !elementType.isComplete())
+			throw error("Element type of array type is not complete", elementTypeNode);
 		// C11 6.7.3(3):
 		// "The type modified by the _Atomic qualifier shall not be an
 		// array type or a function type."
@@ -168,83 +157,66 @@ public class TypeAnalyzer {
 		// "If the specification of an array type includes any type qualifiers,
 		// the element type is so-qualified, not the array type."
 		// but don't apply that rule to $input and $output
-		elementType = typeFactory.qualify(elementType, constQ, volatileQ,
-				restrictQ, false, false);
+		elementType = typeFactory.qualify(elementType, constQ, volatileQ, restrictQ, false, false);
 		if (restrictQ && elementType instanceof QualifiedObjectType
-				&& ((QualifiedObjectType) elementType).getBaseType()
-						.kind() != TypeKind.POINTER)
-			throw error("Use of restrict qualifier with non-pointer type",
-					node);
+				&& ((QualifiedObjectType) elementType).getBaseType().kind() != TypeKind.POINTER)
+			throw error("Use of restrict qualifier with non-pointer type", node);
 		if (isParameter) {
 			// no scope restriction on pointer given, so use null...
 			PointerType pointerType = typeFactory.pointerType(elementType);
-			UnqualifiedObjectType unqualifiedType = (node.hasAtomicInBrackets()
-					? typeFactory.atomicType(pointerType)
+			UnqualifiedObjectType unqualifiedType = (node.hasAtomicInBrackets() ? typeFactory.atomicType(pointerType)
 					: pointerType);
 
 			// need to process size expression, but ignore it...
 			sizeExpression = node.getExtent();
 			if (sizeExpression != null)
-				entityAnalyzer.expressionAnalyzer
-						.processExpression(sizeExpression);
-			return typeFactory.qualify(unqualifiedType,
-					node.hasConstInBrackets(), node.hasVolatileInBrackets(),
+				entityAnalyzer.expressionAnalyzer.processExpression(sizeExpression);
+			return typeFactory.qualify(unqualifiedType, node.hasConstInBrackets(), node.hasVolatileInBrackets(),
 					node.hasRestrictInBrackets(), false, false);
 		}
-		if (node.hasAtomicInBrackets() || node.hasConstInBrackets()
-				|| node.hasVolatileInBrackets() || node.hasRestrictInBrackets())
+		if (node.hasAtomicInBrackets() || node.hasConstInBrackets() || node.hasVolatileInBrackets()
+				|| node.hasRestrictInBrackets())
 			throw error(
-					"Type qualifiers in [...] in an array declarator "
-							+ "can only appear in a parameter declaration",
+					"Type qualifiers in [...] in an array declarator " + "can only appear in a parameter declaration",
 					elementTypeNode);
 		if (node.hasUnspecifiedVariableLength()) { // "*"
-			result = typeFactory
-					.unspecifiedVariableLengthArrayType(elementType);
+			result = typeFactory.unspecifiedVariableLengthArrayType(elementType);
 		} else {
 			sizeExpression = node.getExtent();
 			if (sizeExpression == null) {
 				result = typeFactory.incompleteArrayType(elementType);
 			} else {
-				entityAnalyzer.expressionAnalyzer
-						.processExpression(sizeExpression);
+				entityAnalyzer.expressionAnalyzer.processExpression(sizeExpression);
 				if (sizeExpression.isConstantExpression()) {
 					Value extent = nodeFactory.getConstantValue(sizeExpression);
 
-					result = typeFactory.arrayType(elementType,
-							(IntegerValue) extent);
+					result = typeFactory.arrayType(elementType, (IntegerValue) extent);
 				} else {
 					// C11 6.7.6.2(5): "If the size is an expression that is not
 					// an integer constant expression: if it occurs in a
 					// declaration at function prototype scope, it is treated as
 					// if it were replaced by *"
-					if (node.getScope()
-							.getScopeKind() == ScopeKind.FUNCTION_PROTOTYPE)
-						result = typeFactory.unspecifiedVariableLengthArrayType(
-								elementType);
+					if (node.getScope().getScopeKind() == ScopeKind.FUNCTION_PROTOTYPE)
+						result = typeFactory.unspecifiedVariableLengthArrayType(elementType);
 					else
-						result = typeFactory.variableLengthArrayType(
-								elementType, sizeExpression);
+						result = typeFactory.variableLengthArrayType(elementType, sizeExpression);
 				}
 			}
 		}
 		if (inputQ || outputQ)
-			result = typeFactory.qualify(result, false, false, false, inputQ,
-					outputQ);
+			result = typeFactory.qualify(result, false, false, false, inputQ, outputQ);
 		return result;
 	}
 
-	private Type processPointerType(PointerTypeNode node)
-			throws SyntaxException {
+	private Type processPointerType(PointerTypeNode node) throws SyntaxException {
 		TypeNode referencedTypeNode = node.referencedType();
 		Type referencedType = processTypeNode(referencedTypeNode);
-		UnqualifiedObjectType unqualifiedType = typeFactory
-				.pointerType(referencedType);
+		UnqualifiedObjectType unqualifiedType = typeFactory.pointerType(referencedType);
 
 		if (node.isAtomicQualified())
 			unqualifiedType = typeFactory.atomicType(unqualifiedType);
-		return typeFactory.qualify(unqualifiedType, node.isConstQualified(),
-				node.isVolatileQualified(), node.isRestrictQualified(),
-				node.isInputQualified(), node.isOutputQualified());
+		return typeFactory.qualify(unqualifiedType, node.isConstQualified(), node.isVolatileQualified(),
+				node.isRestrictQualified(), node.isInputQualified(), node.isOutputQualified());
 	}
 
 	private Type processAtomicType(AtomicTypeNode node) throws SyntaxException {
@@ -255,83 +227,57 @@ public class TypeAnalyzer {
 		TypeKind kind = baseType.kind();
 
 		if (kind == TypeKind.ARRAY)
-			throw error(
-					"Type name used in atomic type specifier refers to an array type",
-					node);
+			throw error("Type name used in atomic type specifier refers to an array type", node);
 		if (kind == TypeKind.FUNCTION)
-			throw error(
-					"Type name used in atomic type specifier refers to a function type",
-					node);
+			throw error("Type name used in atomic type specifier refers to a function type", node);
 		if (kind == TypeKind.ATOMIC)
-			throw error(
-					"Type name used in atomic type specifier refers to an atomic type",
-					node);
+			throw error("Type name used in atomic type specifier refers to an atomic type", node);
 		if (kind == TypeKind.QUALIFIED)
-			throw error(
-					"Type name used in atomic type specifier refers to a qualified type",
-					node);
+			throw error("Type name used in atomic type specifier refers to a qualified type", node);
 		return typeFactory.atomicType((UnqualifiedObjectType) baseType);
 	}
 
-	private Type processTypedefName(TypedefNameNode typeNode,
-			boolean isParameter) throws SyntaxException {
+	private Type processTypedefName(TypedefNameNode typeNode, boolean isParameter) throws SyntaxException {
 		String name = typeNode.getName().name();
 		Scope scope = typeNode.getScope();
 		OrdinaryEntity entity = scope.getLexicalOrdinaryEntity(true, name);
 
 		if (entity == null)
-			throw error("Typedef name " + typeNode.prettyRepresentation()
-					+ " used before definition?", typeNode);
+			throw error("Typedef name " + typeNode.prettyRepresentation() + " used before definition?", typeNode);
 
 		EntityKind kind = entity.getEntityKind();
 		Typedef typedef;
 		Type result;
 
 		if (kind != EntityKind.TYPEDEF)
-			throw error(
-					"Internal error: typedef name does not refer to typedef",
-					typeNode);
+			throw error("Internal error: typedef name does not refer to typedef", typeNode);
 		typedef = (Typedef) entity;
 		typeNode.getName().setEntity(typedef);
 		result = typedef.getType();
 		if (isParameter) {
 			TypeKind typeKind = result.kind();
 			if (typeKind == TypeKind.ARRAY)
-				result = typeFactory
-						.pointerType(((ArrayType) result).getElementType());
+				result = typeFactory.pointerType(((ArrayType) result).getElementType());
 			else if (typeKind == TypeKind.FUNCTION)
 				result = typeFactory.pointerType(result);
 		}
 		return result;
 	}
 
-	private boolean onlyVoid(SequenceNode<VariableDeclarationNode> parameters)
-			throws SyntaxException {
+	private boolean onlyVoid(SequenceNode<VariableDeclarationNode> parameters) throws SyntaxException {
 		for (VariableDeclarationNode decl : parameters) {
 			if (decl != null) {
 				TypeNode typeNode = decl.getTypeNode();
 
 				if (typeNode != null && typeNode.kind() == TypeNodeKind.VOID) {
 					checkNoAlignments(decl);
-					if (parameters.numChildren() > 1
-							|| typeNode.isAtomicQualified()
-							|| typeNode.isConstQualified()
-							|| typeNode.isRestrictQualified()
-							|| typeNode.isVolatileQualified()
-							|| typeNode.isInputQualified()
-							|| typeNode.isOutputQualified()
-							|| typeNode.isAtomicQualified()
-							|| decl.hasAutoStorage()
-							|| decl.hasRegisterStorage()
-							|| decl.hasSharedStorage()
-							|| decl.getInitializer() != null
-							|| decl.hasThreadLocalStorage()
-							|| decl.hasExternStorage()
-							|| decl.hasStaticStorage()
-							|| decl.getIdentifier() != null) {
-						throw error(
-								"Non-trivial function parameter list containing void",
-								decl);
+					if (parameters.numChildren() > 1 || typeNode.isAtomicQualified() || typeNode.isConstQualified()
+							|| typeNode.isRestrictQualified() || typeNode.isVolatileQualified()
+							|| typeNode.isInputQualified() || typeNode.isOutputQualified()
+							|| typeNode.isAtomicQualified() || decl.hasAutoStorage() || decl.hasRegisterStorage()
+							|| decl.hasSharedStorage() || decl.getInitializer() != null || decl.hasThreadLocalStorage()
+							|| decl.hasExternStorage() || decl.hasStaticStorage() || decl.getIdentifier() != null) {
+						throw error("Non-trivial function parameter list containing void", decl);
 					}
 					return true;
 				}
@@ -341,20 +287,17 @@ public class TypeAnalyzer {
 	}
 
 	/**
-	 * C11 6.7.5(2): "An alignment attribute shall not be specified in a
-	 * declaration of a typedef, or a bit-field, or a function, or a parameter,
-	 * or an object declared with the register storage-class specifier."
+	 * C11 6.7.5(2): "An alignment attribute shall not be specified in a declaration
+	 * of a typedef, or a bit-field, or a function, or a parameter, or an object
+	 * declared with the register storage-class specifier."
 	 */
-	private void checkNoAlignments(VariableDeclarationNode node)
-			throws SyntaxException {
+	private void checkNoAlignments(VariableDeclarationNode node) throws SyntaxException {
 		SequenceNode<ExpressionNode> seq1 = node.constantAlignmentSpecifiers();
 
 		if (seq1 != null && seq1.numChildren() > 0) {
 			ExpressionNode alignment = seq1.getSequenceChild(0);
 
-			throw error(
-					"Alignment attribute in parameter declaration; see C11 6.7.5(2)",
-					alignment);
+			throw error("Alignment attribute in parameter declaration; see C11 6.7.5(2)", alignment);
 		}
 
 		SequenceNode<TypeNode> seq2 = node.typeAlignmentSpecifiers();
@@ -362,14 +305,11 @@ public class TypeAnalyzer {
 		if (seq2 != null && seq2.numChildren() > 0) {
 			TypeNode alignment = seq2.getSequenceChild(0);
 
-			throw error(
-					"Alignment attribute in parameter declaration; see C11 6.7.5(2)",
-					alignment);
+			throw error("Alignment attribute in parameter declaration; see C11 6.7.5(2)", alignment);
 		}
 	}
 
-	private Type processFunctionType(FunctionTypeNode node, boolean isParameter)
-			throws SyntaxException {
+	private Type processFunctionType(FunctionTypeNode node, boolean isParameter) throws SyntaxException {
 		Type result;
 		TypeNode returnTypeNode = node.getReturnType();
 		SequenceNode<VariableDeclarationNode> parameters = node.getParameters();
@@ -383,12 +323,9 @@ public class TypeAnalyzer {
 		// "A function declarator shall not specify a return type that is a
 		// function type or an array type."
 		if (!(tempReturnType instanceof ObjectType))
-			throw error(
-					"Return type in function declaration is not an object type",
-					returnTypeNode);
+			throw error("Return type in function declaration is not an object type", returnTypeNode);
 		if (tempReturnType instanceof ArrayType)
-			throw error("Return type in function declaration is an array type",
-					returnTypeNode);
+			throw error("Return type in function declaration is an array type", returnTypeNode);
 		returnType = (ObjectType) tempReturnType;
 		if (fromIdentifierList && !isDefinition && numParameters == 0) {
 			// no information known about parameters
@@ -401,26 +338,20 @@ public class TypeAnalyzer {
 					TypeNode parameterTypeNode = decl.getTypeNode();
 
 					if (parameterTypeNode == null)
-						throw error("No type specified for function parameter",
-								decl);
+						throw error("No type specified for function parameter", decl);
 					checkNoAlignments(decl);
 					// C11 6.7.6.3(2): "The only storage-class specifier that
 					// shall occur in a parameter declaration is register."
 					// the others are extern, static, _Thread_local, auto
-					if (decl.hasExternStorage() || decl.hasStaticStorage()
-							|| decl.hasThreadLocalStorage())
-						throw error(
-								"Illegal storage class specified in parameter declaration; see C11 6.7.6.3(2)",
+					if (decl.hasExternStorage() || decl.hasStaticStorage() || decl.hasThreadLocalStorage())
+						throw error("Illegal storage class specified in parameter declaration; see C11 6.7.6.3(2)",
 								decl);
-					entityAnalyzer.declarationAnalyzer
-							.processVariableDeclaration(decl, true);
+					entityAnalyzer.declarationAnalyzer.processVariableDeclaration(decl, true);
 
-					parameterTypes
-							.add((ObjectType) parameterTypeNode.getType());
+					parameterTypes.add((ObjectType) parameterTypeNode.getType());
 				}
 			}
-			result = typeFactory.functionType(returnType, fromIdentifierList,
-					parameterTypes, hasVariableArgs);
+			result = typeFactory.functionType(returnType, fromIdentifierList, parameterTypes, hasVariableArgs);
 		}
 		if (isParameter)
 			result = typeFactory.pointerType(result);
@@ -431,20 +362,16 @@ public class TypeAnalyzer {
 	 * Creates new enumeration entity and type and adds them to the scope of the
 	 * given node.
 	 * 
-	 * @param node
-	 *                 an enumeration type node with non-null enumerators
+	 * @param node an enumeration type node with non-null enumerators
 	 * @return the new enumeration entity
 	 * @throws SyntaxException
 	 */
-	private EnumerationType createEnumeration(EnumerationTypeNode node)
-			throws SyntaxException {
-		SequenceNode<EnumeratorDeclarationNode> enumerators = node
-				.enumerators();
+	private EnumerationType createEnumeration(EnumerationTypeNode node) throws SyntaxException {
+		SequenceNode<EnumeratorDeclarationNode> enumerators = node.enumerators();
 		Scope scope = node.getScope();
 		String tag = node.getName(); // could be null
 		List<Enumerator> enumeratorList = new LinkedList<>();
-		EnumerationType enumerationType = typeFactory.enumerationType(node,
-				tag);
+		EnumerationType enumerationType = typeFactory.enumerationType(node, tag);
 		IntegerValue value = null;
 
 		// clear it, in case it was used in previous analysis pass
@@ -464,22 +391,15 @@ public class TypeAnalyzer {
 			} else {
 				Value tmpValue;
 
-				entityAnalyzer.expressionAnalyzer
-						.processExpression(constantNode);
+				entityAnalyzer.expressionAnalyzer.processExpression(constantNode);
 				if (!constantNode.isConstantExpression())
-					throw error(
-							"Non-constant expression used in enumerator definition",
-							constantNode);
+					throw error("Non-constant expression used in enumerator definition", constantNode);
 				tmpValue = nodeFactory.getConstantValue(constantNode);
 				if (!(tmpValue instanceof IntegerValue))
-					throw error(
-							"Constant expression of concrete integer type expected, not "
-									+ tmpValue,
-							constantNode);
+					throw error("Constant expression of concrete integer type expected, not " + tmpValue, constantNode);
 				value = (IntegerValue) tmpValue;
 			}
-			enumerator = typeFactory.newEnumerator(decl, enumerationType,
-					value);
+			enumerator = typeFactory.newEnumerator(decl, enumerationType, value);
 			enumerator.addDeclaration(decl);
 			enumerator.setDefinition(decl);
 			decl.setEntity(enumerator);
@@ -496,27 +416,22 @@ public class TypeAnalyzer {
 	}
 
 	/**
-	 * Creates a new structure or union entity and type based on given node.
-	 * Adds it to the scope. This method should only be called if it is known no
-	 * such entity exists.
+	 * Creates a new structure or union entity and type based on given node. Adds it
+	 * to the scope. This method should only be called if it is known no such entity
+	 * exists.
 	 * 
-	 * @param node
-	 *                 a structure or union node
+	 * @param node a structure or union node
 	 * @return the resulting structure or union entity
-	 * @throws SyntaxException
-	 *                             if already exists in scope
+	 * @throws SyntaxException if already exists in scope
 	 */
-	private StructureOrUnionType createStructureOrUnion(
-			StructureOrUnionTypeNode node) throws SyntaxException {
+	private StructureOrUnionType createStructureOrUnion(StructureOrUnionTypeNode node) throws SyntaxException {
 		Scope scope = node.getScope();
 		IdentifierNode identifier = node.getIdentifier();
 		String tag = node.getName(); // could be null
-		SequenceNode<FieldDeclarationNode> fieldDecls = node
-				.getStructDeclList(); // could
-										// be
-										// null
-		StructureOrUnionType structureOrUnionType = typeFactory
-				.structureOrUnionType(node, node.isStruct(), tag);
+		SequenceNode<FieldDeclarationNode> fieldDecls = node.getStructDeclList(); // could
+																					// be
+																					// null
+		StructureOrUnionType structureOrUnionType = typeFactory.structureOrUnionType(node, node.isStruct(), tag);
 
 		// in case this was used in previous analysis pass, clear it:
 		structureOrUnionType.clear();
@@ -530,52 +445,40 @@ public class TypeAnalyzer {
 	}
 
 	/**
-	 * Checks that an existing tagged entity <code>old</code> is consistent with
-	 * one defined by a given structure or union type node <code>node</code>.
+	 * Checks that an existing tagged entity <code>old</code> is consistent with one
+	 * defined by a given structure or union type node <code>node</code>.
 	 * Consistency entails:
 	 * <ul>
-	 * <li>if <code>node</code> defines a struct, <code>old</code> is a struct;
-	 * if <code>node</code> defines a union, <code>old</code> is a union</li>
+	 * <li>if <code>node</code> defines a struct, <code>old</code> is a struct; if
+	 * <code>node</code> defines a union, <code>old</code> is a union</li>
 	 * <li>at least one of <code>old</code> and <code>node</code> is incomplete,
 	 * i.e., does not contain the field declarations</li>
 	 * </ul>
 	 * 
-	 * @param old
-	 *                 an existing tagged entity (non-<code>null</code>)
-	 * @param node
-	 *                 a structure or union type node (non-<code>null</code>)
-	 * @throws SyntaxException
-	 *                             if the existing entity and the node are
-	 *                             inconsistent
+	 * @param old  an existing tagged entity (non-<code>null</code>)
+	 * @param node a structure or union type node (non-<code>null</code>)
+	 * @throws SyntaxException if the existing entity and the node are inconsistent
 	 */
-	private void checkConsistency(TaggedEntity old,
-			StructureOrUnionTypeNode node) throws SyntaxException {
+	private void checkConsistency(TaggedEntity old, StructureOrUnionTypeNode node) throws SyntaxException {
 		String tag = node.getName();
 		StructureOrUnionType su;
 
 		if (old.getEntityKind() != EntityKind.STRUCTURE_OR_UNION)
-			throw error("Re-use of tag " + tag
-					+ " for structure or union.  Previous use was at "
+			throw error("Re-use of tag " + tag + " for structure or union.  Previous use was at "
 					+ old.getFirstDeclaration().getSource(), node);
 		su = (StructureOrUnionType) old;
 		if (su.isStruct()) {
 			if (!node.isStruct())
-				throw error("Previous use of tag " + tag
-						+ " was for structure, current use for union. "
-						+ "Previous use was at "
-						+ old.getFirstDeclaration().getSource(), node);
+				throw error("Previous use of tag " + tag + " was for structure, current use for union. "
+						+ "Previous use was at " + old.getFirstDeclaration().getSource(), node);
 		} else {
 			if (node.isStruct())
-				throw error("Previous use of tag " + tag
-						+ " was for union, current use for structure. "
-						+ "Previous use was at "
-						+ old.getFirstDeclaration().getSource(), node);
+				throw error("Previous use of tag " + tag + " was for union, current use for structure. "
+						+ "Previous use was at " + old.getFirstDeclaration().getSource(), node);
 		}
 		if (su.getType().isComplete() && node.getStructDeclList() != null)
-			throw error(
-					"Re-definition of structure or union.  Previous definition at "
-							+ old.getFirstDeclaration().getSource(),
-					node);
+			throw error("Re-definition of structure or union.  Previous definition at "
+					+ old.getFirstDeclaration().getSource(), node);
 	}
 
 	/**
@@ -583,25 +486,18 @@ public class TypeAnalyzer {
 	 * structure or union type node, completes the entity using the information
 	 * provided by the node.
 	 * 
-	 * @param structureOrUnion
-	 *                             an incomplete structure or union entity
-	 *                             (non-<code>null</code> )
-	 * @param node
-	 *                             a complete structure or union type node
-	 *                             consistent with the
-	 *                             <code>structureOrUnion</code>
-	 *                             (non-<code>null</code>)
-	 * @throws SyntaxException
-	 *                             if a field is declared with a non-object type
-	 *                             or bit width is specified with a non-constant
-	 *                             expression
+	 * @param structureOrUnion an incomplete structure or union entity
+	 *                         (non-<code>null</code> )
+	 * @param node             a complete structure or union type node consistent
+	 *                         with the <code>structureOrUnion</code>
+	 *                         (non-<code>null</code>)
+	 * @throws SyntaxException if a field is declared with a non-object type or bit
+	 *                         width is specified with a non-constant expression
 	 * @see {@link #checkConsistency(TaggedEntity, StructureOrUnionTypeNode)}
 	 */
-	private void completeStructOrUnion(
-			StructureOrUnionType structureOrUnionType,
-			StructureOrUnionTypeNode node) throws SyntaxException {
-		SequenceNode<FieldDeclarationNode> fieldDecls = node
-				.getStructDeclList();
+	private void completeStructOrUnion(StructureOrUnionType structureOrUnionType, StructureOrUnionTypeNode node)
+			throws SyntaxException {
+		SequenceNode<FieldDeclarationNode> fieldDecls = node.getStructDeclList();
 		List<Field> fieldList = new LinkedList<>();
 
 		structureOrUnionType.setDefinition(node);
@@ -618,19 +514,15 @@ public class TypeAnalyzer {
 				Type tempType = processTypeNode(fieldTypeNode);
 
 				if (!(tempType instanceof ObjectType))
-					throw error("Non-object type for structure or union member",
-							fieldTypeNode);
+					throw error("Non-object type for structure or union member", fieldTypeNode);
 				fieldType = (ObjectType) tempType;
 			}
 			if (bitWidthExpression == null) {
 				bitWidth = null;
 			} else {
 				if (!bitWidthExpression.isConstantExpression())
-					throw error(
-							"Non-constant expression used for bit width in field declaration",
-							bitWidthExpression);
-				this.entityAnalyzer.expressionAnalyzer
-						.processExpression(bitWidthExpression);
+					throw error("Non-constant expression used for bit width in field declaration", bitWidthExpression);
+				this.entityAnalyzer.expressionAnalyzer.processExpression(bitWidthExpression);
 				bitWidth = nodeFactory.getConstantValue(bitWidthExpression);
 			}
 			field = typeFactory.newField(decl, fieldType, bitWidth);
@@ -641,32 +533,26 @@ public class TypeAnalyzer {
 		}
 		structureOrUnionType.complete(fieldList);
 		StringJoiner joiner = new StringJoiner(".");
-		structureOrUnionType.findFieldCycle()
-				.forEach(field -> joiner.add(field.getName()));
+		structureOrUnionType.findFieldCycle().forEach(field -> joiner.add(field.getName()));
 		String joinedString = joiner.toString();
 		if (!joinedString.isEmpty()) {
 			throw error(
-					"Type cycle detected in " + structureOrUnionType.getTag()
-							+ ". Field sequence:\n\t" + joinedString,
+					"Type cycle detected in " + structureOrUnionType.getTag() + ". Field sequence:\n\t" + joinedString,
 					node);
 		}
 	}
 
 	/**
 	 * Processes a domain type node. Such a node is specified in source form by
-	 * <code>$domain</code> or <code>$domain(expr)</code>, where
-	 * <code>expr</code> is a constant expression of integer type
+	 * <code>$domain</code> or <code>$domain(expr)</code>, where <code>expr</code>
+	 * is a constant expression of integer type
 	 * 
-	 * @param node
-	 *                 a domain type node (non-<code>null</code>)
+	 * @param node a domain type node (non-<code>null</code>)
 	 * @return the domain type specified by the node
-	 * @throws SyntaxException
-	 *                             if the dimension expression is present but
-	 *                             does not have integer type or is not a
-	 *                             constant expression
+	 * @throws SyntaxException if the dimension expression is present but does not
+	 *                         have integer type or is not a constant expression
 	 */
-	private DomainType processDomainType(DomainTypeNode node)
-			throws SyntaxException {
+	private DomainType processDomainType(DomainTypeNode node) throws SyntaxException {
 		ExpressionNode dimensionNode = node.getDimension();
 		DomainType result;
 
@@ -691,16 +577,12 @@ public class TypeAnalyzer {
 	// ************************* Exported Methods **************************
 
 	/**
-	 * Processes a type node and sets the type field of that type node to the
-	 * type computed from the type node.
+	 * Processes a type node and sets the type field of that type node to the type
+	 * computed from the type node.
 	 * 
-	 * @param typeNode
-	 *                     a type node which may or may not have been processed
-	 *                     already
+	 * @param typeNode a type node which may or may not have been processed already
 	 * @return the type computed from the type node
-	 * @throws SyntaxException
-	 *                             if there is a syntax problem with the type
-	 *                             node
+	 * @throws SyntaxException if there is a syntax problem with the type node
 	 */
 	Type processTypeNode(TypeNode typeNode) throws SyntaxException {
 		return processTypeNode(typeNode, false);
@@ -708,109 +590,93 @@ public class TypeAnalyzer {
 
 	/**
 	 * <p>
-	 * Processes a {@link TypeNode}. The Type defined by that type node is
-	 * computed and associated to the TypeNode.
+	 * Processes a {@link TypeNode}. The Type defined by that type node is computed
+	 * and associated to the TypeNode.
 	 * </p>
 	 * 
 	 * <p>
-	 * This method may also entail the creation and/or modification of entities.
-	 * For example, if the type node defines a structure or union type, or
-	 * enumeration type, then the corresponding entities may be created or
-	 * completed.
+	 * This method may also entail the creation and/or modification of entities. For
+	 * example, if the type node defines a structure or union type, or enumeration
+	 * type, then the corresponding entities may be created or completed.
 	 * </p>
 	 * 
-	 * @param typeNode
-	 *                     a non-<code>null</code> type node
+	 * @param typeNode a non-<code>null</code> type node
 	 * @return the type specified by that node
-	 * @throws SyntaxException
-	 *                             if any static errors are detected in the
-	 *                             processing of the type node
+	 * @throws SyntaxException if any static errors are detected in the processing
+	 *                         of the type node
 	 */
-	Type processTypeNode(TypeNode typeNode, boolean isParameter)
-			throws SyntaxException {
+	Type processTypeNode(TypeNode typeNode, boolean isParameter) throws SyntaxException {
 		TypeNodeKind kind = typeNode.kind();
 		Type type;
 
 		switch (kind) {
-			case VOID : {
-				boolean constQ = typeNode.isConstQualified();
-				boolean volatileQ = typeNode.isVolatileQualified();
+		case VOID: {
+			boolean constQ = typeNode.isConstQualified();
+			boolean volatileQ = typeNode.isVolatileQualified();
 
-				type = typeFactory.voidType();
-				if (typeNode.isRestrictQualified())
-					throw error("restrict qualifier used with void type",
-							typeNode);
-				if (typeNode.isAtomicQualified())
-					throw error("_Atomic qualifier used with void type",
-							typeNode);
-				if (constQ || volatileQ)
-					type = typeFactory.qualifiedType(
-							(UnqualifiedObjectType) type, constQ, volatileQ,
-							false, false, false);
-				break;
-			}
-			case BASIC :
-				type = processBasicType((BasicTypeNode) typeNode);
-				break;
-			case ENUMERATION :
-				type = processEnumerationType((EnumerationTypeNode) typeNode);
-				break;
-			case ARRAY :
-				type = processArrayType((ArrayTypeNode) typeNode, isParameter);
-				break;
-			case STRUCTURE_OR_UNION :
-				type = processStructureOrUnionType(
-						(StructureOrUnionTypeNode) typeNode);
-				break;
-			case FUNCTION :
-				type = processFunctionType((FunctionTypeNode) typeNode,
-						isParameter);
-				break;
-			case POINTER :
-				type = processPointerType((PointerTypeNode) typeNode);
-				break;
-			case ATOMIC :
-				type = processAtomicType((AtomicTypeNode) typeNode);
-				break;
-			case TYPEDEF_NAME :
-				type = processTypedefName((TypedefNameNode) typeNode,
-						isParameter);
-				break;
-			case SCOPE :
-				type = typeFactory.scopeType();
-				break;
-			case DOMAIN :
-				type = processDomainType((DomainTypeNode) typeNode);
-				break;
-			case RANGE :
-				type = typeFactory.rangeType();
-				break;
-			case TYPEOF : {
-				ExpressionNode expression = ((TypeofNode) typeNode)
-						.getExpressionOperand();
-				entityAnalyzer.expressionAnalyzer.processExpression(expression);
-				type = expression.getType();
-				break;
-			}
-			case STATE :
-				type = typeFactory.stateType();
-				break;
-			case MEM :
-				type = typeFactory.memType(
-						typeFactory.pointerType(typeFactory.voidType()));
-				break;
-			case LAMBDA :
-				LambdaTypeNode lambdaTypeNode = (LambdaTypeNode) typeNode;
-				Type freeVariableType = processTypeNode(
-						lambdaTypeNode.freeVariableType());
-				Type lambdaFunctionType = processTypeNode(
-						lambdaTypeNode.lambdaFunctionType());
+			type = typeFactory.voidType();
+			if (typeNode.isRestrictQualified())
+				throw error("restrict qualifier used with void type", typeNode);
+			if (typeNode.isAtomicQualified())
+				throw error("_Atomic qualifier used with void type", typeNode);
+			if (constQ || volatileQ)
+				type = typeFactory.qualifiedType((UnqualifiedObjectType) type, constQ, volatileQ, false, false, false);
+			break;
+		}
+		case BASIC:
+			type = processBasicType((BasicTypeNode) typeNode);
+			break;
+		case ENUMERATION:
+			type = processEnumerationType((EnumerationTypeNode) typeNode);
+			break;
+		case ARRAY:
+			type = processArrayType((ArrayTypeNode) typeNode, isParameter);
+			break;
+		case STRUCTURE_OR_UNION:
+			type = processStructureOrUnionType((StructureOrUnionTypeNode) typeNode);
+			break;
+		case FUNCTION:
+			type = processFunctionType((FunctionTypeNode) typeNode, isParameter);
+			break;
+		case POINTER:
+			type = processPointerType((PointerTypeNode) typeNode);
+			break;
+		case ATOMIC:
+			type = processAtomicType((AtomicTypeNode) typeNode);
+			break;
+		case TYPEDEF_NAME:
+			type = processTypedefName((TypedefNameNode) typeNode, isParameter);
+			break;
+		case SCOPE:
+			type = typeFactory.scopeType();
+			break;
+		case DOMAIN:
+			type = processDomainType((DomainTypeNode) typeNode);
+			break;
+		case RANGE:
+			type = typeFactory.rangeType();
+			break;
+		case TYPEOF: {
+			ExpressionNode expression = ((TypeofNode) typeNode).getExpressionOperand();
+			entityAnalyzer.expressionAnalyzer.processExpression(expression);
+			type = expression.getType();
+			break;
+		}
+		case STATE:
+			type = typeFactory.stateType();
+			break;
+		case MEM:
+			type = typeFactory.memType(typeFactory.pointerType(typeFactory.voidType()));
+			break;
+		case LAMBDA:
+			LambdaTypeNode lambdaTypeNode = (LambdaTypeNode) typeNode;
+			Type freeVariableType = processTypeNode(lambdaTypeNode.freeVariableType());
+			Type lambdaFunctionType = processTypeNode(lambdaTypeNode.lambdaFunctionType());
 
-				type = typeFactory.lambdaType(freeVariableType,
-						lambdaFunctionType);
-				break;
-			default :
-				throw new RuntimeException("Unreachable");
+			type = typeFactory.lambdaType(freeVariableType, lambdaFunctionType);
+			break;
+		default:
+			throw new RuntimeException("Unreachable");
 		}
 		assert type != null;
 		typeNode.setType(type);
@@ -823,79 +689,69 @@ public class TypeAnalyzer {
 	 * </p>
 	 * 
 	 * <p>
-	 * If there is no tag: there has to be an enumerator list, and this defines
-	 * a new unnamed entity and enumeration type in the current scope.
+	 * If there is no tag: there has to be an enumerator list, and this defines a
+	 * new unnamed entity and enumeration type in the current scope.
 	 * </p>
 	 * 
 	 * <p>
 	 * If there is a tag, proceed as follows:
 	 * <ul>
-	 * <li>If there is an enumerator list: check that there is no tagged entity
-	 * with the same tag in the current scope. If this check fails, syntax
-	 * error. Create a new enumeration entity and type, add it to the current
-	 * scope.</li>
-	 * <li>If there is not an enumerator list: check (1) there is a visible
-	 * tagged entity with the same tag; (2) that tagged entity is an enum; and
-	 * (3) that previous enum is complete. If any of these fails: syntax error.
-	 * Else, use the old entity and type.</li>
+	 * <li>If there is an enumerator list: check that there is no tagged entity with
+	 * the same tag in the current scope. If this check fails, syntax error. Create
+	 * a new enumeration entity and type, add it to the current scope.</li>
+	 * <li>If there is not an enumerator list: check (1) there is a visible tagged
+	 * entity with the same tag; (2) that tagged entity is an enum; and (3) that
+	 * previous enum is complete. If any of these fails: syntax error. Else, use the
+	 * old entity and type.</li>
 	 * </ul>
 	 * </p>
 	 * 
 	 * <p>
 	 * Note that the situation is slightly different than that for structures or
 	 * unions. An incomplete structure or union declaration may occur before the
-	 * structure or union is complete. In contrast, an enumeration must be
-	 * complete the first time it is declared, and an incomplete version may
-	 * occur only after that point.
+	 * structure or union is complete. In contrast, an enumeration must be complete
+	 * the first time it is declared, and an incomplete version may occur only after
+	 * that point.
 	 * </p>
 	 * 
 	 * @param node
 	 * @return
 	 * @throws SyntaxException
 	 */
-	Type processEnumerationType(EnumerationTypeNode node)
-			throws SyntaxException {
+	Type processEnumerationType(EnumerationTypeNode node) throws SyntaxException {
 		Scope scope = node.getScope();
 		IdentifierNode identifier = node.getIdentifier(); // could be null
 		String tag = node.getName(); // could be null
-		SequenceNode<EnumeratorDeclarationNode> enumerators = node
-				.enumerators(); // could
-								// be
-								// null
+		SequenceNode<EnumeratorDeclarationNode> enumerators = node.enumerators(); // could
+																					// be
+																					// null
 		EnumerationType enumeration = null;
 		Type result;// = typeFactory.enumerationType(node, node.getName());
 
 		if (node.isRestrictQualified())
-			throw error("Use of restrict qualifier with non-pointer type",
-					node);
+			throw error("Use of restrict qualifier with non-pointer type", node);
 		if (tag != null) {
 			if (enumerators != null) {
 				TaggedEntity oldEntity = scope.getTaggedEntity(tag);
 
 				if (oldEntity != null)
-					throw error("Re-use of tag " + tag
-							+ " for enumeration.  Previous use was at "
-							+ oldEntity.getFirstDeclaration().getSource(),
-							node);
+					throw error("Re-use of tag " + tag + " for enumeration.  Previous use was at "
+							+ oldEntity.getFirstDeclaration().getSource(), node);
 				enumeration = createEnumeration(node);
 			} else {
 				TaggedEntity oldEntity = scope.getLexicalTaggedEntity(tag);
 
-				if (/* !config.getSVCOMP() && */ oldEntity == null)
-					throw error(
-							"See C11 6.7.2.3(3):\n\"A type specifier of the form\n"
-									+ "    enum identifier\n"
-									+ "without an enumerator list shall only appear after the type\n"
-									+ "it specifies is complete.\"",
-							node);
+				if (oldEntity == null)
+					throw error("See C11 6.7.2.3(3):\n\"A type specifier of the form\n" + "    enum identifier\n"
+							+ "without an enumerator list shall only appear after the type\n"
+							+ "it specifies is complete.\"", node);
 				if (oldEntity != null) {
 					if (!(oldEntity instanceof EnumerationType))
 						throw error("Re-use of tag " + tag
 								+ " for enumeration when tag is visible with different kind.  Previous use was at "
-								+ oldEntity.getFirstDeclaration().getSource(),
-								node);
+								+ oldEntity.getFirstDeclaration().getSource(), node);
 					enumeration = (EnumerationType) oldEntity;
-					assert config.getSVCOMP() || enumeration.isComplete();
+					assert enumeration.isComplete();
 					// if not, you would have caught the earlier incomplete use
 					enumeration.addDeclaration(node);
 				}
@@ -903,8 +759,7 @@ public class TypeAnalyzer {
 		} else {
 			// no tag: create new anonymous enumeration
 			if (enumerators == null)
-				throw error("Anonymous enumeration with no enumerator list",
-						node);
+				throw error("Anonymous enumeration with no enumerator list", node);
 			enumeration = createEnumeration(node);
 		}
 		node.setEntity(enumeration);
@@ -918,8 +773,7 @@ public class TypeAnalyzer {
 		if (node.isAtomicQualified())
 			unqualifiedType = typeFactory.atomicType(unqualifiedType);
 		if (constQ || volatileQ)
-			result = typeFactory.qualifiedType(unqualifiedType, constQ,
-					volatileQ, false, false, false);
+			result = typeFactory.qualifiedType(unqualifiedType, constQ, volatileQ, false, false, false);
 		else
 			result = unqualifiedType;
 		// }
@@ -933,67 +787,57 @@ public class TypeAnalyzer {
 	 * </p>
 	 * 
 	 * <p>
-	 * If there is no tag, there has to be a declarator list, and this defines a
-	 * new unnamed struct or union entity and type in the current scope. If
-	 * there is no declarator list, a syntax exception is thrown.
+	 * If there is no tag, there has to be a declarator list, and this defines a new
+	 * unnamed struct or union entity and type in the current scope. If there is no
+	 * declarator list, a syntax exception is thrown.
 	 * </p>
 	 * 
 	 * <p>
 	 * If there is a tag, proceed as follows:
 	 * <ul>
-	 * <li>If there is a declarator list: see if there exists a tagged entity
-	 * with the same tag in current scope.
+	 * <li>If there is a declarator list: see if there exists a tagged entity with
+	 * the same tag in current scope.
 	 * <ul>
-	 * <li>If there does, check it has the same kind (struct or union) as this
-	 * one, and check that it is incomplete. If either check fails, throw a
-	 * syntax exception. Then complete the old entity using the information from
-	 * the given node.</li>
-	 * <li>If there does not exist a tagged entity with the same tag in the
-	 * current scope, create a new complete struct/union entity and type and add
-	 * it to the current scope.</li>
+	 * <li>If there does, check it has the same kind (struct or union) as this one,
+	 * and check that it is incomplete. If either check fails, throw a syntax
+	 * exception. Then complete the old entity using the information from the given
+	 * node.</li>
+	 * <li>If there does not exist a tagged entity with the same tag in the current
+	 * scope, create a new complete struct/union entity and type and add it to the
+	 * current scope.</li>
 	 * </ul>
 	 * </li>
 	 * <li>If there is no declarator list: see if there exists a visible tagged
-	 * entity with the same tag. If there does exist such an entity, check it
-	 * has the same kind as this one (struct or union), and use it. If there
-	 * does not exist such an entity, create a new incomplete struct or union
-	 * entity and type and add it to the current scope.</li>
+	 * entity with the same tag. If there does exist such an entity, check it has
+	 * the same kind as this one (struct or union), and use it. If there does not
+	 * exist such an entity, create a new incomplete struct or union entity and type
+	 * and add it to the current scope.</li>
 	 * </ul>
 	 * </p>
 	 * 
-	 * @param node
-	 *                 a structure or union type node
+	 * @param node a structure or union type node
 	 * @return the structure or union type obtained by processing the node
-	 * @throws SyntaxException
-	 *                             if any of the consistency checks defined
-	 *                             above fails
+	 * @throws SyntaxException if any of the consistency checks defined above fails
 	 */
-	Type processStructureOrUnionType(StructureOrUnionTypeNode node)
-			throws SyntaxException {
+	Type processStructureOrUnionType(StructureOrUnionTypeNode node) throws SyntaxException {
 		Scope scope = node.getScope();
 		IdentifierNode identifier = node.getIdentifier(); // could be null
 
 		if (identifier == null) {
-			throw error(
-					"Anonymous struct or union.  Should not happen since anons have been given names.\n"
-							+ node.toString(),
-					node);
+			throw error("Anonymous struct or union.  Should not happen since anons have been given names.\n"
+					+ node.toString(), node);
 		}
 
 		String tag = node.getName(); // could be null
-		SequenceNode<FieldDeclarationNode> fieldDecls = node
-				.getStructDeclList(); // could be null
+		SequenceNode<FieldDeclarationNode> fieldDecls = node.getStructDeclList(); // could be null
 		StructureOrUnionType structureOrUnion;
 		Type result;
 
 		if (node.isRestrictQualified())
-			throw error("Use of restrict qualifier with non-pointer type",
-					node);
+			throw error("Use of restrict qualifier with non-pointer type", node);
 		if (tag == null) {
 			if (fieldDecls == null)
-				throw error(
-						"Anonymous structure or union with no declarator list",
-						node);
+				throw error("Anonymous structure or union with no declarator list", node);
 			structureOrUnion = createStructureOrUnion(node);
 		} else {
 			if (fieldDecls != null) {
@@ -1029,8 +873,7 @@ public class TypeAnalyzer {
 			if (node.isAtomicQualified())
 				unqualifiedType = typeFactory.atomicType(unqualifiedType);
 			if (constQ || volatileQ)
-				result = typeFactory.qualifiedType(unqualifiedType, constQ,
-						volatileQ, false, false, false);
+				result = typeFactory.qualifiedType(unqualifiedType, constQ, volatileQ, false, false, false);
 			else
 				result = unqualifiedType;
 		}

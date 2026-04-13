@@ -40,8 +40,6 @@ public class CommonProverInfo implements ProverInfo {
 
 	private boolean showErrors = true;
 
-	private String environment = null;
-
 	// Constructors...
 
 	public CommonProverInfo() {
@@ -201,8 +199,6 @@ public class CommonProverInfo implements ProverInfo {
 		out.println("  showQueries = " + showQueries + ";");
 		out.println("  showInconclusives = " + showInconclusives + ";");
 		out.println("  showErrors = " + showErrors + ";");
-		if (environment != null)
-			out.println("  environment = \"" + environment + "\";");
 		out.println("}");
 		out.flush();
 	}
@@ -255,15 +251,5 @@ public class CommonProverInfo implements ProverInfo {
 			return this.compareTo(that) == 0;
 		}
 		return false;
-	}
-
-	@Override
-	public String getEnv() {
-		return environment;
-	}
-
-	@Override
-	public void setEnv(String environment) {
-		this.environment = environment;
 	}
 }

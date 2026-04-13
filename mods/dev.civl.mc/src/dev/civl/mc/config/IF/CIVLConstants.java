@@ -169,7 +169,6 @@ public class CIVLConstants {
 	public static String SEED = "seed";
 	public static String ANALYZE_ABS = "analyze_abs";
 	public static String AST = "ast";
-	public static String UNPREPROC = "unpreproc";
 	public static String SHOW_AMPLE_SET = "showAmpleSet";
 	public static String SHOW_AMPLE_SET_STATES = "showAmpleSetWtStates";
 	public static String SHOW_MEM_UNITS = "showMemoryUnits";
@@ -190,8 +189,6 @@ public class CIVLConstants {
 	public static String USER_INCLUDE_PATH = "userIncludePath";
 	public static String VERBOSE = "verbose";
 	public static String GUI = "gui";
-	public static String SVCOMP16 = "svcomp16";
-	public static String SVCOMP17 = "svcomp17";
 	public static String SHOW_INPUTS = "showInputs";
 	public static String PREPROC = "preproc";
 	public static String PROB = "prob";
@@ -477,12 +474,6 @@ public class CIVLConstants {
 			"set the system include path, using : to separate multiple paths", null);
 
 	/**
-	 * Unpreprocess the source? false by default.
-	 */
-	public final static Option unpreprocO = Option.newScalarOption(UNPREPROC, OptionType.BOOLEAN,
-			"unpreprocess the source?", false);
-
-	/**
 	 * File name of trace to replay
 	 */
 	public final static Option traceO = Option.newScalarOption(TRACE, OptionType.STRING, "filename of trace to replay",
@@ -498,18 +489,6 @@ public class CIVLConstants {
 	 * Verbose mode? false by default
 	 */
 	public final static Option verboseO = Option.newScalarOption(VERBOSE, OptionType.BOOLEAN, "verbose mode", false);
-
-	/**
-	 * Perform svcomp16 transformation? false by default.
-	 */
-	public final static Option svcomp16O = Option.newScalarOption(SVCOMP16, OptionType.BOOLEAN,
-			"translate program for sv-comp 2016?", false);
-
-	/**
-	 * Perform svcomp transformation? false by default.
-	 */
-	public final static Option svcomp17O = Option.newScalarOption(SVCOMP17, OptionType.BOOLEAN,
-			"translate program for sv-comp 2017?", false);
 
 	/**
 	 * Show the input variables of this model? false by default.
@@ -674,16 +653,17 @@ public class CIVLConstants {
 	 * @return all options defined for CIVL in alphabetic order.
 	 */
 	public final static Option[] getAllOptions() {
-		return Stream.concat(Stream.of(astO, collectHeapsO, collectProcessesO, collectScopesO,
-				collectSymbolicConstantsO, debugO, enablePrintfO, errorBoundO, errorStateEquivO, guidedO, idO, inputO,
-				linkO, loopO, memEqO, macroO, maxdepthO, minO, mpiContractO, mpiModelO, ompLoopDecompO, ompNoSimplifyO,
-				ompOnlySimplifierO, probO, preprocO, procBoundO, randomO, runtimeUpdateO, saveStatesO, seedO,
-				showAmpleSetO, showAmpleSetWtStatesO, showInputVarsO, showMemoryUnitsO, showModelO, showPathConditionO,
-				showProgramO, showProverQueriesO, showQueriesO, showSavedStatesO, showStatesO, showTimeO,
-				showTransitionsO, showUnreachedCodeO, simplifyO, solveO, statelessPrintfO, svcomp16O, svcomp17O, quietO,
-				sysIncludePathO, traceO, userIncludePathO, verboseO, webO, CIVLMacroO, analyzeAbsO, strictCompareO,
-				collectOutputO, timeoutO, unpreprocO, sliceAnalysisO, witnessO, direct0, intBit,
-				intOperationTransformer, maxProcsO, preemptionBoundO, disableLocalBlockO, fairO, dporO),
+		return Stream.concat(
+				Stream.of(astO, collectHeapsO, collectProcessesO, collectScopesO, collectSymbolicConstantsO, debugO,
+						enablePrintfO, errorBoundO, errorStateEquivO, guidedO, idO, inputO, linkO, loopO, memEqO,
+						macroO, maxdepthO, minO, mpiContractO, mpiModelO, ompLoopDecompO, ompNoSimplifyO,
+						ompOnlySimplifierO, probO, preprocO, procBoundO, randomO, runtimeUpdateO, saveStatesO, seedO,
+						showAmpleSetO, showAmpleSetWtStatesO, showInputVarsO, showMemoryUnitsO, showModelO,
+						showPathConditionO, showProgramO, showProverQueriesO, showQueriesO, showSavedStatesO,
+						showStatesO, showTimeO, showTransitionsO, showUnreachedCodeO, simplifyO, solveO,
+						statelessPrintfO, quietO, sysIncludePathO, traceO, userIncludePathO, verboseO, webO, CIVLMacroO,
+						analyzeAbsO, strictCompareO, collectOutputO, timeoutO, sliceAnalysisO, witnessO, direct0,
+						intBit, intOperationTransformer, maxProcsO, preemptionBoundO, disableLocalBlockO, fairO, dporO),
 				CIVLProperty.getAllConfigurableProperties().stream().map(e -> e.getOption())).toArray(Option[]::new);
 	}
 
@@ -763,8 +743,6 @@ public class CIVLConstants {
 	public final static String SCOPE = "scope.cvh";
 	public final static String SEQ = "seq.cvh";
 
-	public final static String SVCOMP = "svcomp.h";
-
 	/*** Library source files ***/
 	// Standard library...
 	public final static String ASSERT_SRC = "assert.cvl";
@@ -803,8 +781,6 @@ public class CIVLConstants {
 	public final static String SEQ_SRC = "seq.cvl";
 	public final static String UNSIGNED_ARITH_SRC = "unsigned_arith.cvl";
 
-	public final static String SVCOMP_SRC = "svcomp.cvl";
-
 	/**
 	 * @return all standard c library headers.
 	 */
@@ -812,8 +788,8 @@ public class CIVLConstants {
 		return new HashSet<String>(Arrays.asList(SYS_MMAN, SYS_RESOURCE, SYS_TIME, SYS_TIMES, SYS_TYPES, ASSERT,
 				COMPLEX, CTYPE, CUDA_RUNTIME_API, CUDA, ERRNO, FENV, FLOAT, GD_IO, GD, GDFX, GNUC, INTTYPES, ISO646,
 				LIMITS, LOCALE, MATH, MPI, OMP, OP, PTHREAD, SCHED, SETJMP, SIGNAL, STDALIGN, STDARG, STDATOMIC,
-				STDBOOL, STDDEF, STDINT, STDIO, STDLIB, STDNORETURN, STRING, STRINGS, SVCOMP, TGMATH, THREADS, TIME,
-				UCHAR, UNISTD, WCHAR, WCTYPE));
+				STDBOOL, STDDEF, STDINT, STDIO, STDLIB, STDNORETURN, STRING, STRINGS, TGMATH, THREADS, TIME, UCHAR,
+				UNISTD, WCHAR, WCTYPE));
 	}
 
 	/**
@@ -837,7 +813,7 @@ public class CIVLConstants {
 	public final static Set<String> getCStdLibSrcs() {
 		return new HashSet<String>(
 				Arrays.asList(ASSERT_SRC, CUDA_SRC, MATH_SRC, MPI_SRC, OMP_SRC, PTHREAD_SRC, SCHED_SRC, STDING_SRC,
-						STDIO_SRC, STDLIB_SRC, STRING_SRC, SYS_TIME_SRC, SVCOMP_SRC, TIME_SRC, TIMES_SRC, UNISTD_SRC));
+						STDIO_SRC, STDLIB_SRC, STRING_SRC, SYS_TIME_SRC, TIME_SRC, TIMES_SRC, UNISTD_SRC));
 	}
 
 	public final static Set<String> getCivlLibSrcs() {

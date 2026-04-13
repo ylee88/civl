@@ -31,8 +31,7 @@ public class Front {
 	 * @param language
 	 *                     the language of the preprocessor
 	 * @param config
-	 *                     the configuration of the translation task (e.g., is
-	 *                     svcomp enabled?)
+	 *                     the configuration of the translation task
 	 * @param indexer
 	 *                     the file indexer that will be used to index all
 	 *                     source files encountered by the new preprocessor

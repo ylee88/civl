@@ -79,8 +79,8 @@ public class ABC {
 	public final static File[] DEFAULT_USER_INCLUDE_PATHS = Preprocessor.defaultUserIncludes;
 
 	/**
-	 * The default list of pre-defined object macros, specifies as a mapping
-	 * from String (macro name) to String (replacement tokens).
+	 * The default list of pre-defined object macros, specifies as a mapping from
+	 * String (macro name) to String (replacement tokens).
 	 */
 	public final static Map<String, String> DEFAULT_IMPLICIT_MACROS = new TreeMap<>();
 
@@ -88,8 +88,7 @@ public class ABC {
 	 * Determines language from filename. If it ends in ".cvl" or ".cvh", it's
 	 * CIVL_C, else it's C.
 	 * 
-	 * @param name
-	 *                 filename
+	 * @param name filename
 	 * @return CIVL_C or C
 	 */
 	private static Language getLanguageFromName(String name) {
@@ -109,8 +108,7 @@ public class ABC {
 	/**
 	 * Prints a message to the output stream specifying the command line syntax.
 	 * 
-	 * @param out
-	 *                the stream to which the output should be printed
+	 * @param out the stream to which the output should be printed
 	 */
 	private static void help(PrintStream out) {
 		out.println("Usage: abc (option* filename)+ option*");
@@ -141,20 +139,16 @@ public class ABC {
 		out.println("  show time for each phase");
 		out.println("-diff");
 		out.println("  show the difference of two ASTs");
-		out.println("-svcomp");
-		out.println("  turn on special setting for svcomp benchmarks");
 		out.println("-gnuc");
 		out.println("  support GNU C features");
 		out.println("-unknownFunc");
-		out.println(
-				"  print functions that are used in the program but no definition is given");
+		out.println("  print functions that are used in the program but no definition is given");
 		out.println("-summarize");
 		out.println("  print summary of source files and entities");
 		out.println("-lang=[c|civlc|f77]");
 		out.println("  set language (default determined by file suffix)");
 		out.println("-acsl");
-		out.println(
-				"  interpret comments beginning with @ as ACSL annotations");
+		out.println("  interpret comments beginning with @ as ACSL annotations");
 		out.println("-arch=[i386|amd64|unknown]");
 		out.println("  set the architecture, unknown by default");
 		for (String code : Transform.getCodes()) {
@@ -175,8 +169,7 @@ public class ABC {
 		System.exit(1);
 	}
 
-	private static TranslationTask parseCommandLine(String[] args)
-			throws FileNotFoundException, ABCException {
+	private static TranslationTask parseCommandLine(String[] args) throws FileNotFoundException, ABCException {
 		ArrayList<UnitTask> unitTasks = new ArrayList<>();
 		String outfileName = null;
 		// the following are updated by -I
@@ -195,7 +188,6 @@ public class ABC {
 		boolean gnuc = false;
 		boolean silent = false;
 		boolean showUndefinedFunctions = false;
-		boolean svcomp = false;
 		boolean acsl = false;
 		boolean summarize = false;
 		Architecture architecture = Architecture.UNKNOWN;
@@ -283,8 +275,6 @@ public class ABC {
 				gnuc = true;
 			} else if (arg.equals("-unknownFunc")) {
 				showUndefinedFunctions = true;
-			} else if (arg.equals("-svcomp")) {
-				svcomp = true;
 			} else if (arg.equals("-acsl")) {
 				acsl = true;
 			} else if (arg.equals("-summarize")) {
@@ -343,8 +333,7 @@ public class ABC {
 				unitTask.setGNUC(gnuc);
 				unitTask.setACSL(acsl);
 				unitTask.setMacros(new HashMap<String, String>(macros));
-				unitTask.setSystemIncludes(
-						systemIncludeList.toArray(new File[0]));
+				unitTask.setSystemIncludes(systemIncludeList.toArray(new File[0]));
 				unitTask.setUserIncludes(userIncludeList.toArray(new File[0]));
 				unitTasks.add(unitTask);
 				language = null;
@@ -354,8 +343,7 @@ public class ABC {
 		if (unitTasks.isEmpty())
 			err("No input file specified");
 
-		TranslationTask task = new TranslationTask(
-				unitTasks.toArray(new UnitTask[unitTasks.size()]));
+		TranslationTask task = new TranslationTask(unitTasks.toArray(new UnitTask[unitTasks.size()]));
 
 		if (outfileName == null)
 			task.setOut(System.out);
@@ -374,7 +362,6 @@ public class ABC {
 		task.setSummarize(summarize);
 		task.setSilent(silent);
 		task.setShowUndefinedFunctions(showUndefinedFunctions);
-		task.setSVCOMP(svcomp);
 		task.setArchitecture(architecture);
 		task.addAllTransformCodes(transformCodes);
 		return task;
@@ -383,13 +370,10 @@ public class ABC {
 	/**
 	 * Executes the commands specified by the command line.
 	 * 
-	 * @param args
-	 *                 the command line arguments
-	 * @throws ABCException
-	 *                          if something goes wrong when processing the
-	 *                          file, such as a syntax exception
-	 * @throws IOException
-	 *                          if the file cannot be opened
+	 * @param args the command line arguments
+	 * @throws ABCException if something goes wrong when processing the file, such
+	 *                      as a syntax exception
+	 * @throws IOException  if the file cannot be opened
 	 */
 	public static void main(String[] args) {
 		TranslationTask task = null;
@@ -401,8 +385,7 @@ public class ABC {
 				silent = true;
 		}
 		if (!silent)
-			out.println("ABC v" + version + " of " + date
-					+ " -- http://vsl.cis.udel.edu/abc\n");
+			out.println("ABC v" + version + " of " + date + " -- http://vsl.cis.udel.edu/abc\n");
 		out.flush();
 		try {
 			task = parseCommandLine(args);

@@ -12,11 +12,6 @@ public class CommonConfiguration implements Configuration {
 	private Language language;
 
 	/**
-	 * Is this an SV-COMP problem?
-	 */
-	private boolean svcomp = false;
-
-	/**
 	 * Should the GNU extensions to the C language be allowed?
 	 */
 	private boolean gnuc = false;
@@ -45,8 +40,7 @@ public class CommonConfiguration implements Configuration {
 	BigInteger CHAR_MAX = SCHAR_MAX;
 
 	/**
-	 * maximum number of bytes in a multibyte character, for any supported
-	 * locale
+	 * maximum number of bytes in a multibyte character, for any supported locale
 	 */
 	BigInteger MB_LEN_MAX = new BigInteger("1");
 
@@ -182,28 +176,23 @@ public class CommonConfiguration implements Configuration {
 	}
 
 	public boolean inRangeSignedChar(BigInteger value) {
-		return value.compareTo(signedCharMin()) >= 0
-				&& value.compareTo(signedCharMax()) <= 0;
+		return value.compareTo(signedCharMin()) >= 0 && value.compareTo(signedCharMax()) <= 0;
 	}
 
 	public boolean inRangeSignedShort(BigInteger value) {
-		return value.compareTo(signedShortIntMin()) >= 0
-				&& value.compareTo(signedShortIntMax()) <= 0;
+		return value.compareTo(signedShortIntMin()) >= 0 && value.compareTo(signedShortIntMax()) <= 0;
 	}
 
 	public boolean inRangeSignedInt(BigInteger value) {
-		return value.compareTo(signedIntMin()) >= 0
-				&& value.compareTo(signedIntMax()) <= 0;
+		return value.compareTo(signedIntMin()) >= 0 && value.compareTo(signedIntMax()) <= 0;
 	}
 
 	public boolean inRangeSignedLongInt(BigInteger value) {
-		return value.compareTo(signedLongIntMin()) >= 0
-				&& value.compareTo(signedLongIntMax()) <= 0;
+		return value.compareTo(signedLongIntMin()) >= 0 && value.compareTo(signedLongIntMax()) <= 0;
 	}
 
 	public boolean inRangeSignedLongLongInt(BigInteger value) {
-		return value.compareTo(signedLongLongIntMin()) >= 0
-				&& value.compareTo(signedLongLongIntMax()) <= 0;
+		return value.compareTo(signedLongLongIntMin()) >= 0 && value.compareTo(signedLongLongIntMax()) <= 0;
 	}
 
 	@Override
@@ -224,16 +213,6 @@ public class CommonConfiguration implements Configuration {
 	@Override
 	public void setGNUC(boolean flag) {
 		this.gnuc = flag;
-	}
-
-	@Override
-	public boolean getSVCOMP() {
-		return this.svcomp;
-	}
-
-	@Override
-	public void setSVCOMP(boolean svcomp) {
-		this.svcomp = svcomp;
 	}
 
 	@Override

@@ -45,28 +45,27 @@ public class CPreprocessor implements Preprocessor {
 	// Instance fields...
 
 	/**
-	 * The configuration governs a number of choices which influence
-	 * preprocessing, e.g., shall gnuc.h be included automatically (yes if the
-	 * configuration says so).
+	 * The configuration governs a number of choices which influence preprocessing,
+	 * e.g., shall gnuc.h be included automatically (yes if the configuration says
+	 * so).
 	 * 
 	 */
 	private Configuration config;
 
 	/**
 	 * The language in which the source files that will be encountered by this
-	 * preprocessor are written. A preprocessor can be applied to one and only
-	 * one language. For now there is not much difference between CIVL-C and C.
-	 * If the language is CIVL-C, then the file civlc.cvh will be automatically
-	 * included at the beginning of the translation unit.
+	 * preprocessor are written. A preprocessor can be applied to one and only one
+	 * language. For now there is not much difference between CIVL-C and C. If the
+	 * language is CIVL-C, then the file civlc.cvh will be automatically included at
+	 * the beginning of the translation unit.
 	 */
 	private Language language;
 
 	/**
-	 * The file indexing object which is used to number and track all source
-	 * files encountered by this preprocessor, giving each file a unique ID
-	 * number. The indexer may be shared with other ABC component, so this
-	 * preprocessor is not necessarily the only component which will be adding
-	 * files to the indexer.
+	 * The file indexing object which is used to number and track all source files
+	 * encountered by this preprocessor, giving each file a unique ID number. The
+	 * indexer may be shared with other ABC component, so this preprocessor is not
+	 * necessarily the only component which will be adding files to the indexer.
 	 */
 	private FileIndexer indexer;
 
@@ -77,8 +76,7 @@ public class CPreprocessor implements Preprocessor {
 
 	// Constructors...
 
-	public CPreprocessor(Configuration config, Language language,
-			FileIndexer indexer, TokenFactory tokenFactory) {
+	public CPreprocessor(Configuration config, Language language, FileIndexer indexer, TokenFactory tokenFactory) {
 		this.config = config;
 		this.language = language;
 		this.indexer = indexer;
@@ -88,20 +86,16 @@ public class CPreprocessor implements Preprocessor {
 	// Helpers...
 
 	/**
-	 * Finds the internal library resource and new stream to given stream vector
-	 * and adds new formation to given formation vector.
+	 * Finds the internal library resource and new stream to given stream vector and
+	 * adds new formation to given formation vector.
 	 * 
-	 * @param libraryFilename
-	 *            name of library file, e.g., "civlc.cvh" or "gnuc.h"
-	 * @param streamVector
-	 *            list of streams in which to add new entry
-	 * @param formationVector
-	 *            list of formations in which to add new entry
-	 * @throws PreprocessorException
-	 *             if the resource cannot be opened for some reason
+	 * @param libraryFilename name of library file, e.g., "civlc.cvh" or "gnuc.h"
+	 * @param streamVector    list of streams in which to add new entry
+	 * @param formationVector list of formations in which to add new entry
+	 * @throws PreprocessorException if the resource cannot be opened for some
+	 *                               reason
 	 */
-	private void addLibrary(String libraryFilename,
-			ArrayList<CharStream> streamVector,
+	private void addLibrary(String libraryFilename, ArrayList<CharStream> streamVector,
 			ArrayList<Formation> formationVector) throws PreprocessorException {
 		File file = new File(Preprocessor.ABC_INCLUDE_PATH, libraryFilename);
 		SourceFile sourceFile = indexer.getOrAdd(file);
@@ -109,15 +103,12 @@ public class CPreprocessor implements Preprocessor {
 		String resource = file.getPath();
 
 		try {
-			CharStream stream = PreprocessorUtils
-					.newFilteredCharStreamFromResource(libraryFilename,
-							resource);
+			CharStream stream = PreprocessorUtils.newFilteredCharStreamFromResource(libraryFilename, resource);
 
 			streamVector.add(stream);
 			formationVector.add(formation);
 		} catch (IOException e) {
-			throw new PreprocessorException(
-					"Error in opening "+libraryFilename+": " + e.getMessage());
+			throw new PreprocessorException("Error in opening " + libraryFilename + ": " + e.getMessage());
 		}
 	}
 
@@ -125,20 +116,16 @@ public class CPreprocessor implements Preprocessor {
 	 * Adds a character stream derived from a macro map to a stream vector,
 	 * formationVector.
 	 * 
-	 * @param predefinedMacros
-	 *            map from macro names (including parameter list) to macro body
-	 * @param streamVector
-	 *            vector of character streams which will form input to
-	 *            preprocessor
-	 * @param formationVector
-	 *            vector of corresponding formations
+	 * @param predefinedMacros map from macro names (including parameter list) to
+	 *                         macro body
+	 * @param streamVector     vector of character streams which will form input to
+	 *                         preprocessor
+	 * @param formationVector  vector of corresponding formations
 	 */
-	private void addMacros(Map<String, String> predefinedMacros,
-			ArrayList<CharStream> streamVector,
+	private void addMacros(Map<String, String> predefinedMacros, ArrayList<CharStream> streamVector,
 			ArrayList<Formation> formationVector) {
 		if (!predefinedMacros.isEmpty()) {
-			CharStream macroStream = PreprocessorUtils
-					.macroMapToCharStream(predefinedMacros);
+			CharStream macroStream = PreprocessorUtils.macroMapToCharStream(predefinedMacros);
 			File file = new File("predefined macros");
 			SourceFile sourceFile = indexer.getOrAdd(file);
 			Formation formation = tokenFactory.newInclusion(sourceFile);
@@ -149,56 +136,45 @@ public class CPreprocessor implements Preprocessor {
 	}
 
 	/**
-	 * Adds streams for macros, svcomp.h, gnuc.h, and civlc.cvh, as needed, to
-	 * the stream and formation vectors.
+	 * Adds streams for macros, gnuc.h, and civlc.cvh, as needed, to the stream and
+	 * formation vectors.
 	 * 
-	 * @param predefinedMacros
-	 *            map from macro names (including parameter list) to macro body
-	 * @param streamVector
-	 *            vector of character streams which will form input to
-	 *            preprocessor
-	 * @param formationVector
-	 *            vector of corresponding formations
-	 * @throws PreprocessorException
-	 *             if one of the library files cannot be found or opened
+	 * @param predefinedMacros map from macro names (including parameter list) to
+	 *                         macro body
+	 * @param streamVector     vector of character streams which will form input to
+	 *                         preprocessor
+	 * @param formationVector  vector of corresponding formations
+	 * @throws PreprocessorException if one of the library files cannot be found or
+	 *                               opened
 	 */
-	private void addAuxStreams(Map<String, String> predefinedMacros,
-			ArrayList<CharStream> streamVector,
+	private void addAuxStreams(Map<String, String> predefinedMacros, ArrayList<CharStream> streamVector,
 			ArrayList<Formation> formationVector) throws PreprocessorException {
 		// NOTE: these will be found in the jar so you have to rebuild jar
 		// if they change...
 		addMacros(predefinedMacros, streamVector, formationVector);
 		// implicit_defs.h contains standard macro definitions always needed:
 		addLibrary("implicit_defs.h", streamVector, formationVector);
-		// note that svcomp.h #includes gnuc.h so no need to include both:
-		if (config.getSVCOMP())
-			addLibrary("svcomp.h", streamVector, formationVector);
-		else if (config.getGNUC())
+		if (config.getGNUC())
 			addLibrary("gnuc.h", streamVector, formationVector);
 		if (language == Language.CIVL_C)
 			addLibrary("civlc.cvh", streamVector, formationVector);
 	}
 
 	/**
-	 * Creates character streams and formations from the files and adds them to
-	 * the given stream and formation vectors. ABC will first look for the file
-	 * in the usual file system. If it isn't there, it will then look
-	 * internally: look relative to the directories in the class path.
+	 * Creates character streams and formations from the files and adds them to the
+	 * given stream and formation vectors. ABC will first look for the file in the
+	 * usual file system. If it isn't there, it will then look internally: look
+	 * relative to the directories in the class path.
 	 * 
-	 * @param sourceFiles
-	 *            the list of source files that will form the input to the
-	 *            preprocessor
-	 * @param streamVector
-	 *            current list of character streams that will form the real
-	 *            input;
-	 * @param formationVector
-	 *            corresponding list of formations for those streams
-	 * @throws PreprocessorException
-	 *             if any source file cannot be found or opened
+	 * @param sourceFiles     the list of source files that will form the input to
+	 *                        the preprocessor
+	 * @param streamVector    current list of character streams that will form the
+	 *                        real input;
+	 * @param formationVector corresponding list of formations for those streams
+	 * @throws PreprocessorException if any source file cannot be found or opened
 	 */
-	private void addFiles(File[] sourceFiles,
-			ArrayList<CharStream> streamVector,
-			ArrayList<Formation> formationVector) throws PreprocessorException {
+	private void addFiles(File[] sourceFiles, ArrayList<CharStream> streamVector, ArrayList<Formation> formationVector)
+			throws PreprocessorException {
 		int numFiles = sourceFiles.length;
 
 		for (int i = 0; i < numFiles; i++) {
@@ -208,21 +184,15 @@ public class CPreprocessor implements Preprocessor {
 
 			if (file.exists()) {
 				try {
-					stream = PreprocessorUtils
-							.newFilteredCharStreamFromFile(file);
+					stream = PreprocessorUtils.newFilteredCharStreamFromFile(file);
 				} catch (IOException e) {
-					throw new PreprocessorException(
-							"Error in opening " + file + ": " + e.getMessage());
+					throw new PreprocessorException("Error in opening " + file + ": " + e.getMessage());
 				}
 			} else {
 				try {
-					stream = PreprocessorUtils
-							.newFilteredCharStreamFromResource(
-									file.getPath(),
-									file.getPath());
+					stream = PreprocessorUtils.newFilteredCharStreamFromResource(file.getPath(), file.getPath());
 				} catch (IOException e) {
-					throw new PreprocessorException(
-							"Error in opening " + file + ": " + e.getMessage());
+					throw new PreprocessorException("Error in opening " + file + ": " + e.getMessage());
 				}
 			}
 			if (stream == null) {
@@ -234,34 +204,26 @@ public class CPreprocessor implements Preprocessor {
 	}
 
 	/**
-	 * Produces new {@link PreprocessorTokenSource} object from the given
-	 * character streams.
+	 * Produces new {@link PreprocessorTokenSource} object from the given character
+	 * streams.
 	 * 
-	 * @param systemIncludePaths
-	 *            the list of system include paths
-	 * @param userIncludePaths
-	 *            the list of user include paths
-	 * @param streamVector
-	 *            list of inputs character streams
-	 * @param formationVector
-	 *            list of formations corresponding to those character streams
-	 * @return a new token source which is the output of the result of
-	 *         preprocessing the character streams
-	 * @throws PreprocessorException
-	 *             if the first character stream cannot be opened or parsed for
-	 *             some reason
+	 * @param systemIncludePaths the list of system include paths
+	 * @param userIncludePaths   the list of user include paths
+	 * @param streamVector       list of inputs character streams
+	 * @param formationVector    list of formations corresponding to those character
+	 *                           streams
+	 * @return a new token source which is the output of the result of preprocessing
+	 *         the character streams
+	 * @throws PreprocessorException if the first character stream cannot be opened
+	 *                               or parsed for some reason
 	 */
-	private PreprocessorTokenSource newTokenSource(File[] systemIncludePaths,
-			File[] userIncludePaths, ArrayList<CharStream> streamVector,
-			ArrayList<Formation> formationVector) throws PreprocessorException {
-		CharStream[] streams = streamVector
-				.toArray(new CharStream[streamVector.size()]);
-		Formation[] formations = formationVector
-				.toArray(new Formation[formationVector.size()]);
+	private PreprocessorTokenSource newTokenSource(File[] systemIncludePaths, File[] userIncludePaths,
+			ArrayList<CharStream> streamVector, ArrayList<Formation> formationVector) throws PreprocessorException {
+		CharStream[] streams = streamVector.toArray(new CharStream[streamVector.size()]);
+		Formation[] formations = formationVector.toArray(new Formation[formationVector.size()]);
 		Map<String, Macro> macroMap = new HashMap<>();
-		PreprocessorTokenSource result = new PreprocessorTokenSource(indexer,
-				streams, formations, systemIncludePaths, userIncludePaths,
-				macroMap, tokenFactory);
+		PreprocessorTokenSource result = new PreprocessorTokenSource(indexer, streams, formations, systemIncludePaths,
+				userIncludePaths, macroMap, tokenFactory);
 
 		return result;
 	}
@@ -269,41 +231,34 @@ public class CPreprocessor implements Preprocessor {
 	// Public methods...
 
 	/**
-	 * Returns a lexer for the given preprocessor source file. The lexer removes
-	 * all occurrences of backslash-newline, scans and tokenizes the input to
-	 * produce a sequence of tokens in the preprocessor grammar. It does not
-	 * execute the preprocessor directives.
+	 * Returns a lexer for the given preprocessor source file. The lexer removes all
+	 * occurrences of backslash-newline, scans and tokenizes the input to produce a
+	 * sequence of tokens in the preprocessor grammar. It does not execute the
+	 * preprocessor directives.
 	 * 
-	 * @param file
-	 *            a preprocessor source file
+	 * @param file a preprocessor source file
 	 * @return a lexer for the given file
-	 * @throws PreprocessorException
-	 *             if an I/O error occurs while reading the file
+	 * @throws PreprocessorException if an I/O error occurs while reading the file
 	 */
 	public PreprocessorLexer lexer(File file) throws PreprocessorException {
 		try {
-			CharStream charStream = PreprocessorUtils
-					.newFilteredCharStreamFromFile(file);
+			CharStream charStream = PreprocessorUtils.newFilteredCharStreamFromFile(file);
 
 			return new PreprocessorLexer(charStream);
 		} catch (IOException e) {
-			throw new PreprocessorException(
-					"I/O error occurred while scanning " + file + ":\n" + e);
+			throw new PreprocessorException("I/O error occurred while scanning " + file + ":\n" + e);
 		}
 	}
 
 	/**
-	 * Prints the results of lexical analysis of the source file. Mainly useful
-	 * for debugging.
+	 * Prints the results of lexical analysis of the source file. Mainly useful for
+	 * debugging.
 	 * 
-	 * @param out
-	 *            a PrintStream to which the output should be sent
-	 * @param file
-	 *            a preprocessor source file
-	 * @throws PreprocessorException
-	 *             if any kind of exception comes from ANTLR's lexer, including
-	 *             a file which does not conform lexically to the preprocessor
-	 *             grammar
+	 * @param out  a PrintStream to which the output should be sent
+	 * @param file a preprocessor source file
+	 * @throws PreprocessorException if any kind of exception comes from ANTLR's
+	 *                               lexer, including a file which does not conform
+	 *                               lexically to the preprocessor grammar
 	 */
 	public void lex(PrintStream out, File file) throws PreprocessorException {
 		out.println("Lexical analysis of " + file + ":");
@@ -315,8 +270,7 @@ public class CPreprocessor implements Preprocessor {
 			numErrors = lexer.getNumberOfSyntaxErrors();
 
 			if (numErrors != 0)
-				throw new PreprocessorException(numErrors
-						+ " syntax errors occurred while scanning " + file);
+				throw new PreprocessorException(numErrors + " syntax errors occurred while scanning " + file);
 		} catch (RuntimeException e) {
 			throw new PreprocessorException(e.getMessage());
 		}
@@ -325,11 +279,10 @@ public class CPreprocessor implements Preprocessor {
 	/**
 	 * Returns a parser for the given preprocessor source file.
 	 * 
-	 * @param file
-	 *            a preprocessor source file
+	 * @param file a preprocessor source file
 	 * @return a parser for that file
-	 * @throws PreprocessorException
-	 *             if an I/O error occurs in attempting to open the file
+	 * @throws PreprocessorException if an I/O error occurs in attempting to open
+	 *                               the file
 	 */
 	public PreprocessorParser parser(File file) throws PreprocessorException {
 		PreprocessorLexer lexer = lexer(file);
@@ -343,14 +296,12 @@ public class CPreprocessor implements Preprocessor {
 	 * description of the resulting tree to out. This does not execute any
 	 * preprocessor directives. It is useful mainly for debugging.
 	 * 
-	 * @param out
-	 *            print stream to which the tree representation of the file will
-	 *            be sent
-	 * @param file
-	 *            a preprocessor source file.
-	 * @throws PreprocessorException
-	 *             if the file does not conform to the preprocessor grammar, or
-	 *             an I/O error occurs in reading the file
+	 * @param out  print stream to which the tree representation of the file will be
+	 *             sent
+	 * @param file a preprocessor source file.
+	 * @throws PreprocessorException if the file does not conform to the
+	 *                               preprocessor grammar, or an I/O error occurs in
+	 *                               reading the file
 	 */
 	public void parse(PrintStream out, File file) throws PreprocessorException {
 		try {
@@ -360,15 +311,13 @@ public class CPreprocessor implements Preprocessor {
 			Tree tree;
 
 			if (numErrors != 0)
-				throw new PreprocessorException(numErrors
-						+ " syntax errors occurred while scanning " + file);
+				throw new PreprocessorException(numErrors + " syntax errors occurred while scanning " + file);
 			out.println("AST for " + file + ":");
 			out.flush();
 			tree = (Tree) fileReturn.getTree();
 			ANTLRUtils.printTree(out, tree);
 		} catch (RecognitionException e) {
-			throw new PreprocessorException(
-					"Recognition error while preprocessing:\n" + e);
+			throw new PreprocessorException("Recognition error while preprocessing:\n" + e);
 		} catch (RuntimeException e) {
 			e.printStackTrace(System.err);
 			throw new PreprocessorException(e.toString());
@@ -378,29 +327,25 @@ public class CPreprocessor implements Preprocessor {
 	// Methods specified in Preprocessor interface...
 
 	@Override
-	public PreprocessorTokenSource preprocess(File[] systemIncludePaths,
-			File[] userIncludePaths, Map<String, String> predefinedMacros,
-			File[] sourceUnit) throws PreprocessorException {
+	public PreprocessorTokenSource preprocess(File[] systemIncludePaths, File[] userIncludePaths,
+			Map<String, String> predefinedMacros, File[] sourceUnit) throws PreprocessorException {
 		ArrayList<CharStream> streamVector = new ArrayList<>();
 		ArrayList<Formation> formationVector = new ArrayList<>();
 
 		addAuxStreams(predefinedMacros, streamVector, formationVector);
 		addFiles(sourceUnit, streamVector, formationVector);
-		return newTokenSource(systemIncludePaths, userIncludePaths,
-				streamVector, formationVector);
+		return newTokenSource(systemIncludePaths, userIncludePaths, streamVector, formationVector);
 	}
 
 	@Override
-	public CivlcTokenSource preprocessLibrary(
-			Map<String, String> predefinedMacros, String libraryFileName)
+	public CivlcTokenSource preprocessLibrary(Map<String, String> predefinedMacros, String libraryFileName)
 			throws PreprocessorException {
 		ArrayList<CharStream> streamVector = new ArrayList<>();
 		ArrayList<Formation> formationVector = new ArrayList<>();
 
 		addAuxStreams(predefinedMacros, streamVector, formationVector);
 		addLibrary(libraryFileName, streamVector, formationVector);
-		return newTokenSource(Preprocessor.defaultSystemIncludes,
-				Preprocessor.defaultUserIncludes, streamVector,
+		return newTokenSource(Preprocessor.defaultSystemIncludes, Preprocessor.defaultUserIncludes, streamVector,
 				formationVector);
 	}
 
@@ -412,23 +357,20 @@ public class CPreprocessor implements Preprocessor {
 	// The main method...
 
 	/**
-	 * This main method is just here for simple tests. The real main method is
-	 * in the main class, ABC.java.
+	 * This main method is just here for simple tests. The real main method is in
+	 * the main class, ABC.java.
 	 */
 	public final static void main(String[] args) throws PreprocessorException {
 		String filename = args[0];
 		Configuration config = Configurations.newMinimalConfiguration();
 		TokenFactory tokenFactory = Tokens.newTokenFactory();
 		FileIndexer indexer = tokenFactory.newFileIndexer();
-		Language language = Configurations
-				.bestLanguage(Arrays.asList(filename));
-		CPreprocessor p = new CPreprocessor(config, language, indexer,
-				tokenFactory);
+		Language language = Configurations.bestLanguage(Arrays.asList(filename));
+		CPreprocessor p = new CPreprocessor(config, language, indexer, tokenFactory);
 		File file = new File(filename);
 		Map<String, String> predefinedMacros = new HashMap<>();
-		CivlcTokenSource ts = p.preprocess(Preprocessor.defaultSystemIncludes,
-				Preprocessor.defaultUserIncludes, predefinedMacros,
-				new File[]{file});
+		CivlcTokenSource ts = p.preprocess(Preprocessor.defaultSystemIncludes, Preprocessor.defaultUserIncludes,
+				predefinedMacros, new File[] { file });
 		PrintStream out = System.out;
 
 		ANTLRUtils.print(out, ts);

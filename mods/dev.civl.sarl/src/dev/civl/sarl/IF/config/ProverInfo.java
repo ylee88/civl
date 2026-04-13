@@ -122,18 +122,6 @@ public interface ProverInfo extends Comparable<ProverInfo> {
 	void setPath(File value);
 
 	/**
-	 * @return The environment (the PATH for looking for executables) that is needed
-	 *         by why3 to run the provers.
-	 */
-	String getEnv();
-
-	/**
-	 * @param environment Set the environment (the PATH for looking for executables)
-	 *                    that is needed by why3 to run the provers.
-	 */
-	void setEnv(String environment);
-
-	/**
 	 * The version, e.g. "1.4".
 	 * 
 	 * @return version string

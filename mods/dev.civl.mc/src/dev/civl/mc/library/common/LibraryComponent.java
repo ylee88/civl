@@ -54,20 +54,20 @@ public abstract class LibraryComponent {
 
 	/**
 	 * A helper class for storaging measurements of an array object, including
-	 * dimensions, extent for each dimension and slice size for each sub-array
-	 * with lower dimension.
+	 * dimensions, extent for each dimension and slice size for each sub-array with
+	 * lower dimension.
 	 * 
 	 * There are three fields can be read from an instance of this class:
 	 * <ol>
 	 * <li>dimensions: number of dimensions in the corresponding array</li>
-	 * <li>extents: extents of dimensions in the corresponding array, extents
-	 * are saved in a "Java array" which have the same order as order of
-	 * declaring the corresponding array.</li>
-	 * <li>sliceSizes: sizes of sub-array slices for each lower dimension, sizes
-	 * are saved in a "java array" which have the order from largest to the
+	 * <li>extents: extents of dimensions in the corresponding array, extents are
+	 * saved in a "Java array" which have the same order as order of declaring the
+	 * corresponding array.</li>
+	 * <li>sliceSizes: sizes of sub-array slices for each lower dimension, sizes are
+	 * saved in a "java array" which have the order from largest to the
 	 * smallest.</li>
-	 * <li>baseType: the base type of the corresponding array, base type must
-	 * not be an array type.</li>
+	 * <li>baseType: the base type of the corresponding array, base type must not be
+	 * an array type.</li>
 	 * </ol>
 	 * 
 	 * @author ziqing
@@ -230,19 +230,13 @@ public abstract class LibraryComponent {
 	/**
 	 * Creates a new instance of a library.
 	 * 
-	 * @param universe
-	 *            The symbolic universe to be used.
-	 * @param symbolicUtil
-	 *            The symbolic utility to be used.
-	 * @param symbolicAnalyzer
-	 *            The symbolic analyzer to be used.
+	 * @param universe         The symbolic universe to be used.
+	 * @param symbolicUtil     The symbolic utility to be used.
+	 * @param symbolicAnalyzer The symbolic analyzer to be used.
 	 */
-	protected LibraryComponent(String name, SymbolicUniverse universe,
-			SymbolicUtility symbolicUtil, SymbolicAnalyzer symbolicAnalyzer,
-			CIVLConfiguration civlConfig,
-			LibraryEvaluatorLoader libEvaluatorLoader,
-			ModelFactory modelFactory, CIVLErrorLogger errLogger,
-			Evaluator evaluator) {
+	protected LibraryComponent(String name, SymbolicUniverse universe, SymbolicUtility symbolicUtil,
+			SymbolicAnalyzer symbolicAnalyzer, CIVLConfiguration civlConfig, LibraryEvaluatorLoader libEvaluatorLoader,
+			ModelFactory modelFactory, CIVLErrorLogger errLogger, Evaluator evaluator) {
 		this.name = name;
 		this.universe = universe;
 		this.zero = universe.zeroInt();
@@ -267,8 +261,8 @@ public abstract class LibraryComponent {
 	}
 
 	/**
-	 * Returns the name associated to this library executor or enabler, for
-	 * example, "stdio".
+	 * Returns the name associated to this library executor or enabler, for example,
+	 * "stdio".
 	 * 
 	 * @return
 	 */
@@ -281,65 +275,49 @@ public abstract class LibraryComponent {
 	 * <b>Summary: </b> Apply a CIVL operation on a pair of operands.
 	 * </p>
 	 * 
-	 * @param state
-	 *            The current state
-	 * @param pid
-	 *            The identifier of the current process
-	 * @param process
-	 *            The String identifier of the current process
-	 * @param operands
-	 *            An array of two operands: <code>{operand0, operand1}</code>
-	 * @param CIVLOp
-	 *            A integer code represents a CIVL operation
-	 * @param count
-	 *            The number of pairs of operands.
-	 * @param elementType
-	 *            The {@link SymbolicType} of elements of one operand
-	 * @param countStep
-	 *            The number of elements in one operand
-	 * @param civlsource
-	 *            The {@link CIVLSource} of this operation
+	 * @param state       The current state
+	 * @param pid         The identifier of the current process
+	 * @param process     The String identifier of the current process
+	 * @param operands    An array of two operands:
+	 *                    <code>{operand0, operand1}</code>
+	 * @param CIVLOp      A integer code represents a CIVL operation
+	 * @param count       The number of pairs of operands.
+	 * @param elementType The {@link SymbolicType} of elements of one operand
+	 * @param countStep   The number of elements in one operand
+	 * @param civlsource  The {@link CIVLSource} of this operation
 	 * @return A {@link SymbolicExpression} results after the operation.
-	 * @throws UnsatisfiablePathConditionException
-	 *             when types of operands are invalid for operations.
+	 * @throws UnsatisfiablePathConditionException when types of operands are
+	 *                                             invalid for operations.
 	 */
-	protected SymbolicExpression applyCIVLOperation(State state, int pid,
-			String process, SymbolicExpression operands[], CIVLOperator CIVLOp,
-			NumericExpression count, SymbolicType elementType,
-			CIVLSource civlsource) throws UnsatisfiablePathConditionException {
+	protected SymbolicExpression applyCIVLOperation(State state, int pid, String process, SymbolicExpression operands[],
+			CIVLOperator CIVLOp, NumericExpression count, SymbolicType elementType, CIVLSource civlsource)
+			throws UnsatisfiablePathConditionException {
 		Reasoner reasoner = universe.reasoner(state.getPathCondition(universe));
 		Number concCount = reasoner.extractNumber(count);
 		SymbolicExpression operand0 = operands[0];
 		SymbolicExpression operand1 = operands[1];
 		int countStep = 1;
 
-		if (CIVLOp == CIVLOperator.CIVL_MINLOC
-				|| CIVLOp == CIVLOperator.CIVL_MAXLOC)
+		if (CIVLOp == CIVLOperator.CIVL_MINLOC || CIVLOp == CIVLOperator.CIVL_MAXLOC)
 			countStep = 2;
 
 		if (concCount == null) {
 			SymbolicExpression[] singleOperand0 = new SymbolicExpression[countStep];
 			SymbolicExpression[] singleOperand1 = new SymbolicExpression[countStep];
 			SymbolicExpression[] result = new SymbolicExpression[countStep];
-			NumericExpression totalUnits = universe.multiply(count,
-					universe.integer(countStep));
+			NumericExpression totalUnits = universe.multiply(count, universe.integer(countStep));
 			NumericSymbolicConstant identifier = (NumericSymbolicConstant) universe
-					.symbolicConstant(universe.stringObject("j"),
-							universe.integerType());
+					.symbolicConstant(universe.stringObject("j"), universe.integerType());
 
 			for (int w = 0; w < countStep; w++) {
-				singleOperand0[w] = universe.arrayRead(operand0,
-						universe.add(identifier, universe.integer(w)));
-				singleOperand1[w] = universe.arrayRead(operand1,
-						universe.add(identifier, universe.integer(w)));
+				singleOperand0[w] = universe.arrayRead(operand0, universe.add(identifier, universe.integer(w)));
+				singleOperand1[w] = universe.arrayRead(operand1, universe.add(identifier, universe.integer(w)));
 			}
-			result = singleApplyCIVLOperation(state, pid, process,
-					singleOperand0, singleOperand1, CIVLOp, countStep,
+			result = singleApplyCIVLOperation(state, pid, process, singleOperand0, singleOperand1, CIVLOp, countStep,
 					civlsource);
 			if (countStep == 1) {
 				// optimization
-				return universe.arrayLambda(
-						universe.arrayType(elementType, totalUnits),
+				return universe.arrayLambda(universe.arrayType(elementType, totalUnits),
 						universe.lambda(identifier, result[0]));
 			} else {
 				// When an operand contains more than one basic elements (e.g.
@@ -356,11 +334,9 @@ public abstract class LibraryComponent {
 				// with a substitution on j with k.
 
 				// j % countStep:
-				NumericExpression identOffset = universe.modulo(identifier,
-						universe.integer(countStep));
+				NumericExpression identOffset = universe.modulo(identifier, universe.integer(countStep));
 				// j - j % countStep:
-				NumericExpression identBase = universe.subtract(identifier,
-						identOffset);
+				NumericExpression identBase = universe.subtract(identifier, identOffset);
 				SymbolicExpression function;
 
 				// For R := {a[j], b[x(j)], c[y(j)]...}, giving a index k, R' is
@@ -368,15 +344,11 @@ public abstract class LibraryComponent {
 				// with k. Note here k := i - i % countStep, i is an arbitrary
 				// valid index on the whole array w:
 				for (int i = 0; i < countStep; i++)
-					result[i] = universe.apply(
-							universe.lambda(identifier, result[i]),
-							Arrays.asList(identBase));
+					result[i] = universe.apply(universe.lambda(identifier, result[i]), Arrays.asList(identBase));
 				// make R' an array:
 				function = universe.array(elementType, result);
-				function = universe.lambda(identifier,
-						universe.arrayRead(function, identOffset));
-				return universe.arrayLambda(
-						universe.arrayType(elementType, totalUnits), function);
+				function = universe.lambda(identifier, universe.arrayRead(function, identOffset));
+				return universe.arrayLambda(universe.arrayType(elementType, totalUnits), function);
 			}
 		} else {
 			int countInt = ((IntegerNumber) concCount).intValue();
@@ -392,15 +364,12 @@ public abstract class LibraryComponent {
 
 			for (int i = 0; i < totalUnits; i = i + countStep) {
 				for (int w = 0; w < countStep; w++) {
-					singleOperand0[w] = universe.arrayRead(operand0,
-							universe.integer(i + w));
-					singleOperand1[w] = universe.arrayRead(operand1,
-							universe.integer(i + w));
+					singleOperand0[w] = universe.arrayRead(operand0, universe.integer(i + w));
+					singleOperand1[w] = universe.arrayRead(operand1, universe.integer(i + w));
 				}
 
-				singleResult = singleApplyCIVLOperation(state, pid, process,
-						singleOperand0, singleOperand1, CIVLOp, countStep,
-						civlsource);
+				singleResult = singleApplyCIVLOperation(state, pid, process, singleOperand0, singleOperand1, CIVLOp,
+						countStep, civlsource);
 				System.arraycopy(singleResult, 0, result, i, countStep);
 			}
 			return universe.array(elementType, result);
@@ -411,131 +380,99 @@ public abstract class LibraryComponent {
 	 * Completing an operation (which is included in CIVLOperation enumerator).
 	 * 
 	 * @author Ziqing Luo
-	 * @param arg0
-	 *            The new data got from the bundle
-	 * @param arg1
-	 *            The data has already been received previously
-	 * @param op
-	 *            The CIVL Operation
+	 * @param arg0 The new data got from the bundle
+	 * @param arg1 The data has already been received previously
+	 * @param op   The CIVL Operation
 	 * @return
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	private SymbolicExpression[] singleApplyCIVLOperation(State state, int pid,
-			String process, SymbolicExpression op0[], SymbolicExpression op1[],
-			CIVLOperator op, int numElementsInOperand, CIVLSource civlsource)
-			throws UnsatisfiablePathConditionException {
+	private SymbolicExpression[] singleApplyCIVLOperation(State state, int pid, String process,
+			SymbolicExpression op0[], SymbolicExpression op1[], CIVLOperator op, int numElementsInOperand,
+			CIVLSource civlsource) throws UnsatisfiablePathConditionException {
 		BooleanExpression claim;
 		SymbolicExpression[] result = new SymbolicExpression[numElementsInOperand];
 
 		/*
-		 * For MAX and MIN operation, if CIVL cannot figure out a concrete
-		 * result, make a abstract function for it.
+		 * For MAX and MIN operation, if CIVL cannot figure out a concrete result, make
+		 * a abstract function for it.
 		 */
 		try {
 			switch (op) {
-				// TODO: consider using heuristic to switch to abstract
-				// functions if these expressions get too big (max,min):
-				case CIVL_MAX :
-					claim = universe.lessThan((NumericExpression) op1[0],
-							(NumericExpression) op0[0]);
-					result[0] = universe.cond(claim, op0[0], op1[0]);
-					break;
-				case CIVL_MIN :
-					claim = universe.lessThan((NumericExpression) op0[0],
-							(NumericExpression) op1[0]);
-					result[0] = universe.cond(claim, op0[0], op1[0]);
-					break;
-				case CIVL_SUM :
-					result[0] = universe.add((NumericExpression) op0[0],
-							(NumericExpression) op1[0]);
-					break;
-				case CIVL_PROD :
-					result[0] = universe.multiply((NumericExpression) op0[0],
-							(NumericExpression) op1[0]);
-					break;
-				case CIVL_LAND :
-					BooleanExpression aop0 = op0[0].isZero()
-							? universe.falseExpression()
-							: universe.trueExpression();
-					BooleanExpression aop1 = op1[0].isZero()
-							? universe.falseExpression()
-							: universe.trueExpression();
+			// TODO: consider using heuristic to switch to abstract
+			// functions if these expressions get too big (max,min):
+			case CIVL_MAX:
+				claim = universe.lessThan((NumericExpression) op1[0], (NumericExpression) op0[0]);
+				result[0] = universe.cond(claim, op0[0], op1[0]);
+				break;
+			case CIVL_MIN:
+				claim = universe.lessThan((NumericExpression) op0[0], (NumericExpression) op1[0]);
+				result[0] = universe.cond(claim, op0[0], op1[0]);
+				break;
+			case CIVL_SUM:
+				result[0] = universe.add((NumericExpression) op0[0], (NumericExpression) op1[0]);
+				break;
+			case CIVL_PROD:
+				result[0] = universe.multiply((NumericExpression) op0[0], (NumericExpression) op1[0]);
+				break;
+			case CIVL_LAND:
+				BooleanExpression aop0 = op0[0].isZero() ? universe.falseExpression() : universe.trueExpression();
+				BooleanExpression aop1 = op1[0].isZero() ? universe.falseExpression() : universe.trueExpression();
 
-					result[0] = universe.and(aop0, aop1);
-					break;
-				case CIVL_LOR :
-					BooleanExpression oop0 = op0[0].isZero()
-							? universe.falseExpression()
-							: universe.trueExpression();
-					BooleanExpression oop1 = op1[0].isZero()
-							? universe.falseExpression()
-							: universe.trueExpression();
+				result[0] = universe.and(aop0, aop1);
+				break;
+			case CIVL_LOR:
+				BooleanExpression oop0 = op0[0].isZero() ? universe.falseExpression() : universe.trueExpression();
+				BooleanExpression oop1 = op1[0].isZero() ? universe.falseExpression() : universe.trueExpression();
 
-					result[0] = universe.or(oop0, oop1);
-					break;
-				case CIVL_LXOR :
-					BooleanExpression notNewData = universe
-							.not((BooleanExpression) op0[0]);
-					BooleanExpression notPrevData = universe
-							.not((BooleanExpression) op1[0]);
+				result[0] = universe.or(oop0, oop1);
+				break;
+			case CIVL_LXOR:
+				BooleanExpression notNewData = universe.not((BooleanExpression) op0[0]);
+				BooleanExpression notPrevData = universe.not((BooleanExpression) op1[0]);
 
-					result[0] = universe.or(
-							universe.and(notNewData,
-									(BooleanExpression) op0[0]),
-							universe.and((BooleanExpression) op1[0],
-									notPrevData));
-					break;
-				case CIVL_MINLOC :
-					return applyMINOrMAXLOC(state, process, op0, op1, true,
-							civlsource);
-				case CIVL_MAXLOC :
-					return applyMINOrMAXLOC(state, process, op0, op1, false,
-							civlsource);
-				case CIVL_REPLACE :
-				case CIVL_BAND :
-					result[0] = universe.bitand((NumericExpression) op0[0],
-							(NumericExpression) op1[0]);
-					break;
-				case CIVL_BOR :
-					result[0] = universe.bitor((NumericExpression) op0[0],
-							(NumericExpression) op1[0]);
-					break;
-				case CIVL_BXOR :
-					result[0] = universe.bitxor((NumericExpression) op0[0],
-							(NumericExpression) op1[0]);
-					break;
-				case CIVL_EQ :
-					result[0] = universe.equals((NumericExpression) op0[0],
-							(NumericExpression) op1[0]);
-					break;
-				case CIVL_NEQ :
-					result[0] = universe.neq((NumericExpression) op0[0],
-							(NumericExpression) op1[0]);
-					break;
-				default :
-					throw new CIVLUnimplementedFeatureException(
-							"CIVLOperation: " + op.name());
+				result[0] = universe.or(universe.and(notNewData, (BooleanExpression) op0[0]),
+						universe.and((BooleanExpression) op1[0], notPrevData));
+				break;
+			case CIVL_MINLOC:
+				return applyMINOrMAXLOC(state, process, op0, op1, true, civlsource);
+			case CIVL_MAXLOC:
+				return applyMINOrMAXLOC(state, process, op0, op1, false, civlsource);
+			case CIVL_REPLACE:
+			case CIVL_BAND:
+				result[0] = universe.bitand((NumericExpression) op0[0], (NumericExpression) op1[0]);
+				break;
+			case CIVL_BOR:
+				result[0] = universe.bitor((NumericExpression) op0[0], (NumericExpression) op1[0]);
+				break;
+			case CIVL_BXOR:
+				result[0] = universe.bitxor((NumericExpression) op0[0], (NumericExpression) op1[0]);
+				break;
+			case CIVL_EQ:
+				result[0] = universe.equals((NumericExpression) op0[0], (NumericExpression) op1[0]);
+				break;
+			case CIVL_NEQ:
+				result[0] = universe.neq((NumericExpression) op0[0], (NumericExpression) op1[0]);
+				break;
+			default:
+				throw new CIVLUnimplementedFeatureException("CIVLOperation: " + op.name());
 			}
 			return result;
 		} catch (ClassCastException e) {
-			errorLogger.logSimpleError(civlsource, state, pid, process,
-					symbolicAnalyzer.stateToString(state), CIVLProperty.OTHER,
-					"Invalid operands type for CIVL Operation: " + op.name());
+			errorLogger.logSimpleError(civlsource, state, pid, process, symbolicAnalyzer.stateToString(state),
+					CIVLProperty.OTHER, "Invalid operands type for CIVL Operation: " + op.name());
 			throw new UnsatisfiablePathConditionException();
 		}
 	}
 
 	/**
-	 * Returns the count of objects in one operand in a CIVL operation. e.g.
-	 * MINLOC or MAXLOC needs 2 objects for 1 operand
+	 * Returns the count of objects in one operand in a CIVL operation. e.g. MINLOC
+	 * or MAXLOC needs 2 objects for 1 operand
 	 * 
-	 * @param op
-	 *            The {@link CIVLOperator}
+	 * @param op The {@link CIVLOperator}
 	 * @return
 	 */
 	protected NumericExpression operandCounts(CIVLOperator civlOp) {
-		if (civlOp == CIVLOperator.CIVL_MAXLOC
-				|| civlOp == CIVLOperator.CIVL_MINLOC)
+		if (civlOp == CIVLOperator.CIVL_MAXLOC || civlOp == CIVLOperator.CIVL_MINLOC)
 			return two;
 		else
 			return one;
@@ -550,72 +487,55 @@ public abstract class LibraryComponent {
 	 * <b>Summary: </b> Apply MIN_LOC or MAX_LOC operation on two operands.
 	 * </p>
 	 * 
-	 * @param state
-	 *            The current state
-	 * @param process
-	 *            The String identifier of the process
-	 * @param operands
-	 *            An array of all operands:
-	 *            <code>{loc0, idx0, loc1, idx1}</code>
-	 * @param isMin
-	 *            A flag, true for MIN_LOC operation, false for MAX_LOC
-	 *            operation.
-	 * @param civlsource
-	 *            {@link CIVLSource} of the operation
+	 * @param state      The current state
+	 * @param process    The String identifier of the process
+	 * @param operands   An array of all operands:
+	 *                   <code>{loc0, idx0, loc1, idx1}</code>
+	 * @param isMin      A flag, true for MIN_LOC operation, false for MAX_LOC
+	 *                   operation.
+	 * @param civlsource {@link CIVLSource} of the operation
 	 * @return
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	private SymbolicExpression[] applyMINOrMAXLOC(State state, String process,
-			SymbolicExpression[] operand0, SymbolicExpression[] operand1,
-			boolean isMin, CIVLSource civlsource)
+	private SymbolicExpression[] applyMINOrMAXLOC(State state, String process, SymbolicExpression[] operand0,
+			SymbolicExpression[] operand1, boolean isMin, CIVLSource civlsource)
 			throws UnsatisfiablePathConditionException {
-		NumericExpression locations[] = {(NumericExpression) operand0[0],
-				(NumericExpression) operand1[0]};
-		NumericExpression indices[] = {(NumericExpression) operand0[1],
-				(NumericExpression) operand1[1]};
+		NumericExpression locations[] = { (NumericExpression) operand0[0], (NumericExpression) operand1[0] };
+		NumericExpression indices[] = { (NumericExpression) operand0[1], (NumericExpression) operand1[1] };
 
 		assert (operand0.length == 2) && (operand1.length == 2);
-		return isMin
-				? applyMinLocOperation(locations, indices)
-				: applyMaxLocOperation(locations, indices);
+		return isMin ? applyMinLocOperation(locations, indices) : applyMaxLocOperation(locations, indices);
 	}
 
 	/**
 	 * <p>
-	 * <b>Summary: </b> Apply a MINLOC operation on two operands: [loc0, idx0]
-	 * and [loc1, idx1]
+	 * <b>Summary: </b> Apply a MINLOC operation on two operands: [loc0, idx0] and
+	 * [loc1, idx1]
 	 * </p>
 	 * 
-	 * @param locations
-	 *            Location array which consists of a "location0" and a
-	 *            "location1"
-	 * @param indices
-	 *            Index array which consists of a "index0" and a "index1"
-	 * @return loc0 \lt loc1 ? [loc0, idx0] : loc0 != loc1 ? [loc1, idx1] : idx0
-	 *         \lt idx1 ? [loc0, idx0]: [loc1, idx1]
+	 * @param locations Location array which consists of a "location0" and a
+	 *                  "location1"
+	 * @param indices   Index array which consists of a "index0" and a "index1"
+	 * @return loc0 \lt loc1 ? [loc0, idx0] : loc0 != loc1 ? [loc1, idx1] : idx0 \lt
+	 *         idx1 ? [loc0, idx0]: [loc1, idx1]
 	 */
-	private SymbolicExpression[] applyMinLocOperation(
-			NumericExpression locations[], NumericExpression indices[]) {
-		BooleanExpression loc0LTloc1 = universe.lessThan(locations[0],
-				locations[1]);
-		BooleanExpression loc0NEQloc1 = universe
-				.not(universe.equals(locations[0], locations[1]));
-		BooleanExpression idx0LTidx1 = universe.lessThan(indices[0],
-				indices[1]);
+	private SymbolicExpression[] applyMinLocOperation(NumericExpression locations[], NumericExpression indices[]) {
+		BooleanExpression loc0LTloc1 = universe.lessThan(locations[0], locations[1]);
+		BooleanExpression loc0NEQloc1 = universe.not(universe.equals(locations[0], locations[1]));
+		BooleanExpression idx0LTidx1 = universe.lessThan(indices[0], indices[1]);
 		SymbolicExpression locResult, idxResult;
 
 		// optimize:
 		if (loc0LTloc1.isTrue() && loc0NEQloc1.isTrue()) {
-			SymbolicExpression[] result = {locations[0], indices[0]};
+			SymbolicExpression[] result = { locations[0], indices[0] };
 
 			return result;
 		} else {
 			locResult = universe.cond(loc0LTloc1, locations[0], locations[1]);
 			idxResult = universe.cond(loc0LTloc1, indices[0],
-					universe.cond(loc0NEQloc1, indices[1],
-							universe.cond(idx0LTidx1, indices[0], indices[1])));
+					universe.cond(loc0NEQloc1, indices[1], universe.cond(idx0LTidx1, indices[0], indices[1])));
 
-			SymbolicExpression[] result = {locResult, idxResult};
+			SymbolicExpression[] result = { locResult, idxResult };
 
 			return result;
 		}
@@ -623,50 +543,42 @@ public abstract class LibraryComponent {
 
 	/**
 	 * <p>
-	 * <b>Summary: </b> Apply a MAXLOC operation on two operands: [loc0, idx0]
-	 * and [loc1, idx1]
+	 * <b>Summary: </b> Apply a MAXLOC operation on two operands: [loc0, idx0] and
+	 * [loc1, idx1]
 	 * </p>
 	 * 
 	 * 
-	 * @param locations
-	 *            Location array which consists of a "location0" and a
-	 *            "location1"
-	 * @param indices
-	 *            Index array which consists of a "index0" and a "index1"
-	 * @return loc0 \gt loc1 ? [loc0, idx0] : loc0 != loc1 ? [loc1, idx1] : idx0
-	 *         \lt idx1 ? [loc0, idx0]: [loc1, idx1]
+	 * @param locations Location array which consists of a "location0" and a
+	 *                  "location1"
+	 * @param indices   Index array which consists of a "index0" and a "index1"
+	 * @return loc0 \gt loc1 ? [loc0, idx0] : loc0 != loc1 ? [loc1, idx1] : idx0 \lt
+	 *         idx1 ? [loc0, idx0]: [loc1, idx1]
 	 * @return
 	 */
-	private SymbolicExpression[] applyMaxLocOperation(
-			NumericExpression locations[], NumericExpression indices[]) {
-		BooleanExpression loc0GTloc1 = universe.lessThan(locations[1],
-				locations[0]);
-		BooleanExpression loc0NEQloc1 = universe
-				.not(universe.equals(locations[0], locations[1]));
-		BooleanExpression idx0LTidx1 = universe.lessThan(indices[0],
-				indices[1]);
+	private SymbolicExpression[] applyMaxLocOperation(NumericExpression locations[], NumericExpression indices[]) {
+		BooleanExpression loc0GTloc1 = universe.lessThan(locations[1], locations[0]);
+		BooleanExpression loc0NEQloc1 = universe.not(universe.equals(locations[0], locations[1]));
+		BooleanExpression idx0LTidx1 = universe.lessThan(indices[0], indices[1]);
 		SymbolicExpression locResult, idxResult;
 
 		// optimize:
 		if (loc0GTloc1.isTrue() && loc0NEQloc1.isTrue()) {
-			SymbolicExpression[] result = {locations[0], indices[0]};
+			SymbolicExpression[] result = { locations[0], indices[0] };
 
 			return result;
 		} else {
 			locResult = universe.cond(loc0GTloc1, locations[0], locations[1]);
 			idxResult = universe.cond(loc0GTloc1, indices[0],
-					universe.cond(loc0NEQloc1, indices[1],
-							universe.cond(idx0LTidx1, indices[0], indices[1])));
+					universe.cond(loc0NEQloc1, indices[1], universe.cond(idx0LTidx1, indices[0], indices[1])));
 
-			SymbolicExpression[] result = {locResult, idxResult};
+			SymbolicExpression[] result = { locResult, idxResult };
 
 			return result;
 
 		}
 	}
 
-	protected Pair<State, SymbolicExpression[]> evaluateArguments(State state,
-			int pid, Expression[] arguments)
+	protected Pair<State, SymbolicExpression[]> evaluateArguments(State state, int pid, Expression[] arguments)
 			throws UnsatisfiablePathConditionException {
 		int numArgs = arguments.length;
 		SymbolicExpression[] argumentValues = new SymbolicExpression[numArgs];
@@ -697,28 +609,19 @@ public abstract class LibraryComponent {
 	 * </ol>
 	 * Setting a sequence of data starting from a pointer
 	 * 
-	 * @param state
-	 *            The current state
-	 * @param process
-	 *            The information of the process
-	 * @param pointer
-	 *            The pointer to the start position
-	 * @param count
-	 *            The number of cells in the array of data
-	 * @param dataArray
-	 *            The sequence of data is going to be set
-	 * @param checkOutput
-	 *            Flag for check output variable
-	 * @param source
-	 *            CIVL source of the statement
-	 * @return A pair of evaluation and pointer.The data in form of an array
-	 *         which can be assigned to the returned pointer.
+	 * @param state       The current state
+	 * @param process     The information of the process
+	 * @param pointer     The pointer to the start position
+	 * @param count       The number of cells in the array of data
+	 * @param dataArray   The sequence of data is going to be set
+	 * @param checkOutput Flag for check output variable
+	 * @param source      CIVL source of the statement
+	 * @return A pair of evaluation and pointer.The data in form of an array which
+	 *         can be assigned to the returned pointer.
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	public Pair<Evaluation, SymbolicExpression> setDataFrom(State state,
-			int pid, String process, Expression ptrExpr,
-			SymbolicExpression pointer, NumericExpression count,
-			SymbolicExpression dataArray, boolean checkOutput,
+	public Pair<Evaluation, SymbolicExpression> setDataFrom(State state, int pid, String process, Expression ptrExpr,
+			SymbolicExpression pointer, NumericExpression count, SymbolicExpression dataArray, boolean checkOutput,
 			CIVLSource source) throws UnsatisfiablePathConditionException {
 		NumericExpression[] arraySlicesSizes;
 		NumericExpression startPos;
@@ -733,18 +636,13 @@ public abstract class LibraryComponent {
 		int dim;
 
 		// If data length > count, report an error:
-		if (!this.civlConfig.svcomp()) {
-			claim = universe.lessThan(dataSeqLength, count);
-			resultType = reasoner.valid(claim).getResultType();
-			if (resultType.equals(ResultType.YES)
-					&& civlConfig.isPropertyToggled(CIVLProperty.OUT_OF_BOUNDS))
-				reportOutOfBoundError(state, pid, claim, resultType, pointer,
-						dataSeqLength, count, source);
-		}
+		claim = universe.lessThan(dataSeqLength, count);
+		resultType = reasoner.valid(claim).getResultType();
+		if (resultType.equals(ResultType.YES) && civlConfig.isPropertyToggled(CIVLProperty.OUT_OF_BOUNDS))
+			reportOutOfBoundError(state, pid, claim, resultType, pointer, dataSeqLength, count, source);
 		// If the type of the object is exact same as the dataArray, then do a
 		// directly assignment:
-		SymbolicType objType = symbolicAnalyzer
-				.dynamicTypeOfObjByPointer(source, state, pointer);
+		SymbolicType objType = symbolicAnalyzer.dynamicTypeOfObjByPointer(source, state, pointer);
 
 		if (dataArray.type().equals(objType))
 			return new Pair<>(new Evaluation(state, dataArray), pointer);
@@ -756,36 +654,29 @@ public abstract class LibraryComponent {
 		if (reasoner.isValid(universe.equals(count, one))) {
 			SymbolicExpression data = universe.arrayRead(dataArray, zero);
 
-			return new Pair<>(new Evaluation(state, data),
-					symbolicUtil.makePointer(pointer, symref));
+			return new Pair<>(new Evaluation(state, data), symbolicUtil.makePointer(pointer, symref));
 		}
 		// Else, count greater than one:
 		if (!symref.isArrayElementReference()) {
 			if (reasoner.isValid(universe.equals(count, one)))
-				return new Pair<>(
-						new Evaluation(state,
-								universe.arrayRead(dataArray, zero)),
+				return new Pair<>(new Evaluation(state, universe.arrayRead(dataArray, zero)),
 						symbolicUtil.makePointer(pointer, symref));
 			if (civlConfig.isPropertyToggled(CIVLProperty.OUT_OF_BOUNDS)) {
 				// report error:
 				CIVLType integerType;
 
 				integerType = typeFactory.integerType();
-				errorLogger.logSimpleError(source, state, pid, process,
-						symbolicAnalyzer.stateInformation(state),
+				errorLogger.logSimpleError(source, state, pid, process, symbolicAnalyzer.stateInformation(state),
 						CIVLProperty.OUT_OF_BOUNDS,
 						"$bundle_unpack out of bound: \nPointer: "
-								+ symbolicAnalyzer.symbolicExpressionToString(
-										source, state,
+								+ symbolicAnalyzer.symbolicExpressionToString(source, state,
 										ptrExpr.getExpressionType(), pointer)
 								+ "\nSize: "
-								+ symbolicAnalyzer.symbolicExpressionToString(
-										source, state, integerType, count)
+								+ symbolicAnalyzer.symbolicExpressionToString(source, state, integerType, count)
 								+ "\n");
 			}
 		}
-		eval_and_slices = evaluator.arrayElementReferenceAdd(state, pid,
-				pointer, count, source);
+		eval_and_slices = evaluator.arrayElementReferenceAdd(state, pid, pointer, count, source);
 		eval = eval_and_slices.left;
 		endPtr = eval.value;
 		state = eval.state;
@@ -801,8 +692,7 @@ public abstract class LibraryComponent {
 		startPtr = symbolicUtil.makePointer(pointer, symref);
 		startPos = zero;
 		if (symref.isArrayElementReference()) {
-			NumericExpression[] startIndices = symbolicUtil
-					.extractArrayIndicesFrom(startPtr);
+			NumericExpression[] startIndices = symbolicUtil.extractArrayIndicesFrom(startPtr);
 			int numIndices = startIndices.length;
 
 			assert numIndices >= dim;
@@ -811,19 +701,16 @@ public abstract class LibraryComponent {
 				startPtr = symbolicUtil.parentPointer(startPtr);
 				endPtr = symbolicUtil.parentPointer(endPtr);
 				startPos = universe.add(startPos,
-						universe.multiply(startIndices[numIndices - i],
-								arraySlicesSizes[dim - i]));
+						universe.multiply(startIndices[numIndices - i], arraySlicesSizes[dim - i]));
 			}
 		}
-		eval = evaluator.dereference(source, state, pid, process, startPtr,
-				false, true);
+		eval = evaluator.dereference(source, state, pid, process, startPtr, false, true);
 		state = eval.state;
 		if (eval.value.type().typeKind().equals(SymbolicTypeKind.ARRAY)) {
-			eval = setDataBetween(state, pid, eval.value, arraySlicesSizes,
-					startPos, count, pointer, dataArray, source);
-		} else if (civlConfig.isPropertyToggled(CIVLProperty.UNDEFINED_VALUE)) {
-			reportOutOfBoundError(state, pid, null, null, startPtr, one, count,
+			eval = setDataBetween(state, pid, eval.value, arraySlicesSizes, startPos, count, pointer, dataArray,
 					source);
+		} else if (civlConfig.isPropertyToggled(CIVLProperty.UNDEFINED_VALUE)) {
+			reportOutOfBoundError(state, pid, null, null, startPtr, one, count, source);
 		}
 		return new Pair<>(eval, startPtr);
 	}
@@ -841,44 +728,32 @@ public abstract class LibraryComponent {
 	 * </ol>
 	 * Get a sequence of data starting from a pointer.
 	 * 
-	 * @param state
-	 *            The current state
-	 * @param process
-	 *            The information of the process
-	 * @param pointer
-	 *            The pointer to the start position of a sequence of data
-	 * @param count
-	 *            The number of cells in the array of data
-	 * @param checkOutput
-	 *            Flag for check output variable
-	 * @param source
-	 *            CIVL source of the statement
-	 * @return Evaluation contains the sequence of data which is in form of a
-	 *         one dimensional array.
+	 * @param state       The current state
+	 * @param process     The information of the process
+	 * @param pointer     The pointer to the start position of a sequence of data
+	 * @param count       The number of cells in the array of data
+	 * @param checkOutput Flag for check output variable
+	 * @param source      CIVL source of the statement
+	 * @return Evaluation contains the sequence of data which is in form of a one
+	 *         dimensional array.
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	public Evaluation getDataFrom(State state, int pid, String process,
-			Expression pointerExpr, SymbolicExpression pointer,
-			NumericExpression count, boolean toBase, boolean checkOutput,
-			CIVLSource source) throws UnsatisfiablePathConditionException {
+	public Evaluation getDataFrom(State state, int pid, String process, Expression pointerExpr,
+			SymbolicExpression pointer, NumericExpression count, boolean toBase, boolean checkOutput, CIVLSource source)
+			throws UnsatisfiablePathConditionException {
 		ReferenceExpression symref;
 		Evaluation eval;
 		Reasoner reasoner = universe.reasoner(state.getPathCondition(universe));
 
 		// If "count" == 1:
 		if (reasoner.isValid(universe.equals(count, one))) {
-			eval = evaluator.dereference(source, state, pid, process, pointer,
-					true, true);
-			if (civlConfig.isPropertyToggled(CIVLProperty.UNDEFINED_VALUE)
-					&& eval.value.isNull())
-				reportUndefinedValueError(state, pid,
-						symbolicUtil.getSymRef(pointer).isIdentityReference(),
+			eval = evaluator.dereference(source, state, pid, process, pointer, true, true);
+			if (civlConfig.isPropertyToggled(CIVLProperty.UNDEFINED_VALUE) && eval.value.isNull())
+				reportUndefinedValueError(state, pid, symbolicUtil.getSymRef(pointer).isIdentityReference(),
 						pointerExpr);
-			eval.value = universe.array(eval.value.type(),
-					Arrays.asList(eval.value));
+			eval.value = universe.array(eval.value.type(), Arrays.asList(eval.value));
 			eval.value = arrayFlatten(state, pid, eval.value,
-					new ArrayMeasurement((SymbolicArrayType) eval.value.type()),
-					source);
+					new ArrayMeasurement((SymbolicArrayType) eval.value.type()), source);
 			return eval;
 		}
 		// Else "count" > 1:
@@ -896,15 +771,11 @@ public abstract class LibraryComponent {
 				break;
 		}
 		rootPointer = symbolicUtil.makePointer(pointer, symref);
-		eval = evaluator.dereference(source, state, pid, process, rootPointer,
-				false, true);
+		eval = evaluator.dereference(source, state, pid, process, rootPointer, false, true);
 		state = eval.state;
 		rootArray = eval.value;
-		if (civlConfig.isPropertyToggled(CIVLProperty.UNDEFINED_VALUE)
-				&& rootArray.isNull())
-			reportUndefinedValueError(state, pid,
-					symbolicUtil.getSymRef(pointer).isIdentityReference(),
-					pointerExpr);
+		if (civlConfig.isPropertyToggled(CIVLProperty.UNDEFINED_VALUE) && rootArray.isNull())
+			reportUndefinedValueError(state, pid, symbolicUtil.getSymRef(pointer).isIdentityReference(), pointerExpr);
 		indices = new NumericExpression[indicesList.size()];
 		indicesList.toArray(indices);
 		// reverse so that the order satisfies the requirements of the
@@ -914,8 +785,7 @@ public abstract class LibraryComponent {
 			indices[i] = indices[indices.length - i - 1];
 			indices[indices.length - i - 1] = tmp;
 		}
-		eval.value = arraySliceRead(state, pid, rootArray, indices, count,
-				source);
+		eval.value = arraySliceRead(state, pid, rootArray, indices, count, source);
 		return eval;
 	}
 
@@ -924,20 +794,14 @@ public abstract class LibraryComponent {
 	 * Report an attempt to read undefined (or uninitialized) object error
 	 * </p>
 	 * 
-	 * @param state
-	 *            The current state when calling this method
-	 * @param pid
-	 *            The PID of the process who calls this method
-	 * @param isVariable
-	 *            If the object is an variable
-	 * @param expression
-	 *            The expression associates to this error. Error reporting will
-	 *            be on the {@link CIVLSource} of this expression.
-	 * @throws UnsatisfiablePathConditionException
-	 *             always.
+	 * @param state      The current state when calling this method
+	 * @param pid        The PID of the process who calls this method
+	 * @param isVariable If the object is an variable
+	 * @param expression The expression associates to this error. Error reporting
+	 *                   will be on the {@link CIVLSource} of this expression.
+	 * @throws UnsatisfiablePathConditionException always.
 	 */
-	public void reportUndefinedValueError(State state, int pid,
-			boolean isVariable, Expression expression)
+	public void reportUndefinedValueError(State state, int pid, boolean isVariable, Expression expression)
 			throws UnsatisfiablePathConditionException {
 		String kind = "undefined";
 		String process = state.getProcessState(pid).name();
@@ -945,8 +809,7 @@ public abstract class LibraryComponent {
 		if (isVariable)
 			kind = "uninitialized";
 		errorLogger.logSimpleError(expression.getSource(), state, pid, process,
-				symbolicAnalyzer.stateInformation(state),
-				CIVLProperty.UNDEFINED_VALUE,
+				symbolicAnalyzer.stateInformation(state), CIVLProperty.UNDEFINED_VALUE,
 				"Attempt to read an object with " + kind + " value");
 	}
 
@@ -961,38 +824,27 @@ public abstract class LibraryComponent {
 	 * 
 	 * <p>
 	 * Given a group of indices I, an array a and a number c. Read c consequent
-	 * elements start from a[I]. If size of I less than the dimension of a, it
-	 * will be supplemented with zeros. e.g. Given an array a[4][5][6] and a
-	 * ordered set of indices {2, 1}. The indices locate the element [2][1][0]
-	 * in array a.
+	 * elements start from a[I]. If size of I less than the dimension of a, it will
+	 * be supplemented with zeros. e.g. Given an array a[4][5][6] and a ordered set
+	 * of indices {2, 1}. The indices locate the element [2][1][0] in array a.
 	 * </p>
 	 * 
-	 * @param state
-	 *            The current state when calling this method
-	 * @param pid
-	 *            The PID of the current process
-	 * @param arrayType
-	 *            The {@link CIVLType} of the array
-	 * @param array
-	 *            The array that will be read
-	 * @param indices
-	 *            The start indices of the element in the array.
-	 * @param count
-	 *            The number of elements will be read
-	 * @param source
-	 *            The {@link CIVLSource} associates to this method call.
+	 * @param state     The current state when calling this method
+	 * @param pid       The PID of the current process
+	 * @param arrayType The {@link CIVLType} of the array
+	 * @param array     The array that will be read
+	 * @param indices   The start indices of the element in the array.
+	 * @param count     The number of elements will be read
+	 * @param source    The {@link CIVLSource} associates to this method call.
 	 * @return A sequence of elements (A one dimensional array)
-	 * @throws UnsatisfiablePathConditionException
-	 *             When array out of bound happens.
+	 * @throws UnsatisfiablePathConditionException When array out of bound happens.
 	 */
-	public SymbolicExpression arraySliceRead(State state, int pid,
-			SymbolicExpression array, NumericExpression indices[],
-			NumericExpression count, CIVLSource source)
+	public SymbolicExpression arraySliceRead(State state, int pid, SymbolicExpression array,
+			NumericExpression indices[], NumericExpression count, CIVLSource source)
 			throws UnsatisfiablePathConditionException {
 		NumericExpression pos = zero, step = one;
 		SymbolicExpression flattenArray;
-		ArrayMeasurement arrayMeasure = new ArrayMeasurement(
-				(SymbolicArrayType) array.type());
+		ArrayMeasurement arrayMeasure = new ArrayMeasurement((SymbolicArrayType) array.type());
 		NumericExpression sliceSizes[] = arrayMeasure.sliceSizes;
 		int i;
 
@@ -1005,27 +857,20 @@ public abstract class LibraryComponent {
 			// The size of the smallest array slice:
 			NumericExpression minSliceSize = sliceSizes[sliceSizes.length - 2];
 			// The index of the smallest array slice:
-			NumericExpression index = indices.length == arrayMeasure.dimensions
-					? indices[indices.length - 1]
-					: zero;
-			BooleanExpression indexPlusCountLteSize = universe
-					.lessThanEquals(universe.add(index, count), minSliceSize);
-			Reasoner reasoner = universe
-					.reasoner(state.getPathCondition(universe));
+			NumericExpression index = indices.length == arrayMeasure.dimensions ? indices[indices.length - 1] : zero;
+			BooleanExpression indexPlusCountLteSize = universe.lessThanEquals(universe.add(index, count), minSliceSize);
+			Reasoner reasoner = universe.reasoner(state.getPathCondition(universe));
 
 			if (reasoner.isValid(indexPlusCountLteSize)) {
 				for (i = 0; i < arrayMeasure.dimensions - 1; i++)
-					array = i < indices.length
-							? universe.arrayRead(array, indices[i])
+					array = i < indices.length ? universe.arrayRead(array, indices[i])
 							: universe.arrayRead(array, zero);
-				return symbolicAnalyzer.getSubArray(state, pid, array, index,
-						universe.add(index, count), source);
+				return symbolicAnalyzer.getSubArray(state, pid, array, index, universe.add(index, count), source);
 			}
 		}
 		flattenArray = arrayFlatten(state, pid, array, arrayMeasure, source);
 		for (i = 0; i < indices.length; i++)
-			pos = universe.add(pos,
-					universe.multiply(indices[i], sliceSizes[i]));
+			pos = universe.add(pos, universe.multiply(indices[i], sliceSizes[i]));
 		// valid subscript: d < indices.length <= dimension && sliceSizes.length
 		// == dimension
 		step = i > 0 ? sliceSizes[i - 1] : sliceSizes[0];
@@ -1040,37 +885,31 @@ public abstract class LibraryComponent {
 	 * elementTypeOf(targetArray) == elementTypeOf(dataArray)
 	 * </p>
 	 * <p>
-	 * Writes the sequence of elements in "dataArray" to the "targetArray" from
-	 * the "index" of the "targetArray". This operation only will be done within
-	 * one dimension, i.e. both "dataArray" and "targetArray" represent a
-	 * sequence of elements, no matter the type of the elements is a scalar
-	 * type, an array type or a complex structure.
+	 * Writes the sequence of elements in "dataArray" to the "targetArray" from the
+	 * "index" of the "targetArray". This operation only will be done within one
+	 * dimension, i.e. both "dataArray" and "targetArray" represent a sequence of
+	 * elements, no matter the type of the elements is a scalar type, an array type
+	 * or a complex structure.
 	 * 
-	 * For example, writes b[2][3] into a[3][3] start from index 0, the results
-	 * will be:
+	 * For example, writes b[2][3] into a[3][3] start from index 0, the results will
+	 * be:
 	 * 
 	 * a[3][3] = {b[0][0], b[0][1], b[0][2], b[1][0], b[1][1], b[1][2], a[2][0],
 	 * a[2][1], a[2][2]}
 	 * 
 	 * </p>
 	 * 
-	 * @param state
-	 *            The current state when this method is called
-	 * @param pid
-	 *            The PID of the process
-	 * @param targetArray
-	 *            The target array that will be written
-	 * @param dataArray
-	 *            The sequence of data that will be insert into the targetArray
-	 * @param index
-	 *            The start index of this write operation
-	 * @param source
-	 *            The {@link CIVLSource} related with this method call
+	 * @param state       The current state when this method is called
+	 * @param pid         The PID of the process
+	 * @param targetArray The target array that will be written
+	 * @param dataArray   The sequence of data that will be insert into the
+	 *                    targetArray
+	 * @param index       The start index of this write operation
+	 * @param source      The {@link CIVLSource} related with this method call
 	 * @return
 	 */
-	public SymbolicExpression arraySliceWrite1d(State state, int pid,
-			SymbolicExpression targetArray, SymbolicExpression dataArray,
-			NumericExpression index, CIVLSource source) {
+	public SymbolicExpression arraySliceWrite1d(State state, int pid, SymbolicExpression targetArray,
+			SymbolicExpression dataArray, NumericExpression index, CIVLSource source) {
 		NumericExpression dataLength = universe.length(dataArray);
 		Reasoner reasoner = universe.reasoner(state.getPathCondition(universe));
 		Number concreteDataLength = reasoner.extractNumber(dataLength);
@@ -1078,19 +917,14 @@ public abstract class LibraryComponent {
 		// If the data array has a non-concrete length, use array lambda:
 		if (concreteDataLength == null) {
 			NumericSymbolicConstant symConst = (NumericSymbolicConstant) universe
-					.symbolicConstant(universe.stringObject("i"),
-							universe.integerType());
-			BooleanExpression hiCond = universe.lessThan(symConst,
-					universe.add(index, dataLength));
+					.symbolicConstant(universe.stringObject("i"), universe.integerType());
+			BooleanExpression hiCond = universe.lessThan(symConst, universe.add(index, dataLength));
 			BooleanExpression loCond = universe.lessThanEquals(index, symConst);
 			SymbolicExpression elementLambda;
-			SymbolicCompleteArrayType targetArrayType = (SymbolicCompleteArrayType) targetArray
-					.type();
+			SymbolicCompleteArrayType targetArrayType = (SymbolicCompleteArrayType) targetArray.type();
 
-			elementLambda = universe.lambda(symConst,
-					universe.cond(universe.and(hiCond, loCond),
-							universe.arrayRead(dataArray, symConst),
-							universe.arrayRead(targetArray, symConst)));
+			elementLambda = universe.lambda(symConst, universe.cond(universe.and(hiCond, loCond),
+					universe.arrayRead(dataArray, symConst), universe.arrayRead(targetArray, symConst)));
 			return universe.arrayLambda(targetArrayType, elementLambda);
 		} else {
 			int intDataLength = ((IntegerNumber) concreteDataLength).intValue();
@@ -1099,38 +933,32 @@ public abstract class LibraryComponent {
 				NumericExpression I = universe.integer(i);
 				NumericExpression IplusIndex = universe.add(I, index);
 
-				targetArray = universe.arrayWrite(targetArray, IplusIndex,
-						universe.arrayRead(dataArray, I));
+				targetArray = universe.arrayWrite(targetArray, IplusIndex, universe.arrayRead(dataArray, I));
 			}
 			return targetArray;
 		}
 	}
 
 	/**
-	 * Cast an array to another array. The two arrays before and after casting
-	 * must be able to hold same number of non-array elements.<br>
-	 * e.g. For arrays <code>int a[2][2]; int b[4]; int c[5]</code>, a and b can
-	 * be casted into each other but both of them can not be casted to c.
+	 * Cast an array to another array. The two arrays before and after casting must
+	 * be able to hold same number of non-array elements.<br>
+	 * e.g. For arrays <code>int a[2][2]; int b[4]; int c[5]</code>, a and b can be
+	 * casted into each other but both of them can not be casted to c.
 	 * 
 	 * @author Ziqing Luo
-	 * @param state
-	 *            The current state
-	 * @param pid
-	 *            The PID of the calling process
-	 * @param oldArray
-	 *            The array before casting
-	 * @param oldArrayMeasurement
-	 *            The {@link ArrayMeasurement} of the oldArray
-	 * @param targetType
-	 *            The target type that the oldArray will be casted to
-	 * @param source
-	 *            The CIVL source of the oldArray or the pointer to OldArray
+	 * @param state               The current state
+	 * @param pid                 The PID of the calling process
+	 * @param oldArray            The array before casting
+	 * @param oldArrayMeasurement The {@link ArrayMeasurement} of the oldArray
+	 * @param targetType          The target type that the oldArray will be casted
+	 *                            to
+	 * @param source              The CIVL source of the oldArray or the pointer to
+	 *                            OldArray
 	 * @return casted array
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	public SymbolicExpression arrayCasting(State state, int pid,
-			SymbolicExpression oldArray, ArrayMeasurement oldArrayMeasurement,
-			SymbolicCompleteArrayType targetType, CIVLSource source)
+	public SymbolicExpression arrayCasting(State state, int pid, SymbolicExpression oldArray,
+			ArrayMeasurement oldArrayMeasurement, SymbolicCompleteArrayType targetType, CIVLSource source)
 			throws UnsatisfiablePathConditionException {
 		Reasoner reasoner = universe.reasoner(state.getPathCondition(universe));
 		int[] targetExtentNumbers;
@@ -1141,85 +969,69 @@ public abstract class LibraryComponent {
 			return oldArray;
 		// Optimization: if oldArray is a symbolic constant, just change type:
 		if (oldArray.operator() == SymbolicOperator.SYMBOLIC_CONSTANT) {
-			SymbolicObject[] args = {oldArray.argument(1)};
+			SymbolicObject[] args = { oldArray.argument(1) };
 
-			return universe.make(SymbolicOperator.SYMBOLIC_CONSTANT, targetType,
-					args);
+			return universe.make(SymbolicOperator.SYMBOLIC_CONSTANT, targetType, args);
 		}
 
-		ArrayMeasurement targetArrayMeasurement = new ArrayMeasurement(
-				targetType);
+		ArrayMeasurement targetArrayMeasurement = new ArrayMeasurement(targetType);
 
 		dim = targetArrayMeasurement.dimensions;
 		targetExtentNumbers = new int[dim];
 		for (int d = 0; d < dim; ++d) {
-			IntegerNumber extent = (IntegerNumber) reasoner
-					.extractNumber(targetArrayMeasurement.extents[d]);
+			IntegerNumber extent = (IntegerNumber) reasoner.extractNumber(targetArrayMeasurement.extents[d]);
 
 			if (extent == null)
-				throw new CIVLUnimplementedFeatureException(
-						"Transform symbolic array " + oldArray + " of type "
-								+ oldArray.type() + "to another type "
-								+ targetType);
+				throw new CIVLUnimplementedFeatureException("Transform symbolic array " + oldArray + " of type "
+						+ oldArray.type() + "to another type " + targetType);
 			targetExtentNumbers[d] = extent.intValue();
 		}
 
-		SymbolicExpression flattenArray = arrayFlatten(state, pid, oldArray,
-				oldArrayMeasurement, source);
+		SymbolicExpression flattenArray = arrayFlatten(state, pid, oldArray, oldArrayMeasurement, source);
 
-		return flattenToMultiDimensionalArray(targetExtentNumbers,
-				oldArrayMeasurement.baseType, flattenArray);
+		return flattenToMultiDimensionalArray(targetExtentNumbers, oldArrayMeasurement.baseType, flattenArray);
 	}
 
 	/**
-	 * Transform an flatten array a to a multiple dimensional array b. The
-	 * extent of a equals to the product of the extents of b.
+	 * Transform an flatten array a to a multiple dimensional array b. The extent of
+	 * a equals to the product of the extents of b.
 	 * 
-	 * @param extents
-	 *            An array of extents {e<sub>0</sub>, e<sub>1</sub>, ..., e
-	 *            <sub>n-1</sub>} for a multi-dimensional array
-	 *            <code>T b[e<sub>0</sub>][e<sub>1</sub>][..][e<sub>n-1</sub>]</code>
-	 * @param baseType
-	 *            The base type T of the multi-dimensional array
-	 *            <code>T b[e<sub>0</sub>][e<sub>1</sub>][..][e<sub>n-1</sub>]</code>
-	 * @param flatArray
-	 *            The flatten array T a[e<sub>0</sub> * e<sub>1</sub> * ... * e
-	 *            <sub>n-1</sub>];
+	 * @param extents   An array of extents {e<sub>0</sub>, e<sub>1</sub>, ..., e
+	 *                  <sub>n-1</sub>} for a multi-dimensional array
+	 *                  <code>T b[e<sub>0</sub>][e<sub>1</sub>][..][e<sub>n-1</sub>]</code>
+	 * @param baseType  The base type T of the multi-dimensional array
+	 *                  <code>T b[e<sub>0</sub>][e<sub>1</sub>][..][e<sub>n-1</sub>]</code>
+	 * @param flatArray The flatten array T a[e<sub>0</sub> * e<sub>1</sub> * ... *
+	 *                  e <sub>n-1</sub>];
 	 * @return The multi-dimensional array b.
 	 */
-	SymbolicExpression flattenToMultiDimensionalArray(int extents[],
-			SymbolicType baseType, SymbolicExpression flatArray) {
-		return this.flattenToMultiDimensionalArrayWorker(extents, 0, baseType,
-				flatArray, 0).left;
+	SymbolicExpression flattenToMultiDimensionalArray(int extents[], SymbolicType baseType,
+			SymbolicExpression flatArray) {
+		return this.flattenToMultiDimensionalArrayWorker(extents, 0, baseType, flatArray, 0).left;
 	}
+
 	/**
 	 * The recursive worker method of
 	 * {@link #flattenToMultiDimensionalArray(int[], SymbolicType, SymbolicExpression)}
 	 * .
 	 * 
-	 * @param extents
-	 *            An array of extents {e<sub>0</sub>, e<sub>1</sub>, ..., e
-	 *            <sub>n-1</sub>} for a multi-dimensional array
-	 *            <code>T b[e<sub>0</sub>][e<sub>1</sub>][..][e<sub>n-1</sub>]</code>
-	 * @param dim
-	 *            current dimension. This method recursively creates elements
-	 *            for each dimension, this parameter represents the current
-	 *            dimension of this method execution.
-	 * @param baseType
-	 *            The base type T of the multi-dimensional array
-	 *            <code>T b[e<sub>0</sub>][e<sub>1</sub>][..][e<sub>n-1</sub>]</code>
-	 * @param flatArray
-	 *            The flatten array T a[e<sub>0</sub> * e<sub>1</sub> * ... * e
-	 *            <sub>n-1</sub>];
-	 * @param flatArrayOffset
-	 *            Each recursive execution creates an element from a segment on
-	 *            the flatten array. This flatArrayOffset is the start index of
-	 *            the segment.
+	 * @param extents         An array of extents {e<sub>0</sub>, e<sub>1</sub>,
+	 *                        ..., e <sub>n-1</sub>} for a multi-dimensional array
+	 *                        <code>T b[e<sub>0</sub>][e<sub>1</sub>][..][e<sub>n-1</sub>]</code>
+	 * @param dim             current dimension. This method recursively creates
+	 *                        elements for each dimension, this parameter represents
+	 *                        the current dimension of this method execution.
+	 * @param baseType        The base type T of the multi-dimensional array
+	 *                        <code>T b[e<sub>0</sub>][e<sub>1</sub>][..][e<sub>n-1</sub>]</code>
+	 * @param flatArray       The flatten array T a[e<sub>0</sub> * e<sub>1</sub> *
+	 *                        ... * e <sub>n-1</sub>];
+	 * @param flatArrayOffset Each recursive execution creates an element from a
+	 *                        segment on the flatten array. This flatArrayOffset is
+	 *                        the start index of the segment.
 	 * @return A sub-array and the number of base elements in this sub-array.
 	 */
-	private Pair<SymbolicExpression, Integer> flattenToMultiDimensionalArrayWorker(
-			int extents[], int dim, SymbolicType baseType,
-			SymbolicExpression flatArray, int flatArrayOffset) {
+	private Pair<SymbolicExpression, Integer> flattenToMultiDimensionalArrayWorker(int extents[], int dim,
+			SymbolicType baseType, SymbolicExpression flatArray, int flatArrayOffset) {
 		List<SymbolicExpression> components = new LinkedList<>();
 		SymbolicExpression result;
 
@@ -1228,8 +1040,8 @@ public abstract class LibraryComponent {
 			int step = 1;
 
 			for (int i = 0; i < extents[dim]; i++) {
-				Pair<SymbolicExpression, Integer> subResult = flattenToMultiDimensionalArrayWorker(
-						extents, dim + 1, baseType, flatArray, flatArrayOffset);
+				Pair<SymbolicExpression, Integer> subResult = flattenToMultiDimensionalArrayWorker(extents, dim + 1,
+						baseType, flatArray, flatArrayOffset);
 
 				step = subResult.right;
 				flatArrayOffset += step;
@@ -1237,14 +1049,11 @@ public abstract class LibraryComponent {
 			}
 			// components shall never be empty since the extent of an array
 			// shall never be zero:
-			return new Pair<>(
-					universe.array(components.get(0).type(), components),
-					extents[dim] * step);
+			return new Pair<>(universe.array(components.get(0).type(), components), extents[dim] * step);
 		} else {
 			// base case:
 			for (int i = 0; i < extents[dim]; i++)
-				components.add(universe.arrayRead(flatArray,
-						universe.integer(flatArrayOffset++)));
+				components.add(universe.arrayRead(flatArray, universe.integer(flatArrayOffset++)));
 			result = universe.array(baseType, components);
 			return new Pair<>(result, extents[dim]);
 		}
@@ -1253,30 +1062,24 @@ public abstract class LibraryComponent {
 	/**
 	 * <p>
 	 * <b>Pre-condition:</b>'array' must be a complete array object. <br>
-	 * 'arrayMeasurement' is an {@link ArrayMeasurement} object associates to
-	 * the 'array'.
+	 * 'arrayMeasurement' is an {@link ArrayMeasurement} object associates to the
+	 * 'array'.
 	 * </p>
 	 * <p>
 	 * Flatten an array to a one-dimensional array whose elements must have
 	 * non-array type.
 	 * </p>
 	 * 
-	 * @param state
-	 *            The current state when this method is called
-	 * @param pid
-	 *            The PID of the calling process.
-	 * @param array
-	 *            The complete array object
-	 * @param arrayMeasurement
-	 *            The {@link ArrayMeasurement} of the array.
-	 * @param civlsource
-	 *            The {@link CIVLSource} associates to this method.
+	 * @param state            The current state when this method is called
+	 * @param pid              The PID of the calling process.
+	 * @param array            The complete array object
+	 * @param arrayMeasurement The {@link ArrayMeasurement} of the array.
+	 * @param civlsource       The {@link CIVLSource} associates to this method.
 	 * @return
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	public SymbolicExpression arrayFlatten(State state, int pid,
-			SymbolicExpression array, ArrayMeasurement arrayMeasurement,
-			CIVLSource civlsource) throws UnsatisfiablePathConditionException {
+	public SymbolicExpression arrayFlatten(State state, int pid, SymbolicExpression array,
+			ArrayMeasurement arrayMeasurement, CIVLSource civlsource) throws UnsatisfiablePathConditionException {
 		Queue<SymbolicExpression> subTreeQueue = new LinkedList<>();
 		Reasoner reasoner = universe.reasoner(state.getPathCondition(universe));
 		SymbolicType baseType = arrayMeasurement.baseType;
@@ -1288,8 +1091,7 @@ public abstract class LibraryComponent {
 		// If any extent of the array is non-concrete, use lambdaFlatten:
 		for (int d = 0; d < dimensions; d++)
 			if (reasoner.extractNumber(extents[d]) == null)
-				return arrayLambdaFlatten2(state, array, sliceSizes, extents,
-						civlsource);
+				return arrayLambdaFlatten2(state, array, sliceSizes, extents, civlsource);
 		// If the totoal size of the array is concrete:
 		for (int d = 0; d < dimensions; d++) {
 			int prevExtent = subTreeQueue.size();
@@ -1304,15 +1106,13 @@ public abstract class LibraryComponent {
 			// case so just throw a internal error here for now. It it realy
 			// happens, change the code here.
 			if (concExtent == null)
-				throw new CIVLInternalException(
-						"Unexpected exception during flatten an array of concrete extents.",
+				throw new CIVLInternalException("Unexpected exception during flatten an array of concrete extents.",
 						civlsource);
 			intExtent = ((IntegerNumber) concExtent).intValue();
 			for (int i = 0; i < prevExtent; i++) {
 				array = subTreeQueue.poll();
 				for (int j = 0; j < intExtent; j++)
-					subTreeQueue.add(
-							universe.arrayRead(array, universe.integer(j)));
+					subTreeQueue.add(universe.arrayRead(array, universe.integer(j)));
 			}
 		}
 		return universe.array(baseType, subTreeQueue);
@@ -1329,49 +1129,42 @@ public abstract class LibraryComponent {
 	 * </ol>
 	 * Post-condition:
 	 * <ol>
-	 * <li>left side of the pair: Return the new value of the pointed object
-	 * after assigning the given data sequence from pointed position</li>
-	 * <li>right side of the pair: Return the pointer which can be assigned with
-	 * the new value</li>
+	 * <li>left side of the pair: Return the new value of the pointed object after
+	 * assigning the given data sequence from pointed position</li>
+	 * <li>right side of the pair: Return the pointer which can be assigned with the
+	 * new value</li>
 	 * </ol>
-	 * Setting a sequence of data between two array element references. Returns
-	 * the settled new array and the pointer to that array.
+	 * Setting a sequence of data between two array element references. Returns the
+	 * settled new array and the pointer to that array.
 	 * 
-	 * Pre-condition: start pointer and end pointer should point to the same
-	 * object.
+	 * Pre-condition: start pointer and end pointer should point to the same object.
 	 * 
-	 * @param state
-	 *            The current state
-	 * @param pid
-	 *            The PID of the calling process
-	 * @param startPtr
-	 *            The pointer to the start position
-	 * @param endPtr
-	 *            The pointer to the end position
-	 * @param dataSequence
-	 *            The sequence of data which is going to be set
-	 * @param arraySlicesSizes
-	 *            The capacity information of the array pointed by the startPtr
-	 *            or endPtr(These two pointers point to the same object).<br>
-	 *            Note: Here capacity information of an array means that for one
-	 *            cell in each dimension of an array how many non-array elements
-	 *            it can hold. e.g. For array <code>int a[2][2];</code>, the one
-	 *            cell in deepest dimension can only hold one element while one
-	 *            cell in the second deepest dimension can hold 2 elements. Here
-	 *            we use 0 marking (which is key in the given map) the deepest
-	 *            dimension and 1 marking the second deepest dimension and so
-	 *            forth.
-	 * @param source
-	 *            The CIVL source of the start pointer.
+	 * @param state            The current state
+	 * @param pid              The PID of the calling process
+	 * @param startPtr         The pointer to the start position
+	 * @param endPtr           The pointer to the end position
+	 * @param dataSequence     The sequence of data which is going to be set
+	 * @param arraySlicesSizes The capacity information of the array pointed by the
+	 *                         startPtr or endPtr(These two pointers point to the
+	 *                         same object).<br>
+	 *                         Note: Here capacity information of an array means
+	 *                         that for one cell in each dimension of an array how
+	 *                         many non-array elements it can hold. e.g. For array
+	 *                         <code>int a[2][2];</code>, the one cell in deepest
+	 *                         dimension can only hold one element while one cell in
+	 *                         the second deepest dimension can hold 2 elements.
+	 *                         Here we use 0 marking (which is key in the given map)
+	 *                         the deepest dimension and 1 marking the second
+	 *                         deepest dimension and so forth.
+	 * @param source           The CIVL source of the start pointer.
 	 * @return the settled new array and the pointer to that array.
 	 * @throws UnsatisfiablePathConditionException
 	 * @author Ziqing Luo
 	 */
-	private Evaluation setDataBetween(State state, int pid,
-			SymbolicExpression array, NumericExpression[] arraySlicesSizes,
-			NumericExpression startPos, NumericExpression count,
-			SymbolicExpression pointer, SymbolicExpression dataSequence,
-			CIVLSource source) throws UnsatisfiablePathConditionException {
+	private Evaluation setDataBetween(State state, int pid, SymbolicExpression array,
+			NumericExpression[] arraySlicesSizes, NumericExpression startPos, NumericExpression count,
+			SymbolicExpression pointer, SymbolicExpression dataSequence, CIVLSource source)
+			throws UnsatisfiablePathConditionException {
 		SymbolicExpression flattenArray;
 		NumericExpression dataSize;
 		NumericExpression i;
@@ -1383,18 +1176,15 @@ public abstract class LibraryComponent {
 		// 1. start position is zero.
 		// 2. Interval between pointers equals to data size.
 		// 3. The least common array capacity equals to data size.
-		if (reasoner.isValid(universe.equals(startPos, zero))
-				&& arraySlicesSizes.length == 1) {
+		if (reasoner.isValid(universe.equals(startPos, zero)) && arraySlicesSizes.length == 1) {
 			NumericExpression arraySize = universe.length(array);
 
-			claim = universe.and(universe.equals(dataSize, count),
-					universe.equals(dataSize, arraySize));
+			claim = universe.and(universe.equals(dataSize, count), universe.equals(dataSize, arraySize));
 			if (reasoner.isValid(claim))
 				return new Evaluation(state, dataSequence);
 		} // TODO: what if the length of dataSize is non-concrete and cannot be
 			// decided by reasoner?
-		flattenArray = arrayFlatten(state, pid, array,
-				new ArrayMeasurement((SymbolicArrayType) array.type()), source);
+		flattenArray = arrayFlatten(state, pid, array, new ArrayMeasurement((SymbolicArrayType) array.type()), source);
 		i = startPos;
 
 		Number dataSizeConcrete = reasoner.extractNumber(dataSize);
@@ -1402,18 +1192,14 @@ public abstract class LibraryComponent {
 		if (dataSizeConcrete == null) {
 			// TODO: only if flattenArray has dimension 1:
 			NumericSymbolicConstant idx = (NumericSymbolicConstant) universe
-					.symbolicConstant(universe.stringObject("i"),
-							universe.integerType());
-			BooleanExpression condition = universe.and(
-					universe.lessThanEquals(startPos, idx),
+					.symbolicConstant(universe.stringObject("i"), universe.integerType());
+			BooleanExpression condition = universe.and(universe.lessThanEquals(startPos, idx),
 					universe.lessThan(idx, universe.add(startPos, dataSize)));
 			SymbolicExpression function = universe.cond(condition,
-					universe.arrayRead(dataSequence,
-							universe.subtract(idx, startPos)),
+					universe.arrayRead(dataSequence, universe.subtract(idx, startPos)),
 					universe.arrayRead(flattenArray, idx));
 
-			flattenArray = universe.arrayLambda(
-					(SymbolicCompleteArrayType) flattenArray.type(),
+			flattenArray = universe.arrayLambda((SymbolicCompleteArrayType) flattenArray.type(),
 					universe.lambda(idx, function));
 			return new Evaluation(state, flattenArray);
 			// throw new CIVLInternalException(
@@ -1425,13 +1211,12 @@ public abstract class LibraryComponent {
 			NumericExpression jVal = universe.integer(j);
 
 			elementInDataArray = universe.arrayRead(dataSequence, jVal);
-			flattenArray = universe.arrayWrite(flattenArray, i,
-					elementInDataArray);
+			flattenArray = universe.arrayWrite(flattenArray, i, elementInDataArray);
 			i = universe.add(i, one);
 		}
 		flattenArray = arrayCasting(state, pid, flattenArray,
-				new ArrayMeasurement((SymbolicArrayType) flattenArray.type()),
-				(SymbolicCompleteArrayType) array.type(), source);
+				new ArrayMeasurement((SymbolicArrayType) flattenArray.type()), (SymbolicCompleteArrayType) array.type(),
+				source);
 		return new Evaluation(state, flattenArray);
 	}
 
@@ -1442,33 +1227,26 @@ public abstract class LibraryComponent {
 	 * </p>
 	 * <p>
 	 * Given a complete array a[N0][N1]..[Nn] (n >= 0), flatten a to a
-	 * one-dimensional array a'[N0 * N1 * .. * Nn]. The value of a' will be
-	 * <code>
+	 * one-dimensional array a'[N0 * N1 * .. * Nn]. The value of a' will be <code>
 	 * let f(i, j) := Ni * Ni+1 * .. * Nj (j > i);
 	 * 
 	 * lambda int i : a[i/f(1,n)][i%f(1,n)/f(2,n)][i%f(1,n)%f(2,n)/f(3,n)]...[i%f(1,n)%..%f(n-1,n)]
 	 * </code> <br>
-	 * This method is used to flatten a multiple dimensional array with
-	 * non-concrete size into an one-dimensional array.
+	 * This method is used to flatten a multiple dimensional array with non-concrete
+	 * size into an one-dimensional array.
 	 * </p>
 	 * 
-	 * @param state
-	 *            The current state when this method is called
-	 * @param array
-	 *            The array that will be flattened.
-	 * @param arraySliceSizes
-	 *            An sequence of size of slices of the parameter 'array'
-	 * @param arrayExtents
-	 *            An sequence of extents of the parameter 'array'
-	 * @param civlsource
-	 *            The {@link CIVLSource} corresponding to this method call
+	 * @param state           The current state when this method is called
+	 * @param array           The array that will be flattened.
+	 * @param arraySliceSizes An sequence of size of slices of the parameter 'array'
+	 * @param arrayExtents    An sequence of extents of the parameter 'array'
+	 * @param civlsource      The {@link CIVLSource} corresponding to this method
+	 *                        call
 	 * @return A flattened array
 	 */
-	private SymbolicExpression arrayLambdaFlatten2(State state,
-			SymbolicExpression array, NumericExpression[] arraySliceSizes,
-			NumericExpression[] arrayExtents, CIVLSource civlsource) {
-		SymbolicCompleteArrayType arrayType = (SymbolicCompleteArrayType) array
-				.type();
+	private SymbolicExpression arrayLambdaFlatten2(State state, SymbolicExpression array,
+			NumericExpression[] arraySliceSizes, NumericExpression[] arrayExtents, CIVLSource civlsource) {
+		SymbolicCompleteArrayType arrayType = (SymbolicCompleteArrayType) array.type();
 		int dim = arrayType.dimensions();
 		int newDim;
 		// pre-process: preprocess an array
@@ -1485,78 +1263,56 @@ public abstract class LibraryComponent {
 		if (newDim == 1)
 			return array;
 		if (newDim < dim) {
-			arraySliceSizes = Arrays.copyOfRange(arraySliceSizes, dim - newDim,
-					dim);
+			arraySliceSizes = Arrays.copyOfRange(arraySliceSizes, dim - newDim, dim);
 			dim = newDim;
 		}
 		// end of pre-process
 
 		NumericSymbolicConstant symConst = (NumericSymbolicConstant) universe
-				.symbolicConstant(universe.stringObject("i"),
-						universe.integerType());
+				.symbolicConstant(universe.stringObject("i"), universe.integerType());
 		NumericExpression extent = arrayType.extent();
 		NumericExpression index = symConst;
 		SymbolicExpression arrayReadFunc = array;
 
 		for (int d = 0; d < dim; d++) {
-			arrayReadFunc = universe.arrayRead(arrayReadFunc,
-					universe.divide(index, arraySliceSizes[d]));
+			arrayReadFunc = universe.arrayRead(arrayReadFunc, universe.divide(index, arraySliceSizes[d]));
 			index = universe.modulo(index, arraySliceSizes[d]);
 		}
-		arrayType = universe.arrayType(arrayReadFunc.type(),
-				universe.multiply(arraySliceSizes[0], extent));
-		return universe.arrayLambda(arrayType,
-				universe.lambda(symConst, arrayReadFunc));
+		arrayType = universe.arrayType(arrayReadFunc.type(), universe.multiply(arraySliceSizes[0], extent));
+		return universe.arrayLambda(arrayType, universe.lambda(symConst, arrayReadFunc));
 	}
 
 	/**
 	 * Helper function of report an out of bound error.
 	 * 
-	 * @param state
-	 *            The current state
-	 * @param process
-	 *            The string identifier of the process
-	 * @param claim
-	 *            The {@link BooleanExpression} of the predicate (optional, can
-	 *            be null)
-	 * @param resultType
-	 *            The {@link ResultType} of reasoning the predicate (optional,
-	 *            can be null)
-	 * @param pointer
-	 *            The pointer to the array
-	 * @param arrayLength
-	 *            The length of the array
-	 * @param offset
-	 *            The offset of the element from the position pointed by pointer
+	 * @param state       The current state
+	 * @param process     The string identifier of the process
+	 * @param claim       The {@link BooleanExpression} of the predicate (optional,
+	 *                    can be null)
+	 * @param resultType  The {@link ResultType} of reasoning the predicate
+	 *                    (optional, can be null)
+	 * @param pointer     The pointer to the array
+	 * @param arrayLength The length of the array
+	 * @param offset      The offset of the element from the position pointed by
+	 *                    pointer
 	 * @param source
 	 * @return
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	private void reportOutOfBoundError(State state, int pid,
-			BooleanExpression claim, ResultType resultType,
-			SymbolicExpression pointer, NumericExpression arrayLength,
-			NumericExpression offset, CIVLSource source)
+	private void reportOutOfBoundError(State state, int pid, BooleanExpression claim, ResultType resultType,
+			SymbolicExpression pointer, NumericExpression arrayLength, NumericExpression offset, CIVLSource source)
 			throws UnsatisfiablePathConditionException {
-		String message = "Out of bound error may happen when access on an array element.\n"
-				+ "Pointer:"
-				+ symbolicAnalyzer.symbolicExpressionToString(source, state,
-						null, pointer)
-				+ "\n" + "Offset:"
-				+ symbolicAnalyzer.symbolicExpressionToString(source, state,
-						null, offset)
-				+ "\n" + "Array length:"
-				+ symbolicAnalyzer.symbolicExpressionToString(source, state,
-						null, arrayLength);
+		String message = "Out of bound error may happen when access on an array element.\n" + "Pointer:"
+				+ symbolicAnalyzer.symbolicExpressionToString(source, state, null, pointer) + "\n" + "Offset:"
+				+ symbolicAnalyzer.symbolicExpressionToString(source, state, null, offset) + "\n" + "Array length:"
+				+ symbolicAnalyzer.symbolicExpressionToString(source, state, null, arrayLength);
 
 		if (claim != null && resultType != null)
-			state = errorLogger.logError(source, state, pid,
-					symbolicAnalyzer.stateInformation(state), claim, resultType,
-					CIVLProperty.OUT_OF_BOUNDS, message);
+			state = errorLogger.logError(source, state, pid, symbolicAnalyzer.stateInformation(state), claim,
+					resultType, CIVLProperty.OUT_OF_BOUNDS, message);
 		else
-			errorLogger.logSimpleError(source, state, pid,
-					state.getProcessState(pid).name(),
-					symbolicAnalyzer.stateInformation(state),
-					CIVLProperty.OUT_OF_BOUNDS, message);
+			errorLogger.logSimpleError(source, state, pid, state.getProcessState(pid).name(),
+					symbolicAnalyzer.stateInformation(state), CIVLProperty.OUT_OF_BOUNDS, message);
 		throw new UnsatisfiablePathConditionException();
 	}
 }

@@ -57,7 +57,7 @@ import dev.civl.abc.util.IF.Timer;
  * {@link #newExecutor(FrontEnd, TranslationTask)} to create a new executor that
  * re-uses that front end. Note however, that you can only re-use a front end
  * for a compatible task, that is, one that shares the same configuration
- * parameters on SV-COMP, GNUC, and Architecture.
+ * parameters on GNUC and Architecture.
  * </p>
  * 
  * @author siegel
@@ -67,19 +67,16 @@ public class ABCExecutor {
 	// Static members...
 
 	/**
-	 * Creates an ABCExecutor to execute a translation task, executes it, and
-	 * then returns that executor.
+	 * Creates an ABCExecutor to execute a translation task, executes it, and then
+	 * returns that executor.
 	 * 
-	 * @param task
-	 *                 the translation task
+	 * @param task the translation task
 	 * @return the {@link ABCExecutor} used to execute that task
-	 * @throws ABCException
-	 *                          if any preprocessing, parsing, syntax or
-	 *                          semantic errors are found in the process of
-	 *                          carrying out the translation task
+	 * @throws ABCException if any preprocessing, parsing, syntax or semantic errors
+	 *                      are found in the process of carrying out the translation
+	 *                      task
 	 */
-	public final static ABCExecutor execute(TranslationTask task)
-			throws ABCException {
+	public final static ABCExecutor execute(TranslationTask task) throws ABCException {
 		ABCExecutor executor = new ABCExecutor(task);
 
 		executor.execute();
@@ -87,24 +84,19 @@ public class ABCExecutor {
 	}
 
 	/**
-	 * Creates an ABCExecutor to execute a translation task using the given
-	 * front end; executes the task; and returns that executor
+	 * Creates an ABCExecutor to execute a translation task using the given front
+	 * end; executes the task; and returns that executor
 	 * 
-	 * @param frontEnd
-	 *                     the front end that will be used to carry out the
-	 *                     translation task steps
-	 * @param task
-	 *                     the translation task
+	 * @param frontEnd the front end that will be used to carry out the translation
+	 *                 task steps
+	 * @param task     the translation task
 	 * @return the {@link ABCExecutor} created and used to execute the task
-	 * @throws ABCException
-	 *                          if any preprocessing, parsing, syntax or
-	 *                          semantic errors are found in the process of
-	 *                          carrying out the translation task, or if
-	 *                          <code>frontEnd</code> is incompatible with
-	 *                          <code>task</code>
+	 * @throws ABCException if any preprocessing, parsing, syntax or semantic errors
+	 *                      are found in the process of carrying out the translation
+	 *                      task, or if <code>frontEnd</code> is incompatible with
+	 *                      <code>task</code>
 	 */
-	public final static ABCExecutor execute(FrontEnd frontEnd,
-			TranslationTask task) throws ABCException {
+	public final static ABCExecutor execute(FrontEnd frontEnd, TranslationTask task) throws ABCException {
 		ABCExecutor executor = newExecutor(frontEnd, task);
 
 		executor.execute();
@@ -112,36 +104,25 @@ public class ABCExecutor {
 	}
 
 	/**
-	 * Creates a new {@link ABCExecutor} for performing <code>task</code> and
-	 * that uses the given <code>frontEnd</code>.
+	 * Creates a new {@link ABCExecutor} for performing <code>task</code> and that
+	 * uses the given <code>frontEnd</code>.
 	 * 
-	 * @param frontEnd
-	 *                     an existing front end that will be (re-)used by the
-	 *                     new executor to perform all translation tasks
-	 * @param task
-	 *                     the translation task to be executed
+	 * @param frontEnd an existing front end that will be (re-)used by the new
+	 *                 executor to perform all translation tasks
+	 * @param task     the translation task to be executed
 	 * @return the new executor
-	 * @throws ABCException
-	 *                          if <code>task</code> is incompatible with
-	 *                          <code>frontEnd</code> due to differing values on
-	 *                          SVCOMP or Architecture fields.
+	 * @throws ABCException if <code>task</code> is incompatible with
+	 *                      <code>frontEnd</code> due to differing values on
+	 *                      Architecture fields.
 	 */
-	public final static ABCExecutor newExecutor(FrontEnd frontEnd,
-			TranslationTask task) throws ABCException {
+	public final static ABCExecutor newExecutor(FrontEnd frontEnd, TranslationTask task) throws ABCException {
 		Configuration config = frontEnd.getConfiguration();
 
-		if (config.getSVCOMP() != task.getSVCOMP())
-			throw new ABCException(
-					"Front end cannot be used to perform task due "
-							+ "to incompatible SVCOMP values");
 		if (config.getArchitecture() != task.getArchitecture())
 			throw new ABCException(
-					"Front end cannot be used to perform task due "
-							+ "to incompatible Architecture values");
+					"Front end cannot be used to perform task due " + "to incompatible Architecture values");
 		if (config.getGNUC() != task.getGNUC())
-			throw new ABCException(
-					"Front end cannot be used to perform task due "
-							+ "to incompatible GNUC values");
+			throw new ABCException("Front end cannot be used to perform task due " + "to incompatible GNUC values");
 		return new ABCExecutor(frontEnd, task);
 	}
 
@@ -151,14 +132,12 @@ public class ABCExecutor {
 	private final static String bar = "===================";
 
 	/**
-	 * Computes a name for a source unit. The name is the concatenation of the
-	 * names of the files comprising the unit, separated with "+". A "source
-	 * unit" is a sequence of files which will be preprocessed as a single
-	 * translation unit.
+	 * Computes a name for a source unit. The name is the concatenation of the names
+	 * of the files comprising the unit, separated with "+". A "source unit" is a
+	 * sequence of files which will be preprocessed as a single translation unit.
 	 * 
-	 * @param sourceUnit
-	 *                       sequence of files which will be preprocessed to
-	 *                       create a single translation unit
+	 * @param sourceUnit sequence of files which will be preprocessed to create a
+	 *                   single translation unit
 	 * @return a name for the sequence of files derived from their file names
 	 */
 	private final static String getName(File[] sourceUnit) {
@@ -176,11 +155,9 @@ public class ABCExecutor {
 	/**
 	 * Prints file scope functions that are used but not defined.
 	 * 
-	 * @param program
-	 *                    a non-<code>null</code> {@link Program}
+	 * @param program a non-<code>null</code> {@link Program}
 	 */
-	private final static void printUnknownFunctions(PrintStream out,
-			Program program) {
+	private final static void printUnknownFunctions(PrintStream out, Program program) {
 		SequenceNode<BlockItemNode> root = program.getAST().getRootNode();
 		int i = 0;
 		Set<String> functionNames = new HashSet<>();
@@ -194,8 +171,7 @@ public class ABCExecutor {
 
 					if (!functionNames.contains(functionName)) {
 						if (i == 0)
-							out.println(
-									"==== functions without definition ====");
+							out.println("==== functions without definition ====");
 						else
 							out.print(",");
 						out.print(functionName);
@@ -225,8 +201,8 @@ public class ABCExecutor {
 
 	/**
 	 * The {@link FrontEnd} that will be used to actually carry out the tasks
-	 * specified by {@link #task}. This is either provided to a constructor, or
-	 * it is created by the constructor.
+	 * specified by {@link #task}. This is either provided to a constructor, or it
+	 * is created by the constructor.
 	 */
 	private FrontEnd frontEnd;
 
@@ -236,29 +212,27 @@ public class ABCExecutor {
 	private PrintStream out;
 
 	/**
-	 * Print a lot of information? Copy of what's in {@link #task} for
-	 * convenience.
+	 * Print a lot of information? Copy of what's in {@link #task} for convenience.
 	 */
 	private boolean verbose;
 
 	/**
-	 * Report timing information? Copy of what's in {@link #task} for
-	 * convenience.
+	 * Report timing information? Copy of what's in {@link #task} for convenience.
 	 */
 	private boolean showTime;
 
 	/**
-	 * The {@link Timer} that will be used to take timings. If {@link #showTime}
-	 * is <code>false</code>, this will be a (non-<code>null</code>) trivial
+	 * The {@link Timer} that will be used to take timings. If {@link #showTime} is
+	 * <code>false</code>, this will be a (non-<code>null</code>) trivial
 	 * {@link Timer} that does nothing.
 	 */
 	private Timer timer;
 
 	/**
-	 * The total number of known unit tasks, including those that have not yet
-	 * been executed. Initially, this is the number of unit tasks specified at
-	 * construction, but this number can grow as new unit tasks are created
-	 * through executing unit tasks.
+	 * The total number of known unit tasks, including those that have not yet been
+	 * executed. Initially, this is the number of unit tasks specified at
+	 * construction, but this number can grow as new unit tasks are created through
+	 * executing unit tasks.
 	 */
 	private int numUnits;
 
@@ -269,37 +243,36 @@ public class ABCExecutor {
 	private int numUnitTasksDone = 0;
 
 	/**
-	 * The unit tasks. These are the unit tasks that are executed. Each unit
-	 * tasks corresponds to the processing of a single translation unit.
-	 * Initially, these tasks are specified at construction, but this list can
-	 * grow as new unit tasks are created during execution.
+	 * The unit tasks. These are the unit tasks that are executed. Each unit tasks
+	 * corresponds to the processing of a single translation unit. Initially, these
+	 * tasks are specified at construction, but this list can grow as new unit tasks
+	 * are created during execution.
 	 */
 	private ArrayList<UnitTask> unitTasks;
 
 	/**
 	 * The results of preprocessing the input source units specified in the
-	 * {@link #task}. The length of this array is the number of {@link UnitTask}
-	 * s specified in the {@link #task}. Initially every entry is
-	 * <code>null</code>; they are filled in as the unit tasks are executed
-	 * through the preprocessing stage. Note that these sources have state: once
-	 * they have been consumed their next token methods will just return EOF
-	 * forever.
+	 * {@link #task}. The length of this array is the number of {@link UnitTask} s
+	 * specified in the {@link #task}. Initially every entry is <code>null</code>;
+	 * they are filled in as the unit tasks are executed through the preprocessing
+	 * stage. Note that these sources have state: once they have been consumed their
+	 * next token methods will just return EOF forever.
 	 */
 	private ArrayList<CivlcTokenSource> tokenSources = null;
 
 	/**
 	 * The results of parsing the preprocessor output for each source unit. The
 	 * length of this array is the number of {@link UnitTask}s specified in the
-	 * {@link #task}. Initially every entry is <code>null</code>; they are
-	 * filled in as the unit tasks are executed through the parsing stage.
+	 * {@link #task}. Initially every entry is <code>null</code>; they are filled in
+	 * as the unit tasks are executed through the parsing stage.
 	 */
 	private ArrayList<ParseTree> parseTrees = null;
 
 	/**
-	 * The ASTs for the translation units. The length of this array is the
-	 * number of {@link UnitTask}s specified in the {@link #task}. Initially
-	 * every entry is <code>null</code>; they are filled in as the unit tasks
-	 * are executed through the AST-building stage.
+	 * The ASTs for the translation units. The length of this array is the number of
+	 * {@link UnitTask}s specified in the {@link #task}. Initially every entry is
+	 * <code>null</code>; they are filled in as the unit tasks are executed through
+	 * the AST-building stage.
 	 */
 	private ArrayList<AST> asts = null;
 
@@ -313,11 +286,10 @@ public class ABCExecutor {
 
 	/**
 	 * <p>
-	 * Constructs new executor for executing specified task, using given front
-	 * end. The front end and the task must be consistent: the values returned
-	 * by methods {@link TranslationTask#getSVCOMP()} and
-	 * {@link TranslationTask#getArchitecture()} on <code>task</code> must be
-	 * the same as the corresponding methods in the {@link Configuration} of
+	 * Constructs new executor for executing specified task, using given front end.
+	 * The front end and the task must be consistent: the value returned by method
+	 * {@link TranslationTask#getArchitecture()} on <code>task</code> must be the
+	 * same as the corresponding method in the {@link Configuration} of
 	 * <code>frontEnd</code>.
 	 * </p>
 	 * 
@@ -327,11 +299,8 @@ public class ABCExecutor {
 	 * {@link ABCExecutor#newExecutor(FrontEnd, TranslationTask)}.
 	 * </p>
 	 * 
-	 * @param frontEnd
-	 *                     the front end that will be used by the new executor
-	 * @param task
-	 *                     the task that the new executor will be asked to
-	 *                     perform
+	 * @param frontEnd the front end that will be used by the new executor
+	 * @param task     the task that the new executor will be asked to perform
 	 */
 	private ABCExecutor(FrontEnd frontEnd, TranslationTask task) {
 		this.frontEnd = frontEnd;
@@ -341,18 +310,15 @@ public class ABCExecutor {
 	}
 
 	/**
-	 * Constructs new executor for performing the specified translation task.
-	 * The constructor does not perform the tasks, but it creates a new
-	 * {@link FrontEnd} and initializes data structures. The task itself will be
-	 * executed by invoking method {@link #execute()}. A new empty
-	 * {@link FileIndexer} is created.
+	 * Constructs new executor for performing the specified translation task. The
+	 * constructor does not perform the tasks, but it creates a new {@link FrontEnd}
+	 * and initializes data structures. The task itself will be executed by invoking
+	 * method {@link #execute()}. A new empty {@link FileIndexer} is created.
 	 * 
-	 * @param task
-	 *                 a translation task to execute
+	 * @param task a translation task to execute
 	 */
 	public ABCExecutor(TranslationTask task) {
 		this.configuration = Configurations.newMinimalConfiguration();
-		this.configuration.setSVCOMP(task.getSVCOMP());
 		this.configuration.setArchitecture(task.getArchitecture());
 		this.configuration.setGNUC(task.getGNUC());
 		this.frontEnd = new FrontEnd(configuration);
@@ -363,19 +329,15 @@ public class ABCExecutor {
 	/**
 	 * Constructs new executor for performing the specified translation task and
 	 * using the given {@link FileIndexer}. The constructor does not perform the
-	 * tasks, but it creates a new {@link FrontEnd} and initializes data
-	 * structures. The task itself will be executed by invoking method
-	 * {@link #execute()}.
+	 * tasks, but it creates a new {@link FrontEnd} and initializes data structures.
+	 * The task itself will be executed by invoking method {@link #execute()}.
 	 * 
-	 * @param task
-	 *                        a translation task to execute
-	 * @param fileIndexer
-	 *                        an existing non-{@code null} {@link FileIndexer}
-	 *                        to use for keeping track of all openened files
+	 * @param task        a translation task to execute
+	 * @param fileIndexer an existing non-{@code null} {@link FileIndexer} to use
+	 *                    for keeping track of all openened files
 	 */
 	public ABCExecutor(TranslationTask task, FileIndexer fileIndexer) {
 		this.configuration = Configurations.newMinimalConfiguration();
-		this.configuration.setSVCOMP(task.getSVCOMP());
 		this.configuration.setArchitecture(task.getArchitecture());
 		this.configuration.setGNUC(task.getGNUC());
 		this.frontEnd = new FrontEnd(configuration, fileIndexer);
@@ -388,10 +350,8 @@ public class ABCExecutor {
 	/**
 	 * Adds <code>n</code> <code>null</code> values to <code>vec</code>.
 	 * 
-	 * @param n
-	 *                nonnegative integer
-	 * @param vec
-	 *                any array list
+	 * @param n   nonnegative integer
+	 * @param vec any array list
 	 */
 	private static <T> void addNulls(int n, ArrayList<T> vec) {
 		for (int i = 0; i < n; i++)
@@ -402,8 +362,7 @@ public class ABCExecutor {
 	 * Adds <code>n</code> <code>null</code> values to each of the lists
 	 * {@link #tokenSources}, {@link #parseTrees}, and {@link #asts}.
 	 * 
-	 * @param n
-	 *              a nonnegative integer
+	 * @param n a nonnegative integer
 	 */
 	private void addNulls(int n) {
 		addNulls(n, tokenSources);
@@ -414,15 +373,12 @@ public class ABCExecutor {
 	/**
 	 * Initializes internal data structures. To be used by constructors.
 	 * 
-	 * @param task
-	 *                 the translation task that was used as the argument to one
-	 *                 of the constructors
+	 * @param task the translation task that was used as the argument to one of the
+	 *             constructors
 	 */
 	private void initialize(TranslationTask task) {
 		this.task = task;
-		this.timer = task.getShowTables()
-				? new Timer(task.getOut())
-				: new Timer();
+		this.timer = task.getShowTables() ? new Timer(task.getOut()) : new Timer();
 		this.out = task.getOut();
 		this.verbose = task.getVerbose();
 		this.showTime = task.getShowTime();
@@ -437,8 +393,8 @@ public class ABCExecutor {
 	}
 
 	/**
-	 * Prints the program, symbol table, and type information to the given
-	 * output stream in a plain-text, human-readable format.
+	 * Prints the program, symbol table, and type information to the given output
+	 * stream in a plain-text, human-readable format.
 	 */
 	private void printProgram() {
 		if (task.getPrettyPrint())
@@ -462,11 +418,10 @@ public class ABCExecutor {
 	 * either that the ASTs are identical or describing some difference between
 	 * them.
 	 * 
-	 * This method should be invoked after the two unit tasks have been executed
-	 * and the two ASTs are available.
+	 * This method should be invoked after the two unit tasks have been executed and
+	 * the two ASTs are available.
 	 * 
-	 * @throws ABCException
-	 *                          if {@link #numUnits} is not exactly 2
+	 * @throws ABCException if {@link #numUnits} is not exactly 2
 	 */
 	private void executeComparison() throws ABCException {
 		assert task.getShowDiff();
@@ -475,14 +430,12 @@ public class ABCExecutor {
 		int numUnits = unitTasks.length;
 
 		if (numUnits != 2)
-			throw new ABCException(
-					"-showDiff requires exactly two source units.");
+			throw new ABCException("-showDiff requires exactly two source units.");
 
 		DifferenceObject diffObj = asts.get(0).diff(asts.get(1));
 
 		if (diffObj == null && !task.isSilent())
-			out.println("The AST of " + getName(unitTasks[0].getSourceFiles())
-					+ " is equivalent to that of "
+			out.println("The AST of " + getName(unitTasks[0].getSourceFiles()) + " is equivalent to that of "
 					+ getName(unitTasks[1].getSourceFiles()) + ".");
 		else
 			diffObj.print(out);
@@ -492,13 +445,11 @@ public class ABCExecutor {
 	/**
 	 * Executes a single unit task.
 	 * 
-	 * @param index
-	 *                  the index of the unit task in the array of unit tasks
-	 *                  associated to this task
-	 * @throws ABCException
-	 *                          if any I/O, syntax, or semantic problem arises
-	 *                          in processing the translation unit as specified
-	 *                          in the unit task
+	 * @param index the index of the unit task in the array of unit tasks associated
+	 *              to this task
+	 * @throws ABCException if any I/O, syntax, or semantic problem arises in
+	 *                      processing the translation unit as specified in the unit
+	 *                      task
 	 */
 	private void executeUnit(int index) throws ABCException {
 		TranslationStage stage = task.getStage();
@@ -526,8 +477,7 @@ public class ABCExecutor {
 		}
 		timer.markTime("print source for " + name);
 
-		CivlcTokenSource tokens = preprocessor.preprocess(
-				unitTask.getSystemIncludes(), unitTask.getUserIncludes(),
+		CivlcTokenSource tokens = preprocessor.preprocess(unitTask.getSystemIncludes(), unitTask.getUserIncludes(),
 				unitTask.getMacros(), sourceFiles);
 
 		tokenSources.set(index, tokens);
@@ -539,8 +489,7 @@ public class ABCExecutor {
 			int type;
 
 			if (verbose)
-				out.println(
-						bar + " Preprocessor output for " + name + " " + bar);
+				out.println(bar + " Preprocessor output for " + name + " " + bar);
 			if (showTime) {
 				do {
 					token = (CommonToken) tokens.nextToken();
@@ -612,8 +561,7 @@ public class ABCExecutor {
 		// analysis because the linker will do it anyway...
 		if (stage.compareTo(TranslationStage.TRANSFORM_ASTS) >= 0) {
 			for (TransformRecord record : unitTask.getTransformRecords()) {
-				Transformer transformer = record
-						.create(frontEnd.getASTFactory());
+				Transformer transformer = record.create(frontEnd.getASTFactory());
 
 				if (change) {
 					analyzer.clear(ast);
@@ -640,10 +588,8 @@ public class ABCExecutor {
 	/**
 	 * Executes the complete translation task.
 	 * 
-	 * @throws ABCException
-	 *                          if there are any problems with preprocessing or
-	 *                          parsing, or syntax or semantics violations in
-	 *                          the source code
+	 * @throws ABCException if there are any problems with preprocessing or parsing,
+	 *                      or syntax or semantics violations in the source code
 	 */
 	public void execute() throws ABCException {
 		while (numUnitTasksDone < numUnits) {
@@ -671,8 +617,7 @@ public class ABCExecutor {
 		if (task.getStage().compareTo(TranslationStage.LINK) < 0)
 			return;
 
-		program = frontEnd.link(asts.toArray(new AST[numUnits]),
-				task.getLinkLanguage());
+		program = frontEnd.link(asts.toArray(new AST[numUnits]), task.getLinkLanguage());
 		timer.markTime("link " + numUnits + " translation units");
 		if (verbose) {
 			out.println(bar + " Program " + bar);
@@ -682,19 +627,16 @@ public class ABCExecutor {
 			// nothing more to do
 		} else { // apply post-linking transformations...
 			for (TransformRecord record : task.getTransformRecords()) {
-				Transformer transformer = record
-						.create(frontEnd.getASTFactory());
+				Transformer transformer = record.create(frontEnd.getASTFactory());
 
 				if (verbose) {
 					printProgram();
 					out.println();
-					out.println(
-							bar + " Program after " + transformer + " " + bar);
+					out.println(bar + " Program after " + transformer + " " + bar);
 					out.flush();
 				}
 				program.apply(transformer);
-				timer.markTime("apply transformer "
-						+ transformer.getShortDescription());
+				timer.markTime("apply transformer " + transformer.getShortDescription());
 			}
 			if (!showTime && !task.isSilent())
 				printProgram();
@@ -725,8 +667,7 @@ public class ABCExecutor {
 	 * executed. May be empty because the stream was fully consumed if the task
 	 * extends beyond preprocessing only.
 	 * 
-	 * @param index
-	 *                  the index of the unit task
+	 * @param index the index of the unit task
 	 * @return the preprocessing output token source for that translation unit
 	 */
 	public CivlcTokenSource getTokenSource(int index) {
@@ -737,8 +678,7 @@ public class ABCExecutor {
 	 * Returns the parse tree for translation unit <code>index</code>. May be
 	 * <code>null</code> if the task did not involve creating the parse tree.
 	 * 
-	 * @param index
-	 *                  the index of the unit task
+	 * @param index the index of the unit task
 	 * @return the parse tree for the <code>index</code>-th translation unit
 	 */
 	public ParseTree getParseTree(int index) {
@@ -749,8 +689,7 @@ public class ABCExecutor {
 	 * Returns the AST for translation unit <code>index</code>. May be
 	 * <code>null</code> if the task did not involve AST construction.
 	 * 
-	 * @param index
-	 *                  the index of the unit task
+	 * @param index the index of the unit task
 	 * @return the AST for the <code>index</code>-th translation unit
 	 */
 	public AST getAST(int index) {
@@ -768,8 +707,8 @@ public class ABCExecutor {
 	}
 
 	/**
-	 * Gets the current number of unit tasks. This number may increase as
-	 * executor proceeds due to {@link DynamicTask}s.
+	 * Gets the current number of unit tasks. This number may increase as executor
+	 * proceeds due to {@link DynamicTask}s.
 	 * 
 	 * @return current number of unit tasks
 	 */
@@ -790,8 +729,7 @@ public class ABCExecutor {
 	 * Gets the unit task of given index. Indexes run from 0 to
 	 * {@link #getNumUnitTasks()} - 1.
 	 * 
-	 * @param index
-	 *                  index of unit task
+	 * @param index index of unit task
 	 * @return that unit task
 	 */
 	public UnitTask getUnitTask(int index) {

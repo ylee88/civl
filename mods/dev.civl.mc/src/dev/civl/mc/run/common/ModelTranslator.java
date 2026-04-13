@@ -20,9 +20,6 @@ import java.util.Map;
 import dev.civl.abc.ast.node.IF.ASTNode;
 import dev.civl.abc.ast.node.IF.ASTNode.NodeKind;
 import dev.civl.abc.ast.node.IF.declaration.VariableDeclarationNode;
-import dev.civl.abc.config.IF.Configuration;
-import dev.civl.abc.config.IF.Configuration.Architecture;
-import dev.civl.abc.config.IF.Configurations;
 import dev.civl.abc.config.IF.Configurations.Language;
 import dev.civl.abc.err.IF.ABCException;
 import dev.civl.abc.front.IF.PreprocessorException;
@@ -37,6 +34,9 @@ import dev.civl.abc.transform.common.ExternLinkageVariableRenamer;
 import dev.civl.abc.transform.common.GenericSelectionRemover;
 import dev.civl.abc.transform.common.Pruner;
 import dev.civl.abc.transform.common.SideEffectRemover;
+import dev.civl.gmc.CommandLineException;
+import dev.civl.gmc.GMCConfiguration;
+import dev.civl.gmc.GMCSection;
 import dev.civl.mc.config.IF.CIVLConfiguration;
 import dev.civl.mc.config.IF.CIVLConstants;
 import dev.civl.mc.model.IF.Model;
@@ -46,9 +46,6 @@ import dev.civl.mc.transform.IF.ContractTransformer;
 import dev.civl.mc.transform.IF.LoopContractTransformer;
 import dev.civl.mc.transform.IF.TransformerFactory;
 import dev.civl.mc.transform.IF.Transforms;
-import dev.civl.gmc.CommandLineException;
-import dev.civl.gmc.GMCConfiguration;
-import dev.civl.gmc.GMCSection;
 import dev.civl.sarl.SARL;
 import dev.civl.sarl.IF.SymbolicUniverse;
 
@@ -84,7 +81,6 @@ import dev.civl.sarl.IF.SymbolicUniverse;
  * <p>
  * Orders of applying transformers:
  * <ol>
- * <li>Svcomp Transformer</li>
  * <li>General Transformer</li>
  * <li>IO Transformer</li>
  * <li>OpenMP Transformer, CUDA Transformer, Pthreads Transformer</li>
@@ -92,8 +88,6 @@ import dev.civl.sarl.IF.SymbolicUniverse;
  * <li>Side-effect remover</li>
  * <li>Pruner</li>
  * </ol>
- * Note that for svcomp "*.i" programs, right before linking, the Pruner and the
- * Svcomp Unpreprocessing Transformer are applied to the "*.i" AST.
  * </p>
  * 
  * @author Manchun Zheng
@@ -103,12 +97,10 @@ public class ModelTranslator {
 	// private final static fields (constants)...
 
 	/**
-	 * The default macro for CIVL-C programs. Could be disable by the setting
-	 * the option _CIVL to false: <code>-_CIVL=false</code>.
+	 * The default macro for CIVL-C programs. Could be disable by the setting the
+	 * option _CIVL to false: <code>-_CIVL=false</code>.
 	 */
 	private static final String CIVL_MACRO = "_CIVL";
-
-	private static final String SVCOMP_MACRO = "_SVCOMP";
 
 	/**
 	 * A macro for MPI contract features. Once the option "-mpi=contract" or
@@ -142,8 +134,8 @@ public class ModelTranslator {
 	public GMCSection cmdSection;
 
 	/**
-	 * The CIVL configuration for this model translator, which is dependent on
-	 * the command line section.
+	 * The CIVL configuration for this model translator, which is dependent on the
+	 * command line section.
 	 */
 	public CIVLConfiguration config;
 
@@ -187,9 +179,6 @@ public class ModelTranslator {
 	 */
 	private TransformerFactory transformerFactory;
 
-	private Configuration abcConfiguration = Configurations
-			.newMinimalConfiguration();
-
 	private FileIndexer fileIndexer;
 
 	// Constructors...
@@ -197,60 +186,44 @@ public class ModelTranslator {
 	/**
 	 * Creates a new instance of model translator.
 	 * 
-	 * @param gmcConfig
-	 *                       The GMC configuration which corresponds to the
-	 *                       command line.
-	 * @param gmcSection
-	 *                       The GMC section which corresponds to the command
-	 *                       line section this model translator associates with.
-	 * @param filenames
-	 *                       The list of file names for parsing, which are
-	 *                       specified in the command line.
-	 * @param coreName
-	 *                       The core name of the user file. It is assumed that
-	 *                       the first file in the file list from the command
-	 *                       line is the core user file, which usually is the
-	 *                       one that contains the main function.
-	 * @throws PreprocessorException
-	 *                                   if there is a problem processing any
-	 *                                   macros defined in the command line
+	 * @param gmcConfig  The GMC configuration which corresponds to the command
+	 *                   line.
+	 * @param gmcSection The GMC section which corresponds to the command line
+	 *                   section this model translator associates with.
+	 * @param filenames  The list of file names for parsing, which are specified in
+	 *                   the command line.
+	 * @param coreName   The core name of the user file. It is assumed that the
+	 *                   first file in the file list from the command line is the
+	 *                   core user file, which usually is the one that contains the
+	 *                   main function.
+	 * @throws PreprocessorException if there is a problem processing any macros
+	 *                               defined in the command line
 	 */
-	public ModelTranslator(GMCConfiguration gmcConfig, GMCSection gmcSection,
-			String[] filenames, String coreName) throws PreprocessorException {
-		this(gmcConfig, gmcSection, filenames, coreName,
-				SARL.newStandardUniverse(), null);
+	public ModelTranslator(GMCConfiguration gmcConfig, GMCSection gmcSection, String[] filenames, String coreName)
+			throws PreprocessorException {
+		this(gmcConfig, gmcSection, filenames, coreName, SARL.newStandardUniverse(), null);
 	}
 
 	/**
 	 * Creates a new instance of model translator.
 	 * 
-	 * @param gmcConfig
-	 *                        The GMC configuration which corresponds to the
-	 *                        command line.
-	 * @param gmcSection
-	 *                        The GMC section which corresponds to the command
-	 *                        line section this model translator associates
-	 *                        with.
-	 * @param filenames
-	 *                        The list of file names for parsing, which are
-	 *                        specified in the command line.
-	 * @param coreName
-	 *                        The core name of the user file. It is assumed that
-	 *                        the first file in the file list from the command
-	 *                        line is the core user file, which usually is the
-	 *                        one that contains the main function.
-	 * @param universe
-	 *                        The symbolic universe, the unique one used by this
-	 *                        run.
-	 * @param fileIndexer
-	 *                        the file indexer to use, can be null
-	 * @throws PreprocessorException
-	 *                                   if there is a problem processing any
-	 *                                   macros defined in the command line
+	 * @param gmcConfig   The GMC configuration which corresponds to the command
+	 *                    line.
+	 * @param gmcSection  The GMC section which corresponds to the command line
+	 *                    section this model translator associates with.
+	 * @param filenames   The list of file names for parsing, which are specified in
+	 *                    the command line.
+	 * @param coreName    The core name of the user file. It is assumed that the
+	 *                    first file in the file list from the command line is the
+	 *                    core user file, which usually is the one that contains the
+	 *                    main function.
+	 * @param universe    The symbolic universe, the unique one used by this run.
+	 * @param fileIndexer the file indexer to use, can be null
+	 * @throws PreprocessorException if there is a problem processing any macros
+	 *                               defined in the command line
 	 */
-	public ModelTranslator(GMCConfiguration gmcConfig, GMCSection cmdSection,
-			String[] filenames, String coreName, SymbolicUniverse universe,
-			FileIndexer fileIndexer) throws PreprocessorException {
+	public ModelTranslator(GMCConfiguration gmcConfig, GMCSection cmdSection, String[] filenames, String coreName,
+			SymbolicUniverse universe, FileIndexer fileIndexer) throws PreprocessorException {
 		this.cmdSection = cmdSection;
 		this.gmcConfig = gmcConfig;
 		this.universe = universe;
@@ -264,10 +237,6 @@ public class ModelTranslator {
 		for (int i = 0; i < filenames.length; i++) {
 			this.files.add(new File(filenames[i]));
 		}
-		if (config.svcomp()) {
-			abcConfiguration.setSVCOMP(config.svcomp());
-			abcConfiguration.setArchitecture(Architecture._32_BIT);
-		}
 		systemIncludes = this.getSysIncludes(cmdSection);
 		userIncludes = this.getUserIncludes(cmdSection);
 	}
@@ -278,16 +247,14 @@ public class ModelTranslator {
 		Map<String, String> macros = this.getMacros();
 
 		if (config.loopInvariantEnabled())
-			files.addAll(0,
-					Arrays.asList(LoopContractTransformer.additionalLibraries));
+			files.addAll(0, Arrays.asList(LoopContractTransformer.additionalLibraries));
 		else if (config.isEnableMpiContract())
 			// contract transformer requires a subset of the libs that loop
 			// transformer requires:
-			files.addAll(0,
-					Arrays.asList(ContractTransformer.additionalLibraries));
+			files.addAll(0, Arrays.asList(ContractTransformer.additionalLibraries));
 		unitTasks = new UnitTask[files.size()];
 		for (int i = 0; i < unitTasks.length; i++) {
-			unitTasks[i] = new UnitTask(new File[]{files.get(i)});
+			unitTasks[i] = new UnitTask(new File[] { files.get(i) });
 			unitTasks[i].setMacros(macros);
 			unitTasks[i].setSystemIncludes(systemIncludes);
 			unitTasks[i].setUserIncludes(userIncludes);
@@ -296,10 +263,6 @@ public class ModelTranslator {
 		task.setPrettyPrint(true);
 		task.setLinkLanguage(Language.CIVL_C);
 		task.setStage(TranslationStage.TRANSFORM_PROGRAM);
-		if (config.svcomp()) {
-			task.setSVCOMP(true);
-			task.setArchitecture(Architecture._32_BIT);
-		}
 		task.setVerbose(config.debugOrVerbose());
 
 		ABCExecutor executor;
@@ -313,63 +276,39 @@ public class ModelTranslator {
 			frontEnd = executor.getFrontEnd();
 		}
 		task.setDynamicTask(new ParseSystemLibrary(executor, macros));
-		this.transformerFactory = Transforms
-				.newTransformerFactory(frontEnd.getASTFactory());
+		this.transformerFactory = Transforms.newTransformerFactory(frontEnd.getASTFactory());
 		addTransformations(task, macros);
 		executor.execute();
 		return executor.getProgram();
 	}
 
-	private void addTransformations(TranslationTask task,
-			Map<String, String> macros) throws ABCException {
+	private void addTransformations(TranslationTask task, Map<String, String> macros) throws ABCException {
 		task.addTransformCode(GenericSelectionRemover.CODE);
-		if (config.svcomp())
-			task.addTransformRecord(
-					transformerFactory.getSvcompTransformerRecord(config));
 		if (config.loopInvariantEnabled()) {
-			task.addTransformRecord(
-					transformerFactory.getAnnotationTransformerRecord());
-			task.addTransformRecord(
-					transformerFactory.getLoopContractTransformerRecord(config));
+			task.addTransformRecord(transformerFactory.getAnnotationTransformerRecord());
+			task.addTransformRecord(transformerFactory.getLoopContractTransformerRecord(config));
 		}
 		if (config.isEnableMpiContract())
 			task.addTransformRecord(
-					transformerFactory.getContractTransformerRecord(
-							config.mpiContractFunction(), config));
-		task.addTransformRecord(
-				transformerFactory.getGeneralTransformerRecord());
-		task.addTransformRecord(
-				transformerFactory.getIOTransformerRecord(config));
+					transformerFactory.getContractTransformerRecord(config.mpiContractFunction(), config));
+		task.addTransformRecord(transformerFactory.getGeneralTransformerRecord());
+		task.addTransformRecord(transformerFactory.getIOTransformerRecord(config));
 		// Add renamer for external-linkage variables that have declarations in
 		// block scope:
 		task.addTransformCode(ExternLinkageVariableRenamer.CODE);
-		if (!config.svcomp()) {
-			task.addTransformRecord(
-					transformerFactory.getOpenMPSimplifierRecord(config));
-			task.addTransformRecord(
-					transformerFactory.getOpenMP2CIVLTransformerRecord(config));
-			task.addTransformRecord(
-					transformerFactory.getMacroTransformerRecord(config));
-		}
-		task.addTransformRecord(
-				transformerFactory.getPthread2CIVLTransformerRecord());
-		if (!config.svcomp()) {
-			task.addTransformRecord(
-					transformerFactory.getMPI2CIVLTransformerRecord());
-			task.addTransformCode(SideEffectRemover.CODE);
-			task.addTransformRecord(
-					transformerFactory.getCuda2CIVLTransformerRecord());
-		}
+		task.addTransformRecord(transformerFactory.getOpenMPSimplifierRecord(config));
+		task.addTransformRecord(transformerFactory.getOpenMP2CIVLTransformerRecord(config));
+		task.addTransformRecord(transformerFactory.getPthread2CIVLTransformerRecord());
+		task.addTransformRecord(transformerFactory.getMPI2CIVLTransformerRecord());
+		task.addTransformCode(SideEffectRemover.CODE);
+		task.addTransformRecord(transformerFactory.getCuda2CIVLTransformerRecord());
 		if (config.directSymEx() != null)
-			task.addTransformRecord(
-					transformerFactory.getDirectingTransformerRecord(config));
+			task.addTransformRecord(transformerFactory.getDirectingTransformerRecord(config));
 		if (config.isIntOperationTransiformer())
-			task.addTransformRecord(transformerFactory
-					.getIntOperationTransformerRecord(macros, config));
+			task.addTransformRecord(transformerFactory.getIntOperationTransformerRecord(macros, config));
 		task.addTransformCode(SideEffectRemover.CODE);
 		// Add short circhuit transformer:
-		task.addTransformRecord(
-				transformerFactory.getShortCircuitTransformerRecord(config));
+		task.addTransformRecord(transformerFactory.getShortCircuitTransformerRecord(config));
 		task.addTransformCode(Pruner.CODE);
 	}
 
@@ -377,9 +316,8 @@ public class ModelTranslator {
 	 * Translates command line marcos into ABC macro objects.
 	 * 
 	 * @return a map of macro keys and objects.
-	 * @throws PreprocessorExceptions
-	 *                                    if there is a problem preprocessing
-	 *                                    the macros.
+	 * @throws PreprocessorExceptions if there is a problem preprocessing the
+	 *                                macros.
 	 */
 	private Map<String, String> getMacros() throws PreprocessorException {
 		Map<String, Object> macroDefMap = cmdSection.getMapValue(macroO);
@@ -387,22 +325,20 @@ public class ModelTranslator {
 
 		if (this.cmdSection.isTrue(CIVLConstants.CIVLMacroO))
 			macroDefs.put(CIVL_MACRO, "");
-		if (this.config.svcomp())
-			macroDefs.put(SVCOMP_MACRO, "");
 		if (this.config.isEnableMpiContract())
 			macroDefs.put(MPI_CONTRACT_MACRO, "");
 		switch (this.config.mpiModel()) {
-			case BLOCKING :
-				macroDefs.put(MPI_BLOCKING_MACRO, "");
-				break;
-			case CONTRACT :
-				macroDefs.put(MPI_CONTRACT_MACRO, "");
-				break;
-			case NON_BLOCKING :
-				macroDefs.put(MPI_NON_BLOCKING_MACRO, "");
-				break;
-			default :
-				macroDefs.put(MPI_BLOCKING_MACRO, "");
+		case BLOCKING:
+			macroDefs.put(MPI_BLOCKING_MACRO, "");
+			break;
+		case CONTRACT:
+			macroDefs.put(MPI_CONTRACT_MACRO, "");
+			break;
+		case NON_BLOCKING:
+			macroDefs.put(MPI_NON_BLOCKING_MACRO, "");
+			break;
+		default:
+			macroDefs.put(MPI_BLOCKING_MACRO, "");
 		}
 		if (macroDefMap != null) {
 			for (String name : macroDefMap.keySet()) {
@@ -413,21 +349,16 @@ public class ModelTranslator {
 	}
 
 	/**
-	 * Parse, link, apply transformers and build CIVL-C model for a certain
-	 * CIVL-C compiling task.
+	 * Parse, link, apply transformers and build CIVL-C model for a certain CIVL-C
+	 * compiling task.
 	 * 
-	 * @return the CIVL-C model of this compiling task specified by the command
-	 *         line
-	 * @throws CommandLineException
-	 *                                  if there is a problem interpreting the
-	 *                                  command line section
-	 * @throws IOException
-	 *                                  if there is a problem reading source
-	 *                                  files.
+	 * @return the CIVL-C model of this compiling task specified by the command line
+	 * @throws CommandLineException if there is a problem interpreting the command
+	 *                              line section
+	 * @throws IOException          if there is a problem reading source files.
 	 * @throws ABCException
 	 */
-	public Model translate()
-			throws CommandLineException, IOException, ABCException {
+	public Model translate() throws CommandLineException, IOException, ABCException {
 		long startTime = System.currentTimeMillis();
 		Program program = this.buildProgram();
 		long endTime = System.currentTimeMillis();
@@ -439,12 +370,10 @@ public class ModelTranslator {
 			program.prettyPrint(out);
 		if (config.showTime()) {
 			totalTime = (endTime - startTime);
-			out.println(totalTime
-					+ "ms: total time for building the whole program");
+			out.println(totalTime + "ms: total time for building the whole program");
 		}
 		if (program != null && config.showInputVars()) {
-			List<VariableDeclarationNode> inputs = this
-					.inputVariablesOfProgram(program);
+			List<VariableDeclarationNode> inputs = this.inputVariablesOfProgram(program);
 
 			out.println("input variables:");
 			for (VariableDeclarationNode input : inputs) {
@@ -460,8 +389,7 @@ public class ModelTranslator {
 			endTime = System.currentTimeMillis();
 			if (config.showTime()) {
 				totalTime = (endTime - startTime);
-				out.println(totalTime
-						+ "ms: CIVL model builder builds model from program");
+				out.println(totalTime + "ms: CIVL model builder builds model from program");
 			}
 			return model;
 		}
@@ -472,12 +400,10 @@ public class ModelTranslator {
 	 * Obtains the input variables declared in the given program
 	 * 
 	 * @return the input variables declared in the given program
-	 * @throws IOException
-	 *                          if there is a problem reading source files.
+	 * @throws IOException  if there is a problem reading source files.
 	 * @throws ABCException
 	 */
-	List<VariableDeclarationNode> getInputVariables()
-			throws IOException, ABCException {
+	List<VariableDeclarationNode> getInputVariables() throws IOException, ABCException {
 		Program program;
 
 		program = this.buildProgram();
@@ -488,24 +414,18 @@ public class ModelTranslator {
 	 * Builds a CIVL model from an ABC program, which is the result of parsing,
 	 * linking and transforming source files.
 	 * 
-	 * @param program
-	 *                    the ABC program.
+	 * @param program the ABC program.
 	 * @return the CIVL model representation of the given ABC program.
-	 * @throws CommandLineException
-	 *                                  if there is a problem in the format of
-	 *                                  input variable values in the command
-	 *                                  line.
+	 * @throws CommandLineException if there is a problem in the format of input
+	 *                              variable values in the command line.
 	 */
 	Model buildModel(Program program) throws CommandLineException {
 		Model model;
-		ModelBuilder modelBuilder = Models.newModelBuilder(this.universe,
-				this.config);
+		ModelBuilder modelBuilder = Models.newModelBuilder(this.universe, this.config);
 		String modelName = coreName(userFileName);
-		boolean hasFscanf = TransformerFactory.hasFunctionCalls(
-				program.getAST(), Arrays.asList("scanf", "fscanf"));
+		boolean hasFscanf = TransformerFactory.hasFunctionCalls(program.getAST(), Arrays.asList("scanf", "fscanf"));
 
-		model = modelBuilder.buildModel(cmdSection, program, modelName,
-				config.debugOrVerbose(), out);
+		model = modelBuilder.buildModel(cmdSection, program, modelName, config.debugOrVerbose(), out);
 		model.setHasFscanf(hasFscanf);
 		if (config.debugOrVerbose() || config.showModel()) {
 			out.println(bar + "The CIVL model is:" + bar);
@@ -521,19 +441,16 @@ public class ModelTranslator {
 	/**
 	 * Gets the list of input variables declared in the given program.
 	 * 
-	 * @param program
-	 *                    the program, which is the result of parsing, linking
-	 *                    and transforming.
+	 * @param program the program, which is the result of parsing, linking and
+	 *                transforming.
 	 * @return the list of input variables declared in the given program.
 	 */
-	private List<VariableDeclarationNode> inputVariablesOfProgram(
-			Program program) {
+	private List<VariableDeclarationNode> inputVariablesOfProgram(Program program) {
 		LinkedList<VariableDeclarationNode> result = new LinkedList<>();
 		ASTNode root = program.getAST().getRootNode();
 
 		for (ASTNode child : root.children()) {
-			if (child != null
-					&& child.nodeKind() == NodeKind.VARIABLE_DECLARATION) {
+			if (child != null && child.nodeKind() == NodeKind.VARIABLE_DECLARATION) {
 				VariableDeclarationNode variable = (VariableDeclarationNode) child;
 
 				if (variable.getTypeNode().isInputQualified()) {
@@ -547,12 +464,11 @@ public class ModelTranslator {
 	/**
 	 * Extracts from a string the "core" part of a filename by removing any
 	 * directory prefixes and removing any file suffix. For example, invoking on
-	 * "users/siegel/gcd/gcd1.cvl" will return "gcd1". This is the name used to
-	 * name the model and other structures; it is used in the log, to name
-	 * generated files, and for error reporting.
+	 * "users/siegel/gcd/gcd1.cvl" will return "gcd1". This is the name used to name
+	 * the model and other structures; it is used in the log, to name generated
+	 * files, and for error reporting.
 	 * 
-	 * @param filename
-	 *                     a filename
+	 * @param filename a filename
 	 * @return the core part of that filename
 	 */
 	private static String coreName(String filename) {
@@ -570,11 +486,10 @@ public class ModelTranslator {
 	}
 
 	/**
-	 * Given a colon-separated list of filenames as a single string, this splits
-	 * it up and returns an array of File objects, one for each name.
+	 * Given a colon-separated list of filenames as a single string, this splits it
+	 * up and returns an array of File objects, one for each name.
 	 * 
-	 * @param string
-	 *                   null or colon-separated list of filenames
+	 * @param string null or colon-separated list of filenames
 	 * @return array of File
 	 */
 	private File[] extractPaths(String string) {
@@ -594,9 +509,7 @@ public class ModelTranslator {
 	/**
 	 * Gets the user include paths, which are specified in the command line
 	 * 
-	 * @param section
-	 *                    the command line section this model translator
-	 *                    corresponds to.
+	 * @param section the command line section this model translator corresponds to.
 	 * @return the user include paths.
 	 */
 	private File[] getUserIncludes(GMCSection section) {
@@ -607,13 +520,12 @@ public class ModelTranslator {
 	 * This adds the default CIVL include path to the list of system includes.
 	 *
 	 * @param config
-	 * @return list of system include directories specified in the (command
-	 *         line) config object with the default CIVL include directory
-	 *         tacked on at the end
+	 * @return list of system include directories specified in the (command line)
+	 *         config object with the default CIVL include directory tacked on at
+	 *         the end
 	 */
 	private File[] getSysIncludes(GMCSection config) {
-		File[] sysIncludes = extractPaths(
-				(String) config.getValue(sysIncludePathO));
+		File[] sysIncludes = extractPaths((String) config.getValue(sysIncludePathO));
 		int numIncludes = sysIncludes.length;
 		File[] newSysIncludes = new File[numIncludes + 1];
 

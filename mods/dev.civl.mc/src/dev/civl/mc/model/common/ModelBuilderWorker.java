@@ -25,6 +25,8 @@ import dev.civl.abc.program.IF.Program;
 import dev.civl.abc.token.IF.CivlcToken;
 import dev.civl.abc.token.IF.Source;
 import dev.civl.abc.token.IF.SourceFile;
+import dev.civl.gmc.CommandLineException;
+import dev.civl.gmc.GMCSection;
 import dev.civl.mc.analysis.IF.Analysis;
 import dev.civl.mc.analysis.IF.CodeAnalyzer;
 import dev.civl.mc.config.IF.CIVLConfiguration;
@@ -68,10 +70,6 @@ import dev.civl.mc.model.IF.variable.Variable;
 import dev.civl.mc.model.common.location.CommonLocation;
 import dev.civl.mc.model.common.statement.CommonAtomicLockAssignStatement;
 import dev.civl.mc.model.common.type.CommonType;
-import dev.civl.mc.transform.IF.GeneralTransformer;
-import dev.civl.mc.transform.IF.SvcompTransformer;
-import dev.civl.gmc.CommandLineException;
-import dev.civl.gmc.GMCSection;
 import dev.civl.sarl.IF.SymbolicUniverse;
 import dev.civl.sarl.IF.type.SymbolicArrayType;
 import dev.civl.sarl.IF.type.SymbolicType;
@@ -93,14 +91,14 @@ public class ModelBuilderWorker {
 	int anonymousStructCounter = 0;
 
 	/**
-	 * Does the source file include time.h? If yes, then the time count variable
-	 * and the broken time variable need to be created.
+	 * Does the source file include time.h? If yes, then the time count variable and
+	 * the broken time variable need to be created.
 	 */
 	boolean timeLibIncluded = false;
 
 	/**
-	 * Does the source file contains any function call to $next_time_count? If
-	 * yes, then the time count variable needs to be created.
+	 * Does the source file contains any function call to $next_time_count? If yes,
+	 * then the time count variable needs to be created.
 	 */
 	boolean hasNextTimeCountCall = false;
 
@@ -125,31 +123,30 @@ public class ModelBuilderWorker {
 	CIVLBundleType bundleType;
 
 	/**
-	 * Map whose key set contains all {@link CallOrSpawnStatement} whose callee
-	 * is unknown in the model. The value associated to the key is the ABC
+	 * Map whose key set contains all {@link CallOrSpawnStatement} whose callee is
+	 * unknown in the model. The value associated to the key is the ABC
 	 * {@link Function} entity. This is built up as call/spawn statements are
 	 * processed. On a later pass, we iterate over this map and set the function
-	 * fields of the call/spawn statements to the corresponding
-	 * {@link CIVLFunction} object. Visibility make it package-private since
-	 * {@link FunctionTranslator} needs to access it.
+	 * fields of the call/spawn statements to the corresponding {@link CIVLFunction}
+	 * object. Visibility make it package-private since {@link FunctionTranslator}
+	 * needs to access it.
 	 */
 	Map<CallOrSpawnStatement, Function> callStatements;
 
 	/**
-	 * Map whose key set contains all {@link CallEvent} whose callee is unknown
-	 * in the model. The value associated to the key is the ABC {@link Function}
-	 * entity. This is built up as call events are processed. On a later pass,
-	 * we iterate over this map and set the function fields of the call event to
-	 * the corresponding {@link CIVLFunction} object. Visibility make it
-	 * package-private since {@link FunctionContractTranslator} needs to access
-	 * it.
+	 * Map whose key set contains all {@link CallEvent} whose callee is unknown in
+	 * the model. The value associated to the key is the ABC {@link Function}
+	 * entity. This is built up as call events are processed. On a later pass, we
+	 * iterate over this map and set the function fields of the call event to the
+	 * corresponding {@link CIVLFunction} object. Visibility make it package-private
+	 * since {@link FunctionContractTranslator} needs to access it.
 	 */
 	Map<CallEvent, Function> callEvents;
 
 	/**
 	 * A collection of all atomic blocks in the model. An atomic block is
-	 * represented as an array of two locations: [0]: the entry location and
-	 * [1]: exit location.
+	 * represented as an array of two locations: [0]: the entry location and [1]:
+	 * exit location.
 	 */
 	List<Location[]> atomicBlocks = new LinkedList<>();
 
@@ -178,8 +175,8 @@ public class ModelBuilderWorker {
 	CIVLType gbarrierType;
 
 	/**
-	 * The type __collect_record__, which is the type of an entry in a
-	 * collective operation checker
+	 * The type __collect_record__, which is the type of an entry in a collective
+	 * operation checker
 	 */
 	CIVLType collectRecordType;
 
@@ -201,8 +198,8 @@ public class ModelBuilderWorker {
 	CIVLType intIterType;
 
 	/**
-	 * The base type of the pointer type $filesystem; a structure type with
-	 * fields (0) scope, and (1) files. NULL if there is no IO operation.
+	 * The base type of the pointer type $filesystem; a structure type with fields
+	 * (0) scope, and (1) files. NULL if there is no IO operation.
 	 */
 	CIVLStructOrUnionType basedFilesystemType;
 
@@ -256,17 +253,17 @@ public class ModelBuilderWorker {
 	CIVLHeapType heapType;
 
 	/**
-	 * Set containing the names of all input variables that were initialized
-	 * from a commandline argument. This is used at the end of the building
-	 * process to determine if there were any command line arguments that were
-	 * not used. This usually indicates an error.
+	 * Set containing the names of all input variables that were initialized from a
+	 * commandline argument. This is used at the end of the building process to
+	 * determine if there were any command line arguments that were not used. This
+	 * usually indicates an error.
 	 */
 	Set<String> initializedInputs = new HashSet<>();
 
 	/**
 	 * The map formed from parsing the command line for "-input" options that
-	 * specifies an initial constant value for some input variables. May be null
-	 * if no "-input"s appeared on the command line.
+	 * specifies an initial constant value for some input variables. May be null if
+	 * no "-input"s appeared on the command line.
 	 */
 	Map<String, Object> inputInitMap;
 
@@ -318,14 +315,14 @@ public class ModelBuilderWorker {
 	private SymbolicUniverse universe;
 
 	/**
-	 * This field accumulates the AST definition node of every function
-	 * definition in the AST.
+	 * This field accumulates the AST definition node of every function definition
+	 * in the AST.
 	 */
 	ArrayList<FunctionDefinitionNode> unprocessedFunctions;
 
 	/**
-	 * The outermost scope of the model, root of the static scope tree, known as
-	 * the "system scope".
+	 * The outermost scope of the model, root of the static scope tree, known as the
+	 * "system scope".
 	 */
 	Scope rootScope;
 
@@ -348,37 +345,18 @@ public class ModelBuilderWorker {
 	/**
 	 * Constructs new instance of ModelBuilderWorker.
 	 * 
-	 * @param config
-	 *                      the GMC configuration
-	 * @param factory
-	 *                      the model factory
-	 * @param program
-	 *                      the program
-	 * @param name
-	 *                      name of the model, i.e. the file name without .cvl
-	 *                      extension
+	 * @param config    the GMC configuration
+	 * @param factory   the model factory
+	 * @param program   the program
+	 * @param name      name of the model, i.e. the file name without .cvl extension
 	 * @param debugOut
 	 * @param debugging
 	 */
-	public ModelBuilderWorker(GMCSection config, ModelFactory factory,
-			Program program, String name, boolean debugging,
+	public ModelBuilderWorker(GMCSection config, ModelFactory factory, Program program, String name, boolean debugging,
 			PrintStream debugOut) {
 		this.config = config;
 		this.civlConfig = new CIVLConfiguration(config);
 		this.inputInitMap = config.getMapValue(CIVLConstants.inputO);
-		if (civlConfig.svcomp()) {
-			if (inputInitMap == null)
-				inputInitMap = new HashMap<>();
-			inputInitMap.put(GeneralTransformer.PREFIX + "argc", 1);
-			inputInitMap.put("_svcomp_unpp_scale",
-					SvcompTransformer.UNPP_SCALE_ODD);
-			inputInitMap.put(SvcompTransformer.UNSIGNED_BOUND_NAME,
-					SvcompTransformer.UNSIGNED_BOUND);
-			inputInitMap.put(SvcompTransformer.INT_BOUND_UP_NAME,
-					SvcompTransformer.INT_BOUND_UP);
-			// inputInitMap.put(SvcompTransformer.INT_BOUND_LO_NAME,
-			// SvcompTransformer.INT_BOUND_LO);
-		}
 		this.factory = factory;
 		this.program = program;
 		this.factory.setTokenFactory(program.getTokenFactory());
@@ -395,24 +373,18 @@ public class ModelBuilderWorker {
 	/* ************************** Protected Methods ************************ */
 
 	protected void initialization() {
-		Identifier rootID = factory.identifier(factory.systemSource(),
-				CIVLConstants.civlSystemFunction);
-		CIVLSource rootFunctionSource = factory
-				.sourceOf(program.getAST().getMain().getDefinition());
+		Identifier rootID = factory.identifier(factory.systemSource(), CIVLConstants.civlSystemFunction);
+		CIVLSource rootFunctionSource = factory.sourceOf(program.getAST().getMain().getDefinition());
 		// the order of creating the static scope and the root scope does
 		// matters
 		// always create the static scope first and then the root scope
 		// because the static scope has id 0 while the root scope has id 1
-		Scope staticScope = this.factory.scope(rootFunctionSource, null,
-				new ArrayList<Variable>(0), null);
+		Scope staticScope = this.factory.scope(rootFunctionSource, null, new ArrayList<Variable>(0), null);
 
-		rootScope = this.factory.scope(rootFunctionSource, staticScope,
-				new ArrayList<Variable>(0), null);
+		rootScope = this.factory.scope(rootFunctionSource, staticScope, new ArrayList<Variable>(0), null);
 		factory.setScopes(rootScope);
-		rootFunction = factory.function(
-				factory.sourceOf(program.getAST().getMain().getDefinition()),
-				false, rootID, rootScope, new ArrayList<Variable>(), null, null,
-				null);
+		rootFunction = factory.function(factory.sourceOf(program.getAST().getMain().getDefinition()), false, rootID,
+				rootScope, new ArrayList<Variable>(), null, null, null);
 		rootScope.setFunction(rootFunction);
 		callStatements = new LinkedHashMap<>();
 		callEvents = new LinkedHashMap<>();
@@ -421,14 +393,13 @@ public class ModelBuilderWorker {
 	}
 
 	/**
-	 * Translate the function definition node of unprocessed functions, which
-	 * are obtained by translating function declaration node, function call
-	 * node, and so on.
+	 * Translate the function definition node of unprocessed functions, which are
+	 * obtained by translating function declaration node, function call node, and so
+	 * on.
 	 */
 	protected void translateUndefinedFunctions() {
 		while (!unprocessedFunctions.isEmpty()) {
-			FunctionDefinitionNode functionDefinition = unprocessedFunctions
-					.remove(0);
+			FunctionDefinitionNode functionDefinition = unprocessedFunctions.remove(0);
 
 			translateFunctionDefinitionNode(functionDefinition);
 		}
@@ -438,8 +409,8 @@ public class ModelBuilderWorker {
 	/* *************************** Private Methods ************************* */
 
 	/**
-	 * analysis of AST tree before translation, including: check if time.h is
-	 * ever included, if yes, then we need to add _time_count to the root scope.
+	 * analysis of AST tree before translation, including: check if time.h is ever
+	 * included, if yes, then we need to add _time_count to the root scope.
 	 */
 	private void preprocess() {
 		ASTNode root = program.getAST().getRootNode();
@@ -449,26 +420,22 @@ public class ModelBuilderWorker {
 	}
 
 	/**
-	 * Does the AST node contains any function call node to $next_time_count()?
-	 * If yes, then the model will need the time count variable; otherwise, no
-	 * need to create that variable.
+	 * Does the AST node contains any function call node to $next_time_count()? If
+	 * yes, then the model will need the time count variable; otherwise, no need to
+	 * create that variable.
 	 * 
-	 * @param node
-	 *                 an node from the AST
-	 * @return true iff the node contains a function call node to
-	 *         $next_time_count.
+	 * @param node an node from the AST
+	 * @return true iff the node contains a function call node to $next_time_count.
 	 */
 	private boolean hasNextTimeCountCall(ASTNode node) {
 		for (ASTNode child : node.children()) {
 			if (child == null)
 				continue;
 			if (child instanceof FunctionCallNode) {
-				ExpressionNode functionExpr = ((FunctionCallNode) child)
-						.getFunction();
+				ExpressionNode functionExpr = ((FunctionCallNode) child).getFunction();
 
 				if (functionExpr instanceof IdentifierExpressionNode) {
-					if (((IdentifierExpressionNode) functionExpr)
-							.getIdentifier().name()
+					if (((IdentifierExpressionNode) functionExpr).getIdentifier().name()
 							.equals(ModelConfiguration.NEXT_TIME_COUNT))
 						return true;
 				}
@@ -487,12 +454,8 @@ public class ModelBuilderWorker {
 	 */
 	private boolean hasTimeLibrary(ASTNode node) {
 		Source source = node.getSource();
-		CivlcToken token = source == null
-				? null
-				: node.getSource().getFirstToken();
-		SourceFile file = token == null
-				? null
-				: token.getFormation().getLastFile();
+		CivlcToken token = source == null ? null : node.getSource().getFirstToken();
+		SourceFile file = token == null ? null : token.getFormation().getLastFile();
 
 		if (file != null && file.getName().equals(ModelConfiguration.TIME_LIB))
 			return true;
@@ -519,38 +482,30 @@ public class ModelBuilderWorker {
 		for (CIVLType handleObjectType : this.handledObjectTypes) {
 			int mallocId = mallocStatements.size();
 
-			mallocStatements.add(factory.mallocStatement(null, null, null,
-					handleObjectType, null,
-					factory.sizeofTypeExpression(null, handleObjectType),
-					mallocId, null));
+			mallocStatements.add(factory.mallocStatement(null, null, null, handleObjectType, null,
+					factory.sizeofTypeExpression(null, handleObjectType), mallocId, null));
 			typeFactory.addHeapFieldObjectType(handleObjectType, mallocId);
 		}
 	}
 
 	/**
 	 * Processes the function body of a function definition node. At least one
-	 * function declaration for this function should have been processed
-	 * already, so the corresponding CIVL function should already exist.
+	 * function declaration for this function should have been processed already, so
+	 * the corresponding CIVL function should already exist.
 	 * 
-	 * @param functionNode
-	 *                         The function definition node in the AST to be
-	 *                         translated.
-	 * @throws CIVLInternalException
-	 *                                   if no corresponding CIVL function could
-	 *                                   be found.
+	 * @param functionNode The function definition node in the AST to be translated.
+	 * @throws CIVLInternalException if no corresponding CIVL function could be
+	 *                               found.
 	 */
-	private void translateFunctionDefinitionNode(
-			FunctionDefinitionNode functionNode) {
+	private void translateFunctionDefinitionNode(FunctionDefinitionNode functionNode) {
 		Entity entity = functionNode.getEntity();
 		CIVLFunction result;
 		FunctionTranslator functionTranslator;
 
 		result = functionMap.get(entity);
 		if (result == null)
-			throw new CIVLInternalException("Did not process declaration",
-					factory.sourceOf(functionNode));
-		functionTranslator = new FunctionTranslator(this, factory,
-				functionNode.getBody(), result, this.civlConfig);
+			throw new CIVLInternalException("Did not process declaration", factory.sourceOf(functionNode));
+		functionTranslator = new FunctionTranslator(this, factory, functionNode.getBody(), result, this.civlConfig);
 		// no return value because the result will be stored in the variable
 		// "result" of CIVLFunction type.
 		functionTranslator.translateFunction();
@@ -570,8 +525,7 @@ public class ModelBuilderWorker {
 		while (!working.isEmpty()) {
 			CIVLFunction function = working.pop();
 			StatementNode bodyNode = parProcFunctions.get(function);
-			FunctionTranslator translator = new FunctionTranslator(this,
-					factory, bodyNode, function, this.civlConfig);
+			FunctionTranslator translator = new FunctionTranslator(this, factory, bodyNode, function, this.civlConfig);
 
 			checkedFunctions.add(function);
 			translator.translateFunction();
@@ -584,8 +538,8 @@ public class ModelBuilderWorker {
 
 	/**
 	 * Translates anonymous function bodies which are generated from $run
-	 * statements. For a translated anonymous function body, it should be
-	 * appended with a "return" statement. The "return" statement should be set
+	 * statements. For a translated anonymous function body, it should be appended
+	 * with a "return" statement. The "return" statement should be set
 	 * {@link ReturnStatement#setFromRunProcFunction(boolean)}.
 	 */
 	private void translateRunProcFunctions() {
@@ -603,8 +557,7 @@ public class ModelBuilderWorker {
 			if (bodyNode == null)
 				continue;
 
-			FunctionTranslator translator = new FunctionTranslator(this,
-					factory, bodyNode, function, this.civlConfig);
+			FunctionTranslator translator = new FunctionTranslator(this, factory, bodyNode, function, this.civlConfig);
 
 			checkedFunctions.add(function);
 			translator.translateFunction();
@@ -624,15 +577,13 @@ public class ModelBuilderWorker {
 	 * Returns false if a type contains a bundle, void (but void* is ok), or the
 	 * type is incomplete.
 	 * 
-	 * @param type
-	 *                 The CIVL type to be checked
+	 * @param type The CIVL type to be checked
 	 * @return True of False
 	 */
 	private boolean bundleableType(CIVLType type) {
 		if (type.isVoidType())
 			return false;
-		if ((type.isStructType() || type.isUnionType())
-				&& !((CIVLStructOrUnionType) type).isComplete())
+		if ((type.isStructType() || type.isUnionType()) && !((CIVLStructOrUnionType) type).isComplete())
 			return false;
 		return bundleableTypeHelper(type);
 	}
@@ -667,8 +618,7 @@ public class ModelBuilderWorker {
 
 			if (!structType.isComplete())
 				return false;
-			for (StructOrUnionField f : ((CIVLStructOrUnionType) type)
-					.fields()) {
+			for (StructOrUnionField f : ((CIVLStructOrUnionType) type).fields()) {
 				result = result && bundleableType(f.type());
 				if (!result)
 					break;
@@ -706,17 +656,14 @@ public class ModelBuilderWorker {
 			}
 			((CommonType) type).setDynamicTypeIndex(id);
 		}
-		typeFactory.completeBundleType(bundleType, bundleableTypeList,
-				dynamicTypeMap.keySet());
+		typeFactory.completeBundleType(bundleType, bundleableTypeList, dynamicTypeMap.keySet());
 	}
 
 	/**
 	 * Complete the model by updating its fields according to the information
 	 * obtained by the translation.
 	 * 
-	 * @param system
-	 *                   The system function of the model, i.e. _CIVL_SYSTEM
-	 *                   function.
+	 * @param system The system function of the model, i.e. _CIVL_SYSTEM function.
 	 */
 	protected void completeModel(CIVLFunction system) {
 		// boolean hasWaitall = false;
@@ -746,8 +693,7 @@ public class ModelBuilderWorker {
 		// }
 		((CommonModel) model).setMallocStatements(mallocStatements);
 		// if (this.civlConfig.isEnableMpiContract()) {
-		model.setSleepLocation(
-				new CommonLocation(factory.systemSource(), true));
+		model.setSleepLocation(new CommonLocation(factory.systemSource(), true));
 		// }
 		model.setLogicFunctions(seenLogicFunctions);
 		model.complete();
@@ -771,13 +717,12 @@ public class ModelBuilderWorker {
 	}
 
 	/**
-	 * Perform static analysis, including: dereferences, purely local
-	 * statements, etc.
+	 * Perform static analysis, including: dereferences, purely local statements,
+	 * etc.
 	 */
 	protected void staticAnalysis() {
 		Set<Variable> addressedOfVariables = new HashSet<>();
-		MemoryUnitExpressionAnalyzer memUnitAnalyzer = new MemoryUnitExpressionAnalyzer(
-				this.factory);
+		MemoryUnitExpressionAnalyzer memUnitAnalyzer = new MemoryUnitExpressionAnalyzer(this.factory);
 		List<CodeAnalyzer> analyzers = factory.codeAnalyzers();
 
 		for (CIVLFunction f : model.functions()) {
@@ -798,8 +743,7 @@ public class ModelBuilderWorker {
 		if (debugging) {
 			debugOut.println("Variable addressed of:");
 			for (Variable variable : addressedOfVariables) {
-				debugOut.print(
-						variable.name() + "-" + variable.scope().id() + ", ");
+				debugOut.print(variable.name() + "-" + variable.scope().id() + ", ");
 			}
 			debugOut.println();
 		}
@@ -833,8 +777,7 @@ public class ModelBuilderWorker {
 				// loc.purelyLocalAnalysis();
 				loc.loopAnalysis();
 				factory.computeImpactScopeOfLocation(loc);
-				noUnsafeloop &= (!isLoop || loc.isSafeLoop())
-						&& !loc.isInNoopLoop();
+				noUnsafeloop &= (!isLoop || loc.isSafeLoop()) && !loc.isInNoopLoop();
 			}
 			f.setFreeOfUnsafeloop(noUnsafeloop);
 		}
@@ -850,9 +793,7 @@ public class ModelBuilderWorker {
 					AtomicLockAssignStatement lockStmt = (AtomicLockAssignStatement) stmt;
 
 					if (lockStmt.enterAtomic()) {
-						((CommonAtomicLockAssignStatement) lockStmt)
-								.setVariables(
-										computeAccessesAtomicBlock(lockStmt));
+						((CommonAtomicLockAssignStatement) lockStmt).setVariables(computeAccessesAtomicBlock(lockStmt));
 					}
 				}
 			}
@@ -865,26 +806,23 @@ public class ModelBuilderWorker {
 	}
 
 	/**
-	 * Performs analysis on an atomic block to determine if it will terminate.
-	 * If an atomic block satisfies following conditions, they will be
-	 * determined as "will terminate":
-	 * <li>No un-safe loop in the atomic block. An unsafe loop can be determined
-	 * if {@link Location#isSafeLoop()} returns false, where location is the
-	 * entry location of the loop.</li>
-	 * <li>No regular function call in the atomic block. Regular function calls
-	 * are function calls on non-system functions. Termination of system
-	 * functions is guaranteed</li>
+	 * Performs analysis on an atomic block to determine if it will terminate. If an
+	 * atomic block satisfies following conditions, they will be determined as "will
+	 * terminate":
+	 * <li>No un-safe loop in the atomic block. An unsafe loop can be determined if
+	 * {@link Location#isSafeLoop()} returns false, where location is the entry
+	 * location of the loop.</li>
+	 * <li>No regular function call in the atomic block. Regular function calls are
+	 * function calls on non-system functions. Termination of system functions is
+	 * guaranteed</li>
 	 * 
-	 * @param startLocation
-	 *                          The entry location of the atomic block, it must
-	 *                          has a sole outgoing statement ATOMIC_ENTER
-	 * @param endLocation
-	 *                          The exit location of the atomic block, an atomic
-	 *                          block must have exact one exit location. //TODO:
-	 *                          does GOTO allowed in atomic block ?
+	 * @param startLocation The entry location of the atomic block, it must has a
+	 *                      sole outgoing statement ATOMIC_ENTER
+	 * @param endLocation   The exit location of the atomic block, an atomic block
+	 *                      must have exact one exit location. //TODO: does GOTO
+	 *                      allowed in atomic block ?
 	 */
-	private void atomicBlockTerminationAnalysis(Location startLocation,
-			Location endLocation) {
+	private void atomicBlockTerminationAnalysis(Location startLocation, Location endLocation) {
 		Set<Integer> seenLocations = new HashSet<>();
 		Stack<Location> stack = new Stack<>();
 		Location location = startLocation;
@@ -901,11 +839,9 @@ public class ModelBuilderWorker {
 			location = stack.pop();
 			// If location is an entry of a loop ...
 			if (location.getNumOutgoing() == 2) {
-				Statement outgoing0 = location.getOutgoing(0),
-						outgoing1 = location.getOutgoing(1);
+				Statement outgoing0 = location.getOutgoing(0), outgoing1 = location.getOutgoing(1);
 
-				if (outgoing0 instanceof LoopBranchStatement
-						&& outgoing1 instanceof LoopBranchStatement)
+				if (outgoing0 instanceof LoopBranchStatement && outgoing1 instanceof LoopBranchStatement)
 					if (!location.isSafeLoop()) {
 						terminate = false;
 						break;
@@ -925,8 +861,7 @@ public class ModelBuilderWorker {
 							// If the calling function has no more calls inside
 							// it and itself is free of unsafe loops, the call
 							// statement will terminate.
-							terminate &= function.isFreeOfUnsafeloop()
-									&& noCallInFunction(function);
+							terminate &= function.isFreeOfUnsafeloop() && noCallInFunction(function);
 						} else
 							// call by function pointer, give up ...
 							terminate = false;
@@ -938,8 +873,7 @@ public class ModelBuilderWorker {
 					Location target = outgoing.target();
 					int targetID = target.id();
 
-					if (!seenLocations.contains(targetID)
-							&& target != endLocation) {
+					if (!seenLocations.contains(targetID) && target != endLocation) {
 						seenLocations.add(targetID);
 						stack.push(target);
 					}
@@ -950,20 +884,18 @@ public class ModelBuilderWorker {
 	}
 
 	/**
-	 * Test if there is any function call inside the function body by traversing
-	 * all locations ({@link CIVLFunction#locations()}).
+	 * Test if there is any function call inside the function body by traversing all
+	 * locations ({@link CIVLFunction#locations()}).
 	 * 
-	 * @param function
-	 *                     The given function will be tested if it has any
-	 *                     function call in its body.
+	 * @param function The given function will be tested if it has any function call
+	 *                 in its body.
 	 * @return True iff there is at least one function call statement in the
 	 *         function body.
 	 */
 	private boolean noCallInFunction(CIVLFunction function) {
 		for (Location loc : function.locations()) {
 			for (Statement stmt : loc.outgoing()) {
-				if (stmt.statementKind() == StatementKind.CALL_OR_SPAWN
-						&& ((CallOrSpawnStatement) stmt).isCall())
+				if (stmt.statementKind() == StatementKind.CALL_OR_SPAWN && ((CallOrSpawnStatement) stmt).isCall())
 					return false;
 			}
 		}
@@ -985,17 +917,14 @@ public class ModelBuilderWorker {
 	 * @param addressedOfVariables
 	 * @return True iff this location is an entry of a loop
 	 */
-	private boolean loopAnalysis(Location location,
-			Set<Variable> addressedOfVariables) {
+	private boolean loopAnalysis(Location location, Set<Variable> addressedOfVariables) {
 		boolean isLoopEntry = false;
 
 		if (location.getNumOutgoing() == 2) {
-			Statement outgoing0 = location.getOutgoing(0),
-					outgoing1 = location.getOutgoing(1);
+			Statement outgoing0 = location.getOutgoing(0), outgoing1 = location.getOutgoing(1);
 
 			// loop detected
-			if ((outgoing0 instanceof LoopBranchStatement)
-					&& (outgoing1 instanceof LoopBranchStatement)) {
+			if ((outgoing0 instanceof LoopBranchStatement) && (outgoing1 instanceof LoopBranchStatement)) {
 				LoopBranchStatement loopEnter, loopExit;
 				Expression condition;
 				Statement increment;
@@ -1010,8 +939,7 @@ public class ModelBuilderWorker {
 					loopExit = (LoopBranchStatement) outgoing0;
 				}
 				condition = loopEnter.guard();
-				if (condition.hasConstantValue()
-						&& condition.constantValue().isTrue())
+				if (condition.hasConstantValue() && condition.constantValue().isTrue())
 					return isLoopEntry;
 				increment = this.getIncrement(location, loopExit);
 				if (increment instanceof AssignStatement) {
@@ -1021,39 +949,33 @@ public class ModelBuilderWorker {
 					iterVar = assign.getLhs();
 					// The loop body modifies the iteration variable
 					if (iterVar instanceof VariableExpression) {
-						Variable var = ((VariableExpression) iterVar)
-								.variable();
+						Variable var = ((VariableExpression) iterVar).variable();
 
 						// iteration variable could be modified through
 						// pointers.
 						if (addressedOfVariables.contains(var))
 							return isLoopEntry;
 					}
-					if (modifiesIterVarInBody(loopEnter.target(), iterVar,
-							increment.source(), loopExit.target()))
+					if (modifiesIterVarInBody(loopEnter.target(), iterVar, increment.source(), loopExit.target()))
 						return isLoopEntry;
 					if (condition instanceof BinaryExpression) {
 						BinaryExpression binary = (BinaryExpression) condition;
-						Expression condLeft = binary.left(),
-								condRight = binary.right();
+						Expression condLeft = binary.left(), condRight = binary.right();
 						BINARY_OPERATOR condOp = binary.operator();
 
-						if (condOp != BINARY_OPERATOR.LESS_THAN
-								&& condOp != BINARY_OPERATOR.LESS_THAN_EQUAL)
+						if (condOp != BINARY_OPERATOR.LESS_THAN && condOp != BINARY_OPERATOR.LESS_THAN_EQUAL)
 							return isLoopEntry;
 						if (incrExpr instanceof BinaryExpression) {
 							BinaryExpression incrementExpr = (BinaryExpression) incrExpr;
 							BINARY_OPERATOR incrOp = incrementExpr.operator();
-							Expression incrLeft = incrementExpr.left(),
-									incrRight = incrementExpr.right();
+							Expression incrLeft = incrementExpr.left(), incrRight = incrementExpr.right();
 
 							if (condLeft.equals(iterVar)) {
 								// i < K, then the increment should be i = i + x
 								// or i = x + i;
 								if (incrOp != BINARY_OPERATOR.PLUS)
 									return isLoopEntry;
-								if (incrLeft.equals(iterVar)
-										|| incrRight.equals(iterVar)) {
+								if (incrLeft.equals(iterVar) || incrRight.equals(iterVar)) {
 									location.setSafeLoop(true);
 								}
 							} else if (condRight.equals(iterVar)) {
@@ -1074,16 +996,16 @@ public class ModelBuilderWorker {
 	}
 
 	/**
-	 * Checks if the iteration variable is modified anywhere in the loop body
-	 * except the increment.
+	 * Checks if the iteration variable is modified anywhere in the loop body except
+	 * the increment.
 	 * 
 	 * @param loopStart
 	 * @param iterVar
 	 * @param increment
 	 * @return
 	 */
-	private boolean modifiesIterVarInBody(Location loopStart,
-			LHSExpression iterVar, Location increment, Location loopExit) {
+	private boolean modifiesIterVarInBody(Location loopStart, LHSExpression iterVar, Location increment,
+			Location loopExit) {
 		Stack<Location> working = new Stack<>();
 		Set<Location> visited = new HashSet<>();
 		int incrementId = increment.id(), exitId = loopExit.id();
@@ -1098,8 +1020,7 @@ public class ModelBuilderWorker {
 					return true;
 				Location target = statement.target();
 
-				if (target != null && !visited.contains(target)
-						&& target.id() != incrementId
+				if (target != null && !visited.contains(target) && target.id() != incrementId
 						&& target.id() != exitId) {
 					working.add(target);
 					visited.add(target);
@@ -1109,8 +1030,7 @@ public class ModelBuilderWorker {
 		return false;
 	}
 
-	private boolean modifiesVariable(LHSExpression iterVar,
-			Statement statement) {
+	private boolean modifiesVariable(LHSExpression iterVar, Statement statement) {
 		if (statement instanceof AssignStatement) {
 			LHSExpression lhs = ((AssignStatement) statement).getLhs();
 
@@ -1120,13 +1040,11 @@ public class ModelBuilderWorker {
 	}
 
 	/**
-	 * Finds the increment statement of a loop, which is the last statement in
-	 * the loop body.
+	 * Finds the increment statement of a loop, which is the last statement in the
+	 * loop body.
 	 * 
-	 * @param loopStart
-	 *                      the start location of the loop
-	 * @param loopExit
-	 *                      the exit statement of the loop
+	 * @param loopStart the start location of the loop
+	 * @param loopExit  the exit statement of the loop
 	 * @return
 	 */
 	private Statement getIncrement(Location loopStart, Statement loopExit) {
@@ -1197,29 +1115,13 @@ public class ModelBuilderWorker {
 
 		preprocess();
 		initialization();
-		rootFunctionTranslator = new FunctionTranslator(this, factory,
-				rootFunction, this.civlConfig);
+		rootFunctionTranslator = new FunctionTranslator(this, factory, rootFunction, this.civlConfig);
 		rootFunctionTranslator.translateRootFunction(rootScope, rootNode);
 		if (inputInitMap != null) {
 			// if commandline specified input variables that do not
 			// exist, throw exception...
 			Set<String> commandLineVars = new HashSet<>(inputInitMap.keySet());
-
 			commandLineVars.removeAll(initializedInputs);
-			// ignore extra input variables for svcomp
-			if (!this.civlConfig.svcomp() && !commandLineVars.isEmpty()) {
-				String msg = "Program contains no input variables named ";
-				boolean first = true;
-
-				for (String name : commandLineVars) {
-					if (first)
-						first = false;
-					else
-						msg += ", ";
-					msg += name;
-				}
-				throw new CommandLineException(msg);
-			}
 		}
 		// translate main function, using system as the CIVL function object,
 		// and combining initialization statements with its body
@@ -1231,36 +1133,30 @@ public class ModelBuilderWorker {
 		translateUndefinedFunctions();
 		// TODO when the function is a function pointer, we are unable to
 		// identify if it is a system call.
-		if (!this.civlConfig.svcomp())
-			completeBundleType();
+		completeBundleType();
 		completeHeapType();
 		completeTimeVar();
 		completeCallEvents();
 		completeModel(rootFunction);
 		// this.model.print(System.out, false);
 		this.calculateConstantValue();
-		this.factory
-				.setCodeAnalyzers(Analysis.getAnalyzers(civlConfig, universe));
+		this.factory.setCodeAnalyzers(Analysis.getAnalyzers(civlConfig, universe));
 		this.staticAnalysis();
 	}
 
 	private void completeMallocStatements() {
 		for (MallocStatement malloc : this.mallocStatements) {
 			CIVLType staticElementType = malloc.getStaticElementType();
-			SymbolicType dynamicElementType = staticElementType
-					.getDynamicType(universe);
-			SymbolicArrayType dynamicObjectType = universe
-					.arrayType(dynamicElementType);
+			SymbolicType dynamicElementType = staticElementType.getDynamicType(universe);
+			SymbolicArrayType dynamicObjectType = universe.arrayType(dynamicElementType);
 
 			malloc.complete(dynamicElementType, dynamicObjectType);
 		}
 	}
 
 	private void completeCallEvents() {
-		for (Map.Entry<CallEvent, Function> callEventPair : this.callEvents
-				.entrySet()) {
-			callEventPair.getKey().setFunction(
-					this.functionMap.get(callEventPair.getValue()));
+		for (Map.Entry<CallEvent, Function> callEventPair : this.callEvents.entrySet()) {
+			callEventPair.getKey().setFunction(this.functionMap.get(callEventPair.getValue()));
 		}
 	}
 
@@ -1268,8 +1164,7 @@ public class ModelBuilderWorker {
 		Variable brokenTimeVar = this.factory.brokenTimeVariable();
 
 		if (brokenTimeVar != null) {
-			CIVLType tmType = this.typeFactory
-					.systemType(ModelConfiguration.TM_TYPE);
+			CIVLType tmType = this.typeFactory.systemType(ModelConfiguration.TM_TYPE);
 
 			if (tmType != null)// tmType may be null because of the pruner
 				brokenTimeVar.setType(tmType);
@@ -1282,29 +1177,26 @@ public class ModelBuilderWorker {
 	//
 
 	/**
-	 * Computes the variables that are accessed within an atomic code section.
-	 * The code section could be an atomic block or the body of an atomic
-	 * function.
+	 * Computes the variables that are accessed within an atomic code section. The
+	 * code section could be an atomic block or the body of an atomic function.
 	 * 
 	 * Only variables that existed prior to entering the atomic section are
 	 * considered. I.e., only variables declared in originalScope or a scope
 	 * containing originalScope are considered. Other variables are ignored.
 	 * 
-	 * @param originalScope
-	 *                          the scope containing the atomic section
-	 * @param start
-	 *                          the start location of the atomic function, or
-	 *                          the target location of an atomic-enter statement
+	 * @param originalScope the scope containing the atomic section
+	 * @param start         the start location of the atomic function, or the target
+	 *                      location of an atomic-enter statement
 	 * @return an over-approximation of the set of previously existing variables
-	 *         accessed in the atomic section, or {@code null} if no
-	 *         approximation could be computed
+	 *         accessed in the atomic section, or {@code null} if no approximation
+	 *         could be computed
 	 */
-	private Set<Variable> computeAccesses(Scope originalScope, Location start,
-			CIVLFunction theFunction) {
+	private Set<Variable> computeAccesses(Scope originalScope, Location start, CIVLFunction theFunction) {
 		class Node {
 			Location location;
 			int atomicDepth;
 			int statementIndex;
+
 			Node(Location location, int atomicDepth, int statementIndex) {
 				this.location = location;
 				this.atomicDepth = atomicDepth;
@@ -1330,8 +1222,7 @@ public class ModelBuilderWorker {
 				continue;
 			}
 
-			Statement newStatement = top.location
-					.getOutgoing(top.statementIndex);
+			Statement newStatement = top.location.getOutgoing(top.statementIndex);
 
 			top.statementIndex++;
 			for (Variable var : newStatement.freeVariables())
@@ -1366,11 +1257,8 @@ public class ModelBuilderWorker {
 
 				if (newNode != null) {
 					if (newNode.atomicDepth != newDepth)
-						throw new CIVLSyntaxException(
-								"Possible branch into atomic block: atomic depths "
-										+ newNode.atomicDepth + " and "
-										+ newDepth,
-								newLocation);
+						throw new CIVLSyntaxException("Possible branch into atomic block: atomic depths "
+								+ newNode.atomicDepth + " and " + newDepth, newLocation);
 					continue;
 				}
 				newNode = new Node(newLocation, newDepth, 0);
@@ -1409,16 +1297,13 @@ public class ModelBuilderWorker {
 		assert !function.isSystemFunction();
 		Scope originalScope = function.containingScope();
 
-		return computeAccesses(originalScope, function.startLocation(),
-				function);
+		return computeAccesses(originalScope, function.startLocation(), function);
 
 	}
 
-	private Set<Variable> computeAccessesAtomicBlock(
-			AtomicLockAssignStatement atomicEnterStmt) {
+	private Set<Variable> computeAccessesAtomicBlock(AtomicLockAssignStatement atomicEnterStmt) {
 		assert atomicEnterStmt.enterAtomic();
-		return computeAccesses(atomicEnterStmt.source().scope(),
-				atomicEnterStmt.target(), null);
+		return computeAccesses(atomicEnterStmt.source().scope(), atomicEnterStmt.target(), null);
 	}
 
 	/**

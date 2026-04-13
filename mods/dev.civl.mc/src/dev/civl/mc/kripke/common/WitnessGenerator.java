@@ -79,13 +79,11 @@ public class WitnessGenerator {
 	BufferedWriter output = null;
 	boolean debug = false;
 
-	public WitnessGenerator(Model model, Trace<Transition, State> trace)
-			throws IOException {
+	public WitnessGenerator(Model model, Trace<Transition, State> trace) throws IOException {
 
 		List<TraceStepIF<State>> steps = trace.traceSteps();
 		Iterator<TraceStepIF<State>> it = steps.iterator();
-		List<Pair<Location, Statement>> traceStepLocStmt = traceLocStmtPairs(
-				it);
+		List<Pair<Location, Statement>> traceStepLocStmt = traceLocStmtPairs(it);
 
 		try {
 			File file = new File("./witness.graphml");
@@ -96,22 +94,20 @@ public class WitnessGenerator {
 			List<String> locationPath = new ArrayList<String>();
 			for (Pair<Location, Statement> step : traceStepLocStmt) {
 				/* We need to strip the whitespace from the Location strings */
-				String compactLocationStr = step.left.toString()
-						.replaceAll("\\s+", "");
+				String compactLocationStr = step.left.toString().replaceAll("\\s+", "");
 				locationPath.add(compactLocationStr);
 			}
 
 			List<Pair<String, String>> locationStringPairs = new ArrayList<Pair<String, String>>();
 			for (int i = 0; i < locationPath.size() - 1; i++) {
-				Pair<String, String> pair = new Pair<String, String>(
-						locationPath.get(i), locationPath.get(i + 1));
+				Pair<String, String> pair = new Pair<String, String>(locationPath.get(i), locationPath.get(i + 1));
 				locationStringPairs.add(pair);
 				if (debug) {
 					System.out.println("Pair " + i + pair);
 				}
 			}
-			Pair<String, String> finalPair = new Pair<String, String>(
-					locationPath.get(locationPath.size() - 1), "FinalLocation");
+			Pair<String, String> finalPair = new Pair<String, String>(locationPath.get(locationPath.size() - 1),
+					"FinalLocation");
 			locationStringPairs.add(finalPair);
 
 			String entrySourceStr = locationStringPairs.get(0).left;
@@ -125,21 +121,15 @@ public class WitnessGenerator {
 				Statement statement = step.right;
 				String statementStr = statement.toString();
 
-				String compactSourceStr = locationStringPairs
-						.get(locationPairIndex).left;
+				String compactSourceStr = locationStringPairs.get(locationPairIndex).left;
 				if (debug) {
-					System.out.println(
-							location + "; about to look at target for: "
-									+ statement.toString());
+					System.out.println(location + "; about to look at target for: " + statement.toString());
 				}
-				String compactTargetStr = locationStringPairs
-						.get(locationPairIndex).right;
+				String compactTargetStr = locationStringPairs.get(locationPairIndex).right;
 
-				if (!compactSourceStr
-						.equals(entrySourceStr)) { /*
-													 * The entry has already
-													 * been declared
-													 */
+				if (!compactSourceStr.equals(entrySourceStr)) { /*
+																 * The entry has already been declared
+																 */
 					if (statementStr.equals("__VERIFIER_error()")) {
 						writeViolationNode(compactSourceStr);
 						writeNode(compactTargetStr);
@@ -147,25 +137,19 @@ public class WitnessGenerator {
 						writeNode(compactSourceStr);
 					}
 				}
-				String sourceLocationStr = step.left.getSource().getLocation()
-						.toString();
+				String sourceLocationStr = step.left.getSource().getLocation().toString();
 				if (isStatementOrBranch(sourceLocationStr)) {
-					String lineNumber = sourceLocationStr
-							.replaceAll(".*:([0-9]+)..*", "$1");
+					String lineNumber = sourceLocationStr.replaceAll(".*:([0-9]+)..*", "$1");
 
 					if (statementStr.equals("FALSE_BRANCH_IF")) {
-						writeFalseEdge(compactSourceStr, compactTargetStr,
-								statement, lineNumber);
+						writeFalseEdge(compactSourceStr, compactTargetStr, statement, lineNumber);
 					} else if (statementStr.equals("TRUE_BRANCH_IF")) {
-						writeTrueEdge(compactSourceStr, compactTargetStr,
-								statement, lineNumber);
+						writeTrueEdge(compactSourceStr, compactTargetStr, statement, lineNumber);
 					} else {
-						writeStmtEdge(compactSourceStr, compactTargetStr,
-								statement, lineNumber);
+						writeStmtEdge(compactSourceStr, compactTargetStr, statement, lineNumber);
 					}
 				} else {
-					assert false : "Location " + sourceLocationStr
-							+ " does not lead to a source statement or branch";
+					assert false : "Location " + sourceLocationStr + " does not lead to a source statement or branch";
 				}
 
 				finalLocation = compactTargetStr;
@@ -184,8 +168,7 @@ public class WitnessGenerator {
 	}
 
 	/* Extract Location-Statement pairs from TraceStep Iterator */
-	private List<Pair<Location, Statement>> traceLocStmtPairs(
-			Iterator<TraceStepIF<State>> it) {
+	private List<Pair<Location, Statement>> traceLocStmtPairs(Iterator<TraceStepIF<State>> it) {
 		List<Pair<Location, Statement>> tracePairs = new ArrayList<Pair<Location, Statement>>();
 		while (it.hasNext()) {
 			TraceStep step = ((TraceStep) it.next());
@@ -194,14 +177,11 @@ public class WitnessGenerator {
 				Location l = atom.getTransition().statement().source();
 				Statement s = atom.getTransition().statement();
 				/*
-				 * For witness optimization, only add locations leading to a
-				 * statement which are not system source
+				 * For witness optimization, only add locations leading to a statement which are
+				 * not system source
 				 */
 				String str = s.toString();
-				if (str != null && !str.startsWith("$")
-						&& !str.startsWith("return temp (__VERIFIER_nondet")
-						&& !str.startsWith("_svcomp_unsigned_bound")
-						&& !str.startsWith("NO_OP")) {
+				if (str != null && !str.startsWith("$") && !str.startsWith("NO_OP")) {
 					tracePairs.add(new Pair<Location, Statement>(l, s));
 				}
 			}
@@ -228,23 +208,19 @@ public class WitnessGenerator {
 	}
 
 	private void writeViolationNode(String locationString) throws IOException {
-		output.write("<node id=\"" + locationString + "\">\n"
-				+ "  <data key=\"violation\">true</data>\n" + "</node>");
+		output.write("<node id=\"" + locationString + "\">\n" + "  <data key=\"violation\">true</data>\n" + "</node>");
 		output.newLine();
 		declaredNodes.add(locationString);
 	}
 
 	private void writeEntryNode(String entryLocation) throws IOException {
-		output.write("<node id=\"" + entryLocation + "\">\n"
-				+ "  <data key=\"entry\">true</data>\n" + "</node>\n");
+		output.write("<node id=\"" + entryLocation + "\">\n" + "  <data key=\"entry\">true</data>\n" + "</node>\n");
 		declaredNodes.add("Location0");
 	}
 
-	private void writeFalseEdge(String source, String target, Statement stmt,
-			String lineNumber) throws IOException {
+	private void writeFalseEdge(String source, String target, Statement stmt, String lineNumber) throws IOException {
 		String saneStmt = escapeXml(stmt.guard().toString());
-		output.write(
-				"<edge source=\"" + source + "\" target=\"" + target + "\">");
+		output.write("<edge source=\"" + source + "\" target=\"" + target + "\">");
 		output.newLine();
 		output.write("  <data key=\"sourcecode\">[" + saneStmt + "]</data>");
 		output.newLine();
@@ -255,11 +231,9 @@ public class WitnessGenerator {
 		output.write("</edge>");
 	}
 
-	private void writeTrueEdge(String source, String target, Statement stmt,
-			String lineNumber) throws IOException {
+	private void writeTrueEdge(String source, String target, Statement stmt, String lineNumber) throws IOException {
 		String saneStmt = escapeXml(stmt.guard().toString());
-		output.write(
-				"<edge source=\"" + source + "\" target=\"" + target + "\">");
+		output.write("<edge source=\"" + source + "\" target=\"" + target + "\">");
 		output.newLine();
 		output.write("  <data key=\"sourcecode\">[" + saneStmt + "]</data>");
 		output.newLine();
@@ -270,11 +244,9 @@ public class WitnessGenerator {
 		output.write("</edge>");
 	}
 
-	private void writeStmtEdge(String source, String target, Statement stmt,
-			String lineNumber) throws IOException {
+	private void writeStmtEdge(String source, String target, Statement stmt, String lineNumber) throws IOException {
 		String saneStmt = escapeXml(stmt.toString());
-		output.write(
-				"<edge source=\"" + source + "\" target=\"" + target + "\">");
+		output.write("<edge source=\"" + source + "\" target=\"" + target + "\">");
 		output.newLine();
 		output.write("  <data key=\"sourcecode\">" + saneStmt + "</data>");
 		output.newLine();

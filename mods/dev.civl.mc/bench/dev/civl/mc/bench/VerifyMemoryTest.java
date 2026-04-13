@@ -18,14 +18,13 @@ import dev.civl.mc.run.IF.UserInterface;
 public class VerifyMemoryTest {
 	private static UserInterface ui = new UserInterface();
 
-	public static void main(String[] args) throws SyntaxException,
-			PreprocessorException, ParseException {
+	public static void main(String[] args) throws SyntaxException, PreprocessorException, ParseException {
 		String testFile = args[0];
 		int n = Integer.parseInt(args[1]);
 
 		for (int i = 0; i < n; i++) {
 			System.out.println("i is " + i);
-			ui.run("verify", "-svcomp", testFile);
+			ui.run("verify", testFile);
 		}
 	}
 }

@@ -85,22 +85,6 @@ public interface Configuration {
 	boolean inRangeSignedLongLongInt(BigInteger value);
 
 	/**
-	 * Is this configuration being used to solve an SV-COMP problem?
-	 * 
-	 * @return <code>true</code> iff this is an SV-COMP problem
-	 */
-	boolean getSVCOMP();
-
-	/**
-	 * Sets the SVCOMP flag, which specifies whether this configuration is being
-	 * used to solve an SV-COMP problem.
-	 * 
-	 * @param flag
-	 *            <code>true</code> iff this is an SV-COMP problem
-	 */
-	void setSVCOMP(boolean value);
-
-	/**
 	 * Gets the architecture type for this translation task.
 	 * 
 	 * @return the architecture type
@@ -111,8 +95,7 @@ public interface Configuration {
 	 * Sets the architecture type for this translation task. Default is
 	 * {@link Architecture#UNKNOWN}.
 	 * 
-	 * @param architecture
-	 *            the architecture type
+	 * @param architecture the architecture type
 	 */
 	void setArchitecture(Architecture arch);
 
@@ -124,18 +107,15 @@ public interface Configuration {
 	boolean getGNUC();
 
 	/**
-	 * Specifies whether the GNU extensions to the C language are allowed.
-	 * Default is false. This flag is also automatically set to true when the
-	 * SVCOMP flag is set to true
+	 * Specifies whether the GNU extensions to the C language are allowed. Default
+	 * is false.
 	 * 
-	 * @param flag
-	 *            value of GNUC flag
+	 * @param flag value of GNUC flag
 	 */
 	void setGNUC(boolean flag);
 
 	/**
-	 * @return the language of the source code; null if this filed has not been
-	 *         set
+	 * @return the language of the source code; null if this filed has not been set
 	 */
 	Language getLanguage();
 

@@ -27,53 +27,50 @@ public class DirectedTest {
 
 	@Test
 	public void itestShow() throws ABCException {
-		assertTrue(ui.run("show", "-showProgram", "-direct="+filename("itest.direct"), filename("itest.c") ));
+		assertTrue(ui.run("show", "-showProgram", "-direct=" + filename("itest.direct"), filename("itest.c")));
 	}
-	
+
 	@Test
 	public void forTestShow() throws ABCException {
-		assertTrue(ui.run("show", "-showProgram", "-direct="+filename("forTest.direct"), filename("forTest.c") ));
+		assertTrue(ui.run("show", "-showProgram", "-direct=" + filename("forTest.direct"), filename("forTest.c")));
 	}
-	
+
 	@Test
 	public void itestVerify() throws ABCException {
-		assertTrue(ui.run("verify", "-showProgram", "-direct="+filename("itest.direct"), filename("itest.c") ));
+		assertTrue(ui.run("verify", "-showProgram", "-direct=" + filename("itest.direct"), filename("itest.c")));
 	}
-	
+
 	@Test
 	public void infeasibleShow() throws ABCException {
-		assertTrue(ui.run("show", "-showProgram", "-direct="+filename("infeasible.direct"), filename("infeasible.c") ));
+		assertTrue(
+				ui.run("show", "-showProgram", "-direct=" + filename("infeasible.direct"), filename("infeasible.c")));
 	}
-	
+
 	@Test
 	public void infeasibleVerify() throws ABCException {
-		assertTrue(ui.run("verify", "-showProgram", "-direct="+filename("infeasible.direct"), filename("infeasible.c") ));
+		assertTrue(
+				ui.run("verify", "-showProgram", "-direct=" + filename("infeasible.direct"), filename("infeasible.c")));
 	}
-	
-	/* Running fullvsdirect.c without the branch directives file makes verification fail */
+
+	/*
+	 * Running fullvsdirect.c without the branch directives file makes verification
+	 * fail
+	 */
 	@Test
 	public void full() throws ABCException {
 		assertFalse(ui.run("verify", "-showProgram", filename("fullvsdirect.c")));
 	}
-	
+
 	@Test
 	public void direct() throws ABCException {
-		assertTrue(ui.run("verify", "-showProgram", "-direct="+filename("fullvsdirect.direct"), filename("fullvsdirect.c")));
+		assertTrue(ui.run("verify", "-showProgram", "-direct=" + filename("fullvsdirect.direct"),
+				filename("fullvsdirect.c")));
 	}
-	
-	@Test
-	public void switchVerify() throws ABCException {
-		assertFalse(ui.run("verify", "-showProgram", "-svcomp16", "-direct="+filename("switch.direct"), filename("switch.c")));
-	}
-	
+
 	@Test
 	public void nestedIfVerify() throws ABCException {
-		assertTrue(ui.run("verify", "-showProgram", "-direct="+filename("nested_if.direct"), filename("nested_if.c") ));
-	}
-	
-	@Test
-	public void svcompException() throws ABCException {
-		assertFalse(ui.run("verify", "-showProgram", "-svcomp16", "-direct="+filename("svcomp_exception.direct"), filename("svcomp_exception.c") ));
+		assertTrue(
+				ui.run("verify", "-showProgram", "-direct=" + filename("nested_if.direct"), filename("nested_if.c")));
 	}
 
 	@AfterClass

@@ -31,7 +31,6 @@ import dev.civl.abc.ast.type.IF.FloatingType;
 import dev.civl.abc.ast.type.IF.IntegerType;
 import dev.civl.abc.ast.type.IF.ObjectType;
 import dev.civl.abc.ast.type.IF.PointerType;
-import dev.civl.abc.ast.type.IF.StandardBasicType;
 import dev.civl.abc.ast.type.IF.StandardBasicType.BasicTypeKind;
 import dev.civl.abc.ast.type.IF.StandardSignedIntegerType;
 import dev.civl.abc.ast.type.IF.StandardSignedIntegerType.SignedIntKind;
@@ -39,7 +38,6 @@ import dev.civl.abc.ast.type.IF.StandardUnsignedIntegerType;
 import dev.civl.abc.ast.type.IF.StandardUnsignedIntegerType.UnsignedIntKind;
 import dev.civl.abc.ast.type.IF.StructureOrUnionType;
 import dev.civl.abc.ast.type.IF.Type;
-import dev.civl.abc.ast.type.IF.Type.TypeKind;
 import dev.civl.abc.ast.type.IF.TypeFactory;
 import dev.civl.abc.ast.value.IF.AddressValue;
 import dev.civl.abc.ast.value.IF.ArrayElementReference;
@@ -61,7 +59,6 @@ import dev.civl.abc.ast.value.IF.Value;
 import dev.civl.abc.ast.value.IF.ValueFactory;
 import dev.civl.abc.ast.value.IF.VariableReference;
 import dev.civl.abc.config.IF.Configuration;
-import dev.civl.abc.config.IF.Configuration.Architecture;
 import dev.civl.abc.token.IF.ExecutionCharacter;
 import dev.civl.abc.token.IF.StringLiteral;
 import dev.civl.abc.token.IF.SyntaxException;
@@ -86,23 +83,18 @@ public class CommonValueFactory implements ValueFactory {
 
 	private IntegerType CHAR;
 
-	private BigInteger MAX_JINT = new BigInteger(
-			Integer.toString(Integer.MAX_VALUE));
+	private BigInteger MAX_JINT = new BigInteger(Integer.toString(Integer.MAX_VALUE));
 
 	private Value SINT_ONE, SINT_ZERO;
 
-	private Configuration configuration;
-
 	// Constructors...
 
-	public CommonValueFactory(Configuration configuration,
-			TypeFactory typeFactory) {
+	public CommonValueFactory(Configuration configuration, TypeFactory typeFactory) {
 		this.typeFactory = typeFactory;
 		SINT = typeFactory.signedIntegerType(SignedIntKind.INT);
 		CHAR = (IntegerType) typeFactory.basicType(BasicTypeKind.CHAR);
 		SINT_ONE = integerValue(SINT, 1);
 		SINT_ZERO = integerValue(SINT, 0);
-		this.configuration = configuration;
 	}
 
 	// Exported methods...
@@ -124,17 +116,14 @@ public class CommonValueFactory implements ValueFactory {
 	 * @param expr
 	 * @return
 	 * @throws SyntaxException
-	 * @throws UnsourcedException
-	 *                                if expr is not a constant expression
+	 * @throws UnsourcedException if expr is not a constant expression
 	 */
-	private Value evaluateHelper(ExpressionNode expr)
-			throws SyntaxException, UnsourcedException {
+	private Value evaluateHelper(ExpressionNode expr) throws SyntaxException, UnsourcedException {
 		if (expr instanceof AlignOfNode) {
 			return alignofValue(((AlignOfNode) expr).getArgument().getType());
 		} else if (expr instanceof ArrowNode) {
 			ArrowNode arrowNode = (ArrowNode) expr;
-			ExpressionNode structOrUnionPointer = arrowNode
-					.getStructurePointer();
+			ExpressionNode structOrUnionPointer = arrowNode.getStructurePointer();
 			Field[] navseq = arrowNode.getNavigationSequence();
 			Value value = evaluateDereference(structOrUnionPointer);
 
@@ -144,8 +133,7 @@ public class CommonValueFactory implements ValueFactory {
 		} else if (expr instanceof CastNode) {
 			CastNode castNode = (CastNode) expr;
 
-			return evaluateCast(castNode.getCastType().getType(),
-					evaluate(castNode.getArgument()));
+			return evaluateCast(castNode.getCastType().getType(), evaluate(castNode.getArgument()));
 		} else if (expr instanceof CharacterConstantNode) {
 			return ((CharacterConstantNode) expr).getConstantValue();
 		} else if (expr instanceof CompoundLiteralNode) {
@@ -184,8 +172,7 @@ public class CommonValueFactory implements ValueFactory {
 		} else if (expr instanceof StringLiteralNode) {
 			return ((StringLiteralNode) expr).getConstantValue();
 		} else if (expr instanceof EnumerationConstantNode) {
-			IdentifierNode identNode = ((EnumerationConstantNode) expr)
-					.getName();
+			IdentifierNode identNode = ((EnumerationConstantNode) expr).getName();
 			Entity entity = identNode.getEntity();
 
 			if (entity.getEntityKind() == EntityKind.ENUMERATOR) {
@@ -200,16 +187,13 @@ public class CommonValueFactory implements ValueFactory {
 
 	@Override
 	public IntegerValue plusOne(IntegerValue value) {
-		return integerValue(value.getType(),
-				value.getIntegerValue().add(BigInteger.ONE));
+		return integerValue(value.getType(), value.getIntegerValue().add(BigInteger.ONE));
 	}
 
 	@Override
-	public AddressValue addressValue(ExpressionNode lhs)
-			throws SyntaxException {
+	public AddressValue addressValue(ExpressionNode lhs) throws SyntaxException {
 		if (lhs instanceof IdentifierExpressionNode) {
-			Entity entity = ((IdentifierExpressionNode) lhs).getIdentifier()
-					.getEntity();
+			Entity entity = ((IdentifierExpressionNode) lhs).getIdentifier().getEntity();
 			EntityKind kind = entity.getEntityKind();
 
 			if (kind == EntityKind.VARIABLE) {
@@ -217,12 +201,10 @@ public class CommonValueFactory implements ValueFactory {
 			} else if (kind == EntityKind.FUNCTION) {
 				return functionReference((Function) entity);
 			} else {
-				throw error("Operand of & not variable or function identifier",
-						lhs);
+				throw error("Operand of & not variable or function identifier", lhs);
 			}
 		} else if (lhs instanceof DotNode) {
-			AddressValue structureOrUnionReference = addressValue(
-					((DotNode) lhs).getStructure());
+			AddressValue structureOrUnionReference = addressValue(((DotNode) lhs).getStructure());
 			Field field = (Field) ((DotNode) lhs).getFieldName().getEntity();
 
 			return memberReference(structureOrUnionReference, field);
@@ -231,8 +213,7 @@ public class CommonValueFactory implements ValueFactory {
 			Operator operator = ((OperatorNode) lhs).getOperator();
 
 			if (operator == Operator.SUBSCRIPT) {
-				AddressValue arrayReference = addressValue(
-						opNode.getArgument(0));
+				AddressValue arrayReference = addressValue(opNode.getArgument(0));
 				Value index = evaluate(opNode.getArgument(1));
 
 				return arrayElementReference(arrayReference, index);
@@ -244,10 +225,8 @@ public class CommonValueFactory implements ValueFactory {
 	}
 
 	@Override
-	public IntegerValue integerValue(IntegerType type,
-			BigInteger integerValue) {
-		return (IntegerValue) canonic(
-				new CommonIntegerValue(type, integerValue));
+	public IntegerValue integerValue(IntegerType type, BigInteger integerValue) {
+		return (IntegerValue) canonic(new CommonIntegerValue(type, integerValue));
 	}
 
 	@Override
@@ -256,127 +235,25 @@ public class CommonValueFactory implements ValueFactory {
 	}
 
 	@Override
-	public RealFloatingValue realFloatingValue(FloatingType type, int radix,
-			BigInteger wholePartValue, BigInteger fractionPartValue,
-			int fractionLength, BigInteger exponentValue) {
-		return (RealFloatingValue) canonic(
-				new CommonRealFloatingValue(type, radix, wholePartValue,
-						fractionPartValue, fractionLength, exponentValue));
+	public RealFloatingValue realFloatingValue(FloatingType type, int radix, BigInteger wholePartValue,
+			BigInteger fractionPartValue, int fractionLength, BigInteger exponentValue) {
+		return (RealFloatingValue) canonic(new CommonRealFloatingValue(type, radix, wholePartValue, fractionPartValue,
+				fractionLength, exponentValue));
 	}
 
 	@Override
-	public ComplexValue complexValue(FloatingType type,
-			RealFloatingValue realPart, RealFloatingValue imaginaryPart) {
-		return (ComplexValue) canonic(
-				new CommonComplexValue(type, realPart, imaginaryPart));
+	public ComplexValue complexValue(FloatingType type, RealFloatingValue realPart, RealFloatingValue imaginaryPart) {
+		return (ComplexValue) canonic(new CommonComplexValue(type, realPart, imaginaryPart));
 	}
 
 	@Override
 	public Value sizeofValue(Type type) {
-		if (this.configuration.getSVCOMP()) {
-			int sizeofType = this.sizeofType(type);
-
-			if (sizeofType > 0)
-				return integerValue(
-						(IntegerType) typeFactory.basicType(BasicTypeKind.INT),
-						BigInteger.valueOf(sizeofType));
-
-		}
-		return (TypeValue) canonic(new CommonTypeValue(typeFactory.size_t(),
-				TypeValueKind.SIZEOF, type));
-	}
-
-	/**
-	 * For svcomp, there are two architectures: 32-bit and 64-bit.
-	 * 
-	 * https://wiki.debian.org/ArchitectureSpecificsMemo For 32-bit, uses i386
-	 * in the above link; for 64-bit, amd64.
-	 * 
-	 * short int long long long float double long double void*
-	 * 
-	 * The size of types is factoring out here:
-	 * <ul>
-	 * <li>sizeof(short)=2</li>
-	 * <li>sizeof(int)=4</li>
-	 * <li>sizeof(long)=sizeof(void*)</li>
-	 * <li>sizeof(long long)=8</li>
-	 * <li>sizeof(float)=4</li>
-	 * <li>sizeof(double)=8</li>
-	 * <li>sizeof(void*)=4 if 32-bit; 8 if 64-bit.</li>
-	 * </ul>
-	 * 
-	 * @return returns the size (a positive integer) of the given type; or -1 if
-	 *         the size of that type is not specified or can't be decided
-	 *         statically.
-	 */
-	private int sizeofType(Type type) {
-		if (this.configuration.getArchitecture() == Architecture.UNKNOWN)
-			return -1;
-
-		TypeKind typeKind = type.kind();
-
-		switch (typeKind) {
-			case BASIC : {
-				StandardBasicType basicType = (StandardBasicType) type;
-				BasicTypeKind basicKind = basicType.getBasicTypeKind();
-
-				switch (basicKind) {
-					case SIGNED_CHAR :
-					case UNSIGNED_CHAR :
-					case CHAR :
-						return 1;
-					case DOUBLE :
-						return 8;
-					case FLOAT :
-						return 4;
-					case UNSIGNED :
-					case INT :
-						return 4;
-					case UNSIGNED_LONG :
-					case LONG :
-						if (this.configuration
-								.getArchitecture() == Architecture._32_BIT)
-							return 4;
-						else
-							return 8;
-					case UNSIGNED_LONG_LONG :
-					case LONG_LONG :
-						return 8;
-					case UNSIGNED_SHORT :
-					case SHORT :
-						return 2;
-					default :
-						return -1;
-				}
-			}
-			case ARRAY : {
-				ArrayType arrayType = (ArrayType) type;
-				int sizeOfEleType = this.sizeofType(arrayType.getElementType());
-				IntegerValue size = arrayType.getConstantSize();
-
-				if (size == null || sizeOfEleType < 0)
-					return -1;
-				return size.getIntegerValue().intValue() * sizeOfEleType;
-			}
-			case OTHER_INTEGER :
-				return 4;
-			case POINTER : {
-				if (this.configuration
-						.getArchitecture() == Architecture._32_BIT)
-					return 4;
-				else
-					return 8;
-			}
-			default : {
-				return -1;
-			}
-		}
+		return (TypeValue) canonic(new CommonTypeValue(typeFactory.size_t(), TypeValueKind.SIZEOF, type));
 	}
 
 	@Override
 	public TypeValue alignofValue(Type type) {
-		return (TypeValue) canonic(new CommonTypeValue(typeFactory.size_t(),
-				TypeValueKind.ALIGNOF, type));
+		return (TypeValue) canonic(new CommonTypeValue(typeFactory.size_t(), TypeValueKind.ALIGNOF, type));
 	}
 
 	@Override
@@ -385,10 +262,8 @@ public class CommonValueFactory implements ValueFactory {
 	}
 
 	@Override
-	public OperatorValue operatorValue(Type type, Operator operator,
-			Value[] arguments) {
-		return (OperatorValue) canonic(
-				new CommonOperatorValue(type, operator, arguments));
+	public OperatorValue operatorValue(Type type, Operator operator, Value[] arguments) {
+		return (OperatorValue) canonic(new CommonOperatorValue(type, operator, arguments));
 	}
 
 	@Override
@@ -397,10 +272,8 @@ public class CommonValueFactory implements ValueFactory {
 	}
 
 	@Override
-	public UnionValue newUnionValue(StructureOrUnionType unionType, Field field,
-			Value memberValue) {
-		return (UnionValue) canonic(
-				new CommonUnionValue(unionType, field, memberValue));
+	public UnionValue newUnionValue(StructureOrUnionType unionType, Field field, Value memberValue) {
+		return (UnionValue) canonic(new CommonUnionValue(unionType, field, memberValue));
 	}
 
 	@Override
@@ -418,23 +291,22 @@ public class CommonValueFactory implements ValueFactory {
 		IntegerType type;
 
 		switch (character.getCharacterKind()) {
-			case CHAR :
-				type = CHAR;
-				break;
-			case WCHAR :
-				type = typeFactory.wchar_t();
-				break;
-			case CHAR16 :
-				type = typeFactory.char16_t();
-				break;
-			case CHAR32 :
-				type = typeFactory.char32_t();
-				break;
-			default :
-				throw new RuntimeException("unreachable");
+		case CHAR:
+			type = CHAR;
+			break;
+		case WCHAR:
+			type = typeFactory.wchar_t();
+			break;
+		case CHAR16:
+			type = typeFactory.char16_t();
+			break;
+		case CHAR32:
+			type = typeFactory.char32_t();
+			break;
+		default:
+			throw new RuntimeException("unreachable");
 		}
-		return (CharacterValue) canonic(
-				new CommonCharacterValue(type, character));
+		return (CharacterValue) canonic(new CommonCharacterValue(type, character));
 	}
 
 	@Override
@@ -450,21 +322,21 @@ public class CommonValueFactory implements ValueFactory {
 		ArrayType type;
 
 		switch (literal.getStringKind()) {
-			case CHAR :
-			case UTF_8 :
-				characterType = CHAR;
-				break;
-			case WCHAR :
-				characterType = typeFactory.wchar_t();
-				break;
-			case CHAR16 :
-				characterType = typeFactory.char16_t();
-				break;
-			case CHAR32 :
-				characterType = typeFactory.char32_t();
-				break;
-			default :
-				throw new RuntimeException("unreachable");
+		case CHAR:
+		case UTF_8:
+			characterType = CHAR;
+			break;
+		case WCHAR:
+			characterType = typeFactory.wchar_t();
+			break;
+		case CHAR16:
+			characterType = typeFactory.char16_t();
+			break;
+		case CHAR32:
+			characterType = typeFactory.char32_t();
+			break;
+		default:
+			throw new RuntimeException("unreachable");
 		}
 		type = typeFactory.arrayType(characterType, size);
 		return (StringValue) canonic(new CommonStringValue(type, literal));
@@ -473,36 +345,32 @@ public class CommonValueFactory implements ValueFactory {
 	public VariableReference variableReference(Variable variable) {
 		PointerType pointerType = typeFactory.pointerType(variable.getType());
 
-		return (VariableReference) canonic(
-				new CommonVariableReference(pointerType, variable));
+		return (VariableReference) canonic(new CommonVariableReference(pointerType, variable));
 	}
 
 	public FunctionReference functionReference(Function function) {
 		PointerType pointerType = typeFactory.pointerType(function.getType());
 
-		return (FunctionReference) canonic(
-				new CommonFunctionReference(pointerType, function));
+		return (FunctionReference) canonic(new CommonFunctionReference(pointerType, function));
 	}
 
-	public ArrayElementReference arrayElementReference(
-			AddressValue arrayReference, Value index) {
+	public ArrayElementReference arrayElementReference(AddressValue arrayReference, Value index) {
 		PointerType arrayReferenceType = arrayReference.getType();
 		ArrayType arrayType = (ArrayType) arrayReferenceType.referencedType();
 		// might need to strip qualifiers?
 		ObjectType elementType = arrayType.getElementType();
 		PointerType elementReferenceType = typeFactory.pointerType(elementType);
 
-		return (ArrayElementReference) canonic(new CommonArrayElementReference(
-				elementReferenceType, arrayReference, index));
+		return (ArrayElementReference) canonic(
+				new CommonArrayElementReference(elementReferenceType, arrayReference, index));
 	}
 
-	public MemberReference memberReference(
-			AddressValue structureOrUnionReference, Field field) {
+	public MemberReference memberReference(AddressValue structureOrUnionReference, Field field) {
 		ObjectType memberType = field.getType();
 		PointerType memberReferenceType = typeFactory.pointerType(memberType);
 
-		return (MemberReference) canonic(new CommonMemberReference(
-				memberReferenceType, structureOrUnionReference, field));
+		return (MemberReference) canonic(
+				new CommonMemberReference(memberReferenceType, structureOrUnionReference, field));
 	}
 
 	// Helper methods.......................................................
@@ -518,19 +386,17 @@ public class CommonValueFactory implements ValueFactory {
 	}
 
 	/**
-	 * Given expression e of pointer type, evaluate *e. If e had type
-	 * [qualified] pointer to t, resulting value has type t.
+	 * Given expression e of pointer type, evaluate *e. If e had type [qualified]
+	 * pointer to t, resulting value has type t.
 	 * 
 	 * @param pointerExpression
 	 * @return
 	 */
-	private Value evaluateDereference(ExpressionNode pointerExpression)
-			throws SyntaxException {
+	private Value evaluateDereference(ExpressionNode pointerExpression) throws SyntaxException {
 		return null; // how can this happen in a constant expression?
 	}
 
-	private Value evaluateCast(Type castType, Value value)
-			throws UnsourcedException {
+	private Value evaluateCast(Type castType, Value value) throws UnsourcedException {
 		// TODO: cast concrete numeric types if you can, pointer types, ...
 		if (value == null)
 			return null;
@@ -552,12 +418,10 @@ public class CommonValueFactory implements ValueFactory {
 
 			return result;
 		}
-		throw new UnsourcedException(
-				"Unsupported feature: non-integer negative");
+		throw new UnsourcedException("Unsupported feature: non-integer negative");
 	}
 
-	private Value evalBinaryNumericOp(Type type, Operator operator, Value arg0,
-			Value arg1) throws UnsourcedException {
+	private Value evalBinaryNumericOp(Type type, Operator operator, Value arg0, Value arg1) throws UnsourcedException {
 		Object val0, val1;
 
 		if (arg0 instanceof IntegerValue) {
@@ -565,44 +429,40 @@ public class CommonValueFactory implements ValueFactory {
 		} else if (arg0 instanceof RealFloatingValue) {
 			val0 = ((RealFloatingValue) arg0).getDoubleValue();
 		} else
-			throw new UnsourcedException(
-					"Expected integer or real constant, not " + arg0);
+			throw new UnsourcedException("Expected integer or real constant, not " + arg0);
 		if (arg1 instanceof IntegerValue) {
 			val1 = ((IntegerValue) arg1).getIntegerValue();
 		} else if (arg1 instanceof RealFloatingValue) {
 			val1 = ((RealFloatingValue) arg1).getDoubleValue();
 		} else
-			throw new UnsourcedException(
-					"Expected integer or real constant, not " + arg1);
+			throw new UnsourcedException("Expected integer or real constant, not " + arg1);
 		if (val0 instanceof BigInteger && val1 instanceof BigInteger) {
 			BigInteger big0 = ((BigInteger) val0);
 			BigInteger big1 = ((BigInteger) val1);
 			BigInteger bigVal;
 
 			switch (operator) {
-				case TIMES :
-					bigVal = big0.multiply(big1);
-					break;
-				case PLUS :
-					bigVal = big0.add(big1);
-					break;
-				case MINUS :
-					bigVal = big0.subtract(big1);
-					break;
-				case DIV :
-					bigVal = big0.divide(big1);
-					break;
-				case MOD :
-					bigVal = big0.mod(big1);
-					break;
-				default :
-					throw new UnsourcedException(
-							"Unexpected operator: " + operator);
+			case TIMES:
+				bigVal = big0.multiply(big1);
+				break;
+			case PLUS:
+				bigVal = big0.add(big1);
+				break;
+			case MINUS:
+				bigVal = big0.subtract(big1);
+				break;
+			case DIV:
+				bigVal = big0.divide(big1);
+				break;
+			case MOD:
+				bigVal = big0.mod(big1);
+				break;
+			default:
+				throw new UnsourcedException("Unexpected operator: " + operator);
 			}
 			return integerValue((IntegerType) type, bigVal);
 		} else {
-			throw new UnsourcedException(
-					"multiplication of floating constants");
+			throw new UnsourcedException("multiplication of floating constants");
 		}
 
 	}
@@ -614,97 +474,83 @@ public class CommonValueFactory implements ValueFactory {
 	 * @param operator
 	 * @param args
 	 * @return
-	 * @throws UnsourcedException
-	 *                                if result is not a constant expression
+	 * @throws UnsourcedException if result is not a constant expression
 	 */
-	private Value apply(Type type, Operator operator, Value[] args)
-			throws UnsourcedException {
+	private Value apply(Type type, Operator operator, Value[] args) throws UnsourcedException {
 		int numArgs = args.length;
 
 		switch (operator) {
-			case BITAND : // & bit-wise and
-			case BITCOMPLEMENT : // ~ bit-wise complement
-			case BITOR : // | bit-wise inclusive or
-			case BITXOR : // ^ bit-wise exclusive or
-			case CONDITIONAL : // ?: the conditional operator
-			case DEREFERENCE : // * pointer dereference
-			case SUBSCRIPT : // [] array subscript
-				break;
+		case BITAND: // & bit-wise and
+		case BITCOMPLEMENT: // ~ bit-wise complement
+		case BITOR: // | bit-wise inclusive or
+		case BITXOR: // ^ bit-wise exclusive or
+		case CONDITIONAL: // ?: the conditional operator
+		case DEREFERENCE: // * pointer dereference
+		case SUBSCRIPT: // [] array subscript
+			break;
 
-			case SHIFTLEFT : // << shift left
-			case SHIFTRIGHT : // >> shift right
-			case EQUALS : // == equality
-			case GT : // > greater than
-			case GTE : // >= greater than or equals
-			case LT : // < less than
-			case LTE : // <= less than or equals
-			case NEQ : // != not equals
-				if (numArgs == 2)
-					return evalBinaryIntegerOp(operator, args[0], args[1]);
+		case SHIFTLEFT: // << shift left
+		case SHIFTRIGHT: // >> shift right
+		case EQUALS: // == equality
+		case GT: // > greater than
+		case GTE: // >= greater than or equals
+		case LT: // < less than
+		case LTE: // <= less than or equals
+		case NEQ: // != not equals
+			if (numArgs == 2)
+				return evalBinaryIntegerOp(operator, args[0], args[1]);
+			else
+				throw new UnsourcedException("Expected two arguments for operator " + operator);
+
+		case LAND: // && logical and
+			if (numArgs == 2) {
+				Value lval = evalBinaryIntegerOp(Operator.EQUALS, args[0], SINT_ONE);
+				if (!lval.equals(SINT_ONE))
+					return SINT_ZERO;
+				Value rval = evalBinaryIntegerOp(Operator.EQUALS, args[0], SINT_ONE);
+				if (rval.equals(SINT_ONE))
+					return SINT_ONE;
 				else
-					throw new UnsourcedException(
-							"Expected two arguments for operator " + operator);
+					return SINT_ZERO;
 
-			case LAND : // && logical and
-				if (numArgs == 2) {
-					Value lval = evalBinaryIntegerOp(Operator.EQUALS, args[0],
-							SINT_ONE);
-					if (!lval.equals(SINT_ONE))
-						return SINT_ZERO;
-					Value rval = evalBinaryIntegerOp(Operator.EQUALS, args[0],
-							SINT_ONE);
-					if (rval.equals(SINT_ONE))
-						return SINT_ONE;
-					else
-						return SINT_ZERO;
+			} else
+				throw new UnsourcedException("Expected two arguments for operator " + operator);
 
-				} else
-					throw new UnsourcedException(
-							"Expected two arguments for operator " + operator);
-
-			case LOR : // || logical or
-				if (numArgs == 2) {
-					Value lval = evalBinaryIntegerOp(Operator.EQUALS, args[0],
-							SINT_ONE);
-					if (lval.equals(SINT_ONE))
-						return SINT_ONE;
-					Value rval = evalBinaryIntegerOp(Operator.EQUALS, args[0],
-							SINT_ONE);
-					if (rval.equals(SINT_ONE))
-						return SINT_ONE;
-					else
-						return SINT_ZERO;
-
-				} else
-					throw new UnsourcedException(
-							"Expected two arguments for operator " + operator);
-
-			case NOT : // ! logical not
-				if (numArgs == 1)
-					return evalBinaryIntegerOp(Operator.EQUALS, args[0],
-							SINT_ZERO);
+		case LOR: // || logical or
+			if (numArgs == 2) {
+				Value lval = evalBinaryIntegerOp(Operator.EQUALS, args[0], SINT_ONE);
+				if (lval.equals(SINT_ONE))
+					return SINT_ONE;
+				Value rval = evalBinaryIntegerOp(Operator.EQUALS, args[0], SINT_ONE);
+				if (rval.equals(SINT_ONE))
+					return SINT_ONE;
 				else
-					throw new UnsourcedException(
-							"Expected one arguments for operator " + operator);
+					return SINT_ZERO;
 
-			case PLUS : // + binary addition, numeric or pointer
-			case DIV : // / numerical division
-			case TIMES : // numeric multiplication
-			case MOD : // % integer modulus
-			case MINUS : // - binary subtraction (numbers and pointers)
-				if (numArgs == 2)
-					return evalBinaryNumericOp(type, operator, args[0],
-							args[1]);
-				else
-					throw new UnsourcedException(
-							"Expected two arguments for operator " + operator);
-			case UNARYMINUS : // - numeric negative
-				return evalMinus(type, args[0]);
-			case UNARYPLUS : // + numeric no-op</li>
-				return args[0];
-			default :
-				throw new UnsourcedException(
-						"Illegal operator in constant expression: " + operator);
+			} else
+				throw new UnsourcedException("Expected two arguments for operator " + operator);
+
+		case NOT: // ! logical not
+			if (numArgs == 1)
+				return evalBinaryIntegerOp(Operator.EQUALS, args[0], SINT_ZERO);
+			else
+				throw new UnsourcedException("Expected one arguments for operator " + operator);
+
+		case PLUS: // + binary addition, numeric or pointer
+		case DIV: // / numerical division
+		case TIMES: // numeric multiplication
+		case MOD: // % integer modulus
+		case MINUS: // - binary subtraction (numbers and pointers)
+			if (numArgs == 2)
+				return evalBinaryNumericOp(type, operator, args[0], args[1]);
+			else
+				throw new UnsourcedException("Expected two arguments for operator " + operator);
+		case UNARYMINUS: // - numeric negative
+			return evalMinus(type, args[0]);
+		case UNARYPLUS: // + numeric no-op</li>
+			return args[0];
+		default:
+			throw new UnsourcedException("Illegal operator in constant expression: " + operator);
 		}
 		// TODO: handle specials cases for all of above
 		return canonic(new CommonOperatorValue(type, operator, args));
@@ -717,24 +563,22 @@ public class CommonValueFactory implements ValueFactory {
 
 	/**
 	 * 
-	 * C11 Sec. 6.3.1.2: "When any scalar value is converted to _Bool, the
-	 * result is 0 if the value compares equal to 0; otherwise, the result is
-	 * 1."
+	 * C11 Sec. 6.3.1.2: "When any scalar value is converted to _Bool, the result is
+	 * 0 if the value compares equal to 0; otherwise, the result is 1."
 	 * 
 	 * C11 Sec. 6.3.1.3:
 	 * 
-	 * <blockquote> When a value with integer type is converted to another
-	 * integer type other than _Bool, if the value can be represented by the new
-	 * type, it is unchanged.
+	 * <blockquote> When a value with integer type is converted to another integer
+	 * type other than _Bool, if the value can be represented by the new type, it is
+	 * unchanged.
 	 * 
-	 * Otherwise, if the new type is unsigned, the value is converted by
-	 * repeatedly adding or subtracting one more than the maximum value that can
-	 * be represented in the new type until the value is in the range of the new
-	 * type.
+	 * Otherwise, if the new type is unsigned, the value is converted by repeatedly
+	 * adding or subtracting one more than the maximum value that can be represented
+	 * in the new type until the value is in the range of the new type.
 	 * 
-	 * Otherwise, the new type is signed and the value cannot be represented in
-	 * it; either the result is implementation-defined or an
-	 * implementation-defined signal is raised. </blockquote>
+	 * Otherwise, the new type is signed and the value cannot be represented in it;
+	 * either the result is implementation-defined or an implementation-defined
+	 * signal is raised. </blockquote>
 	 * 
 	 * 
 	 * @param value
@@ -758,8 +602,7 @@ public class CommonValueFactory implements ValueFactory {
 					return integerValue(newType, intVal);
 				} else if (oldType instanceof StandardSignedIntegerType) {
 					SignedIntKind newKind = newSigned.getIntKind();
-					SignedIntKind oldKind = ((StandardSignedIntegerType) oldType)
-							.getIntKind();
+					SignedIntKind oldKind = ((StandardSignedIntegerType) oldType).getIntKind();
 
 					if (newKind.compareTo(oldKind) > 0)
 						return integerValue(newType, intVal);
@@ -771,8 +614,7 @@ public class CommonValueFactory implements ValueFactory {
 					return integerValue(newType, intVal);
 				} else if (oldType instanceof StandardUnsignedIntegerType) {
 					UnsignedIntKind newKind = newSigned.getIntKind();
-					UnsignedIntKind oldKind = ((StandardUnsignedIntegerType) oldType)
-							.getIntKind();
+					UnsignedIntKind oldKind = ((StandardUnsignedIntegerType) oldType).getIntKind();
 
 					if (newKind.compareTo(oldKind) > 0)
 						return integerValue(newType, intVal);
@@ -803,38 +645,36 @@ public class CommonValueFactory implements ValueFactory {
 		IntegerType type;
 
 		switch (operator) {
-			case PLUS :
-			case TIMES :
-			case MINUS :
-			case DIV :
-			case SHIFTLEFT :
-			case SHIFTRIGHT :
-				type = type1;
-				break;
-			case EQUALS :
-			case LTE :
-			case GTE :
-			case NEQ :
-			case LT :
-			case GT :
-				type = SINT;
-				break;
-			default :
-				throw new RuntimeException(
-						"This method should not be called with operator "
-								+ operator);
+		case PLUS:
+		case TIMES:
+		case MINUS:
+		case DIV:
+		case SHIFTLEFT:
+		case SHIFTRIGHT:
+			type = type1;
+			break;
+		case EQUALS:
+		case LTE:
+		case GTE:
+		case NEQ:
+		case LT:
+		case GT:
+			type = SINT;
+			break;
+		default:
+			throw new RuntimeException("This method should not be called with operator " + operator);
 		}
 		if (a1.equals(a2)) {
 			switch (operator) {
-				case EQUALS :
-				case LTE :
-				case GTE :
-					return SINT_ONE;
-				case NEQ :
-				case LT :
-				case GT :
-					return SINT_ZERO;
-				default :
+			case EQUALS:
+			case LTE:
+			case GTE:
+				return SINT_ONE;
+			case NEQ:
+			case LT:
+			case GT:
+				return SINT_ZERO;
+			default:
 			}
 		}
 		if (a1 instanceof IntegerValue && a2 instanceof IntegerValue) {
@@ -843,71 +683,60 @@ public class CommonValueFactory implements ValueFactory {
 			BigInteger v3 = null;
 
 			switch (operator) {
-				case PLUS :
-					v3 = v1.add(v2);
-					break;
-				case TIMES :
-					v3 = v1.multiply(v2);
-					break;
-				case MINUS :
-					v3 = v1.subtract(v2);
-					break;
-				case DIV :
-					v3 = v1.divide(v2);
-					break;
-				case EQUALS :
-					v3 = BigInteger.ZERO;
-					break;
-				case NEQ :
-					v3 = BigInteger.ONE;
-					break;
-				case LT :
-					v3 = v1.compareTo(v2) < 0
-							? BigInteger.ONE
-							: BigInteger.ZERO;
-					break;
-				case GT :
-					v3 = v1.compareTo(v2) > 0
-							? BigInteger.ONE
-							: BigInteger.ZERO;
-					break;
-				case LTE :
-					v3 = v1.compareTo(v2) <= 0
-							? BigInteger.ONE
-							: BigInteger.ZERO;
-					break;
-				case GTE :
-					v3 = v1.compareTo(v2) >= 0
-							? BigInteger.ONE
-							: BigInteger.ZERO;
-					break;
-				case SHIFTLEFT :
-				case SHIFTRIGHT :
-					if (v1.signum() >= 0 && v2.signum() >= 0
-							&& MAX_JINT.compareTo(v2) >= 0) {
-						int v2small = v2.intValue();
+			case PLUS:
+				v3 = v1.add(v2);
+				break;
+			case TIMES:
+				v3 = v1.multiply(v2);
+				break;
+			case MINUS:
+				v3 = v1.subtract(v2);
+				break;
+			case DIV:
+				v3 = v1.divide(v2);
+				break;
+			case EQUALS:
+				v3 = BigInteger.ZERO;
+				break;
+			case NEQ:
+				v3 = BigInteger.ONE;
+				break;
+			case LT:
+				v3 = v1.compareTo(v2) < 0 ? BigInteger.ONE : BigInteger.ZERO;
+				break;
+			case GT:
+				v3 = v1.compareTo(v2) > 0 ? BigInteger.ONE : BigInteger.ZERO;
+				break;
+			case LTE:
+				v3 = v1.compareTo(v2) <= 0 ? BigInteger.ONE : BigInteger.ZERO;
+				break;
+			case GTE:
+				v3 = v1.compareTo(v2) >= 0 ? BigInteger.ONE : BigInteger.ZERO;
+				break;
+			case SHIFTLEFT:
+			case SHIFTRIGHT:
+				if (v1.signum() >= 0 && v2.signum() >= 0 && MAX_JINT.compareTo(v2) >= 0) {
+					int v2small = v2.intValue();
 
-						if (operator == Operator.SHIFTLEFT)
-							v3 = v1.shiftLeft(v2small);
-						else
-							v3 = v1.shiftRight(v2small);
-					}
-					break;
-				default :
+					if (operator == Operator.SHIFTLEFT)
+						v3 = v1.shiftLeft(v2small);
+					else
+						v3 = v1.shiftRight(v2small);
+				}
+				break;
+			default:
 			}
 			if (v3 != null && type instanceof StandardSignedIntegerType
 					&& ((StandardSignedIntegerType) type).inMinimumRange(v3)
 					|| type instanceof StandardUnsignedIntegerType
-							&& ((StandardUnsignedIntegerType) type)
-									.inMinimumRange(v3)) {
+							&& ((StandardUnsignedIntegerType) type).inMinimumRange(v3)) {
 				return integerValue(type, v3);
 			}
 		}
-		return operatorValue(type, operator, new Value[]{a1, a2});
+		return operatorValue(type, operator, new Value[] { a1, a2 });
 	}
 
-	private Value evaluateMemberAccess(Value structureOrUnionValue, Field field)
-			throws UnsourcedException {
+	private Value evaluateMemberAccess(Value structureOrUnionValue, Field field) throws UnsourcedException {
 		if (structureOrUnionValue instanceof StructureValue) {
 			return ((StructureValue) structureOrUnionValue).getMember(field);
 		}
@@ -917,14 +746,11 @@ public class CommonValueFactory implements ValueFactory {
 
 			if (!unionField.equals(field))
 				throw new UnsourcedException(
-						"Union value field differs from requested field:\n"
-								+ unionField + "\n" + field);
+						"Union value field differs from requested field:\n" + unionField + "\n" + field);
 			return unionValue.getMemberValue();
 		}
 		// TODO: need to create a new dot value.
-		throw new UnsourcedException(
-				"Cannot evaluate structure or union value: "
-						+ structureOrUnionValue);
+		throw new UnsourcedException("Cannot evaluate structure or union value: " + structureOrUnionValue);
 	}
 
 	private SyntaxException error(String message, ASTNode node) {

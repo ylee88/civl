@@ -33,9 +33,7 @@ import dev.civl.sarl.IF.number.IntegerNumber;
  * @author Manchun Zheng (zmanchun)
  * 
  */
-public abstract class BaseLibraryExecutor extends LibraryComponent
-		implements
-			LibraryExecutor {
+public abstract class BaseLibraryExecutor extends LibraryComponent implements LibraryExecutor {
 
 	/* ************************** Instance Fields ************************** */
 
@@ -50,8 +48,7 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 	protected StateFactory stateFactory;
 
 	/**
-	 * The set of characters that are used to construct a number in a format
-	 * string.
+	 * The set of characters that are used to construct a number in a format string.
 	 */
 	protected Set<Character> numbers;
 
@@ -67,27 +64,18 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 	/**
 	 * Creates a new instance of a library executor.
 	 * 
-	 * @param primaryExecutor
-	 *            The executor for normal CIVL execution.
-	 * @param output
-	 *            The output stream to be used in the enabler.
-	 * @param enablePrintf
-	 *            If printing is enabled for the printf function.
-	 * @param modelFactory
-	 *            The model factory of the system.
-	 * @param symbolicUtil
-	 *            The symbolic utility used in the system.
-	 * @param symbolicAnalyzer
-	 *            The symbolic analyzer used in the system.
+	 * @param primaryExecutor  The executor for normal CIVL execution.
+	 * @param output           The output stream to be used in the enabler.
+	 * @param enablePrintf     If printing is enabled for the printf function.
+	 * @param modelFactory     The model factory of the system.
+	 * @param symbolicUtil     The symbolic utility used in the system.
+	 * @param symbolicAnalyzer The symbolic analyzer used in the system.
 	 */
-	public BaseLibraryExecutor(String name, Executor primaryExecutor,
-			ModelFactory modelFactory, SymbolicUtility symbolicUtil,
-			SymbolicAnalyzer symbolicAnalyzer, CIVLConfiguration civlConfig,
-			LibraryExecutorLoader libExecutorLoader,
-			LibraryEvaluatorLoader libEvaluatorLoader) {
-		super(name, primaryExecutor.evaluator().universe(), symbolicUtil,
-				symbolicAnalyzer, civlConfig, libEvaluatorLoader, modelFactory,
-				primaryExecutor.errorLogger(), primaryExecutor.evaluator());
+	public BaseLibraryExecutor(String name, Executor primaryExecutor, ModelFactory modelFactory,
+			SymbolicUtility symbolicUtil, SymbolicAnalyzer symbolicAnalyzer, CIVLConfiguration civlConfig,
+			LibraryExecutorLoader libExecutorLoader, LibraryEvaluatorLoader libEvaluatorLoader) {
+		super(name, primaryExecutor.evaluator().universe(), symbolicUtil, symbolicAnalyzer, civlConfig,
+				libEvaluatorLoader, modelFactory, primaryExecutor.errorLogger(), primaryExecutor.evaluator());
 		this.primaryExecutor = primaryExecutor;
 		this.stateFactory = evaluator.stateFactory();
 		this.errorLogger = primaryExecutor.errorLogger();
@@ -102,71 +90,56 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 	/* ************************* Protected Methods ************************* */
 
 	/**
-	 * Executes the function call "$free(*void)": removes from the heap the
-	 * object referred to by the given pointer.
+	 * Executes the function call "$free(*void)": removes from the heap the object
+	 * referred to by the given pointer.
 	 * 
-	 * @param state
-	 *            The current state.
-	 * @param pid
-	 *            The ID of the process that the function call belongs to.
-	 * @param arguments
-	 *            The static representation of the arguments of the function
-	 *            call.
-	 * @param argumentValues
-	 *            The dynamic representation of the arguments of the function
-	 *            call.
-	 * @param source
-	 *            The source code element to be used for error report.
+	 * @param state          The current state.
+	 * @param pid            The ID of the process that the function call belongs
+	 *                       to.
+	 * @param arguments      The static representation of the arguments of the
+	 *                       function call.
+	 * @param argumentValues The dynamic representation of the arguments of the
+	 *                       function call.
+	 * @param source         The source code element to be used for error report.
 	 * @return The new state after executing the function call.
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	protected Evaluation executeFree(State state, int pid, String process,
-			Expression[] arguments, SymbolicExpression[] argumentValues,
-			CIVLSource source) throws UnsatisfiablePathConditionException {
+	protected Evaluation executeFree(State state, int pid, String process, Expression[] arguments,
+			SymbolicExpression[] argumentValues, CIVLSource source) throws UnsatisfiablePathConditionException {
 		SymbolicExpression firstElementPointer = argumentValues[0];
-		Pair<BooleanExpression, ResultType> checkPointer = symbolicAnalyzer
-				.isDefinedPointer(state, firstElementPointer, source);
+		Pair<BooleanExpression, ResultType> checkPointer = symbolicAnalyzer.isDefinedPointer(state, firstElementPointer,
+				source);
 
-		if (civlConfig.isPropertyToggled(CIVLProperty.MEMORY_MANAGE)
-				&& checkPointer.right != ResultType.YES) {
-			state = this.errorLogger.logError(source, state, pid,
-					symbolicAnalyzer.stateInformation(state), checkPointer.left,
-					checkPointer.right, CIVLProperty.MEMORY_MANAGE,
+		if (civlConfig.isPropertyToggled(CIVLProperty.MEMORY_MANAGE) && checkPointer.right != ResultType.YES) {
+			state = this.errorLogger.logError(source, state, pid, symbolicAnalyzer.stateInformation(state),
+					checkPointer.left, checkPointer.right, CIVLProperty.MEMORY_MANAGE,
 					"attempt to deallocate memory space through an undefined pointer");
 			// dont report unsatisfiable path condition exception
 		} else if (this.symbolicUtil.isNullPointer(firstElementPointer)) {
 			// does nothing for null pointer.
 		} else if (civlConfig.isPropertyToggled(CIVLProperty.MEMORY_MANAGE)
 				&& (!this.symbolicUtil.isPointerToHeap(firstElementPointer)
-						|| !this.symbolicUtil.isMallocPointer(source,
-								firstElementPointer))) {
-			this.errorLogger.logSimpleError(source, state, pid, process,
-					symbolicAnalyzer.stateInformation(state),
+						|| !this.symbolicUtil.isMallocPointer(source, firstElementPointer))) {
+			this.errorLogger.logSimpleError(source, state, pid, process, symbolicAnalyzer.stateInformation(state),
 					CIVLProperty.MEMORY_MANAGE,
 					"the argument of free "
-							+ symbolicAnalyzer.symbolicExpressionToString(
-									source, state,
-									arguments[0].getExpressionType(),
-									firstElementPointer)
-							+ " is not a pointer returned by a memory "
-							+ "management method");
+							+ symbolicAnalyzer.symbolicExpressionToString(source, state,
+									arguments[0].getExpressionType(), firstElementPointer)
+							+ " is not a pointer returned by a memory " + "management method");
 		} else {
 			Evaluation eval;
 			SymbolicExpression heapObject = null;
-			Pair<BooleanExpression, ResultType> checkDerefable = symbolicAnalyzer
-					.isDerefablePointer(state, firstElementPointer);
+			Pair<BooleanExpression, ResultType> checkDerefable = symbolicAnalyzer.isDerefablePointer(state,
+					firstElementPointer);
 
 			if (checkDerefable.right == ResultType.YES) {
-				eval = evaluator.dereference(source, state, pid, process,
-						firstElementPointer, false, true);
+				eval = evaluator.dereference(source, state, pid, process, firstElementPointer, false, true);
 				heapObject = eval.value;
 				state = eval.state;
 			}
-			if (civlConfig.isPropertyToggled(CIVLProperty.MEMORY_MANAGE)
-					&& heapObject != null && heapObject.isNull()) {
+			if (civlConfig.isPropertyToggled(CIVLProperty.MEMORY_MANAGE) && heapObject != null && heapObject.isNull()) {
 				// the heap object has been deallocated
-				this.errorLogger.logSimpleError(source, state, pid, process,
-						symbolicAnalyzer.stateInformation(state),
+				this.errorLogger.logSimpleError(source, state, pid, process, symbolicAnalyzer.stateInformation(state),
 						CIVLProperty.MEMORY_MANAGE,
 						"attempt to deallocate an object that has been deallocated previously");
 			} else {
@@ -175,18 +148,14 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 
 				indexes = getMallocIndex(firstElementPointer);
 				if (saveWrite) {
-					SymbolicExpression pointer2memoryBlk = symbolicUtil
-							.parentPointer(firstElementPointer);
+					SymbolicExpression pointer2memoryBlk = symbolicUtil.parentPointer(firstElementPointer);
 
-					eval = evaluator.memEvaluator().pointer2memValue(state, pid,
-							pointer2memoryBlk, source);
+					eval = evaluator.memEvaluator().pointer2memValue(state, pid, pointer2memoryBlk, source);
 					state = eval.state;
-					state = stateFactory.addReadWriteRecords(state, pid,
-							eval.value, false);
+					state = stateFactory.addReadWriteRecords(state, pid, eval.value, false);
 				}
 				state = stateFactory.deallocate(state, firstElementPointer,
-						symbolicUtil.getScopeValue(firstElementPointer),
-						indexes.left, indexes.right);
+						symbolicUtil.getScopeValue(firstElementPointer), indexes.left, indexes.right);
 			}
 		}
 		return new Evaluation(state, null);
@@ -198,47 +167,33 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 	 * $assert() and $assert_equal();
 	 * 
 	 * @author ziqing luo
-	 * @param state
-	 *            The current state
-	 * @param pid
-	 *            The PID of the process
-	 * @param process
-	 *            The string identifier of the process
-	 * @param resultType
-	 *            The {@link ResultType} of the failure assertion
-	 * @param arguments
-	 *            The expressions of the arguments
-	 * @param argumentValues
-	 *            The symbolic expressions of the arguments
-	 * @param source
-	 *            The CIVL source of the assertion statement
-	 * @param claim
-	 *            The boolean expression of the value of the assertion claim
-	 * @param msgOffset
-	 *            the start index in arguments list of the assertion failure
-	 *            messages.
+	 * @param state          The current state
+	 * @param pid            The PID of the process
+	 * @param process        The string identifier of the process
+	 * @param resultType     The {@link ResultType} of the failure assertion
+	 * @param arguments      The expressions of the arguments
+	 * @param argumentValues The symbolic expressions of the arguments
+	 * @param source         The CIVL source of the assertion statement
+	 * @param claim          The boolean expression of the value of the assertion
+	 *                       claim
+	 * @param msgOffset      the start index in arguments list of the assertion
+	 *                       failure messages.
 	 * @return the new state after reporting the assertion failure
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	protected State reportAssertionFailure(State state, int pid, String process,
-			ResultType resultType, String message, Expression[] arguments,
-			SymbolicExpression[] argumentValues, CIVLSource source,
-			BooleanExpression claim, int msgOffset)
-			throws UnsatisfiablePathConditionException {
+	protected State reportAssertionFailure(State state, int pid, String process, ResultType resultType, String message,
+			Expression[] arguments, SymbolicExpression[] argumentValues, CIVLSource source, BooleanExpression claim,
+			int msgOffset) throws UnsatisfiablePathConditionException {
 		assert resultType != ResultType.YES;
 		if (arguments.length > msgOffset) {
-			Expression[] pArguments = Arrays.copyOfRange(arguments, msgOffset,
-					arguments.length);
-			SymbolicExpression[] pArgumentValues = Arrays.copyOfRange(
-					argumentValues, msgOffset, argumentValues.length);
+			Expression[] pArguments = Arrays.copyOfRange(arguments, msgOffset, arguments.length);
+			SymbolicExpression[] pArgumentValues = Arrays.copyOfRange(argumentValues, msgOffset, argumentValues.length);
 
-			state = this.primaryExecutor.execute_printf(source, state, pid,
-					process, pArguments, pArgumentValues,
-					this.civlConfig.svcomp()).state;
+			state = this.primaryExecutor.execute_printf(source, state, pid, process, pArguments, pArgumentValues,
+					false).state;
 			civlConfig.out().println();
 		}
-		state = errorLogger.logError(source, state, pid,
-				this.symbolicAnalyzer.stateInformation(state), claim,
+		state = errorLogger.logError(source, state, pid, this.symbolicAnalyzer.stateInformation(state), claim,
 				resultType, CIVLProperty.ASSERTION_VIOLATION, message);
 		return state;
 	}
@@ -246,10 +201,8 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 	/**
 	 * $exit terminates the calling process.
 	 * 
-	 * @param state
-	 *            The current state.
-	 * @param pid
-	 *            The process ID of the process to be terminated.
+	 * @param state The current state.
+	 * @param pid   The process ID of the process to be terminated.
 	 * @return The state resulting from removing the specified process.
 	 */
 	protected Evaluation executeExit(State state, int pid) {
@@ -262,8 +215,8 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 	}
 
 	@Override
-	public Evaluation execute(State state, int pid, CallOrSpawnStatement call,
-			String functionName) throws UnsatisfiablePathConditionException {
+	public Evaluation execute(State state, int pid, CallOrSpawnStatement call, String functionName)
+			throws UnsatisfiablePathConditionException {
 		Evaluation eval;
 		LHSExpression lhs = call.lhs();
 		Location target = call.target();
@@ -281,12 +234,10 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 			argumentValues[i] = eval.value;
 			state = eval.state;
 		}
-		eval = this.executeValue(state, pid, process, call.getSource(),
-				functionName, arguments, argumentValues);
+		eval = this.executeValue(state, pid, process, call.getSource(), functionName, arguments, argumentValues);
 		state = eval.state;
 		if (lhs != null && eval.value != null)
-			state = this.primaryExecutor.assign(state, pid, process, lhs,
-					eval.value, call.isInitializer());
+			state = this.primaryExecutor.assign(state, pid, process, lhs, eval.value, call.isInitializer());
 		if (target != null && !state.getProcessState(pid).hasEmptyStack())
 			state = this.stateFactory.setLocation(state, pid, target);
 		eval.state = state;
@@ -298,9 +249,8 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 		super.evaluator = primaryEvaluator;
 	}
 
-	abstract protected Evaluation executeValue(State state, int pid,
-			String process, CIVLSource source, String functionName,
-			Expression[] arguments, SymbolicExpression[] argumentValues)
+	abstract protected Evaluation executeValue(State state, int pid, String process, CIVLSource source,
+			String functionName, Expression[] arguments, SymbolicExpression[] argumentValues)
 			throws UnsatisfiablePathConditionException;
 
 	/* ************************** Private Methods ************************** */
@@ -308,23 +258,18 @@ public abstract class BaseLibraryExecutor extends LibraryComponent
 	/**
 	 * Obtains the field ID in the heap type via a heap-object pointer.
 	 * 
-	 * @param pointer
-	 *            The heap-object pointer.
+	 * @param pointer The heap-object pointer.
 	 * @return The field ID in the heap type of the heap-object that the given
 	 *         pointer refers to.
 	 */
 	private Pair<Integer, Integer> getMallocIndex(SymbolicExpression pointer) {
 		// ref points to element 0 of an array:
-		NTReferenceExpression ref = (NTReferenceExpression) symbolicUtil
-				.getSymRef(pointer);
+		NTReferenceExpression ref = (NTReferenceExpression) symbolicUtil.getSymRef(pointer);
 		// objectPointer points to array:
-		ArrayElementReference objectPointer = (ArrayElementReference) ref
-				.getParent();
-		int mallocIndex = ((IntegerNumber) universe
-				.extractNumber(objectPointer.getIndex())).intValue();
+		ArrayElementReference objectPointer = (ArrayElementReference) ref.getParent();
+		int mallocIndex = ((IntegerNumber) universe.extractNumber(objectPointer.getIndex())).intValue();
 		// fieldPointer points to the field:
-		TupleComponentReference fieldPointer = (TupleComponentReference) objectPointer
-				.getParent();
+		TupleComponentReference fieldPointer = (TupleComponentReference) objectPointer.getParent();
 		int mallocId = fieldPointer.getIndex().getInt();
 
 		return new Pair<>(mallocId, mallocIndex);
