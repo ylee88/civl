@@ -204,11 +204,4 @@ public interface ProverInfo extends Comparable<ProverInfo> {
 	 * @param out where to print
 	 */
 	void print(PrintStream out);
-
-	/**
-	 * Is this an executable theorem prover (as opposed to an API-based prover)?
-	 * 
-	 * @return <code>true</code> if this is an executable prover
-	 */
-	boolean isExecutable();
 }

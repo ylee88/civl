@@ -8,7 +8,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import dev.civl.sarl.IF.SARLInternalException;
 import dev.civl.sarl.IF.config.ProverInfo;
 
 /**
@@ -212,8 +211,8 @@ public class CommonProverInfo implements ProverInfo {
 	 * {@inheritDoc}
 	 * 
 	 * The order is from most to least preferred by SARL. All executables come
-	 * before all dynamic libraries (APIs). CVC4 comes before Z3 comes before
-	 * CVC3. More recent versions come before older versions.
+	 * before all dynamic libraries (APIs). CVC4 comes before Z3 comes before CVC3.
+	 * More recent versions come before older versions.
 	 */
 	@Override
 	public int compareTo(ProverInfo that) {
@@ -236,8 +235,7 @@ public class CommonProverInfo implements ProverInfo {
 		result = Boolean.compare(showErrors, that.getShowErrors());
 		if (result != 0)
 			return result;
-		result = Boolean.compare(showInconclusives,
-				that.getShowInconclusives());
+		result = Boolean.compare(showInconclusives, that.getShowInconclusives());
 		if (result != 0)
 			return result;
 		result = Boolean.compare(showQueries, that.getShowQueries());
@@ -257,19 +255,6 @@ public class CommonProverInfo implements ProverInfo {
 			return this.compareTo(that) == 0;
 		}
 		return false;
-	}
-
-	@Override
-	public boolean isExecutable() {
-		switch (kind) {
-		case CVC4:
-		case CVC5:
-		case Z3:
-		case ALT_ERGO:
-			return true;
-		default:
-			throw new SARLInternalException("unreachable");
-		}
 	}
 
 	@Override

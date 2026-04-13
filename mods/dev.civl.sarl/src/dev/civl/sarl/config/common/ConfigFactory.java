@@ -528,18 +528,12 @@ public class ConfigFactory {
 	 */
 	public static void checkConfig(SARLConfig config) throws SARLException {
 		for (ProverInfo info : config.getProvers()) {
-			if (info.isExecutable()) {
-				ProverInfo reread = processExecutableProver(info.getKind(), info.getFirstAlias(), info.getPath());
-
-				if (reread == null)
-					throw new SARLException("no theorem prover " + info.getFirstAlias() + " at " + info.getPath());
-				if (!reread.getVersion().equals(info.getVersion()))
-					throw new SARLException("expected version " + info.getVersion() + " for " + info.getFirstAlias()
-							+ " but found " + reread.getVersion());
-			} else {
-				throw new SARLException(
-						"dynamic library " + info.getPath() + " for " + info.getFirstAlias() + " not found");
-			}
+			ProverInfo reread = processExecutableProver(info.getKind(), info.getFirstAlias(), info.getPath());
+			if (reread == null)
+				throw new SARLException("no theorem prover " + info.getFirstAlias() + " at " + info.getPath());
+			if (!reread.getVersion().equals(info.getVersion()))
+				throw new SARLException("expected version " + info.getVersion() + " for " + info.getFirstAlias()
+						+ " but found " + reread.getVersion());
 		}
 	}
 
@@ -670,7 +664,7 @@ public class ConfigFactory {
 		if (provers.isEmpty()) {
 			err.println("No appropriate theorem provers were found in your PATH.");
 			err.println("SARL's theorem proving capability will be very limited.");
-			err.println("Consider installing at least one of CVC3, CVC4, or Z3.");
+			err.println("Consider installing at least one of Alt-Ergo, CVC4, CVC5, or Z3.");
 			err.flush();
 		}
 		out.println("SARL configuration file created successfully in " + configFile.getAbsolutePath());
