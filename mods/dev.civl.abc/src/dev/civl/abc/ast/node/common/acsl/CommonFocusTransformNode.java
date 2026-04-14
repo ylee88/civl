@@ -73,6 +73,14 @@ public abstract class CommonFocusTransformNode extends CommonTransformNode
 	}
 	
 	protected ExpressionNode replaceIdent(ExpressionNode expr, String origName, ExpressionNode replacementExpr) {
+		// If the top-level expression is itself the identifier to replace,
+		// return a copy of the replacement directly — the copied root has no
+		// parent, so replaceIdentHelper would NPE trying to call parent.removeChild().
+		if (expr.expressionKind() == ExpressionNode.ExpressionKind.IDENTIFIER_EXPRESSION) {
+			IdentifierNode ident = ((IdentifierExpressionNode) expr).getIdentifier();
+			if (ident.name().equals(origName))
+				return replacementExpr.copy();
+		}
 		ExpressionNode result = expr.copy();
 		replaceIdentHelper(result, origName, replacementExpr);
 		return result;

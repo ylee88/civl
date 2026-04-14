@@ -8,16 +8,23 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import dev.civl.abc.ast.node.IF.NodeFactory;
+import dev.civl.abc.ast.node.IF.PairNode;
+import dev.civl.abc.ast.node.IF.SequenceNode;
 import dev.civl.abc.ast.node.IF.acsl.ContractNode;
 import dev.civl.abc.ast.node.IF.acsl.FocusOrderedTransformNode;
+import dev.civl.abc.ast.node.IF.declaration.VariableDeclarationNode;
 import dev.civl.abc.ast.node.IF.expression.ExpressionNode;
 import dev.civl.abc.ast.node.IF.expression.ExpressionNode.ExpressionKind;
 import dev.civl.abc.ast.node.IF.expression.IdentifierExpressionNode;
 import dev.civl.abc.ast.node.IF.expression.IntegerConstantNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode.Operator;
+import dev.civl.abc.ast.node.IF.expression.QuantifiedExpressionNode;
+import dev.civl.abc.ast.node.IF.expression.QuantifiedExpressionNode.Quantifier;
 import dev.civl.abc.ast.node.IF.expression.RegularRangeNode;
 import dev.civl.abc.ast.node.IF.statement.BlockItemNode;
+import dev.civl.abc.ast.node.IF.type.BasicTypeNode;
+import dev.civl.abc.ast.type.IF.StandardBasicType.BasicTypeKind;
 import dev.civl.abc.token.IF.Source;
 import dev.civl.abc.token.IF.SyntaxException;
 import dev.civl.abc.token.IF.TokenFactory;
@@ -45,97 +52,158 @@ public class CommonFocusOrderedTransformNode extends CommonFocusTransformNode
 	public List<BlockItemNode> transform(List<BlockItemNode> items)
 			throws SyntaxException {
 		String focusVarName = focusData.getVarNameFromTag(focusTag);
-		String altFocusVarName = focusData.getAltVarNameFromTag(focusTag);
+//		String altFocusVarName = focusData.getAltVarNameFromTag(focusTag);
 		List<BlockItemNode> result = new LinkedList<>();
 		result.add(
 				nodeFactory.newExpressionStatementNode(functionCall("$assert",
 						Arrays.asList(implies(
 								genOrderContext(focusVarName, 0, 1),
 								genOrderExpression(focusVarName, 0, 1))))));
-		SortedSet<Integer> offsets = computeOrderedOffsets();
-		int firstOffset = offsets.first();
-		int lastOffset = firstOffset - 1;
-		for (Integer offset : offsets) {
-			if (lastOffset != firstOffset-1) {
-				result.add(nodeFactory.newExpressionStatementNode(functionCall(
-						"$assume",
-						Arrays.asList(implies(
-								genOrderContext(focusVarName, lastOffset,
-										offset),
-								genOrderExpression(focusVarName, lastOffset,
-										offset))))));
-				result.add(nodeFactory.newExpressionStatementNode(functionCall(
-						"$assume",
-						Arrays.asList(implies(
-								genOrderContext(altFocusVarName, lastOffset,
-										offset),
-								genOrderExpression(altFocusVarName, lastOffset,
-										offset))))));
-			}
+//		SortedSet<Integer> offsets = computeOrderedOffsets();
+//		int firstOffset = offsets.first();
+//		int lastOffset = firstOffset - 1;
+//		for (Integer offset : offsets) {
+//			if (lastOffset != firstOffset-1) {
+//				result.add(nodeFactory.newExpressionStatementNode(functionCall(
+//						"$assume",
+//						Arrays.asList(implies(
+//								genOrderContext(focusVarName, lastOffset,
+//										offset),
+//								genOrderExpression(focusVarName, lastOffset,
+//										offset))))));
+//				result.add(nodeFactory.newExpressionStatementNode(functionCall(
+//						"$assume",
+//						Arrays.asList(implies(
+//								genOrderContext(altFocusVarName, lastOffset,
+//										offset),
+//								genOrderExpression(altFocusVarName, lastOffset,
+//										offset))))));
+//			}
+//
+//			lastOffset = offset;
+//		}
+//		result.add(nodeFactory.newExpressionStatementNode(functionCall(
+//				"$assume", Arrays
+//						.asList(implies(
+//								genOrderContext(getRangeLow().copy(),
+//										genVarWithOffset(focusVarName,
+//												firstOffset),
+//										true),
+//								genOrderExpression(getRangeLow().copy(),
+//										genVarWithOffset(focusVarName,
+//												firstOffset)))))));
+//		result.add(
+//				nodeFactory.newExpressionStatementNode(functionCall("$assume",
+//						Arrays.asList(implies(
+//								genOrderContext(
+//										genVarWithOffset(focusVarName,
+//												lastOffset),
+//										getRangeHigh().copy(), true),
+//								genOrderExpression(
+//										genVarWithOffset(focusVarName,
+//												lastOffset),
+//										getRangeHigh().copy()))))));
+//		result.add(nodeFactory.newExpressionStatementNode(functionCall(
+//				"$assume", Arrays
+//						.asList(implies(
+//								genOrderContext(getRangeLow().copy(),
+//										genVarWithOffset(altFocusVarName,
+//												firstOffset),
+//										true),
+//								genOrderExpression(getRangeLow().copy(),
+//										genVarWithOffset(altFocusVarName,
+//												firstOffset)))))));
+//		result.add(
+//				nodeFactory.newExpressionStatementNode(functionCall("$assume",
+//						Arrays.asList(implies(
+//								genOrderContext(
+//										genVarWithOffset(altFocusVarName,
+//												lastOffset),
+//										getRangeHigh().copy(), true),
+//								genOrderExpression(
+//										genVarWithOffset(altFocusVarName,
+//												lastOffset),
+//										getRangeHigh().copy()))))));
+//		result.add(nodeFactory.newExpressionStatementNode(functionCall(
+//				"$assume",
+//				Arrays.asList(implies(genOrderContext(
+//						genVarWithOffset(altFocusVarName, lastOffset),
+//						genVarWithOffset(focusVarName, firstOffset), true),
+//						genOrderExpression(
+//								genVarWithOffset(altFocusVarName, lastOffset),
+//								genVarWithOffset(focusVarName,
+//										firstOffset)))))));
+//		result.add(nodeFactory.newExpressionStatementNode(
+//				functionCall("$assume", Arrays.asList(implies(genOrderContext(
+//						genVarWithOffset(focusVarName, lastOffset),
+//						genVarWithOffset(altFocusVarName, firstOffset), true),
+//						genOrderExpression(
+//								genVarWithOffset(focusVarName, lastOffset),
+//								genVarWithOffset(altFocusVarName,
+//										firstOffset)))))));
 
-			lastOffset = offset;
-		}
-		result.add(nodeFactory.newExpressionStatementNode(functionCall(
-				"$assume", Arrays
-						.asList(implies(
-								genOrderContext(getRangeLow().copy(),
-										genVarWithOffset(focusVarName,
-												firstOffset),
-										true),
-								genOrderExpression(getRangeLow().copy(),
-										genVarWithOffset(focusVarName,
-												firstOffset)))))));
-		result.add(
-				nodeFactory.newExpressionStatementNode(functionCall("$assume",
-						Arrays.asList(implies(
-								genOrderContext(
-										genVarWithOffset(focusVarName,
-												lastOffset),
-										getRangeHigh().copy(), true),
-								genOrderExpression(
-										genVarWithOffset(focusVarName,
-												lastOffset),
-										getRangeHigh().copy()))))));
-		result.add(nodeFactory.newExpressionStatementNode(functionCall(
-				"$assume", Arrays
-						.asList(implies(
-								genOrderContext(getRangeLow().copy(),
-										genVarWithOffset(altFocusVarName,
-												firstOffset),
-										true),
-								genOrderExpression(getRangeLow().copy(),
-										genVarWithOffset(altFocusVarName,
-												firstOffset)))))));
-		result.add(
-				nodeFactory.newExpressionStatementNode(functionCall("$assume",
-						Arrays.asList(implies(
-								genOrderContext(
-										genVarWithOffset(altFocusVarName,
-												lastOffset),
-										getRangeHigh().copy(), true),
-								genOrderExpression(
-										genVarWithOffset(altFocusVarName,
-												lastOffset),
-										getRangeHigh().copy()))))));
-		result.add(nodeFactory.newExpressionStatementNode(functionCall(
-				"$assume",
-				Arrays.asList(implies(genOrderContext(
-						genVarWithOffset(altFocusVarName, lastOffset),
-						genVarWithOffset(focusVarName, firstOffset), true),
-						genOrderExpression(
-								genVarWithOffset(altFocusVarName, lastOffset),
-								genVarWithOffset(focusVarName,
-										firstOffset)))))));
+		// Build a single $assume($forall (int i: lo..hi; int j: lo..hi)
+		//   !(i op j) || (expr[i] op expr[j]))
+		// where op is the user-specified ordering operator and lo..hi is the
+		// range from the ordered annotation.
+		Source forallSource = newSource("transform", "$forall assumption");
+		String iName = "i";
+		String jName = "j";
+
+		// int type nodes for each bound variable
+		BasicTypeNode intTypeI = nodeFactory.newBasicTypeNode(forallSource,
+				BasicTypeKind.INT);
+		BasicTypeNode intTypeJ = nodeFactory.newBasicTypeNode(forallSource,
+				BasicTypeKind.INT);
+
+		// Variable declarations: int i, int j
+		VariableDeclarationNode iDecl = nodeFactory.newVariableDeclarationNode(
+				forallSource, identifier(iName), intTypeI);
+		VariableDeclarationNode jDecl = nodeFactory.newVariableDeclarationNode(
+				forallSource, identifier(jName), intTypeJ);
+
+		// Wrap each declaration in a singleton sequence
+		SequenceNode<VariableDeclarationNode> iDeclSeq = nodeFactory
+				.newSequenceNode(forallSource, "i decl", Arrays.asList(iDecl));
+		SequenceNode<VariableDeclarationNode> jDeclSeq = nodeFactory
+				.newSequenceNode(forallSource, "j decl", Arrays.asList(jDecl));
+
+		// Domain ranges lo..hi for each bound variable
+		RegularRangeNode iDomain = nodeFactory.newRegularRangeNode(forallSource,
+				getRangeLow().copy(), getRangeHigh().copy());
+		RegularRangeNode jDomain = nodeFactory.newRegularRangeNode(forallSource,
+				getRangeLow().copy(), getRangeHigh().copy());
+
+		// Pair (decl list, domain) for each group
+		PairNode<SequenceNode<VariableDeclarationNode>, ExpressionNode> iPair =
+				nodeFactory.newPairNode(forallSource, iDeclSeq, iDomain);
+		PairNode<SequenceNode<VariableDeclarationNode>, ExpressionNode> jPair =
+				nodeFactory.newPairNode(forallSource, jDeclSeq, jDomain);
+
+		// Bound variable list: (int i: lo..hi; int j: lo..hi)
+		SequenceNode<PairNode<SequenceNode<VariableDeclarationNode>, ExpressionNode>> boundVarList =
+				nodeFactory.newSequenceNode(forallSource, "bound var list",
+						Arrays.asList(iPair, jPair));
+
+		// Body: implies(i < j, expr[i] op expr[j])
+		// The antecedent always uses strict less-than (i < j) to capture the
+		// ordering of indices; the consequent uses the user's chosen operator.
+		ExpressionNode iForContext = identifierExpression(iName);
+		ExpressionNode jForContext = identifierExpression(jName);
+		ExpressionNode orderContext = nodeFactory.newOperatorNode(forallSource,
+				Operator.LT, iForContext, jForContext);
+		ExpressionNode forallBody = implies(orderContext,
+				genOrderExpression(identifierExpression(iName),
+						identifierExpression(jName)));
+
+		// $forall (int i: lo..hi; int j: lo..hi) !(i op j) || (expr[i] op expr[j])
+		QuantifiedExpressionNode forallExpr = nodeFactory
+				.newQuantifiedExpressionNode(forallSource, Quantifier.FORALL,
+						boundVarList, null, forallBody, null);
+
 		result.add(nodeFactory.newExpressionStatementNode(
-				functionCall("$assume", Arrays.asList(implies(genOrderContext(
-						genVarWithOffset(focusVarName, lastOffset),
-						genVarWithOffset(altFocusVarName, firstOffset), true),
-						genOrderExpression(
-								genVarWithOffset(focusVarName, lastOffset),
-								genVarWithOffset(altFocusVarName,
-										firstOffset)))))));
-		
-		
+				functionCall("$assume", Arrays.asList((ExpressionNode) forallExpr))));
+
 		return result;
 	}
 	

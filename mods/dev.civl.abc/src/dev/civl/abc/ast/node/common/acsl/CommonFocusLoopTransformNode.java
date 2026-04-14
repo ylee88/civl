@@ -7,6 +7,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import dev.civl.abc.ast.node.IF.ASTNode;
+import dev.civl.abc.ast.node.IF.IdentifierNode;
 import dev.civl.abc.ast.node.IF.NodeFactory;
 import dev.civl.abc.ast.node.IF.SequenceNode;
 import dev.civl.abc.ast.node.IF.acsl.AssignsOrReadsNode;
@@ -17,6 +19,7 @@ import dev.civl.abc.ast.node.IF.expression.ExpressionNode;
 import dev.civl.abc.ast.node.IF.expression.IdentifierExpressionNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode.Operator;
+import dev.civl.abc.ast.node.IF.expression.RegularRangeNode;
 import dev.civl.abc.ast.node.IF.statement.BlockItemNode;
 import dev.civl.abc.ast.node.IF.statement.DeclarationListNode;
 import dev.civl.abc.ast.node.IF.statement.ExpressionStatementNode;
@@ -160,12 +163,12 @@ public class CommonFocusLoopTransformNode extends CommonFocusTransformNode
 							memAssignExpr.copy())));
 		}
 		
-		String approxMemName = getNewTmpVarName();
-		Source approxMemSource = newSource(thisFuncName,
-				"$mem " + approxMemName + " = " + assignsMemName);
-		items.add(nodeFactory.newVariableDeclarationNode(approxMemSource,
-				identifier(approxMemName),
-				nodeFactory.newMemTypeNode(approxMemSource),
+		String postFocusMemName = getNewTmpVarName();
+		Source postFocusMemSource = newSource(thisFuncName,
+				"$mem " + postFocusMemName + " = " + assignsMemName);
+		items.add(nodeFactory.newVariableDeclarationNode(postFocusMemSource,
+				identifier(postFocusMemName),
+				nodeFactory.newMemTypeNode(postFocusMemSource),
 				identifierExpression(assignsMemName)));
 
 		ExpressionNode ifCondition = genWindowCondition(focusVarName,
@@ -173,14 +176,50 @@ public class CommonFocusLoopTransformNode extends CommonFocusTransformNode
 				inclusive);
 		List<BlockItemNode> trueBranchItems = new ArrayList<BlockItemNode>();
 
-		String focusMemVarName = getNewTmpVarName();
+		// P($F..B-1): memory touched by focused iteration and everything after it
+		ExpressionNode preFocusRangeHigh = inclusive
+				? identifierExpression(oldBoundVarName)
+				: nodeFactory.newOperatorNode(
+						newSource(thisFuncName, oldBoundVarName + " - 1"),
+						Operator.MINUS, identifierExpression(oldBoundVarName),
+						nodeFactory.newIntConstantNode(
+								newSource(thisFuncName, "1"), 1));
+		RegularRangeNode preFocusRange = nodeFactory.newRegularRangeNode(
+				newSource(thisFuncName,
+						focusVarName + ".." + oldBoundVarName + "-1"),
+				identifierExpression(focusVarName), preFocusRangeHigh);
+		String preRangeMemName = getNewTmpVarName();
 		trueBranchItems.addAll(
-				genFocusedMemVar(focusMemVarName, focusTag, focusVarName));
+				genFocusedMemVarWithRange(preRangeMemName, focusTag, preFocusRange));
+
+		// P(A..$F): memory touched by iterations from loop start through $F
+		RegularRangeNode postFocusRange = nodeFactory.newRegularRangeNode(
+				newSource(thisFuncName, loopStartVarName + ".." + focusVarName),
+				identifierExpression(loopStartVarName),
+				identifierExpression(focusVarName));
+		String postRangeMemName = getNewTmpVarName();
+		trueBranchItems.addAll(
+				genFocusedMemVarWithRange(postRangeMemName, focusTag, postFocusRange));
+
+		// preFocusMem = postFocusMem \ P($F..B-1)
+		String preFocusMemName = getNewTmpVarName();
+		Source preFocusMemSource = newSource(thisFuncName,
+				"$mem " + preFocusMemName);
+		trueBranchItems.add(nodeFactory.newVariableDeclarationNode(
+				preFocusMemSource, identifier(preFocusMemName),
+				nodeFactory.newMemTypeNode(preFocusMemSource),
+				functionCall("$mem_diff",
+						Arrays.asList(identifierExpression(postFocusMemName),
+								identifierExpression(preRangeMemName)))));
+
+		// postFocusMem = postFocusMem \ P(A..$F)
 		trueBranchItems.add(
-				memDiff(approxMemName, identifierExpression(focusMemVarName)));
+				memDiff(postFocusMemName, identifierExpression(postRangeMemName)));
+
+		// $mem_havoc(preFocusMem) -- havoc memory for pre-focus iterations
 		trueBranchItems.add(nodeFactory
 				.newExpressionStatementNode(functionCall("$mem_havoc",
-						Arrays.asList(identifierExpression(approxMemName)))));
+						Arrays.asList(identifierExpression(preFocusMemName)))));
 		
 		trueBranchItems.addAll(genFocusIterAssignment(loopVarName, focusVarName,
 				loopStartVarName));
@@ -336,7 +375,7 @@ public class CommonFocusLoopTransformNode extends CommonFocusTransformNode
 
 		items.add(nodeFactory
 				.newExpressionStatementNode(functionCall("$mem_havoc",
-						Arrays.asList(identifierExpression(approxMemName)))));
+						Arrays.asList(identifierExpression(postFocusMemName)))));
 		items.add(nodeFactory.newExpressionStatementNode(functionCall("$assume",
 				Arrays.asList(nodeFactory.newOperatorNode(
 						newSource(thisFuncName,
@@ -496,6 +535,88 @@ public class CommonFocusLoopTransformNode extends CommonFocusTransformNode
 		}
 
 		return items;
+	}
+
+	/**
+	 * Like {@link #genFocusedMemVar(String, String, String)} but substitutes
+	 * the focus tag with a {@link RegularRangeNode}, taking care when the tag
+	 * appears inside an existing range expression in the memory expression.
+	 * When the tag occurs inside an inner range, the tag in the inner range's
+	 * lower bound is replaced by the inclusive lower bound of
+	 * {@code replacementRange}, and the tag in the inner range's upper bound
+	 * is replaced by the inclusive upper bound of {@code replacementRange}.
+	 * This avoids producing nonsensical ranges-within-ranges.
+	 */
+	private List<BlockItemNode> genFocusedMemVarWithRange(String memVarName,
+			String tagName, RegularRangeNode replacementRange) {
+		String thisFuncName = "genFocusedMemVarWithRange";
+		List<BlockItemNode> items = new LinkedList<>();
+		Source memVarSource = newSource(thisFuncName,
+				"$mem " + memVarName + " = $mem_empty()");
+		items.add(nodeFactory.newVariableDeclarationNode(memVarSource,
+				identifier(memVarName),
+				nodeFactory.newMemTypeNode(memVarSource),
+				functionCall("$mem_empty")));
+		SequenceNode<ExpressionNode> memList = getMemoryList();
+		for (ExpressionNode memExpr : memList) {
+			items.add(memUnion(memVarName,
+					nodeFactory.newOperatorNode(memExpr.getSource(),
+							OperatorNode.Operator.ADDRESSOF,
+							replaceIdentWithRange(memExpr, tagName,
+									replacementRange))));
+		}
+		return items;
+	}
+
+	/**
+	 * Replaces occurrences of {@code origName} in {@code expr} with
+	 * {@code replacementRange}, handling the case where the identifier appears
+	 * inside an existing {@link RegularRangeNode}. For an inner range, the
+	 * identifier in its lower bound is replaced with the inclusive lower bound
+	 * of {@code replacementRange}, and the identifier in its upper bound is
+	 * replaced with the inclusive upper bound. Outside any inner range the
+	 * identifier is replaced with the full {@code replacementRange}.
+	 */
+	private ExpressionNode replaceIdentWithRange(ExpressionNode expr,
+			String origName, RegularRangeNode replacementRange) {
+		ExpressionNode result = expr.copy();
+		replaceIdentWithRangeHelper(result, origName, replacementRange);
+		return result;
+	}
+
+	private void replaceIdentWithRangeHelper(ASTNode node, String identName,
+			RegularRangeNode replacementRange) {
+		if (node == null)
+			return;
+		if (node.nodeKind() == ASTNode.NodeKind.EXPRESSION) {
+			ExpressionNode expr = (ExpressionNode) node;
+			if (expr.expressionKind() == ExpressionNode.ExpressionKind.IDENTIFIER_EXPRESSION) {
+				IdentifierNode ident = ((IdentifierExpressionNode) expr)
+						.getIdentifier();
+				if (ident.name().equals(identName)) {
+					int childIndex = expr.childIndex();
+					ASTNode parent = expr.parent();
+					parent.removeChild(childIndex);
+					parent.setChild(childIndex, replacementRange.copy());
+				}
+				return;
+			}
+			if (expr.expressionKind() == ExpressionNode.ExpressionKind.REGULAR_RANGE) {
+				RegularRangeNode innerRange = (RegularRangeNode) expr;
+				// Replace the tag in the lower bound with the replacement
+				// range's inclusive lower bound.
+				innerRange.setLow(replaceIdent(innerRange.getLow(), identName,
+						replacementRange.getLow()));
+				// Replace the tag in the upper bound with the replacement
+				// range's inclusive upper bound.
+				innerRange.setHigh(replaceIdent(innerRange.getHigh(), identName,
+						replacementRange.getHigh()));
+				return;
+			}
+		}
+		for (ASTNode child : node.children()) {
+			replaceIdentWithRangeHelper(child, identName, replacementRange);
+		}
 	}
 
 	private ExpressionStatementNode memUnion(String memName,
