@@ -302,12 +302,9 @@ public class ModelTranslator {
 		task.addTransformRecord(transformerFactory.getMPI2CIVLTransformerRecord());
 		task.addTransformCode(SideEffectRemover.CODE);
 		task.addTransformRecord(transformerFactory.getCuda2CIVLTransformerRecord());
-		if (config.directSymEx() != null)
-			task.addTransformRecord(transformerFactory.getDirectingTransformerRecord(config));
 		if (config.isIntOperationTransiformer())
 			task.addTransformRecord(transformerFactory.getIntOperationTransformerRecord(macros, config));
 		task.addTransformCode(SideEffectRemover.CODE);
-		// Add short circhuit transformer:
 		task.addTransformRecord(transformerFactory.getShortCircuitTransformerRecord(config));
 		task.addTransformCode(Pruner.CODE);
 	}

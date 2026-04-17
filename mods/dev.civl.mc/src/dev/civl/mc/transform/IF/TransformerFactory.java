@@ -43,8 +43,6 @@ public class TransformerFactory {
 
 	private ContractTransformer contractTransformer;
 
-	private DirectingTransformer directingTransformer;
-
 	private AnnotationTransformer annotationTransformer;
 
 	/**
@@ -198,18 +196,6 @@ public class TransformerFactory {
 			@Override
 			public Transformer create(ASTFactory astFactory) {
 				return new IntOperationTransformer(astFactory, macros, config);
-			}
-		};
-	}
-
-	public TransformRecord getDirectingTransformerRecord(CIVLConfiguration config) {
-		return new TransformRecord(DirectingTransformer.CODE, DirectingTransformer.LONG_NAME,
-				DirectingTransformer.SHORT_DESCRIPTION) {
-			@Override
-			public Transformer create(ASTFactory astFactory) {
-				if (directingTransformer == null)
-					directingTransformer = new DirectingTransformer(astFactory, config);
-				return directingTransformer;
 			}
 		};
 	}
