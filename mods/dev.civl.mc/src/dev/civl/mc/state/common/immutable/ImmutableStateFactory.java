@@ -340,12 +340,8 @@ public class ImmutableStateFactory implements StateFactory {
 	public ImmutableState canonic(State state, boolean collectProcesses, boolean collectScopes, boolean collectHeaps,
 			boolean collectSymbolicConstants, boolean simplify, Set<HeapErrorKind> toBeIgnored)
 			throws CIVLHeapException {
-		if (config.sliceAnalysis()) {
-			return (ImmutableState) state;
-		} else {
-			return canonicWork(state, collectProcesses, collectScopes, collectHeaps, collectSymbolicConstants, simplify,
-					toBeIgnored);
-		}
+		return canonicWork(state, collectProcesses, collectScopes, collectHeaps, collectSymbolicConstants, simplify,
+				toBeIgnored);
 	}
 
 	/**

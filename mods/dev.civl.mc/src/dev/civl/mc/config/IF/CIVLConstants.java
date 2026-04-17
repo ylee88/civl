@@ -208,8 +208,6 @@ public class CIVLConstants {
 	public static String CIVL_MACRO = "_CIVL";
 	public static String QUIET = "quiet";
 	public static String INT_OPERATION_TRANSFORMER = "intOperationTransformer";
-	public static String SLICE_ANALYSIS = "sliceAnalysis";
-	public static String WITNESS = "witness";
 	public static String DIRECT = "direct";
 	public static String INTBIT = "int_bit";
 	public static String CYCLES_VIOLATE = "cyclesViolate";
@@ -599,18 +597,6 @@ public class CIVLConstants {
 			OptionType.BOOLEAN, "apply int operation transformer?", false);
 
 	/**
-	 * Perform slice analysis on trace? false by default.
-	 */
-	public final static Option sliceAnalysisO = Option.newScalarOption(SLICE_ANALYSIS, OptionType.BOOLEAN,
-			"Perform slice analysis on trace?", false);
-
-	/**
-	 * Generate witness from trace? false by default.
-	 */
-	public final static Option witnessO = Option.newScalarOption(WITNESS, OptionType.BOOLEAN,
-			"Generate witness from trace?", false);
-
-	/**
 	 * Inject instrumentation to direct the branches at the line numbers in given
 	 * file so as to explore a sub-space of execution. Note: currently assumes you
 	 * are given one C file (no linking)
@@ -662,8 +648,8 @@ public class CIVLConstants {
 						showPathConditionO, showProgramO, showProverQueriesO, showQueriesO, showSavedStatesO,
 						showStatesO, showTimeO, showTransitionsO, showUnreachedCodeO, simplifyO, solveO,
 						statelessPrintfO, quietO, sysIncludePathO, traceO, userIncludePathO, verboseO, webO, CIVLMacroO,
-						analyzeAbsO, strictCompareO, collectOutputO, timeoutO, sliceAnalysisO, witnessO, direct0,
-						intBit, intOperationTransformer, maxProcsO, preemptionBoundO, disableLocalBlockO, fairO, dporO),
+						analyzeAbsO, strictCompareO, collectOutputO, timeoutO, direct0, intBit, intOperationTransformer,
+						maxProcsO, preemptionBoundO, disableLocalBlockO, fairO, dporO),
 				CIVLProperty.getAllConfigurableProperties().stream().map(e -> e.getOption())).toArray(Option[]::new);
 	}
 

@@ -67,7 +67,6 @@ import dev.civl.mc.analysis.IF.Analysis;
 import dev.civl.mc.config.IF.CIVLConfiguration;
 import dev.civl.mc.config.IF.CIVLConstants;
 import dev.civl.mc.kripke.IF.CIVLStateManager;
-import dev.civl.mc.kripke.common.WitnessGenerator;
 import dev.civl.mc.model.IF.CIVLException;
 import dev.civl.mc.model.IF.CIVLInternalException;
 import dev.civl.mc.model.IF.CIVLSource;
@@ -89,8 +88,6 @@ import dev.civl.mc.run.common.VerificationStatus;
 import dev.civl.mc.run.common.Verifier;
 import dev.civl.mc.semantics.IF.SymbolicAnalyzer;
 import dev.civl.mc.semantics.IF.Transition;
-import dev.civl.mc.slice.IF.Slice;
-import dev.civl.mc.slice.common.CommonSlice;
 import dev.civl.mc.state.IF.State;
 import dev.civl.mc.util.IF.BranchConstraints;
 import dev.civl.mc.util.IF.Pair;
@@ -558,8 +555,6 @@ public class UserInterface {
 		boolean result;
 		Model model;
 		TracePlayer replayer;
-		boolean witnessMode = modelTranslator.config.witness();
-		boolean sliceMode = modelTranslator.config.sliceAnalysis();
 		Trace<Transition, State> trace;
 
 		model = modelTranslator.translate();
@@ -576,15 +571,6 @@ public class UserInterface {
 				stats.addAll(getUniverseStats(modelTranslator.universe));
 				printStats(out, stats);
 			}
-			if (sliceMode) {
-				Slice slice = new CommonSlice(trace, model);
-				slice.print();
-			}
-			if (witnessMode) {
-				out.println("*** Printing Witness ***\n");
-				new WitnessGenerator(model, trace);
-			}
-
 			return result;
 		}
 		return false;

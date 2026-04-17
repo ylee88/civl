@@ -215,16 +215,6 @@ public class CIVLConfiguration {
 	private boolean intOperationTransiformer = false;
 
 	/**
-	 * Should CIVL perform a slice analysis on the error trace.
-	 */
-	private boolean sliceAnalysis = false;
-
-	/**
-	 * Should CIVL generate a witness from the error trace.
-	 */
-	private boolean witness = false;
-
-	/**
 	 * Should CIVL tell SARL to use probabilistic techniques for verifying
 	 * identities ?
 	 */
@@ -440,8 +430,6 @@ public class CIVLConfiguration {
 		this.collectSymbolicNames = config.isTrue(CIVLConstants.collectSymbolicConstantsO) || loopInvariantEnabled;
 		this.setTimeout((int) config.getValueOrDefault(CIVLConstants.timeoutO));
 		this.quiet = config.isTrue(CIVLConstants.quietO);
-		this.sliceAnalysis = config.isTrue(CIVLConstants.sliceAnalysisO);
-		this.witness = config.isTrue(CIVLConstants.witnessO);
 		this.prob = config.isTrue(CIVLConstants.probO);
 		this.directSymEx = (String) config.getValue(CIVLConstants.direct0);
 		this.runtimeUpdate = config.isTrue(CIVLConstants.runtimeUpdateO);
@@ -497,7 +485,6 @@ public class CIVLConfiguration {
 		this.unpreproc = config.unpreproc;
 		this.verbose = config.verbose;
 		this.web = config.web;
-		this.witness = config.witness;
 		this.directSymEx = config.directSymEx;
 		this.intBit = config.intBit;
 		this.maxProcs = config.maxProcs;
@@ -763,22 +750,6 @@ public class CIVLConfiguration {
 
 	public void setDirectSymEx(String directSymEx) {
 		this.directSymEx = directSymEx;
-	}
-
-	public boolean sliceAnalysis() {
-		return sliceAnalysis;
-	}
-
-	public void setSliceAnalysis(boolean sliceAnalysis) {
-		this.sliceAnalysis = sliceAnalysis;
-	}
-
-	public boolean witness() {
-		return witness;
-	}
-
-	public void setWitness(boolean witness) {
-		this.witness = witness;
 	}
 
 	public boolean prob() {

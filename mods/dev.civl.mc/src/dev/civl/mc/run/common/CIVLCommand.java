@@ -50,7 +50,6 @@ import static dev.civl.mc.config.IF.CIVLConstants.showTimeO;
 import static dev.civl.mc.config.IF.CIVLConstants.showTransitionsO;
 import static dev.civl.mc.config.IF.CIVLConstants.showUnreachedCodeO;
 import static dev.civl.mc.config.IF.CIVLConstants.simplifyO;
-import static dev.civl.mc.config.IF.CIVLConstants.sliceAnalysisO;
 import static dev.civl.mc.config.IF.CIVLConstants.solveO;
 import static dev.civl.mc.config.IF.CIVLConstants.statelessPrintfO;
 import static dev.civl.mc.config.IF.CIVLConstants.strictCompareO;
@@ -59,7 +58,6 @@ import static dev.civl.mc.config.IF.CIVLConstants.timeoutO;
 import static dev.civl.mc.config.IF.CIVLConstants.traceO;
 import static dev.civl.mc.config.IF.CIVLConstants.userIncludePathO;
 import static dev.civl.mc.config.IF.CIVLConstants.verboseO;
-import static dev.civl.mc.config.IF.CIVLConstants.witnessO;
 
 import java.io.PrintStream;
 import java.util.Collection;
@@ -107,8 +105,8 @@ public class CIVLCommand {
 		CIVLCommand.addReplayOption(showModelO, verboseO, debugO, showTransitionsO, showStatesO, showSavedStatesO,
 				showQueriesO, showProverQueriesO, idO, traceO, enablePrintfO, showAmpleSetO, showAmpleSetWtStatesO,
 				statelessPrintfO, showProgramO, showPathConditionO, preprocO, astO, showMemoryUnitsO, collectOutputO,
-				CIVLProperty.DIVISION_BY_ZERO.getOption(), CIVLProperty.MEMORY_LEAK.getOption(), quietO, sliceAnalysisO,
-				witnessO, intBit, intOperationTransformer, maxProcsO);
+				CIVLProperty.DIVISION_BY_ZERO.getOption(), CIVLProperty.MEMORY_LEAK.getOption(), quietO, intBit,
+				intOperationTransformer, maxProcsO);
 		CIVLCommand.addRunOption(errorBoundO, verboseO, randomO, guidedO, seedO, debugO, userIncludePathO,
 				sysIncludePathO, showTransitionsO, showStatesO, showSavedStatesO, showQueriesO, showProverQueriesO,
 				inputO, maxdepthO, procBoundO, simplifyO, enablePrintfO, showAmpleSetO, showAmpleSetWtStatesO,
