@@ -1,4 +1,3 @@
-#include <civlc.cvh>
 $input int N;
 $input int M;
 $assume(N > 0 && N < 3);

@@ -1,8 +1,6 @@
 /* Commandline execution:
  * 		civl verify derivative.cvl
  */
-#include <civlc.cvh>
-
 $input double h;
 $input int num_elements;
 $assume( num_elements > 0);

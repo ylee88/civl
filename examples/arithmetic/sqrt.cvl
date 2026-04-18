@@ -1,7 +1,4 @@
-#include <civlc.cvh>
 #include <math.h>
-#include <stdio.h>
-
 $input double x;
 $assume(x >= 0.0);
 

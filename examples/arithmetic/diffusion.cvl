@@ -1,8 +1,6 @@
 /* Commandline execution:
  * 		civl verify diffusion.cvl
  */
-#include<civlc.cvh>
-
 int nx;
 $input double u0[2];
 int nsteps;

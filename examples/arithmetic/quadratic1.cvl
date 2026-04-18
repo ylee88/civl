@@ -1,4 +1,3 @@
-#include <civlc.cvh>
 #include <assert.h>
 
 $input int x;
