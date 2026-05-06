@@ -266,6 +266,7 @@ public class CommonFocusOrderedTransformNode extends CommonFocusTransformNode
 	 * does not have the required form, falls back to
 	 * {@link FocusAnalysisData#getFocusOffsets}.
 	 */
+	@SuppressWarnings("unused")
 	private SortedSet<Integer> computeOrderedOffsets() {
 		ExpressionNode orderedExpr = getOrderedExpression();
 		if (!isArrayAccessByTag(orderedExpr))
