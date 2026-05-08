@@ -25,4 +25,3 @@ jobs:
           # Move into the directory and commit
           cd civl-updates
           svn commit -m "GitHub Push Signal: ${{ github.sha }}" --username "$USER" --password "$PASS" --non-interactive
-	  
