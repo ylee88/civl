@@ -1,0 +1,28 @@
+name: Notify Trac via SVN
+on: [push] # Trigger this on every push to any branch
+
+jobs:
+  svn-trigger:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Install the Subversion client on the GitHub runner
+      - name: Install SVN
+        run: sudo apt-get install -y subversion
+
+      # 2. Execute the SVN bridge logic
+      - name: Update SVN Signal File
+        env:
+          USER: ${{ secrets.SVN_USERNAME }}
+          PASS: ${{ secrets.SVN_PASSWORD }}
+        run: |
+          # Checkout only the specific file to save time/bandwidth
+          # Replace with your actual SVN URL and Port 3690
+          svn checkout svn://vsl.cis.udel.edu/civl-updates --username "$USER" --password "$PASS" --non-interactive --trust-server-cert
+
+          # Write the 'before' and 'after' commit IDs into the signal file
+          echo "${{ github.event.before }} ${{ github.event.after }}" > civl-updates/update.txt
+
+          # Move into the directory and commit
+          cd civl-updates
+          svn commit -m "GitHub Push Signal: ${{ github.sha }}" --username "$USER" --password "$PASS" --non-interactive
+	  
