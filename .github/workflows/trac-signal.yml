@@ -20,7 +20,7 @@ jobs:
           svn checkout svn://vsl.cis.udel.edu/civl-updates --username "$USER" --password "$PASS" --non-interactive --trust-server-cert
 
           # Write the 'before' and 'after' commit IDs into the signal file
-          echo "${{ github.event.before }} ${{ github.event.after }}" > civl-updates/update.txt
+          echo "${{ github.event.before }} ${{ github.event.after }} ${{ github.ref_name }}" > civl-updates/update.txt
 
           # Move into the directory and commit
           cd civl-updates
