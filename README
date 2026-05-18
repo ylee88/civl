@@ -1,7 +1,7 @@
       CIVL: The Concurrency Intermediate Verification Language
                                v1.22
 
------------------------------- Overview -------------------------------
+------------------------------ Overview ------------------------------
 
 CIVL is a framework encompassing... 
 
@@ -21,14 +21,13 @@ CIVL is a framework encompassing...
 
 CIVL is developed by the Verified Software Laboratory at the
 University of Delaware Department of Computer Science.
-For more information, visit http://vsl.cis.udel.edu/civl
+For more information, visit https://civl.dev
 
 Active Developers:
 Stephen F. Siegel
-Wenhao Wu
 Alexander Wilton
 
-Inactive Developers:
+Previous Developers:
 John Edenhofner
 Andre Marianiello
 Michael Rogers
@@ -37,6 +36,7 @@ Manchun Zheng
 Yihao Yan
 Matthew B. Dwyer
 Mitchell Gerrard
+Wenhao Wu
 Ziqing Luo
 
 ------------------------------- License -------------------------------

@@ -1,3 +1,5 @@
 *~
 *.tmp
-CIVLREP
+CIVLREP/
+/civl-runtime/
+/lib/

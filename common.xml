@@ -47,7 +47,7 @@
   </path>
 
   <property name="lib.dir" value="${root.dir}/lib" />
-  <property name="app.dir" value="${root.dir}/civl.app" />
+  <property name="app.dir" value="${root.dir}/civl-runtime" />
   <property name="civl.complete.jar"
 	    value="${lib.dir}/civl-complete.jar" />
 

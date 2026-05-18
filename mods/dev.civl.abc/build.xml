@@ -556,7 +556,7 @@
       </fileset>
       <report format="frames" todir="${junit.reports.dir}">
 	<param name="TITLE"
-	       expression="JUnit Report for ABC ${civlversion}.${revision}" />
+	       expression="JUnit Report for ABC ${revision}" />
       </report>
     </junitreport>
   </target>
@@ -566,7 +566,7 @@
       <executiondata>
 	<file file="jacoco.exec" />
       </executiondata>
-      <structure name="Test Coverage Report for ABC ${civlversion}.${revision}">
+      <structure name="Test Coverage Report for ABC ${revision}">
 	<classfiles>
 	  <fileset dir="${bin.dir}" />
 	</classfiles>
@@ -586,7 +586,7 @@
     <javadoc destdir="${javadoc.dir}"
 	     Overview="${src.dir}/overview.html"
 	     author="false" version="true" use="true"
-	     windowtitle="ABC ${civlversion}.${revision}"
+	     windowtitle="ABC ${revision}"
 	     access="public" failonerror="false">
       <modulepath>
 	<pathelement path="${bin.dir}" />
