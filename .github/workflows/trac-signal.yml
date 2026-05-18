@@ -3,6 +3,7 @@ on: [push] # Trigger this on every push to any branch
 
 jobs:
   svn-trigger:
+    if: github.repository == 'verified-software-lab/civl'
     runs-on: ubuntu-latest
     steps:
       # 1. Install the Subversion client on the GitHub runner
