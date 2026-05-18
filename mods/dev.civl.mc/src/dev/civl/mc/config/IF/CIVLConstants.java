@@ -90,13 +90,13 @@ public class CIVLConstants {
 	public final static File CIVL_LIB_INCLUDE_PATH = new File(ROOT_RESOURCE_PATH_STR + "abc/include/");
 
 	/** The version of this release of CIVL. */
-	public final static String version = "1.22.r5959";
+	public final static String version = "2.0";
 
 	/**
 	 * The date of this release of CIVL. Format: YYYY-MM-DD in accordance with ISO
 	 * 8601.
 	 */
-	public final static String date = "2025-03-17";
+	public final static String date = "2026-05-20";
 
 	/**
 	 * The prefix of the full name of the class of a library enabler/executor.
