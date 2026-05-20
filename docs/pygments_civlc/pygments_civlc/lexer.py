@@ -8,8 +8,6 @@ class CivlCLexer(CLexer):
     aliases = ["civlc", "civl-c", "civl"]
     filenames = ["*.cvl", "*.civlc"]
 
-    flags = 0
-
     civl_functions = (
         "seq", "mem", "bundle", "read_set", "write_set",
     )
