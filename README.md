@@ -22,7 +22,7 @@ CIVL is a framework encompassing...
 
 CIVL is developed by the Verified Software Laboratory at the
 University of Delaware Department of Computer Science.
-For more information, visit <https://civl.dev>
+For more information, visit <https://verified-software-lab.github.io/civl>
 
 **Active Developers:**
 
