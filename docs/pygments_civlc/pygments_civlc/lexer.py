@@ -21,7 +21,7 @@ class CivlCLexer(CLexer):
         "next_time_count", "scope_parent", "local_start", "local_end",
         "yield", "print", "print_helper", "output_assign", "heap_size",
         "array_base_address_of", "unidirectional_when", "access", "read",
-        "write", "calls", "scopeof", "is_terminated",
+        "write", "calls", "scopeof", "is_terminated", "equals",
     )
 
     civl_constants = (
