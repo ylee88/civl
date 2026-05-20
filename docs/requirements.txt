@@ -1,0 +1,4 @@
+mkdocs-material
+pymdown-extensions
+mkdocs-autorefs
+-e ./docs/pygments_civlc
