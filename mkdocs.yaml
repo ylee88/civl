@@ -45,7 +45,6 @@ nav:
   - Command Line Interface: cli.md
   - Examples: examples.md
   - A Challenge Exercise for Twente: challenge.md
-  - Developer Guide: dev/index.md
 
 plugins:
   - search

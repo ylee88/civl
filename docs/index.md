@@ -64,7 +64,7 @@ and the output, including any error message.
 * Current Developers: [Stephen F. Siegel](https://vsl.cis.udel.edu/siegel.html), Alex Wilton, and Wenhao Wu
 * Previous Contributors: Matthew Dwyer, John Edenhofner, Mitchell Gerrard, Ziqing Luo, Andre Marianiello, Michael Rogers, Yihao Yan, Manchun Zheng and Timothy Zirkel
 
-[Developer Guide](dev/index.md)
+[DeveloperPage](https://vsl.cis.udel.edu/trac/civl/wiki/DeveloperPage)
 
 ## License
 CIVL is copyright from 2013 to 2023, Verified Software Laboratory, University of Delaware.
