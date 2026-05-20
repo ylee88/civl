@@ -55,9 +55,9 @@ licenses.  See directory licenses for the license of each component.
 2. Overhauled repository structure by moving ABC, SARL, and GMC
    repositories into this one.
 3. Core language changes
-    1. Only the first statement in an $atomic block is allowed to block.
-    2. $yield can be used to release the lock of the atomic block
-    3. Removed $atom
+    1. Only the first statement in an `$atomic` block is allowed to block.
+    2. `$yield` can be used to release the lock of the atomic block
+    3. Removed `$atom`
 4. Total overhaul to OpenMP transformations. Now includes a robust data
    race detection feature as described in CAV 2023 paper 'Model Checking
    Race-freedom When "Sequential Consistency for Data-race-free Programs"
@@ -73,9 +73,9 @@ licenses.  See directory licenses for the license of each component.
        descriptor by Fortran to CIVL-C AST transformer.
     2. Introduce four basic CIVL verification primitives Fortran bindings
         1. Type qualifiers:
-            - !$CVL $input:  indicates that all variables declared immediately
+            - `!$CVL $input`:  indicates that all variables declared immediately
               in the next line are symbolic and read-only.
-            - !$CVL $output: indicates that all variables declared immediately
+            - `!$CVL $output`: indicates that all variables declared immediately
               in the next line are write-only and used for
               verifying functional output equivalence.
 
@@ -83,7 +83,7 @@ licenses.  See directory licenses for the license of each component.
            after any CIVL type qualifier and variables qualified shall follow
            read/write constraints mentioned above.
            CIVL assumption primitives can be used for limiting the value range
-           of variables qualified by '!$CVL $input'.
+           of variables qualified by `!$CVL $input`.
            e.g.,
 
            ```fortran
@@ -98,17 +98,17 @@ licenses.  See directory licenses for the license of each component.
            ```
 
         2. Verification
-            - !$CVL $assume(logic_expr);
+            - `!$CVL $assume(logic_expr)`;
               Make CIVL only explores paths, whose path conditions shall
-              make 'logic_expr' to be true.
-              Set the value range for varialbes qualified by '!$CVL $input'
-            - !$CVL $assert(logic_expr);
+              make `logic_expr` to be true.
+              Set the value range for varialbes qualified by `!$CVL $input`
+            - `!$CVL $assert(logic_expr)`;
               Checks predicates representing specific correctness properties
               that users expect to verify.
               If any CIVL assertion primitive is evaluated as false, then
               CIVL shall report an assertion violation.
     3. Add supports for additional Fortran features include:
-        1. 'inout' and 'out' attributes declared by 'intent' statement
+        1. `inout` and `out` attributes declared by `intent` statement
         2. compound types with fields having scalar types.
         3. pointer types to scalar types.
         4. logic expression evaluation without short-circuits
@@ -120,22 +120,22 @@ licenses.  See directory licenses for the license of each component.
 2. CUDA Support Improvement
     1. Fixed CUDA bug in which CUDA kernel declarations were not being
        transformed properly
-    2. Fixed source info bug (completeSources wasn't being called
+    2. Fixed source info bug (`completeSources` wasn't being called
        everywhere that it should)
     3. Fixed short circuit bug described in ticket #943
     4. Added small optimization to short circuit transformer to allow
        for finer granularity of its transformation
 3. Other Improvement and Fixed Bugs
-    1. MPI_Comm types can be compared by equality operator ('==').
+    1. `MPI_Comm` types can be compared by equality operator (`==`).
     2. Java-Doc improvements
 
 ## Updates from v1.19
 
 1. added new language primitives:
-    1. $local_start() and $local_end()
+    1. `$local_start()` and `$local_end()`
        An execution of the statements in between of this pair, including this pair themselves,
        is NOT ONLY uninterruptable BUT ALSO purely local to the view of the verifier.
-    2. $read_set_push() and $read_set_pop() (the correspondence for write set has already been supported)
+    2. `$read_set_push()` and `$read_set_pop()` (the correspondence for write set has already been supported)
        This pair of primitives can be used to turn on/off the capturing of read set during execution.
 2. added Fortran support for translating basic Fortran features into CIVL-AST
    (see: <https://vsl.cis.udel.edu/trac/civl/wiki/FortranTransformations>)
@@ -153,7 +153,7 @@ use CIVL.  Developers should instead follow the instructions for
    version of each prover; you can ignore the libraries, various
    API bindings, etc.   You just need to ensure that
    each binary executable is in your PATH when you run
-   "civl config".   The currently supported provers are:
+   `civl config`.   The currently supported provers are:
 
     - CVC4,  <http://cvc4.cs.nyu.edu/downloads/>
     - Z3, <http://z3.codeplex.com/SourceControl/latest>
@@ -177,7 +177,7 @@ use CIVL.  Developers should instead follow the instructions for
    This folder contains the following:
 
     - README   : this file
-    - bin      : containing one executable sh script called "civl"
+    - bin      : containing one executable sh script called `civl`
     - lib      : containing civl-TAG.jar
     - doc      : containing the manual and the tutorial of CIVL
     - emacs    : CIVL-C emacs mode and its installation instructions
@@ -188,24 +188,24 @@ use CIVL.  Developers should instead follow the instructions for
    The JAR file in the lib directory is all you need to run CIVL.
    You may also move this jar file wherever you want.   You
    run CIVL by typing a command that begins
-   "java -jar /path/to/civl-TAG.jar ...".  For convenience
-   you may instead use the shell script "civl" in bin,
-   which allows you to replace "java -jar /path/to/civl-TAG.jar"
-   with just "civl" on the command line.   Simply edit the civl script
-   to reflect the path to civl-TAG.jar and place the script
-   somewhere in your PATH.   Alternatively, you can just define
-   an alias in your .profile, .bash_profile, or equivalent, such as
+   `java -jar /path/to/civl-TAG.jar ...`.  For convenience
+   you may instead use the shell script `civl` in bin,
+   which allows you to replace `java -jar /path/to/civl-TAG.jar`
+   with just `civl` on the command line.   Simply edit the `civl` script
+   to reflect the path to `civl-TAG.jar` and place the script
+   somewhere in your `PATH`.   Alternatively, you can just define
+   an alias in your `.profile`, `.bash_profile`, or equivalent, such as
 
    ```sh
    alias civl='java -jar /path/to/civl-TAG.jar'
    ```
 
    In the following, we will assume that you have defined
-   a command "civl" in one these ways.
+   a command `civl` in one these ways.
 
-6. Type "civl config".  This should report that it found
-   the theorem provers you installed (and are in your PATH).
-   It should create a file called ".sarl" in your home directory
+6. Type `civl config`.  This should report that it found
+   the theorem provers you installed (and are in your `PATH`).
+   It should create a file called `.sarl` in your home directory
    which you can also edit by hand.
 
 ## Source Installation
