@@ -101,7 +101,7 @@ licenses.  See directory licenses for the license of each component.
             - `!$CVL $assume(logic_expr)`;
               Make CIVL only explores paths, whose path conditions shall
               make `logic_expr` to be true.
-              Set the value range for varialbes qualified by `!$CVL $input`
+              Set the value range for variables qualified by `!$CVL $input`
             - `!$CVL $assert(logic_expr)`;
               Checks predicates representing specific correctness properties
               that users expect to verify.
@@ -178,7 +178,7 @@ use CIVL.  Developers should instead follow the instructions for
 
     - README   : this file
     - bin      : containing one executable sh script called `civl`
-    - lib      : containing civl-TAG.jar
+    - lib      : containing `civl-TAG.jar`
     - doc      : containing the manual and the tutorial of CIVL
     - emacs    : CIVL-C emacs mode and its installation instructions
     - licenses : licenses for CIVL and included libraries
