@@ -55,9 +55,9 @@ licenses.  See directory licenses for the license of each component.
 2. Overhauled repository structure by moving ABC, SARL, and GMC
    repositories into this one.
 3. Core language changes
-    - 3.1 Only the first statement in an $atomic block is allowed to block.
-    - 3.2 $yield can be used to release the lock of the atomic block
-    - 3.3 Removed $atom
+    1. Only the first statement in an $atomic block is allowed to block.
+    2. $yield can be used to release the lock of the atomic block
+    3. Removed $atom
 4. Total overhaul to OpenMP transformations. Now includes a robust data
    race detection feature as described in CAV 2023 paper 'Model Checking
    Race-freedom When "Sequential Consistency for Data-race-free Programs"
@@ -67,37 +67,37 @@ licenses.  See directory licenses for the license of each component.
 ## Updates from v1.20
 
 1. refine the Fortran extension for paper submitted to TACAS 2022
-    - 1.1 Complete Fortran Array Descriptor for tracking changes made on
-      index ranges by array section and reshape operations.
-      Any declared array type is transformed into a Fortran array
-      descriptor by Fortran to CIVL-C AST transformer.
-    - 1.2 Introduce four basic CIVL verification primitives Fortran bindings
-        - 1.2.1 Type qualifiers:
+    1. Complete Fortran Array Descriptor for tracking changes made on
+       index ranges by array section and reshape operations.
+       Any declared array type is transformed into a Fortran array
+       descriptor by Fortran to CIVL-C AST transformer.
+    2. Introduce four basic CIVL verification primitives Fortran bindings
+        1. Type qualifiers:
             - !$CVL $input:  indicates that all variables declared immediately
               in the next line are symbolic and read-only.
             - !$CVL $output: indicates that all variables declared immediately
               in the next line are write-only and used for
               verifying functional output equivalence.
 
-          A type declaration statement is required to be used immediately
-          after any CIVL type qualifier and variables qualified shall follow
-          read/write constraints mentioned above.
-          CIVL assumption primitives can be used for limiting the value range
-          of variables qualified by '!$CVL $input'.
-          e.g.,
+           A type declaration statement is required to be used immediately
+           after any CIVL type qualifier and variables qualified shall follow
+           read/write constraints mentioned above.
+           CIVL assumption primitives can be used for limiting the value range
+           of variables qualified by '!$CVL $input'.
+           e.g.,
 
-          ```fortran
-          !$CVL $input
-          integer :: n, a(n)
-          !! both 'n' and elements of 'a' are symbolic and read-only
-          !$CVL $output
-          integer :: sum
-          !! sum is write-only and can be used for comparing with another
-          !! program, which also has 'sum' with a same type and qualified
-          !! by '!$CVL $output'
-          ```
+           ```fortran
+           !$CVL $input
+           integer :: n, a(n)
+           !! both 'n' and elements of 'a' are symbolic and read-only
+           !$CVL $output
+           integer :: sum
+           !! sum is write-only and can be used for comparing with another
+           !! program, which also has 'sum' with a same type and qualified
+           !! by '!$CVL $output'
+           ```
 
-        - 1.2.2 Verification
+        2. Verification
             - !$CVL $assume(logic_expr);
               Make CIVL only explores paths, whose path conditions shall
               make 'logic_expr' to be true.
@@ -107,36 +107,36 @@ licenses.  See directory licenses for the license of each component.
               that users expect to verify.
               If any CIVL assertion primitive is evaluated as false, then
               CIVL shall report an assertion violation.
-    - 1.3 Add supports for additional Fortran features include:
-        - 1.3.1 'inout' and 'out' attributes declared by 'intent' statement
-        - 1.3.2 compound types with fields having scalar types.
-        - 1.3.3 pointer types to scalar types.
-        - 1.3.4 logic expression evaluation without short-circuits
-        - 1.3.5 line truncation for fixed and free forms
-        - 1.3.6 other features are shown here:
-          <https://vsl.cis.udel.edu/trac/civl/wiki/FortranTransformations>
-    - 1.4 Add test cases imported from SMACK verification suite
-      <https://github.com/soarlab/gandalv/>
+    3. Add supports for additional Fortran features include:
+        1. 'inout' and 'out' attributes declared by 'intent' statement
+        2. compound types with fields having scalar types.
+        3. pointer types to scalar types.
+        4. logic expression evaluation without short-circuits
+        5. line truncation for fixed and free forms
+        6. other features are shown here:
+           <https://vsl.cis.udel.edu/trac/civl/wiki/FortranTransformations>
+    4. Add test cases imported from SMACK verification suite
+       <https://github.com/soarlab/gandalv/>
 2. CUDA Support Improvement
-    - 2.1 Fixed CUDA bug in which CUDA kernel declarations were not being
-      transformed properly
-    - 2.2 Fixed source info bug (completeSources wasn't being called
-      everywhere that it should)
-    - 2.3 Fixed short circuit bug described in ticket #943
-    - 2.4 Added small optimization to short circuit transformer to allow
-      for finer granularity of its transformation
+    1. Fixed CUDA bug in which CUDA kernel declarations were not being
+       transformed properly
+    2. Fixed source info bug (completeSources wasn't being called
+       everywhere that it should)
+    3. Fixed short circuit bug described in ticket #943
+    4. Added small optimization to short circuit transformer to allow
+       for finer granularity of its transformation
 3. Other Improvement and Fixed Bugs
-    - 3.1 MPI_Comm types can be compared by equality operator ('==').
-    - 3.2 Java-Doc improvements
+    1. MPI_Comm types can be compared by equality operator ('==').
+    2. Java-Doc improvements
 
 ## Updates from v1.19
 
 1. added new language primitives:
-    - 1.1 $local_start() and $local_end()
-      An execution of the statements in between of this pair, including this pair themselves,
-      is NOT ONLY uninterruptable BUT ALSO purely local to the view of the verifier.
-    - 1.2 $read_set_push() and $read_set_pop() (the correspondence for write set has already been supported)
-      This pair of primitives can be used to turn on/off the capturing of read set during execution.
+    1. $local_start() and $local_end()
+       An execution of the statements in between of this pair, including this pair themselves,
+       is NOT ONLY uninterruptable BUT ALSO purely local to the view of the verifier.
+    2. $read_set_push() and $read_set_pop() (the correspondence for write set has already been supported)
+       This pair of primitives can be used to turn on/off the capturing of read set during execution.
 2. added Fortran support for translating basic Fortran features into CIVL-AST
    (see: <https://vsl.cis.udel.edu/trac/civl/wiki/FortranTransformations>)
 3. added simple Fortran verification examples (edited)
