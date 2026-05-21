@@ -1,0 +1,11 @@
+[project]
+name = "pygments-civlc"
+version = "0.1.0"
+dependencies = ["Pygments"]
+
+[project.entry-points."pygments.lexers"]
+civlc = "pygments_civlc.lexer:CivlCLexer"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
