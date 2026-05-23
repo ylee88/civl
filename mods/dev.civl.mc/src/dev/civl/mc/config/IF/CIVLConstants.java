@@ -89,15 +89,6 @@ public class CIVLConstants {
 	 */
 	public final static File CIVL_LIB_INCLUDE_PATH = new File(ROOT_RESOURCE_PATH_STR + "abc/include/");
 
-	/** The version of this release of CIVL. */
-	public final static String version = "2.0";
-
-	/**
-	 * The date of this release of CIVL. Format: YYYY-MM-DD in accordance with ISO
-	 * 8601.
-	 */
-	public final static String date = "2026-05-20";
-
 	/**
 	 * The prefix of the full name of the class of a library enabler/executor.
 	 */
@@ -156,9 +147,8 @@ public class CIVLConstants {
 
 	public static String MIN = "min";
 
-	public static String MPI_CONTRACT = "mpiContract"; // TODO: change to
-														// general "-contract"
-
+	// TODO: change to general "-contract"...
+	public static String MPI_CONTRACT = "mpiContract";
 	public static String MPI_MODEL = "mpi";
 
 	public static String LOOP_INV = "loop";

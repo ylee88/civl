@@ -4,7 +4,6 @@ import static dev.civl.mc.config.IF.CIVLConstants.bar;
 import static dev.civl.mc.config.IF.CIVLConstants.collectHeapsO;
 import static dev.civl.mc.config.IF.CIVLConstants.collectProcessesO;
 import static dev.civl.mc.config.IF.CIVLConstants.collectScopesO;
-import static dev.civl.mc.config.IF.CIVLConstants.date;
 import static dev.civl.mc.config.IF.CIVLConstants.debugO;
 import static dev.civl.mc.config.IF.CIVLConstants.enablePrintfO;
 import static dev.civl.mc.config.IF.CIVLConstants.idO;
@@ -20,7 +19,6 @@ import static dev.civl.mc.config.IF.CIVLConstants.statsBar;
 import static dev.civl.mc.config.IF.CIVLConstants.strictCompareO;
 import static dev.civl.mc.config.IF.CIVLConstants.traceO;
 import static dev.civl.mc.config.IF.CIVLConstants.verboseO;
-import static dev.civl.mc.config.IF.CIVLConstants.version;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -66,6 +64,7 @@ import dev.civl.gmc.Trace;
 import dev.civl.mc.analysis.IF.Analysis;
 import dev.civl.mc.config.IF.CIVLConfiguration;
 import dev.civl.mc.config.IF.CIVLConstants;
+import dev.civl.mc.config.IF.Version;
 import dev.civl.mc.kripke.IF.CIVLStateManager;
 import dev.civl.mc.model.IF.CIVLException;
 import dev.civl.mc.model.IF.CIVLInternalException;
@@ -471,7 +470,7 @@ public class UserInterface {
 
 		quiet = isQuiet(args);
 		if (!quiet) {
-			out.println("CIVL v" + version + " of " + date + " -- https://civl.dev");
+			out.println("CIVL v" + Version.version + " of " + Version.date + " -- https://civl.dev");
 			out.flush();
 		}
 		if (args == null || args.length < 1) {
