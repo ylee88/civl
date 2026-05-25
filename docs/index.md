@@ -1,11 +1,32 @@
 # The CIVL Model Checker
 
 ## About
-CIVL is a framework encompassing…
 
-* a programming language, CIVL-C, which adds to C a number of concurrency primitives, as well as the ability to define functions in any scope. Together, these features make for a very expressive concurrent language that can faithfully represent programs using various APIs and parallel languages, such as MPI, OpenMP, CUDA, and Chapel. CIVL-C also provides a number of primitives supporting verification.
-* a model checker which uses symbolic execution to verify a number of safety properties of CIVL-C programs. The model checker can also be used to verify that two CIVL-C programs are functionally equivalent.
-* a number of translators from various commonly-used concurrency languages/APIs to CIVL-C (currently, MPI, OpenMP, Pthreads, and CUDA).
+The CIVL model checker is a verification tool for sequential or parallel
+programs.
+It targets primarily C programs, including parallel C programs that use
+OpenMP or MPI, and CUDA-C programs.
+The general verification approach is based on model checking and symbolic execution.   
+
+The verifier uses a concurrency intermediate verification language, CIVL-C.
+Users may write in CIVL-C directly; this is a good way to prototype
+algorithms.   One may also start from standard C (or CUDA-C), which
+the tool first translates to CIVL-C.  CIVL may also be applied to programs 
+composed of multiple translation units, some of which are in CIVL-C
+and others in C or CUDA-C.
+
+CIVL can verify a number of safety properties, including absence of assertion
+violations, deadlocks, memory leaks, illegal pointer dereferences, out-of-bound
+array indexes, and divisions by zero.  In most cases, this requires placing
+relatively small bounds on the size of inputs and/or the numbers of threads or
+processes.  In any case, when a violation is found, detailed diagnostic
+information is provided, including a (minimal) execution trace terminating
+in a violating state.
+
+CIVL currently supports only subsets of the languages and language
+extensions mentioned above.  We are continually expanding these subsets,
+prioritizing the most commonly-used language features.
+
 
 ## Downloads & Links
 
@@ -21,7 +42,6 @@ CIVL is a framework encompassing…
 * [Libraries](libraries.md)
 * [Command Line Interface](cli.md)
 * [Examples](examples.md)
-* [A Challenge Exercise for Twente](challenge.md)
 
 ## Publications
 * [Symbolic Execution and Deductive Verification Approaches to VerifyThis 2017 Challenges](https://vsl.cis.udel.edu/pubs/isola18.html), Ziqing Luo and Stephen F. Siegel, ISoLA'18.
@@ -51,22 +71,22 @@ CIVL is a framework encompassing…
   month = {Nov},
   publisher = {IEEE Press},
   address = {Piscataway, NJ, USA},
-  pages = {61:1-61:12}
+  pages = {61:1-61:12},
+  doi = {10.1145/2807591.2807635}
 }
 ```
 
 ## Bug Reports
-To report a bug in CIVL, send an email to `civl-dev@googlegroups.com`.
-Include as many details as possible, such as the CIVL command, source files (these may be attached), the CIVL version,
-and the output, including any error message.
+To report a bug in CIVL, either create a [GitHub issue](https://github.com/verified-software-lab/civl/issues) or send an email to `civl-dev@googlegroups.com`.
+Include as many details as possible, such as the CIVL command, source files (these may be attached), the CIVL version, and the output, including any error message.
 
 ## Developers
-* Current Developers: [Stephen F. Siegel](https://vsl.cis.udel.edu/siegel.html), Alex Wilton, and Wenhao Wu
-* Previous Contributors: Matthew Dwyer, John Edenhofner, Mitchell Gerrard, Ziqing Luo, Andre Marianiello, Michael Rogers, Yihao Yan, Manchun Zheng and Timothy Zirkel
+* Current Developers: [Stephen Siegel](https://vsl.cis.udel.edu/siegel.html) and Alex Wilton
+* Previous Contributors: Matthew Dwyer, John Edenhofner, Mitchell Gerrard, Ziqing Luo, Andre Marianiello, Michael Rogers, Wenhao Wu, Yihao Yan, Manchun Zheng and Timothy Zirkel
 
 [DeveloperPage](https://vsl.cis.udel.edu/trac/civl/wiki/DeveloperPage)
 
 ## License
-CIVL is copyright from 2013 to 2023, Verified Software Laboratory, University of Delaware.
+CIVL is copyright from 2013 to 2026, Verified Software Laboratory, Department of Computer and Information Sciences, University of Delaware.
 
 CIVL is distributed under the terms of the [GNU General Public License v3](https://www.gnu.org/licenses/gpl.html). (See the directory licenses in the distribution for details.)
