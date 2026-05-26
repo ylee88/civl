@@ -1,47 +1,70 @@
+
 # Introduction and Quick Start
-
-## What is CIVL?
-
-CIVL stands for *Concurrency Intermediate Verification Language*.  The CIVL platform encompasses:
-
-1. the programming language CIVL-C, a dialect of C with additional primitives supporting concurrency, specification, and modeling;
-1. verification and analysis tools, including a symbolic execution-based model checker for checking various properties of, or finding defects in, CIVL-C programs; and
-1. tools that translate from commonly-used languages/APIs to CIVL-C.
-
-A user can write programs in CIVL-C directly, or use one of the front-ends that translates from a "real" programming language to CIVL-C.
-
-When used in the first way, CIVL-C may be considered a modeling language, similar to Promela (the language used by the model checker Spin).  This is useful for exploring and verifying algorithms, especially concurrent algorithms.  The main difference between CIVL-C and Promela is that CIVL-C includes almost all of the language constructs in C, including floating-point numbers, arrays of any type, structs, functions, pointers,  dynamic allocation (malloc and free), and pointer arithmetic.    Like Spin, the CIVL verifier can be used to perform an exhaustive search of a state space.  Unlike Spin, the CIVL verifier uses symbolic execution, so in a CIVL state, variables may be assigned symbolic expressions, not just concrete values.   This allows the verifier to check properties of the form *the assertions hold for all possible inputs* and *the two given programs are functionally equivalent.*
-
-When used in the second way, a C program using MPI, CUDA, OpenMP, or Pthreads, (or even some combination of these APIs), will be automatically translated into CIVL-C and then verified. The advantages of such a framework are clear: the developer of a new verification technique could implement it for CIVL-C and then immediately see its impact across a broad range of concurrent programs. Likewise, when a new concurrency API is introduced, one only needs to implement a translator from it to CIVL-C in order to reap the benefits of all the verification tools in the platform. Programmers would have a valuable verification and debugging tool, while API designers could use CIVL as a "sandbox" to investigate possible API modifications, additions, and interactions.
-
-This manual covers all aspects of the CIVL framework, and is organized in parts as follows:
-
-1. this introduction, including "quick start" instructions for downloading and installing CIVL and several examples;
-1. a complete description of the CIVL-C language;
-1. a formal semantics for the language; and
-1. a description of the tools in the framework.
 
 ## Installation and Quick Start
 
-1. Install the automated theorem prover CVC4, following instructions at <http://cvc4.cs.stanford.edu/web/>.  You only need the binary (`cvc4`), which must be in your `PATH`.
-1. Install the automated theorem prover Z3, following instructions at <https://github.com/Z3Prover/z3>.  You only need the binary (`z3`), which must be in your `PATH`.
-1. Install a Java 17 SDK.   Later versions of Java may also work.  See <https://www.oracle.com/technetwork/java/javase/downloads/index.html>.
-1. Download and unpack the latest stable release of CIVL from <http://vsl.cis.udel.edu/lib/sw/civl/current/latest/release/>.
-1. The resulting directory should be named CIVL-tag for some string tag which identifies the version of CIVL you downloaded. Move this directory wherever you like.
-1. The JAR file in the `lib` directory is all you need to run CIVL. You may move this JAR file wherever you want. You run CIVL by typing a command of the form `java -jar /path/to/civl-TAG.jar ...`. For convenience, you may instead use the shell script `civl` included in the `bin` directory. This allows you to replace `java -jar /path/to/civl-TAG.jar` with just `civl` on the command line. Simply edit the `civl` script to reflect the path to the JAR file and place the script somewhere in your `PATH`.  In the following, we assume you have done this.
-1. From the command line, type `civl help`. You should see a help message describing the command line syntax.
-1. From the command line, type `civl config`. This should report that cvc4 and z3 were found, and it should create a file named `.sarl` in your home directory.
+1. Install one or more of the following automated theorem provers.
+   In each case, you must ensure that the executable
+   (z3, cvc4, cvc5, alt-ergo) is in your PATH.
+    - [Z3](https://github.com/Z3Prover/z3)
+    - [CVC4](https://cvc4.github.io)
+    - [cvc5](https://github.com/cvc5/cvc5)
+    - [Alt-Ergo](https://alt-ergo.ocamlpro.com)
+1. Install a Java SDK if you have not already done so.  A package
+   manager is the easiest way to do this.  We recommend the latest
+   long term support release, but CIVL should work fine with Java 17
+   or later.
+1. The CIVL releases are published on [the GitHub releases
+   page](<https://github.com/verified-software-lab/civl/releases/>).
+   Choose your desired version; for most users, the latest stable
+   version is the best choice.  In any case, this will be a tar
+   gzipped archive with a name of the form `civl-x.y.tgz`.  Unpack
+   this and you should have a directory named `civl-x.y`.  The
+   directory contains jar files, source code, examples, and other
+   resources.  You can move it wherever you like.
+1. Use one of the following methods to create the `civl` executable:
+    - Method 1 (jlink): Change into the `civl-x.y` directory and type
+      `make`.  This should result in a directory named `civl-runtime`
+      which contains a custom JVM optimized for CIVL.  You can move
+      `civl-runtime` wherever you like (or keep it where it is).  Add
+      the `/path/to/civl-runtime/bin` to your PATH, e.g., by adding a
+      line such as `export PATH=/path/to/civl-runtime/bin:$PATH` to
+      your shell startup file (`.zprofile`, `.bash_profile`, etc.).
+      See the comments in the `Makefile` for more details and options.
+    - Method 2 (jar): Move the file in `civl-x.y/lib` named
+      `civl-complete.jar` to wherever you like (or keep it where it
+      is).  Create an executable shell script like the following:
+      ```
+      #!/bin/sh
+      java -Xmx16g -jar /path/to/civl-complete.jar $@
+      ```
+      Adjust the JVM arguments however you like; in the example above,
+	  the maximum heap size is set to 16GB.  Move this script into a
+      directory in your PATH.
+1. From the command line, type `civl help`. You should see a help
+   message describing the command line syntax.
+1. From the command line, type `civl config`. This should find the
+   provers in your PATH and create a file named `.sarl` in your home
+   directory.
 
-To test your installation, copy the file `examples/concurrency/locksBad.cvl` to your working directory. Look at the program: it is a simple 2-process program with two shared variables used as locks. The two processes try to obtain the locks in opposite order, which can lead to a deadlock if both processes obtain their first lock before either obtains the second. Type `civl verify locksBad.cvl`. You should see some output culminating in a message
+To test your installation, copy the file
+`examples/concurrency/locksBad.cvl` to your working directory. Look at
+the program: it is a simple 2-process program with two shared
+variables used as locks. The two processes try to obtain the locks in
+opposite order, which can lead to a deadlock if both processes obtain
+their first lock before either obtains the second. Type `civl verify
+locksBad.cvl`. You should see some output culminating in a message
 
 `The program MAY NOT be correct.  See CIVLREP/locksBad_log.txt.`
 
-Type `civl replay locksBad.cvl`. You should see a step-by-step account of how the program arrived at the deadlock.
+Type `civl replay locksBad.cvl`. You should see a step-by-step account
+of how the program arrived at the deadlock.
 
 
 ## Verifying CIVL-C Programs
 
-Dijkstra’s well-known Dining Philosophers system can be encoded in CIVL-C as follows:
+Dijkstra’s well-known Dining Philosophers system can be encoded in
+CIVL-C as follows:
 
 ```civl
 $input int B = 4; // upper bound on number of philosophers
@@ -67,17 +90,45 @@ void main() {
 }
 ```
 
-In this encoding, an upper bound `B` is placed on the number of philosophers `n`. When verifying this program, a concrete value will be specified for `B`. Hence the result of verification will apply to all `n` between 2 and `B`, inclusive.
+In this encoding, an upper bound `B` is placed on the number of
+philosophers `n`. When verifying this program, a concrete value will
+be specified for `B`. Hence the result of verification will apply to
+all `n` between 2 and `B`, inclusive.
 
-Both `B` and `n` are declared as input variables using the type qualifier `$input`. An input variable may be initialized with any valid value of its type. In contrast, non-input variables declared in file scope will be initialized with a special undefined value; if such a variable is read before it is defined, an error will be reported. In addition, any input variable may have a concrete initial value specified on the command line. In this case, we will specify a concrete value for `B` on the command line.
+Both `B` and `n` are declared as input variables using the type
+qualifier `$input`. An input variable may be initialized with any
+valid value of its type. In contrast, non-input variables declared in
+file scope will be initialized with a special undefined value; if such
+a variable is read before it is defined, an error will be reported. In
+addition, any input variable may have a concrete initial value
+specified on the command line. In this case, we will specify a
+concrete value for `B` on the command line.
 
-An `$assume` statement restricts the set of executions of the program to include only those traces in which the assumptions hold. In contrast with an `$assert` statement, CIVL does not check that the assumed expression holds, and will not generate an error message if it fails to hold. Thus an `$assume` statement allows the programmer to say to CIVL “assume that this is true,” while an `$assert` statement allows the programmer to say to CIVL “check that this is true.”
+An `$assume` statement restricts the set of executions of the program
+to include only those traces in which the assumptions hold. In
+contrast with an `$assert` statement, CIVL does not check that the
+assumed expression holds, and will not generate an error message if it
+fails to hold. Thus an `$assume` statement allows the programmer to
+say to CIVL “assume that this is true,” while an `$assert` statement
+allows the programmer to say to CIVL “check that this is true.”
 
-A `$when` statement encodes a guarded command. The `$when` statement includes a boolean expression called the **guard** and a statement body. The `$when` statement is enabled if and only if the guard evaluates to **true**, in which case the body may be executed. The first atomic statement in the body executes atomically with the evaluation of the guard, so it is guaranteed that the guard will hold when this initial sub-statement executes. Since assignment statements are atomic in CIVL, in this example the body of each `$when` statement executes atomically with the guard evaluation.
+A `$when` statement encodes a guarded command. The `$when` statement
+includes a boolean expression called the **guard** and a statement
+body. The `$when` statement is enabled if and only if the guard
+evaluates to **true**, in which case the body may be executed. The
+first atomic statement in the body executes atomically with the
+evaluation of the guard, so it is guaranteed that the guard will hold
+when this initial sub-statement executes. Since assignment statements
+are atomic in CIVL, in this example the body of each `$when` statement
+executes atomically with the guard evaluation.
 
-The `$for` statement is very similar to a **for** loop. The main difference is that it takes a **domain** and loops over it.
+The `$for` statement is very similar to a **for** loop. The main
+difference is that it takes a **domain** and loops over it.
 
-The `$parfor` statement is a combination of `$for` and `$spawn`. The latter is very similar to a function call. The main difference is that the function called is invoked in a new process which runs concurrently with the existing processes.
+The `$parfor` statement is a combination of `$for` and `$spawn`. The
+latter is very similar to a function call. The main difference is that
+the function called is invoked in a new process which runs
+concurrently with the existing processes.
 
 The program may be verified for an upper bound of 5 by typing
 
@@ -140,7 +191,11 @@ civl verify -inputB=5 diningBad.cvl
 The program MAY NOT be correct.  See CIVLREP/diningBad_log.txt
 ```
 
-The output indicates that a deadlock has been found and a counterexample has been produced and saved. We can examine the counterexample, but it is more helpful to work with a minimal counterexample, i.e., a deadlocking trace of minimal length. To find a minimal counterexample, we issue the command
+The output indicates that a deadlock has been found and a
+counterexample has been produced and saved. We can examine the
+counterexample, but it is more helpful to work with a minimal
+counterexample, i.e., a deadlocking trace of minimal length. To find a
+minimal counterexample, we issue the command
 
 ```sh
 civl verify -inputB=5 -min diningBad.cvl
@@ -228,7 +283,11 @@ civl verify -inputB=5 -min diningBad.cvl
 The program MAY NOT be correct.  See CIVLREP/diningBad_log.txt
 ```
 
-The output indicates that a minimal counterexample consists of 16 execution steps.   It was the second and shortest trace found. It was deemed equivalent to the earlier traces and hence the earlier ones were discarded and only this one saved. We can replay the trace with the command
+The output indicates that a minimal counterexample consists of 16
+execution steps.  It was the second and shortest trace found. It was
+deemed equivalent to the earlier traces and hence the earlier ones
+were discarded and only this one saved. We can replay the trace with
+the command
 
 ```sh
 civl replay -showTransitions diningBad.cvl
@@ -410,15 +469,24 @@ civl replay -showTransitions diningBad.cvl
    prover calls        : 4
 ```
 
-The output indicates that a deadlock has been found involving 2 philosophers.   After the initialization sequence, each philosopher picks up her left fork.
-
+The output indicates that a deadlock has been found involving 2
+philosophers.  After the initialization sequence, each philosopher
+picks up her left fork.
 
 
 ## Verifying Sequential C Programs
 
-Since almost anything you can do in sequential C is also legal CIVL-C, there is not much you have to do to apply the verifier to C programs.
+Since almost anything you can do in sequential C is also legal CIVL-C,
+there is not much you have to do to apply the verifier to C programs.
 
-The verifier requires a complete program --- i.e., there must be a main function --- and there is usually some set-up that you want to do for CIVL that is different than what you want the program to do in normal use.    For this reason, there is a preprocessor object-like macro `_CIVL` which is defined when using the CIVL verifier.   This allows you to insert some CIVL-C code that will be used for verification, without interfering with the normal compilation and use of the program.   Consider the following example, `sum.c`:
+The verifier requires a complete program --- i.e., there must be a
+main function --- and there is usually some set-up that you want to do
+for CIVL that is different than what you want the program to do in
+normal use.  For this reason, there is a preprocessor object-like
+macro `_CIVL` which is defined when using the CIVL verifier.  This
+allows you to insert some CIVL-C code that will be used for
+verification, without interfering with the normal compilation and use
+of the program.  Consider the following example, `sum.c`:
 
 ```c
 #include <assert.h>
@@ -483,7 +551,10 @@ The standard properties hold for all executions.
 $
 ```
 
-Another approach for separating the CIVL driver code from the "real" program is to place these in separate translation units.   In the following example, a toy library "sumlib" has been implemented using a header file `sumlib.h` and an implementation `sumlib.c`:
+Another approach for separating the CIVL driver code from the "real"
+program is to place these in separate translation units.  In the
+following example, a toy library "sumlib" has been implemented using a
+header file `sumlib.h` and an implementation `sumlib.c`:
 
 ```c title="sumlib.h"
 int sum(int n);
@@ -498,7 +569,9 @@ int sum(int n) {
 }
 ```
 
-A simple test has been implemented in a separate translation unit named `sumlib_test.c`.   The translation units can be compiled, linked, and executed, in the usual way.
+A simple test has been implemented in a separate translation unit
+named `sumlib_test.c`.  The translation units can be compiled, linked,
+and executed, in the usual way.
 
 ```c title="sumlib_test.c"
 #include <stdio.h>
@@ -518,7 +591,10 @@ $ ./a.out
 N=100, sum = 5050
 ```
 
-Finally, a CIVL verification driver is provided in another translation unit, `sumlib_driver.cvl`.   The CIVL verifier can be applied to the whole program composed of the two translation units `sumlib_driver.cvl` and `sumlib.c`:
+Finally, a CIVL verification driver is provided in another translation
+unit, `sumlib_driver.cvl`.  The CIVL verifier can be applied to the
+whole program composed of the two translation units
+`sumlib_driver.cvl` and `sumlib.c`:
 
 ```civl title="sumlib_driver.cvl"
 #include <stdio.h>
@@ -567,13 +643,20 @@ civl verify sumlib_driver.cvl sumlib.c
 The standard properties hold for all executions.
 ```
 
-There are limitations to the application of CIVL to C programs.   Support for the standard library is only partial.   Small bounds will have to be placed on many parameters in order for CIVL verification to terminate (or terminate in a reasonable amount of time).
+There are limitations to the application of CIVL to C programs.
+Support for the standard library is only partial.  Small bounds will
+have to be placed on many parameters in order for CIVL verification to
+terminate (or terminate in a reasonable amount of time).
 
 ## Verifying C/MPI Programs
 
 <!-- TODO: Link to main [[wiki:MPI Documentation|MPI Documentation.]] -->
 
-CIVL can verify C/MPI programs that use a subset of MPI.    The instructions for sequential programs apply equally to MPI programs.  In addition, one must specify either (1) the number of processes for the MPI program, or (2) an upper and a lower bound on the number of processes for the MPI program.
+CIVL can verify C/MPI programs that use a subset of MPI.  The
+instructions for sequential programs apply equally to MPI programs.
+In addition, one must specify either (1) the number of processes for
+the MPI program, or (2) an upper and a lower bound on the number of
+processes for the MPI program.
 
 In the following example, the C/MPI program `ring.c` is verified for exactly 5 processes:
 
@@ -581,7 +664,8 @@ In the following example, the C/MPI program `ring.c` is verified for exactly 5 p
 civl verify -input_mpi_nprocs=5 ring.c
 ```
 
-In the following example, `ring.c` is verified for any number of processes between 2 and 5, inclusive:
+In the following example, `ring.c` is verified for any number of
+processes between 2 and 5, inclusive:
 
 ```sh
 civl verify -input_mpi_nprocs_lo=2 -input_mpi_nprocs_hi=5 ring.c
@@ -593,12 +677,24 @@ civl verify -input_mpi_nprocs_lo=2 -input_mpi_nprocs_hi=5 ring.c
 
 <!-- Link to main [[wiki:OpenMP Documentation|OpenMP Documentation.]] -->
 
-CIVL uses an input variable `omp_thread_max` for verifying OpenMP programs.   It must be specified on the command line, e.g.,
+CIVL uses an input variable `omp_thread_max` for verifying OpenMP
+programs.  It must be specified on the command line, e.g.,
 
 ```sh
 civl verify -input_omp_thread_max=3 sum_omp.c
 ```
 
-Upon entering an OpenMP parallel region, CIVL will nondeterministically choose an integer between 1 and `omp_thread_max`, and create a thread team consisting of that number of threads.   If `omp_thread_max` is not specified, then the program must explicitly specify the number of threads for each parallel region.
+Upon entering an OpenMP parallel region, CIVL will
+nondeterministically choose an integer between 1 and `omp_thread_max`,
+and create a thread team consisting of that number of threads.  If
+`omp_thread_max` is not specified, then the program must explicitly
+specify the number of threads for each parallel region.
 
-By default, CIVL attempts to simplify an OpenMP program by replacing parallel code with sequential code when it can determine that the two are equivalent.  In the best case, this can remove all of the OpenMP, resulting in a sequential program.   The option `-ompNoSimplify` can be used to disable such simplification.   Another option, `-ompLoopDecomp=X` can be used to specify the loop decomposition strategy, where `X` is one `ALL` (the default), `ROUND_ROBIN`, or `RANDOM`.
+By default, CIVL attempts to simplify an OpenMP program by replacing
+parallel code with sequential code when it can determine that the two
+are equivalent.  In the best case, this can remove all of the OpenMP,
+resulting in a sequential program.  The option `-ompNoSimplify` can be
+used to disable such simplification.  Another option,
+`-ompLoopDecomp=X` can be used to specify the loop decomposition
+strategy, where `X` is one `ALL` (the default), `ROUND_ROBIN`, or
+`RANDOM`.
