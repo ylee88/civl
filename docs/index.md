@@ -27,14 +27,6 @@ CIVL currently supports only subsets of the languages and language
 extensions mentioned above.  We are continually expanding these subsets,
 prioritizing the most commonly-used language features.
 
-
-## Downloads & Links
-
-* [Latest stable release](http://vsl.cis.udel.edu/lib/sw/civl/current/latest/)
-* [Latest unstable release](http://vsl.cis.udel.edu/lib/sw/civl/trunk/latest/)
-* [Older releases](http://vsl.cis.udel.edu/lib/sw/civl/)
-* [CIVL Web App](http://civl.cis.udel.edu/app/)
-
 ## Documentation
 * [Introduction](introduction.md)
 * [CIVL-C Fundamentals](fundamentals.md)
