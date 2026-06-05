@@ -1,5 +1,10 @@
 #ifndef _MPI_
 #define _MPI_
+/* Filename : mpi.h
+   
+   Header file for MPI library.
+   Note: some of this copied from Argonne's mpich.
+ */
 #include <op.h>
 #ifndef NULL
 #define NULL ((void*)0)
@@ -22,32 +27,21 @@
 typedef enum Operation MPI_Op;
 #define MPI_OP_NULL  (-1)
 
-/* MPI definition */
-/* -*- Mode: C; c-basic-offset:4 ; -*- */
-/*  
- *  (C) 2001 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
- */
-/* src/include/mpi.h.  Generated from mpi.h.in by configure. */
-/* Results of the compare operations. */
 #define MPI_IDENT     0
 #define MPI_CONGRUENT 1
 #define MPI_SIMILAR   2
 #define MPI_UNEQUAL   3
 
-#ifdef __MPI_DATATYPE__
-#else
-#define __MPI_DATATYPE__
-typedef enum MPI_Datatype{
-    MPI_CHAR = 0,
-    MPI_CHARACTER = 1,
+typedef enum MPI_Datatype {
+    MPI_CHAR,
+    MPI_CHARACTER,
     MPI_SIGNED_CHAR,           
     MPI_UNSIGNED_CHAR,
-    MPI_BYTE = 2,           
+    MPI_BYTE,           
     MPI_WCHAR,          
-    MPI_SHORT = 3,          
+    MPI_SHORT,          
     MPI_UNSIGNED_SHORT,
-    MPI_INT = 4,            
+    MPI_INT,            
     MPI_INT16_T,
     MPI_INT32_T,
     MPI_INT64_T,
@@ -59,14 +53,14 @@ typedef enum MPI_Datatype{
     MPI_INTEGER4,
     MPI_INTEGER8,
     MPI_UNSIGNED,       
-    MPI_LONG = 5,          
+    MPI_LONG,          
     MPI_UNSIGNED_LONG, 
-    MPI_FLOAT = 9,          
-    MPI_DOUBLE = 10,         
-    MPI_LONG_DOUBLE = 11,
-    MPI_LONG_LONG_INT = 6,  
-    MPI_UNSIGNED_LONG_LONG = 7,
-    MPI_LONG_LONG = 8,
+    MPI_FLOAT,          
+    MPI_DOUBLE,         
+    MPI_LONG_DOUBLE,
+    MPI_LONG_LONG_INT,  
+    MPI_UNSIGNED_LONG_LONG,
+    MPI_LONG_LONG,
     MPI_PACKED,
     MPI_LB,
     MPI_UB,
@@ -78,7 +72,7 @@ typedef enum MPI_Datatype{
     MPI_DOUBLE_INT,       
     MPI_LONG_INT,         
     MPI_SHORT_INT,        
-    MPI_2INT = 12,             
+    MPI_2INT,             
     MPI_LONG_DOUBLE_INT,  
     MPI_AINT,
     MPI_OFFSET,
@@ -102,7 +96,6 @@ typedef enum MPI_Datatype{
     MPI_REAL8
 } MPI_Datatype;
 #define MPI_DATATYPE_NULL (-1)
-#endif
 
 typedef long MPI_Aint;
 typedef int MPI_Fint;

@@ -50,8 +50,6 @@ public interface Statement extends Sourceable {
 		RETURN,
 		/** $update statement */
 		UPDATE,
-		/** $with statement */
-		WITH,
 		/** multiple assignments at a time */
 		PARALLEL_ASSIGN
 	}

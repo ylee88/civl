@@ -13,7 +13,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
@@ -27,14 +26,12 @@ import dev.civl.mc.model.IF.CIVLException.Certainty;
 import dev.civl.mc.model.IF.CIVLFunction;
 import dev.civl.mc.model.IF.CIVLInternalException;
 import dev.civl.mc.model.IF.CIVLProperty;
-import dev.civl.mc.model.IF.CIVLSource;
 import dev.civl.mc.model.IF.CIVLTypeFactory;
 import dev.civl.mc.model.IF.Model;
 import dev.civl.mc.model.IF.ModelConfiguration;
 import dev.civl.mc.model.IF.ModelFactory;
 import dev.civl.mc.model.IF.Scope;
 import dev.civl.mc.model.IF.location.Location;
-import dev.civl.mc.model.IF.type.CIVLStateType;
 import dev.civl.mc.model.IF.variable.Variable;
 import dev.civl.mc.state.IF.CIVLHeapException;
 import dev.civl.mc.state.IF.CIVLHeapException.HeapErrorKind;
@@ -46,7 +43,6 @@ import dev.civl.mc.state.IF.State;
 import dev.civl.mc.state.IF.StateFactory;
 import dev.civl.mc.state.IF.StateValueHelper;
 import dev.civl.mc.util.IF.Pair;
-import dev.civl.mc.util.IF.SeqSet;
 import dev.civl.mc.util.IF.Singleton;
 import dev.civl.sarl.IF.CanonicalRenamer;
 import dev.civl.sarl.IF.Reasoner;
@@ -67,7 +63,6 @@ import dev.civl.sarl.IF.object.SymbolicObject;
 import dev.civl.sarl.IF.object.SymbolicObject.SymbolicObjectKind;
 import dev.civl.sarl.IF.object.SymbolicSequence;
 import dev.civl.sarl.IF.type.SymbolicCompleteArrayType;
-import dev.civl.sarl.IF.type.SymbolicTupleType;
 import dev.civl.sarl.IF.type.SymbolicType;
 
 /**
@@ -117,20 +112,6 @@ public class ImmutableStateFactory implements StateFactory {
 	 */
 	private Map<ImmutableDynamicScope, ImmutableDynamicScope> scopeMap = new ConcurrentHashMap<>(100000);
 
-	/**
-	 * An instance of {@link ReferredStateStorage} which is used to save collate
-	 * states.
-	 */
-	private ReferredStateStorage collateStateStorage;
-
-	/**
-	 * When normalizing a state s, there is a set T of states that are referred by
-	 * variables in s must be normalized as well (depth 1). For each state t in T,
-	 * there is a set D of states that are referred by variables in t must be
-	 * normalized as well (depth 2).
-	 */
-	private static final int NORMALIZE_REFERRED_STATES_DEPTH = 2;
-
 	protected final SymbolicExpression undefinedProcessValue;
 
 	/**
@@ -167,7 +148,6 @@ public class ImmutableStateFactory implements StateFactory {
 	 */
 	private int nextDyscopeId = 0;
 
-	// TODO: whats the difference in between undefined and null scope value ??!!
 	/**
 	 * The unique symbolic expression for the undefined scope value, which has the
 	 * integer value -1.
@@ -294,7 +274,6 @@ public class ImmutableStateFactory implements StateFactory {
 				new Singleton<SymbolicExpression>(universe.integer(-2)));
 		this.maxProcs = config.getMaxProcs();
 		this.processValues = new SymbolicExpression[maxProcs];
-		this.collateStateStorage = new ReferredStateStorage();
 		for (HeapErrorKind kind : HeapErrorKind.class.getEnumConstants())
 			fullHeapErrorSet.add(kind);
 		for (int i = 0; i < maxProcs; i++) {
@@ -708,25 +687,8 @@ public class ImmutableStateFactory implements StateFactory {
 		ImmutableProcessState process = theState.getProcessState(pid);
 		ImmutableProcessState[] processArray = theState.copyProcessStates();
 		ImmutableDynamicScope[] newScopes = theState.copyScopes();
-		// DynamicScope dyscopeExpired =
-		// state.getDyscope(process.getDyscopeId());
-		// Scope staticScope = dyscopeExpired.lexicalScope();
-		// Map<Integer, Map<SymbolicExpression, Boolean>> reachableMUwoPtr =
-		// null, reachableMUwtPtr = null;
-
 		processArray[pid] = process.pop();
 		setReachablesForProc(newScopes, processArray[pid]);
-		// if (!processArray[pid].hasEmptyStack() && staticScope.hasVariable())
-		// {
-		// reachableMUwoPtr = this.setReachableMemUnits(theState, pid, this
-		// .removeReachableMUwoPtrFromDyscopes(new HashSet<Integer>(
-		// Arrays.asList(process.getDyscopeId())), theState,
-		// pid), false);
-		// if (staticScope.hasVariableWtPointer())
-		// reachableMUwtPtr = this.setReachableMemUnits(theState, pid,
-		// this.computeReachableMUofProc(theState, pid, true),
-		// true);
-		// }
 		theState = ImmutableState.newState(theState, processArray, newScopes, null);
 		return theState;
 	}
@@ -995,25 +957,7 @@ public class ImmutableStateFactory implements StateFactory {
 	@Override
 	public ImmutableState simplify(State state, int pid, Set<SymbolicConstant> aggressiveSet) {
 		ImmutableState theState = (ImmutableState) state;
-
-		theState = simplifyReferencedStates(theState, theState.getPermanentPathCondition(),
-				NORMALIZE_REFERRED_STATES_DEPTH);
 		return simplifyWork(theState, true, pid, aggressiveSet);
-	}
-
-	// TODO: why need this ?
-	@SuppressWarnings("unused")
-	private BooleanExpression getContextOfSizeofSymbols(Reasoner reasoner) {
-		Map<SymbolicConstant, SymbolicExpression> map = reasoner.constantSubstitutionMap();
-		BooleanExpression result = universe.trueExpression();
-
-		for (Map.Entry<SymbolicConstant, SymbolicExpression> pair : map.entrySet()) {
-			if ((this.config.isEnableMpiContract() && this.config.inSubprogram())
-					|| ModelConfiguration.SIZEOF_VARS.contains(pair.getKey())) {
-				result = universe.and(result, universe.equals(pair.getValue(), pair.getKey()));
-			}
-		}
-		return result;
 	}
 
 	/**
@@ -1128,272 +1072,6 @@ public class ImmutableStateFactory implements StateFactory {
 		}
 
 		return theState;
-	}
-
-	/**
-	 * Search $state type variables in each dynamic scope (dyscope) of the given
-	 * state. Returns a list of pairs: an dynamic scope ID and a list of state
-	 * values in the dynamic scope
-	 * 
-	 * @param state The state in which referred states will be returned.
-	 * @return A list of pairs: one is the ID of the dyscope, in which contains at
-	 *         least one $state variable, of the given state; the other is the set
-	 *         of values of $state objects in aforementioned dyscope.
-	 * 
-	 */
-	private List<Pair<Integer, List<SymbolicExpression>>> getStateReferences(ImmutableState state) {
-		SymbolicType symbolicStateType = modelFactory.typeFactory().stateSymbolicType();
-		List<Pair<Integer, List<SymbolicExpression>>> allStateRefs = new LinkedList<>();
-		int numDyscopes = state.numDyscopes();
-
-		for (int i = 0; i < numDyscopes; i++) {
-			ImmutableDynamicScope dyscope = state.getDyscope(i);
-			Collection<Variable> variablesWithStateRef = dyscope.lexicalScope().variablesWithStaterefs();
-			List<SymbolicExpression> stateValues = new LinkedList<>();
-
-			for (Variable var : variablesWithStateRef) {
-				int vid = var.vid();
-				SymbolicExpression value = dyscope.getValue(vid);
-				List<SymbolicExpression> stateRefs = getSubExpressionsOfType(symbolicStateType, value);
-
-				for (SymbolicExpression stateRef : stateRefs)
-					stateValues.add(stateRef);
-			}
-			if (!stateValues.isEmpty())
-				allStateRefs.add(new Pair<>(i, stateValues));
-		}
-		return allStateRefs;
-	}
-
-	/**
-	 * Renaming symbolic constants in states referred by $state variables in current
-	 * state. Every time the current state collects its symbolic constants, this
-	 * method shall be called to make symbolic constants in referred states
-	 * consistent with the current state.
-	 * 
-	 * @param state                     The current state
-	 * @param renamer                   The symbolic constant renamer used by the
-	 *                                  current state, which contains a mapping
-	 *                                  function from old collected symbolic
-	 *                                  constants to new ones.
-	 * @param collectReferredStateDepth The depth of collecting symbolic constants
-	 *                                  in referred states. To understand "depth",
-	 *                                  see {@link #NORMALIZE_REFERRED_STATES_DEPTH}
-	 * @return A new state which is same as the current state but $state variables
-	 *         in it are updated.
-	 * @throws CIVLHeapException If unexpected heap exception happens during
-	 *                           canonicalizing referred states
-	 */
-	private ImmutableState collectHavocVariablesInReferredStates(ImmutableState state,
-			UnaryOperator<SymbolicExpression> renamer, int collectReferredStateDepth) throws CIVLHeapException {
-		// if (!config.isEnableMpiContract())
-		// return state;
-		if (collectReferredStateDepth <= 0)
-			return state;
-
-		List<Pair<Integer, List<SymbolicExpression>>> dyscopeRefStatePairs = getStateReferences(state);
-		ImmutableDynamicScope newDyscopes[] = null;
-		BitSet changedDyscopes = new BitSet(state.numDyscopes());
-		CIVLStateType stateType = typeFactory.stateType();
-
-		for (Pair<Integer, List<SymbolicExpression>> pair : dyscopeRefStatePairs) {
-			int refStateDyId = pair.left;
-			TreeMap<SymbolicExpression, SymbolicExpression> substituteMap = new TreeMap<>(universe.comparator());
-			UnaryOperator<SymbolicExpression> stateValueUpdater;
-
-			// Rename symbolic expressions in dyscopes, processStates and path
-			// conditions in each referred state:
-			for (SymbolicExpression oldStateValue : pair.right) {
-				int oldStateKey = stateType.selectStateKey(universe, oldStateValue);
-				SymbolicExpression oldStateScopeMapping = stateType.selectScopeValuesMap(universe, oldStateValue);
-				ImmutableState oldReferredState = collateStateStorage.getSavedState(oldStateKey);
-				ImmutableState newReferredState;
-				boolean unchange = true;
-				ImmutableDynamicScope[] newReferredDyscopes;
-
-				if (oldReferredState == null)
-					continue;
-				newReferredDyscopes = oldReferredState.copyScopes();
-				// Rename symbolic expressions in each dynamic scope of the
-				// referred state:
-				for (int k = 0; k < newReferredDyscopes.length; k++) {
-					ImmutableDynamicScope tmp = newReferredDyscopes[k].updateSymbolicConstants(renamer);
-
-					unchange &= tmp == newReferredDyscopes[k];
-					newReferredDyscopes[k] = tmp;
-				}
-
-				// Rename symbolic expressions in permanent path condition of
-				// the referred state:
-				BooleanExpression tmp, newPathCondition = oldReferredState.getPermanentPathCondition();
-
-				tmp = (BooleanExpression) renamer.apply(newPathCondition);
-				unchange &= tmp == newPathCondition;
-				newPathCondition = tmp;
-
-				// Rename symbolic expressions in write set stack and partial
-				// path condition stack in each process state:
-				newReferredState = applyToProcessStates(oldReferredState, renamer);
-				unchange &= newReferredState == oldReferredState;
-				if (!unchange) {
-					int newStateKey;
-
-					newReferredState = ImmutableState.newState(newReferredState, null, newReferredDyscopes,
-							newPathCondition);
-					newReferredState = collectHavocVariablesInReferredStates(newReferredState, renamer,
-							collectReferredStateDepth - 1);
-					// no need to collect scopes, processes and symbolic
-					// constants again:
-					newStateKey = saveState(newReferredState).left;
-					substituteMap.put(oldStateValue,
-							stateType.buildStateValue(universe, newStateKey, oldStateScopeMapping));
-				}
-			}
-			stateValueUpdater = universe.mapSubstituter(substituteMap);
-			// instantiate it at first time:
-			if (newDyscopes == null)
-				newDyscopes = new ImmutableDynamicScope[state.numDyscopes()];
-			newDyscopes[refStateDyId] = state.getDyscope(refStateDyId).updateSymbolicConstants(stateValueUpdater);
-			changedDyscopes.set(refStateDyId);
-		}
-		if (!changedDyscopes.isEmpty()) {
-			for (int i = 0; i < newDyscopes.length; i++)
-				if (!changedDyscopes.get(i))
-					newDyscopes[i] = state.getDyscope(i);
-		} else
-			assert newDyscopes == null;
-		return ImmutableState.newState(state, null, newDyscopes, null);
-	}
-
-	/**
-	 * Simplify states which are referred by $state variables in the current state
-	 * with the context of the current state.
-	 * 
-	 * @param state   The current state.
-	 * @param context The permanent path condition of the current state.
-	 * @param depth   The depth of simplification of referred states. To understand
-	 *                the depth, see {@link #NORMALIZE_REFERRED_STATES_DEPTH}
-	 * @return A new state which is the same as the current state but referred
-	 *         states are updated.
-	 */
-	private ImmutableState simplifyReferencedStates(ImmutableState state, BooleanExpression context, int depth) {
-		if (!config.isEnableMpiContract())
-			return state;
-		if (depth <= 0)
-			return state;
-
-		int numDyscopes = state.numDyscopes();
-		Map<SymbolicExpression, SymbolicExpression> old2NewStateRefs = new TreeMap<>(universe.comparator());
-		BitSet changedDysId = new BitSet(numDyscopes);
-		UnaryOperator<SymbolicExpression> stateValueUpdater;
-		List<Pair<Integer, List<SymbolicExpression>>> dyScopeReferedStatePairs = getStateReferences(state);
-		ImmutableDynamicScope newDyscopes[] = null;
-		CIVLStateType stateType = typeFactory.stateType();
-
-		for (Pair<Integer, List<SymbolicExpression>> pair : dyScopeReferedStatePairs) {
-			int refStateDysId = pair.left;
-
-			for (SymbolicExpression oldStateValue : pair.right) {
-				int oldStateKey = stateType.selectStateKey(universe, oldStateValue);
-				SymbolicExpression scopeStateToRealMap = stateType.selectScopeValuesMap(universe, oldStateValue);
-				ImmutableState oldRefState = collateStateStorage.getSavedState(oldStateKey);
-				ImmutableState newRefState;
-				Reasoner reasoner;
-				UnaryOperator<SymbolicExpression> scopeIDReferred2CurrSubstituter;
-
-				if (oldRefState == null)
-					continue;
-				/*
-				 * construct the substituter that maps scope IDs of the current state to the
-				 * scope IDs in referred state ...
-				 */
-				SymbolicExpression scopeValueReferred2Curr[] = symbolicUtil
-						.symbolicArrayToConcreteArray(scopeStateToRealMap);
-				int scopeIDReferred2Curr[] = new int[scopeValueReferred2Curr.length];
-				int scopeIDCurr2Referred[] = new int[state.numDyscopes()];
-				BooleanExpression mappedContext;
-
-				for (int i = 0; i < scopeValueReferred2Curr.length; i++)
-					scopeIDReferred2Curr[i] = getDyscopeId(scopeValueReferred2Curr[i]);
-				mapReverse(scopeIDReferred2Curr, scopeIDCurr2Referred);
-				scopeIDReferred2CurrSubstituter = universe.mapSubstituter(scopeSubMap(scopeIDCurr2Referred));
-				mappedContext = (BooleanExpression) scopeIDReferred2CurrSubstituter.apply(context);
-				reasoner = universe.reasoner(mappedContext);
-
-				/*
-				 * Recursively simplify states referred by variables in this state
-				 */
-				newRefState = simplifyReferencedStates(oldRefState, mappedContext, depth - 1);
-				/*
-				 * Update the path condition of the referred state with the current context.
-				 * Current context should be stronger than (or equivalent to) the old path
-				 * condition...
-				 */
-				newRefState = newRefState.setPermanentPathCondition(reasoner.getFullCollapsedContext());
-				/*
-				 * Note that here must use full context (from the reasoner) to simplify the
-				 * referred state. It is incorrect to use reduced context, because equations
-				 * like X=0 in the path condition will be removed from the full context (the
-				 * reasoner knows that X should be replaced with 0 but this reasoner will not be
-				 * used).
-				 */
-				newRefState = simplifyWork(newRefState, false, -1, null);
-				if (newRefState == oldRefState)
-					continue;
-
-				int newRefStateKey = saveState(newRefState).left;
-
-				old2NewStateRefs.put(oldStateValue,
-						stateType.buildStateValue(universe, newRefStateKey, scopeStateToRealMap));
-			}
-			stateValueUpdater = universe.mapSubstituter(old2NewStateRefs);
-			// If it's first time, instantiate it:
-			if (newDyscopes == null)
-				newDyscopes = new ImmutableDynamicScope[numDyscopes];
-			newDyscopes[refStateDysId] = state.getDyscope(refStateDysId).updateSymbolicConstants(stateValueUpdater);
-			changedDysId.set(refStateDysId);
-			// Clear before re-used
-			old2NewStateRefs.clear();
-		}
-		if (!changedDysId.isEmpty()) {
-			for (int d = 0; d < numDyscopes; d++)
-				if (!changedDysId.get(d))
-					newDyscopes[d] = state.getDyscope(d);
-		} else
-			assert newDyscopes == null;
-		return ImmutableState.newState(state, null, newDyscopes, null);
-	}
-
-	private List<SymbolicExpression> getSubExpressionsOfType(SymbolicType type, SymbolicExpression expr) {
-		if (expr.isNull())
-			return new ArrayList<>(0);
-		if (expr.type().equals(type))
-			return Arrays.asList(expr);
-
-		List<SymbolicExpression> result = new LinkedList<>();
-		int numObjects = expr.numArguments();
-
-		for (int i = 0; i < numObjects; i++) {
-			SymbolicObject arg = expr.argument(i);
-
-			if (arg == null)
-				continue;
-			if (arg instanceof SymbolicExpression) {
-				result.addAll(getSubExpressionsOfType(type, (SymbolicExpression) arg));
-			} else if (arg instanceof SymbolicSequence) {
-				@SuppressWarnings("unchecked")
-				SymbolicSequence<SymbolicExpression> sequence = (SymbolicSequence<SymbolicExpression>) arg;
-				int numEle = sequence.size();
-
-				for (int j = 0; j < numEle; j++) {
-					SymbolicExpression ele = sequence.get(j);
-
-					if (ele != null)
-						result.addAll(getSubExpressionsOfType(type, ele));
-				}
-			}
-		}
-		return result;
 	}
 
 	@Override
@@ -1512,46 +1190,6 @@ public class ImmutableStateFactory implements StateFactory {
 		}
 		return values;
 	}
-
-	// /**
-	// * Checks if a heap is null or empty.
-	// *
-	// * @param heapValue
-	// * The value of the heap to be checked.
-	// * @return True iff the heap has null value or is empty.
-	// */
-	// private boolean isEmptyHeap(SymbolicExpression heapValue) {
-	// if (heapValue.isNull())
-	// return true;
-	// else {
-	// SymbolicSequence<?> heapFields = (SymbolicSequence<?>) heapValue
-	// .argument(0);
-	// int count = heapFields.size();
-	//
-	// for (int i = 0; i < count; i++) {
-	// SymbolicExpression heapField = heapFields.get(i);
-	// SymbolicSequence<?> heapFieldObjets = (SymbolicSequence<?>) heapField
-	// .argument(0);
-	// int size = heapFieldObjets.size();
-	//
-	// for (int j = 0; j < size; j++) {
-	// SymbolicExpression heapFieldObj = heapFieldObjets.get(j);
-	// SymbolicObject heapFieldObjValue = heapFieldObj.argument(0);
-	//
-	// if (heapFieldObjValue.symbolicObjectKind() == SymbolicObjectKind.STRING)
-	// {
-	// String value = ((StringObject) heapFieldObjValue)
-	// .getString();
-	//
-	// if (value.equals("UNDEFINED"))
-	// continue;
-	// }
-	// return false;
-	// }
-	// }
-	// }
-	// return true;
-	// }
 
 	/**
 	 * Given two static scopes, this method computes a non-empty sequence of scopes
@@ -2173,7 +1811,6 @@ public class ImmutableStateFactory implements StateFactory {
 		}
 		if (change) {
 			theState = ImmutableState.newState(theState, null, newScopes, newPathCondition);
-			theState = collectHavocVariablesInReferredStates(theState, canonicRenamer, NORMALIZE_REFERRED_STATES_DEPTH);
 			theState = theState.updateCollectibleCount(ModelConfiguration.HAVOC_PREFIX_INDEX,
 					canonicRenamer.getNumNewNames());
 		}
@@ -2207,43 +1844,6 @@ public class ImmutableStateFactory implements StateFactory {
 			}
 		}
 		return result;
-	}
-
-	/* **************** MPI contracts related functions ******************* */
-	/**
-	 * Renumbers and re-arranges an array of {@link DynamicScope} with an "oldToNew"
-	 * array as a dictionary which is used for looking up new IDs (indices) by
-	 * indexing old IDs (indices).
-	 * 
-	 * @precondition The largest new index in "oldToNew" table should be less than
-	 *               the length of the output array.
-	 * @param oldDyscopes      An array of old {@link DynamicScope}
-	 * @param oldToNew         An array as a dictionary which is used for looking up
-	 *                         new IDs by indexing old IDs.
-	 * @param outputDyscopes   An array of new {@link DynamicScope}
-	 * @param oldPathCondition The old path condition which may contains expressions
-	 *                         involving old dyscope IDs.
-	 * @return The new path condition which is obtained from substituting old
-	 *         dyscope IDs with new ones on the oldPathCondition>
-	 */
-	private BooleanExpression renumberDyscopes(ImmutableDynamicScope[] oldDyscopes, int[] oldToNew,
-			ImmutableDynamicScope[] outputDyscopes, BooleanExpression oldPathCondition) {
-		UnaryOperator<SymbolicExpression> substituter = getDyscopeSubstituter(oldToNew);
-		int numOldDyscopes = oldDyscopes.length;
-
-		for (int i = 0; i < numOldDyscopes; i++) {
-			int newId = oldToNew[i];
-
-			if (newId >= 0) {
-				ImmutableDynamicScope oldScope = oldDyscopes[i];
-				int oldParent = oldScope.getParent();
-				// int oldParentIdentifier = oldScope.identifier();
-
-				outputDyscopes[newId] = oldScope.updateDyscopeIds(substituter, universe,
-						oldParent < 0 ? oldParent : oldToNew[oldParent]);
-			}
-		}
-		return (BooleanExpression) substituter.apply(oldPathCondition);
 	}
 
 	@Override
@@ -2292,387 +1892,6 @@ public class ImmutableStateFactory implements StateFactory {
 	}
 
 	@Override
-	public SymbolicExpression getStateSnapshot(State state, int pid, int topDyscope) {
-		int scopeIDSnapshot2Curr[] = new int[state.numDyscopes()];
-		Pair<Integer, State> snapshotAndID = getStateSnapshotWorker(state, pid, topDyscope, scopeIDSnapshot2Curr);
-		State snapshot = snapshotAndID.right;
-		int numDyscopesInSnapshot = snapshot.numDyscopes();
-		SymbolicExpression scopeValues[] = new SymbolicExpression[numDyscopesInSnapshot];
-
-		for (int i = 0; i < numDyscopesInSnapshot; i++)
-			scopeValues[i] = this.scopeValue(scopeIDSnapshot2Curr[i]);
-		return typeFactory.stateType().buildStateValue(universe, snapshotAndID.left,
-				universe.array(typeFactory.scopeSymbolicType(), scopeValues));
-	}
-
-	/**
-	 * Carve a mono state out of the current state.
-	 * 
-	 * @param state         the current state
-	 * @param pid           the PID of the process who is associated with the mono
-	 *                      state
-	 * @param topDyscope    the dyscope ID of the "top scope", up to which all the
-	 *                      dyscopes that are reachable by the given process will be
-	 *                      included by the result.
-	 * @param scopeIDs2Curr a map that maps dyscope IDs in the mono state to current
-	 *                      state
-	 * @return a pair consists of the state ID of the mono state and the mono state
-	 *         itself.
-	 */
-	private Pair<Integer, State> getStateSnapshotWorker(State state, int pid, int topDyscope, int scopeIDs2Curr[]) {
-		// Pre-condition: topDyscope must be reachable from the call stack of
-		// pid in state:
-		ImmutableState theState = (ImmutableState) state;
-		ImmutableProcessState processState = theState.getProcessState(pid);
-
-		while (!processState.hasEmptyStack()) {
-			StackEntry entry = processState.peekStack();
-			int reachableDyscope = entry.scope();
-			boolean reachable = false;
-
-			do {
-				if (reachableDyscope == topDyscope) {
-					reachable = true;
-					break;
-				}
-				reachableDyscope = state.getDyscope(reachableDyscope).getParent();
-			} while (reachableDyscope >= 0);
-			if (reachable)
-				break;
-			else
-				processState = processState.pop();
-		}
-		for (int otherPid = 0; otherPid < theState.numProcs(); otherPid++)
-			if (otherPid != pid)
-				theState = theState.setProcessState(otherPid, null);
-			else
-				theState = theState.setProcessState(pid, processState);
-		try {
-			// Get rid of other processes and unrelated dyscopes:
-			theState = collectProcesses(theState);
-
-			int old2new[] = new int[theState.numDyscopes()];
-			ImmutableState result = collectScopesWorker(theState, fullHeapErrorSet, old2new);
-
-			mapReverse(old2new, scopeIDs2Curr);
-			return saveState(result);
-		} catch (CIVLHeapException e) {
-			throw new CIVLInternalException(
-					"Canonicalization with ignorance of all kinds of heap errors still throws an Heap Exception",
-					state.getProcessState(pid).getLocation());
-		}
-	}
-
-	@Override
-	public SymbolicExpression addInternalProcess(SymbolicExpression stateValue, SymbolicExpression monoStateValue,
-			int newPid, int nprocs, CIVLSource source) {
-		CIVLStateType stateType = typeFactory.stateType();
-		State state;
-		SymbolicExpression[] state2CurrArray;
-		SymbolicExpression scopeIDMono2Curr = stateType.selectScopeValuesMap(universe, monoStateValue);
-		SymbolicExpression[] mono2CurrArray = symbolicUtil.symbolicArrayToConcreteArray(scopeIDMono2Curr);
-
-		if (stateValue == modelFactory.statenullConstantValue()) {
-			state = emptyState(nprocs);
-			state2CurrArray = Arrays.copyOf(mono2CurrArray, mono2CurrArray.length);
-		} else {
-			int stateKey = stateType.selectStateKey(universe, stateValue);
-			SymbolicExpression scopeIDState2Curr = stateType.selectScopeValuesMap(universe, stateValue);
-			SymbolicExpression[] oldState2CurrArray = symbolicUtil.symbolicArrayToConcreteArray(scopeIDState2Curr);
-
-			state = getStateByReference(stateKey);
-			state2CurrArray = new SymbolicExpression[state.numDyscopes() + mono2CurrArray.length];
-			System.arraycopy(oldState2CurrArray, 0, state2CurrArray, 0, oldState2CurrArray.length);
-		}
-
-		int monoStateKey = stateType.selectStateKey(universe, monoStateValue);
-		Pair<Integer, State> newStateAndID = addInternalProcessWorker(state, getStateByReference(monoStateKey), newPid,
-				state2CurrArray, mono2CurrArray);
-		SymbolicExpression[] trimmedState2RealArray = new SymbolicExpression[newStateAndID.right.numDyscopes()];
-
-		for (int i = 0; i < trimmedState2RealArray.length; i++)
-			trimmedState2RealArray[i] = state2CurrArray[i];
-		return stateType.buildStateValue(universe, newStateAndID.left,
-				universe.array(typeFactory.scopeSymbolicType(), trimmedState2RealArray));
-	}
-
-	/**
-	 * Merge a mono state to a existing state
-	 * 
-	 * @param state                the existing state
-	 * @param monoState            the mono state
-	 * @param newPid               the new PID for the process , which is associated
-	 *                             with the mono state, in the result merged state
-	 * @param scopeValueState2Curr INPUT/OUTPUT. As INPUT, this array maps scope
-	 *                             values of the given state, which is a merged
-	 *                             state, to scope values of current state. As
-	 *                             OUTPUT, this array will be concatenated with
-	 *                             another map from scope values of the merging mono
-	 *                             state to current state. This array must be large
-	 *                             enough for concatenation, i.e. there are enough
-	 *                             suffix spaces in the array for taking new values
-	 *                             from another map
-	 * @param scopeValueMono2Curr  INPUT. this array maps scope values of the mono
-	 *                             state to scope values of current state
-	 * @return
-	 */
-	// this method is quite long hence I use comments to partition each
-	// segment...
-	private Pair<Integer, State> addInternalProcessWorker(State state, State monoState, int newPid,
-			SymbolicExpression scopeValueState2Curr[], SymbolicExpression scopeValueMono2Curr[]) {
-		assert monoState.numProcs() == 1;
-		ImmutableState theMono = (ImmutableState) monoState;
-		ImmutableState theState = (ImmutableState) state;
-		ImmutableState theResult;
-		ImmutableDynamicScope dyscopes[];
-		ImmutableProcessState[] processes;
-		// Change the PID of the mono process to newPid:
-		ImmutableProcessState monoProcess = theMono.getProcessState(0).setPid(newPid);
-		Scope leastCommonAncestor;
-		/*
-		 * This variable denotes if this is the first time a monoState being merged to
-		 * an empty state. The invariants of this method in fact hold for any i-th time
-		 * of merging a monoState, where i >= 0 and i < theState.numProcs(). This
-		 * variable is only used for expressing properties checked by java assert ...
-		 */
-		boolean first = true;
-		// The scope of the bottom entry in a process call stack is the process
-		// scope. (the 'root' scope of the process)
-		int bottomDyscopeId = monoProcess.getStackEntry(monoProcess.stackSize() - 1).scope();
-		DynamicScope monoProcScope;
-
-		monoProcScope = monoState.getDyscope(bottomDyscopeId);
-		leastCommonAncestor = monoState.getDyscope(monoProcScope.getParent()).lexicalScope();
-		/*
-		 * For the initial case, there is only one process state, so the invariants must
-		 * hold; Then for each time adding a new process state to the state, it always
-		 * looking for the least common ancestor (LCA) scope in between the new process
-		 * scope and the LCA of all processes in the state, thus the new LCA can only
-		 * either be the old LCA or an ancestor of the old LCA. It is guaranteed that
-		 * LCA and any ancestor of LCA has only one dyscope in the state:
-		 */
-		processes = theState.copyProcessStates();
-		assert theState.numLiveProcs() > 0;
-		for (ImmutableProcessState process : processes)
-			if (!process.hasEmptyStack()) {
-				Scope otherProcScope;
-
-				first = false;
-				bottomDyscopeId = process.getStackEntry(process.stackSize() - 1).scope();
-				otherProcScope = theState.getDyscope(bottomDyscopeId).lexicalScope().function().outerScope();
-				leastCommonAncestor = modelFactory.leastCommonAncestor(leastCommonAncestor, otherProcScope);
-			}
-
-		ImmutableDynamicScope monoDyscopes[] = theMono.copyScopes();
-		// map from dyscope IDs in mono to dyscope IDs in the result state:
-		int dyscopeMono2State[] = new int[monoDyscopes.length];
-		int counter = theState.numDyscopes();
-		BooleanExpression newMonoPC;
-
-		/*
-		 * For any dyscope whose scope is NOT an ancestor of the LCA (or NOT equal to
-		 * LCA), then it is taken as a local dyscope (i.e. only reachable by the new
-		 * process and will be added into the collate state as a new dyscope), otherwise
-		 * it will replace the one already in the collate state (which means the shared
-		 * dyscopes are updated)...
-		 */
-
-		/*
-		 * For readability, an example is presented here:
-		 * 
-		 * Two processes are trying to merge into an (initially) empty state (merged
-		 * state). The first process has dyscope array [0,1,2,3] and dyscope 1 is the
-		 * default LCA. The following loop will construct a old2new array: [0,1,2,3].
-		 * Then the 4 dyscopes of the first process are added into the merged state.
-		 * 
-		 * Later the second process with dyscopes [0',1',2',3'] are trying to merge. 1'
-		 * is the LCA then the following loop will construct a old2new array: [0, 1, 4,
-		 * 5]. Then the dyscopes in the merged state will eventually be updated to [0',
-		 * 1', 2, 3, 2', 3']. Note that shared dyscopes are updated.
-		 */
-		for (int i = 0; i < monoDyscopes.length; i++) {
-			Scope currentScope = monoDyscopes[i].lexicalScope();
-
-			// If current scope is an ancestor or equals to the LCA, it will be
-			// a shared scope:
-			if (leastCommonAncestor.isDescendantOf(currentScope) || leastCommonAncestor.id() == currentScope.id()) {
-				int uniqueDyscopeId = -1;
-
-				for (int d = 0; d < theState.numDyscopes(); d++)
-					if (theState.getDyscope(d).lexicalScope().id() == currentScope.id()) {
-						uniqueDyscopeId = d;
-						// start from root dyscope in top-down order , the first
-						// encountered dyscope d (top-most such d), which has
-						// the same lexical scope as the current (lexical)
-						// scope, is the shared one. Thus, no need continue
-						// searching.
-						break;
-					}
-				if (uniqueDyscopeId >= 0)
-					dyscopeMono2State[i] = uniqueDyscopeId;
-				else {
-					/*
-					 * If currentScope is an ancestor of LCA, there must be a dyscope in the merged
-					 * state which is an instance of currentScope. Except for the first merge, there
-					 * is no dyscopes in the merged state. The follow JAVA assertion checks for
-					 * this.
-					 */
-					dyscopeMono2State[i] = i;
-					counter++;
-					assert first;
-				}
-			} else
-				dyscopeMono2State[i] = counter++;
-		}
-		dyscopes = new ImmutableDynamicScope[counter];
-		newMonoPC = renumberDyscopes(monoDyscopes, dyscopeMono2State, dyscopes, theMono.getPermanentPathCondition());
-		// clear reacher for the monoDyscopes:
-		for (int i = 0; i < counter; i++)
-			if (dyscopes[i] != null) {
-				BitSet reachers = dyscopes[i].getReachers();
-
-				reachers.clear();
-				dyscopes[i] = dyscopes[i].setReachers(reachers);
-			}
-		// copy local dyscopes in theState to new dyscopes array:
-		System.arraycopy(theState.copyScopes(), 0, dyscopes, 0, theState.numDyscopes());
-
-		UnaryOperator<SymbolicExpression> substituter = getDyscopeSubstituter(dyscopeMono2State);
-		BooleanExpression newPermanentPathCondition;
-
-		newPermanentPathCondition = (BooleanExpression) substituter.apply(theState.getPermanentPathCondition());
-		processes[newPid] = monoProcess.updateDyscopes(dyscopeMono2State, substituter);
-		for (ImmutableProcessState proc : processes)
-			if (!proc.hasEmptyStack())
-				setReachablesForProc(dyscopes, proc);
-
-		// Add sleep location:
-		StackEntry top = processes[newPid].peekStack();
-
-		processes[newPid] = processes[newPid].pop();
-		top = new ImmutableStackEntry(modelFactory.model().sleepLocation(), top.scope());
-		processes[newPid] = processes[newPid].push((ImmutableStackEntry) top);
-
-		theResult = ImmutableState.newState(theState, processes, dyscopes,
-				universe.and(newPermanentPathCondition, newMonoPC));
-		concatenateMonoScopeMap(scopeValueMono2Curr, dyscopeMono2State, scopeValueState2Curr);
-		return saveState(theResult);
-	}
-
-	@Override
-	public SymbolicExpression addExternalProcess(SymbolicExpression colStateValue, State currentState, int pid,
-			int place, CIVLFunction with) {
-		CIVLStateType stateType = modelFactory.typeFactory().stateType();
-		int mergedStateRefID = stateType.selectStateKey(universe, colStateValue);
-		ImmutableState mergedState = getStateByReference(mergedStateRefID);
-		SymbolicExpression scopeValue2Curr = stateType.selectScopeValuesMap(universe, colStateValue);
-		SymbolicExpression oldScopeValue2Curr[] = symbolicUtil.symbolicArrayToConcreteArray(scopeValue2Curr);
-		// #new-scopes <= #mergedState-scopes + #currentstate-scopes
-		SymbolicExpression newScopeValue2Curr[] = new SymbolicExpression[mergedState.numDyscopes()
-				+ currentState.numDyscopes()];
-
-		Arrays.fill(newScopeValue2Curr, nullScopeValue);
-		System.arraycopy(oldScopeValue2Curr, 0, newScopeValue2Curr, 0, oldScopeValue2Curr.length);
-		mergedState = addExternalProcessWorker(mergedState, currentState, pid, place, with, newScopeValue2Curr);
-		// prune unused suffix in the newScopeValue2Curr array:
-		newScopeValue2Curr = Arrays.copyOf(newScopeValue2Curr, mergedState.numDyscopes());
-		mergedStateRefID = saveState(mergedState).left;
-		return stateType.buildStateValue(universe, mergedStateRefID,
-				universe.array(typeFactory.scopeSymbolicType(), newScopeValue2Curr));
-	}
-
-	private ImmutableState addExternalProcessWorker(State mergedState, State currentState, int pid, int place,
-			CIVLFunction with, SymbolicExpression scopeValue2Curr[]) {
-		if (mergedState.getProcessState(place).hasEmptyStack()) {
-			/*
-			 * If the merged state has no internal process (the process whose PID is the
-			 * given place in the merged state) that is associated with the given external
-			 * process, there must be something wrong.
-			 */
-			throw new CIVLInternalException("A process attempts to execute a $with statement with a collate state"
-					+ " without adding its own snapshot to the collate state first.", with.getSource());
-		}
-
-		ImmutableState theColState = (ImmutableState) mergedState;
-		ImmutableState theCurrState = pushCallStack(currentState, pid, with, new SymbolicExpression[0]);
-		ImmutableDynamicScope newDyscopes[];
-		ImmutableProcessState external = theCurrState.getProcessState(pid);
-		int newPid = theColState.numProcs();
-		int counter = theColState.numDyscopes();
-		int extScopesCurr2Merged[] = new int[theCurrState.numDyscopes()];
-		BooleanExpression newRealPC;
-		int oldDyscopeId = external.peekStack().scope();
-
-		// TODO: update scopeValue2Curr, note that external process is sharing
-		// common scopes with its corresponding internal scope:
-		Arrays.fill(extScopesCurr2Merged, ModelConfiguration.DYNAMIC_NULL_SCOPE);
-		while (oldDyscopeId >= 0) {
-			ImmutableDynamicScope oldDyscope = theCurrState.getDyscope(oldDyscopeId);
-			int newDid;
-
-			newDid = theColState.getDyscope(place, oldDyscope.lexicalScope());
-			if (newDid >= 0)
-				extScopesCurr2Merged[oldDyscopeId] = newDid;
-			else {
-				extScopesCurr2Merged[oldDyscopeId] = counter;
-				assert scopeValue2Curr[counter] == nullScopeValue
-						: "Merged " + "dyscope ID conflicts existing dyscope ID";
-				scopeValue2Curr[counter] = scopeValue(counter);
-				counter++;
-
-			}
-			oldDyscopeId = oldDyscope.getParent();
-		}
-		newDyscopes = new ImmutableDynamicScope[counter];
-		newRealPC = renumberDyscopes(theCurrState.copyScopes(), extScopesCurr2Merged, newDyscopes,
-				theCurrState.getPermanentPathCondition());
-		// Clear reachers for those new dyscopes:
-		for (int i = 0; i < counter; i++) {
-			if (newDyscopes[i] != null) {
-				BitSet reachers = newDyscopes[i].getReachers();
-
-				reachers.clear();
-				newDyscopes[i] = newDyscopes[i].setReachers(reachers);
-			}
-		}
-		System.arraycopy(theColState.copyScopes(), 0, newDyscopes, 0, theColState.numDyscopes());
-
-		ImmutableProcessState processes[] = theColState.copyAndExpandProcesses();
-		StackEntry[] newStack = new StackEntry[1];
-
-		newStack[0] = external.peekStack();
-		processes[newPid] = new ImmutableProcessState(newPid, newStack, null, null, null, external.atomicCount(), true);
-		UnaryOperator<SymbolicExpression> substituter = getDyscopeSubstituter(extScopesCurr2Merged);
-
-		processes[newPid] = processes[newPid].updateDyscopes(extScopesCurr2Merged, substituter);
-		setReachablesForProc(newDyscopes, processes[newPid]);
-		return ImmutableState.newState(theColState, processes, newDyscopes,
-				universe.and(newRealPC, theColState.getPermanentPathCondition()));
-	}
-
-	@Override
-	public ImmutableState getStateByReference(int referenceID) {
-		return collateStateStorage.getSavedState(referenceID);
-	}
-
-	@Override
-	public Pair<Integer, State> saveState(State state) {
-		ImmutableState result;
-
-		try {
-			result = canonicWork(state, true, true, true, false, false, fullHeapErrorSet);
-		} catch (CIVLHeapException e) {
-			throw new CIVLInternalException(
-					"Canonicalization with ignorance of all kinds of heap errors " + "still throws an Heap Exception",
-					e.source());
-		}
-
-		int referenceID = collateStateStorage.saveCollateState(result);
-
-		return new Pair<>(referenceID, result);
-	}
-
-	@Override
 	public State emptyState(int nprocs) {
 		ImmutableProcessState processes[] = new ImmutableProcessState[nprocs];
 		ImmutableDynamicScope dyscopes[] = new ImmutableDynamicScope[0];
@@ -2683,236 +1902,6 @@ public class ImmutableStateFactory implements StateFactory {
 		result = new ImmutableState(processes, dyscopes, universe.trueExpression());
 		result.collectibleCounts = new int[ModelConfiguration.SYMBOL_PREFIXES.length];
 		return result;
-	}
-
-	@Override
-	public State crossState(State state1, int pid1, SeqSet fixedMem1, State state2, int pid2, SeqSet fixedMem2) {
-		final String CROSS_SYMBOLIC_PREFIX = "A";
-		ImmutableState immState1 = (ImmutableState) state1, immState2 = (ImmutableState) state2;
-		int numDyscopes1 = immState1.numDyscopes(), numDyscopes2 = immState2.numDyscopes();
-
-		Map<Integer, Integer> identMap = new HashMap<>();
-		ArrayList<Integer> newToOld = new ArrayList<>(numDyscopes1 + numDyscopes2);
-		for (int i = 0; i < numDyscopes1; i++) {
-			ImmutableDynamicScope dyscope = immState1.getDyscope(i);
-			identMap.put(dyscope.identifier(), i);
-			newToOld.add(-1);
-		}
-
-		// Calculate a mapping from dyscope ids in state2 to dyscope ids in cross state
-		int[] oldToNew = new int[numDyscopes2];
-		for (int i = 0; i < numDyscopes2; i++) {
-			ImmutableDynamicScope dyscope = immState2.getDyscope(i);
-			int newPos = identMap.getOrDefault(dyscope.identifier(), -1);
-			if (newPos < 0) {
-				oldToNew[i] = newToOld.size();
-				newToOld.add(i);
-			} else {
-				newToOld.set(newPos, i);
-				oldToNew[i] = newPos;
-			}
-		}
-
-		int combinedSize = newToOld.size();
-		UnaryOperator<SymbolicExpression> state2DyscopeSub = getDyscopeSubstituter(oldToNew);
-
-		// Update fixedMem2 to reflect new scope ids
-		SeqSet newFixedMem2 = new SeqSet();
-		for (int[] leaves : fixedMem2.getLeaves()) {
-			if (leaves.length == 0)
-				continue;
-			leaves[0] = oldToNew[leaves[0]];
-			newFixedMem2.add(leaves);
-		}
-		fixedMem2 = newFixedMem2;
-
-		ImmutableDynamicScope[] combinedScopes = new ImmutableDynamicScope[combinedSize];
-		int crossConstant = 0;
-		for (int i = 0; i < combinedSize; i++) {
-			ImmutableDynamicScope dyscope, otherDyscope = null;
-			SeqSet fixedMem;
-
-			/**
-			 * Find which dyscope the ith scope of our cross state should be.
-			 * 
-			 * If the dyscope belongs to only one state then it is stored in "dyscope" and
-			 * "otherDyscope" will be null.
-			 * 
-			 * If the dyscope is shared between both states then dyscope stores the dyscope
-			 * from immState1 and otherDyscope stores it from immState2.
-			 */
-			if (i < numDyscopes1) {
-				// All dyscopes in range [0..numDyscopes1) are originally from immState1
-				dyscope = immState1.getDyscope(i);
-				fixedMem = fixedMem1;
-				int otherIndex = newToOld.get(i); // The index of this dyscope in immState2 (if it exists)
-				if (otherIndex >= 0) {
-					// otherIndex is non-negative which means dyscope also appeared in immState2
-					otherDyscope = immState2.getDyscope(otherIndex);
-					int otherParent = otherDyscope.getParent();
-					otherDyscope = otherDyscope.updateDyscopeIds(state2DyscopeSub, universe,
-							otherParent < 0 ? otherParent : oldToNew[otherParent]);
-				}
-			} else {
-				dyscope = immState2.getDyscope(newToOld.get(i));
-				int parent = dyscope.getParent();
-				dyscope = dyscope.updateDyscopeIds(state2DyscopeSub, universe, parent < 0 ? parent : oldToNew[parent]);
-				fixedMem = fixedMem2;
-			}
-
-			SymbolicExpression[] newValues = dyscope.copyValues();
-
-			/*
-			 * Abstract the heap, excluding fixed memory
-			 */
-			SymbolicExpression heapValue = dyscope.getValue(0);
-			if (!heapValue.isNull()) {
-				int numMallocs = numMallocs(heapValue);
-				for (int mid = 0; mid < numMallocs; mid++) {
-					int numHeapObjects = numHeapObjects(heapValue, mid);
-					SymbolicType objectType = getHeapObjectType(heapValue, mid);
-					for (int oid = 0; oid < numHeapObjects; oid++) {
-						if (!fixedMem.contains(i, 0, mid, oid)) {
-							heapValue = setHeapObject(heapValue, mid, oid, universe.symbolicConstant(
-									universe.stringObject(CROSS_SYMBOLIC_PREFIX + crossConstant), objectType));
-							crossConstant++;
-						}
-					}
-				}
-			}
-			newValues[0] = heapValue;
-
-			/*
-			 * Abstract all variables, excluding fixed memory
-			 */
-			for (int vid = 1; vid < newValues.length; vid++) {
-				// Don't havoc the atomic lock variable
-				if (i == 0 && vid == modelFactory.atomicLockVariableExpression().variable().vid())
-					continue;
-
-				if (!fixedMem.contains(i, vid)) {
-					Variable var = dyscope.lexicalScope().variable(vid);
-					newValues[vid] = universe.symbolicConstant(
-							universe.stringObject(CROSS_SYMBOLIC_PREFIX + crossConstant),
-							var.type().getDynamicType(universe));
-					crossConstant++;
-				}
-			}
-
-			if (otherDyscope != null) {
-				/*
-				 * Add fixed values of otherDyscope to newValues.
-				 */
-				SymbolicExpression otherHeapValue = otherDyscope.getValue(0);
-				if (!otherHeapValue.isNull()) {
-					if (heapValue.isNull())
-						heapValue = typeFactory.heapType().getInitialValue();
-					int numMallocs = numMallocs(otherHeapValue);
-					/*
-					 * Add fixed heap objects from otherDyscope.
-					 */
-					for (int mid = 0; mid < numMallocs; mid++) {
-						int numOtherHeapObjects = numHeapObjects(otherHeapValue, mid);
-						int numNewHeapObjects = numHeapObjects(heapValue, mid);
-						/*
-						 * Number of heap objects in state2 might be more than in state1 so must extend
-						 * number of objects to match
-						 */
-						for (int j = numNewHeapObjects; j < numOtherHeapObjects; j++) {
-							SymbolicType heapObjectType = getHeapObjectType(heapValue, mid);
-							SymbolicExpression newConstant = universe.symbolicConstant(
-									universe.stringObject(CROSS_SYMBOLIC_PREFIX + crossConstant), heapObjectType);
-							crossConstant++;
-							heapValue = addHeapObject(heapValue, mid, newConstant);
-						}
-
-						for (int oid = 0; oid < numOtherHeapObjects; oid++) {
-							if (fixedMem2.contains(i, 0, mid, oid)) {
-								heapValue = setHeapObject(heapValue, mid, oid, getHeapObject(otherHeapValue, mid, oid));
-							}
-						}
-					}
-					newValues[0] = heapValue;
-				}
-
-				/*
-				 * Add fixed variables from otherDyscope.
-				 */
-				for (int vid = 1; vid < newValues.length; vid++) {
-					if (fixedMem2.contains(i, vid)) {
-						newValues[vid] = otherDyscope.getValue(vid);
-					}
-				}
-			}
-			combinedScopes[i] = dyscope.setVariableValues(newValues);
-		}
-
-		int numInProcs = immState1.numProcs(), numTopProcs = immState2.numProcs();
-		int numProcs = numInProcs > numTopProcs ? numInProcs : numTopProcs;
-		ImmutableProcessState[] newProcesses = new ImmutableProcessState[numProcs];
-		for (int i = 0; i < numProcs; i++) {
-			if (i == pid1 || i == pid2) {
-				newProcesses[i] = i == pid1 ? immState1.getProcessState(i)
-						: immState2.getProcessState(i).updateDyscopes(oldToNew, state2DyscopeSub);
-			} else if (i == 0) {
-				// TODO?
-				// Had a bug where the root process was expected to exist.
-				// Happened when LibcivlcExecutor.reportAssertionFailure was called
-				// leading to a call to inputVariableValueMap (from this class) which
-				// assumes it.
-				newProcesses[i] = immState1.getProcessState(0);
-			} else {
-				newProcesses[i] = null;
-			}
-		}
-
-		BooleanExpression newPathCondition = (BooleanExpression) state2DyscopeSub
-				.apply(immState2.getPermanentPathCondition());
-		return new ImmutableState(newProcesses, combinedScopes, newPathCondition);
-	}
-
-	private int numMallocs(SymbolicExpression heapValue) {
-		SymbolicTupleType type = (SymbolicTupleType) heapValue.type();
-		return type.sequence().numTypes();
-	}
-
-	private int numHeapObjects(SymbolicExpression heapValue, int mallocId) {
-		IntObject mallocIdObj = universe.intObject(mallocId);
-		SymbolicExpression heapField = universe.tupleRead(heapValue, mallocIdObj);
-		IntegerNumber num = (IntegerNumber) universe.extractNumber(universe.length(heapField));
-		return num.intValue();
-	}
-
-	private SymbolicType getHeapObjectType(SymbolicExpression heapValue, int mallocId) {
-		IntObject mallocIdObj = universe.intObject(mallocId);
-		SymbolicExpression heapField = universe.tupleRead(heapValue, mallocIdObj);
-		SymbolicCompleteArrayType heapFieldType = (SymbolicCompleteArrayType) heapField.type();
-		return heapFieldType.elementType();
-	}
-
-	private SymbolicExpression getHeapObject(SymbolicExpression heapValue, int mallocId, int objectId) {
-		IntObject mallocIdObj = universe.intObject(mallocId);
-		SymbolicExpression heapField = universe.tupleRead(heapValue, mallocIdObj);
-		NumericExpression objectIdExpr = universe.integer(objectId);
-		return universe.arrayRead(heapField, objectIdExpr);
-	}
-
-	private SymbolicExpression setHeapObject(SymbolicExpression heapValue, int mallocId, int objectId,
-			SymbolicExpression object) {
-		IntObject mallocIdObj = universe.intObject(mallocId);
-		SymbolicExpression heapField = universe.tupleRead(heapValue, mallocIdObj);
-		NumericExpression objectIdExpr = universe.integer(objectId);
-		heapField = universe.arrayWrite(heapField, objectIdExpr, object);
-		heapValue = universe.tupleWrite(heapValue, mallocIdObj, heapField);
-		return heapValue;
-	}
-
-	private SymbolicExpression addHeapObject(SymbolicExpression heapValue, int mallocId, SymbolicExpression object) {
-		IntObject mallocIdObj = universe.intObject(mallocId);
-		SymbolicExpression heapField = universe.tupleRead(heapValue, mallocIdObj);
-		heapField = universe.append(heapField, object);
-		heapValue = universe.tupleWrite(heapValue, mallocIdObj, heapField);
-		return heapValue;
 	}
 
 	@Override
@@ -3125,54 +2114,6 @@ public class ImmutableStateFactory implements StateFactory {
 			dyscopeSubMap.putIfAbsent(key, substituter);
 		}
 		return substituter;
-	}
-
-	/**
-	 * Converts a map, which maps from non-negative integer set A to B, to a new
-	 * map, which maps non-negative integer set B to A. For the INPUT map, it
-	 * <b>requires</b> that
-	 * <ol>
-	 * <li>every non-negative integer in A is mapped to a UNIQUE non-negative
-	 * integer in B.</li>
-	 * <li>the length of the OUTPUT array must greater than the maximum value of the
-	 * non-negative set B.</li>
-	 * </ol>
-	 * 
-	 * @param old2new INPUT
-	 * @param new2old OUTPUT
-	 */
-	private void mapReverse(int[] old2new, int[] new2old) {
-		Arrays.fill(new2old, ModelConfiguration.DYNAMIC_NULL_SCOPE);
-		for (int i = 0; i < old2new.length; i++)
-			if (old2new[i] >= 0)
-				new2old[old2new[i]] = i;
-	}
-
-	/**
-	 * Append the mono-to-current scope value map to the (merged)state-to-current
-	 * scope value map with a converter which converts mono scope value to
-	 * (merged)state scope value
-	 * 
-	 * @param mono2curr  INPUT. this array maps scope values of the mono state to
-	 *                   scope values of current state
-	 * @param mono2state the converting map from mono scope values to (merged)state
-	 *                   scope values
-	 * @param state2curr INPUT/OUTPUT. As INPUT, this array maps scope values of the
-	 *                   given state, which is a merged state, to scope values of
-	 *                   current state. As OUTPUT, this array will be concatenated
-	 *                   with another map from scope values of the merging mono
-	 *                   state to current state. This array must be large enough for
-	 *                   concatenation, i.e. there are enough suffix spaces in the
-	 *                   array for taking new values from another map
-	 * 
-	 */
-	private void concatenateMonoScopeMap(SymbolicExpression[] mono2curr, int[] mono2state,
-			SymbolicExpression[] state2curr) {
-		for (int i = 0; i < mono2curr.length; i++) {
-			assert state2curr[mono2state[i]] == null || state2curr[mono2state[i]] == mono2curr[i]
-					: "" + "not concatenation";
-			state2curr[mono2state[i]] = mono2curr[i];
-		}
 	}
 
 	@Override

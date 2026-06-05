@@ -14,8 +14,6 @@ import dev.civl.mc.model.IF.contract.DependsEvent;
 import dev.civl.mc.model.IF.contract.DependsEvent.DependsEventKind;
 import dev.civl.mc.model.IF.contract.FunctionBehavior;
 import dev.civl.mc.model.IF.contract.FunctionContract;
-import dev.civl.mc.model.IF.contract.MPICollectiveBehavior;
-import dev.civl.mc.model.IF.contract.MPICollectiveBehavior.MPICommunicationPattern;
 import dev.civl.mc.model.IF.contract.MemoryEvent;
 import dev.civl.mc.model.IF.contract.NamedFunctionBehavior;
 import dev.civl.mc.model.IF.expression.Expression;
@@ -28,8 +26,7 @@ public class CommonContractFactory implements ContractFactory {
 	}
 
 	@Override
-	public NamedFunctionBehavior newNamedFunctionBehavior(CIVLSource source,
-			String name) {
+	public NamedFunctionBehavior newNamedFunctionBehavior(CIVLSource source, String name) {
 		return new CommonNamedFunctionBehavior(source, name);
 	}
 
@@ -39,20 +36,18 @@ public class CommonContractFactory implements ContractFactory {
 	}
 
 	@Override
-	public CallEvent newCallEvent(CIVLSource source, CIVLFunction function,
-			List<Expression> arguments) {
+	public CallEvent newCallEvent(CIVLSource source, CIVLFunction function, List<Expression> arguments) {
 		return new CommonCallEvent(source, function, arguments);
 	}
 
 	@Override
-	public CompositeEvent newCompositeEvent(CIVLSource source,
-			CompositeEventOperator op, DependsEvent left, DependsEvent right) {
+	public CompositeEvent newCompositeEvent(CIVLSource source, CompositeEventOperator op, DependsEvent left,
+			DependsEvent right) {
 		return new CommonCompositeEvent(source, op, left, right);
 	}
 
 	@Override
-	public MemoryEvent newMemoryEvent(CIVLSource source, DependsEventKind kind,
-			Set<Expression> memoryUnits) {
+	public MemoryEvent newMemoryEvent(CIVLSource source, DependsEventKind kind, Set<Expression> memoryUnits) {
 		return new CommonMemoryEvent(source, kind, memoryUnits);
 	}
 
@@ -64,12 +59,6 @@ public class CommonContractFactory implements ContractFactory {
 	@Override
 	public DependsEvent newNoactEvent(CIVLSource source) {
 		return new CommonDependsEvent(source, DependsEventKind.NOACT);
-	}
-
-	@Override
-	public MPICollectiveBehavior newMPICollectiveBehavior(CIVLSource source,
-			Expression communicator, MPICommunicationPattern pattern) {
-		return new CommonMPICollectiveBehavior(source, communicator, pattern);
 	}
 
 }

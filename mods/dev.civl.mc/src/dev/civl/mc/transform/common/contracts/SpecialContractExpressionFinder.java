@@ -5,8 +5,6 @@ import java.util.List;
 
 import dev.civl.abc.ast.node.IF.ASTNode;
 import dev.civl.abc.ast.node.IF.ASTNode.NodeKind;
-import dev.civl.abc.ast.node.IF.acsl.MPIContractExpressionNode;
-import dev.civl.abc.ast.node.IF.acsl.MPIContractExpressionNode.MPIContractExpressionKind;
 import dev.civl.abc.ast.node.IF.expression.ExpressionNode;
 import dev.civl.abc.ast.node.IF.expression.ExpressionNode.ExpressionKind;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode;
@@ -30,8 +28,8 @@ import dev.civl.abc.ast.node.IF.expression.OperatorNode.Operator;
 public class SpecialContractExpressionFinder {
 
 	/**
-	 * This class is a collection of all references to special constructs in
-	 * some contract expressions
+	 * This class is a collection of all references to special constructs in some
+	 * contract expressions
 	 * 
 	 * @author ziqingluo
 	 */
@@ -43,13 +41,7 @@ public class SpecialContractExpressionFinder {
 
 		List<ExpressionNode> acslOldExpressions;
 
-		List<ExpressionNode> mpiDatatypes;
-
-		List<ExpressionNode> mpiExtents;
-
 		List<ExpressionNode> acslValidExpressions;
-
-		List<ExpressionNode> mpiValidExpressions;
 
 		List<ExpressionNode> acslResults;
 
@@ -57,10 +49,7 @@ public class SpecialContractExpressionFinder {
 			nonderefPointers = new LinkedList<>();
 			remoteExpressions = new LinkedList<>();
 			acslOldExpressions = new LinkedList<>();
-			mpiDatatypes = new LinkedList<>();
-			mpiExtents = new LinkedList<>();
 			acslValidExpressions = new LinkedList<>();
-			mpiValidExpressions = new LinkedList<>();
 			acslResults = new LinkedList<>();
 		}
 	}
@@ -70,31 +59,24 @@ public class SpecialContractExpressionFinder {
 	 * expression.
 	 * 
 	 * @param expression
-	 * @return a {@link SpecialContractHub} which is a collection of all
-	 *         references to special constructs in the given expression.
+	 * @return a {@link SpecialContractHub} which is a collection of all references
+	 *         to special constructs in the given expression.
 	 */
-	static SpecialContractHub findSpecialExpressions(
-			ExpressionNode expression) {
+	static SpecialContractHub findSpecialExpressions(ExpressionNode expression) {
 		SpecialContractHub specials = new SpecialContractHub();
 
 		return findSpecialExpressions(expression, specials);
 	}
 
-	static SpecialContractHub findSpecialExpressions(ExpressionNode expression,
-			SpecialContractHub specials) {
+	static SpecialContractHub findSpecialExpressions(ExpressionNode expression, SpecialContractHub specials) {
 		specials.remoteExpressions.addAll(findRemoteExpressions(expression));
 		specials.acslOldExpressions.addAll(findOldExpressions(expression));
-		specials.mpiDatatypes
-				.addAll(findMPIDatatypesInMPIExpressions(expression));
-		specials.mpiExtents.addAll(findMPIExtents(expression));
 		specials.acslValidExpressions.addAll(findAcslValid(expression));
-		specials.mpiValidExpressions.addAll(findMpiValid(expression));
 		specials.acslResults.addAll(findAcslResult(expression));
 		return specials;
 	}
 
-	private static List<ExpressionNode> findRemoteExpressions(
-			ExpressionNode expr) {
+	private static List<ExpressionNode> findRemoteExpressions(ExpressionNode expr) {
 		List<ExpressionNode> results = new LinkedList<>();
 
 		if (expr.expressionKind() == ExpressionKind.REMOTE_REFERENCE) {
@@ -112,8 +94,7 @@ public class SpecialContractExpressionFinder {
 		return results;
 	}
 
-	private static List<ExpressionNode> findOldExpressions(
-			ExpressionNode expr) {
+	private static List<ExpressionNode> findOldExpressions(ExpressionNode expr) {
 		List<ExpressionNode> results = new LinkedList<>();
 
 		if (expr.expressionKind() == ExpressionKind.OPERATOR)
@@ -134,60 +115,6 @@ public class SpecialContractExpressionFinder {
 		return results;
 	}
 
-	private static List<ExpressionNode> findMPIDatatypesInMPIExpressions(
-			ExpressionNode expr) {
-		List<ExpressionNode> results = new LinkedList<>();
-
-		if (expr.expressionKind() == ExpressionKind.MPI_CONTRACT_EXPRESSION) {
-			MPIContractExpressionNode mpiexpr = (MPIContractExpressionNode) expr;
-			MPIContractExpressionKind mpiExprKind = mpiexpr
-					.MPIContractExpressionKind();
-
-			if (mpiExprKind == MPIContractExpressionKind.MPI_REGION
-					|| mpiExprKind == MPIContractExpressionKind.MPI_OFFSET
-					|| mpiExprKind == MPIContractExpressionKind.MPI_VALID) {
-				results.add(mpiexpr.getArgument(2));
-				// return results;
-			}
-		}
-
-		int numChildren = expr.numChildren();
-
-		for (int i = 0; i < numChildren;) {
-			ASTNode child = expr.child(i++);
-
-			if (child != null && child.nodeKind() == NodeKind.EXPRESSION)
-				results.addAll(findMPIDatatypesInMPIExpressions(
-						(ExpressionNode) child));
-		}
-		return results;
-	}
-
-	private static List<ExpressionNode> findMPIExtents(ExpressionNode expr) {
-		List<ExpressionNode> results = new LinkedList<>();
-
-		if (expr.expressionKind() == ExpressionKind.MPI_CONTRACT_EXPRESSION) {
-			MPIContractExpressionNode mpiexpr = (MPIContractExpressionNode) expr;
-			MPIContractExpressionKind mpiExprKind = mpiexpr
-					.MPIContractExpressionKind();
-
-			if (mpiExprKind == MPIContractExpressionKind.MPI_EXTENT) {
-				results.add(mpiexpr);
-				return results;
-			}
-		}
-
-		int numChildren = expr.numChildren();
-
-		for (int i = 0; i < numChildren;) {
-			ASTNode child = expr.child(i++);
-
-			if (child != null && child.nodeKind() == NodeKind.EXPRESSION)
-				results.addAll(findMPIExtents((ExpressionNode) child));
-		}
-		return results;
-	}
-
 	private static List<ExpressionNode> findAcslValid(ExpressionNode expr) {
 		List<ExpressionNode> results = new LinkedList<>();
 
@@ -204,31 +131,6 @@ public class SpecialContractExpressionFinder {
 
 			if (child != null && child.nodeKind() == NodeKind.EXPRESSION)
 				results.addAll(findAcslValid((ExpressionNode) child));
-		}
-		return results;
-	}
-
-	private static List<ExpressionNode> findMpiValid(ExpressionNode expr) {
-		List<ExpressionNode> results = new LinkedList<>();
-
-		if (expr.expressionKind() == ExpressionKind.MPI_CONTRACT_EXPRESSION) {
-			MPIContractExpressionNode mpiexpr = (MPIContractExpressionNode) expr;
-			MPIContractExpressionKind mpiExprKind = mpiexpr
-					.MPIContractExpressionKind();
-
-			if (mpiExprKind == MPIContractExpressionKind.MPI_VALID) {
-				results.add(mpiexpr);
-				return results;
-			}
-		}
-
-		int numChildren = expr.numChildren();
-
-		for (int i = 0; i < numChildren;) {
-			ASTNode child = expr.child(i++);
-
-			if (child != null && child.nodeKind() == NodeKind.EXPRESSION)
-				results.addAll(findMpiValid((ExpressionNode) child));
 		}
 		return results;
 	}

@@ -1,0 +1,355 @@
+/* Filename : cmon.cvl
+   Author   : Stephen Siegel
+   Created  : 2026-06-02
+   Modified : 2026-06-03
+
+   Implementation of Collective Monitor.   See comments in
+   cmon.cvh for details.
+ */
+
+/* MPI Collective Record.  One of these is created for each collective
+   operation.  Note: there is one record for the entire collective
+   operation, *not* one for each process. */
+struct crecord {
+  /* ID (tag) of collective function */
+  int kind; 
+  /* 2d-array specifying the type signatures used in the collective
+     calls.  Different collectives will use different dimensions: 0x0,
+     1x1, 1xnprocs, or nprocs x nprocs.  */
+  $mpi_tsig sigs[][];
+  /* The reduction operation, or _NO_OP if the collective is not a
+     reduction. */
+  MPI_Op op;
+  /* The root argument, or -1 if the collective does not use a
+     root. */
+  int root;
+};
+
+struct $cmon_g {
+  /* the number of processes: */
+  int nprocs;
+  /* queue of collective records: 0 is oldest.  This is a CIVL sequence. */
+  struct crecord records[];
+  /* sequence of length nprocs; num[i] isthe number of collective
+     calls in records that proc i has arrived at.  I.e., proc i has
+     arrived at the calls corresponding to records[0..num[i]-1].  */
+  int num[];
+  /* sequence of same length as records.
+     num_arrived[j] is the number of processes which have arrived at
+     collective call records[j].   This array is completely determined
+     by num, since:
+           num_arrived[j] = #{i:0..nprocs-1 | num[i]>j}.
+     It is here because it provides a constant-time way to determine
+     whether every process has arrived at call j. */
+  int num_arrived[];
+};
+
+struct $cmon {
+  int rank;  // rank of this process
+  $cmon_g cmg; // pointer to shared global structure
+};
+
+// note: mpi.h defines: MPI_DATATYPE_NULL
+
+struct crecord new_crecord(int kind, int n, int m) {
+  struct crecord rec =
+    { .kind = kind, .op = _NO_OP, .root = -1,
+      .sigs = ($mpi_tsig[n][m])$lambda (int i,j) MPI_TSIG_NULL };
+  return rec;
+}
+
+_Bool tsig_is_null($mpi_tsig sig) {
+  return sig.count == -1 && sig.type == MPI_DATATYPE_NULL;
+}
+
+$cmon_g $cmon_g_create($scope scope, int nprocs) {
+  $cmon_g cmg = ($cmon_g)$malloc(scope, sizeof(struct $cmon_g));
+  cmg->nprocs = nprocs;
+  $seq_init(&cmg->records, 0, NULL);
+  int zero = 0;
+  $seq_init(&cmg->num, nprocs, &zero);
+  $seq_init(&cmg->num_arrived, 0, NULL);
+  return cmg;
+}
+
+void $cmon_g_destroy($cmon_g cmg) {
+  // complain if there are messages remaining
+  int n = $seq_length(cmg->records);
+  $assert(n==0, "Collective messages remain at communicator finalization");
+  $free(cmg);
+}
+
+$cmon $cmon_create($scope scope, $cmon_g cmg, int rank) {
+  $cmon cm = ($cmon)$malloc(scope, sizeof(struct $cmon));
+  cm->rank = rank;
+  cm->cmg = cmg;
+  return cm;  
+}
+
+void $cmon_destroy($cmon cm) {
+  $free(cm);
+}
+
+/* If the oldest collective record in the queue is complete (all
+   nprocs procs have arrived), remove it. */
+static void flush($cmon_g cmg) {
+  int nprocs = cmg->nprocs;
+  if (cmg->num_arrived[0] == nprocs) {
+    $print("Removing complete collective record."); // debugging
+    $seq_remove(&cmg->records, 0, NULL, 1);
+    $seq_remove(&cmg->num_arrived, 0, NULL, 1);
+    for (int i=0; i<nprocs; i++) cmg->num[i]--;
+  }
+}
+
+/* Determines whether this process is the first to arrive at the
+   collective operation of the given kind.
+
+   If it is not the first, this function checks consistency of the
+   kind of operation with the previously arrived processes, generating
+   an assertion violation if they are not consistent.  Assuming it is
+   consistent, the num_arrived and num fields in the global collective
+   monitor are updated appropriately, and the position of the existing
+   record in the records array is returned.
+
+   If this process is the first to arrive, -1 is returned and nothing
+   is modified.  */
+static int arrive($cmon cm, int kind) {
+  int rank = cm->rank; // my rank
+  $cmon_g cmg = cm->cmg;
+  int j = cmg->num[rank];
+  int nrec = $seq_length(&cmg->records);
+  if (j < nrec) { // record already exists
+    struct crecord old = cmg->records[j];
+    $assert(old.kind == kind, "Collective call inconsistency");
+    // TODO: provide more detail
+    cmg->num_arrived[j]++;
+    cmg->num[rank] = j+1;
+    return j;
+  }
+  return -1;
+}
+
+/* Adds a new collective record to the global collective monitor.
+   This function should be called when a process is known to be the
+   first to arrive at a collective operation.  */
+static void add($cmon cm, struct crecord rec) {
+  int rank = cm->rank;
+  $cmon_g cmg = cm->cmg;
+  $print("Adding new collective record: ", rec, "\n"); // debugging
+  $seq_append(&cmg->records, &rec, 1);
+  int one = 1;
+  $seq_append(&cmg->num_arrived, &one, 1);
+  cmg->num[rank]++;
+}
+
+
+void $cmon_check_0($cmon cm, int kind) {
+  $assert(kind == BARRIER_TAG);
+  if (arrive(cm, kind) < 0)
+    add(cm, new_crecord(kind, 0, 0));
+  flush(cm->cmg);  
+}
+
+static void check_tsig($mpi_tsig expected, $mpi_tsig actual) {
+  $assert(expected.count == actual.count && expected.type == actual.type,
+	  "Type signature mis-match.");
+  // TODO: elaborate
+}
+
+// Bcast, Reduce, Allreduce, Reduce_scatter_block, Scan, Exscan.
+// inplace is not relevant to any of these.
+void $cmon_check_1($cmon cm, int kind, _Bool inplace,
+		   $mpi_tsig sig, MPI_Op op, int root) {
+  int pos = arrive(cm, kind);
+  if (pos >= 0) { // record exists
+    struct crecord old = cm->cmg->records[pos];
+    switch (kind) {
+    case REDUCE_TAG:
+    case ALLREDUCE_TAG:
+    case REDUCE_SCATTER_BLOCK_TAG:
+    case SCAN_TAG:
+    case EXSCAN_TAG:
+      assert(old.op == op, "Inconsistency in MPI reduction operator");
+    default:
+    }
+    switch (kind) {
+    case BCAST_TAG:
+    case REDUCE_TAG:
+      assert(old.root == root, "Inconsistency in MPI root argument");
+    default:
+    }
+    check_tsig(old.sigs[0][0], sig);
+  } else { // I am first to arrive at this collective
+    struct crecord rec = new_crecord(kind, 1, 1);
+    rec.sigs[0][0]=sig;
+    switch (kind) {
+    case BCAST_TAG:
+      rec.root = root;
+      break;
+    case REDUCE_TAG:
+      rec.root = root;
+      rec.op = op;
+      break;
+    case ALLREDUCE_TAG:
+    case REDUCE_SCATTER_BLOCK_TAG:
+    case SCAN_TAG:
+    case EXSCAN_TAG:
+      rec.op = op;
+      break;
+    default:
+      assert($false);
+    }
+    add(cm, rec);
+  }
+  flush(cm->cmg);  
+}
+
+/* Gather, Scatter, Allgather, Alltoall.
+   sig1 is send sig, sig2 is recv sig.
+   For all but Scatter: if inplace, then send sig is ignored.
+   For Scatter: if inplace, then recv sig is ignored. */
+void $cmon_check_1_1($cmon cm, int kind, _Bool inplace,
+		     $mpi_tsig sig1, $mpi_tsig sig2,
+		     MPI_Op op, int root) {
+  int pos = arrive(cm, kind);
+  $mpi_tsig sig0 = (kind == SCATTER_TAG ? sig1 : sig2);
+  if (pos >= 0) { // record exists
+    struct crecord old = cm->cmg->records[pos];
+    if (kind == GATHER_TAG || kind == SCATTER_TAG)
+      $assert(old.root == root, "Inconsistency in MPI root argument");
+    if (!inplace) check_tsig(sig1, sig2);
+    check_tsig(old.sigs[0][0], sig0);
+  } else {
+    struct crecord rec = new_crecord(kind, 1, 1);
+    rec.sigs[0][0] = sig0;
+    if (!inplace) check_tsig(sig1, sig2);
+    add(cm, rec);
+  }
+  flush(cm->cmg);   
+}
+
+/* Gatherv, Scatterv, Allgatherv, and Reduce_scatter.
+   Gatherv:    sigs2=recvs.  if inplace, ignore send sig (sig1)
+   Scatterv:   sigs2=sends.  if inplace, ignore recv sig (sig1)
+   Allgatherv: sigs2=recvs.  if inplace, ignore send sig (sig1)
+   Reduce_scatter: sig1 not used.  sig2 is recvs.
+
+   All type signature data stored in sigs[0][0..nprocs-1].
+ */
+void $cmon_check_1_n($cmon cm, int kind, _Bool inplace,
+		     $mpi_tsig sig1, $mpi_tsig sigs2[],
+		     MPI_Op op, int root) {
+  $cmon_g cmg = cm->cmg;
+  int rank = cm->rank, nprocs = cmg->nprocs;
+  int pos = arrive(cm, kind);
+
+  if (pos >= 0) { // record exists
+    struct crecord old = cmg->records[pos];
+    switch (kind) {
+    case GATHERV_TAG:
+    case SCATTERV_TAG: // the two with a root
+      $assert(old.root == root, "Inconsistent MPI root argument");
+      if (rank == root) { // inplace and sigs2 only used at root.
+	if (!inplace) check_tsig(sigs2[root], sig1);
+	for (int i=0; i<nprocs; i++) {
+	  if (pos < cmg->num[i] && i != root) // proc i has arrived
+	    check_tsig(old.sigs[0][i], sigs2[i]);
+	  else 
+	    cmg->records[pos].sigs[0][i] = sigs2[i];
+	}
+      } else { // this is a non-root proc
+	$assert(!inplace, "Use of MPI_IN_PLACE at non-root process");
+	if (pos < cmg->num[root]) // root has arrived
+	  check_tsig(old.sigs[0][rank], sig1);
+	else
+	  cmg->records[pos].sigs[0][rank] = sig1;
+      }
+      break;
+    case ALLGATHERV_TAG:
+      if (!inplace) check_tsig(sigs2[rank], sig1); // check send sig
+      for (int i=0; i<nprocs; i++)
+	check_tsig(old.sigs[0][i], sigs2[i]);
+      break;
+    case REDUCE_SCATTER_TAG:
+      $assert(old.op == op, "Inconsistent MPI reduction operator argument");
+      // every proc supplies same recv sigs
+      for (int i=0; i<nprocs; i++)
+	check_tsig(old.sigs[0][i], sigs2[i]);
+      break;
+    default:
+      $assert($false);
+    }
+  } else { // first arrival
+    struct crecord rec = new_crecord(kind, 1, nprocs);
+    switch (kind) {
+    case GATHERV_TAG:
+    case SCATTERV_TAG: // the two with a root
+      rec.root = root;
+      if (rank == root) {
+	if (!inplace) check_tsig(sigs2[root], sig1);
+	for (int i=0; i<nprocs; i++)
+	  rec.sigs[0][i] = sigs2[i];
+      } else {
+	$assert(!inplace, "Use of MPI_IN_PLACE at non-root process");
+	rec.sigs[0][rank] = sig1;
+      }
+      break;
+    case ALLGATHERV_TAG:
+      if (!inplace) check_tsig(sigs2[rank], sig1); // check send sig
+      for (int i=0; i<nprocs; i++)
+	rec.sigs[0][i] = sigs2[i];
+      break;
+    case REDUCE_SCATTER_TAG:
+      rec.op = op;
+      for (int i=0; i<nprocs; i++)
+	rec.sigs[0][i] = sigs2[i];
+      break;
+    default:
+      $assert($false);
+    }
+    add(cm, rec);
+  }
+  flush(cmg);
+}
+
+// Alltoallv and Alltoallw
+void $cmon_check_n_n($cmon cm, int kind, _Bool inplace,
+		     $mpi_tsig sigs1[], $mpi_tsig sigs2[]) {
+  // sigs1=sends may use inplace.  TODO: either all or none use inplace.
+  // sigs2=recvs may not use it.
+  // sigs[i][j]: data to send from i to j
+  $cmon_g cmg = cm->cmg;
+  int rank = cm->rank, nprocs = cmg->nprocs;
+  int pos = arrive(cm, kind);
+
+  if (pos >= 0) { // record exists
+    struct crecord old = cmg->records[pos];
+    for (int i=0; i<nprocs; i++) {
+      if (tsig_is_null(old.sigs[i][rank]))
+	old.sigs[i][rank] = sigs2[i];
+      else
+	check_tsig(old.sigs[i][rank], sigs2[i]);
+    }
+    if (!inplace) {
+      for (int i=0; i<nprocs; i++) {
+	if (tsig_is_null(old.sigs[rank][i]))
+	  old.sigs[rank][i] = sigs1[i];
+	else
+	  check_tsig(old.sigs[rank][i], sigs1[i]);
+      }
+    }    
+  } else {
+    struct crecord rec = new_crecord(kind, nprocs, nprocs);
+    for (int i=0; i<nprocs; i++)
+      rec.sigs[i][rank] = sigs2[i];
+    if (!inplace) {
+      check_tsig(sigs2[rank], sigs1[rank]);
+      for (int i=0; i<nprocs; i++)
+	if (i != rank)
+	  rec.sigs[rank][i] = sigs1[i];
+    }
+    add(cm, rec);
+  }
+  flush(cmg);
+}

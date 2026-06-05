@@ -8,11 +8,7 @@ import dev.civl.abc.ast.node.IF.acsl.EnsuresNode;
 import dev.civl.abc.ast.node.IF.expression.ExpressionNode;
 import dev.civl.abc.token.IF.Source;
 
-public class CommonEnsuresNode extends CommonContractNode
-		implements
-			EnsuresNode {
-
-	private boolean isGuarantee = false;
+public class CommonEnsuresNode extends CommonContractNode implements EnsuresNode {
 
 	public CommonEnsuresNode(Source source, ExpressionNode expression) {
 		super(source, expression);
@@ -34,16 +30,6 @@ public class CommonEnsuresNode extends CommonContractNode
 	}
 
 	@Override
-	public boolean isGuarantee() {
-		return isGuarantee;
-	}
-
-	@Override
-	public void setIsGuarantee(boolean isGuarantee) {
-		this.isGuarantee = isGuarantee;
-	}
-
-	@Override
 	public ContractKind contractKind() {
 		return ContractKind.ENSURES;
 	}
@@ -51,13 +37,10 @@ public class CommonEnsuresNode extends CommonContractNode
 	@Override
 	public ASTNode setChild(int index, ASTNode child) {
 		if (index != 0)
-			throw new ASTException(
-					"CommonEnsuresNode has only one child, but saw index "
-							+ index);
+			throw new ASTException("CommonEnsuresNode has only one child, but saw index " + index);
 		if (!(child == null || child instanceof ExpressionNode))
-			throw new ASTException(
-					"Child of CommonEnsuresNode must be an ExpressionNode, but saw "
-							+ child + " with type " + child.nodeKind());
+			throw new ASTException("Child of CommonEnsuresNode must be an ExpressionNode, but saw " + child
+					+ " with type " + child.nodeKind());
 		return super.setChild(index, child);
 	}
 }

@@ -262,7 +262,6 @@ public class SimpleReadWriteAnalyzer {
 			case SWITCH :
 			case UPDATE :
 			case WHEN :
-			case WITH :
 				RWSet result = rwFactory.newRWSet();
 
 				for (ASTNode child : stmt.children()) {

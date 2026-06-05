@@ -2,43 +2,33 @@ package dev.civl.mc.model.common.contract;
 
 import java.io.PrintStream;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 
 import dev.civl.mc.model.IF.CIVLSource;
 import dev.civl.mc.model.IF.Scope;
 import dev.civl.mc.model.IF.contract.FunctionBehavior;
 import dev.civl.mc.model.IF.contract.FunctionContract;
-import dev.civl.mc.model.IF.contract.MPICollectiveBehavior;
 import dev.civl.mc.model.IF.contract.NamedFunctionBehavior;
 import dev.civl.mc.model.IF.expression.Expression;
 import dev.civl.mc.model.common.CommonSourceable;
 
-public class CommonFunctionContract extends CommonSourceable
-		implements
-			FunctionContract {
+public class CommonFunctionContract extends CommonSourceable implements FunctionContract {
 
 	private boolean pure = false;
-
-	private boolean hasMPIWaitsfors = false;
 
 	private Expression guard = null;
 
 	private FunctionBehavior defaultBehavior;
 
-	private List<MPICollectiveBehavior> mpiCollectiveBehaviors = null;
-
 	private HashMap<String, NamedFunctionBehavior> namedBehaviors = new HashMap<>();
 
 	/**
-	 * The static cope in which the contract occurs, usually the parameter scope
-	 * of the function definition or prototype in which the contract occurred.
-	 * Not necessarily the same as the final value of the function's parameter
-	 * scope because if the contract occurred first on a prototype and then
-	 * later the function definition occurred, the function object will be
-	 * updated to use the definition's parameter scope. Note the variable names
-	 * used in the definition do not have to be the same as those used in the
-	 * prototype (and contract).
+	 * The static cope in which the contract occurs, usually the parameter scope of
+	 * the function definition or prototype in which the contract occurred. Not
+	 * necessarily the same as the final value of the function's parameter scope
+	 * because if the contract occurred first on a prototype and then later the
+	 * function definition occurred, the function object will be updated to use the
+	 * definition's parameter scope. Note the variable names used in the definition
+	 * do not have to be the same as those used in the prototype (and contract).
 	 */
 	private Scope scope;
 
@@ -115,14 +105,12 @@ public class CommonFunctionContract extends CommonSourceable
 
 	@Override
 	public boolean hasReadsClause() {
-		return this.defaultBehavior.readsNothing()
-				|| defaultBehavior.numReadsMemoryUnits() > 0;
+		return this.defaultBehavior.readsNothing() || defaultBehavior.numReadsMemoryUnits() > 0;
 	}
 
 	@Override
 	public boolean hasAssignsClause() {
-		return defaultBehavior.assignsNothing()
-				|| defaultBehavior.numAssignsMemoryUnits() > 0;
+		return defaultBehavior.assignsNothing() || defaultBehavior.numAssignsMemoryUnits() > 0;
 	}
 
 	@Override
@@ -133,40 +121,7 @@ public class CommonFunctionContract extends CommonSourceable
 
 	@Override
 	public boolean hasRequirementsOrEnsurances() {
-		return (defaultBehavior.numEnsurances()
-				+ defaultBehavior.numRequirements()) > 0;
-	}
-
-	@Override
-	public void addMPICollectiveBehavior(MPICollectiveBehavior behavior) {
-		if (mpiCollectiveBehaviors == null)
-			mpiCollectiveBehaviors = new LinkedList<>();
-		mpiCollectiveBehaviors.add(behavior);
-	}
-
-	@Override
-	public Iterable<MPICollectiveBehavior> getMPIBehaviors() {
-		if (mpiCollectiveBehaviors == null)
-			mpiCollectiveBehaviors = new LinkedList<>();
-		return mpiCollectiveBehaviors;
-	}
-
-	@Override
-	public int numMPICollectiveBehaviors() {
-		if (mpiCollectiveBehaviors == null)
-			return 0;
-		else
-			return mpiCollectiveBehaviors.size();
-	}
-
-	@Override
-	public boolean hasMPIWaitsfor() {
-		return hasMPIWaitsfors;
-	}
-
-	@Override
-	public void setHasMPIWaitsfor(boolean hasWaitsfor) {
-		this.hasMPIWaitsfors = hasWaitsfor;
+		return (defaultBehavior.numEnsurances() + defaultBehavior.numRequirements()) > 0;
 	}
 
 }

@@ -62,12 +62,6 @@ public interface ContractNode extends ASTNode {
 		 */
 		INVARIANT,
 		/**
-		 * A "\mpi_collective" node introduces a block of contracts which should
-		 * satisfy mpi collective behaviors. A node of this kind may be safely
-		 * cast to {@link MPICollectiveBlockNode}
-		 */
-		MPI_COLLECTIVE,
-		/**
 		 * A "pure" node represents the contract for specifying a pure function.
 		 * A node of this kind may be safely cast to {@link PureNode}.
 		 */
@@ -83,11 +77,6 @@ public interface ContractNode extends ASTNode {
 		 */
 		TRANSFORM,
 		/**
-		 * A "waitsfor" node represents a synchronization clause in a CIVL-C
-		 * procedure contract. May be safe cast to {@link WaitsforNode}.
-		 */
-		WAITSFOR,
-		/**
 		 * <p>
 		 * ACSL: ANSI/ISO C Specification Language v1.12 section: 2.6.1.
 		 * </p>
@@ -95,15 +84,7 @@ public interface ContractNode extends ASTNode {
 		 * A predicate is a boolean value expression
 		 * </p>
 		 */
-		PREDICATE,
-		/**
-		 * <p>
-		 * events that are used in MPI_ABSENT expressions:
-		 * <code>\send, \enter \exit</code>
-		 * </p>
-		 * . Instances of {@link MPIContractAbsentEventNode}
-		 */
-		MPI_EVENT,
+		PREDICATE
 	}
 
 	/**

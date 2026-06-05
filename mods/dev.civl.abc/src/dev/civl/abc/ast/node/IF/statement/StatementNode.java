@@ -5,11 +5,9 @@ import dev.civl.abc.ast.node.IF.omp.OmpNode;
 
 public interface StatementNode extends BlockItemNode {
 
-	// TODO add javadocs
 	public enum StatementKind {
 		/**
-		 * A CIVL-C <code>$atomic</code> statement. Can be
-		 * cast to {@link AtomicNode}
+		 * A CIVL-C <code>$atomic</code> statement. Can be cast to {@link AtomicNode}
 		 */
 		ATOMIC,
 		/**
@@ -18,29 +16,28 @@ public interface StatementNode extends BlockItemNode {
 		 */
 		CHOOSE,
 		/**
-		 * A CIVL-C <code>$for</code> or <code>$parfor</code> statement. Can be
-		 * cast to {@link CivlForNode}
+		 * A CIVL-C <code>$for</code> or <code>$parfor</code> statement. Can be cast to
+		 * {@link CivlForNode}
 		 */
 		CIVL_FOR,
 		/**
-		 * A compound statement, which is wrapped by a pair of <code>{}</code>.
-		 * Can be cast to {@link CompoundStatementNode}
+		 * A compound statement, which is wrapped by a pair of <code>{}</code>. Can be
+		 * cast to {@link CompoundStatementNode}
 		 */
 		COMPOUND,
 		/**
-		 * An expression statement. Can be cast to
-		 * {@link ExpressionStatementNode}
+		 * An expression statement. Can be cast to {@link ExpressionStatementNode}
 		 */
 		EXPRESSION,
 		/**
-		 * An <code>if-else</code> (where <code>else</code> part is optional).
-		 * Can be cast to {@link IfNode}
+		 * An <code>if-else</code> (where <code>else</code> part is optional). Can be
+		 * cast to {@link IfNode}
 		 */
 		IF,
 		/**
 		 * A jump statement, which could be one of <code>break</code>,
-		 * <code>continue</code>, <code>go to</code> and <code>return </code>.
-		 * Can be cast to {@link JumpNode}
+		 * <code>continue</code>, <code>go to</code> and <code>return </code>. Can be
+		 * cast to {@link JumpNode}
 		 */
 		JUMP,
 		/**
@@ -48,9 +45,8 @@ public interface StatementNode extends BlockItemNode {
 		 */
 		LABELED,
 		/**
-		 * A loop statement, which could be a <code>for</code>,
-		 * <code>while</code> or <code>do-while</code> loop. Can be cast to
-		 * {@link LoopNode}.
+		 * A loop statement, which could be a <code>for</code>, <code>while</code> or
+		 * <code>do-while</code> loop. Can be cast to {@link LoopNode}.
 		 */
 		LOOP,
 		/**
@@ -62,8 +58,7 @@ public interface StatementNode extends BlockItemNode {
 		 */
 		OMP,
 		/**
-		 * A statement node which has unknown pragmas. Can be cast to
-		 * {@link PragmaNode}
+		 * A statement node which has unknown pragmas. Can be cast to {@link PragmaNode}
 		 */
 		PRAGMA,
 		/**
@@ -75,29 +70,23 @@ public interface StatementNode extends BlockItemNode {
 		 */
 		SWITCH,
 		/**
-		 * A CIVL-C <code>$update</code> statement. Can be cast to
-		 * {@link UpdateNode}
+		 * A CIVL-C <code>$update</code> statement. Can be cast to {@link UpdateNode}
 		 */
 		UPDATE,
 		/**
 		 * A CIVL-C guarded statement (<code>$when</code>). Can be cast to
 		 * {@link WhenNOde}
 		 */
-		WHEN,
-		/**
-		 * A CIVL-C <code>$with</code> statement. Can be cast to
-		 * {@link WithNode}
-		 */
-		WITH
+		WHEN
 	}
 
 	@Override
 	StatementNode copy();
 
 	/**
-	 * Different statement nodes have different statement kind. For example, a
-	 * while statement node has the statement kind WHILE, an if statement node
-	 * has the kind IF, etc.
+	 * Different statement nodes have different statement kind. For example, a while
+	 * statement node has the statement kind WHILE, an if statement node has the
+	 * kind IF, etc.
 	 * 
 	 * @return The statement kind defined as an enum element
 	 */

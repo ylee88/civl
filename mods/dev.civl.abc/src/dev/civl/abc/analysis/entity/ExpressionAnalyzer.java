@@ -21,8 +21,6 @@ import dev.civl.abc.ast.node.IF.SequenceNode;
 import dev.civl.abc.ast.node.IF.acsl.CallEventNode;
 import dev.civl.abc.ast.node.IF.acsl.ExtendedQuantifiedExpressionNode;
 import dev.civl.abc.ast.node.IF.acsl.ExtendedQuantifiedExpressionNode.ExtendedQuantifier;
-import dev.civl.abc.ast.node.IF.acsl.MPIContractExpressionNode;
-import dev.civl.abc.ast.node.IF.acsl.MPIContractExpressionNode.MPIContractExpressionKind;
 import dev.civl.abc.ast.node.IF.acsl.ObjectOrRegionOfNode;
 import dev.civl.abc.ast.node.IF.compound.CompoundInitializerNode;
 import dev.civl.abc.ast.node.IF.compound.DesignationNode;
@@ -63,7 +61,6 @@ import dev.civl.abc.ast.node.IF.expression.SizeofNode;
 import dev.civl.abc.ast.node.IF.expression.SpawnNode;
 import dev.civl.abc.ast.node.IF.expression.StatementExpressionNode;
 import dev.civl.abc.ast.node.IF.expression.StringLiteralNode;
-import dev.civl.abc.ast.node.IF.expression.ValueAtNode;
 import dev.civl.abc.ast.node.IF.expression.WildcardNode;
 import dev.civl.abc.ast.node.IF.type.TypeNode;
 import dev.civl.abc.ast.type.IF.ArithmeticType;
@@ -274,12 +271,6 @@ public class ExpressionAnalyzer {
 			case STATEMENT_EXPRESSION:
 				processStatementExpression((StatementExpressionNode) node);
 				break;
-			case MPI_CONTRACT_EXPRESSION:
-				processMPIContractExpression((MPIContractExpressionNode) node);
-				break;
-			case VALUE_AT:
-				processValueAt((ValueAtNode) node);
-				break;
 			case WILDCARD:
 				node.setInitialType(typeFactory.voidType());
 				break;
@@ -304,25 +295,6 @@ public class ExpressionAnalyzer {
 		} catch (ASTException e) {
 			throw new SyntaxException(e.getMessage(), node.getSource());
 		}
-	}
-
-	private void processValueAt(ValueAtNode valueAt) throws SyntaxException {
-		ExpressionNode state = valueAt.stateNode(), expr = valueAt.expressionNode(), proc = valueAt.pidNode();
-		Type stateType;
-
-		processExpression(state);
-		stateType = state.getConvertedType();
-		if (!typeFactory.stateType().equivalentTo(stateType))
-			throw error("the first argument of $value_of should have $state type, but the actual type is " + stateType,
-					valueAt);
-		processExpression(proc);
-		if (!proc.getType().compatibleWith(typeFactory.basicType(BasicTypeKind.INT)))
-			throw this.error("the second argument of $value_at expressions must be integer type", proc);
-		processExpression(expr);
-		if (!expr.isSideEffectFree(false))
-			throw this.error("the third argument of $value_at expressions are not allowed to contain side effects",
-					valueAt);
-		valueAt.setInitialType(expr.getConvertedType());
 	}
 
 	private void processExtendedQuantifiedExpression(ExtendedQuantifiedExpressionNode extQuantified)
@@ -2100,198 +2072,6 @@ public class ExpressionAnalyzer {
 			doIntegerPromotion(step);
 		}
 		node.setInitialType(typeFactory.rangeType());
-	}
-
-	/**
-	 * Process MPI contract expressions
-	 *
-	 * @param node
-	 * @throws SyntaxException
-	 */
-	private void processMPIContractExpression(MPIContractExpressionNode node) throws SyntaxException {
-		MPIContractExpressionKind kind = node.MPIContractExpressionKind();
-
-		switch (kind) {
-		case MPI_AGREE:
-			ExpressionNode expr = node.getArgument(0);
-			processExpression(expr);
-			node.setInitialType(boolType);
-			break;
-		case MPI_EQUALS:
-			processMPIEqualsNode(node);
-			break;
-		case MPI_EMPTY_IN:
-		case MPI_EMPTY_OUT:
-			processExpression(node.getArgument(0));
-
-			if (!node.getArgument(0).getConvertedType().equivalentTo(intType))
-				throw error("\\mpi_empty_in/mpi_empty_out requires that the argument has an integer type.", node);
-			node.setInitialType(boolType);
-			break;
-		case MPI_EXTENT:
-			processMPIExtentNode(node);
-			break;
-		case MPI_INTEGER_CONSTANT:
-			node.setInitialType(intType);
-			break;
-		case MPI_OFFSET:
-			processMPIOffsetNode(node);
-			break;
-		case MPI_VALID:
-			processMPIValidNode(node);
-			break;
-		case MPI_REGION:
-			processMPIRegionNode(node);
-			break;
-		case MPI_ABSENT: {
-			int numArgs = node.numArguments();
-
-			for (int i = 0; i < numArgs; i++)
-				processExpression(node.getArgument(i));
-			node.setInitialType(boolType);
-			break;
-		}
-		case MPI_ABSENT_EVENT: {
-			int numArgs = node.numArguments();
-
-			for (int i = 0; i < numArgs; i++)
-				processExpression(node.getArgument(i));
-			node.setInitialType(typeFactory.voidType());
-			break;
-		}
-		default:
-			throw error("Unknown MPI contract expression kind: " + kind, node);
-		}
-	}
-
-	/**
-	 * Process an {@link MPIContractExpressionKind#MPI_REGION} kind node.
-	 *
-	 * @param node The node with kind {@link MPIContractExpressionKind#MPI_REGION}.
-	 * @throws SyntaxException
-	 */
-	private void processMPIRegionNode(MPIContractExpressionNode node) throws SyntaxException {
-		ExpressionNode ptr = node.getArgument(0);
-		ExpressionNode count = node.getArgument(1);
-		ExpressionNode type = node.getArgument(2);
-		Type setOfBytesType;
-
-		processMPIPtrWorker(ptr, count, type, "mpi_region");
-		setOfBytesType = typeFactory.theSetType(typeFactory.basicType(BasicTypeKind.CHAR));
-		node.setInitialType(setOfBytesType);
-	}
-
-	/**
-	 * Process an {@link MPIContractExpressionKind#MPI_VALID} kind node.
-	 *
-	 * @param node The node with kind {@link MPIContractExpressionKind#MPI_VALID} .
-	 * @throws SyntaxException
-	 */
-	private void processMPIValidNode(MPIContractExpressionNode node) throws SyntaxException {
-		ExpressionNode ptr = node.getArgument(0);
-		ExpressionNode count = node.getArgument(1);
-		ExpressionNode type = node.getArgument(2);
-
-		processMPIPtrWorker(ptr, count, type, "mpi_valid");
-		node.setInitialType(boolType);
-	}
-
-	/**
-	 * Process an {@link MPIContractExpressionKind#MPI_OFFSET} kind node.
-	 *
-	 * @param node The node with kind {@link MPIContractExpressionKind#MPI_OFFSET}.
-	 * @throws SyntaxException
-	 */
-	private void processMPIOffsetNode(MPIContractExpressionNode node) throws SyntaxException {
-		ExpressionNode ptr = node.getArgument(0);
-		ExpressionNode count = node.getArgument(1);
-		ExpressionNode type = node.getArgument(2);
-
-		processMPIPtrWorker(ptr, count, type, "mpi_offset");
-		node.setInitialType(ptr.getConvertedType());
-	}
-
-	/**
-	 * Process an {@link MPIContractExpressionKind#MPI_EXTENT} kind node.
-	 *
-	 * @param node The node with kind {@link MPIContractExpressionKind#MPI_EXTENT}.
-	 * @throws SyntaxException
-	 */
-	private void processMPIExtentNode(MPIContractExpressionNode node) throws SyntaxException {
-		ExpressionNode expr = node.getArgument(0);
-
-		processExpression(expr);
-		if (expr.getConvertedType().kind() == TypeKind.ENUMERATION) {
-			EnumerationType mpiDatatype = (EnumerationType) expr.getConvertedType();
-
-			if (mpiDatatype.getName().equals("MPI_Datatype")) {
-				node.setInitialType(intType);
-				return;
-			}
-		}
-		throw error("\\mpi_extent requires that the argument has an MPI_Datatype type.", node);
-	}
-
-	/**
-	 * Process {@link MPIContractExpressionKind#MPI_EQUALS} kind node
-	 *
-	 * @param nodeThe node with {@link MPIContractExpressionKind#MPI_EQUALS} kind.
-	 * @throws SyntaxException
-	 */
-	private void processMPIEqualsNode(MPIContractExpressionNode node) throws SyntaxException {
-		ExpressionNode region0, region1, errorArg;
-
-		region0 = node.getArgument(0);
-		region1 = node.getArgument(1);
-		processExpression(region0);
-		processExpression(region1);
-
-		Type setOfBytesType = typeFactory.theSetType(typeFactory.basicType(BasicTypeKind.CHAR));
-
-		if (!region0.getType().equals(setOfBytesType)) {
-			errorArg = region0;
-		} else if (!region1.getType().equals(setOfBytesType))
-			errorArg = region1;
-		else {
-			node.setInitialType(boolType);
-			return;
-		}
-		throw error("\\mpi_equals must take two \\mpi_regions expressions as comparison operands, but saw "
-				+ errorArg.prettyRepresentation(), errorArg);
-	}
-
-	/**
-	 * A helper function to process a common pattern shared by several kinds of
-	 * {@link MPIContractExpressionNode}s:
-	 * <code> mpi-contract-expr (void * buf, int count, MPI_Datatype type, ... );</code>
-	 *
-	 * @param ptr   A pointer type expression node. It is the first argument in the
-	 *              above pattern.
-	 * @param count An integer type expression node. It is the second argument in
-	 *              the above pattern.
-	 * @param type  An MPI_Datatype type expression node. It is the third argument
-	 *              in the above pattern.
-	 * @param name  The name of the {@link MPIContractExpressionNode} which will be
-	 *              used for error reporting.
-	 * @throws SyntaxException
-	 * @throws UnsourcedException
-	 */
-	private void processMPIPtrWorker(ExpressionNode ptr, ExpressionNode count, ExpressionNode type, String name)
-			throws SyntaxException {
-		processExpression(ptr);
-		processExpression(count);
-		processExpression(type);
-		if (ptr.getConvertedType().kind() != TypeKind.POINTER)
-			throw error("\\" + name + " requires that the first argument has a pointer type.", ptr);
-		if (!count.getConvertedType().equivalentTo(intType))
-			throw error("\\" + name + " requires that the second argument has a integer type.", count);
-		if (type.getConvertedType().kind() == TypeKind.ENUMERATION) {
-			EnumerationType mpiDatatype = (EnumerationType) type.getConvertedType();
-
-			if (mpiDatatype.getTag().equals("MPI_Datatype")) {
-				return;
-			}
-		}
 	}
 
 	/**

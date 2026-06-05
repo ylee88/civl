@@ -1,21 +1,17 @@
 #ifndef __CIVL_MPI__
 #define __CIVL_MPI__
 
-#include <seq.cvh>
-#include <civlc.cvh>
-#include <concurrency.cvh>
 #include <bundle.cvh>
-#include <mpi.h>
 #include <civl-mpi.cvh>
+#include <cmon.cvh>
+#include <concurrency.cvh>
+#include <mpi.h>
+#include <pointer.cvh>
+#include <seq.cvh>
 #include <stdlib.h>
 #include <string.h>
-#include <pointer.cvh>
-#include <collate.cvh>
-
 
 extern const int MPI_IN_PLACE_SPOT = 0;
-
-/* Completed definition for mpi-common.h */
 
 $mpi_state _mpi_state=_MPI_UNINIT;
 
@@ -227,102 +223,65 @@ int MPI_Sendrecv(void *sendbuf, int sendcount, MPI_Datatype sendtype,
   return 0;
 }
 /******************************** Collective ***********************************/
+
+static void checkInit(void) {
+  $assert(_mpi_state == _MPI_INIT,
+	  "An MPI function was called when MPI was not initialized");
+}
+
 /* Broadcasts a message from root to everyone else.
  * Need to use a differnt comm.
  */
 int MPI_Bcast(void *buf, int count, MPI_Datatype datatype, int root,
 	      MPI_Comm comm) {
-  int place = $mpi_comm_place(comm);
-  int nprocs = $mpi_comm_size(comm);
-  int datatypes[1] = {(int)datatype};
-  // MPI library defined collective operation checking entries:
-  $bundle checkerEntry; //the checking entry of this call
-  $bundle specEntry;    //a recorded entry as specification
-
-#ifndef _MPI_CONTRACT
-  $assert (_mpi_state == _MPI_INIT,
-	  "MPI_Bcast() cannot be invoked without MPI_Init() "
-	   "being called before.\n");
-#endif
-  if(place == root)
+  checkInit();
+  $mpi_check_Bcast(comm, count, datatype, root);
+  if ($mpi_comm_place(comm) == root)
     $mpi_check_buffer(buf, count, datatype);
-  checkerEntry = $mpi_create_coroutine_entry(BCAST_TAG, root, -1, 1, datatypes);
-  specEntry = $mpi_check_collective(comm, checkerEntry);
-  $mpi_diff_coroutine_entries(specEntry, checkerEntry, place);
   $mpi_bcast(buf, count, datatype, root, BCAST_TAG, comm, "MPI_Bcast()");
   return 0;
 }
 
 int MPI_Reduce_local(const void *inbuf, void *inoutbuf, int count,
                      MPI_Datatype datatype, MPI_Op op) {
-#ifndef _MPI_CONTRACT
-  $assert(_mpi_state == _MPI_INIT, "MPI_Reduce_local() cannot be invoked without "
-    "MPI_Init() being called before.\n");
-#endif
+  checkInit();
   $mpi_check_buffer(inbuf, count, datatype);
   $mpi_check_buffer(inoutbuf, count, datatype);
-
   size_t size = count * sizeofDatatype(datatype);
   $bundle in_data = $bundle_pack(inbuf, size);
- void *buf = $mpi_malloc(count, datatype);
- 
+  void *buf = $mpi_malloc(count, datatype);
   $bundle_unpack_apply(in_data, inoutbuf, op, count, buf);
   memcpy(inoutbuf, buf, size);
   free(buf);
   return 0;
 }
 
-
 /* Reduces values on all processes to a single value */
 int MPI_Reduce(const void* sendbuf, void* recvbuf, int count,
 	       MPI_Datatype datatype, MPI_Op op, int root,
 	       MPI_Comm comm) {
-  int place = $mpi_comm_place(comm);
-  int nprocs = $mpi_comm_size(comm);
-  int datatypes[1] = {(int)datatype};
-  // MPI library defined collective operation checking entries:
-  $bundle checkerEntry; //the checking entry of this call
-  $bundle specEntry;    //a recorded entry as specification
-
-#ifndef _MPI_CONTRACT
-  $assert (_mpi_state == _MPI_INIT,
-	  "MPI_Reduce() cannot be invoked without "
-	   "MPI_Init() being called before.\n");
-#endif
-  checkerEntry = $mpi_create_coroutine_entry(REDUCE_TAG, root, (int)op, 1,
-		 datatypes);
-  specEntry = $mpi_check_collective(comm, checkerEntry);
-  $mpi_diff_coroutine_entries(specEntry, checkerEntry, place);
+  checkInit();
+  $mpi_check_Reduce(comm, count, datatype, op, root);
   $mpi_check_buffer(sendbuf, count, datatype);
-  $assert(0 <= op && op <= 13, "unknown MPI reduce operation"); // refer to op.h & mpi.h in ABC/src/include for how MPI_Op is defined
-  $mpi_reduce(sendbuf, recvbuf, count, datatype, op, root, REDUCE_TAG, comm, "MPI_Reduce()");
+  $assert(0 <= op && op <= 13, "unknown MPI reduce operation");
+  // refer to op.h & mpi.h in ABC/src/include for how MPI_Op is defined
+  $mpi_reduce(sendbuf, recvbuf, count, datatype, op, root, REDUCE_TAG, comm,
+	      "MPI_Reduce()");
   return 0;
 }
 
-/* Combines values from all processes and distributes the result back to all processes */
-/* default root is 0 */
+/* Combines values from all processes and distributes the result back
+   to all processes. default root is 0 */
 int MPI_Allreduce(const void* sendbuf, void* recvbuf, int count,
 		  MPI_Datatype datatype,
 		  MPI_Op op, MPI_Comm comm) {
+  checkInit();
+  $mpi_check_Allreduce(comm, count, datatype, op);
   int root = 0;
-  int place = $mpi_comm_place(comm);
-  int nprocs = $mpi_comm_size(comm);
-  int datatypes[1] = {(int)datatype};
   MPI_Status status;
-  // MPI library defined collective operation checking entries:
-  $bundle checkerEntry; //the checking entry of this call
-  $bundle specEntry;    //a recorded entry as specification
-
-#ifndef _MPI_CONTRACT
-  $assert(_mpi_state == _MPI_INIT, "MPI_Allreduce() cannot be invoked without "
-    "MPI_Init() being called before.\n");
-#endif
   $mpi_check_buffer(sendbuf, count, datatype);
-  checkerEntry = $mpi_create_coroutine_entry(ALLREDUCE_TAG, root,
-		 (int)op, 1, datatypes);
-  specEntry = $mpi_check_collective(comm, checkerEntry);
-  $mpi_diff_coroutine_entries(specEntry, checkerEntry, place);
-  $assert(0 <= op && op <= 13, "unknown MPI reduce operation"); // refer to op.h & mpi.h in ABC/src/include for how MPI_Op is defined
+  $assert(0 <= op && op <= 13, "unknown MPI reduce operation");
+  // refer to op.h & mpi.h in ABC/src/include for how MPI_Op is defined
   $mpi_reduce(sendbuf, recvbuf, count, datatype, op, root, ALLREDUCE_TAG, comm,
 	      "MPI_Allreduce()");
   $mpi_bcast(recvbuf, count, datatype, root, ALLREDUCE_TAG, comm,
@@ -330,48 +289,26 @@ int MPI_Allreduce(const void* sendbuf, void* recvbuf, int count,
   return 0;
 }
 
-int MPI_Barrier(MPI_Comm comm){
-  int place = $mpi_comm_place(comm);
-  int nprocs = $mpi_comm_size(comm);
-  // MPI library defined collective operation checking entries:
-  $bundle checkerEntry; //the checking entry of this call
-  $bundle specEntry;    //a recorded entry as specification
-
-#ifndef _MPI_CONTRACT
-  $assert(_mpi_state == _MPI_INIT, "MPI_Barrier() cannot be invoked "
-    "without MPI_Init() being called before.\n");
-#endif
-  checkerEntry = $mpi_create_coroutine_entry(BARRIER_TAG, 0, -1,
-					     0, NULL);
-  specEntry = $mpi_check_collective(comm, checkerEntry);
-  $mpi_diff_coroutine_entries(specEntry, checkerEntry, place);
+int MPI_Barrier(MPI_Comm comm) {
+  checkInit();
+  $mpi_check_Barrier(comm);
   $mpi_barrier(comm);
   return 0;
 }
 
-/* 1. If comm is an intracommunicator, each process (includes root process) sends the content
-   of its send buffer to the root process. Root process receives the messages and stores
-   them in rank order
+/* 1. If comm is an intracommunicator, each process (including root)
+   sends the content of its send buffer to root. Root receives the
+   messages and stores them in rank order.
+
    2. TODO: If comm is an intercommunicator, it's not supported yet */
 int MPI_Gather(const void* sendbuf, int sendcount, MPI_Datatype sendtype,
 	       void* recvbuf, int recvcount, MPI_Datatype recvtype,
-	       int root, MPI_Comm comm){
-  int place = $mpi_comm_place(comm);
-  int nprocs = $mpi_comm_size(comm);
-  int datatypes[2] = {(int)sendtype, (int)recvtype};
-  // MPI library defined collective operation checking entries:
-  $bundle checkerEntry; //the checking entry of this call
-  $bundle specEntry;    //a recorded entry as specification
-
-#ifndef _MPI_CONTRACT
-  $assert(_mpi_state == _MPI_INIT, "MPI_Gather() cannot be invoked without "
-    "MPI_Init() being called before.\n");
-#endif
-  if(sendbuf != MPI_IN_PLACE)
+	       int root, MPI_Comm comm) {
+  checkInit();
+  $mpi_check_Gather(comm, sendbuf==MPI_IN_PLACE, sendcount, sendtype,
+		    recvcount, recvtype, root);
+  if (sendbuf != MPI_IN_PLACE)
     $mpi_check_buffer(sendbuf, sendcount, sendtype);
-  checkerEntry = $mpi_create_coroutine_entry(GATHER_TAG, root, -1, 2, datatypes);
-  specEntry = $mpi_check_collective(comm, checkerEntry);
-  $mpi_diff_coroutine_entries(specEntry, checkerEntry, place);
   $mpi_gather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype,
 	      root, GATHER_TAG, comm, "MPI_Gather()");
   return 0;
@@ -380,117 +317,65 @@ int MPI_Gather(const void* sendbuf, int sendcount, MPI_Datatype sendtype,
 /* The inverse operation of MPI_Gather() */
 int MPI_Scatter(const void* sendbuf, int sendcount, MPI_Datatype sendtype,
 		void* recvbuf, int recvcount, MPI_Datatype recvtype, int root,
-		MPI_Comm comm){
-  int place = $mpi_comm_place(comm);
-  int nprocs = $mpi_comm_size(comm);
-  int datatypes[2] = {(int)sendtype, (int)recvtype};
-  // MPI library defined collective operation checking entries:
-  $bundle checkerEntry; //the checking entry of this call
-  $bundle specEntry;    //a recorded entry as specification
-
-#ifndef _MPI_CONTRACT
-  $assert(_mpi_state == _MPI_INIT, "MPI_Scatter() cannot be invoked without "
-    "MPI_Init() being called before.\n");
-#endif
-  if (place == root)
+		MPI_Comm comm) {
+  checkInit();
+  $mpi_check_Scatter(comm, recvbuf==MPI_IN_PLACE, sendcount, sendtype,
+		     recvcount, recvtype, root);
+  if ($mpi_comm_place(comm) == root)
     $mpi_check_buffer(sendbuf, sendcount, sendtype);
-  checkerEntry = $mpi_create_coroutine_entry(SCATTER_TAG, root, -1, 2,
-					       datatypes);
-  specEntry = $mpi_check_collective(comm, checkerEntry);
-  $mpi_diff_coroutine_entries(specEntry, checkerEntry, place);
   $mpi_scatter(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype,
 	       root, SCATTER_TAG, comm, "MPI_Scatter()");
   return 0;
 }
 
 
-/* MPI_Gatherv extends the functionality of MPI_Gather by allowing a varying count of data to be sent to root process, since recvcounts is now an array.*/
-int MPI_Gatherv(const void* sendbuf, int sendcount, MPI_Datatype sendtype,
-		void* recvbuf, const int recvcounts[], const int displs[],
-		MPI_Datatype recvtype, int root, MPI_Comm comm){
-  int place = $mpi_comm_place(comm);
-  int nprocs = $mpi_comm_size(comm);
-  int datatypes[2] = {(int)sendtype, (int)recvtype};
-  int recvcount = 0;
-  // MPI library defined collective operation checking entries:
-  $bundle checkerEntry; //the checking entry of this call
-  $bundle specEntry;    //a recorded entry as specification
-
-#ifndef _MPI_CONTRACT
-  $assert(_mpi_state == _MPI_INIT, "MPI_Gatherv() cannot be invoked without "
-    "MPI_Init() being called before.\n");
-#endif
-  if(sendbuf != MPI_IN_PLACE)
+/* MPI_Gatherv extends the functionality of MPI_Gather by allowing a
+   varying count of data to be sent to root process, since recvcounts
+   is now an array.*/
+int MPI_Gatherv(const void * sendbuf, int sendcount, MPI_Datatype sendtype,
+		void * recvbuf, const int recvcounts[], const int displs[],
+		MPI_Datatype recvtype, int root, MPI_Comm comm) {
+  checkInit();
+  $mpi_check_Gatherv(comm, sendbuf==MPI_IN_PLACE, sendcount, sendtype,
+		     recvcounts, recvtype, root);
+  if (sendbuf != MPI_IN_PLACE)
     $mpi_check_buffer(sendbuf, sendcount, sendtype);
-  checkerEntry = $mpi_create_coroutine_entry(GATHERV_TAG, root,
-		 -1, 2, datatypes);
-  specEntry = $mpi_check_collective(comm, checkerEntry);
-  $mpi_diff_coroutine_entries(specEntry, checkerEntry, place);
   $mpi_gatherv(sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs,
 	       recvtype, root, GATHERV_TAG, comm, "MPI_Gatherv()");
   return 0;
 }
 
-/* MPI_Scatterv extends the functionality of MPI_Scatter by allowing a varying count of data to be sent to each process, since sendcounts is now an array.*/
-int MPI_Scatterv(const void* sendbuf, const int sendcounts[], const
-		 int displs[], MPI_Datatype sendtype, void* recvbuf,
-		 int recvcount, MPI_Datatype recvtype, int root, MPI_Comm comm){
-  int place = $mpi_comm_place(comm);
-  int nprocs = $mpi_comm_size(comm);
-  int datatypes[2] = {(int)sendtype, (int)recvtype};
-  int sendcount = 0;
-  // MPI library defined collective operation checking entries:
-  $bundle checkerEntry; //the checking entry of this call
-  $bundle specEntry;    //a recorded entry as specification
-
-#ifndef _MPI_CONTRACT
-  $assert(_mpi_state == _MPI_INIT, "MPI_Scatterv() cannot be invoked without "
-	  "MPI_Init() being called before.\n");
-#endif
-  if (place == root) {
-    for (int i = 0; i < nprocs; i++) sendcount += sendcounts[i];
-    $mpi_check_buffer(sendbuf, sendcount, sendtype);
-  }
-  checkerEntry = $mpi_create_coroutine_entry(SCATTERV_TAG,
-					       root, -1, 2,
-					       datatypes);
-  specEntry = $mpi_check_collective(comm, checkerEntry);
-  $mpi_diff_coroutine_entries(specEntry, checkerEntry, place);
+/* MPI_Scatterv extends the functionality of MPI_Scatter by allowing a
+   varying count of data to be sent to each process, since sendcounts
+   is now an array.*/
+int MPI_Scatterv(const void * sendbuf, const int sendcounts[], const
+		 int displs[], MPI_Datatype sendtype, void * recvbuf,
+		 int recvcount, MPI_Datatype recvtype, int root, MPI_Comm comm) {
+  checkInit();
+  $mpi_check_Scatterv(comm, recvbuf==MPI_IN_PLACE, sendcounts, sendtype,
+		      recvcount, recvtype, root);
   $mpi_scatterv(sendbuf, sendcounts, displs, sendtype, recvbuf,
 		recvcount, recvtype, root, SCATTERV_TAG, comm,
 		"MPI_Scatterv()");
   return 0;
 }
 
-int MPI_Allgather(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
-                  void *recvbuf, int recvcount, MPI_Datatype recvtype,
-                  MPI_Comm comm){
-  int place = $mpi_comm_place(comm);
-  int nprocs = $mpi_comm_size(comm);
-  int datatypes[2] = {(int)sendtype, (int)recvtype};
-  // MPI library defined collective operation checking entries:
-  $bundle checkerEntry; //the checking entry of this call
-  $bundle specEntry;    //a recorded entry as specification
-
-#ifndef _MPI_CONTRACT
-  $assert(_mpi_state == _MPI_INIT, "MPI_Allgather() cannot be invoked without "
-    "MPI_Init() being called before.\n");
-#endif
-  if(sendbuf != MPI_IN_PLACE)
+int MPI_Allgather(const void * sendbuf, int sendcount, MPI_Datatype sendtype,
+                  void * recvbuf, int recvcount, MPI_Datatype recvtype,
+                  MPI_Comm comm) {
+  checkInit();
+  $mpi_check_Allgather(comm, sendbuf==MPI_IN_PLACE, sendcount, sendtype,
+		       recvcount, recvtype);
+  int nprocs = $mpi_comm_size(comm), rank = $mpi_comm_place(comm);
+  if (sendbuf != MPI_IN_PLACE)
     $mpi_check_buffer(sendbuf, sendcount, sendtype);
-  checkerEntry = $mpi_create_coroutine_entry(ALLGATHER_TAG, 0, -1, 2,
-					     datatypes);
-  specEntry = $mpi_check_collective(comm, checkerEntry);
-  $mpi_diff_coroutine_entries(specEntry, checkerEntry, place);
-
   if (sendbuf != MPI_IN_PLACE)
     $mpi_gather(sendbuf, sendcount, sendtype,
 		recvbuf, recvcount, recvtype,
 		0, ALLGATHER_TAG, comm, "MPI_Allgather()");
   else {
     void * in_buf = $mpi_malloc(recvcount, recvtype);
-
-    memcpy(in_buf, recvbuf + recvcount*place, sizeofDatatype(recvtype) * recvcount);
+    memcpy(in_buf, recvbuf + recvcount*rank, sizeofDatatype(recvtype) * recvcount);
     $mpi_gather(in_buf, recvcount, recvtype,
 		recvbuf, recvcount, recvtype,
 		0, ALLGATHER_TAG, comm, "MPI_Allgather()");
@@ -501,79 +386,52 @@ int MPI_Allgather(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
   return 0;
 }
 
-int MPI_Reduce_scatter(const void *sendbuf, void *recvbuf, const int recvcount[],
+int MPI_Reduce_scatter(const void *sendbuf, void *recvbuf, const int recvcounts[],
 		       MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) {
-  int total_count, i;
-  int nprocs = $mpi_comm_size(comm);
-  int rank = $mpi_comm_place(comm);
+  checkInit();
+  $mpi_check_Reduce_scatter(comm, recvcounts, datatype, op);
+  int total_count = 0;
+  int nprocs = $mpi_comm_size(comm), rank = $mpi_comm_place(comm);
   int root = 0;
   int displs[nprocs];
-  int datatypes[1] = {(int)datatype};
-
-  // MPI library defined collective operation checking entries:
-  $bundle checkerEntry; //the checking entry of this call
-  $bundle specEntry;    //a recorded entry as specification
-
-#ifndef _MPI_CONTRACT
-  $assert(_mpi_state == _MPI_INIT, "MPI_Reduce_scatter() cannot be invoked without "
-    "MPI_Init() being called before.\n");
-#endif
-  $mpi_check_buffer(sendbuf, recvcount[rank], datatype);
-  for(total_count = 0, i = 0; i<nprocs; i++) {
+  $mpi_check_buffer(sendbuf, recvcounts[rank], datatype);
+  for (int i = 0; i < nprocs; i++) {
     displs[i] = total_count;
-    total_count += recvcount[i];
+    total_count += recvcounts[i];
   }
-  checkerEntry = $mpi_create_coroutine_entry(RED_SCATTER_TAG, root, (int)op, 1,
-					       datatypes);
-  specEntry = $mpi_check_collective(comm, checkerEntry);
-  $mpi_diff_coroutine_entries(specEntry, checkerEntry, rank);
   /* Note: In MPI standard, the sendbuf and recvbuf shall not be the
    * same, the implementation here is a lower layer helper function
    * for MPI_Reduce routine, and the reason it plays a trick here is
    * because allocating a memory space for a void pointer is not
    * allowed in CIVL yet. */
   void * temp = $mpi_malloc(total_count, datatype);
-
-  $assert(0 <= op && op <= 13, "unknown MPI reduce operation"); // refer to op.h & mpi.h in ABC/src/include for how MPI_Op is defined
+  $assert(0 <= op && op <= 13, "unknown MPI reduce operation");
+  // refer to op.h & mpi.h in ABC/src/include for how MPI_Op is defined
   $mpi_reduce(sendbuf, temp, total_count, datatype, op,
-	      root, RED_SCATTER_TAG, comm, "MPI_Reduce_scatter()");
-  $mpi_scatterv(temp, recvcount, displs, datatype, recvbuf,
-		recvcount[rank], datatype, root, RED_SCATTER_TAG, comm,
+	      root, REDUCE_SCATTER_TAG, comm, "MPI_Reduce_scatter()");
+  $mpi_scatterv(temp, recvcounts, displs, datatype, recvbuf,
+		recvcounts[rank], datatype, root, REDUCE_SCATTER_TAG, comm,
 		"MPI_Reduce_scatter()");
-  free(temp);
+  $free(temp);
   return 0;
 }
 
 int MPI_Alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
                  void *recvbuf, int recvcount, MPI_Datatype recvtype,
                  MPI_Comm comm) {
+  checkInit();
+  $mpi_check_Alltoall(comm, sendbuf==MPI_IN_PLACE, sendcount, sendtype,
+		      recvcount, recvtype);
+  // TODO: deal with inplace possibility
   int nprocs = $mpi_comm_size(comm);
-  int rank = $mpi_comm_place(comm);
-  int root = 0;
-  int displs[nprocs];
-  int sendcounts[nprocs];
-  int datatypes[2] = {(int)sendtype, (int)recvtype};
-
-  // MPI library defined collective operation checking entries:
-  $bundle checkerEntry; //the checking entry of this call
-  $bundle specEntry;    //a recorded entry as specification
-
-  for(int i=0; i<nprocs; i++) {
+  int displs[nprocs], sendcounts[nprocs];
+  for (int i=0; i<nprocs; i++) {
     sendcounts[i] = sendcount;
-    displs[i] = (i == 0)? 0 : (displs[i-1] + sendcount);
+    displs[i] = (i == 0) ? 0 : (displs[i-1] + sendcount);
   }
-#ifndef _MPI_CONTRACT
-  $assert(_mpi_state == _MPI_INIT, "MPI_Alltoall() cannot be invoked without "
-    "MPI_Init() being called before.\n");
-#endif
   $mpi_check_buffer(sendbuf, sendcount * nprocs, sendtype);
-  checkerEntry = $mpi_create_coroutine_entry(ALLTOALL_TAG, root, -1, 2,
-					       datatypes);
-  specEntry = $mpi_check_collective(comm, checkerEntry);
-  $mpi_diff_coroutine_entries(specEntry, checkerEntry, rank);
-  for(int i = 0; i < nprocs; i++) {
+  for (int i = 0; i < nprocs; i++) {
     void * ptr = $mpi_pointer_add(recvbuf, i*sendcount, recvtype);
-
     $mpi_scatterv(sendbuf, sendcounts, displs, sendtype,
 		  ptr, recvcount, recvtype, i, ALLTOALL_TAG, comm,
 		  "MPI_Alltoall()");
@@ -585,31 +443,15 @@ int MPI_Alltoallv(const void* sendbuf, const int sendcounts[],
 		  const int sdispls[], MPI_Datatype sendtype, void* recvbuf,
 		  const int recvcounts[], const int rdispls[], MPI_Datatype recvtype,
 		  MPI_Comm comm) {
-  int nprocs = $mpi_comm_size(comm);
-  int place = $mpi_comm_place(comm);
-  int datatypes[2] = {(int)sendtype, (int)recvtype};
-  int sendcount = 0;
-  int recvcount = 0;
-  // MPI library defined collective operation checking entries:
-  $bundle checkerEntry; //the checking entry of this call
-  $bundle specEntry;    //a recorded entry as specification
-
-#ifndef _MPI_CONTRACT
-  $assert(_mpi_state == _MPI_INIT, "MPI_Alltoallv() cannot be invoked without "
-    "MPI_Init() being called before.\n");
-#endif
-  for (int i = 0; i < nprocs; i++) {
+  checkInit();
+  $mpi_check_Alltoallv(comm, sendbuf==MPI_IN_PLACE, sendcounts, sendtype,
+		       recvcounts, recvtype);
+  int nprocs = $mpi_comm_size(comm), sendcount = 0;
+  for (int i = 0; i < nprocs; i++)
     sendcount += sendcounts[i];
-    recvcount += recvcounts[i];
-  }
   $mpi_check_buffer(sendbuf, sendcount, sendtype);
-  checkerEntry = $mpi_create_coroutine_entry(ALLTOALLV_TAG, 0, -1, 2,
-					       datatypes);
-  specEntry = $mpi_check_collective(comm, checkerEntry);
-  $mpi_diff_coroutine_entries(specEntry, checkerEntry, place);
-  for(int i = 0; i < nprocs; i++) {
+  for (int i = 0; i < nprocs; i++) {
     void * ptr = $mpi_pointer_add(recvbuf, rdispls[i], recvtype);
-
     $mpi_scatterv(sendbuf, sendcounts, sdispls, sendtype,
 		  ptr, recvcounts[i], recvtype, i, ALLTOALLV_TAG, comm,
 		  "MPI_Alltoallv()");
@@ -621,17 +463,15 @@ int MPI_Alltoallw(const void* sendbuf, const int sendcounts[], const int sdispls
 		  const MPI_Datatype sendtypes[], void* recvbuf,
 		  const int recvcounts[], const int rdispls[],
 		  const MPI_Datatype recvtypes[], MPI_Comm comm) {
+  checkInit();
+  $mpi_check_Alltoallw(comm, sendbuf==MPI_IN_PLACE, sendcounts, sendtypes,
+		       recvcounts, recvtypes);
   int nprocs = $mpi_comm_size(comm);
   int place = $mpi_comm_place(comm);
   int sdispls_offset[nprocs];
-
   for (int i = 0; i < nprocs; i++)
     sdispls_offset[i] = sdispls[i] / sizeofDatatype(sendtypes[i]);
-#ifndef _MPI_CONTRACT
-  $assert(_mpi_state == _MPI_INIT, "MPI_Alltoallw() cannot be invoked without "
-    "MPI_Init() being called before.\n");
-#endif
-  for(int i = 0; i < nprocs; i++) {
+  for (int i = 0; i < nprocs; i++) {
     int recv_t_size = sizeofDatatype(recvtypes[i]);
     void * ptr = $mpi_pointer_add(recvbuf, rdispls[i] / recv_t_size, recvtypes[i]);
     void * sendptr = $mpi_pointer_add(sendbuf, sdispls_offset[i], sendtypes[i]);
@@ -644,21 +484,10 @@ int MPI_Alltoallw(const void* sendbuf, const int sendcounts[], const int sdispls
   return 0;
 }
 
-int MPI_Scan(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
-	     MPI_Op op, MPI_Comm comm) {
-#ifndef _MPI_CONTRACT
-  $assert(_mpi_state == _MPI_INIT, "MPI_Scan() cannot be invoked without "
-	  "MPI_Init() being called before.\n");
-#endif
-  int place = $mpi_comm_place(comm);
-  int datatype_enum2int = (int)datatype;
-
-  // check consistency of a group of collective routine calls
-  $bundle checkerEntry = $mpi_create_coroutine_entry(SCAN_TAG, -1, -1, 1,
-						     &datatype_enum2int);
-  $bundle specEntry = $mpi_check_collective(comm, checkerEntry);
-
-  $mpi_diff_coroutine_entries(specEntry, checkerEntry, place);
+int MPI_Scan(const void *sendbuf, void *recvbuf, int count,
+	     MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) {
+  checkInit();
+  $mpi_check_Scan(comm, count, datatype, op);
   if (sendbuf != MPI_IN_PLACE)
     $mpi_check_buffer(sendbuf, count, datatype);
   $mpi_check_buffer(recvbuf, count, datatype);
@@ -666,21 +495,11 @@ int MPI_Scan(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datatyp
   return 0;
 }
 
-int MPI_Exscan(const void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
-	     MPI_Op op, MPI_Comm comm) {
-#ifndef _MPI_CONTRACT
-  $assert(_mpi_state == _MPI_INIT, "MPI_Exscan() cannot be invoked without "
-	  "MPI_Init() being called before.\n");
-#endif
+int MPI_Exscan(const void *sendbuf, void *recvbuf, int count,
+	       MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) {
+  checkInit();
+  $mpi_check_Exscan(comm, count, datatype, op);
   int place = $mpi_comm_place(comm);
-  int datatype_enum2int = (int)datatype;
-
-  // check consistency of a group of collective routine calls
-  $bundle checkerEntry = $mpi_create_coroutine_entry(EXSCAN_TAG, -1, -1, 1,
-						     &datatype_enum2int);
-  $bundle specEntry = $mpi_check_collective(comm, checkerEntry);
-
-  $mpi_diff_coroutine_entries(specEntry, checkerEntry, place);
   // MPI_IN_PLACE in this routine simply means that get sendbuf from recvbuf:
   if (sendbuf != MPI_IN_PLACE)
     $mpi_check_buffer(sendbuf, count, datatype);

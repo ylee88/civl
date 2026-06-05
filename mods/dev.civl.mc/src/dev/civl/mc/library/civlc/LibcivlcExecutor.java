@@ -1,7 +1,7 @@
 package dev.civl.mc.library.civlc;
 
-import java.util.HashSet;
 import java.io.PrintStream;
+import java.util.HashSet;
 import java.util.Set;
 
 import dev.civl.mc.config.IF.CIVLConfiguration;
@@ -152,12 +152,6 @@ public class LibcivlcExecutor extends BaseLibraryExecutor implements LibraryExec
 						// after an
 			// exit, because the process no longer exists.
 			callEval = executeExit(state, pid);
-			break;
-		case "$get_state":
-			callEval = executeGetState(state, pid, process, arguments, argumentValues, false, source);
-			break;
-		case "$get_full_state":
-			callEval = executeGetState(state, pid, process, arguments, argumentValues, true, source);
 			break;
 		case "$free":
 			callEval = executeFree(state, pid, process, arguments, argumentValues, source);
@@ -319,25 +313,6 @@ public class LibcivlcExecutor extends BaseLibraryExecutor implements LibraryExec
 			}
 		}
 		return new Evaluation(state, result);
-	}
-
-	private Evaluation executeGetState(State state, int pid, String process, Expression[] arguments,
-			SymbolicExpression[] argumentValues, boolean isFull, CIVLSource source) {
-		int topDyscope = state.getProcessState(pid).peekStack().scope();
-		SymbolicExpression snapshotValue;
-
-		if (!isFull)
-			snapshotValue = stateFactory.getStateSnapshot(state, pid, topDyscope);
-		else {
-			int snapshotStateID = stateFactory.saveState(state).left;
-			SymbolicExpression currentScopes[] = new SymbolicExpression[state.numDyscopes()];
-
-			for (int i = 0; i < currentScopes.length; i++)
-				currentScopes[i] = stateFactory.scopeValue(i);
-			snapshotValue = typeFactory.stateType().buildStateValue(universe, snapshotStateID,
-					universe.array(typeFactory.scopeSymbolicType(), currentScopes));
-		}
-		return new Evaluation(state, snapshotValue);
 	}
 
 	private Evaluation executeIsDerefable(State state, int pid, String process, Expression[] arguments,

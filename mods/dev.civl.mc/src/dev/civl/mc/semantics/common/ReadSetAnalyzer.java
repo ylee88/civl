@@ -34,7 +34,6 @@ import dev.civl.mc.model.IF.expression.SizeofExpression;
 import dev.civl.mc.model.IF.expression.SizeofTypeExpression;
 import dev.civl.mc.model.IF.expression.SubscriptExpression;
 import dev.civl.mc.model.IF.expression.UnaryExpression;
-import dev.civl.mc.model.IF.expression.ValueAtExpression;
 import dev.civl.mc.model.IF.expression.VariableExpression;
 import dev.civl.mc.model.IF.type.CIVLArrayType;
 import dev.civl.mc.model.IF.type.CIVLCompleteArrayType;
@@ -105,27 +104,22 @@ public class ReadSetAnalyzer {
 	ReadSetAnalyzer(Evaluator evaluator) {
 		this.evaluator = evaluator;
 		this.universe = evaluator.universe();
-		constantDyScopeVal = evaluator.modelFactory().typeFactory().scopeType()
-				.scopeIdentityToValueOperator(universe)
+		constantDyScopeVal = evaluator.modelFactory().typeFactory().scopeType().scopeIdentityToValueOperator(universe)
 				.apply(ModelConfiguration.DYNAMIC_CONSTANT_SCOPE);
 	}
 
 	/* the sole package interface */
 
 	/**
-	 * Analyze an expression with respect to a state and a process, returns a
-	 * set of mem values, each of which represents a memory location subset of
-	 * the precise memory location set that is read during an expression
-	 * evaluation.
+	 * Analyze an expression with respect to a state and a process, returns a set of
+	 * mem values, each of which represents a memory location subset of the precise
+	 * memory location set that is read during an expression evaluation.
 	 * 
-	 * @param expr
-	 *            an {@link Expression}
-	 * @param state
-	 *            a {@link State}
-	 * @param pid
-	 *            the PID of a process
-	 * @return the set of subsets of the precise memory location set that is
-	 *         read during evaluation
+	 * @param expr  an {@link Expression}
+	 * @param state a {@link State}
+	 * @param pid   the PID of a process
+	 * @return the set of subsets of the precise memory location set that is read
+	 *         during evaluation
 	 * @throws UnsatisfiablePathConditionException
 	 */
 	Set<SymbolicExpression> analyze(Expression expr, State state, int pid) {
@@ -141,200 +135,164 @@ public class ReadSetAnalyzer {
 
 	/**
 	 * Analyze an {@link LHSExpression} as if it is in an address-of expression
-	 * <code>&e</code>. Note that reading a <code>&e</code> does not involve
-	 * reading the value of <code>e</code>.
+	 * <code>&e</code>. Note that reading a <code>&e</code> does not involve reading
+	 * the value of <code>e</code>.
 	 */
-	Set<SymbolicExpression> analyzeAsAddressof(State state, int pid,
-			LHSExpression addressofArgument) {
+	Set<SymbolicExpression> analyzeAsAddressof(State state, int pid, LHSExpression addressofArgument) {
 		Set<SymbolicExpression> readSets;
 
 		switch (addressofArgument.lhsExpressionKind()) {
-			case DEREFERENCE : {
-				// reading `&*p` -> reading `p`:
-				DereferenceExpression derefExpr = (DereferenceExpression) addressofArgument;
-				readSets = analyze(derefExpr.pointer(), state, pid);
-				break;
-			}
-			case DOT : {
-				// reading `&s.f` -> reading `&s`:
-				DotExpression dotExpr = (DotExpression) addressofArgument;
+		case DEREFERENCE: {
+			// reading `&*p` -> reading `p`:
+			DereferenceExpression derefExpr = (DereferenceExpression) addressofArgument;
+			readSets = analyze(derefExpr.pointer(), state, pid);
+			break;
+		}
+		case DOT: {
+			// reading `&s.f` -> reading `&s`:
+			DotExpression dotExpr = (DotExpression) addressofArgument;
 
-				if (dotExpr instanceof LHSExpression)
-					readSets = analyzeAsAddressof(state, pid,
-							(LHSExpression) dotExpr.structOrUnion());
-				else
-					readSets = analyze(dotExpr.structOrUnion(), state, pid);
-				break;
-			}
-			case SUBSCRIPT : {
-				// reading `&a[i]` -> reading `&a` and `i`:
-				SubscriptExpression subsExpr = (SubscriptExpression) addressofArgument;
+			if (dotExpr instanceof LHSExpression)
+				readSets = analyzeAsAddressof(state, pid, (LHSExpression) dotExpr.structOrUnion());
+			else
+				readSets = analyze(dotExpr.structOrUnion(), state, pid);
+			break;
+		}
+		case SUBSCRIPT: {
+			// reading `&a[i]` -> reading `&a` and `i`:
+			SubscriptExpression subsExpr = (SubscriptExpression) addressofArgument;
 
-				readSets = analyzeAsAddressof(state, pid, subsExpr.array());
-				readSets.addAll(analyze(subsExpr.index(), state, pid));
-				break;
-			}
-			case VARIABLE :
-				// reading `&var` -> reads nothing
-				readSets = new TreeSet<>(universe.comparator());
-				break;
-			default :
-				throw new CIVLInternalException(
-						"unknown LHS expression kind: "
-								+ addressofArgument.lhsExpressionKind(),
-						addressofArgument.getSource());
+			readSets = analyzeAsAddressof(state, pid, subsExpr.array());
+			readSets.addAll(analyze(subsExpr.index(), state, pid));
+			break;
+		}
+		case VARIABLE:
+			// reading `&var` -> reads nothing
+			readSets = new TreeSet<>(universe.comparator());
+			break;
+		default:
+			throw new CIVLInternalException("unknown LHS expression kind: " + addressofArgument.lhsExpressionKind(),
+					addressofArgument.getSource());
 		}
 		return readSets;
 	}
 
 	/**
 	 * <p>
-	 * The general analysis method for collecting the precise memory location
-	 * set that is read during the expression evaluation.
+	 * The general analysis method for collecting the precise memory location set
+	 * that is read during the expression evaluation.
 	 * </p>
 	 *
-	 * @param expr
-	 *            the expression that is analyzed
-	 * @param state
-	 *            the state
-	 * @param pid
-	 *            the PID of the process
+	 * @param expr  the expression that is analyzed
+	 * @param state the state
+	 * @param pid   the PID of the process
 	 * @return the set of subsets of the precisely analyzed memory location set
 	 * @throws UnsatisfiablePathConditionException
 	 */
-	private Set<SymbolicExpression> analyzeMemWorker(Expression expr,
-			State state, int pid) throws UnsatisfiablePathConditionException {
+	private Set<SymbolicExpression> analyzeMemWorker(Expression expr, State state, int pid)
+			throws UnsatisfiablePathConditionException {
 		ExpressionKind kind = expr.expressionKind();
 		Set<SymbolicExpression> result = new TreeSet<>(universe.comparator());
 
 		switch (kind) {
-			case ABSTRACT_FUNCTION_CALL :
-				result.addAll(analyzeAbstractFuncCall(
-						(AbstractFunctionCallExpression) expr, state, pid));
-				break;
-			case ADDRESS_OF :
-				result.addAll(analyzeAddressOf((AddressOfExpression) expr,
-						state, pid));
-				break;
-			case ARRAY_LAMBDA :
-				result.addAll(analyzeArrayLambda((ArrayLambdaExpression) expr,
-						state, pid));
-				break;
-			case BINARY :
-				result.addAll(
-						analyzeBinary((BinaryExpression) expr, state, pid));
-				break;
-			case CAST :
-				result.addAll(analyzeCast((CastExpression) expr, state, pid));
-				break;
-			case COND :
-				result.addAll(
-						analyzeCond((ConditionalExpression) expr, state, pid));
-				break;
-			case DEREFERENCE :
-				result.addAll(
-						analyzeDeref((DereferenceExpression) expr, state, pid));
-				break;
-			case DOT :
-				result.addAll(analyzeDot((DotExpression) expr, state, pid));
-				break;
-			case DYNAMIC_TYPE_OF :
-				result.addAll(analyzeDyTypeOf((DynamicTypeOfExpression) expr,
-						state, pid));
-				break;
-			case EXTENDED_QUANTIFIER :
-				result.addAll(analyzeExtQuantifier(
-						(ExtendedQuantifiedExpression) expr, state, pid));
-				break;
-			case FUNCTION_GUARD :
-				result.addAll(analyzeFuncGuard((FunctionGuardExpression) expr,
-						state, pid));
-				break;
-			case FUNC_CALL :
-				result.addAll(analyzeFuncCall((FunctionCallExpression) expr,
-						state, pid));
-				break;
-			case INITIAL_VALUE :
-				result.addAll(analyzeInitVal((InitialValueExpression) expr,
-						state, pid));
-				break;
-			case LAMBDA :
-				result.addAll(
-						analyzeLambda((LambdaExpression) expr, state, pid));
-				break;
-			case REC_DOMAIN_LITERAL :
-				result.addAll(analyzeRecDomLit(
-						(RecDomainLiteralExpression) expr, state, pid));
-				break;
-			case REGULAR_RANGE :
-				result.addAll(analyzeRange((RegularRangeExpression) expr, state,
-						pid));
-				break;
-			case SCOPEOF :
-				result.addAll(
-						analyzeScopeof((ScopeofExpression) expr, state, pid));
-				break;
-			case SIZEOF_EXPRESSION :
-				result.addAll(
-						analyzeSizeof((SizeofExpression) expr, state, pid));
-				break;
-			case SIZEOF_TYPE :
-				result.addAll(analyzeSizeofType((SizeofTypeExpression) expr,
-						state, pid));
-				break;
-			case SUBSCRIPT :
-				result.addAll(analyzeSubscript((SubscriptExpression) expr,
-						state, pid));
-				break;
-			case UNARY :
-				result.addAll(analyzeUnaryExpression((UnaryExpression) expr,
-						state, pid));
-				break;
-			case VALUE_AT :
-				result.addAll(
-						analyzeValueAt((ValueAtExpression) expr, state, pid));
-				break;
-			case VARIABLE :
-				result.addAll(
-						analyzeVariable((VariableExpression) expr, state, pid));
-				break;
-			case COMPOUND_LITERAL :
-				result.addAll(analyzeCompoundLiteral(
-						(CompoundLiteralExpression) expr, state, pid));
-				break;
-			/* Ignor-able kinds section */
-			case BOOLEAN_LITERAL :
-			case BOUND_VARIABLE :
-			case CHAR_LITERAL :
-			case FUNCTION_IDENTIFIER :
-			case HERE_OR_ROOT :
-			case INTEGER_LITERAL :
-			case NOTHING :
-			case NULL_LITERAL :
-			case PROC_NULL :
-			case QUANTIFIER :
-			case REAL_LITERAL :
-			case RESULT :
-			case SELF :
-			case STATE_NULL :
-			case STRING_LITERAL :
-			case UNDEFINED_PROC :
-			case WILDCARD :
-			case SYSTEM_GUARD :
-			case DOMAIN_GUARD :// TODO: what is this ?
-				break;
-			/* shall not happen section */
-			case MEMORY_UNIT :
-			case MPI_CONTRACT_EXPRESSION :
-				/* I don't know if ignor-able or not kinds section */
-			case DERIVATIVE :
-			case DIFFERENTIABLE :
-				throw new CIVLUnimplementedFeatureException(
-						"dynamic analysis of read set during evaluation of "
-								+ "expression of " + kind + " kind");
-			default :
-				throw new CIVLInternalException(
-						"unknown expression kind " + kind, expr.getSource());
+		case ABSTRACT_FUNCTION_CALL:
+			result.addAll(analyzeAbstractFuncCall((AbstractFunctionCallExpression) expr, state, pid));
+			break;
+		case ADDRESS_OF:
+			result.addAll(analyzeAddressOf((AddressOfExpression) expr, state, pid));
+			break;
+		case ARRAY_LAMBDA:
+			result.addAll(analyzeArrayLambda((ArrayLambdaExpression) expr, state, pid));
+			break;
+		case BINARY:
+			result.addAll(analyzeBinary((BinaryExpression) expr, state, pid));
+			break;
+		case CAST:
+			result.addAll(analyzeCast((CastExpression) expr, state, pid));
+			break;
+		case COND:
+			result.addAll(analyzeCond((ConditionalExpression) expr, state, pid));
+			break;
+		case DEREFERENCE:
+			result.addAll(analyzeDeref((DereferenceExpression) expr, state, pid));
+			break;
+		case DOT:
+			result.addAll(analyzeDot((DotExpression) expr, state, pid));
+			break;
+		case DYNAMIC_TYPE_OF:
+			result.addAll(analyzeDyTypeOf((DynamicTypeOfExpression) expr, state, pid));
+			break;
+		case EXTENDED_QUANTIFIER:
+			result.addAll(analyzeExtQuantifier((ExtendedQuantifiedExpression) expr, state, pid));
+			break;
+		case FUNCTION_GUARD:
+			result.addAll(analyzeFuncGuard((FunctionGuardExpression) expr, state, pid));
+			break;
+		case FUNC_CALL:
+			result.addAll(analyzeFuncCall((FunctionCallExpression) expr, state, pid));
+			break;
+		case INITIAL_VALUE:
+			result.addAll(analyzeInitVal((InitialValueExpression) expr, state, pid));
+			break;
+		case LAMBDA:
+			result.addAll(analyzeLambda((LambdaExpression) expr, state, pid));
+			break;
+		case REC_DOMAIN_LITERAL:
+			result.addAll(analyzeRecDomLit((RecDomainLiteralExpression) expr, state, pid));
+			break;
+		case REGULAR_RANGE:
+			result.addAll(analyzeRange((RegularRangeExpression) expr, state, pid));
+			break;
+		case SCOPEOF:
+			result.addAll(analyzeScopeof((ScopeofExpression) expr, state, pid));
+			break;
+		case SIZEOF_EXPRESSION:
+			result.addAll(analyzeSizeof((SizeofExpression) expr, state, pid));
+			break;
+		case SIZEOF_TYPE:
+			result.addAll(analyzeSizeofType((SizeofTypeExpression) expr, state, pid));
+			break;
+		case SUBSCRIPT:
+			result.addAll(analyzeSubscript((SubscriptExpression) expr, state, pid));
+			break;
+		case UNARY:
+			result.addAll(analyzeUnaryExpression((UnaryExpression) expr, state, pid));
+			break;
+		case VARIABLE:
+			result.addAll(analyzeVariable((VariableExpression) expr, state, pid));
+			break;
+		case COMPOUND_LITERAL:
+			result.addAll(analyzeCompoundLiteral((CompoundLiteralExpression) expr, state, pid));
+			break;
+		/* Ignor-able kinds section */
+		case BOOLEAN_LITERAL:
+		case BOUND_VARIABLE:
+		case CHAR_LITERAL:
+		case FUNCTION_IDENTIFIER:
+		case HERE_OR_ROOT:
+		case INTEGER_LITERAL:
+		case NOTHING:
+		case NULL_LITERAL:
+		case PROC_NULL:
+		case QUANTIFIER:
+		case REAL_LITERAL:
+		case RESULT:
+		case SELF:
+		case STATE_NULL:
+		case STRING_LITERAL:
+		case UNDEFINED_PROC:
+		case WILDCARD:
+		case SYSTEM_GUARD:
+		case DOMAIN_GUARD:// TODO: what is this ?
+			break;
+		/* shall not happen section */
+		case MEMORY_UNIT:
+		case DERIVATIVE:
+		case DIFFERENTIABLE:
+			throw new CIVLUnimplementedFeatureException(
+					"dynamic analysis of read set during evaluation of " + "expression of " + kind + " kind");
+		default:
+			throw new CIVLInternalException("unknown expression kind " + kind, expr.getSource());
 		}
 		return result;
 	}
@@ -343,59 +301,52 @@ public class ReadSetAnalyzer {
 	 * Analyze expressions in types
 	 *
 	 */
-	private Set<SymbolicExpression> analyzeType(CIVLType type, State state,
-			int pid, Set<Identifier> seenStructOrUnions)
+	private Set<SymbolicExpression> analyzeType(CIVLType type, State state, int pid, Set<Identifier> seenStructOrUnions)
 			throws UnsatisfiablePathConditionException {
 		Set<SymbolicExpression> result = new TreeSet<>(universe.comparator());
 
 		switch (type.typeKind()) {
-			case ARRAY :
-			case COMPLETE_ARRAY : {
-				CIVLArrayType arrType = (CIVLArrayType) type;
+		case ARRAY:
+		case COMPLETE_ARRAY: {
+			CIVLArrayType arrType = (CIVLArrayType) type;
 
-				if (arrType.isComplete())
-					result.addAll(
-							analyze(((CIVLCompleteArrayType) arrType).extent(),
-									state, pid));
-				result.addAll(analyzeType(arrType.elementType(), state, pid,
-						seenStructOrUnions));
-				break;
-			}
-			case POINTER : {
-				CIVLPointerType ptrType = (CIVLPointerType) type;
+			if (arrType.isComplete())
+				result.addAll(analyze(((CIVLCompleteArrayType) arrType).extent(), state, pid));
+			result.addAll(analyzeType(arrType.elementType(), state, pid, seenStructOrUnions));
+			break;
+		}
+		case POINTER: {
+			CIVLPointerType ptrType = (CIVLPointerType) type;
 
-				result.addAll(analyzeType(ptrType.baseType(), state, pid,
-						seenStructOrUnions));
-				break;
-			}
-			case STRUCT_OR_UNION : {
-				CIVLStructOrUnionType structOrUnionType = (CIVLStructOrUnionType) type;
+			result.addAll(analyzeType(ptrType.baseType(), state, pid, seenStructOrUnions));
+			break;
+		}
+		case STRUCT_OR_UNION: {
+			CIVLStructOrUnionType structOrUnionType = (CIVLStructOrUnionType) type;
 
-				if (seenStructOrUnions.contains(structOrUnionType.name()))
-					return result;
-				seenStructOrUnions.add(structOrUnionType.name());
+			if (seenStructOrUnions.contains(structOrUnionType.name()))
+				return result;
+			seenStructOrUnions.add(structOrUnionType.name());
 
-				if (seenStructOrUnions.contains(structOrUnionType.name()))
-					return result;
-				seenStructOrUnions.add(structOrUnionType.name());
-				for (StructOrUnionField field : structOrUnionType.fields())
-					result.addAll(analyzeType(field.type(), state, pid,
-							seenStructOrUnions));
-				break;
-			}
-			case BUNDLE :
-			case DOMAIN :
-			case ENUM :
-			case PRIMITIVE :
-			case FUNCTION :
-			case HEAP :
-			case MEM :
-			case SET :
-				break;
-			default :
-				throw new CIVLUnimplementedFeatureException(
-						"dynamic analysis of read set during evaluation of "
-								+ "expression in " + type);
+			if (seenStructOrUnions.contains(structOrUnionType.name()))
+				return result;
+			seenStructOrUnions.add(structOrUnionType.name());
+			for (StructOrUnionField field : structOrUnionType.fields())
+				result.addAll(analyzeType(field.type(), state, pid, seenStructOrUnions));
+			break;
+		}
+		case BUNDLE:
+		case DOMAIN:
+		case ENUM:
+		case PRIMITIVE:
+		case FUNCTION:
+		case HEAP:
+		case MEM:
+		case SET:
+			break;
+		default:
+			throw new CIVLUnimplementedFeatureException(
+					"dynamic analysis of read set during evaluation of " + "expression in " + type);
 
 		}
 		return result;
@@ -403,38 +354,25 @@ public class ReadSetAnalyzer {
 
 	/* *********** Induction on different expression kinds **************/
 
-	private Set<SymbolicExpression> analyzeVariable(VariableExpression expr,
-			State state, int pid) throws UnsatisfiablePathConditionException {
+	private Set<SymbolicExpression> analyzeVariable(VariableExpression expr, State state, int pid)
+			throws UnsatisfiablePathConditionException {
 		Evaluation eval = evaluator.reference(state, pid, expr);
 		Set<SymbolicExpression> result = new TreeSet<>(universe.comparator());
 
 		if (!isPointsToConstantScope(eval.value)) {
-			eval = evaluator.memEvaluator().pointer2memValue(state, pid,
-					eval.value, expr.getSource());
+			eval = evaluator.memEvaluator().pointer2memValue(state, pid, eval.value, expr.getSource());
 			result.add(eval.value);
 		}
 		return result;
 	}
 
-	private Set<SymbolicExpression> analyzeValueAt(ValueAtExpression expr,
-			State state, int pid) throws UnsatisfiablePathConditionException {
-		Set<SymbolicExpression> result = analyzeMemWorker(expr.expression(),
-				state, pid);
-
-		result.addAll(analyzeMemWorker(expr.pid(), state, pid));
-		result.addAll(analyzeMemWorker(expr.state(), state, pid));
-		return result;
-	}
-
-	private Set<SymbolicExpression> analyzeSubscript(SubscriptExpression expr,
-			State state, int pid) throws UnsatisfiablePathConditionException {
-		Set<SymbolicExpression> result = analyzeMemWorker(expr.index(), state,
-				pid);
+	private Set<SymbolicExpression> analyzeSubscript(SubscriptExpression expr, State state, int pid)
+			throws UnsatisfiablePathConditionException {
+		Set<SymbolicExpression> result = analyzeMemWorker(expr.index(), state, pid);
 		Evaluation eval = evaluator.reference(state, pid, expr);
-		
+
 		if (!isPointsToConstantScope(eval.value)) {
-			eval = evaluator.memEvaluator().pointer2memValue(state, pid,
-					eval.value, expr.getSource());
+			eval = evaluator.memEvaluator().pointer2memValue(state, pid, eval.value, expr.getSource());
 			result.add(eval.value);
 		}
 		// reading `a[i]` -> reading `a[i]`, `i` and `&a`
@@ -442,25 +380,24 @@ public class ReadSetAnalyzer {
 		return result;
 	}
 
-	private Set<SymbolicExpression> analyzeSizeofType(SizeofTypeExpression expr,
-			State state, int pid) throws UnsatisfiablePathConditionException {
+	private Set<SymbolicExpression> analyzeSizeofType(SizeofTypeExpression expr, State state, int pid)
+			throws UnsatisfiablePathConditionException {
 		return analyzeType(expr.getTypeArgument(), state, pid, new HashSet<>());
 	}
 
-	private Set<SymbolicExpression> analyzeSizeof(SizeofExpression expr,
-			State state, int pid) throws UnsatisfiablePathConditionException {
+	private Set<SymbolicExpression> analyzeSizeof(SizeofExpression expr, State state, int pid)
+			throws UnsatisfiablePathConditionException {
 		return analyzeMemWorker(expr.getArgument(), state, pid);
 	}
 
-	private Set<SymbolicExpression> analyzeScopeof(ScopeofExpression expr,
-			State state, int pid) throws UnsatisfiablePathConditionException {
+	private Set<SymbolicExpression> analyzeScopeof(ScopeofExpression expr, State state, int pid)
+			throws UnsatisfiablePathConditionException {
 		return analyzeMemWorker(expr.argument(), state, pid);
 	}
 
-	private Set<SymbolicExpression> analyzeRange(RegularRangeExpression expr,
-			State state, int pid) throws UnsatisfiablePathConditionException {
-		Set<SymbolicExpression> result = analyzeMemWorker(expr.getLow(), state,
-				pid);
+	private Set<SymbolicExpression> analyzeRange(RegularRangeExpression expr, State state, int pid)
+			throws UnsatisfiablePathConditionException {
+		Set<SymbolicExpression> result = analyzeMemWorker(expr.getLow(), state, pid);
 
 		result.addAll(analyzeMemWorker(expr.getHigh(), state, pid));
 		if (expr.getStep() != null)
@@ -468,8 +405,7 @@ public class ReadSetAnalyzer {
 		return result;
 	}
 
-	private Set<SymbolicExpression> analyzeRecDomLit(
-			RecDomainLiteralExpression expr, State state, int pid)
+	private Set<SymbolicExpression> analyzeRecDomLit(RecDomainLiteralExpression expr, State state, int pid)
 			throws UnsatisfiablePathConditionException {
 		int dims = expr.dimension();
 		Set<SymbolicExpression> result = new TreeSet<>(universe.comparator());
@@ -479,19 +415,18 @@ public class ReadSetAnalyzer {
 		return result;
 	}
 
-	private Set<SymbolicExpression> analyzeInitVal(InitialValueExpression expr,
-			State state, int pid) throws UnsatisfiablePathConditionException {
-		return analyzeType(expr.getExpressionType(), state, pid,
-				new HashSet<>());
+	private Set<SymbolicExpression> analyzeInitVal(InitialValueExpression expr, State state, int pid)
+			throws UnsatisfiablePathConditionException {
+		return analyzeType(expr.getExpressionType(), state, pid, new HashSet<>());
 	}
 
-	private Set<SymbolicExpression> analyzeLambda(LambdaExpression expr,
-			State state, int pid) throws UnsatisfiablePathConditionException {
+	private Set<SymbolicExpression> analyzeLambda(LambdaExpression expr, State state, int pid)
+			throws UnsatisfiablePathConditionException {
 		return analyzeMemWorker(expr.lambdaFunction(), state, pid);
 	}
 
-	private Set<SymbolicExpression> analyzeFuncCall(FunctionCallExpression expr,
-			State state, int pid) throws UnsatisfiablePathConditionException {
+	private Set<SymbolicExpression> analyzeFuncCall(FunctionCallExpression expr, State state, int pid)
+			throws UnsatisfiablePathConditionException {
 		Set<SymbolicExpression> result = new TreeSet<>(universe.comparator());
 		boolean isSystem = expr.callStatement().function().isSystemFunction();
 
@@ -510,8 +445,7 @@ public class ReadSetAnalyzer {
 
 					if (!symUtil.isConcretePointer(eval.value))
 						continue; // lets ignore non-concrete pointers
-					result.add(symUtil.setSymRef(eval.value,
-							universe.identityReference()));
+					result.add(symUtil.setSymRef(eval.value, universe.identityReference()));
 				}
 			}
 		}
@@ -519,73 +453,63 @@ public class ReadSetAnalyzer {
 		return result;
 	}
 
-	private Set<SymbolicExpression> analyzeFuncGuard(
-			FunctionGuardExpression expr, State state, int pid)
+	private Set<SymbolicExpression> analyzeFuncGuard(FunctionGuardExpression expr, State state, int pid)
 			throws UnsatisfiablePathConditionException {
-		Set<SymbolicExpression> result = analyzeMemWorker(
-				expr.functionExpression(), state, pid);
+		Set<SymbolicExpression> result = analyzeMemWorker(expr.functionExpression(), state, pid);
 
 		for (Expression arg : expr.arguments())
 			result.addAll(analyzeMemWorker(arg, state, pid));
 		return result;
 	}
 
-	private Set<SymbolicExpression> analyzeExtQuantifier(
-			ExtendedQuantifiedExpression expr, State state, int pid)
+	private Set<SymbolicExpression> analyzeExtQuantifier(ExtendedQuantifiedExpression expr, State state, int pid)
 			throws UnsatisfiablePathConditionException {
-		Set<SymbolicExpression> result = analyzeMemWorker(expr.lower(), state,
-				pid);
+		Set<SymbolicExpression> result = analyzeMemWorker(expr.lower(), state, pid);
 
 		result.addAll(analyzeMemWorker(expr.higher(), state, pid));
 		result.addAll(analyzeMemWorker(expr.function(), state, pid));
 		return result;
 	}
 
-	private Set<SymbolicExpression> analyzeDyTypeOf(
-			DynamicTypeOfExpression expr, State state, int pid)
+	private Set<SymbolicExpression> analyzeDyTypeOf(DynamicTypeOfExpression expr, State state, int pid)
 			throws UnsatisfiablePathConditionException {
 		return analyzeType(expr.getType(), state, pid, new HashSet<>());
 	}
 
-	private Set<SymbolicExpression> analyzeDot(DotExpression expr, State state,
-			int pid) throws UnsatisfiablePathConditionException {
+	private Set<SymbolicExpression> analyzeDot(DotExpression expr, State state, int pid)
+			throws UnsatisfiablePathConditionException {
 		Set<SymbolicExpression> result;
 		Evaluation eval;
 
 		if (expr.structOrUnion() instanceof LHSExpression)
-			result = analyzeAsAddressof(state, pid,
-					(LHSExpression) expr.structOrUnion());
+			result = analyzeAsAddressof(state, pid, (LHSExpression) expr.structOrUnion());
 		else
 			result = analyze(expr.structOrUnion(), state, pid);
 		eval = evaluator.reference(state, pid, expr);
 		if (!isPointsToConstantScope(eval.value)) {
-			eval = evaluator.memEvaluator().pointer2memValue(state, pid,
-					eval.value, expr.getSource());
+			eval = evaluator.memEvaluator().pointer2memValue(state, pid, eval.value, expr.getSource());
 			result.add(eval.value);
 		}
 		return result;
 	}
 
-	private Set<SymbolicExpression> analyzeDeref(DereferenceExpression expr,
-			State state, int pid) throws UnsatisfiablePathConditionException {
-		Set<SymbolicExpression> result = analyzeMemWorker(expr.pointer(), state,
-				pid);
+	private Set<SymbolicExpression> analyzeDeref(DereferenceExpression expr, State state, int pid)
+			throws UnsatisfiablePathConditionException {
+		Set<SymbolicExpression> result = analyzeMemWorker(expr.pointer(), state, pid);
 		Evaluation eval = evaluator.reference(state, pid, expr);
 
 		if (isPointsToConstantScope(eval.value))
 			return result;
-		eval = evaluator.memEvaluator().pointer2memValue(state, pid, eval.value,
-				expr.getSource());
+		eval = evaluator.memEvaluator().pointer2memValue(state, pid, eval.value, expr.getSource());
 		result.add(eval.value);
 		return result;
 	}
 
-	private Set<SymbolicExpression> analyzeCond(ConditionalExpression expr,
-			State state, int pid) throws UnsatisfiablePathConditionException {
+	private Set<SymbolicExpression> analyzeCond(ConditionalExpression expr, State state, int pid)
+			throws UnsatisfiablePathConditionException {
 		Evaluation eva = evaluator.evaluate(state, pid, expr.getCondition());
 		BooleanExpression conEval = (BooleanExpression) eva.value;
-		Set<SymbolicExpression> result = analyzeMemWorker(expr.getCondition(),
-				state, pid);
+		Set<SymbolicExpression> result = analyzeMemWorker(expr.getCondition(), state, pid);
 
 		if (!conEval.isFalse())
 			result.addAll(analyzeMemWorker(expr.getTrueBranch(), state, pid));
@@ -594,34 +518,30 @@ public class ReadSetAnalyzer {
 		return result;
 	}
 
-	private Set<SymbolicExpression> analyzeCast(CastExpression expr,
-			State state, int pid) throws UnsatisfiablePathConditionException {
+	private Set<SymbolicExpression> analyzeCast(CastExpression expr, State state, int pid)
+			throws UnsatisfiablePathConditionException {
 		CIVLType type = expr.getCastType();
-		Set<SymbolicExpression> result = analyzeType(type, state, pid,
-				new HashSet<>());
+		Set<SymbolicExpression> result = analyzeType(type, state, pid, new HashSet<>());
 
 		result.addAll(analyzeMemWorker(expr.getExpression(), state, pid));
 		return result;
 	}
 
-	private Set<SymbolicExpression> analyzeArrayLambda(
-			ArrayLambdaExpression expr, State state, int pid)
+	private Set<SymbolicExpression> analyzeArrayLambda(ArrayLambdaExpression expr, State state, int pid)
 			throws UnsatisfiablePathConditionException {
 		CIVLCompleteArrayType arrType = expr.getExpressionType();
-		Set<SymbolicExpression> result = analyzeType(arrType, state, pid,
-				new HashSet<>());
+		Set<SymbolicExpression> result = analyzeType(arrType, state, pid, new HashSet<>());
 
 		result.addAll(analyzeMemWorker(expr.expression(), state, pid));
 		return result;
 	}
 
-	private Set<SymbolicExpression> analyzeAddressOf(AddressOfExpression expr,
-			State state, int pid) throws UnsatisfiablePathConditionException {
+	private Set<SymbolicExpression> analyzeAddressOf(AddressOfExpression expr, State state, int pid)
+			throws UnsatisfiablePathConditionException {
 		return analyzeAsAddressof(state, pid, expr.operand());
 	}
 
-	private Set<SymbolicExpression> analyzeAbstractFuncCall(
-			AbstractFunctionCallExpression expr, State state, int pid)
+	private Set<SymbolicExpression> analyzeAbstractFuncCall(AbstractFunctionCallExpression expr, State state, int pid)
 			throws UnsatisfiablePathConditionException {
 		Set<SymbolicExpression> result = new TreeSet<>(universe.comparator());
 		for (Expression arg : expr.arguments())
@@ -629,22 +549,20 @@ public class ReadSetAnalyzer {
 		return result;
 	}
 
-	private Set<SymbolicExpression> analyzeBinary(BinaryExpression expr,
-			State state, int pid) throws UnsatisfiablePathConditionException {
-		Set<SymbolicExpression> result = analyzeMemWorker(expr.left(), state,
-				pid);
+	private Set<SymbolicExpression> analyzeBinary(BinaryExpression expr, State state, int pid)
+			throws UnsatisfiablePathConditionException {
+		Set<SymbolicExpression> result = analyzeMemWorker(expr.left(), state, pid);
 
 		result.addAll(analyzeMemWorker(expr.right(), state, pid));
 		return result;
 	}
 
-	private Set<SymbolicExpression> analyzeUnaryExpression(UnaryExpression expr,
-			State state, int pid) throws UnsatisfiablePathConditionException {
+	private Set<SymbolicExpression> analyzeUnaryExpression(UnaryExpression expr, State state, int pid)
+			throws UnsatisfiablePathConditionException {
 		return this.analyzeMemWorker(expr.operand(), state, pid);
 	}
-	
-	private Set<SymbolicExpression> analyzeCompoundLiteral(
-			CompoundLiteralExpression expr, State state, int pid)
+
+	private Set<SymbolicExpression> analyzeCompoundLiteral(CompoundLiteralExpression expr, State state, int pid)
 			throws UnsatisfiablePathConditionException {
 		Set<SymbolicExpression> result = new HashSet<>();
 
@@ -655,14 +573,13 @@ public class ReadSetAnalyzer {
 	}
 
 	/**
-	 * It's kind confusing that why DYNAMIC_CONSTANT_SCOPE is -1. To make sure
-	 * the mem value contains no negative scope value, here has to ignore such
-	 * reference. But anyway, we probably do not care about pointers (mem
-	 * values) to those in constant scopes.
+	 * It's kind confusing that why DYNAMIC_CONSTANT_SCOPE is -1. To make sure the
+	 * mem value contains no negative scope value, here has to ignore such
+	 * reference. But anyway, we probably do not care about pointers (mem values) to
+	 * those in constant scopes.
 	 */
 	private boolean isPointsToConstantScope(SymbolicExpression pointer) {
-		SymbolicExpression scopeVal = evaluator.symbolicUtility()
-				.getScopeValue(pointer);
+		SymbolicExpression scopeVal = evaluator.symbolicUtility().getScopeValue(pointer);
 
 		return scopeVal.equals(constantDyScopeVal);
 	}

@@ -1,7 +1,6 @@
 package dev.civl.mc.model.IF.contract;
 
 import java.io.PrintStream;
-import java.util.Iterator;
 
 import dev.civl.mc.model.IF.Scope;
 import dev.civl.mc.model.IF.Sourceable;
@@ -16,13 +15,13 @@ import dev.civl.mc.model.IF.expression.Expression;
 public interface FunctionContract extends Sourceable {
 
 	/**
-	 * ContractKind: This kind is used to denotes all kinds of contracts.
-	 * Currently, there are 5 kinds of contracts:
+	 * ContractKind: This kind is used to denotes all kinds of contracts. Currently,
+	 * there are 5 kinds of contracts:
 	 * <ul>
 	 * <li>REQUIRES: denotes that the requirements of the contracts are used to
 	 * infer some states.</li>
-	 * <li>ENSURES:denotes that the ensurances of the contracts are guaranteed
-	 * by some states.</li>
+	 * <li>ENSURES:denotes that the ensurances of the contracts are guaranteed by
+	 * some states.</li>
 	 * <li>INFER: denotes that the ensurances of the contracts are used to infer
 	 * some states.</li>
 	 * <li>WAITSFOR: delivers an explicit synchronization knowledge.</li>
@@ -92,22 +91,7 @@ public interface FunctionContract extends Sourceable {
 	void addNamedBehavior(NamedFunctionBehavior behavior);
 
 	/**
-	 * Add an {@link MPICollectiveBehavior}
-	 * 
-	 * @param behavior
-	 */
-	void addMPICollectiveBehavior(MPICollectiveBehavior behavior);
-
-	/**
-	 * Returns a {@link Iterator} of a set of {@link MPICollectiveBehavior}s.
-	 * 
-	 * @return
-	 */
-	Iterable<MPICollectiveBehavior> getMPIBehaviors();
-
-	/**
-	 * returns the behavior with the given name; null if no such behavior
-	 * exists.
+	 * returns the behavior with the given name; null if no such behavior exists.
 	 * 
 	 * @param name
 	 * @return
@@ -152,32 +136,9 @@ public interface FunctionContract extends Sourceable {
 	boolean hasRequirementsOrEnsurances();
 
 	/**
-	 * Returns the number of {@link MPICollectiveBehavior}s.
-	 * 
-	 * @return
-	 */
-	int numMPICollectiveBehaviors();
-
-	/**
-	 * An efficient mark to indicate weather the {@link FunctionContract} has
-	 * MPI waits-for.
-	 * 
-	 * @return
-	 */
-	boolean hasMPIWaitsfor();
-
-	/**
-	 * Set the efficient mark to tell if the function contracts has MPI
-	 * waits-fors.
-	 * 
-	 * @param hasWaitsfor
-	 */
-	void setHasMPIWaitsfor(boolean hasWaitsfor);
-
-	/**
-	 * The static scope in which the function contract exists. Not necessarily
-	 * the same as the function definition's parameter scope, because the
-	 * contract may have been associated with a function prototype.
+	 * The static scope in which the function contract exists. Not necessarily the
+	 * same as the function definition's parameter scope, because the contract may
+	 * have been associated with a function prototype.
 	 * 
 	 * @return scope in which contract exists
 	 */

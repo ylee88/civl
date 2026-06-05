@@ -36,7 +36,9 @@ public class MPICollectivePart1Test {
 
 	@Test
 	public void vectorSum() {
-		assertTrue(ui.run("verify -input_mpi_nprocs=5", QUIET, NO_PRINTF,
+		assertTrue(ui.run("verify -input_mpi_nprocs=5", 
+				"-verbose",
+				//QUIET, NO_PRINTF,
 				filename("vectorSum.c")));
 	}
 

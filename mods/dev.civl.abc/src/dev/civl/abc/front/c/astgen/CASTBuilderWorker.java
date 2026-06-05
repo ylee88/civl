@@ -844,23 +844,11 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 			return translateWildcard(source, expressionTree, scope);
 		case STATEMENT_EXPRESSION:
 			return translateStatementExpression(source, expressionTree, scope);
-		case VALUE_AT:
-			return translateValueAtExpression(source, expressionTree, scope);
 		case SUM:
 			return translateSumExpression(source, expressionTree, scope);
 		default:
 			throw error("Unknown expression kind", expressionTree);
 		} // end switch
-	}
-
-	// Translation of Declarations and Types...
-	private ExpressionNode translateValueAtExpression(Source source, CommonTree valueAt, SimpleScope scope)
-			throws SyntaxException {
-		ExpressionNode state = this.translateExpression((CommonTree) valueAt.getChild(0), scope);
-		ExpressionNode pid = this.translateExpression((CommonTree) valueAt.getChild(1), scope);
-		ExpressionNode expr = this.translateExpression((CommonTree) valueAt.getChild(2), scope);
-
-		return nodeFactory.newValueAtNode(source, state, pid, expr);
 	}
 
 	private ExtendedQuantifiedExpressionNode translateSumExpression(Source source, CommonTree sumTree,
@@ -2094,14 +2082,6 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 				translateStatement((CommonTree) statementTree.getChild(1), new SimpleScope(loopScope)), getContract());
 	}
 
-	private StatementNode translateWith(CommonTree statementTree, SimpleScope scope) throws SyntaxException {
-		Source source = this.newSource(statementTree);
-		ExpressionNode colState = this.translateExpression((CommonTree) statementTree.getChild(0), scope);
-		StatementNode body = this.translateStatement((CommonTree) statementTree.getChild(1), scope);
-
-		return nodeFactory.newWithNode(source, colState, body);
-	}
-
 	private StatementNode translateUpdate(CommonTree statementTree, SimpleScope scope) throws SyntaxException {
 		Source source = this.newSource(statementTree);
 		CommonTree operandTree = (CommonTree) statementTree.getChild(0);
@@ -2458,8 +2438,6 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 					translateStatement((CommonTree) statementTree.getChild(1), scope));
 		case WHILE:
 			return translateWhile(statementTree, scope);
-		case WITH:
-			return translateWith(statementTree, scope);
 		case UPDATE:
 			return translateUpdate(statementTree, scope);
 		default:

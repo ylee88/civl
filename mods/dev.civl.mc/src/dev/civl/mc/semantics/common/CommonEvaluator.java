@@ -7,8 +7,6 @@ import java.util.List;
 
 import dev.civl.mc.config.IF.CIVLConfiguration;
 import dev.civl.mc.dynamic.IF.SymbolicUtility;
-import dev.civl.mc.library.collate.LibcollateExecutor;
-import dev.civl.mc.library.mpi.LibmpiEvaluator;
 import dev.civl.mc.log.IF.CIVLErrorLogger;
 import dev.civl.mc.model.IF.AbstractFunction;
 import dev.civl.mc.model.IF.CIVLFunction;
@@ -52,7 +50,6 @@ import dev.civl.mc.model.IF.expression.InitialValueExpression;
 import dev.civl.mc.model.IF.expression.IntegerLiteralExpression;
 import dev.civl.mc.model.IF.expression.LHSExpression;
 import dev.civl.mc.model.IF.expression.LambdaExpression;
-import dev.civl.mc.model.IF.expression.MPIContractExpression;
 import dev.civl.mc.model.IF.expression.ProcnullExpression;
 import dev.civl.mc.model.IF.expression.QuantifiedExpression;
 import dev.civl.mc.model.IF.expression.RealLiteralExpression;
@@ -65,7 +62,6 @@ import dev.civl.mc.model.IF.expression.SizeofTypeExpression;
 import dev.civl.mc.model.IF.expression.SubscriptExpression;
 import dev.civl.mc.model.IF.expression.SystemGuardExpression;
 import dev.civl.mc.model.IF.expression.UnaryExpression;
-import dev.civl.mc.model.IF.expression.ValueAtExpression;
 import dev.civl.mc.model.IF.expression.VariableExpression;
 import dev.civl.mc.model.IF.type.CIVLArrayType;
 import dev.civl.mc.model.IF.type.CIVLCompleteArrayType;
@@ -75,7 +71,6 @@ import dev.civl.mc.model.IF.type.CIVLEnumType;
 import dev.civl.mc.model.IF.type.CIVLPointerType;
 import dev.civl.mc.model.IF.type.CIVLPrimitiveType;
 import dev.civl.mc.model.IF.type.CIVLPrimitiveType.PrimitiveTypeKind;
-import dev.civl.mc.model.IF.type.CIVLStateType;
 import dev.civl.mc.model.IF.type.CIVLStructOrUnionType;
 import dev.civl.mc.model.IF.type.CIVLType;
 import dev.civl.mc.model.IF.type.CIVLType.TypeKind;
@@ -105,7 +100,6 @@ import dev.civl.mc.util.IF.Triple;
 import dev.civl.sarl.IF.Reasoner;
 import dev.civl.sarl.IF.SARLException;
 import dev.civl.sarl.IF.SymbolicUniverse;
-import dev.civl.sarl.IF.UnaryOperator;
 import dev.civl.sarl.IF.ValidityResult.ResultType;
 import dev.civl.sarl.IF.expr.ArrayElementReference;
 import dev.civl.sarl.IF.expr.BooleanExpression;
@@ -3106,9 +3100,6 @@ public class CommonEvaluator implements Evaluator {
 		case LAMBDA:
 			result = evaluateLambda(state, pid, (LambdaExpression) expression);
 			break;
-		case MPI_CONTRACT_EXPRESSION:
-			result = evaluateMPIContractExpression(state, pid, process, (MPIContractExpression) expression);
-			break;
 		case REAL_LITERAL:
 			result = evaluateRealLiteral(state, pid, (RealLiteralExpression) expression);
 			break;
@@ -3160,9 +3151,6 @@ public class CommonEvaluator implements Evaluator {
 		case VARIABLE:
 			result = evaluateVariable(state, pid, process, (VariableExpression) expression, checkUndefinedValue);
 			break;
-		case VALUE_AT:
-			result = evaluateValueAtExpression(state, pid, (ValueAtExpression) expression);
-			break;
 		case QUANTIFIER: {
 			result = evaluateQuantifiedExpression(state, pid, (QuantifiedExpression) expression);
 			break;
@@ -3188,104 +3176,6 @@ public class CommonEvaluator implements Evaluator {
 		return new QuantifiedExpressionEvaluator(modelFactory, stateFactory, libLoader, libExeLoader, symbolicUtil,
 				symbolicAnalyzer, memUnitFactory, errorLogger, civlConfig)
 				.evaluateQuantifiedExpression(state, pid, (QuantifiedExpression) expression);
-	}
-
-	/**
-	 * <p>
-	 * Evaluate a {@link ValueAtExpression},
-	 * <code>$value_at($state s, int p, expression e)</code>.
-	 * </p>
-	 * 
-	 * <p>
-	 * The semantics of evaluating {@link ValueAtExpression} is evaluate e on the
-	 * state s as if control is on process p. The value of p and s both evaluate in
-	 * the current state. <strong>Note</strong> that such a semantics will ONLY make
-	 * sense if the state s is a collate state. see {@link LibcollateExecutor}.
-	 * Currently CIVL-C language doesn't provide anyway to refer a non-collate
-	 * state.
-	 * </p>
-	 * <p>
-	 * If the concrete value of the identifier (PID) of process p cannot be decided,
-	 * then <code>
-	 *   Define an array a[nprocs], where nprocs is the number of processes in s.
-	 *   Forall int i that 0 &lt= i && i &lt nprocs, a[i] == $value_at(s, i, e);
-	 * </code>. The evaluation thus will be <code>
-	 *   APPLY p on LAMBDA i : a[i]
-	 * </code>.
-	 * 
-	 * 
-	 * </p>
-	 * 
-	 * @param currentState The current state on which the current process reaches a
-	 *                     ValueAtExpression.
-	 * @param pid          The current process who reaches a ValueAtExpression.
-	 * @param valueAt      The ValueAtExpression which will evaluate
-	 * @return The evaluation of the ValueAtExpression.
-	 * @throws UnsatisfiablePathConditionException
-	 */
-	protected Evaluation evaluateValueAtExpression(State currentState, int pid, ValueAtExpression valueAt)
-			throws UnsatisfiablePathConditionException {
-		Expression stateRef = valueAt.state();
-		Expression process = valueAt.pid();
-		Expression expression = valueAt.expression();
-		Evaluation eval;
-		SymbolicExpression stateValue, processVal;
-		State evaluationState;
-		CIVLStateType stateType = typeFactory.stateType();
-
-		eval = evaluate(currentState, pid, stateRef);
-		currentState = eval.state;
-		stateValue = eval.value;
-		eval = evaluate(currentState, pid, process);
-		currentState = eval.state;
-		processVal = eval.value;
-		assert processVal.type().isNumeric();
-
-		UnaryOperator<SymbolicExpression> substituter = null;
-
-		if (stateValue == modelFactory.statenullConstantValue())
-			evaluationState = currentState;
-		else {
-			evaluationState = stateFactory.getStateByReference(stateType.selectStateKey(universe, stateValue));
-			substituter = stateFactory.stateValueHelper().scopeSubstituterForCurrentState(currentState, stateValue);
-		}
-
-		Number processNumber = universe.reasoner(currentState.getPathCondition(universe))
-				.extractNumber((NumericExpression) processVal);
-
-		assert evaluationState != null;
-		if (processNumber != null) {
-			// for concrete process value:
-			int concreteProcessVal = ((IntegerNumber) processNumber).intValue();
-
-			eval = evaluate(evaluationState, concreteProcessVal, expression);
-			eval.state = currentState;
-		} else {
-			// for non-concrete process value:
-			// omit the external process, who has the max pid:
-			int numProcs = evaluationState.numProcs() - 1;
-			List<SymbolicExpression> possibleEvals = new LinkedList<>();
-
-			for (int procId = 0; procId < numProcs; procId++) {
-				if (evaluationState.getProcessState(procId) != null)
-					eval = evaluate(evaluationState, procId, expression);
-				else
-					eval.value = universe.nullExpression();
-				possibleEvals.add(eval.value);
-			}
-			SymbolicType dynamicType = expression.getExpressionType().getDynamicType(universe);
-			SymbolicExpression possibleValArray = universe.array(dynamicType, possibleEvals);
-			NumericSymbolicConstant boundedPid = (NumericSymbolicConstant) universe
-					.symbolicConstant(universe.stringObject(BOUNDED_PROCESS_IDENTIFIER), universe.integerType());
-			SymbolicExpression lambda = universe.lambda(boundedPid, universe.arrayRead(possibleValArray, boundedPid));
-
-			eval.value = universe.arrayLambda(universe.arrayType(dynamicType, universe.integer(numProcs)), lambda);
-			eval.value = universe.arrayRead(eval.value, (NumericExpression) processVal);
-			eval.state = currentState;
-		}
-		if (substituter != null)
-			substituter.apply(eval.value);
-		return eval;
 	}
 
 	protected Evaluation evaluateArrayLambda(State state, int pid, ArrayLambdaExpression arrayLambda)
@@ -4148,47 +4038,6 @@ public class CommonEvaluator implements Evaluator {
 	}
 
 	/**
-	 * <p>
-	 * <b>Pre-condition: state must be a collate state, i.e. the state is obtained
-	 * through a $collate_state handle and the calling process must be one of the
-	 * participant processes of that collate state.</b>
-	 * </p>
-	 * <p>
-	 * Evaluates an {@link MPIContractExpression}. It loads the
-	 * {@link LibmpiEvaluator} to evaluates such an expression. see.
-	 * {@link LibmpiEvaluator#evaluateMPIContractExpression(State, int, String, MPIContractExpression)}
-	 * </p>
-	 * 
-	 * @param state      The state on where evaluation happens, the state must be a
-	 *                   collate state.
-	 * @param pid        The pid of the process in the collate state
-	 * @param process    The String identifier of the process
-	 * @param expression The {@link MPIContractExpression} that will evaluates
-	 * @return An {@link Evaluation} of the expression
-	 * @throws UnsatisfiablePathConditionException
-	 */
-	protected Evaluation evaluateMPIContractExpression(State state, int pid, String process,
-			MPIContractExpression expression) throws UnsatisfiablePathConditionException {
-		LibmpiEvaluator mpiEvaluator;
-
-		if (!civlConfig.isEnableMpiContract())
-			throw new CIVLInternalException("No MPI contract expression can be used without the enabling "
-					+ "of MPI contract mode. To enable MPI contract mode, add the"
-					+ " '-mpiContract' option to your civl verify command ", expression.getSource());
-		try {
-			mpiEvaluator = (LibmpiEvaluator) this.libLoader.getLibraryEvaluator("mpi", this, modelFactory, symbolicUtil,
-					this.symbolicAnalyzer);
-			return mpiEvaluator.evaluateMPIContractExpression(state, pid, process, expression);
-		} catch (LibraryLoaderException e) {
-			this.errorLogger.logSimpleError(expression.getSource(), state, pid, process,
-					symbolicAnalyzer.stateInformation(state), CIVLProperty.LIBRARY,
-					"unable to load the library evaluator for the library " + "mpi" + " for the MPI expression "
-							+ expression);
-			throw new UnsatisfiablePathConditionException();
-		}
-	}
-
-	/**
 	 * Evaluates the result of an PLUS operation with two numeric operands
 	 */
 	protected SymbolicExpression evaluatePlus(SymbolicExpression left, SymbolicExpression right) {
@@ -4202,18 +4051,6 @@ public class CommonEvaluator implements Evaluator {
 
 	@Override
 	public Evaluation evaluate(State state, int pid, Expression expression) throws UnsatisfiablePathConditionException {
-		// if (expression != null) {
-		// CIVLSource civlSrc = expression.getSource();
-		//
-		// if (civlSrc != null) {
-		// String fName = civlSrc.getFileName();
-		//
-		// if (fName != null) {
-		// enableShortCircuitLogicEval = !fName.toUpperCase()
-		// .contains(".F");
-		// }
-		// }
-		// }
 		return this.evaluate(state, pid, expression, true);
 	}
 

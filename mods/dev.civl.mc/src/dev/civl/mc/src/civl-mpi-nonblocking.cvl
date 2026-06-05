@@ -3,7 +3,6 @@
 
 #include <civlc.cvh>
 #include <concurrency.cvh>
-#include <collate.cvh>
 #include <comm.cvh>
 #include <bundle.cvh>
 #include <mpi.h>
@@ -26,7 +25,6 @@ typedef struct _mpi_nb_record_t {
 struct CIVL_MPI_Comm {
   $comm p2p; // point-to-point communication
   $comm col; // collective communication
-  $collator collator;
   $barrier barrier;
   int gcommIndex; //the index of the corresponding global communicator.
   _mpi_nb_record_t * send_records[];
@@ -47,7 +45,6 @@ char * $mpi_coroutine_name(int tag);
 struct $mpi_gcomm {
   $gcomm p2p; // point-to-point communication
   $gcomm col; // collective communication
-  $gcollator gcollator;
   $gbarrier gbarrier;
 };
 
@@ -147,7 +144,6 @@ $mpi_gcomm $mpi_gcomm_create($scope scope, int size) {
 
   result.p2p = $gcomm_create(scope, size);
   result.col = $gcomm_create(scope, size);
-  result.gcollator = $gcollator_create(scope, size);
   result.gbarrier = $gbarrier_create(scope, size);
   return result;
 }
@@ -185,7 +181,6 @@ void $mpi_gcomm_destroy($mpi_gcomm gc) {
 	    " that is never received.", 
 	    src, routine);
   }  
-  $gcollator_destroy(gc.gcollator);
   $gbarrier_destroy(gc.gbarrier);
 }
 
@@ -194,7 +189,6 @@ MPI_Comm $mpi_comm_create($scope scope, $mpi_gcomm gc, int rank) {
   
   result->p2p = $comm_create(scope, gc.p2p, rank);
   result->col = $comm_create(scope, gc.col, rank);
-  result->collator = $collator_create(gc.gcollator, scope, rank);
   result->barrier = $barrier_create(scope, gc.gbarrier, rank);
   result->gcommIndex = 0;
   $seq_init(&result->send_records, 0, NULL);
@@ -210,7 +204,6 @@ void $mpi_comm_destroy(MPI_Comm comm, $mpi_state mpi_state) {
 #endif
   $comm_destroy(comm->p2p);
   $comm_destroy(comm->col);
-  $free(comm->collator);
   $barrier_destroy(comm->barrier);
   $free(comm);
 }
@@ -1081,71 +1074,6 @@ int $mpi_barrier(MPI_Comm comm) {
   return 0;
 }
 
-#ifdef _MPI_CONTRACT
-
-$collate_state $mpi_snapshot(MPI_Comm comm, $scope scope) {
-  return $collate_arrives(comm->collator, scope);
-}
-
-void $mpi_unsnapshot(MPI_Comm comm, $collate_state cs) {
-  $collate_departs(comm->collator, cs);
-}
-
-void $mpi_assigns(void * buf, int count, MPI_Datatype datatype) {
-  if ($is_concrete_int(datatype)) {
-    size_t size = sizeofDatatype(datatype);
-    int _int[count];
-    int _2int[count * 2];
-    char _char[count];
-    $real _real[count];
-      
-    switch (datatype) {
-    case MPI_INT:
-    case MPI_SHORT:
-    case MPI_LONG:
-    case MPI_LONG_LONG_INT:
-    case MPI_LONG_LONG:
-    case MPI_UNSIGNED_LONG_LONG:      
-      memcpy(buf, _int, count * size);
-      break;      
-    case MPI_2INT:
-      memcpy(buf, _2int, 2 * count * size);
-      break;
-    case MPI_FLOAT:
-    case MPI_DOUBLE:
-    case MPI_LONG_DOUBLE:      
-      memcpy(buf, _real, count * size);
-      break;
-    case MPI_CHAR:
-    case MPI_BYTE:
-      memcpy(buf, _char, count * size);
-      break;
-    default:
-      $assert(0, "Unreachable");
-    } 
-  } else {
-    size_t realCount = count * $mpi_extentof(datatype);
-    char newValues[realCount];
-
-    memcpy(buf, newValues, count * sizeofDatatype(datatype));   
-  }
-}
-
-$atomic_f void $mpi_comm_empty(MPI_Comm comm, MPI_COMM_MODE mode) {
-  _Bool empty;
-
-  if (mode == P2P) {
-    empty = $comm_empty_in(comm->p2p);
-    empty &= $comm_empty_out(comm->p2p);
-  } else {
-    empty = $comm_empty_in(comm->col);
-    empty &= $comm_empty_out(comm->col);
-  }
-  $assert(empty, "Messages are remaining in MPI communicator\n");
-}
-
-#endif
-
 /********************* Private helper functions *********************/
 /* Returns the string literal of MPI collective routine names by
  * giving the unique message tag. */
@@ -1198,11 +1126,4 @@ $atomic_f $state_f $scope $mpi_proc_scope(MPI_Comm comm) {
   return $mpi_proc_scope_system(comm->p2p);
 }
 
-/**************** Bridging MPI and the collate library ****************/
-$atomic_f $state_f $bundle $mpi_check_collective(MPI_Comm comm,
-						       $bundle checking) {
-  return $collate_check(comm->collator, checking);
-}
-
 #endif
-

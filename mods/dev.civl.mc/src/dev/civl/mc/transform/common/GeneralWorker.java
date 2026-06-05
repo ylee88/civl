@@ -33,11 +33,9 @@ import dev.civl.abc.ast.node.IF.expression.FunctionCallNode;
 import dev.civl.abc.ast.node.IF.expression.IdentifierExpressionNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode.Operator;
-import dev.civl.abc.ast.node.IF.statement.AtomicNode;
 import dev.civl.abc.ast.node.IF.statement.BlockItemNode;
 import dev.civl.abc.ast.node.IF.statement.ExpressionStatementNode;
 import dev.civl.abc.ast.node.IF.statement.StatementNode;
-import dev.civl.abc.ast.node.IF.statement.WithNode;
 import dev.civl.abc.ast.node.IF.type.FunctionTypeNode;
 import dev.civl.abc.ast.node.IF.type.TypeNode;
 import dev.civl.abc.ast.node.IF.type.TypeNode.TypeNodeKind;
@@ -85,7 +83,7 @@ public class GeneralWorker extends BaseWorker {
 	private static final String CIVL_SET_DEFAULT = "$set_default";
 	private int static_var_count = 0;
 	private Source mainSource;
-	
+
 	private final static String CIVL_ARGC_NAME = "_civl_argc";
 	private final static String CIVL_ARGV_NAME = "_civl_argv";
 	/**
@@ -120,12 +118,10 @@ public class GeneralWorker extends BaseWorker {
 
 		// unit.prettyPrint(System.out, false);
 		if (mainEntity == null) {
-			throw new CIVLSyntaxException("missing main function",
-					unit.getRootNode().getSource());
+			throw new CIVLSyntaxException("missing main function", unit.getRootNode().getSource());
 		}
 		if (!(mainEntity instanceof Function)) {
-			throw new CIVLSyntaxException(
-					"non-function entity with name \"main\"",
+			throw new CIVLSyntaxException("non-function entity with name \"main\"",
 					mainEntity.getFirstDeclaration().getSource());
 		}
 
@@ -171,10 +167,8 @@ public class GeneralWorker extends BaseWorker {
 		// $input char _argv[_argc][];
 		for (VariableDeclarationNode inputVar : inputVars) {
 			newExternalList.add(inputVar);
-			if (inputVar.getName().equals(CIVL_ARGC_NAME)
-					&& argcAssumption != null) {
-				newExternalList.add(
-						assumeFunctionDeclaration(argcAssumption.getSource()));
+			if (inputVar.getName().equals(CIVL_ARGC_NAME) && argcAssumption != null) {
+				newExternalList.add(assumeFunctionDeclaration(argcAssumption.getSource()));
 				newExternalList.add(argcAssumption);
 			}
 		}
@@ -205,91 +199,17 @@ public class GeneralWorker extends BaseWorker {
 		}
 		if (newMainFunction != null)
 			newExternalList.add(newMainFunction);
-		root = nodeFactory.newSequenceNode(root.getSource(), "TranslationUnit",
-				newExternalList);
-		newAst = astFactory.newAST(root, unit.getSourceFiles(),
-				unit.isWholeProgram());
+		root = nodeFactory.newSequenceNode(root.getSource(), "TranslationUnit", newExternalList);
+		newAst = astFactory.newAST(root, unit.getSourceFiles(), unit.isWholeProgram());
 		// newAst.prettyPrint(System.out, false);
 		// TODO: Check if there is a string.h
 		if (callocExists && !this.hasHeader(newAst, STRING_HEADER)) {
-			AST stringlibHeaderAST = this.parseSystemLibrary(
-					new File(CPreprocessor.ABC_INCLUDE_PATH, STRING_HEADER),
+			AST stringlibHeaderAST = this.parseSystemLibrary(new File(CPreprocessor.ABC_INCLUDE_PATH, STRING_HEADER),
 					EMPTY_MACRO_MAP);
 
 			newAst = this.combineASTs(stringlibHeaderAST, newAst);
 		}
 		return newAst;
-	}
-
-	/**
-	 * translating a $with block, which has the format:
-	 * 
-	 * <pre>
-	 * $with (col) {
-	 *   s1;
-	 *   s2;
-	 *   ...
-	 * }
-	 * </pre>
-	 * 
-	 * into
-	 * 
-	 * <pre>
-	 * $atom{
-	 * col_old=col;
-	 * rs=$enter_collate_state(col);
-	 * s1;
-	 * s2;
-	 * ..
-	 * $exit_collate_state(rs, col_old, col);
-	 * }
-	 * </pre>
-	 * 
-	 * @param node
-	 */
-	@SuppressWarnings("unused")
-	private void transformWith(ASTNode node) {
-		if (node instanceof WithNode) {
-			WithNode withNode = (WithNode) node;
-			ASTNode parent = withNode.parent();
-			StatementNode bodyNode = withNode.getBodyNode();
-			ExpressionNode colStateExpr = withNode.getStateReference();
-			List<BlockItemNode> items = new LinkedList<>();
-			// VariableDeclarationNode realState;
-			ExpressionNode enter, exit;
-			AtomicNode atomic;
-
-			enter = this.functionCall(newSource("$enter_collate_state", 0),
-					"$enter_collate_state",
-					Arrays.asList(this.nodeFactory.newOperatorNode(
-							colStateExpr.getSource(), Operator.ADDRESSOF,
-							colStateExpr.copy())));
-			// realState =
-			// this.variableDeclaration(this.newUniqueIdentifier("real"),
-			// this.typeNode(typeFactory.stateType()), enter);
-			// items.add(realState);
-			items.add(this.nodeFactory.newExpressionStatementNode(enter));
-			bodyNode.remove();
-			items.add(bodyNode);
-			exit = this.functionCall(newSource("$exit_collate_state", 0),
-					"$exit_collate_state", Arrays.asList(
-							// this.identifierExpression(oldCol.getName()),
-							this.nodeFactory.newOperatorNode(
-									colStateExpr.getSource(),
-									Operator.ADDRESSOF, colStateExpr.copy())
-					// ,this.identifierExpression(realState.getName())
-					));
-			items.add(nodeFactory.newExpressionStatementNode(exit));
-			atomic = nodeFactory.newAtomicStatementNode(withNode.getSource(),
-					this.nodeFactory.newCompoundStatementNode(
-							withNode.getSource(), items));
-			parent.setChild(withNode.childIndex(), atomic);
-		} else {
-			for (ASTNode child : node.children()) {
-				if (child != null)
-					transformWith(child);
-			}
-		}
 	}
 
 	private void getCIVLMallocDeclaration(SequenceNode<BlockItemNode> root) {
@@ -303,8 +223,7 @@ public class GeneralWorker extends BaseWorker {
 					scopeType = child;
 					child.remove();
 				}
-			} else if (this.mallocDeclaration == null
-					&& child instanceof FunctionDeclarationNode) {
+			} else if (this.mallocDeclaration == null && child instanceof FunctionDeclarationNode) {
 				FunctionDeclarationNode function = (FunctionDeclarationNode) child;
 
 				if (function.getName().equals(CIVL_MALLOC)) {
@@ -325,39 +244,30 @@ public class GeneralWorker extends BaseWorker {
 	 * @return
 	 * @throws SyntaxException
 	 */
-	private ExpressionStatementNode argcAssumption(Source source,
-			String argcName) throws SyntaxException {
-		ExpressionNode lowerBound = nodeFactory.newOperatorNode(source,
-				Operator.LT,
-				Arrays.asList(nodeFactory.newIntegerConstantNode(source, "0"),
-						this.identifierExpression(source, argcName)));
+	private ExpressionStatementNode argcAssumption(Source source, String argcName) throws SyntaxException {
+		ExpressionNode lowerBound = nodeFactory.newOperatorNode(source, Operator.LT, Arrays
+				.asList(nodeFactory.newIntegerConstantNode(source, "0"), this.identifierExpression(source, argcName)));
 
-		return nodeFactory.newExpressionStatementNode(
-				this.functionCall(source, ASSUME, Arrays.asList(lowerBound)));
+		return nodeFactory.newExpressionStatementNode(this.functionCall(source, ASSUME, Arrays.asList(lowerBound)));
 	}
 
-	private void checkAgumentsOfMainFunction(FunctionDefinitionNode main,
-			SequenceNode<BlockItemNode> root) {
+	private void checkAgumentsOfMainFunction(FunctionDefinitionNode main, SequenceNode<BlockItemNode> root) {
 		FunctionTypeNode functionType = main.getTypeNode();
-		SequenceNode<VariableDeclarationNode> parameters = functionType
-				.getParameters();
+		SequenceNode<VariableDeclarationNode> parameters = functionType.getParameters();
 
 		if (parameters.numChildren() == 2)
-			this.checkAgumentsOfMainFunctionWorker(
-					parameters.getSequenceChild(0),
-					parameters.getSequenceChild(1), main.getBody());
+			this.checkAgumentsOfMainFunctionWorker(parameters.getSequenceChild(0), parameters.getSequenceChild(1),
+					main.getBody());
 	}
 
-	private void checkAgumentsOfMainFunctionWorker(VariableDeclarationNode argc,
-			VariableDeclarationNode argv, ASTNode node) {
+	private void checkAgumentsOfMainFunctionWorker(VariableDeclarationNode argc, VariableDeclarationNode argv,
+			ASTNode node) {
 		if (node instanceof IdentifierExpressionNode) {
-			IdentifierNode identifier = ((IdentifierExpressionNode) node)
-					.getIdentifier();
+			IdentifierNode identifier = ((IdentifierExpressionNode) node).getIdentifier();
 			Entity entity = identifier.getEntity();
 
 			if (entity.getEntityKind() == EntityKind.VARIABLE) {
-				VariableDeclarationNode variable = ((Variable) entity)
-						.getDefinition();
+				VariableDeclarationNode variable = ((Variable) entity).getDefinition();
 
 				if (variable != null)
 					if (variable.equals(argc))
@@ -443,92 +353,69 @@ public class GeneralWorker extends BaseWorker {
 	 * @return
 	 * @throws SyntaxException
 	 */
-	private FunctionDefinitionNode createNewMainFunction()
-			throws SyntaxException {
+	private FunctionDefinitionNode createNewMainFunction() throws SyntaxException {
 		FunctionCallNode callMain;
 		List<BlockItemNode> blockItems = new LinkedList<>();
 		FunctionTypeNode mainFuncType;
 
-		callMain = nodeFactory.newFunctionCallNode(
-				this.newSource("new main function", CivlcTokenConstant.CALL),
+		callMain = nodeFactory.newFunctionCallNode(this.newSource("new main function", CivlcTokenConstant.CALL),
 				this.identifierExpression(GEN_MAIN),
-				Arrays.asList(this.identifierExpression(CIVL_ARGC_NAME),
-						argv_value_node()),
-				null);
+				Arrays.asList(this.identifierExpression(CIVL_ARGC_NAME), argv_value_node()), null);
 		blockItems.add(nodeFactory.newExpressionStatementNode(callMain));
 		mainFuncType = nodeFactory.newFunctionTypeNode(mainSource,
 				nodeFactory.newBasicTypeNode(mainSource, BasicTypeKind.INT),
-				nodeFactory.newSequenceNode(
-						this.newSource("new main function",
-								CivlcTokenConstant.PARAMETER_TYPE_LIST),
-						"formal parameter types",
-						new LinkedList<VariableDeclarationNode>()),
+				nodeFactory.newSequenceNode(this.newSource("new main function", CivlcTokenConstant.PARAMETER_TYPE_LIST),
+						"formal parameter types", new LinkedList<VariableDeclarationNode>()),
 				false);
 
-		return nodeFactory.newFunctionDefinitionNode(this.mainSource,
-				this.identifier(MAIN), mainFuncType, null,
+		return nodeFactory.newFunctionDefinitionNode(this.mainSource, this.identifier(MAIN), mainFuncType, null,
 				nodeFactory.newCompoundStatementNode(mainSource, blockItems));
 	}
-	
+
 	private ExpressionNode argv_value_node() {
 		TypeNode arrayOfCharPointer = nodeFactory.newArrayTypeNode(
 				this.newSource("new main function", CivlcTokenConstant.TYPE),
-				nodeFactory.newPointerTypeNode(
-						this.newSource("new main function",
-								CivlcTokenConstant.POINTER),
+				nodeFactory.newPointerTypeNode(this.newSource("new main function", CivlcTokenConstant.POINTER),
 						this.basicType(BasicTypeKind.CHAR)),
 				this.identifierExpression(CIVL_ARGC_NAME));
 
-		ExpressionNode body = this.nodeFactory.newOperatorNode(
-				this.newSource("subscript", CivlcTokenConstant.SUB),
-				Operator.SUBSCRIPT, this.identifierExpression(CIVL_ARGV_NAME),
-				this.identifierExpression("i"));
+		ExpressionNode body = this.nodeFactory.newOperatorNode(this.newSource("subscript", CivlcTokenConstant.SUB),
+				Operator.SUBSCRIPT, this.identifierExpression(CIVL_ARGV_NAME), this.identifierExpression("i"));
 
-		ArrayLambdaNode arrayLambda = this.nodeFactory
-				.newArrayLambdaNode(
-						this.newSource(
-								"array lambda", CivlcTokenConstant.LAMBDA),
-						arrayOfCharPointer,
-						Arrays.asList(this.variableDeclaration("i",
-								this.basicType(BasicTypeKind.INT))),
-						null, body);
+		ArrayLambdaNode arrayLambda = this.nodeFactory.newArrayLambdaNode(
+				this.newSource("array lambda", CivlcTokenConstant.LAMBDA), arrayOfCharPointer,
+				Arrays.asList(this.variableDeclaration("i", this.basicType(BasicTypeKind.INT))), null, body);
 
 		return arrayLambda;
 	}
 
 	private VariableDeclarationNode generalRootScopeNode() {
 		return nodeFactory.newVariableDeclarationNode(mainSource,
-				nodeFactory.newIdentifierNode(mainSource, GENERAL_ROOT),
-				nodeFactory.newScopeTypeNode(mainSource),
+				nodeFactory.newIdentifierNode(mainSource, GENERAL_ROOT), nodeFactory.newScopeTypeNode(mainSource),
 				nodeFactory.newHereNode(mainSource));
 	}
 
 	/**
 	 * Recursively traverse the AST from the given {@link ASTNode}
-	 * <code>currentNode</code>to process either 'malloc' or 'calloc' methods.
-	 * <br>
+	 * <code>currentNode</code>to process either 'malloc' or 'calloc' methods. <br>
 	 * <p>
 	 * 'malloc' will be transformed as 'civl_malloc'.
 	 * </p>
 	 * <p>
-	 * 'calloc' will be transformed as 'civl_malloc' with 'memset' to initialize
-	 * all involved space as '0'.
+	 * 'calloc' will be transformed as 'civl_malloc' with 'memset' to initialize all
+	 * involved space as '0'.
 	 * </p>
 	 * 
-	 * @param currentNode
-	 *            the {@link ASTNode} processed in this recursion
+	 * @param currentNode the {@link ASTNode} processed in this recursion
 	 */
 	private void processMalloc(ASTNode currentNode) throws SyntaxException {
 		/* Determine the type of the current node. */
-		if (currentNode instanceof FunctionCallNode
-				&& ((FunctionCallNode) currentNode).getFunction()
-						.expressionKind() == ExpressionKind.IDENTIFIER_EXPRESSION) {
+		if (currentNode instanceof FunctionCallNode && ((FunctionCallNode) currentNode).getFunction()
+				.expressionKind() == ExpressionKind.IDENTIFIER_EXPRESSION) {
 			FunctionCallNode funcCallNode = (FunctionCallNode) currentNode;
 			Source funcCallSource = funcCallNode.getSource();
-			IdentifierNode funcIdNode = ((IdentifierExpressionNode) funcCallNode
-					.getFunction()).getIdentifier();
-			ExpressionNode civlRootIdNode = identifierExpression(funcCallSource,
-					GENERAL_ROOT);
+			IdentifierNode funcIdNode = ((IdentifierExpressionNode) funcCallNode.getFunction()).getIdentifier();
+			ExpressionNode civlRootIdNode = identifierExpression(funcCallSource, GENERAL_ROOT);
 
 			/* Determine the name of the called function */
 			if (funcIdNode.name().equals(MALLOC)) {
@@ -540,21 +427,17 @@ public class GeneralWorker extends BaseWorker {
 				// Replace the malloc with the $malloc function call
 				funcIdNode.setName(CIVL_MALLOC);
 				mallocArg.remove();
-				funcCallNode.setArguments(nodeFactory.newSequenceNode(
-						mallocArg.getSource(), "Actual Parameters",
+				funcCallNode.setArguments(nodeFactory.newSequenceNode(mallocArg.getSource(), "Actual Parameters",
 						Arrays.asList(civlRootIdNode, mallocArg)));
 				// Add type-cast if there is no cast operator (for *.c)
 				if (!(mallocParentNode instanceof CastNode)) {
 					funcCallNode.remove();
 					if (mallocParentNode instanceof OperatorNode) {
 						// malloc is in an expression.
-						ExpressionNode lhsVarIdExprNode = ((OperatorNode) mallocParentNode)
-								.getArgument(0);
+						ExpressionNode lhsVarIdExprNode = ((OperatorNode) mallocParentNode).getArgument(0);
 						Type varType = lhsVarIdExprNode.getInitialType();
-						CastNode castNode = nodeFactory.newCastNode(
-								funcCallSource,
-								typeNode(lhsVarIdExprNode.getSource(), varType),
-								funcCallNode);
+						CastNode castNode = nodeFactory.newCastNode(funcCallSource,
+								typeNode(lhsVarIdExprNode.getSource(), varType), funcCallNode);
 
 						// Pointer Type Check
 						if (varType.kind() != TypeKind.POINTER)
@@ -566,9 +449,7 @@ public class GeneralWorker extends BaseWorker {
 						// malloc is in a initializer of a declaration.
 						VariableDeclarationNode lhsVarDeclNode = (VariableDeclarationNode) mallocParentNode;
 						Type varType = lhsVarDeclNode.getTypeNode().getType();
-						CastNode castNode = nodeFactory.newCastNode(
-								funcCallSource,
-								lhsVarDeclNode.getTypeNode().copy(),
+						CastNode castNode = nodeFactory.newCastNode(funcCallSource, lhsVarDeclNode.getTypeNode().copy(),
 								funcCallNode);
 
 						// Pointer Type Check
@@ -589,17 +470,13 @@ public class GeneralWorker extends BaseWorker {
 				ExpressionNode numElement = funcCallNode.getArgument(0);
 				ExpressionNode typeElement = funcCallNode.getArgument(1);
 				Source memsetSource = funcCallNode.getSource();
-				IdentifierNode memsetIdNode = nodeFactory
-						.newIdentifierNode(memsetSource, MEMSET);
-				IdentifierExpressionNode memsetIDExprNode = nodeFactory
-						.newIdentifierExpressionNode(memsetSource,
-								memsetIdNode);
+				IdentifierNode memsetIdNode = nodeFactory.newIdentifierNode(memsetSource, MEMSET);
+				IdentifierExpressionNode memsetIDExprNode = nodeFactory.newIdentifierExpressionNode(memsetSource,
+						memsetIdNode);
 				ExpressionNode memsetFuncCallArg0ExprNode = null;
-				ExpressionNode memsetFuncCallArg1ExprNode = nodeFactory
-						.newIntegerConstantNode(memsetSource, "0");
-				ExpressionNode memsetFuncCallArg2ExprNode = nodeFactory
-						.newOperatorNode(memsetSource, Operator.TIMES,
-								numElement.copy(), typeElement.copy());
+				ExpressionNode memsetFuncCallArg1ExprNode = nodeFactory.newIntegerConstantNode(memsetSource, "0");
+				ExpressionNode memsetFuncCallArg2ExprNode = nodeFactory.newOperatorNode(memsetSource, Operator.TIMES,
+						numElement.copy(), typeElement.copy());
 
 				/* Malloc function has 1 argument (index=0) */
 				// Replace the calloc with the $malloc function call
@@ -607,10 +484,8 @@ public class GeneralWorker extends BaseWorker {
 				numElement.remove();
 				typeElement.remove();
 				// Calculate the multiply of two arguments of the calloc
-				memSize = nodeFactory.newOperatorNode(funcCallSource,
-						Operator.TIMES, numElement, typeElement);
-				funcCallNode.setArguments(nodeFactory.newSequenceNode(
-						funcCallSource, "Actual Parameters",
+				memSize = nodeFactory.newOperatorNode(funcCallSource, Operator.TIMES, numElement, typeElement);
+				funcCallNode.setArguments(nodeFactory.newSequenceNode(funcCallSource, "Actual Parameters",
 						Arrays.asList(civlRootIdNode, memSize)));
 				// Back to the statement node calling the calloc function
 				if (callocStatementNode instanceof CastNode) {
@@ -618,26 +493,19 @@ public class GeneralWorker extends BaseWorker {
 				}
 				// Get the variable identifier name for memset function.
 				if (callocStatementNode instanceof VariableDeclarationNode) {
-					memsetFuncCallArg0ExprNode = nodeFactory
-							.newIdentifierExpressionNode(
-									callocStatementNode.child(0).getSource(),
-									(IdentifierNode) callocStatementNode
-											.child(0).copy());
+					memsetFuncCallArg0ExprNode = nodeFactory.newIdentifierExpressionNode(
+							callocStatementNode.child(0).getSource(),
+							(IdentifierNode) callocStatementNode.child(0).copy());
 				} else if (callocStatementNode instanceof OperatorNode
-						&& ((OperatorNode) callocStatementNode).getOperator()
-								.equals(Operator.ASSIGN)) {
-					memsetFuncCallArg0ExprNode = (ExpressionNode) callocStatementNode
-							.child(0).copy();
+						&& ((OperatorNode) callocStatementNode).getOperator().equals(Operator.ASSIGN)) {
+					memsetFuncCallArg0ExprNode = (ExpressionNode) callocStatementNode.child(0).copy();
 				} else {
 					throw new CIVLUnimplementedFeatureException(
 							"\nCurrently, CIVL only supports calloc function call in"
-									+ "\n\t a variable declaration in .c file, "
-									+ "\n\t\t (e.g., int *p = calloc(..);)"
-									+ "\n\t an assignment expression in .c file, "
-									+ "\n\t\t (e.g., p = calloc(..);)"
+									+ "\n\t a variable declaration in .c file, " + "\n\t\t (e.g., int *p = calloc(..);)"
+									+ "\n\t an assignment expression in .c file, " + "\n\t\t (e.g., p = calloc(..);)"
 									+ "\n\t or a cast operation expression in .c/.cvl file"
-									+ "\n\t\t (e.g., ..(int*)calloc(..);)."
-									+ "\n this exception is thrown for: \n\t"
+									+ "\n\t\t (e.g., ..(int*)calloc(..);)." + "\n this exception is thrown for: \n\t"
 									+ callocStatementNode.getSource());
 				}
 				// Add type-cast if there is no cast operator (for *.c)
@@ -647,13 +515,10 @@ public class GeneralWorker extends BaseWorker {
 					funcCallNode.remove();
 					if (callocStatementNode instanceof OperatorNode) {
 						// calloc is in an expression.
-						ExpressionNode lhsVarIdExprNode = ((OperatorNode) callocStatementNode)
-								.getArgument(0);
+						ExpressionNode lhsVarIdExprNode = ((OperatorNode) callocStatementNode).getArgument(0);
 						Type varType = lhsVarIdExprNode.getInitialType();
-						CastNode castNode = nodeFactory.newCastNode(
-								funcCallSource,
-								typeNode(lhsVarIdExprNode.getSource(), varType),
-								funcCallNode);
+						CastNode castNode = nodeFactory.newCastNode(funcCallSource,
+								typeNode(lhsVarIdExprNode.getSource(), varType), funcCallNode);
 
 						// Pointer Type Check
 						if (varType.kind() != TypeKind.POINTER)
@@ -667,9 +532,7 @@ public class GeneralWorker extends BaseWorker {
 						// calloc is in a initializer of a declaration.
 						VariableDeclarationNode lhsVarDeclNode = (VariableDeclarationNode) callocStatementNode;
 						Type varType = lhsVarDeclNode.getTypeNode().getType();
-						CastNode castNode = nodeFactory.newCastNode(
-								funcCallSource,
-								lhsVarDeclNode.getTypeNode().copy(),
+						CastNode castNode = nodeFactory.newCastNode(funcCallSource, lhsVarDeclNode.getTypeNode().copy(),
 								funcCallNode);
 
 						// Pointer Type Check
@@ -679,21 +542,15 @@ public class GeneralWorker extends BaseWorker {
 									lhsVarDeclNode.getSource());
 						funcCallParentNode.setChild(callNodeIndex, castNode);
 						// Get the variable id for memset function
-						memsetFuncCallArg0ExprNode = nodeFactory
-								.newIdentifierExpressionNode(
-										lhsVarDeclNode.getSource(),
-										lhsVarDeclNode.getIdentifier().copy());
+						memsetFuncCallArg0ExprNode = nodeFactory.newIdentifierExpressionNode(lhsVarDeclNode.getSource(),
+								lhsVarDeclNode.getIdentifier().copy());
 					}
 				}
 
-				FunctionCallNode memsetCallNode = nodeFactory
-						.newFunctionCallNode(memsetSource, memsetIDExprNode,
-								Arrays.asList(memsetFuncCallArg0ExprNode,
-										memsetFuncCallArg1ExprNode,
-										memsetFuncCallArg2ExprNode),
-								null);
-				ExpressionStatementNode memsetFuncCallNode = nodeFactory
-						.newExpressionStatementNode(memsetCallNode);
+				FunctionCallNode memsetCallNode = nodeFactory.newFunctionCallNode(memsetSource, memsetIDExprNode, Arrays
+						.asList(memsetFuncCallArg0ExprNode, memsetFuncCallArg1ExprNode, memsetFuncCallArg2ExprNode),
+						null);
+				ExpressionStatementNode memsetFuncCallNode = nodeFactory.newExpressionStatementNode(memsetCallNode);
 				ASTNode callocBlockNode = callocStatementNode.parent();
 				int callocStatementIndex = callocStatementNode.childIndex();
 
@@ -721,8 +578,7 @@ public class GeneralWorker extends BaseWorker {
 					callocBlockNode.remove();
 					items.add((BlockItemNode) callocBlockNode);
 					items.add(memsetFuncCallNode);
-					blockNode.setChild(callocParentIndex, nodeFactory
-							.newCompoundStatementNode(funcCallSource, items));
+					blockNode.setChild(callocParentIndex, nodeFactory.newCompoundStatementNode(funcCallSource, items));
 				}
 			}
 		} else {
@@ -740,38 +596,31 @@ public class GeneralWorker extends BaseWorker {
 	 * <li>Removes all arguments of the function;</li>
 	 * </ul>
 	 * 
-	 * @param mainFunction
-	 *            The function definition node representing the original main
-	 *            function.
-	 * @param vars
-	 *            The list of variable declaration nodes that are the arguments
-	 *            of the original main function. These variables will be moved
-	 *            up to the higher scope (i.e., the file scope of the final AST)
-	 *            and become $input variables of the final AST. When invoking
-	 *            this function, this parameter should be an empty list and this
-	 *            function will update this list.
+	 * @param mainFunction The function definition node representing the original
+	 *                     main function.
+	 * @param vars         The list of variable declaration nodes that are the
+	 *                     arguments of the original main function. These variables
+	 *                     will be moved up to the higher scope (i.e., the file
+	 *                     scope of the final AST) and become $input variables of
+	 *                     the final AST. When invoking this function, this
+	 *                     parameter should be an empty list and this function will
+	 *                     update this list.
 	 * @throws SyntaxException
 	 */
-	private List<VariableDeclarationNode> getInputVariables(
-			FunctionDefinitionNode mainFunction) throws SyntaxException {
+	private List<VariableDeclarationNode> getInputVariables(FunctionDefinitionNode mainFunction)
+			throws SyntaxException {
 		List<VariableDeclarationNode> inputVars = new ArrayList<>();
 		FunctionTypeNode functionType = mainFunction.getTypeNode();
-		SequenceNode<VariableDeclarationNode> parameters = functionType
-				.getParameters();
+		SequenceNode<VariableDeclarationNode> parameters = functionType.getParameters();
 		int count = parameters.numChildren();
 
 		if (count != 0 && count != 2) {
 			if (count == 1) {
-				if (parameters.getSequenceChild(0).getTypeNode()
-						.kind() != TypeNodeKind.VOID)
-					throw new SyntaxException(
-							"The main function should have 0 or 2 parameters instead of "
-									+ count,
+				if (parameters.getSequenceChild(0).getTypeNode().kind() != TypeNodeKind.VOID)
+					throw new SyntaxException("The main function should have 0 or 2 parameters instead of " + count,
 							mainFunction.getSource());
 			} else
-				throw new SyntaxException(
-						"The main function should have 0 or 2 parameters instead of "
-								+ count,
+				throw new SyntaxException("The main function should have 0 or 2 parameters instead of " + count,
 						mainFunction.getSource());
 		}
 		if (count == 2 && (this.argvUsed || this.argcUsed)) {
@@ -784,11 +633,9 @@ public class GeneralWorker extends BaseWorker {
 			inputVars.add(CIVL_argc);
 			CIVL_argv = inputArgvDeclaration(argv, CIVL_ARGV_NAME);
 			inputVars.add(CIVL_argv);
-			this.argcAssumption = this.argcAssumption(argc.getSource(),
-					CIVL_ARGC_NAME);
+			this.argcAssumption = this.argcAssumption(argc.getSource(), CIVL_ARGC_NAME);
 		} else if (count == 2) {
-			functionType.setParameters(this.nodeFactory.newSequenceNode(
-					parameters.getSource(), "Formal Parameter List",
+			functionType.setParameters(this.nodeFactory.newSequenceNode(parameters.getSource(), "Formal Parameter List",
 					new ArrayList<VariableDeclarationNode>(0)));
 		}
 		return inputVars;
@@ -801,14 +648,12 @@ public class GeneralWorker extends BaseWorker {
 	 * @return
 	 * @throws SyntaxException
 	 */
-	private VariableDeclarationNode inputArgvDeclaration(
-			VariableDeclarationNode oldArgv, String argvNewName)
+	private VariableDeclarationNode inputArgvDeclaration(VariableDeclarationNode oldArgv, String argvNewName)
 			throws SyntaxException {
 		VariableDeclarationNode __argv = oldArgv.copy();
 		Source source = oldArgv.getSource();
 		TypeNode arrayOfString = nodeFactory.newArrayTypeNode(source,
-				nodeFactory.newArrayTypeNode(oldArgv.getSource(),
-						this.basicType(BasicTypeKind.CHAR), null),
+				nodeFactory.newArrayTypeNode(oldArgv.getSource(), this.basicType(BasicTypeKind.CHAR), null),
 				this.identifierExpression(CIVL_ARGC_NAME));
 
 		__argv.getIdentifier().setName(argvNewName);
@@ -825,10 +670,8 @@ public class GeneralWorker extends BaseWorker {
 		Map<Entity, String> newNameMap = new HashMap<>();
 		NameTransformer staticVariableNameTransformer;
 
-		newNameMap = newNameMapOfStaticVariables(ast.getRootNode(),
-				ast.getRootNode(), newNameMap);
-		staticVariableNameTransformer = Transform.nameTransformer(newNameMap,
-				astFactory);
+		newNameMap = newNameMapOfStaticVariables(ast.getRootNode(), ast.getRootNode(), newNameMap);
+		staticVariableNameTransformer = Transform.nameTransformer(newNameMap, astFactory);
 		return staticVariableNameTransformer.transform(ast);
 	}
 
@@ -844,8 +687,7 @@ public class GeneralWorker extends BaseWorker {
 	 * @param newNames
 	 * @return
 	 */
-	private Map<Entity, String> newNameMapOfStaticVariables(ASTNode root,
-			ASTNode node, Map<Entity, String> newNames) {
+	private Map<Entity, String> newNameMapOfStaticVariables(ASTNode root, ASTNode node, Map<Entity, String> newNames) {
 		if (node instanceof VariableDeclarationNode) {
 			VariableDeclarationNode variable = (VariableDeclarationNode) node;
 
@@ -868,8 +710,7 @@ public class GeneralWorker extends BaseWorker {
 		return newNames;
 	}
 
-	private SequenceNode<BlockItemNode> moveStaticVariables(
-			SequenceNode<BlockItemNode> root) {
+	private SequenceNode<BlockItemNode> moveStaticVariables(SequenceNode<BlockItemNode> root) {
 		if (this.static_variables.size() < 1)
 			return root;
 
@@ -888,14 +729,12 @@ public class GeneralWorker extends BaseWorker {
 			child.remove();
 			newChildren.add(child);
 		}
-		return nodeFactory.newTranslationUnitNode(root.getSource(),
-				newChildren);
+		return nodeFactory.newTranslationUnitNode(root.getSource(), newChildren);
 	}
 
-	private void transformLogicFunctions(ASTNode root,
-			List<OrdinaryEntity> entities) throws SyntaxException {
-		LogicFunctionTransformer logicFunctionTransformer = new LogicFunctionTransformer(
-				nodeFactory, astFactory.getTokenFactory());
+	private void transformLogicFunctions(ASTNode root, List<OrdinaryEntity> entities) throws SyntaxException {
+		LogicFunctionTransformer logicFunctionTransformer = new LogicFunctionTransformer(nodeFactory,
+				astFactory.getTokenFactory());
 		boolean hasLogicFunction = false;
 
 		for (OrdinaryEntity entity : entities) {
@@ -905,11 +744,9 @@ public class GeneralWorker extends BaseWorker {
 				if (function.isLogic()) {
 					if (function.getNumDeclarations() != 1)
 						throw new CIVLSyntaxException(
-								"Logic function " + function.getName()
-										+ " has been declared twice.");
-					logicFunctionTransformer.transformDefinition(
-							(FunctionDeclarationNode) function
-									.getFirstDeclaration());
+								"Logic function " + function.getName() + " has been declared twice.");
+					logicFunctionTransformer
+							.transformDefinition((FunctionDeclarationNode) function.getFirstDeclaration());
 					hasLogicFunction = true;
 				}
 			}
@@ -934,8 +771,7 @@ public class GeneralWorker extends BaseWorker {
 				ExpressionNode expr = (ExpressionNode) node;
 
 				if (expr.expressionKind() == ExpressionKind.FUNCTION_CALL)
-					logicFunctionTransformer
-							.transformCall((FunctionCallNode) expr);
+					logicFunctionTransformer.transformCall((FunctionCallNode) expr);
 			}
 			node = node.nextDFS();
 		} while (node != null);

@@ -3,30 +3,18 @@ package dev.civl.mc.library.mpi;
 import dev.civl.mc.config.IF.CIVLConfiguration;
 import dev.civl.mc.dynamic.IF.SymbolicUtility;
 import dev.civl.mc.library.common.BaseLibraryEvaluator;
-import dev.civl.mc.model.IF.CIVLInternalException;
 import dev.civl.mc.model.IF.CIVLSource;
 import dev.civl.mc.model.IF.CIVLTypeFactory;
 import dev.civl.mc.model.IF.CIVLUnimplementedFeatureException;
 import dev.civl.mc.model.IF.ModelFactory;
-import dev.civl.mc.model.IF.expression.Expression;
-import dev.civl.mc.model.IF.expression.MPIContractExpression;
-import dev.civl.mc.model.IF.expression.MPIContractExpression.MPI_CONTRACT_EXPRESSION_KIND;
 import dev.civl.mc.model.IF.type.CIVLPrimitiveType;
-import dev.civl.mc.model.IF.type.CIVLType;
-import dev.civl.mc.semantics.IF.Evaluation;
 import dev.civl.mc.semantics.IF.Evaluator;
 import dev.civl.mc.semantics.IF.LibraryEvaluator;
 import dev.civl.mc.semantics.IF.LibraryEvaluatorLoader;
 import dev.civl.mc.semantics.IF.SymbolicAnalyzer;
-import dev.civl.mc.state.IF.State;
-import dev.civl.mc.state.IF.UnsatisfiablePathConditionException;
 import dev.civl.mc.util.IF.Pair;
-import dev.civl.sarl.IF.Reasoner;
 import dev.civl.sarl.IF.SymbolicUniverse;
-import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.NumericExpression;
-import dev.civl.sarl.IF.expr.ReferenceExpression;
-import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.IF.object.IntObject;
 
 /**
@@ -77,9 +65,7 @@ import dev.civl.sarl.IF.object.IntObject;
  * @author ziqingluo
  *
  */
-public class LibmpiEvaluator extends BaseLibraryEvaluator
-		implements
-			LibraryEvaluator {
+public class LibmpiEvaluator extends BaseLibraryEvaluator implements LibraryEvaluator {
 	public static int p2pCommField = 0;
 	public static int colCommField = 1;
 	public final IntObject queueIDField = universe.intObject(4);
@@ -87,475 +73,59 @@ public class LibmpiEvaluator extends BaseLibraryEvaluator
 	public final NumericExpression colCommIndexValue = one;
 	public final static String mpiExtentName = "_uf_$mpi_extent";
 
-	public LibmpiEvaluator(String name, Evaluator evaluator,
-			ModelFactory modelFactory, SymbolicUtility symbolicUtil,
+	public LibmpiEvaluator(String name, Evaluator evaluator, ModelFactory modelFactory, SymbolicUtility symbolicUtil,
 			SymbolicAnalyzer symbolicAnalyzer, CIVLConfiguration civlConfig,
 			LibraryEvaluatorLoader libEvaluatorLoader) {
-		super(name, evaluator, modelFactory, symbolicUtil, symbolicAnalyzer,
-				civlConfig, libEvaluatorLoader);
+		super(name, evaluator, modelFactory, symbolicUtil, symbolicAnalyzer, civlConfig, libEvaluatorLoader);
 	}
 
-	public static Pair<CIVLPrimitiveType, NumericExpression> mpiTypeToCIVLType(
-			SymbolicUniverse universe, CIVLTypeFactory typeFactory,
-			int MPI_TYPE, CIVLSource source) {
+	public static Pair<CIVLPrimitiveType, NumericExpression> mpiTypeToCIVLType(SymbolicUniverse universe,
+			CIVLTypeFactory typeFactory, int MPI_TYPE, CIVLSource source) {
 		CIVLPrimitiveType primitiveType;
 		NumericExpression count = universe.oneInt();
 
 		switch (MPI_TYPE) {
-			case 0 : // char
-			case 1 : // character
-			case 2 : // byte
-				primitiveType = typeFactory.charType();
-				break;
-			case 3 : // short
-			case 4 : // int
-			case 5 : // long
-			case 6 : // long long int
-			case 7 : // unsigned long long
-			case 8 : // long long
-				primitiveType = typeFactory.integerType();
-				break;
-			case 9 : // float
-			case 10 : // double
-			case 11 : // long double
-				primitiveType = typeFactory.realType();
-				break;
-			case 12 : // 2int
-				primitiveType = typeFactory.integerType();
-				count = universe.integer(2);
-				break;
-			default :
-				throw new CIVLUnimplementedFeatureException(
-						"CIVL doesn't have such a CIVLPrimitiveType", source);
+		case 0: // char
+		case 1: // character
+		case 2: // byte
+			primitiveType = typeFactory.charType();
+			break;
+		case 3: // short
+		case 4: // int
+		case 5: // long
+		case 6: // long long int
+		case 7: // unsigned long long
+		case 8: // long long
+			primitiveType = typeFactory.integerType();
+			break;
+		case 9: // float
+		case 10: // double
+		case 11: // long double
+			primitiveType = typeFactory.realType();
+			break;
+		case 12: // 2int
+			primitiveType = typeFactory.integerType();
+			count = universe.integer(2);
+			break;
+		default:
+			throw new CIVLUnimplementedFeatureException("CIVL doesn't have such a CIVLPrimitiveType", source);
 		}
 		return new Pair<>(primitiveType, count);
 		/*
-		 * MPI_CHAR, MPI_CHARACTER, MPI_SIGNED_CHAR, MPI_UNSIGNED_CHAR,
-		 * MPI_BYTE, MPI_WCHAR, MPI_SHORT, MPI_UNSIGNED_SHORT, MPI_INT,
-		 * MPI_INT16_T, MPI_INT32_T, MPI_INT64_T, MPI_INT8_T, MPI_INTEGER,
-		 * MPI_INTEGER1, MPI_INTEGER16, MPI_INTEGER2, MPI_INTEGER4,
-		 * MPI_INTEGER8, MPI_UNSIGNED, MPI_LONG, MPI_UNSIGNED_LONG, MPI_FLOAT,
-		 * MPI_DOUBLE, MPI_LONG_DOUBLE, MPI_LONG_LONG_INT,
+		 * MPI_CHAR, MPI_CHARACTER, MPI_SIGNED_CHAR, MPI_UNSIGNED_CHAR, MPI_BYTE,
+		 * MPI_WCHAR, MPI_SHORT, MPI_UNSIGNED_SHORT, MPI_INT, MPI_INT16_T, MPI_INT32_T,
+		 * MPI_INT64_T, MPI_INT8_T, MPI_INTEGER, MPI_INTEGER1, MPI_INTEGER16,
+		 * MPI_INTEGER2, MPI_INTEGER4, MPI_INTEGER8, MPI_UNSIGNED, MPI_LONG,
+		 * MPI_UNSIGNED_LONG, MPI_FLOAT, MPI_DOUBLE, MPI_LONG_DOUBLE, MPI_LONG_LONG_INT,
 		 * MPI_UNSIGNED_LONG_LONG, MPI_LONG_LONG, MPI_PACKED, MPI_LB, MPI_UB,
 		 * MPI_UINT16_T, MPI_UINT32_T, MPI_UINT64_T, MPI_UINT8_T, MPI_FLOAT_INT,
-		 * MPI_DOUBLE_INT, MPI_LONG_INT, MPI_SHORT_INT, MPI_2INT,
-		 * MPI_LONG_DOUBLE_INT, MPI_AINT, MPI_OFFSET, MPI_2DOUBLE_PRECISION,
-		 * MPI_2INTEGER, MPI_2REAL, MPI_C_BOOL, MPI_C_COMPLEX,
-		 * MPI_C_DOUBLE_COMPLEX, MPI_C_FLOAT_COMPLEX, MPI_C_LONG_DOUBLE_COMPLEX,
-		 * MPI_COMPLEX, MPI_COMPLEX16, MPI_COMPLEX32, MPI_COMPLEX4,
-		 * MPI_COMPLEX8, MPI_REAL, MPI_REAL16, MPI_REAL2, MPI_REAL4, MPI_REAL8
+		 * MPI_DOUBLE_INT, MPI_LONG_INT, MPI_SHORT_INT, MPI_2INT, MPI_LONG_DOUBLE_INT,
+		 * MPI_AINT, MPI_OFFSET, MPI_2DOUBLE_PRECISION, MPI_2INTEGER, MPI_2REAL,
+		 * MPI_C_BOOL, MPI_C_COMPLEX, MPI_C_DOUBLE_COMPLEX, MPI_C_FLOAT_COMPLEX,
+		 * MPI_C_LONG_DOUBLE_COMPLEX, MPI_COMPLEX, MPI_COMPLEX16, MPI_COMPLEX32,
+		 * MPI_COMPLEX4, MPI_COMPLEX8, MPI_REAL, MPI_REAL16, MPI_REAL2, MPI_REAL4,
+		 * MPI_REAL8
 		 */
 	}
-	/**************************** Contract section ****************************/
-	/**
-	 * <p>
-	 * <b>Summary:</b> Evaluates an {@link MPIContractExpression}.
-	 * </p>
-	 * 
-	 * @param state
-	 *            The current state.
-	 * @param pid
-	 *            The PID of the process.
-	 * @param process
-	 *            The String identifier of the process.
-	 * @param expression
-	 *            The MPIContractExpression
-	 * @return
-	 * @throws UnsatisfiablePathConditionException
-	 */
-	public Evaluation evaluateMPIContractExpression(State state, int pid,
-			String process, MPIContractExpression expression)
-			throws UnsatisfiablePathConditionException {
-		MPI_CONTRACT_EXPRESSION_KIND mpiContractKind = expression
-				.mpiContractKind();
 
-		switch (mpiContractKind) {
-			case MPI_AGREE :
-				return evaluateMPIAgreeExpression(state, pid, process,
-						expression);
-			case MPI_EQUALS :
-				return evaluateMPIEquals(state, pid, process, expression);
-			case MPI_EXTENT :
-				return evaluateMPIExtent(state, pid, process, expression);
-			case MPI_OFFSET :
-				return evaluateMPIOffset(state, pid, process, expression);
-			case MPI_REGION :
-				return evaluateMPIRegion(state, pid, process, expression);
-			case MPI_VALID :
-				return evaluateMPIValid(state, pid, process, expression);
-			default :
-				throw new CIVLInternalException("Unreachable",
-						expression.getSource());
-		}
-	}
-
-	/**
-	 * <p>
-	 * <b>Pre-condition:</b> The state is a collate state and the pid represents
-	 * the process in the collate state. By looking at the call stack of a
-	 * collate state, one can decide weather a process has committed its'
-	 * snapshot to the collate state.
-	 * </p>
-	 * 
-	 * <p>
-	 * Let eval(e, p, s) denote the evaluation of expression e on process p in
-	 * state s. There is a set P of processes in the collate state c that for
-	 * each p in P, p has a non-empty call stack (i.e. process p has committed
-	 * its snapshot), then <code> for all p_i and p_j in P (p_i != p_j),
-	 * eval(expression, p_i, c) == eval(expression, p_j, c)
-	 * </code>
-	 * </p>
-	 * 
-	 * @param state
-	 *            The current state
-	 * @param pid
-	 *            The current PID of the process
-	 * @param process
-	 *            The String identifier of the process
-	 * @param expression
-	 *            The \mpi_agree(expr) expression
-	 * @return
-	 * @throws UnsatisfiablePathConditionException
-	 */
-	private Evaluation evaluateMPIAgreeExpression(State state, int pid,
-			String process, MPIContractExpression expression)
-			throws UnsatisfiablePathConditionException {
-		int nprocs = state.numProcs();
-		BooleanExpression pred = universe.trueExpression();
-		SymbolicExpression value;
-		Evaluation eval;
-		Expression expr = expression.arguments()[0];
-
-		eval = evaluator.evaluate(state, pid, expr);
-		state = eval.state;
-		value = eval.value;
-		for (int i = 0; i < nprocs; i++)
-			if (i != pid && !state.getProcessState(i).hasEmptyStack()) {
-				eval = evaluator.evaluate(state, i, expr);
-				state = eval.state;
-				pred = universe.and(pred, universe.equals(value, eval.value));
-			}
-		eval.state = state;
-		eval.value = pred;
-		return eval;
-	}
-
-	/**
-	 * <p>
-	 * An \mpi_region expression shall evaluate to an array of objects, the
-	 * length of the array and the type of the objects are defined by the MPI
-	 * type signiture: count and MPI_Datatype.
-	 * </p>
-	 * 
-	 * @param state
-	 *            The current state
-	 * @param pid
-	 *            The current PID of the process
-	 * @param process
-	 *            The String identifier of the process
-	 * @param expression
-	 *            The \mpi_region(void *, int, MPI_Datatype) expression
-	 * @return
-	 * @throws UnsatisfiablePathConditionException
-	 */
-	private Evaluation evaluateMPIRegion(State state, int pid, String process,
-			MPIContractExpression expression)
-			throws UnsatisfiablePathConditionException {
-		Expression ptrExpr = expression.arguments()[0];
-		Expression countExpr = expression.arguments()[1];
-		Expression datatypeExpr = expression.arguments()[2];
-		SymbolicExpression buf;
-		NumericExpression count, realCount, datatype;
-		Evaluation eval;
-
-		eval = evaluator.evaluate(state, pid, ptrExpr);
-		state = eval.state;
-		buf = eval.value;
-		eval = evaluator.evaluate(state, pid, countExpr);
-		state = eval.state;
-		count = (NumericExpression) eval.value;
-		eval = evaluator.evaluate(state, pid, datatypeExpr);
-		state = eval.state;
-		datatype = (NumericExpression) eval.value;
-
-		Pair<SymbolicExpression, NumericExpression> mpiPtr_datatypeSize;
-		SymbolicExpression mpiPtr;
-
-		mpiPtr_datatypeSize = processMPIPointer(state, pid, process, ptrExpr,
-				buf, datatypeExpr, datatype, expression.getSource());
-		realCount = universe.multiply(count, mpiPtr_datatypeSize.right);
-		mpiPtr = mpiPtr_datatypeSize.left;
-		eval = getDataFrom(state, pid, process, ptrExpr, mpiPtr, realCount,
-				false, false, expression.getSource());
-		state = eval.state;
-		return eval;
-	}
-
-	/**
-	 * <p>
-	 * <b>Summary: </b> Evaluates an MPI_EQUALS expression, it compares each
-	 * elements of the given two memory objects. Currently it ignores the
-	 * datatype checking (but not necessary if objects are checked as equal).
-	 * </p>
-	 * 
-	 * @param state
-	 *            The current state
-	 * @param pid
-	 *            The PID of the process
-	 * @param process
-	 *            The String identifier of the process
-	 * @param expression
-	 *            The MPI_EQUALS expression.
-	 * @return
-	 * @throws UnsatisfiablePathConditionException
-	 */
-	private Evaluation evaluateMPIEquals(State state, int pid, String process,
-			MPIContractExpression expression)
-			throws UnsatisfiablePathConditionException {
-		SymbolicExpression values[] = new SymbolicExpression[2];
-		Evaluation eval = null;
-		BooleanExpression result;
-
-		// \mpi_equals() compares 2 mpi regions
-		for (int i = 0; i < 2; i++) {
-			eval = evaluator.evaluate(state, pid, expression.arguments()[i]);
-			state = eval.state;
-			values[i] = eval.value;
-		}
-		result = universe.equals(values[0], values[1]);
-		eval.value = result;
-		return eval;
-	}
-
-	/**
-	 * <p>
-	 * An MPI_Valid expression will evaluates to true if and only if the given
-	 * pointer points to a sequence of objects that satisfiy the given type
-	 * signiture.
-	 * </p>
-	 * 
-	 * @param state
-	 *            The program state when this expression evaluates
-	 * @param pid
-	 *            The PID of the calling process
-	 * @param process
-	 *            The String identifier of the calling process
-	 * @param expression
-	 *            The {@link MPIContractExpression} which represents an
-	 *            MPI_Valid expression.
-	 * @return
-	 * @throws UnsatisfiablePathConditionException
-	 */
-	private Evaluation evaluateMPIValid(State state, int pid, String process,
-			MPIContractExpression expression)
-			throws UnsatisfiablePathConditionException {
-		Expression ptrExpr = expression.arguments()[0];
-		Expression countExpr = expression.arguments()[1];
-		Expression datatypeExpr = expression.arguments()[2];
-		SymbolicExpression ptr;
-		NumericExpression count, datatype, realOffset;
-		BooleanExpression result;
-		Evaluation eval;
-
-		eval = evaluator.evaluate(state, pid, ptrExpr);
-		state = eval.state;
-		ptr = eval.value;
-		eval = evaluator.evaluate(state, pid, countExpr);
-		state = eval.state;
-		count = (NumericExpression) eval.value;
-		eval = evaluator.evaluate(state, pid, datatypeExpr);
-		state = eval.state;
-		datatype = (NumericExpression) eval.value;
-
-		// Currently the valid checking is done by this:
-		// 1. The object type pointed by the given pointer must be consistent
-		// with the given datatype;
-		// 2. The given pointer is dereferable;
-		// 3. The given pointer must be an array element reference &a[i]
-		// and length(a) > i + (count * \mpi_extent(datatype))
-		Pair<SymbolicExpression, NumericExpression> mpiPtr_datatypeSize;
-		ReferenceExpression mpiPtrRef;
-
-		mpiPtr_datatypeSize = processMPIPointer(state, pid, process, ptrExpr,
-				ptr, datatypeExpr, datatype, expression.getSource());
-		mpiPtrRef = symbolicUtil.getSymRef(mpiPtr_datatypeSize.left);
-		// ptr + (real_count - 1):
-		realOffset = universe.subtract(
-				universe.multiply(count, mpiPtr_datatypeSize.right), one);
-		result = symbolicAnalyzer.isDerefablePointer(state,
-				mpiPtr_datatypeSize.left).left;
-		if (!mpiPtrRef.isArrayElementReference()) {
-			eval.value = universe.equals(result,
-					universe.equals(realOffset, universe.zeroInt()));
-			return eval;
-		}
-		eval = evaluator.arrayElementReferenceAdd(state, pid,
-				mpiPtr_datatypeSize.left, realOffset,
-				expression.getSource()).left;
-		state = eval.state;
-		result = universe.and(result,
-				symbolicAnalyzer.isDerefablePointer(state, eval.value).left);
-		eval.value = result;
-		return eval;
-	}
-
-	/**
-	 * <p>
-	 * An MPI_Extent(datatype) expression will evaluates to the size of an given
-	 * MPI_Datatype in number of bytes.
-	 * </p>
-	 * 
-	 * @param state
-	 *            The program state when this expression evaluates
-	 * @param pid
-	 *            The PID of the calling process
-	 * @param process
-	 *            The String identifier of the calling process
-	 * @param expression
-	 *            The {@link MPIContractExpression} which represents an
-	 *            MPI_Extent expression.
-	 * @return
-	 * @throws UnsatisfiablePathConditionException
-	 */
-	private Evaluation evaluateMPIExtent(State state, int pid, String process,
-			MPIContractExpression expression)
-			throws UnsatisfiablePathConditionException {
-		Expression datatypeExpr = expression.arguments()[0];
-		Evaluation eval;
-
-		eval = evaluator.evaluate(state, pid, datatypeExpr);
-		state = eval.state;
-		return eval;
-	}
-
-	/**
-	 * <p>
-	 * The MPI_Offset(ptr, count, datatype) expression semantically menas:
-	 * <code> (char *)ptr + count * \mpi_extent(datatype) </code>
-	 * </p>
-	 * 
-	 * @param state
-	 *            The program state when this expression evaluates
-	 * @param pid
-	 *            The PID of the calling process
-	 * @param process
-	 *            The String identifier of the calling process
-	 * @param expression
-	 *            The {@link MPIContractExpression} which represents an
-	 *            MPI_Offset expression.
-	 * @return
-	 * @throws UnsatisfiablePathConditionException
-	 */
-	private Evaluation evaluateMPIOffset(State state, int pid, String process,
-			MPIContractExpression expression)
-			throws UnsatisfiablePathConditionException {
-		Expression ptrExpr = expression.arguments()[0];
-		Expression countExpr = expression.arguments()[1];
-		Expression datatypeExpr = expression.arguments()[2];
-		SymbolicExpression ptr;
-		NumericExpression count, datatype;
-		Evaluation eval;
-
-		eval = evaluator.evaluate(state, pid, ptrExpr);
-		state = eval.state;
-		ptr = eval.value;
-		eval = evaluator.evaluate(state, pid, countExpr);
-		state = eval.state;
-		count = (NumericExpression) eval.value;
-		eval = evaluator.evaluate(state, pid, datatypeExpr);
-		state = eval.state;
-		datatype = (NumericExpression) eval.value;
-
-		Pair<SymbolicExpression, NumericExpression> mpiPtr_datatypeSize;
-
-		mpiPtr_datatypeSize = processMPIPointer(state, pid, process, ptrExpr,
-				ptr, datatypeExpr, datatype, expression.getSource());
-		return evaluator.arrayElementReferenceAdd(state, pid,
-				mpiPtr_datatypeSize.left,
-				universe.multiply(count, mpiPtr_datatypeSize.right),
-				expression.getSource()).left;
-	}
-
-	/**
-	 * <p>
-	 * Checks if the type of the leaf node pointed by the given pointer 'ptr' on
-	 * the pointed object is consistnt with the given MPI_Datatype
-	 * 'mpiDatatype'.
-	 * 
-	 * Returns a pair of objects:
-	 * <ul>
-	 * <li><b>left</b>A new pointer which is obtained by replace the reference
-	 * expression of the given pointer with a new reference to the leaf node of
-	 * the pointed object. (e.g. int a[0]; &a is casted to &a[0])</li>
-	 * <li><b>right</b>The number of primitive types which compose the given
-	 * MPI_Datatype. (e.g. MPI_2INT is composed of 2 primitive types)</li>
-	 * </ul>
-	 * </p>
-	 * 
-	 * @param state
-	 *            The program state when this method is called
-	 * @param pid
-	 *            The PID of the calling process
-	 * @param process
-	 *            The String identifier of the process
-	 * @param ptrExpr
-	 *            The {@link Expression} of the given pointer
-	 * @param ptr
-	 *            The value of the given pointer
-	 * @param mpiDatatypeExtent
-	 *            The {@link Expression} of MPI_Datatype
-	 * @param mpiDatatype
-	 *            The value of the MPI_Datatype.
-	 * @return a pair of objects:
-	 *         <ul>
-	 *         <li><b>left</b>A new pointer which is obtained by replace the
-	 *         reference expression of the given pointer with a new reference to
-	 *         the leaf node of the pointed object. (e.g. int a[0]; &a is casted
-	 *         to &a[0])</li>
-	 *         <li><b>right</b>The number of primitive types which compose the
-	 *         given MPI_Datatype. (e.g. MPI_2INT is composed of 2 primitive
-	 *         types)</li>
-	 *         </ul>
-	 * @throws UnsatisfiablePathConditionException
-	 */
-	@SuppressWarnings("unused")
-	private Pair<SymbolicExpression, NumericExpression> processMPIPointer(
-			State state, int pid, String process, Expression ptrExpr,
-			SymbolicExpression ptr, Expression mpiDatatypeExtent,
-			NumericExpression mpiDatatype, CIVLSource source)
-			throws UnsatisfiablePathConditionException {
-		ReferenceExpression baseRef = symbolicAnalyzer
-				.getLeafNodeReference(state, ptr, source);
-		SymbolicExpression basePtr = symbolicUtil.makePointer(ptr, baseRef);
-		CIVLType baseType = symbolicAnalyzer.civlTypeOfObjByPointer(source,
-				state, basePtr);
-		NumericExpression numPrimitives;
-		Evaluation eval = evaluator.evaluateSizeofType(source, state, pid,
-				baseType);
-		NumericExpression sizeof;
-		BooleanExpression typeChecking;
-		Reasoner reasoner;
-
-		state = eval.state;
-		sizeof = (NumericExpression) eval.value;
-		// Now the "mpiDatatype" value is the sizeof(datatype) which encodes
-		// SIZE_OF_TYPE symbols:
-		numPrimitives = universe.divide(mpiDatatype, sizeof);
-		// typeChecking = universe.divides(sizeof, mpiDatatype);
-		// reasoner = universe.reasoner(state.getPathCondition());
-		// if (!reasoner.isValid(typeChecking)) {
-		// String ptrStr = symbolicAnalyzer.expressionEvaluation(state, pid,
-		// ptrExpr, true).right;
-		// String datatypeStr = symbolicAnalyzer.expressionEvaluation(state,
-		// pid, mpiDatatypeExpr, true).right;
-		//
-		// errorLogger.logSimpleError(source, state, process,
-		// symbolicAnalyzer.stateInformation(state),
-		// ErrorKind.MPI_ERROR,
-		// "Objects pointed by " + ptrStr
-		// + " is inconsistent with the given MPI_Datatype: "
-		// + datatypeStr);
-		// }
-		return new Pair<>(basePtr, numPrimitives);
-	}
 }

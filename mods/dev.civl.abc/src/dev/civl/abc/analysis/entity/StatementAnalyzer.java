@@ -53,7 +53,6 @@ import dev.civl.abc.ast.node.IF.statement.StatementNode.StatementKind;
 import dev.civl.abc.ast.node.IF.statement.SwitchNode;
 import dev.civl.abc.ast.node.IF.statement.UpdateNode;
 import dev.civl.abc.ast.node.IF.statement.WhenNode;
-import dev.civl.abc.ast.node.IF.statement.WithNode;
 import dev.civl.abc.ast.node.IF.type.EnumerationTypeNode;
 import dev.civl.abc.ast.node.IF.type.StructureOrUnionTypeNode;
 import dev.civl.abc.ast.type.IF.DomainType;
@@ -385,19 +384,6 @@ public class StatementAnalyzer {
 			if (!guardType.isScalar())
 				throw error("Guard has non-scalar type " + guardType, guard);
 			processStatement(((WhenNode) statement).getBody());
-			break;
-		}
-		case WITH: {
-			WithNode withNode = (WithNode) statement;
-			ExpressionNode stateRef = withNode.getStateReference();
-			Type stateType;
-
-			processExpression(stateRef);
-			stateType = stateRef.getConvertedType();
-			if (!entityAnalyzer.standardTypes.isCollateStateType(stateType))
-				throw this.error("The state reference expression of $with doesn't have type of collate statet",
-						statement);
-			processStatement(withNode.getBodyNode());
 			break;
 		}
 		case UPDATE: {

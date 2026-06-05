@@ -33,11 +33,8 @@ import dev.civl.mc.model.IF.expression.FunctionCallExpression;
 import dev.civl.mc.model.IF.expression.FunctionIdentifierExpression;
 import dev.civl.mc.model.IF.expression.LHSExpression;
 import dev.civl.mc.model.IF.expression.LHSExpression.LHSExpressionKind;
-import dev.civl.mc.model.IF.expression.MPIContractExpression;
-import dev.civl.mc.model.IF.expression.MPIContractExpression.MPI_CONTRACT_EXPRESSION_KIND;
 import dev.civl.mc.model.IF.expression.SubscriptExpression;
 import dev.civl.mc.model.IF.expression.UnaryExpression;
-import dev.civl.mc.model.IF.expression.ValueAtExpression;
 import dev.civl.mc.model.IF.expression.VariableExpression;
 import dev.civl.mc.model.IF.statement.AssignStatement;
 import dev.civl.mc.model.IF.statement.AtomicLockAssignStatement;
@@ -50,11 +47,9 @@ import dev.civl.mc.model.IF.statement.ReturnStatement;
 import dev.civl.mc.model.IF.statement.Statement;
 import dev.civl.mc.model.IF.statement.Statement.StatementKind;
 import dev.civl.mc.model.IF.statement.UpdateStatement;
-import dev.civl.mc.model.IF.statement.WithStatement;
 import dev.civl.mc.model.IF.type.CIVLArrayType;
 import dev.civl.mc.model.IF.type.CIVLHeapType;
 import dev.civl.mc.model.IF.type.CIVLMemType;
-import dev.civl.mc.model.IF.type.CIVLStateType;
 import dev.civl.mc.model.IF.type.CIVLStructOrUnionType;
 import dev.civl.mc.model.IF.type.CIVLType;
 import dev.civl.mc.model.IF.type.CIVLType.TypeKind;
@@ -75,7 +70,6 @@ import dev.civl.mc.util.IF.Pair;
 import dev.civl.mc.util.IF.Triple;
 import dev.civl.sarl.IF.Reasoner;
 import dev.civl.sarl.IF.SymbolicUniverse;
-import dev.civl.sarl.IF.UnaryOperator;
 import dev.civl.sarl.IF.ValidityResult.ResultType;
 import dev.civl.sarl.IF.expr.ArrayElementReference;
 import dev.civl.sarl.IF.expr.BooleanExpression;
@@ -89,7 +83,6 @@ import dev.civl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
 import dev.civl.sarl.IF.expr.TupleComponentReference;
 import dev.civl.sarl.IF.expr.UnionMemberReference;
 import dev.civl.sarl.IF.number.IntegerNumber;
-import dev.civl.sarl.IF.number.Number;
 import dev.civl.sarl.IF.object.IntObject;
 import dev.civl.sarl.IF.object.SymbolicObject;
 import dev.civl.sarl.IF.object.SymbolicObject.SymbolicObjectKind;
@@ -1928,17 +1921,6 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 			result.append(this.statementEvaluation(state, postState, pid, update.call()));
 			break;
 		}
-		case WITH: {
-			WithStatement with = (WithStatement) statement;
-
-			if (with.isEnter())
-				result.append("WITH_ENTER (");
-			else
-				result.append("WITH_EXIT (");
-			result.append(this.expressionEvaluation(state, pid, with.collateState()).right);
-			result.append(")");
-			break;
-		}
 		default:
 			throw new CIVLUnimplementedFeatureException("pretty-printing statement of " + kind + " kind",
 					statement.getSource());
@@ -2094,14 +2076,6 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 				result.append(functionResult.second.name().name());
 				break;
 			}
-			case MPI_CONTRACT_EXPRESSION: {
-				MPIContractExpression mpiExpr = (MPIContractExpression) expression;
-				Pair<State, StringBuffer> eval = mpiContractExpressionEvaluation(state, pid, mpiExpr);
-
-				state = eval.left;
-				result.append(eval.right);
-				break;
-			}
 			case QUANTIFIER: {
 				result.append(expression.toString());
 				break;
@@ -2123,49 +2097,6 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 				CallOrSpawnStatement call = ((FunctionCallExpression) expression).callStatement();
 
 				result.append(this.statementEvaluation(state, null, pid, call));
-				break;
-			}
-			case VALUE_AT: {
-				ValueAtExpression valueAt = (ValueAtExpression) expression;
-				CIVLStateType stateType = typeFactory.stateType();
-
-				result.append("$value_at(");
-				temp = this.expressionEvaluationWorker(state, pid, valueAt.state(), resultOnly, true);
-				state = temp.left;
-				result.append(temp.right);
-				result.append(", ");
-				temp = this.expressionEvaluationWorker(state, pid, valueAt.pid(), resultOnly, true);
-				state = temp.left;
-				result.append(temp.right);
-				result.append(", ");
-
-				Evaluation eval = evaluator.evaluate(state, pid, valueAt.state());
-
-				UnaryOperator<SymbolicExpression> substituter = null;
-				State newState;
-
-				if (eval.value == modelFactory.statenullConstantValue())
-					newState = state;
-				else {
-					newState = evaluator.stateFactory()
-							.getStateByReference(stateType.selectStateKey(universe, eval.value));
-					substituter = evaluator.stateFactory().stateValueHelper().scopeSubstituterForCurrentState(state,
-							eval.value);
-				}
-
-				Number newPid;
-				int newPidInt;
-
-				eval = evaluator.evaluate(eval.state, pid, valueAt.pid());
-				state = eval.state;
-				newPid = universe.extractNumber((NumericExpression) eval.value);
-				newPidInt = newPid == null ? pid : ((IntegerNumber) newPid).intValue();
-				eval = evaluator.evaluate(newState, newPidInt, valueAt.expression());
-				if (substituter != null)
-					substituter.apply(eval.value);
-				result.append(symbolicExpressionToString(valueAt.getSource(), newState, valueAt.getExpressionType(),
-						eval.value));
-				result.append(")");
 				break;
 			}
 			case VARIABLE: {
@@ -2222,50 +2153,6 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 
 	void setEvaluator(Evaluator evaluator) {
 		this.evaluator = evaluator;
-	}
-
-	private Pair<State, StringBuffer> mpiContractExpressionEvaluation(State state, int pid,
-			MPIContractExpression mpiExpr) throws UnsatisfiablePathConditionException {
-		int numArgs;
-		StringBuffer result = new StringBuffer();
-		MPI_CONTRACT_EXPRESSION_KIND kind = mpiExpr.mpiContractKind();
-		Pair<State, String> eval;
-
-		switch (kind) {
-		case MPI_AGREE:
-			result.append("$mpi_agree(");
-			numArgs = 1;
-			break;
-		case MPI_EQUALS:
-			result.append("$mpi_equals(");
-			numArgs = 2;
-			break;
-		case MPI_EXTENT:
-			result.append("$mpi_extent(");
-			numArgs = 1;
-			break;
-		case MPI_OFFSET:
-			result.append("$mpi_offset(");
-			numArgs = 3;
-			break;
-		case MPI_REGION:
-			result.append("$mpi_region(");
-			numArgs = 3;
-			break;
-		case MPI_VALID:
-			result.append("$mpi_valid(");
-			numArgs = 3;
-			break;
-		default:
-			throw new CIVLInternalException("unreachable", mpiExpr.getSource());
-		}
-		for (int i = 0; i < numArgs; i++) {
-			eval = expressionEvaluation(state, pid, mpiExpr.arguments()[i]);
-			state = eval.left;
-			result.append(eval.right);
-			result.append(i == numArgs - 1 ? ")" : ", ");
-		}
-		return new Pair<>(state, result);
 	}
 
 	@Override

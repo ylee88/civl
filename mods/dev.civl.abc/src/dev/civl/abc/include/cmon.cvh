@@ -1,0 +1,123 @@
+#ifndef _CMON
+#define _CMON
+
+/* Filename : cmon.cvh
+   Author   : Stephen Siegel
+   Created  : 2026-06-02
+   Modified : 2026-06-02
+
+   Collective monitor.  This module defines an object for monitoring
+   correct use of MPI collective operations.  It checks that all
+   processes belonging to a fixed MPI communicator invoke collectives
+   in the same order, and with consistent arguments for root,
+   reduction operation, type signatures, and so on.  As with
+   communicators, barriers, and similar MPI-related objects, a single
+   global object is created in the shared scope, then each process
+   creates its own local handle to the shared object.
+
+   A process announces it has arrived at an MPI collective function by
+   calling one of the check functions.  This function will check for
+   collective consistency and throw an assertion violation if there is
+   an inconsistency.  Otherwise it enters a record into the global
+   communicator state.
+
+   The blocking collectives, relevant arguments for checking, and
+   the consistency condition to check.
+   * = argument is ignored if using in-place option
+
+   Barrier   : nothing
+   Bcast     : each proc: count, datatype, root
+               universal: [count,datatype], root
+   Gather    : root: recvcount, recvtype, sendcount*, sendtype*
+               nonroot: sendcount, sendtype, root
+               [sendcount, sendtype]@any = [recvcount, recvtype]@root
+               universal: root
+   Gatherv   : root: recvcounts, recvtype, sendcount*, sendtype*
+               nonroot: sendcount, sendtype, root
+               [sendcount,sendtype]@i = [recvcounts[i],recvtype]@root
+   Scatter   : root: sendcount, sendtype, recvcount*, recvtype*, root
+               all: recvcount, recvtype, root
+               [sendcount, sendtype]@root = [recvcount, recvtype]@any
+   Scatterv  : root: sendcounts, sendtype, recvcount*, recvtype*, root
+               all: recvcount, recvtype, root
+               [sendcounts[i],sendtype]@root = [recvcount, recvtype]@i
+   Allgather : each proc: sendcount*,  sendtype*,  recvcount,  recvtype
+               note: all procs use in-place, or none do [check this]
+               [sendcount,sendtype]@any = [recvcount,recvtype]@any
+   Allgatherv: each proc: sendcount*,  sendtype*,  recvcounts, recvtype
+               [sendcount,sendtype]@j = [recvcounts[j],recvtype]@any
+   Alltoall  : each proc: sendcount*,  sendtype*,  recvcount,  recvtype
+               [sendcount,sendtype]@any = [recvcount,recvtype]@any
+   Alltoallv : each proc: sendcounts*, sendtype*,  recvcounts, recvtype
+               [sendcounts[j],sendtype]@i = [recvcounts[i],recvtype]@j
+   Alltoallw : each proc: sendcounts*, sendtypes*, recvcounts, recvtypes
+               [sendcount[j],sendtypes[j]]@i = [recvcounts[i],recvtypes[i]]@j
+   Reduce    : all: count, datatype, op, root
+               datatype must be compatible with op in all reduction operations
+               universal: count, datatype, op, root
+   Allreduce : all: count, datatype, op
+               universal: count, datatype, op
+   Reduce_scatter_block
+             : all: recvcount, datatype, op
+               universal: recvcount, datatype, op
+   Reduce_scatter
+             : all: recvcounts, op [note: some procs may specify in-place, others not]
+               universal: recvcounts, op
+   Scan      : all: count, datatype, op
+               universal: count, datatype, op [exception: user-defined ops]
+   Exscan    : all: count, datatype, op
+               same as Scan
+ */
+#include <civl-mpi.cvh>
+
+// just need def of $mpi_tsig, MPI_Op
+// impl needs defs of constants *_TAG
+
+// Handle to global (shared) state of collective monitor
+typedef struct $cmon_g * $cmon_g;
+
+// Local handle to collective monitor (one for each process)
+typedef struct $cmon * $cmon;
+
+$cmon_g $cmon_g_create($scope scope, int nprocs);
+
+void $cmon_g_destroy($cmon_g cmg);
+
+$cmon $cmon_create($scope scope, $cmon_g cmg, int rank);
+
+void $cmon_destroy($cmon cm);
+
+/* Checks and records arrival of a process at an MPI_Barrier.  This is
+   the only collective that doesn't specify any type signatures. */
+void $cmon_check_0($cmon cm, int kind);
+
+/* Checks and records arrival of a process at one of the MPI
+   collective functions that specify a single type signature for all
+   p2p communications: Bcast, Reduce, Allreduce, Reduce_scatter_block,
+   Scan, Exscan. */
+void $cmon_check_1($cmon cm, int kind, _Bool inplace,
+		   $mpi_tsig sig, MPI_Op op, int root);
+
+/* Checks and records arrival of a process at one of the MPI
+   collective functions that specifies two type signatures: sig1 for
+   sending and sig2 for receiving.  These are: Gather, Scatter,
+   Allgather, Alltoall. */
+void $cmon_check_1_1($cmon cm, int kind, _Bool inplace,
+		     $mpi_tsig sig1, $mpi_tsig sig2,
+		     MPI_Op op, int root);
+
+/* Checks and records arrival of a process at one of the MPI
+   collective functions that specifies one single type signatures and
+   another array of type signatures (of length nprocs).  These are:
+   Gatherv, Scatterv, Allgatherv, and Reduce_scatter. */
+void $cmon_check_1_n($cmon cm, int kind, _Bool inplace,
+		     $mpi_tsig sig1, $mpi_tsig sigs2[],
+		     MPI_Op op, int root);
+
+/* Checks and records arrival of a process at one of the MPI
+   collective functions that specifies two arrays of type signatures:
+   Alltoallv and Alltoallw. */
+void $cmon_check_n_n($cmon cm, int kind, _Bool inplace,
+		     $mpi_tsig sigs1[], $mpi_tsig sigs2[]);
+
+#endif
