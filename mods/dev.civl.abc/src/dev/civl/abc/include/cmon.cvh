@@ -68,10 +68,7 @@
    Exscan    : all: count, datatype, op
                same as Scan
  */
-#include <civl-mpi.cvh>
-
-// just need def of $mpi_tsig, MPI_Op
-// impl needs defs of constants *_TAG
+#include <mpi-defs.cvh>
 
 // Handle to global (shared) state of collective monitor
 typedef struct $cmon_g * $cmon_g;
@@ -79,45 +76,70 @@ typedef struct $cmon_g * $cmon_g;
 // Local handle to collective monitor (one for each process)
 typedef struct $cmon * $cmon;
 
-$cmon_g $cmon_g_create($scope scope, int nprocs);
+/*@ depends_on \nothing;
+  @ assigns \nothing;
+  @ reads \nothing;
+  @*/
+$atomic_f $cmon_g $cmon_g_create($scope scope, int nprocs);
 
-void $cmon_g_destroy($cmon_g cmg);
+/*@ depends_on \access(cmg);
+  @ assigns cmg;
+  @*/
+$atomic_f void $cmon_g_destroy($cmon_g cmg);
 
-$cmon $cmon_create($scope scope, $cmon_g cmg, int rank);
+/*@ depends_on \nothing;
+  @ reads cmg;
+  @ assigns cmg;
+  @*/
+$atomic_f $cmon $cmon_create($scope scope, $cmon_g cmg, int rank);
 
-void $cmon_destroy($cmon cm);
+/*@ depends_on \access(cm);
+  @ assigns cm;
+  @ reads \nothing;
+  @*/
+$atomic_f void $cmon_destroy($cmon cm);
 
 /* Checks and records arrival of a process at an MPI_Barrier.  This is
    the only collective that doesn't specify any type signatures. */
-void $cmon_check_0($cmon cm, int kind);
+/*@ depends_on \access(cm);
+  @*/
+$atomic_f void $cmon_check_0($cmon cm, int kind);
 
 /* Checks and records arrival of a process at one of the MPI
    collective functions that specify a single type signature for all
    p2p communications: Bcast, Reduce, Allreduce, Reduce_scatter_block,
    Scan, Exscan. */
-void $cmon_check_1($cmon cm, int kind, _Bool inplace,
-		   $mpi_tsig sig, MPI_Op op, int root);
+/*@ depends_on \access(cm);
+  @*/
+$atomic_f void $cmon_check_1($cmon cm, int kind, _Bool inplace,
+			     $mpi_tsig sig, MPI_Op op, int root);
 
 /* Checks and records arrival of a process at one of the MPI
    collective functions that specifies two type signatures: sig1 for
    sending and sig2 for receiving.  These are: Gather, Scatter,
    Allgather, Alltoall. */
-void $cmon_check_1_1($cmon cm, int kind, _Bool inplace,
-		     $mpi_tsig sig1, $mpi_tsig sig2,
-		     MPI_Op op, int root);
+/*@ depends_on \access(cm);
+  @*/
+$atomic_f void $cmon_check_1_1($cmon cm, int kind, _Bool inplace,
+			       $mpi_tsig sig1, $mpi_tsig sig2,
+			       MPI_Op op, int root);
 
 /* Checks and records arrival of a process at one of the MPI
    collective functions that specifies one single type signatures and
    another array of type signatures (of length nprocs).  These are:
    Gatherv, Scatterv, Allgatherv, and Reduce_scatter. */
-void $cmon_check_1_n($cmon cm, int kind, _Bool inplace,
-		     $mpi_tsig sig1, $mpi_tsig sigs2[],
-		     MPI_Op op, int root);
+/*@ depends_on \access(cm);
+  @*/
+$atomic_f void $cmon_check_1_n($cmon cm, int kind, _Bool inplace,
+			       $mpi_tsig sig1, $mpi_tsig sigs2[],
+			       MPI_Op op, int root);
 
 /* Checks and records arrival of a process at one of the MPI
    collective functions that specifies two arrays of type signatures:
    Alltoallv and Alltoallw. */
-void $cmon_check_n_n($cmon cm, int kind, _Bool inplace,
-		     $mpi_tsig sigs1[], $mpi_tsig sigs2[]);
+/*@ depends_on \access(cm);
+  @*/
+$atomic_f void $cmon_check_n_n($cmon cm, int kind, _Bool inplace,
+			       $mpi_tsig sigs1[], $mpi_tsig sigs2[]);
 
 #endif

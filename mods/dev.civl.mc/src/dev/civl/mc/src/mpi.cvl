@@ -3,7 +3,6 @@
 
 #include <bundle.cvh>
 #include <civl-mpi.cvh>
-#include <cmon.cvh>
 #include <concurrency.cvh>
 #include <mpi.h>
 #include <pointer.cvh>

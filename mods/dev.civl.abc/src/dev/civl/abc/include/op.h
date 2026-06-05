@@ -3,7 +3,7 @@
 // Operation for collective reductions or collective operations
 // Note: The order of following operations are consistent with CIVL implementations,
 // it's not recommended to change the order. 
-typedef enum Operation{
+typedef enum Operation {
   _NO_OP,  // no operation
   _MAX,    // maxinum
   _MIN,    // minimun
@@ -20,7 +20,7 @@ typedef enum Operation{
   _REPLACE, // replace ? TODO: Find definition for this operation
   _EQ, // Equal to (Fortran OpenMP only)
   _NEQ, // Not Equal to (Fortran OpenMP only)
-}Operation;
+} Operation;
 
 typedef enum Operation $operation;
 

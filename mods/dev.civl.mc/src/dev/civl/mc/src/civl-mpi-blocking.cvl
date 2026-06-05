@@ -13,7 +13,6 @@
    This module uses the Collective Monitor defined in cmon.cvh
    to ensure consistency of collective calls across processes.
  */
-
 #include <bundle.cvh>
 #include <civl-mpi.cvh>
 #include <cmon.cvh>
@@ -755,6 +754,8 @@ int $mpi_exscan(const void* sendbuf, void* recvbuf, int count,
 }
 
 // Collective monitoring functions...
+
+// TODO: make these atomic with depends on comm only?
 
 void $mpi_check_Barrier(MPI_Comm comm) {
   $cmon_check_0(comm->cm, BARRIER_TAG);

@@ -704,6 +704,7 @@ public class CIVLConstants {
 	public final static String CIVL_OMP = "civl-omp.cvh";
 	public final static String CIVL_PTHREAD = "civl-pthread.cvh";
 	public final static String CIVL_STDIO = "civl-stdio.cvh";
+	public final static String CMON = "cmon.cvh";
 	public final static String COLLATE = "collate.cvh";
 	public final static String COMM = "comm.cvh";
 	public final static String COMM2 = "comm2.cvh";
@@ -746,6 +747,7 @@ public class CIVLConstants {
 	public final static String CIVL_OMP_SRC = "civl-omp.cvl";
 	public final static String CIVL_OMP2_SRC = "civl-omp2.cvl";
 	public final static String CIVL_PTHREAD_SRC = "civl-pthread.cvl";
+	public final static String CMON_SRC = "cmon.cvl";
 	public final static String COLLATE_SRC = "collate.cvl";
 	public final static String COMM_SRC = "comm.cvl";
 	public final static String CONCURRENCY_SRC = "concurrency.cvl";
@@ -772,9 +774,10 @@ public class CIVLConstants {
 	 * @return all CIVL-C library headers.
 	 */
 	public final static Set<String> getCivlLibHeaders() {
-		return new HashSet<String>(Arrays.asList(BUNDLE, CIVLC, CIVL_CUDA, CIVL_MPI, CIVL_MPI_BLOCKING,
-				CIVL_MPI_NONBLOCKING, CIVL_OMP, CIVL_PTHREAD, CIVL_STDIO, COLLATE, COMM, COMM2, CONCURRENCY_CONTRACT,
-				CONCURRENCY, DOMAIN, FORTRAN_ARRAY, FORTRAN_SIGP, LOOP_ASSIGNS_GEN, MEM, MEMORY, POINTER, SCOPE, SEQ));
+		return new HashSet<String>(
+				Arrays.asList(BUNDLE, CIVLC, CIVL_CUDA, CIVL_MPI, CIVL_MPI_BLOCKING, CIVL_MPI_NONBLOCKING, CIVL_OMP,
+						CIVL_PTHREAD, CIVL_STDIO, CMON, COLLATE, COMM, COMM2, CONCURRENCY_CONTRACT, CONCURRENCY, DOMAIN,
+						FORTRAN_ARRAY, FORTRAN_SIGP, LOOP_ASSIGNS_GEN, MEM, MEMORY, POINTER, SCOPE, SEQ));
 	}
 
 	/**
@@ -794,8 +797,8 @@ public class CIVLConstants {
 
 	public final static Set<String> getCivlLibSrcs() {
 		return new HashSet<String>(Arrays.asList(BUNDLE_SRC, CIVLC_SRC, CIVL_CUDA_SRC, CIVL_MPI_BLOCKING_SRC,
-				CIVL_MPI_NONBLOCKING_SRC, CIVL_OMP_SRC, CIVL_OMP2_SRC, CIVL_PTHREAD_SRC, COLLATE_SRC, COMM_SRC,
-				CONCURRENCY_SRC, FORTRAN_ARRAY_SRC, FORTRAN_SIGP_SRC, INT_DIV_NO_CHECKING_SRC, INT_DIV_SRC,
+				CIVL_MPI_NONBLOCKING_SRC, CIVL_OMP_SRC, CIVL_OMP2_SRC, CIVL_PTHREAD_SRC, CMON_SRC, COLLATE_SRC,
+				COMM_SRC, CONCURRENCY_SRC, FORTRAN_ARRAY_SRC, FORTRAN_SIGP_SRC, INT_DIV_NO_CHECKING_SRC, INT_DIV_SRC,
 				LOOP_ASSIGNS_GEN_SRC, SEQ_SRC, UNSIGNED_ARITH_SRC));
 	}
 

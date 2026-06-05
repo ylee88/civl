@@ -14,6 +14,7 @@
 #include <comm.cvh>
 #include <concurrency.cvh>
 #include <mpi.h>
+#include <mpi-defs.cvh>
 #include <stddef.h>
 
 // Note: the following header files are empty but are here to trigger
@@ -26,29 +27,10 @@
 #endif
 #pragma CIVL ACSL // ACSL contracts are used in this file
 
+
 // Preprocessor macros...
 
 // Internal tags used to implement various MPI routines...
-
-// Collectives...
-#define ALLGATHER_TAG    1
-#define ALLGATHERV_TAG   2
-#define ALLREDUCE_TAG    3
-#define ALLTOALLV_TAG    4
-#define ALLTOALLW_TAG    5
-#define ALLTOALL_TAG     6
-#define BARRIER_TAG      7
-#define BCAST_TAG        8
-#define EXSCAN_TAG       9
-#define GATHERV_TAG      10
-#define GATHER_TAG       11
-#define REDUCE_TAG       12
-#define REDUCE_SCATTER_BLOCK_TAG 13
-#define REDUCE_SCATTER_TAG  14
-#define SCAN_TAG         15
-#define SCATTERV_TAG     16
-#define SCATTER_TAG      17
-
 // Other functions...
 #define COMMDUP_TAG      100
 #define COMMFREE_TAG     101
@@ -69,17 +51,7 @@ typedef enum _mpi_state {
    MPI communicator. */
 typedef struct $mpi_gcomm $mpi_gcomm;
 
-/* Simple representation of a type signature: a count and MPI
-   datatype.  TODO: generalize this to represent arbitrary type
-   signatures. */
-typedef struct $mpi_tsig {
-  int count;
-  MPI_Datatype type;
-} $mpi_tsig;
-
 // Misc. MPI support functions...
-
-#define MPI_TSIG_NULL ($mpi_tsig){.count=-1, .type=MPI_DATATYPE_NULL}
 
 /* Abstract function used to represent wall time. */
 $abstract double $mpi_time(int i);

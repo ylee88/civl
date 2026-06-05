@@ -6,6 +6,10 @@
    Implementation of Collective Monitor.   See comments in
    cmon.cvh for details.
  */
+#include <cmon.cvh>
+#include <seq.cvh>
+
+//  Uses: MPI_TSIG_NULL, MPI_DATATYPE_NULL, *_TAG, 
 
 /* MPI Collective Record.  One of these is created for each collective
    operation.  Note: there is one record for the entire collective
@@ -52,9 +56,12 @@ struct $cmon {
 // note: mpi.h defines: MPI_DATATYPE_NULL
 
 struct crecord new_crecord(int kind, int n, int m) {
-  struct crecord rec =
-    { .kind = kind, .op = _NO_OP, .root = -1,
-      .sigs = ($mpi_tsig[n][m])$lambda (int i,j) MPI_TSIG_NULL };
+  // TODO: for some reason compound literal not working here...
+  struct crecord rec;
+  rec.kind = kind;
+  rec.op = _NO_OP;
+  rec.sigs = ($mpi_tsig[n][m])$lambda (int i,j) MPI_TSIG_NULL;
+  rec.root = -1;
   return rec;
 }
 
@@ -74,7 +81,7 @@ $cmon_g $cmon_g_create($scope scope, int nprocs) {
 
 void $cmon_g_destroy($cmon_g cmg) {
   // complain if there are messages remaining
-  int n = $seq_length(cmg->records);
+  int n = $seq_length(&cmg->records);
   $assert(n==0, "Collective messages remain at communicator finalization");
   $free(cmg);
 }
@@ -95,10 +102,12 @@ void $cmon_destroy($cmon cm) {
 static void flush($cmon_g cmg) {
   int nprocs = cmg->nprocs;
   if (cmg->num_arrived[0] == nprocs) {
-    $print("Removing complete collective record."); // debugging
+    $print("Removing complete collective record.\n"); // debugging
     $seq_remove(&cmg->records, 0, NULL, 1);
     $seq_remove(&cmg->num_arrived, 0, NULL, 1);
     for (int i=0; i<nprocs; i++) cmg->num[i]--;
+    $print("Now num=", cmg->num,
+	   ", num_arrived=", cmg->num_arrived, "\n");
   }
 }
 
@@ -119,14 +128,17 @@ static int arrive($cmon cm, int kind) {
   $cmon_g cmg = cm->cmg;
   int j = cmg->num[rank];
   int nrec = $seq_length(&cmg->records);
+  $print("Proc ", rank, " arrived.  ");
   if (j < nrec) { // record already exists
     struct crecord old = cmg->records[j];
     $assert(old.kind == kind, "Collective call inconsistency");
     // TODO: provide more detail
     cmg->num_arrived[j]++;
     cmg->num[rank] = j+1;
+    $print("Record exists.  Now num=", cmg->num, ", num_arrived=", cmg->num_arrived, "\n");
     return j;
   }
+  $print("No record found.\n");
   return -1;
 }
 
@@ -136,11 +148,13 @@ static int arrive($cmon cm, int kind) {
 static void add($cmon cm, struct crecord rec) {
   int rank = cm->rank;
   $cmon_g cmg = cm->cmg;
-  $print("Adding new collective record: ", rec, "\n"); // debugging
+  $print("Proc ", rank, ": adding new collective record: ", rec, "\n"); // debugging
   $seq_append(&cmg->records, &rec, 1);
   int one = 1;
   $seq_append(&cmg->num_arrived, &one, 1);
   cmg->num[rank]++;
+  $print("Now num=", cmg->num,
+	 ", num_arrived=", cmg->num_arrived, "\n");
 }
 
 
@@ -170,14 +184,16 @@ void $cmon_check_1($cmon cm, int kind, _Bool inplace,
     case REDUCE_SCATTER_BLOCK_TAG:
     case SCAN_TAG:
     case EXSCAN_TAG:
-      assert(old.op == op, "Inconsistency in MPI reduction operator");
-    default:
+      $assert(old.op == op, "Inconsistency in MPI reduction operator");
+      break;
+    default: ;
     }
     switch (kind) {
     case BCAST_TAG:
     case REDUCE_TAG:
-      assert(old.root == root, "Inconsistency in MPI root argument");
-    default:
+      $assert(old.root == root, "Inconsistency in MPI root argument");
+      break;
+    default: ;
     }
     check_tsig(old.sigs[0][0], sig);
   } else { // I am first to arrive at this collective
@@ -198,7 +214,7 @@ void $cmon_check_1($cmon cm, int kind, _Bool inplace,
       rec.op = op;
       break;
     default:
-      assert($false);
+      $assert($false);
     }
     add(cm, rec);
   }
@@ -223,6 +239,8 @@ void $cmon_check_1_1($cmon cm, int kind, _Bool inplace,
   } else {
     struct crecord rec = new_crecord(kind, 1, 1);
     rec.sigs[0][0] = sig0;
+    if (kind == GATHER_TAG || kind == SCATTER_TAG)
+      rec.root = root;
     if (!inplace) check_tsig(sig1, sig2);
     add(cm, rec);
   }
