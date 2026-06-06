@@ -815,64 +815,99 @@ void $mpi_check_Scatterv
 void $mpi_check_Allgather
 (MPI_Comm comm, _Bool inplace, int sendcount, MPI_Datatype sendtype,
  int recvcount, MPI_Datatype recvtype) {
-  
-  
+  $cmon_check_1_1(comm->cm, ALLGATHER_TAG, inplace,
+		  ($mpi_tsig){ .count=sendcount, .type=sendtype },
+		  ($mpi_tsig){ .count=recvcount, .type=recvtype },
+		  _NO_OP, -1);  
 }
 
 void $mpi_check_Allgatherv
 (MPI_Comm comm, _Bool inplace, int sendcount, MPI_Datatype sendtype,
  const int recvcounts[], MPI_Datatype recvtype) {
-
+  int nprocs = $mpi_comm_size(comm);
+  $cmon_check_1_n(comm->cm, ALLGATHERV_TAG, inplace,
+		  ($mpi_tsig){ .count=sendcount, .type=sendtype },
+		  (($mpi_tsig[nprocs])$lambda (int i)
+		   ($mpi_tsig){ .count=recvcounts[i], .type=recvtype }),
+		  _NO_OP, -1);
 }
 
 void $mpi_check_Alltoall
 (MPI_Comm comm, _Bool inplace, int sendcount, MPI_Datatype sendtype,
  int recvcount, MPI_Datatype recvtype) {
-
+  $cmon_check_1_1(comm->cm, ALLTOALL_TAG, inplace,
+		  ($mpi_tsig){ .count=sendcount, .type=sendtype },
+		  ($mpi_tsig){ .count=recvcount, .type=recvtype },
+		  _NO_OP, -1);
 }
 
 void $mpi_check_Alltoallv
 (MPI_Comm comm, _Bool inplace, const int sendcounts[], MPI_Datatype sendtype,
  const int recvcounts[], MPI_Datatype recvtype) {
-
+  int nprocs = $mpi_comm_size(comm);
+  $cmon_check_n_n(comm->cm, ALLTOALLV_TAG, inplace,
+		  (($mpi_tsig[nprocs])$lambda (int i)
+		   ($mpi_tsig){ .count=sendcounts[i], .type=sendtype }),
+		  (($mpi_tsig[nprocs])$lambda (int i)
+		   ($mpi_tsig){ .count=recvcounts[i], .type=recvtype }));
 }
 
 void $mpi_check_Alltoallw
 (MPI_Comm comm, _Bool inplace, const int sendcounts[],
  const MPI_Datatype sendtypes[], const int recvcounts[],
  const MPI_Datatype recvtypes[]) {
-
+  int nprocs = $mpi_comm_size(comm);
+  $cmon_check_n_n(comm->cm, ALLTOALLV_TAG, inplace,
+		  (($mpi_tsig[nprocs])$lambda (int i)
+		   ($mpi_tsig){ .count=sendcounts[i], .type=sendtypes[i] }),
+		  (($mpi_tsig[nprocs])$lambda (int i)
+		   ($mpi_tsig){ .count=recvcounts[i], .type=recvtypes[i] }));
 }
 
 void $mpi_check_Reduce
 (MPI_Comm comm, int count, MPI_Datatype datatype, MPI_Op op, int root) {
-
+  $cmon_check_1(comm->cm, REDUCE_TAG, $false,
+		($mpi_tsig){.count=count, .type=datatype},
+		op, root);
 }
 
 void $mpi_check_Allreduce
 (MPI_Comm comm, int count, MPI_Datatype datatype, MPI_Op op) {
-
+  $cmon_check_1(comm->cm, ALLREDUCE_TAG, $false,
+		($mpi_tsig){.count=count, .type=datatype},
+		op, -1);
 }
 
 
 void $mpi_check_Reduce_scatter_block
 (MPI_Comm comm, int recvcount, MPI_Datatype datatype, MPI_Op op) {
-
+  $cmon_check_1(comm->cm, REDUCE_SCATTER_BLOCK_TAG, $false,
+		($mpi_tsig){.count=recvcount, .type=datatype},
+		op, -1);
 }
 
 void $mpi_check_Reduce_scatter
 (MPI_Comm comm, const int recvcounts[], MPI_Datatype datatype, MPI_Op op) {
-
+  int nprocs = $mpi_comm_size(comm);
+  $cmon_check_1_n(comm->cm, REDUCE_SCATTER_TAG, $false,
+		  MPI_TSIG_NULL,
+		  (($mpi_tsig[nprocs])$lambda (int i)
+		   ($mpi_tsig){ .count=recvcounts[i], .type=datatype }),
+		  op, -1);
 }
 
 void $mpi_check_Scan
 (MPI_Comm comm, int count, MPI_Datatype datatype, MPI_Op op) {
-
+  $cmon_check_1(comm->cm, SCAN_TAG, $false,
+		($mpi_tsig){.count=count, .type=datatype},
+		op, -1);
 }
 
 void $mpi_check_Exscan
 (MPI_Comm comm, int count, MPI_Datatype datatype, MPI_Op op) {
-
+  $cmon_check_1(comm->cm, EXSCAN_TAG, $false,
+		($mpi_tsig){.count=count, .type=datatype},
+		op, -1);
 }
 
 
