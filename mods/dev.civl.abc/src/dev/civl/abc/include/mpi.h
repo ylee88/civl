@@ -213,8 +213,8 @@ int MPI_Gatherv(const void* , int, MPI_Datatype, void*, const int *,
 int MPI_Scatter(const void* , int, MPI_Datatype, void*, int, MPI_Datatype, int, MPI_Comm);
 int MPI_Scatterv(const void* , const int *, const int *,  MPI_Datatype, void*, int, MPI_Datatype, int, MPI_Comm);
 int MPI_Allgather(const void* , int, MPI_Datatype, void*, int, MPI_Datatype, MPI_Comm);
-int MPI_Allgatherv(void* , int, MPI_Datatype, void*, int *,
-                   int *, MPI_Datatype, MPI_Comm);
+int MPI_Allgatherv(const void* , int, MPI_Datatype, void*, const int *,
+                   const int *, MPI_Datatype, MPI_Comm);
 int MPI_Alltoall(const void* , int, MPI_Datatype, void*, int, MPI_Datatype, MPI_Comm);
 int MPI_Alltoallv(const void* ,const  int *,  const int *, MPI_Datatype,
 		   void*,  const int *,  const int *, MPI_Datatype, MPI_Comm);
@@ -457,7 +457,7 @@ int MPI_Type_create_f90_complex( int, int, MPI_Datatype * );
 /* MPI-2.2 functions */
 int MPI_Reduce_local(const  void *inbuf, void *inoutbuf, int count, MPI_Datatype datatype, MPI_Op op);
 int MPI_Op_commutative(MPI_Op op, int *commute);
-int MPI_Reduce_scatter_block(  void *sendbuf, void *recvbuf, int recvcount, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm);
+int MPI_Reduce_scatter_block(const void *sendbuf, void *recvbuf, int recvcount, MPI_Datatype datatype, MPI_Op op, MPI_Comm comm);
 int MPI_Dist_graph_create_adjacent(MPI_Comm comm_old, int indegree,   int [],   int [], int outdegree,   int [],   int [], MPI_Info info, int reorder, MPI_Comm *comm_dist_graph);
 int MPI_Dist_graph_create(MPI_Comm comm_old, int n,   int [],   int [],   int [],   int [], MPI_Info info, int reorder, MPI_Comm *comm_dist_graph);
 int MPI_Dist_graph_neighbors_count(MPI_Comm comm, int *indegree, int *outdegree, int *weighted);

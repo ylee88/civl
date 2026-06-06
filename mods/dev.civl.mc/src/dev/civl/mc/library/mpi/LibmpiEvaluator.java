@@ -73,6 +73,19 @@ public class LibmpiEvaluator extends BaseLibraryEvaluator implements LibraryEval
 	public final NumericExpression colCommIndexValue = one;
 	public final static String mpiExtentName = "_uf_$mpi_extent";
 
+	/* The MPI Datatypes, in the same order they occur in mpi-defs.cvh */
+	public static enum Datatype {
+		MPI_CHAR, MPI_CHARACTER, MPI_SIGNED_CHAR, MPI_UNSIGNED_CHAR, MPI_BYTE, MPI_WCHAR, MPI_SHORT, MPI_UNSIGNED_SHORT,
+		MPI_INT, MPI_INT16_T, MPI_INT32_T, MPI_INT64_T, MPI_INT8_T, MPI_INTEGER, MPI_INTEGER1, MPI_INTEGER16,
+		MPI_INTEGER2, MPI_INTEGER4, MPI_INTEGER8, MPI_UNSIGNED, MPI_LONG, MPI_UNSIGNED_LONG, MPI_FLOAT, MPI_DOUBLE,
+		MPI_LONG_DOUBLE, MPI_LONG_LONG_INT, MPI_UNSIGNED_LONG_LONG, MPI_LONG_LONG, MPI_PACKED, MPI_LB, MPI_UB,
+		MPI_UINT16_T, MPI_UINT32_T, MPI_UINT64_T, MPI_UINT8_T, MPI_FLOAT_INT, MPI_DOUBLE_INT, MPI_LONG_INT,
+		MPI_SHORT_INT, MPI_2INT, MPI_LONG_DOUBLE_INT, MPI_AINT, MPI_OFFSET, MPI_2DOUBLE_PRECISION, MPI_2INTEGER,
+		MPI_2REAL, MPI_C_BOOL, MPI_C_COMPLEX, MPI_C_DOUBLE_COMPLEX, MPI_C_FLOAT_COMPLEX, MPI_C_LONG_DOUBLE_COMPLEX,
+		MPI_COMPLEX, MPI_COMPLEX16, MPI_COMPLEX32, MPI_COMPLEX4, MPI_COMPLEX8, MPI_REAL, MPI_REAL16, MPI_REAL2,
+		MPI_REAL4, MPI_REAL8
+	};
+
 	public LibmpiEvaluator(String name, Evaluator evaluator, ModelFactory modelFactory, SymbolicUtility symbolicUtil,
 			SymbolicAnalyzer symbolicAnalyzer, CIVLConfiguration civlConfig,
 			LibraryEvaluatorLoader libEvaluatorLoader) {
@@ -80,52 +93,75 @@ public class LibmpiEvaluator extends BaseLibraryEvaluator implements LibraryEval
 	}
 
 	public static Pair<CIVLPrimitiveType, NumericExpression> mpiTypeToCIVLType(SymbolicUniverse universe,
-			CIVLTypeFactory typeFactory, int MPI_TYPE, CIVLSource source) {
+			CIVLTypeFactory typeFactory, int mpiType, CIVLSource source) {
 		CIVLPrimitiveType primitiveType;
 		NumericExpression count = universe.oneInt();
+		Datatype datatype;
 
-		switch (MPI_TYPE) {
-		case 0: // char
-		case 1: // character
-		case 2: // byte
+		if (mpiType >= 0 && mpiType < Datatype.values().length) {
+			datatype = Datatype.values()[mpiType];
+		} else {
+			throw new CIVLUnimplementedFeatureException("CIVL doesn't have such a CIVLPrimitiveType", source);
+		}
+
+		switch (datatype) {
+		case MPI_CHAR:
+		case MPI_CHARACTER:
+		case MPI_SIGNED_CHAR:
+		case MPI_UNSIGNED_CHAR:
+		case MPI_BYTE:
 			primitiveType = typeFactory.charType();
 			break;
-		case 3: // short
-		case 4: // int
-		case 5: // long
-		case 6: // long long int
-		case 7: // unsigned long long
-		case 8: // long long
+		case MPI_SHORT:
+		case MPI_UNSIGNED_SHORT:
+		case MPI_INT:
+		case MPI_INT16_T:
+		case MPI_INT32_T:
+		case MPI_INT64_T:
+		case MPI_INT8_T:
+		case MPI_INTEGER:
+		case MPI_INTEGER1:
+		case MPI_INTEGER16:
+		case MPI_INTEGER2:
+		case MPI_INTEGER4:
+		case MPI_INTEGER8:
+		case MPI_UNSIGNED:
+		case MPI_LONG:
+		case MPI_UNSIGNED_LONG:
+		case MPI_LONG_LONG_INT:
+		case MPI_UNSIGNED_LONG_LONG:
+		case MPI_LONG_LONG:
+		case MPI_LB:
+		case MPI_UB:
+		case MPI_UINT16_T:
+		case MPI_UINT32_T:
+		case MPI_UINT64_T:
+		case MPI_UINT8_T:
+		case MPI_AINT:
+		case MPI_OFFSET:
 			primitiveType = typeFactory.integerType();
 			break;
-		case 9: // float
-		case 10: // double
-		case 11: // long double
+		case MPI_FLOAT:
+		case MPI_DOUBLE:
+		case MPI_LONG_DOUBLE:
+		case MPI_REAL:
+		case MPI_REAL16:
+		case MPI_REAL2:
+		case MPI_REAL4:
+		case MPI_REAL8:
 			primitiveType = typeFactory.realType();
 			break;
-		case 12: // 2int
+		case MPI_2INT:
+		case MPI_2INTEGER:
+		case MPI_SHORT_INT:
+		case MPI_LONG_INT:
 			primitiveType = typeFactory.integerType();
 			count = universe.integer(2);
 			break;
 		default:
-			throw new CIVLUnimplementedFeatureException("CIVL doesn't have such a CIVLPrimitiveType", source);
+			throw new CIVLUnimplementedFeatureException("CIVL does not support datatype " + datatype, source);
 		}
 		return new Pair<>(primitiveType, count);
-		/*
-		 * MPI_CHAR, MPI_CHARACTER, MPI_SIGNED_CHAR, MPI_UNSIGNED_CHAR, MPI_BYTE,
-		 * MPI_WCHAR, MPI_SHORT, MPI_UNSIGNED_SHORT, MPI_INT, MPI_INT16_T, MPI_INT32_T,
-		 * MPI_INT64_T, MPI_INT8_T, MPI_INTEGER, MPI_INTEGER1, MPI_INTEGER16,
-		 * MPI_INTEGER2, MPI_INTEGER4, MPI_INTEGER8, MPI_UNSIGNED, MPI_LONG,
-		 * MPI_UNSIGNED_LONG, MPI_FLOAT, MPI_DOUBLE, MPI_LONG_DOUBLE, MPI_LONG_LONG_INT,
-		 * MPI_UNSIGNED_LONG_LONG, MPI_LONG_LONG, MPI_PACKED, MPI_LB, MPI_UB,
-		 * MPI_UINT16_T, MPI_UINT32_T, MPI_UINT64_T, MPI_UINT8_T, MPI_FLOAT_INT,
-		 * MPI_DOUBLE_INT, MPI_LONG_INT, MPI_SHORT_INT, MPI_2INT, MPI_LONG_DOUBLE_INT,
-		 * MPI_AINT, MPI_OFFSET, MPI_2DOUBLE_PRECISION, MPI_2INTEGER, MPI_2REAL,
-		 * MPI_C_BOOL, MPI_C_COMPLEX, MPI_C_DOUBLE_COMPLEX, MPI_C_FLOAT_COMPLEX,
-		 * MPI_C_LONG_DOUBLE_COMPLEX, MPI_COMPLEX, MPI_COMPLEX16, MPI_COMPLEX32,
-		 * MPI_COMPLEX4, MPI_COMPLEX8, MPI_REAL, MPI_REAL16, MPI_REAL2, MPI_REAL4,
-		 * MPI_REAL8
-		 */
 	}
 
 }

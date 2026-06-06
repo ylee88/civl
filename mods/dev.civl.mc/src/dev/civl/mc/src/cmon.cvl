@@ -102,12 +102,12 @@ void $cmon_destroy($cmon cm) {
 static void flush($cmon_g cmg) {
   int nprocs = cmg->nprocs;
   if (cmg->num_arrived[0] == nprocs) {
-    $print("Removing complete collective record.\n"); // debugging
+    //$print("Removing complete collective record.\n"); // debugging
     $seq_remove(&cmg->records, 0, NULL, 1);
     $seq_remove(&cmg->num_arrived, 0, NULL, 1);
     for (int i=0; i<nprocs; i++) cmg->num[i]--;
-    $print("Now num=", cmg->num,
-	   ", num_arrived=", cmg->num_arrived, "\n");
+    //    $print("Now num=", cmg->num,
+    //	   ", num_arrived=", cmg->num_arrived, "\n");
   }
 }
 
@@ -128,17 +128,17 @@ static int arrive($cmon cm, int kind) {
   $cmon_g cmg = cm->cmg;
   int j = cmg->num[rank];
   int nrec = $seq_length(&cmg->records);
-  $print("Proc ", rank, " arrived.  ");
+  //  $print("Proc ", rank, " arrived.  ");
   if (j < nrec) { // record already exists
     struct crecord old = cmg->records[j];
     $assert(old.kind == kind, "Collective call inconsistency");
     // TODO: provide more detail
     cmg->num_arrived[j]++;
     cmg->num[rank] = j+1;
-    $print("Record exists.  Now num=", cmg->num, ", num_arrived=", cmg->num_arrived, "\n");
+    //    $print("Record exists.  Now num=", cmg->num, ", num_arrived=", cmg->num_arrived, "\n");
     return j;
   }
-  $print("No record found.\n");
+  //  $print("No record found.\n");
   return -1;
 }
 
@@ -148,13 +148,13 @@ static int arrive($cmon cm, int kind) {
 static void add($cmon cm, struct crecord rec) {
   int rank = cm->rank;
   $cmon_g cmg = cm->cmg;
-  $print("Proc ", rank, ": adding new collective record: ", rec, "\n"); // debugging
+  //  $print("Proc ", rank, ": adding new collective record: ", rec, "\n"); // debugging
   $seq_append(&cmg->records, &rec, 1);
   int one = 1;
   $seq_append(&cmg->num_arrived, &one, 1);
   cmg->num[rank]++;
-  $print("Now num=", cmg->num,
-	 ", num_arrived=", cmg->num_arrived, "\n");
+  //  $print("Now num=", cmg->num,
+  //	 ", num_arrived=", cmg->num_arrived, "\n");
 }
 
 

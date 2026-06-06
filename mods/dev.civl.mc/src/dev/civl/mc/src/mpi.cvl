@@ -3,6 +3,7 @@
 
 #include <bundle.cvh>
 #include <civl-mpi.cvh>
+#include <cmon.cvh> // TODO: experiment in progress
 #include <concurrency.cvh>
 #include <mpi.h>
 #include <pointer.cvh>
@@ -228,105 +229,43 @@ static void checkInit(void) {
 	  "An MPI function was called when MPI was not initialized");
 }
 
-/* Broadcasts a message from root to everyone else.
- * Need to use a differnt comm.
- */
+int MPI_Barrier(MPI_Comm comm) {
+  checkInit();
+  $cmon_check_0($mpi_get_cmon(comm), BARRIER_TAG);
+  $mpi_barrier(comm);
+  return 0;
+}
+
 int MPI_Bcast(void *buf, int count, MPI_Datatype datatype, int root,
 	      MPI_Comm comm) {
   checkInit();
-  $mpi_check_Bcast(comm, count, datatype, root);
+  $cmon_check_1($mpi_get_cmon(comm), BCAST_TAG, $false,
+		($mpi_tsig){ .count=count, .type=datatype },
+		_NO_OP, root);
   if ($mpi_comm_place(comm) == root)
     $mpi_check_buffer(buf, count, datatype);
   $mpi_bcast(buf, count, datatype, root, BCAST_TAG, comm, "MPI_Bcast()");
   return 0;
 }
 
-int MPI_Reduce_local(const void *inbuf, void *inoutbuf, int count,
-                     MPI_Datatype datatype, MPI_Op op) {
-  checkInit();
-  $mpi_check_buffer(inbuf, count, datatype);
-  $mpi_check_buffer(inoutbuf, count, datatype);
-  size_t size = count * sizeofDatatype(datatype);
-  $bundle in_data = $bundle_pack(inbuf, size);
-  void *buf = $mpi_malloc(count, datatype);
-  $bundle_unpack_apply(in_data, inoutbuf, op, count, buf);
-  memcpy(inoutbuf, buf, size);
-  free(buf);
-  return 0;
-}
-
-/* Reduces values on all processes to a single value */
-int MPI_Reduce(const void* sendbuf, void* recvbuf, int count,
-	       MPI_Datatype datatype, MPI_Op op, int root,
-	       MPI_Comm comm) {
-  checkInit();
-  $mpi_check_Reduce(comm, count, datatype, op, root);
-  $mpi_check_buffer(sendbuf, count, datatype);
-  $assert(0 <= op && op <= 13, "unknown MPI reduce operation");
-  // refer to op.h & mpi.h in ABC/src/include for how MPI_Op is defined
-  $mpi_reduce(sendbuf, recvbuf, count, datatype, op, root, REDUCE_TAG, comm,
-	      "MPI_Reduce()");
-  return 0;
-}
-
-/* Combines values from all processes and distributes the result back
-   to all processes. default root is 0 */
-int MPI_Allreduce(const void* sendbuf, void* recvbuf, int count,
-		  MPI_Datatype datatype,
-		  MPI_Op op, MPI_Comm comm) {
-  checkInit();
-  $mpi_check_Allreduce(comm, count, datatype, op);
-  int root = 0;
-  MPI_Status status;
-  $mpi_check_buffer(sendbuf, count, datatype);
-  $assert(0 <= op && op <= 13, "unknown MPI reduce operation");
-  // refer to op.h & mpi.h in ABC/src/include for how MPI_Op is defined
-  $mpi_reduce(sendbuf, recvbuf, count, datatype, op, root, ALLREDUCE_TAG, comm,
-	      "MPI_Allreduce()");
-  $mpi_bcast(recvbuf, count, datatype, root, ALLREDUCE_TAG, comm,
-	     "MPI_Allreduce()");
-  return 0;
-}
-
-int MPI_Barrier(MPI_Comm comm) {
-  checkInit();
-  $mpi_check_Barrier(comm);
-  $mpi_barrier(comm);
-  return 0;
-}
-
 /* 1. If comm is an intracommunicator, each process (including root)
    sends the content of its send buffer to root. Root receives the
    messages and stores them in rank order.
-
    2. TODO: If comm is an intercommunicator, it's not supported yet */
 int MPI_Gather(const void* sendbuf, int sendcount, MPI_Datatype sendtype,
 	       void* recvbuf, int recvcount, MPI_Datatype recvtype,
 	       int root, MPI_Comm comm) {
   checkInit();
-  $mpi_check_Gather(comm, sendbuf==MPI_IN_PLACE, sendcount, sendtype,
-		    recvcount, recvtype, root);
+  $cmon_check_1_1($mpi_get_cmon(comm), GATHER_TAG, sendbuf==MPI_IN_PLACE,
+		  ($mpi_tsig){ .count=sendcount, .type=sendtype },
+		  ($mpi_tsig){ .count=recvcount, .type=recvtype },
+		  _NO_OP, root);
   if (sendbuf != MPI_IN_PLACE)
     $mpi_check_buffer(sendbuf, sendcount, sendtype);
   $mpi_gather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype,
 	      root, GATHER_TAG, comm, "MPI_Gather()");
   return 0;
 }
-
-/* The inverse operation of MPI_Gather() */
-int MPI_Scatter(const void* sendbuf, int sendcount, MPI_Datatype sendtype,
-		void* recvbuf, int recvcount, MPI_Datatype recvtype, int root,
-		MPI_Comm comm) {
-  checkInit();
-  $mpi_check_Scatter(comm, recvbuf==MPI_IN_PLACE, sendcount, sendtype,
-		     recvcount, recvtype, root);
-  if ($mpi_comm_place(comm) == root)
-    $mpi_check_buffer(sendbuf, sendcount, sendtype);
-  $mpi_scatter(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype,
-	       root, SCATTER_TAG, comm, "MPI_Scatter()");
-  return 0;
-}
-
 
 /* MPI_Gatherv extends the functionality of MPI_Gather by allowing a
    varying count of data to be sent to root process, since recvcounts
@@ -335,12 +274,34 @@ int MPI_Gatherv(const void * sendbuf, int sendcount, MPI_Datatype sendtype,
 		void * recvbuf, const int recvcounts[], const int displs[],
 		MPI_Datatype recvtype, int root, MPI_Comm comm) {
   checkInit();
-  $mpi_check_Gatherv(comm, sendbuf==MPI_IN_PLACE, sendcount, sendtype,
-		     recvcounts, recvtype, root);
+  int nprocs = $mpi_comm_size(comm), rank = $mpi_comm_place(comm);
+  $mpi_tsig * sigs2 = NULL;
+  if (rank == root)
+    sigs2 = ($mpi_tsig[nprocs]) $lambda (int i)
+      ($mpi_tsig){ .count = recvcounts[i], .type=recvtype };
+  $cmon_check_1_n
+    ($mpi_get_cmon(comm), GATHERV_TAG, sendbuf==MPI_IN_PLACE,
+     ($mpi_tsig){ .count=sendcount, .type=sendtype },
+     sigs2, _NO_OP, root);
   if (sendbuf != MPI_IN_PLACE)
     $mpi_check_buffer(sendbuf, sendcount, sendtype);
   $mpi_gatherv(sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs,
 	       recvtype, root, GATHERV_TAG, comm, "MPI_Gatherv()");
+  return 0;
+}
+
+int MPI_Scatter(const void* sendbuf, int sendcount, MPI_Datatype sendtype,
+		void* recvbuf, int recvcount, MPI_Datatype recvtype, int root,
+		MPI_Comm comm) {
+  checkInit();
+  $cmon_check_1_1($mpi_get_cmon(comm), SCATTER_TAG, recvbuf==MPI_IN_PLACE,
+		  ($mpi_tsig){ .count=sendcount, .type=sendtype },
+		  ($mpi_tsig){ .count=recvcount, .type=recvtype },
+		  _NO_OP, root);
+  if ($mpi_comm_place(comm) == root)
+    $mpi_check_buffer(sendbuf, sendcount, sendtype);
+  $mpi_scatter(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype,
+	       root, SCATTER_TAG, comm, "MPI_Scatter()");
   return 0;
 }
 
@@ -351,8 +312,15 @@ int MPI_Scatterv(const void * sendbuf, const int sendcounts[], const
 		 int displs[], MPI_Datatype sendtype, void * recvbuf,
 		 int recvcount, MPI_Datatype recvtype, int root, MPI_Comm comm) {
   checkInit();
-  $mpi_check_Scatterv(comm, recvbuf==MPI_IN_PLACE, sendcounts, sendtype,
-		      recvcount, recvtype, root);
+  int nprocs = $mpi_comm_size(comm), rank = $mpi_comm_place(comm);
+  $mpi_tsig * sigs2 = NULL;
+  if (rank == root)
+    sigs2 = ($mpi_tsig[nprocs]) $lambda (int i)
+      ($mpi_tsig){ .count = sendcounts[i], .type=sendtype };
+  $cmon_check_1_n
+    ($mpi_get_cmon(comm), SCATTERV_TAG, recvbuf==MPI_IN_PLACE,
+     ($mpi_tsig){ .count=recvcount, .type=recvtype },
+     sigs2, _NO_OP, root);
   $mpi_scatterv(sendbuf, sendcounts, displs, sendtype, recvbuf,
 		recvcount, recvtype, root, SCATTERV_TAG, comm,
 		"MPI_Scatterv()");
@@ -363,8 +331,10 @@ int MPI_Allgather(const void * sendbuf, int sendcount, MPI_Datatype sendtype,
                   void * recvbuf, int recvcount, MPI_Datatype recvtype,
                   MPI_Comm comm) {
   checkInit();
-  $mpi_check_Allgather(comm, sendbuf==MPI_IN_PLACE, sendcount, sendtype,
-		       recvcount, recvtype);
+  $cmon_check_1_1($mpi_get_cmon(comm), ALLGATHER_TAG, sendbuf==MPI_IN_PLACE,
+		  ($mpi_tsig){ .count=sendcount, .type=sendtype },
+		  ($mpi_tsig){ .count=recvcount, .type=recvtype },
+		  _NO_OP, -1);  
   int nprocs = $mpi_comm_size(comm), rank = $mpi_comm_place(comm);
   if (sendbuf != MPI_IN_PLACE)
     $mpi_check_buffer(sendbuf, sendcount, sendtype);
@@ -385,14 +355,169 @@ int MPI_Allgather(const void * sendbuf, int sendcount, MPI_Datatype sendtype,
   return 0;
 }
 
+int MPI_Allgatherv(const void * sendbuf, int sendcount,
+		   MPI_Datatype sendtype, void * recvbuf,
+		   const int recvcounts[], const int displs[],
+		   MPI_Datatype recvtype, MPI_Comm comm) {
+  checkInit();
+  int nprocs = $mpi_comm_size(comm);
+  $cmon_check_1_n($mpi_get_cmon(comm), ALLGATHERV_TAG, sendbuf==MPI_IN_PLACE,
+		  ($mpi_tsig){ .count=sendcount, .type=sendtype },
+		  (($mpi_tsig[nprocs])$lambda (int i)
+		   ($mpi_tsig){ .count=recvcounts[i], .type=recvtype }),
+		  _NO_OP, -1);
+  // TODO
+  $assert($false, "Not yet implemented");
+}
+
+int MPI_Alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+                 void *recvbuf, int recvcount, MPI_Datatype recvtype,
+                 MPI_Comm comm) {
+  checkInit();
+  $cmon_check_1_1($mpi_get_cmon(comm), ALLTOALL_TAG, sendbuf==MPI_IN_PLACE,
+		  ($mpi_tsig){ .count=sendcount, .type=sendtype },
+		  ($mpi_tsig){ .count=recvcount, .type=recvtype },
+		  _NO_OP, -1);
+  // TODO: deal with inplace possibility
+  int nprocs = $mpi_comm_size(comm);
+  int displs[nprocs], sendcounts[nprocs];
+  for (int i=0; i<nprocs; i++) {
+    sendcounts[i] = sendcount;
+    displs[i] = (i == 0) ? 0 : (displs[i-1] + sendcount);
+  }
+  $mpi_check_buffer(sendbuf, sendcount * nprocs, sendtype);
+  for (int i = 0; i < nprocs; i++) {
+    void * ptr = $mpi_pointer_add(recvbuf, i*sendcount, recvtype);
+    $mpi_scatterv(sendbuf, sendcounts, displs, sendtype,
+		  ptr, recvcount, recvtype, i, ALLTOALL_TAG, comm,
+		  "MPI_Alltoall()");
+  }
+  return 0;
+}
+
+int MPI_Alltoallv
+(const void* sendbuf, const int sendcounts[],
+ const int sdispls[], MPI_Datatype sendtype, void* recvbuf,
+ const int recvcounts[], const int rdispls[], MPI_Datatype recvtype,
+ MPI_Comm comm) {
+  int nprocs = $mpi_comm_size(comm), sendcount = 0;
+  checkInit();
+  $cmon_check_n_n($mpi_get_cmon(comm), ALLTOALLV_TAG, sendbuf==MPI_IN_PLACE,
+		  (($mpi_tsig[nprocs])$lambda (int i)
+		   ($mpi_tsig){ .count=sendcounts[i], .type=sendtype }),
+		  (($mpi_tsig[nprocs])$lambda (int i)
+		   ($mpi_tsig){ .count=recvcounts[i], .type=recvtype }));
+  for (int i = 0; i < nprocs; i++)
+    sendcount += sendcounts[i];
+  $mpi_check_buffer(sendbuf, sendcount, sendtype);
+  for (int i = 0; i < nprocs; i++) {
+    void * ptr = $mpi_pointer_add(recvbuf, rdispls[i], recvtype);
+    $mpi_scatterv(sendbuf, sendcounts, sdispls, sendtype,
+		  ptr, recvcounts[i], recvtype, i, ALLTOALLV_TAG, comm,
+		  "MPI_Alltoallv()");
+  }
+  return 0;
+}
+
+int MPI_Alltoallw(const void* sendbuf, const int sendcounts[], const int sdispls[],
+		  const MPI_Datatype sendtypes[], void* recvbuf,
+		  const int recvcounts[], const int rdispls[],
+		  const MPI_Datatype recvtypes[], MPI_Comm comm) {
+  int nprocs = $mpi_comm_size(comm), place = $mpi_comm_place(comm);
+  int sdispls_offset[nprocs];
+
+  checkInit();
+  $cmon_check_n_n($mpi_get_cmon(comm), ALLTOALLV_TAG, sendbuf==MPI_IN_PLACE,
+		  (($mpi_tsig[nprocs])$lambda (int i)
+		   ($mpi_tsig){ .count=sendcounts[i], .type=sendtypes[i] }),
+		  (($mpi_tsig[nprocs])$lambda (int i)
+		   ($mpi_tsig){ .count=recvcounts[i], .type=recvtypes[i] }));
+  for (int i = 0; i < nprocs; i++)
+    sdispls_offset[i] = sdispls[i] / sizeofDatatype(sendtypes[i]);
+  for (int i = 0; i < nprocs; i++) {
+    int recv_t_size = sizeofDatatype(recvtypes[i]);
+    void * ptr = $mpi_pointer_add(recvbuf, rdispls[i] / recv_t_size, recvtypes[i]);
+    void * sendptr = $mpi_pointer_add(sendbuf, sdispls_offset[i], sendtypes[i]);
+    $mpi_check_buffer(sendptr, sendcounts[i], sendtypes[i]);
+    $mpi_scatterv(sendbuf, sendcounts, sdispls_offset, sendtypes[i],
+		  ptr, recvcounts[i], recvtypes[i], i,
+		  ALLTOALLW_TAG, comm, "MPI_Alltoallw()");
+  }
+  return 0;
+}
+
+/* Reduces values on all processes to a single value */
+int MPI_Reduce(const void* sendbuf, void* recvbuf, int count,
+	       MPI_Datatype datatype, MPI_Op op, int root,
+	       MPI_Comm comm) {
+  checkInit();
+  $cmon_check_1($mpi_get_cmon(comm), REDUCE_TAG, $false,
+		($mpi_tsig){.count=count, .type=datatype},
+		op, root);
+  $mpi_check_buffer(sendbuf, count, datatype);
+  $assert(0 <= op && op <= 13, "unknown MPI reduce operation");
+  // refer to op.h & mpi.h in ABC/src/include for how MPI_Op is defined
+  $mpi_reduce(sendbuf, recvbuf, count, datatype, op, root, REDUCE_TAG, comm,
+	      "MPI_Reduce()");
+  return 0;
+}
+
+/* Combines values from all processes and distributes the result back
+   to all processes. default root is 0 */
+int MPI_Allreduce(const void* sendbuf, void* recvbuf, int count,
+		  MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) {
+  checkInit();
+  $cmon_check_1($mpi_get_cmon(comm), ALLREDUCE_TAG, $false,
+		($mpi_tsig){.count=count, .type=datatype},
+		op, -1);
+  int root = 0;
+  MPI_Status status;
+  $mpi_check_buffer(sendbuf, count, datatype);
+  $assert(0 <= op && op <= 13, "unknown MPI reduce operation");
+  // refer to op.h & mpi.h in ABC/src/include for how MPI_Op is defined
+  $mpi_reduce(sendbuf, recvbuf, count, datatype, op, root, ALLREDUCE_TAG, comm,
+	      "MPI_Allreduce()");
+  $mpi_bcast(recvbuf, count, datatype, root, ALLREDUCE_TAG, comm,
+	     "MPI_Allreduce()");
+  return 0;
+}
+
+int MPI_Reduce_local(const void *inbuf, void *inoutbuf, int count,
+                     MPI_Datatype datatype, MPI_Op op) {
+  checkInit();
+  $mpi_check_buffer(inbuf, count, datatype);
+  $mpi_check_buffer(inoutbuf, count, datatype);
+  size_t size = count * sizeofDatatype(datatype);
+  $bundle in_data = $bundle_pack(inbuf, size);
+  void *buf = $mpi_malloc(count, datatype);
+  $bundle_unpack_apply(in_data, inoutbuf, op, count, buf);
+  memcpy(inoutbuf, buf, size);
+  free(buf);
+  return 0;
+}
+
+int MPI_Reduce_scatter_block
+(const void *sendbuf, void *recvbuf, int recvcount,
+ MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) {
+  checkInit();
+  $cmon_check_1($mpi_get_cmon(comm), REDUCE_SCATTER_BLOCK_TAG, $false,
+		($mpi_tsig){.count=recvcount, .type=datatype},
+		op, -1);
+  // TODO
+  $assert($false, "Not yet implemented");
+}
+
 int MPI_Reduce_scatter(const void *sendbuf, void *recvbuf, const int recvcounts[],
 		       MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) {
-  checkInit();
-  $mpi_check_Reduce_scatter(comm, recvcounts, datatype, op);
-  int total_count = 0;
   int nprocs = $mpi_comm_size(comm), rank = $mpi_comm_place(comm);
-  int root = 0;
-  int displs[nprocs];
+  int total_count = 0, root = 0, displs[nprocs];
+
+  checkInit();
+  $cmon_check_1_n($mpi_get_cmon(comm), REDUCE_SCATTER_TAG, $false,
+		  MPI_TSIG_NULL,
+		  (($mpi_tsig[nprocs])$lambda (int i)
+		   ($mpi_tsig){ .count=recvcounts[i], .type=datatype }),
+		  op, -1);
   $mpi_check_buffer(sendbuf, recvcounts[rank], datatype);
   for (int i = 0; i < nprocs; i++) {
     displs[i] = total_count;
@@ -415,78 +540,12 @@ int MPI_Reduce_scatter(const void *sendbuf, void *recvbuf, const int recvcounts[
   return 0;
 }
 
-int MPI_Alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
-                 void *recvbuf, int recvcount, MPI_Datatype recvtype,
-                 MPI_Comm comm) {
-  checkInit();
-  $mpi_check_Alltoall(comm, sendbuf==MPI_IN_PLACE, sendcount, sendtype,
-		      recvcount, recvtype);
-  // TODO: deal with inplace possibility
-  int nprocs = $mpi_comm_size(comm);
-  int displs[nprocs], sendcounts[nprocs];
-  for (int i=0; i<nprocs; i++) {
-    sendcounts[i] = sendcount;
-    displs[i] = (i == 0) ? 0 : (displs[i-1] + sendcount);
-  }
-  $mpi_check_buffer(sendbuf, sendcount * nprocs, sendtype);
-  for (int i = 0; i < nprocs; i++) {
-    void * ptr = $mpi_pointer_add(recvbuf, i*sendcount, recvtype);
-    $mpi_scatterv(sendbuf, sendcounts, displs, sendtype,
-		  ptr, recvcount, recvtype, i, ALLTOALL_TAG, comm,
-		  "MPI_Alltoall()");
-  }
-  return 0;
-}
-
-int MPI_Alltoallv(const void* sendbuf, const int sendcounts[],
-		  const int sdispls[], MPI_Datatype sendtype, void* recvbuf,
-		  const int recvcounts[], const int rdispls[], MPI_Datatype recvtype,
-		  MPI_Comm comm) {
-  checkInit();
-  $mpi_check_Alltoallv(comm, sendbuf==MPI_IN_PLACE, sendcounts, sendtype,
-		       recvcounts, recvtype);
-  int nprocs = $mpi_comm_size(comm), sendcount = 0;
-  for (int i = 0; i < nprocs; i++)
-    sendcount += sendcounts[i];
-  $mpi_check_buffer(sendbuf, sendcount, sendtype);
-  for (int i = 0; i < nprocs; i++) {
-    void * ptr = $mpi_pointer_add(recvbuf, rdispls[i], recvtype);
-    $mpi_scatterv(sendbuf, sendcounts, sdispls, sendtype,
-		  ptr, recvcounts[i], recvtype, i, ALLTOALLV_TAG, comm,
-		  "MPI_Alltoallv()");
-  }
-  return 0;
-}
-
-int MPI_Alltoallw(const void* sendbuf, const int sendcounts[], const int sdispls[],
-		  const MPI_Datatype sendtypes[], void* recvbuf,
-		  const int recvcounts[], const int rdispls[],
-		  const MPI_Datatype recvtypes[], MPI_Comm comm) {
-  checkInit();
-  $mpi_check_Alltoallw(comm, sendbuf==MPI_IN_PLACE, sendcounts, sendtypes,
-		       recvcounts, recvtypes);
-  int nprocs = $mpi_comm_size(comm);
-  int place = $mpi_comm_place(comm);
-  int sdispls_offset[nprocs];
-  for (int i = 0; i < nprocs; i++)
-    sdispls_offset[i] = sdispls[i] / sizeofDatatype(sendtypes[i]);
-  for (int i = 0; i < nprocs; i++) {
-    int recv_t_size = sizeofDatatype(recvtypes[i]);
-    void * ptr = $mpi_pointer_add(recvbuf, rdispls[i] / recv_t_size, recvtypes[i]);
-    void * sendptr = $mpi_pointer_add(sendbuf, sdispls_offset[i], sendtypes[i]);
-
-    $mpi_check_buffer(sendptr, sendcounts[i], sendtypes[i]);
-    $mpi_scatterv(sendbuf, sendcounts, sdispls_offset, sendtypes[i],
-		  ptr, recvcounts[i], recvtypes[i], i,
-		  ALLTOALLW_TAG, comm, "MPI_Alltoallw()");
-  }
-  return 0;
-}
-
 int MPI_Scan(const void *sendbuf, void *recvbuf, int count,
 	     MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) {
   checkInit();
-  $mpi_check_Scan(comm, count, datatype, op);
+  $cmon_check_1($mpi_get_cmon(comm), SCAN_TAG, sendbuf==MPI_IN_PLACE,
+		($mpi_tsig){.count=count, .type=datatype},
+		op, -1);
   if (sendbuf != MPI_IN_PLACE)
     $mpi_check_buffer(sendbuf, count, datatype);
   $mpi_check_buffer(recvbuf, count, datatype);
@@ -497,7 +556,9 @@ int MPI_Scan(const void *sendbuf, void *recvbuf, int count,
 int MPI_Exscan(const void *sendbuf, void *recvbuf, int count,
 	       MPI_Datatype datatype, MPI_Op op, MPI_Comm comm) {
   checkInit();
-  $mpi_check_Exscan(comm, count, datatype, op);
+  $cmon_check_1($mpi_get_cmon(comm), EXSCAN_TAG, sendbuf==MPI_IN_PLACE,
+		($mpi_tsig){.count=count, .type=datatype},
+		op, -1);
   int place = $mpi_comm_place(comm);
   // MPI_IN_PLACE in this routine simply means that get sendbuf from recvbuf:
   if (sendbuf != MPI_IN_PLACE)

@@ -13,11 +13,7 @@
    This module uses the Collective Monitor defined in cmon.cvh
    to ensure consistency of collective calls across processes.
  */
-#include <bundle.cvh>
 #include <civl-mpi.cvh>
-#include <cmon.cvh>
-#include <comm.cvh>
-#include <concurrency.cvh>
 #include <pointer.cvh>
 #include <seq.cvh>
 #include <stdio.h>
@@ -264,6 +260,10 @@ int $mpi_comm_free(MPI_Comm *comm, $mpi_state mpi_state) {
     $mpi_gcomm_destroy(temp);
   }
   return 0;
+}
+
+$atomic_f $state_f $cmon $mpi_get_cmon(MPI_Comm comm) {
+  return comm->cm;
 }
 
 $atomic_f $state_f $comm $mpi_get_p2p_channel(MPI_Comm comm) {
@@ -757,6 +757,7 @@ int $mpi_exscan(const void* sendbuf, void* recvbuf, int count,
 
 // TODO: make these atomic with depends on comm only?
 
+/*
 void $mpi_check_Barrier(MPI_Comm comm) {
   $cmon_check_0(comm->cm, BARRIER_TAG);
 }
@@ -809,8 +810,6 @@ void $mpi_check_Scatterv
       ($mpi_tsig){ .count = sendcounts[i], .type=sendtype }),
      _NO_OP, root);
 }
-
-// TODO: left off here
 
 void $mpi_check_Allgather
 (MPI_Comm comm, _Bool inplace, int sendcount, MPI_Datatype sendtype,
@@ -910,5 +909,6 @@ void $mpi_check_Exscan
 		op, -1);
 }
 
+*/
 
 #endif

@@ -1,6 +1,5 @@
 #ifndef _CMON
 #define _CMON
-
 /* Filename : cmon.cvh
    Author   : Stephen Siegel
    Created  : 2026-06-02
@@ -22,7 +21,8 @@
    communicator state.
 
    The blocking collectives, relevant arguments for checking, and
-   the consistency condition to check.
+   the consistency condition to check.  These are the same order
+   they appear in the MPI Standard.
    * = argument is ignored if using in-place option
 
    Barrier   : nothing
@@ -68,6 +68,7 @@
    Exscan    : all: count, datatype, op
                same as Scan
  */
+#pragma CIVL ACSL
 #include <mpi-defs.cvh>
 
 // Handle to global (shared) state of collective monitor

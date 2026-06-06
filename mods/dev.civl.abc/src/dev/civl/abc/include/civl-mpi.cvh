@@ -11,6 +11,7 @@
    supports nonblocking operations, but also less optimized).
  */
 #include <bundle.cvh>
+#include <cmon.cvh>
 #include <comm.cvh>
 #include <concurrency.cvh>
 #include <mpi.h>
@@ -121,6 +122,12 @@ int $mpi_comm_dup($scope, MPI_Comm, MPI_Comm *, char *);
 $mpi_gcomm $mpi_comm_self_create($scope, MPI_Comm * mpi_comm_self);
 
 int $mpi_comm_free(MPI_Comm *, $mpi_state);
+
+
+/*@ depends_on \nothing;
+  @ executes_when \true;
+  @*/
+$atomic_f $state_f $cmon $mpi_get_cmon(MPI_Comm comm);
 
 /* Returns the `$comm` object, representing the point-to-point
    channel, referred by the given MPI communicator handle.  */
@@ -234,6 +241,7 @@ int $mpi_exscan(const void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm);
 
 // Collective monitoring functions...
 
+/*
 void $mpi_check_Barrier(MPI_Comm comm);
 
 void $mpi_check_Bcast
@@ -293,5 +301,7 @@ void $mpi_check_Scan
 
 void $mpi_check_Exscan
 (MPI_Comm comm, int count, MPI_Datatype datatype, MPI_Op op);
+
+*/
 
 #endif
