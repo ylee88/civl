@@ -705,17 +705,14 @@ public class CIVLConstants {
 	public final static String CIVL_PTHREAD = "civl-pthread.cvh";
 	public final static String CIVL_STDIO = "civl-stdio.cvh";
 	public final static String CMON = "cmon.cvh";
-	public final static String COLLATE = "collate.cvh";
 	public final static String COMM = "comm.cvh";
 	public final static String COMM2 = "comm2.cvh";
-	public final static String CONCURRENCY_CONTRACT = "concurrency_contract.cvh";
 	public final static String CONCURRENCY = "concurrency.cvh";
 	public final static String DOMAIN = "domain.cvh";
 	public final static String FORTRAN_ARRAY = "fortran_array.cvh";
 	public final static String FORTRAN_SIGP = "fortran_sigp.cvh";
 	public final static String LOOP_ASSIGNS_GEN = "loop_assigns_gen.cvh";
 	public final static String MEM = "mem.cvh";
-	public final static String MEMORY = "memory.cvh";
 	public final static String POINTER = "pointer.cvh";
 	public final static String SCOPE = "scope.cvh";
 	public final static String SEQ = "seq.cvh";
@@ -776,8 +773,8 @@ public class CIVLConstants {
 	public final static Set<String> getCivlLibHeaders() {
 		return new HashSet<String>(
 				Arrays.asList(BUNDLE, CIVLC, CIVL_CUDA, CIVL_MPI, CIVL_MPI_BLOCKING, CIVL_MPI_NONBLOCKING, CIVL_OMP,
-						CIVL_PTHREAD, CIVL_STDIO, CMON, COLLATE, COMM, COMM2, CONCURRENCY_CONTRACT, CONCURRENCY, DOMAIN,
-						FORTRAN_ARRAY, FORTRAN_SIGP, LOOP_ASSIGNS_GEN, MEM, MEMORY, POINTER, SCOPE, SEQ));
+						CIVL_PTHREAD, CIVL_STDIO, CMON, COMM, COMM2, CONCURRENCY, DOMAIN,
+						FORTRAN_ARRAY, FORTRAN_SIGP, LOOP_ASSIGNS_GEN, MEM, POINTER, SCOPE, SEQ));
 	}
 
 	/**

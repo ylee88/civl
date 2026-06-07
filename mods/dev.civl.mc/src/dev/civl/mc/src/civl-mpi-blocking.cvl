@@ -308,7 +308,7 @@ int $mpi_send(const void *buf, int count, MPI_Datatype datatype, int dest,
 
 int $mpi_recv(void *buf, int count, MPI_Datatype datatype, int source,
 	      int tag, MPI_Comm comm, MPI_Status *status) {
-  if ((source >= 0 || source == MPI_ANY_SOURCE)) {
+  if (source >= 0 || source == MPI_ANY_SOURCE) {
     $message in;
     int place = $comm_place(comm->p2p);
     int deterministicTag;
@@ -344,7 +344,7 @@ int $mpi_sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
   $assert(recvtag == -2 || recvtag >= 0,
 	  "Illegal MPI message receive tag %d.\n", recvtag);
   deterministicRecvTag = recvtag < 0 ? -2 : recvtag;
-  if ((dest >= 0) && ((source >= 0 || source == MPI_ANY_SOURCE))) {
+  if (dest >= 0 && (source >= 0 || source == MPI_ANY_SOURCE)) {
     $message out, in;
     int size = sendcount*sizeofDatatype(sendtype);
     int place = $comm_place(comm->p2p);
@@ -353,11 +353,11 @@ int $mpi_sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
     $elaborate(source);
     $elaborate(dest);
     $choose {
-      $when($true) {
+      $when ($true) {
 	$comm_enqueue(comm->p2p, out);
 	in = $comm_dequeue(comm->p2p, source, deterministicRecvTag);
       }
-      $when($false) {
+      $when ($false) {
         /* This $choose branch plays a trick which correctly
 	   implements the sendrecv() semantically. Such a branch
 	   ensures that there is no chance of potential deadlocks when
@@ -452,27 +452,21 @@ int $mpi_reduce(const void* sendbuf, void* recvbuf, int count,
   else {
     int nprocs = $comm_size(comm->col);
     int size = count * sizeofDatatype(datatype);
+    void * applybuf = $mpi_malloc(count, datatype);
     memcpy(recvbuf, sendbuf, size);
     for (int i = 0; i<nprocs; i++) {
       if (i != root) {
-	int colTag;
-	void * applybuf;
 	$message in = $comm_dequeue(comm->col, i, MPI_ANY_TAG);	
-
-	/* Collective routines have no non-deterministic tags.*/
-	colTag = $message_tag(in);
-	$assert (colTag == tag , "Collective routine %s receives a "
+	int colTag = $message_tag(in);
+	$assert (colTag == tag , "Collective routine %s received a "
 		 "message with a mismatched tag\n", routName);
-	/* the third argument "count" indicates the number of cells needs doing the
-	   operation. */
-	applybuf = $mpi_malloc(count, datatype);
 	$bundle_unpack_apply(in.data, recvbuf, op, count, applybuf);
 	memcpy(recvbuf, applybuf, size);
-	free(applybuf);
 	$assert (in.size <= size ,
 		 "Message of size %d exceeds the specified size %d.", in.size, size);
       }
     }
+    free(applybuf);
   }
   return 0;
 }
@@ -639,7 +633,7 @@ int $mpi_scatterv(const void* sendbuf, const int sendcounts[], const
   /* MPI_standard requirement: Only root process can use MPI_IN_PLACE */
   if (recvbuf == MPI_IN_PLACE) {
     $assert(root == rank, "Only root can replace 'recvbuf' with 'MPI_IN_PLACE'.");
-  } else if(rank == root) {
+  } else if (rank == root) {
     void * ptr;
 
     $assert(sendcounts[root] == recvcount, "For routine %s, sendcounts[%d] "
@@ -752,163 +746,5 @@ int $mpi_exscan(const void* sendbuf, void* recvbuf, int count,
   free(tmp_space_const);
   return 0;
 }
-
-// Collective monitoring functions...
-
-// TODO: make these atomic with depends on comm only?
-
-/*
-void $mpi_check_Barrier(MPI_Comm comm) {
-  $cmon_check_0(comm->cm, BARRIER_TAG);
-}
-
-void $mpi_check_Bcast
-(MPI_Comm comm, int count, MPI_Datatype datatype, int root) {
-  $cmon_check_1(comm->cm, BCAST_TAG, $false,
-		($mpi_tsig){ .count=count, .type=datatype },
-		_NO_OP, root);
-}
-
-void $mpi_check_Gather
-(MPI_Comm comm, _Bool inplace, int sendcount, MPI_Datatype sendtype,
- int recvcount, MPI_Datatype recvtype, int root) {
-  $cmon_check_1_1(comm->cm, GATHER_TAG, inplace,
-		  ($mpi_tsig){ .count=sendcount, .type=sendtype },
-		  ($mpi_tsig){ .count=recvcount, .type=recvtype },
-		  _NO_OP, root);
-}
-
-void $mpi_check_Gatherv
-(MPI_Comm comm, _Bool inplace, int sendcount, MPI_Datatype sendtype,
- const int recvcounts[], MPI_Datatype recvtype, int root) {
-  int nprocs =  $mpi_comm_size(comm);
-  $cmon_check_1_n
-    (comm->cm, GATHERV_TAG, inplace,
-     ($mpi_tsig){ .count=sendcount, .type=sendtype },
-     (($mpi_tsig[nprocs]) $lambda (int i)
-      ($mpi_tsig){ .count = recvcounts[i], .type=recvtype }),
-     _NO_OP, root);
-}
-
-void $mpi_check_Scatter
-(MPI_Comm comm, _Bool inplace, int sendcount, MPI_Datatype sendtype,
- int recvcount, MPI_Datatype recvtype, int root) {
-  $cmon_check_1_1(comm->cm, SCATTER_TAG, inplace,
-		  ($mpi_tsig){ .count=sendcount, .type=sendtype },
-		  ($mpi_tsig){ .count=recvcount, .type=recvtype },
-		  _NO_OP, root);
-}
-
-void $mpi_check_Scatterv
-(MPI_Comm comm, _Bool inplace, const int sendcounts[], MPI_Datatype sendtype,
- int recvcount, MPI_Datatype recvtype, int root) {
-  int nprocs = $mpi_comm_size(comm);
-  $cmon_check_1_n
-    (comm->cm, SCATTERV_TAG, inplace,
-     ($mpi_tsig){ .count=recvcount, .type=recvtype },
-     (($mpi_tsig[nprocs]) $lambda (int i)
-      ($mpi_tsig){ .count = sendcounts[i], .type=sendtype }),
-     _NO_OP, root);
-}
-
-void $mpi_check_Allgather
-(MPI_Comm comm, _Bool inplace, int sendcount, MPI_Datatype sendtype,
- int recvcount, MPI_Datatype recvtype) {
-  $cmon_check_1_1(comm->cm, ALLGATHER_TAG, inplace,
-		  ($mpi_tsig){ .count=sendcount, .type=sendtype },
-		  ($mpi_tsig){ .count=recvcount, .type=recvtype },
-		  _NO_OP, -1);  
-}
-
-void $mpi_check_Allgatherv
-(MPI_Comm comm, _Bool inplace, int sendcount, MPI_Datatype sendtype,
- const int recvcounts[], MPI_Datatype recvtype) {
-  int nprocs = $mpi_comm_size(comm);
-  $cmon_check_1_n(comm->cm, ALLGATHERV_TAG, inplace,
-		  ($mpi_tsig){ .count=sendcount, .type=sendtype },
-		  (($mpi_tsig[nprocs])$lambda (int i)
-		   ($mpi_tsig){ .count=recvcounts[i], .type=recvtype }),
-		  _NO_OP, -1);
-}
-
-void $mpi_check_Alltoall
-(MPI_Comm comm, _Bool inplace, int sendcount, MPI_Datatype sendtype,
- int recvcount, MPI_Datatype recvtype) {
-  $cmon_check_1_1(comm->cm, ALLTOALL_TAG, inplace,
-		  ($mpi_tsig){ .count=sendcount, .type=sendtype },
-		  ($mpi_tsig){ .count=recvcount, .type=recvtype },
-		  _NO_OP, -1);
-}
-
-void $mpi_check_Alltoallv
-(MPI_Comm comm, _Bool inplace, const int sendcounts[], MPI_Datatype sendtype,
- const int recvcounts[], MPI_Datatype recvtype) {
-  int nprocs = $mpi_comm_size(comm);
-  $cmon_check_n_n(comm->cm, ALLTOALLV_TAG, inplace,
-		  (($mpi_tsig[nprocs])$lambda (int i)
-		   ($mpi_tsig){ .count=sendcounts[i], .type=sendtype }),
-		  (($mpi_tsig[nprocs])$lambda (int i)
-		   ($mpi_tsig){ .count=recvcounts[i], .type=recvtype }));
-}
-
-void $mpi_check_Alltoallw
-(MPI_Comm comm, _Bool inplace, const int sendcounts[],
- const MPI_Datatype sendtypes[], const int recvcounts[],
- const MPI_Datatype recvtypes[]) {
-  int nprocs = $mpi_comm_size(comm);
-  $cmon_check_n_n(comm->cm, ALLTOALLV_TAG, inplace,
-		  (($mpi_tsig[nprocs])$lambda (int i)
-		   ($mpi_tsig){ .count=sendcounts[i], .type=sendtypes[i] }),
-		  (($mpi_tsig[nprocs])$lambda (int i)
-		   ($mpi_tsig){ .count=recvcounts[i], .type=recvtypes[i] }));
-}
-
-void $mpi_check_Reduce
-(MPI_Comm comm, int count, MPI_Datatype datatype, MPI_Op op, int root) {
-  $cmon_check_1(comm->cm, REDUCE_TAG, $false,
-		($mpi_tsig){.count=count, .type=datatype},
-		op, root);
-}
-
-void $mpi_check_Allreduce
-(MPI_Comm comm, int count, MPI_Datatype datatype, MPI_Op op) {
-  $cmon_check_1(comm->cm, ALLREDUCE_TAG, $false,
-		($mpi_tsig){.count=count, .type=datatype},
-		op, -1);
-}
-
-
-void $mpi_check_Reduce_scatter_block
-(MPI_Comm comm, int recvcount, MPI_Datatype datatype, MPI_Op op) {
-  $cmon_check_1(comm->cm, REDUCE_SCATTER_BLOCK_TAG, $false,
-		($mpi_tsig){.count=recvcount, .type=datatype},
-		op, -1);
-}
-
-void $mpi_check_Reduce_scatter
-(MPI_Comm comm, const int recvcounts[], MPI_Datatype datatype, MPI_Op op) {
-  int nprocs = $mpi_comm_size(comm);
-  $cmon_check_1_n(comm->cm, REDUCE_SCATTER_TAG, $false,
-		  MPI_TSIG_NULL,
-		  (($mpi_tsig[nprocs])$lambda (int i)
-		   ($mpi_tsig){ .count=recvcounts[i], .type=datatype }),
-		  op, -1);
-}
-
-void $mpi_check_Scan
-(MPI_Comm comm, int count, MPI_Datatype datatype, MPI_Op op) {
-  $cmon_check_1(comm->cm, SCAN_TAG, $false,
-		($mpi_tsig){.count=count, .type=datatype},
-		op, -1);
-}
-
-void $mpi_check_Exscan
-(MPI_Comm comm, int count, MPI_Datatype datatype, MPI_Op op) {
-  $cmon_check_1(comm->cm, EXSCAN_TAG, $false,
-		($mpi_tsig){.count=count, .type=datatype},
-		op, -1);
-}
-
-*/
 
 #endif

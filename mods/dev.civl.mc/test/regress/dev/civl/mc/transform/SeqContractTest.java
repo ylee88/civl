@@ -20,8 +20,7 @@ public class SeqContractTest {
 
 	private static UserInterface ui = new UserInterface();
 
-	private static File rootDir = new File(new File("examples"),
-			"contracts/contractsSeq");
+	private static File rootDir = new File(new File("examples"), "contracts/contractsSeq");
 
 	private static String filename(String name) {
 		return new File(rootDir, name).getPath();
@@ -29,9 +28,8 @@ public class SeqContractTest {
 
 	@Test
 	public void sum() {
-		assertTrue(ui.run(VERIFY, TestConstants.QUIET,
-				"-mpiContract=_CIVL_CONTRACT_ALL", "-loop",
-				filename("sum.cvl")));
+		assertTrue(
+				ui.run(VERIFY, TestConstants.QUIET, "-mpiContract=_CIVL_CONTRACT_ALL", "-loop", filename("sum.cvl")));
 	}
 
 }

@@ -31,8 +31,8 @@ int MPI_Type_size(MPI_Datatype datatype, int *size) {
 }
 
 int MPI_Finalize(void) {
-  $assert(_mpi_state == _MPI_INIT, "Process can only call MPI_Finalize() after the "
-	  "MPI enviroment is created and before cleaned.");
+  $assert(_mpi_state == _MPI_INIT, "Process can only call MPI_Finalize() after "
+	  "MPI_Init() and before MPI_Finalize().");
   _mpi_state = _MPI_FINALIZED;
   return 0;
 }
@@ -142,9 +142,9 @@ int MPI_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of_
 	  "without MPI_Init() being called before.\n");
 #ifdef _MPI_NON_BLOCKING
   $for (int i : 0 .. count-1) {
-    MPI_Status * status = array_of_statuses == MPI_STATUSES_IGNORE ? MPI_STATUS_IGNORE : array_of_statuses + i;
+    MPI_Status * status = array_of_statuses == MPI_STATUSES_IGNORE ?
+      MPI_STATUS_IGNORE : array_of_statuses + i;
     MPI_Request * req = array_of_requests + i;
-
     $mpi_wait(req, status);
   }
   return 1;

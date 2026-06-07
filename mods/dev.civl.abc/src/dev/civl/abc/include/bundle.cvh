@@ -34,9 +34,11 @@ $system $bundle $bundle_pack(const void *ptr, int size);
   @*/
 $system void $bundle_unpack($bundle bundle, void *ptr);
 
-/* Unpacks the bundle and applies the specified operation on the content of the bundle.
- * For every binary operation defined in &operation, the content of the bundle will be used as the left operand 
- * and buf will be used as the right operand. The result of the operation is stored in result once is it is done. 
+/* Unpacks the bundle and applies the specified operation on the
+ * content of the bundle.  For every binary operation defined in
+ * &operation, the content of the bundle will be used as the left
+ * operand and buf will be used as the right operand. The result of
+ * the operation is stored in result once is it is done.
  * 
  * Requires buf and result are pointers-to-T;
  *          the bundle--data contains sizeof(T) * count amount of objects;
@@ -47,6 +49,7 @@ $system void $bundle_unpack($bundle bundle, void *ptr);
   @ depends_on \access(result);
   @ executes_when \true;
   @*/
-$atomic_f void $bundle_unpack_apply($bundle data, void *buf, $operation op, int count, void *result);
+$atomic_f void $bundle_unpack_apply($bundle data, void *buf, $operation op,
+				    int count, void *result);
 
 #endif

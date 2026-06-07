@@ -68,8 +68,7 @@ public class VerifyThisTest {
 
 	@Test
 	public void binaryTreeTraversal() {
-		assertTrue(ui.run(VERIFY, QUIET, "-inputDB=4",
-				filename("binaryTreeTraversal.cvl")));
+		assertTrue(ui.run(VERIFY, QUIET, "-inputDB=4", filename("binaryTreeTraversal.cvl")));
 	}
 
 	@Test
@@ -79,29 +78,24 @@ public class VerifyThisTest {
 
 	@Test
 	public void treeBuffer() {
-		assertTrue(ui.run(COMPARE, QUIET, "-checkMemoryLeak=false", "-inputN=3",
-				"-spec", filename("treeBuffer/driver.cvl"),
-				filename("treeBuffer/treebuffer_naive.cvl"), "-impl",
-				filename("treeBuffer/driver.cvl"),
-				filename("treeBuffer/treebuffer.cvl")));
+		assertTrue(ui.run(COMPARE, QUIET, "-checkMemoryLeak=false", "-inputN=3", "-spec",
+				filename("treeBuffer/driver.cvl"), filename("treeBuffer/treebuffer_naive.cvl"), "-impl",
+				filename("treeBuffer/driver.cvl"), filename("treeBuffer/treebuffer.cvl")));
 	}
 
 	@Test
 	public void treeBufferBound() {
-		assertTrue(ui.run(VERIFY, QUIET, "-inputN=3",
-				filename("treeBuffer/driver_heap_bound.cvl"),
+		assertTrue(ui.run(VERIFY, QUIET, "-inputN=3", filename("treeBuffer/driver_heap_bound.cvl"),
 				filename("treeBuffer/treebuffer.cvl")));
 	}
 
 	@Test
 	public void parallelOddEvenSort() {
-		assertTrue(ui.run(VERIFY, QUIET, "-input_mpi_nprocs=3", "-inputN=3",
-				filename("parallelOddEvenSort.cvl")));
+		assertTrue(ui.run(VERIFY, QUIET, "-input_mpi_nprocs=3", "-inputN=3", filename("parallelOddEvenSort.cvl")));
 	}
 
 	@Test
 	public void oddEvenSort() {
-		assertTrue(ui.run(VERIFY, QUIET, "-inputN=3",
-				filename("oddEvenSort.cvl")));
+		assertTrue(ui.run(VERIFY, QUIET, "-inputN=3", filename("oddEvenSort.cvl")));
 	}
 }

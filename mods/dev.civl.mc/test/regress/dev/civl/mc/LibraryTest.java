@@ -42,7 +42,6 @@ public class LibraryTest {
 	@SuppressWarnings("unused")
 	private final static String EXTERNAL = "external";
 	private final static String MATH = "math";
-	private final static String COLLATE = "collate";
 
 	/* *************************** Helper Methods *************************** */
 
@@ -401,12 +400,6 @@ public class LibraryTest {
 	@Test
 	public void power() {
 		assertTrue(ui.run("verify", QUIET, filename(CIVLC, "pow.cvl")));
-	}
-
-	@Test
-	public void completeCollateState() {
-		assertTrue(ui.run("verify", QUIET,
-				filename(COLLATE, "completeCollateState.cvl")));
 	}
 
 	@Test

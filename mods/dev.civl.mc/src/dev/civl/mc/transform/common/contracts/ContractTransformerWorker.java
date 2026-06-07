@@ -1,5 +1,6 @@
 package dev.civl.mc.transform.common.contracts;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -128,6 +129,7 @@ public class ContractTransformerWorker extends BaseWorker {
 		AST newAst;
 		int count;
 
+		findMPIAndNodesofSourceFiles(root, sourceFiles);
 		globalVarHavocs = havocForGlobalVariables(sourceFiles);
 
 		// extracted function declarations and other source file nodes:
@@ -270,7 +272,7 @@ public class ContractTransformerWorker extends BaseWorker {
 		List<FunctionDefinitionNode> targets = new LinkedList<>();
 		List<FunctionDeclarationNode> callees = new LinkedList<>();
 		List<BlockItemNode> others = new LinkedList<>();
-		boolean verifyAll = targetFunctionName == CIVLConstants.CONTRACT_CHECK_ALL;
+		boolean verifyAll = targetFunctionName.equals(CIVLConstants.CONTRACT_CHECK_ALL);
 
 		for (BlockItemNode child : sourceFileNodes) {
 			if (child.nodeKind() == NodeKind.FUNCTION_DECLARATION || child.nodeKind() == NodeKind.FUNCTION_DEFINITION) {
@@ -590,6 +592,41 @@ public class ContractTransformerWorker extends BaseWorker {
 	/*
 	 * ************************* Utility methods ****************************
 	 */
+
+	/**
+	 * Return a list of {@link BlockItemNode}s which comes from source code in
+	 * "source file"s. Here a "source file" is a file with ".c, .cvl, .h" or ".cvh"
+	 * suffix and NOT under the system include path.
+	 * 
+	 * @param root         the root node of an AST
+	 * @param srcFileNodes OUTPUT. all the block item nodes in the given AST that
+	 *                     come from "source files"
+	 * @return true iff there is at least one node comes from "mpi.h"
+	 */
+	private boolean findMPIAndNodesofSourceFiles(SequenceNode<BlockItemNode> root, List<BlockItemNode> srcFileNodes) {
+		Path civlIncludePath = CIVLConstants.CIVL_LIB_SRC_PATH.toPath();
+		Path frontendIncludePath = CIVLConstants.CIVL_LIB_INCLUDE_PATH.toPath();
+		boolean hasMPI = false;
+
+		for (BlockItemNode node : root) {
+			if (node == null)
+				continue;
+
+			Path sourceFilePath = node.getSource().getFirstToken().getSourceFile().getFile().toPath();
+			String sourceFileName = sourceFilePath.getFileName().toString();
+
+			if (sourceFilePath.startsWith(civlIncludePath) || sourceFilePath.startsWith(frontendIncludePath)) {
+				if (!hasMPI && sourceFileName.equals("mpi.h"))
+					hasMPI = true;
+				continue;
+			}
+			srcFileNodes.add(node);
+
+			assert sourceFileName.endsWith(".c") || sourceFileName.endsWith(".cvl") || sourceFileName.endsWith(".h")
+					|| sourceFileName.endsWith(".cvh");
+		}
+		return hasMPI;
+	}
 
 	/**
 	 * <p>

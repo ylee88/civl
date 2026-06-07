@@ -44,7 +44,8 @@ public class MPI_OpenMPTest {
 		assertTrue(ui.run(
 				"verify -enablePrintf=false -DMATH_ELABORATE_ASSUMPTIONS ",
 				"-input_mpi_nprocs=2 -input_omp_thread_max=10 -ompNoSimplify=false -ompLoopDecomp=ALL",
-				TestConstants.QUIET, filename("mpi-omp-pie-calculation100.c")));
+				//TestConstants.QUIET,
+				filename("mpi-omp-pie-calculation100.c")));
 	}
 
 	@Test

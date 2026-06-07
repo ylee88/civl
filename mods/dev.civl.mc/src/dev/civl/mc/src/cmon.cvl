@@ -221,27 +221,70 @@ void $cmon_check_1($cmon cm, int kind, _Bool inplace,
   flush(cm->cmg);  
 }
 
-/* Gather, Scatter, Allgather, Alltoall.
-   sig1 is send sig, sig2 is recv sig.
-   For all but Scatter: if inplace, then send sig is ignored.
-   For Scatter: if inplace, then recv sig is ignored. */
+/* Gather, Scatter, Allgather, Alltoall.  Note we only handle
+   intracommunicators.  sig1 is send sig, sig2 is recv sig.
+
+   Gather:
+     root: if !inplace check consistency of send and recv sigs
+           if !new, check consistency of recv sig with record sig
+             else set record sig to recv sig
+     nonroot: if !new, check consistency of send sig with record sig
+             else set record sig to send sig
+   Scatter (dual to Gather):
+     root: if !inplace check consistency of send and recv sigs
+           if !new, check consistency of send sig with record sig
+            else set record sig to send sig
+     nonroot: if !new, check consistency of recv sig with record sig
+            else set record sig to recv sig
+   Allgather, Alltoall:
+           if !inplace check consistency of send and recv sigs
+           if !new, check consistency of recv sig with record sig
+            else set record sig to recv sig
+           TODO: check either all procs use inplace or none do
+ */
 void $cmon_check_1_1($cmon cm, int kind, _Bool inplace,
 		     $mpi_tsig sig1, $mpi_tsig sig2,
 		     MPI_Op op, int root) {
-  int pos = arrive(cm, kind);
-  $mpi_tsig sig0 = (kind == SCATTER_TAG ? sig1 : sig2);
+  int pos = arrive(cm, kind), rank = cm->rank;
+  if (!inplace && (!(kind == GATHER_TAG || kind == SCATTER_TAG) || rank==root))
+    check_tsig(sig1, sig2);
   if (pos >= 0) { // record exists
     struct crecord old = cm->cmg->records[pos];
-    if (kind == GATHER_TAG || kind == SCATTER_TAG)
+    $mpi_tsig sig0 = old.sigs[0][0];
+    switch (kind) {
+    case GATHER_TAG:
       $assert(old.root == root, "Inconsistency in MPI root argument");
-    if (!inplace) check_tsig(sig1, sig2);
-    check_tsig(old.sigs[0][0], sig0);
-  } else {
+      check_tsig(sig0, (rank == root ? sig2 : sig1));
+      break;
+    case SCATTER_TAG:
+      $assert(old.root == root, "Inconsistency in MPI root argument");
+      check_tsig(sig0, (rank == root ? sig1 : sig2));
+      break;
+    case ALLGATHER_TAG:
+    case ALLTOALL_TAG:
+      check_tsig(sig0, sig2);
+      break;
+    default:
+      $assert($false);
+    }
+  } else { // new record
     struct crecord rec = new_crecord(kind, 1, 1);
-    rec.sigs[0][0] = sig0;
-    if (kind == GATHER_TAG || kind == SCATTER_TAG)
+    switch (kind) {
+    case GATHER_TAG:
       rec.root = root;
-    if (!inplace) check_tsig(sig1, sig2);
+      rec.sigs[0][0] = (rank == root ? sig2 : sig1);
+      break;
+    case SCATTER_TAG:
+      rec.root = root;
+      rec.sigs[0][0] = (rank == root ? sig1 : sig2);
+      break;
+    case ALLGATHER_TAG:
+    case ALLTOALL_TAG:
+      rec.sigs[0][0] = sig2;
+      break;
+    default:
+      $assert($false);
+    }
     add(cm, rec);
   }
   flush(cm->cmg);   
