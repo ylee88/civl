@@ -1514,6 +1514,9 @@ public class Cuda2CIVLWorker extends BaseWorker {
 		List<ExpressionNode> hostParams = new LinkedList<>();
 		for (VariableDeclarationNode mainParam : mainFunction.getTypeNode()
 				.getParameters()) {
+			if (mainParam.getTypeNode().kind() == TypeNodeKind.VOID)
+				continue;
+			
 			hostParams.add(nodeExprId(srcMethod, mainParam.getName()));
 		}
 		newBody.add(nodeDeclVarInit(srcMethod, hostProcName,
