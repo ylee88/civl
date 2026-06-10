@@ -28,60 +28,10 @@
 #endif
 #pragma CIVL ACSL // ACSL contracts are used in this file
 
-
-// Preprocessor macros...
-
-// Internal tags used to implement various MPI routines...
-// Other functions...
-#define COMMDUP_TAG      100
-#define COMMFREE_TAG     101
-
-// Type definitions...
-
-/* The state of an MPI process: uninitialized before MPI_Init is
-   called, initialized after MPI_Init but before MPI_Finalize, and
-   finalized after MPI_Finalize.  There is a global variable of this
-   type declared in mpi.cvl. */
-typedef enum _mpi_state {
-  _MPI_UNINIT,
-  _MPI_INIT,
-  _MPI_FINALIZED
-} $mpi_state;
-
 /* This structure is used to store the global (shared) states of an
    MPI communicator. */
 typedef struct $mpi_gcomm $mpi_gcomm;
 
-// Misc. MPI support functions...
-
-/* Abstract function used to represent wall time. */
-$abstract double $mpi_time(int i);
-
-/*@ pure;
-  @ depends_on \nothing;
-  @ executes_when \true;
-  @*/
-$state_f $atomic_f int sizeofDatatype(MPI_Datatype);
-
-/* Returns the number of chars of the given MPI_Datatype.  equivalent
- * to returns (datatypeSizeof(datatype) / sizeof(char)) */
-$state_f size_t $mpi_extentof(MPI_Datatype);
-
-/* Allocate memory space with MPI type signitures. Returns a pointer
-   to the allocated memory space */
-void * $mpi_malloc(int count, MPI_Datatype datatype);
-
-void* $mpi_pointer_add(const void*, int, MPI_Datatype);
-
-/* Assert that the basetype of the object pointed by 'buf' is sames as
-   the basetype of the 'datatype'. Here a basetype of an MPI_Datatype
-   means a indivisiable MPI_datatype, e.g. the basetype of MPI_2INT is
-   MPI_INT.*/
-/*@ depends_on \access(buf);
-  @ executes_when \true;
-  @*/
-$system[mpi] void $mpi_check_buffer(const void * buf, int count,
-				    MPI_Datatype datatype);
 
 // Communicator functions...
 
@@ -210,98 +160,12 @@ int $mpi_collective_send(const void *, int, MPI_Datatype, int, int, MPI_Comm);
 int $mpi_collective_recv(void *, int, MPI_Datatype, int, int,
 			 MPI_Comm, MPI_Status *, char *);
 
+int $mpi_collective_sendrecv
+(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+ int dest, int sendtag, void *recvbuf, int recvcount, 
+ MPI_Datatype recvtype, int source, int recvtag,
+ MPI_Comm comm, MPI_Status *status);
+
 int $mpi_barrier(MPI_Comm);
-
-int $mpi_bcast(void *, int, MPI_Datatype, int, int, MPI_Comm, char *);
-
-int $mpi_reduce(const void*, void*, int,
-		MPI_Datatype, MPI_Op, int, int,
-		MPI_Comm, char *);
-
-int $mpi_gather(const void*, int, MPI_Datatype, 
-	       void*, int, MPI_Datatype, int, int, MPI_Comm, char *);
-
-int $mpi_gatherv(const void*, int, MPI_Datatype,
-		void*, const int[], const int[],
-		 MPI_Datatype, int, int, 
-		 MPI_Comm, char *);
-
-int $mpi_scatter(const void*, int, MPI_Datatype, 
-		 void*, int, MPI_Datatype, int,
-		 int, MPI_Comm, char *);
-
-int $mpi_scatterv(const void*, const int[], const
-		 int[], MPI_Datatype, void* ,
-		 int, MPI_Datatype, int, int,
-		  MPI_Comm, char *);
-
-int $mpi_scan(const void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm);
-
-int $mpi_exscan(const void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm);
-
-// Collective monitoring functions...
-
-/*
-void $mpi_check_Barrier(MPI_Comm comm);
-
-void $mpi_check_Bcast
-(MPI_Comm comm, int count, MPI_Datatype datatype, int root);
-
-void $mpi_check_Gather
-(MPI_Comm comm, _Bool inplace, int sendcount, MPI_Datatype sendtype,
- int recvcount, MPI_Datatype recvtype, int root);
-
-void $mpi_check_Gatherv
-(MPI_Comm comm, _Bool inplace, int sendcount, MPI_Datatype sendtype,
- const int recvcounts[], MPI_Datatype recvtype, int root);
-
-void $mpi_check_Scatter
-(MPI_Comm comm, _Bool inplace, int sendcount, MPI_Datatype sendtype,
- int recvcount, MPI_Datatype recvtype, int root);
-
-void $mpi_check_Scatterv
-(MPI_Comm comm, _Bool inplace, const int sendcounts[], MPI_Datatype sendtype,
- int recvcount, MPI_Datatype recvtype, int root);
-
-void $mpi_check_Allgather
-(MPI_Comm comm, _Bool inplace, int sendcount, MPI_Datatype sendtype,
- int recvcount, MPI_Datatype recvtype);
-
-void $mpi_check_Allgatherv
-(MPI_Comm comm, _Bool inplace, int sendcount, MPI_Datatype sendtype,
- const int recvcounts[], MPI_Datatype recvtype);
-
-void $mpi_check_Alltoall
-(MPI_Comm comm, _Bool inplace, int sendcount, MPI_Datatype sendtype,
- int recvcount, MPI_Datatype recvtype);
-
-void $mpi_check_Alltoallv
-(MPI_Comm comm, _Bool inplace, const int sendcounts[], MPI_Datatype sendtype,
- const int recvcounts[], MPI_Datatype recvtype);
-
-void $mpi_check_Alltoallw
-(MPI_Comm comm, _Bool inplace, const int sendcounts[],
- const MPI_Datatype sendtypes[], const int recvcounts[],
- const MPI_Datatype recvtypes[]);
-
-void $mpi_check_Reduce
-(MPI_Comm comm, int count, MPI_Datatype datatype, MPI_Op op, int root);
-
-void $mpi_check_Allreduce
-(MPI_Comm comm, int count, MPI_Datatype datatype, MPI_Op op);
-
-void $mpi_check_Reduce_scatter_block
-(MPI_Comm comm, int recvcount, MPI_Datatype datatype, MPI_Op op);
-
-void $mpi_check_Reduce_scatter
-(MPI_Comm comm, const int recvcounts[], MPI_Datatype datatype, MPI_Op op);
-
-void $mpi_check_Scan
-(MPI_Comm comm, int count, MPI_Datatype datatype, MPI_Op op);
-
-void $mpi_check_Exscan
-(MPI_Comm comm, int count, MPI_Datatype datatype, MPI_Op op);
-
-*/
 
 #endif

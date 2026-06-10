@@ -1,0 +1,105 @@
+
+#include <mpi-defs.cvh>
+#include <pointer.cvh>
+
+/* Returns the string literal of certain MPI routine names by giving
+   the unique message tag. */
+char * $mpi_coroutine_name(int tag) {
+  switch(tag) {
+    // collectives...
+  case ALLGATHER_TAG: return "MPI_Allgather";
+  case ALLGATHERV_TAG: return "MPI_Allgatherv";
+  case ALLREDUCE_TAG: return "MPI_Allreduce";
+  case ALLTOALLV_TAG: return "MPI_Alltoallv";
+  case ALLTOALLW_TAG: return "MPI_Alltoallw";
+  case ALLTOALL_TAG: return "MPI_Alltoall";
+  case BARRIER_TAG: return "MPI_Barrier";
+  case BCAST_TAG: return "MPI_Bcast"; 
+  case EXSCAN_TAG: return "MPI_Exscan";
+  case GATHERV_TAG: return "MPI_Gatherv";
+  case GATHER_TAG: return "MPI_Gather";
+  case REDUCE_TAG: return "MPI_Reduce";
+  case REDUCE_SCATTER_BLOCK_TAG: return "MPI_Reduce_scatter_block";
+  case REDUCE_SCATTER_TAG: return "MPI_Reduce_scatter";
+  case SCAN_TAG: return "MPI_Scan";
+  case SCATTERV_TAG: return "MPI_Scatterv";
+  case SCATTER_TAG: return "MPI_Scatter";
+    // other functions...
+  case COMMDUP_TAG: return "MPI_Commdup";
+  case COMMFREE_TAG: return "MPI_Commfree";
+  default: $assert($false,
+		   "Internal Error: Unexpected MPI routine tag:%d.\n", tag);
+  }
+}
+
+$state_f size_t $mpi_extentof(MPI_Datatype datatype) {
+  $abstract size_t $mpi_sizeof(MPI_Datatype datatype);
+  return $mpi_sizeof(datatype);	  
+}
+
+int sizeofDatatype(MPI_Datatype datatype) {
+  if (!$is_concrete_int(datatype))
+    return $mpi_extentof(datatype);
+  
+  size_t result;
+
+  // TODO: complete this list.  cover all cases
+  switch (datatype) {
+  case MPI_INT:
+    result =  sizeof(int); break;
+  case MPI_2INT:
+    result =  (sizeof(int)*2); break;
+  case MPI_FLOAT:
+    result =  sizeof(float); break;
+  case MPI_DOUBLE:
+    result =  sizeof(double); break;
+  case MPI_CHAR:
+    result =  sizeof(char); break;
+  case MPI_BYTE:
+    result =  sizeof(char); break; // char is always one byte ?
+  case MPI_SHORT:
+    result =  sizeof(short); break;
+  case MPI_LONG:
+    result =  sizeof(long); break;
+  case MPI_LONG_DOUBLE:
+    result =  sizeof(long double); break;
+  case MPI_LONG_LONG_INT:
+    result =  sizeof(long long int); break;
+  case MPI_LONG_LONG:
+    result =  sizeof(long long); break;
+  case MPI_UNSIGNED_LONG_LONG:
+    result =  sizeof(unsigned long long); break;
+  default:
+    $assert(0, "Unreachable");
+  }
+  return result;
+}
+
+void * $mpi_malloc($scope scope, int count, MPI_Datatype datatype) {
+  switch (datatype) {
+  case MPI_INT:
+  case MPI_SHORT:
+  case MPI_LONG:
+  case MPI_LONG_LONG_INT:
+  case MPI_LONG_LONG:
+  case MPI_UNSIGNED_LONG_LONG:
+    return (int *)$malloc(scope, sizeof(int) * count);
+  case MPI_2INT:
+    return (int *)$malloc(scope, 2 * count * sizeof(int));
+  case MPI_FLOAT:
+  case MPI_DOUBLE:
+  case MPI_LONG_DOUBLE:
+    return ($real *)$malloc(scope, count * sizeof($real));
+  case MPI_CHAR:
+  case MPI_BYTE:
+    return (char *)$malloc(scope, count * sizeof(char));
+  default:
+    $assert(0, "Unreachable");
+  }
+  return (void *)0;
+}
+
+void * $mpi_pointer_add(const void * ptr, int offset, MPI_Datatype datatype) {
+  int type_size = sizeofDatatype(datatype);
+  return $pointer_add(ptr, offset, type_size);
+}

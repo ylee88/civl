@@ -649,9 +649,15 @@ public class LibpointerExecutor extends BaseLibraryExecutor implements LibraryEx
 	}
 
 	/**
-	 * Execute the
+	 * Executes the
 	 * <code>void * $pointer_add(const void *ptr, int offset, int type_size);</code>
-	 * system function.
+	 * system function. The resulting pointer should point to the byte that is
+	 * {@code offset*type_size} to the right of {@code ptr}, i.e.,
+	 * {@code (char*)ptr + (offset*typesize)}.
+	 * 
+	 * The current implementation is very limited. It requires that ptr points to
+	 * some element in a (possibly multidimensional) array. I.e. an element of type
+	 * T in an array of type T[n1]...[nk].
 	 * 
 	 * @param state          The current state
 	 * @param pid            The PID of the process
@@ -665,20 +671,10 @@ public class LibpointerExecutor extends BaseLibraryExecutor implements LibraryEx
 	private Evaluation executePointer_add(State state, int pid, String process, Expression[] arguments,
 			SymbolicExpression[] argumentValues, CIVLSource source) throws UnsatisfiablePathConditionException {
 		SymbolicExpression ptr = argumentValues[0];
-		SymbolicExpression output_ptr;
 		NumericExpression offset = (NumericExpression) argumentValues[1];
 		NumericExpression type_size = (NumericExpression) argumentValues[2];
-		// ptr_primType_size: the size of the primitive type pointed by first
-		// argument, which
-		// should be equal to the last argument which is the size of the
-		// expected primitive type
-		NumericExpression ptr_primType_size;
-		CIVLType primitiveTypePointedStatic;
-		SymbolicType primitiveTypePointed;
-		Evaluation eval;
-		BooleanExpression claim;
-		Reasoner reasoner;
-		ResultType resultType;
+		// the following is the offset in bytes, i.e., offset*typesize:
+		NumericExpression offsetBytes = universe.multiply(offset, type_size);
 
 		if (!ptr.operator().equals(SymbolicOperator.TUPLE)) {
 			errorLogger.logSimpleError(source, state, pid, process, symbolicAnalyzer.stateInformation(state),
@@ -686,12 +682,15 @@ public class LibpointerExecutor extends BaseLibraryExecutor implements LibraryEx
 							+ symbolicAnalyzer.symbolicExpressionToString(source, state, null, ptr));
 			throw new UnsatisfiablePathConditionException();
 		}
-		primitiveTypePointedStatic = symbolicAnalyzer.getArrayBaseType(state, arguments[0].getSource(), ptr);
-		primitiveTypePointed = primitiveTypePointedStatic.getDynamicType(universe);
-		ptr_primType_size = typeFactory.sizeofDynamicType(primitiveTypePointed);
-		claim = universe.divides(ptr_primType_size, type_size);
-		reasoner = universe.reasoner(state.getPathCondition(universe));
-		resultType = reasoner.valid(claim).getResultType();
+		// the following gets the "primitive" type T and its size:
+		CIVLType primitiveTypePointedStatic = symbolicAnalyzer.getArrayBaseType(state, arguments[0].getSource(), ptr);
+		SymbolicType primitiveTypePointed = primitiveTypePointedStatic.getDynamicType(universe);
+		NumericExpression ptr_primType_size = typeFactory.sizeofDynamicType(primitiveTypePointed);
+
+		// check that offsetBytes is divisible by sizeof(T):
+		BooleanExpression claim = universe.divides(ptr_primType_size, offsetBytes);
+		Reasoner reasoner = universe.reasoner(state.getPathCondition(universe));
+		ResultType resultType = reasoner.valid(claim).getResultType();
 		if (civlConfig.isPropertyToggled(CIVLProperty.POINTER) && !resultType.equals(ResultType.YES)) {
 			state = this.errorLogger.logError(source, state, pid, this.symbolicAnalyzer.stateInformation(state), claim,
 					resultType, CIVLProperty.POINTER,
@@ -699,11 +698,9 @@ public class LibpointerExecutor extends BaseLibraryExecutor implements LibraryEx
 							+ " consistent with the size of the" + " primitive type specified at the third argument: "
 							+ type_size);
 		}
-		// e.g. If type_size == 2 * sizeof(T), then the offset = offset * 2:
-		offset = universe.multiply(offset, universe.divide(type_size, ptr_primType_size));
-		eval = evaluator.arrayElementReferenceAdd(state, pid, ptr, offset, source).left;
-		state = eval.state;
-		output_ptr = eval.value;
-		return new Evaluation(state, output_ptr);
+		// get the offset measured in units of T:
+		NumericExpression offsetPrim = universe.divide(offsetBytes, ptr_primType_size);
+		// compute the pointer to the new element of the array:
+		return evaluator.arrayElementReferenceAdd(state, pid, ptr, offsetPrim, source).left;
 	}
 }

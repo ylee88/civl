@@ -67,7 +67,7 @@ public class MPI2CIVLWorker extends BaseWorker {
 
 	/*
 	 * ************************** Private Static Fields **********************
-	 */	
+	 */
 
 	private final static String MPI_DATATYPE = "MPI_Datatype";
 
@@ -109,16 +109,16 @@ public class MPI2CIVLWorker extends BaseWorker {
 	 * program.
 	 */
 	private final static String GCOMM_WORLD = MPI_PREFIX + "gcomm";
-	
+
 	/**
-	 * The name of the identifier of the CMPI_Gcomm variable _mpi_gcomm_self in
-	 * the final CIVL program.
+	 * The name of the identifier of the CMPI_Gcomm variable _mpi_gcomm_self in the
+	 * final CIVL program.
 	 */
 	private final static String GCOMM_SELF = MPI_PREFIX + "gcomm_self";
 
 	/**
-	 * The name of the identifier of the CMPI_Gcomm sequence variable in the
-	 * final CIVL-MPI program
+	 * The name of the identifier of the CMPI_Gcomm sequence variable in the final
+	 * CIVL-MPI program
 	 */
 	private final static String GCOMMS = MPI_PREFIX + "gcomms";
 
@@ -133,8 +133,8 @@ public class MPI2CIVLWorker extends BaseWorker {
 	private final static String GCOMM_TYPE = "$mpi_gcomm";
 
 	/**
-	 * The name of MPI_Comm type in both the original program and the final
-	 * CIVL-C program.
+	 * The name of MPI_Comm type in both the original program and the final CIVL-C
+	 * program.
 	 */
 	private final static String COMM_TYPE = "MPI_Comm";
 
@@ -145,14 +145,14 @@ public class MPI2CIVLWorker extends BaseWorker {
 	private final static String GCOMM_CREATE = "$mpi_gcomm_create";
 
 	/**
-	 * The name of the function to create a new MPI_Comm object in the final
-	 * CIVL-C program.
+	 * The name of the function to create a new MPI_Comm object in the final CIVL-C
+	 * program.
 	 */
 	private final static String COMM_CREATE = "$mpi_comm_create";
-	
+
 	/**
-	 * The name of the function to create a new MPI_Comm object MPI_COMM_SELF in
-	 * the final CIVL-C program.
+	 * The name of the function to create a new MPI_Comm object MPI_COMM_SELF in the
+	 * final CIVL-C program.
 	 */
 	private final static String COMM_SELF_CREATE = "$mpi_comm_self_create";
 
@@ -179,14 +179,13 @@ public class MPI2CIVLWorker extends BaseWorker {
 	private final static String MPI_INIT = "MPI_Init";
 
 	/**
-	 * The name of the function translating MPI_Init in the final CIVL-C
-	 * program.
+	 * The name of the function translating MPI_Init in the final CIVL-C program.
 	 */
 	private final static String MPI_INIT_NEW = "$mpi_init";
 
 	/**
-	 * The name of the variable representing the status of an MPI process, which
-	 * is modified by MPI_Init() and MPI_Finalized().
+	 * The name of the variable representing the status of an MPI process, which is
+	 * modified by MPI_Init() and MPI_Finalized().
 	 */
 	private final static String MPI_STATE_VAR = MPI_PREFIX + "state";
 
@@ -196,20 +195,20 @@ public class MPI2CIVLWorker extends BaseWorker {
 	private final static String MPI_PROCESS = MPI_PREFIX + "process";
 
 	/**
-	 * The name of the input variable denoting the number of MPI processes in
-	 * the final CIVL-C program.
+	 * The name of the input variable denoting the number of MPI processes in the
+	 * final CIVL-C program.
 	 */
 	private final static String NPROCS = MPI_PREFIX + "nprocs";
 
 	/**
-	 * The name of the input variable denoting the upper bound of the number of
-	 * MPI processes in the final CIVL-C program.
+	 * The name of the input variable denoting the upper bound of the number of MPI
+	 * processes in the final CIVL-C program.
 	 */
 	private final static String NPROCS_UPPER_BOUND = MPI_PREFIX + "nprocs_hi";
 
 	/**
-	 * The name of the input variable denoting the lower bound of the number of
-	 * MPI processes in the final CIVL-C program.
+	 * The name of the input variable denoting the lower bound of the number of MPI
+	 * processes in the final CIVL-C program.
 	 */
 	private final static String NPROCS_LOWER_BOUND = MPI_PREFIX + "nprocs_lo";
 
@@ -224,8 +223,8 @@ public class MPI2CIVLWorker extends BaseWorker {
 	private static final String MPI_STATE_TYPE = "$mpi_state";
 
 	/**
-	 * The name of the function $mpi_coroutine_name which is a helper function
-	 * for gcomm destroy
+	 * The name of the function $mpi_coroutine_name which is a helper function for
+	 * gcomm destroy
 	 */
 	private static final String MPI_COROUTINE_NAME = "$mpi_coroutine_name";
 
@@ -233,8 +232,7 @@ public class MPI2CIVLWorker extends BaseWorker {
 	/**
 	 * Creates a new instance of MPITransformer.
 	 * 
-	 * @param astFactory
-	 *            The ASTFactory that will be used to create new nodes.
+	 * @param astFactory The ASTFactory that will be used to create new nodes.
 	 */
 	public MPI2CIVLWorker(ASTFactory astFactory) {
 		super(MPI2CIVLTransformer.LONG_NAME, astFactory);
@@ -247,49 +245,37 @@ public class MPI2CIVLWorker extends BaseWorker {
 	 * Creates a bound assumption node in the form of:
 	 * <code>$assume lowerBound < variable && variable <= upperBound</code>.
 	 * 
-	 * @param lowerBound
-	 *            The lower bound of the variable.
-	 * @param variable
-	 *            The variable to be bounded.
-	 * @param upperBound
-	 *            The upper bound of the variable.
-	 * @return The node representing of the assumption on the bound of the
-	 *         variable.
+	 * @param lowerBound The lower bound of the variable.
+	 * @param variable   The variable to be bounded.
+	 * @param upperBound The upper bound of the variable.
+	 * @return The node representing of the assumption on the bound of the variable.
 	 * @throws SyntaxException
 	 */
-	private ExpressionStatementNode boundAssumption(String lowerBound,
-			String variable, String upperBound) throws SyntaxException {
+	private ExpressionStatementNode boundAssumption(String lowerBound, String variable, String upperBound)
+			throws SyntaxException {
 		ExpressionNode variableExpression = this.identifierExpression(variable);
-		ExpressionNode upperBoundExpression = this
-				.identifierExpression(upperBound);
-		ExpressionNode lowerBoundExpression = this
-				.identifierExpression(lowerBound);
+		ExpressionNode upperBoundExpression = this.identifierExpression(upperBound);
+		ExpressionNode lowerBoundExpression = this.identifierExpression(lowerBound);
 		ExpressionNode lowerPart, upperPart;
-		Source source = this.newSource(
-				"assumption on the bound of variable " + variable,
+		Source source = this.newSource("assumption on the bound of variable " + variable,
 				CivlcTokenConstant.EXPRESSION_STATEMENT);
 
 		lowerPart = nodeFactory.newOperatorNode(
-				this.newSource("lower bound of variable " + variable,
-						CivlcTokenConstant.EXPR),
-				Operator.LTE,
+				this.newSource("lower bound of variable " + variable, CivlcTokenConstant.EXPR), Operator.LTE,
 				Arrays.asList(lowerBoundExpression, variableExpression));
 		variableExpression = variableExpression.copy();
 		upperPart = nodeFactory.newOperatorNode(
-				this.newSource("upper bound of variable " + variable,
-						CivlcTokenConstant.EXPR),
-				Operator.LTE,
+				this.newSource("upper bound of variable " + variable, CivlcTokenConstant.EXPR), Operator.LTE,
 				Arrays.asList(variableExpression, upperBoundExpression));
-		return nodeFactory.newExpressionStatementNode(this.functionCall(source,
-				ASSUME,
+		return nodeFactory.newExpressionStatementNode(this.functionCall(source, ASSUME,
 				Arrays.asList((ExpressionNode) nodeFactory.newOperatorNode(
-						this.newSource("logical and ", CivlcTokenConstant.EXPR),
-						Operator.LAND, Arrays.asList(lowerPart, upperPart)))));
+						this.newSource("logical and ", CivlcTokenConstant.EXPR), Operator.LAND,
+						Arrays.asList(lowerPart, upperPart)))));
 	}
 
 	/**
-	 * Creates the declaration node for the variable <code>MPI_COMM_WORLD</code>
-	 * , which is of <code>MPI_Comm</code> type and has an initializer to call
+	 * Creates the declaration node for the variable <code>MPI_COMM_WORLD</code> ,
+	 * which is of <code>MPI_Comm</code> type and has an initializer to call
 	 * <code>$comm_create()</code>. That is:
 	 * <code>MPI_Comm MPI_COMM_WORLD = $comm_create($here, GCOMM_WORLD, _rank)</code>
 	 * .
@@ -302,22 +288,21 @@ public class MPI2CIVLWorker extends BaseWorker {
 		ExpressionNode commCreate;
 		VariableDeclarationNode commVar;
 
-		commType = nodeFactory.newTypedefNameNode(nodeFactory.newIdentifierNode(
-				this.newSource("$comm type", CivlcTokenConstant.IDENTIFIER),
-				COMM_TYPE), null);
+		commType = nodeFactory.newTypedefNameNode(
+				nodeFactory.newIdentifierNode(this.newSource("$comm type", CivlcTokenConstant.IDENTIFIER), COMM_TYPE),
+				null);
 		commCreateArgs = new ArrayList<>(3);
 		commCreateArgs.add(this.hereNode());
 		commCreateArgs.add(this.identifierExpression(GCOMM_WORLD));
 		commCreateArgs.add(this.identifierExpression(MPI_RANK));
 		commCreate = nodeFactory.newFunctionCallNode(
-				this.newSource("function call " + COMM_CREATE,
-						CivlcTokenConstant.CALL),
+				this.newSource("function call " + COMM_CREATE, CivlcTokenConstant.CALL),
 				this.identifierExpression(COMM_CREATE), commCreateArgs, null);
 		commVar = this.variableDeclaration(MPI_COMM_WORLD, commType, commCreate);
 		// commVar.setExternStorage(true);
 		return commVar;
 	}
-	
+
 	/**
 	 *
 	 * Generates the following code:
@@ -335,25 +320,19 @@ public class MPI2CIVLWorker extends BaseWorker {
 	private List<VariableDeclarationNode> commSelfDeclaration() {
 		List<VariableDeclarationNode> result = new LinkedList<>();
 		TypeNode commType = nodeFactory.newTypedefNameNode(
-				nodeFactory.newIdentifierNode(this.newSource("$comm type",
-						CivlcTokenConstant.IDENTIFIER), COMM_TYPE),
+				nodeFactory.newIdentifierNode(this.newSource("$comm type", CivlcTokenConstant.IDENTIFIER), COMM_TYPE),
 				null);
-		VariableDeclarationNode commSelfVar = variableDeclaration(MPI_COMM_SELF,
-				commType);
+		VariableDeclarationNode commSelfVar = variableDeclaration(MPI_COMM_SELF, commType);
 		ExpressionNode addrOfCommSelfVar = nodeFactory.newOperatorNode(
-				newSource("&" + MPI_COMM_SELF, CivlcTokenConstant.OPERATOR),
-				Operator.ADDRESSOF, identifierExpression(MPI_COMM_SELF));
+				newSource("&" + MPI_COMM_SELF, CivlcTokenConstant.OPERATOR), Operator.ADDRESSOF,
+				identifierExpression(MPI_COMM_SELF));
 		ExpressionNode commSelfCreate = nodeFactory.newFunctionCallNode(
-				newSource("function call " + COMM_SELF_CREATE,
-						CivlcTokenConstant.CALL),
-				identifierExpression(COMM_SELF_CREATE),
-				Arrays.asList(hereNode(), addrOfCommSelfVar), null);
+				newSource("function call " + COMM_SELF_CREATE, CivlcTokenConstant.CALL),
+				identifierExpression(COMM_SELF_CREATE), Arrays.asList(hereNode(), addrOfCommSelfVar), null);
 		TypeNode gcommType = nodeFactory.newTypedefNameNode(
-				nodeFactory.newIdentifierNode(this.newSource("$gcomm type",
-						CivlcTokenConstant.IDENTIFIER), GCOMM_TYPE),
+				nodeFactory.newIdentifierNode(this.newSource("$gcomm type", CivlcTokenConstant.IDENTIFIER), GCOMM_TYPE),
 				null);
-		VariableDeclarationNode gcommSelfVar = variableDeclaration(GCOMM_SELF,
-				gcommType, commSelfCreate);
+		VariableDeclarationNode gcommSelfVar = variableDeclaration(GCOMM_SELF, gcommType, commSelfCreate);
 
 		result.add(commSelfVar);
 		result.add(gcommSelfVar);
@@ -361,34 +340,27 @@ public class MPI2CIVLWorker extends BaseWorker {
 	}
 
 	/**
-	 * Creates an expression statement node of a function call node for
-	 * destroying a communicator, either global or local.
+	 * Creates an expression statement node of a function call node for destroying a
+	 * communicator, either global or local.
 	 * 
-	 * @param destroy
-	 *            The name of the function call, either
-	 *            <code>$gcomm_destroy</code> or <code>$comm_destroy</code>.
-	 * @param commName
-	 *            The name of the variable of the communicator to be destroy,
-	 *            either <code>GCOMM_WORLD</code> or <code>MPI_COMM_WORLD</code>
-	 *            .
-	 * @return The expression statement node of the function call for destroying
-	 *         the specified communicator.
+	 * @param destroy  The name of the function call, either
+	 *                 <code>$gcomm_destroy</code> or <code>$comm_destroy</code>.
+	 * @param commName The name of the variable of the communicator to be destroy,
+	 *                 either <code>GCOMM_WORLD</code> or
+	 *                 <code>MPI_COMM_WORLD</code> .
+	 * @return The expression statement node of the function call for destroying the
+	 *         specified communicator.
 	 */
-	private ExpressionStatementNode commDestroy(String destroy,
-			String commName) {
+	private ExpressionStatementNode commDestroy(String destroy, String commName) {
 		ExpressionNode function = this.identifierExpression(destroy);
 		List<ExpressionNode> arguments;
 
 		if (destroy.equals(COMM_DESTROY)) {
-			arguments = Arrays.asList(this.identifierExpression(commName),
-					this.identifierExpression(MPI_STATE_VAR));
+			arguments = Arrays.asList(this.identifierExpression(commName), this.identifierExpression(MPI_STATE_VAR));
 		} else
 			arguments = Arrays.asList(this.identifierExpression(commName));
-		return nodeFactory
-				.newExpressionStatementNode(nodeFactory.newFunctionCallNode(
-						this.newSource("function call " + destroy,
-								CivlcTokenConstant.CALL),
-						function, arguments, null));
+		return nodeFactory.newExpressionStatementNode(nodeFactory.newFunctionCallNode(
+				this.newSource("function call " + destroy, CivlcTokenConstant.CALL), function, arguments, null));
 	}
 
 	/**
@@ -403,8 +375,7 @@ public class MPI2CIVLWorker extends BaseWorker {
 		TypeNode gcommType;
 		// ExpressionNode gcommCreate;
 
-		gcommType = nodeFactory.newTypedefNameNode(this.identifier(GCOMM_TYPE),
-				null);
+		gcommType = nodeFactory.newTypedefNameNode(this.identifier(GCOMM_TYPE), null);
 		// gcommCreate = nodeFactory.newFunctionCallNode(this.newSource(
 		// "function call " + GCOMM_CREATE, CivlcTokenConstant.CALL), this
 		// .identifierExpression(GCOMM_CREATE), Arrays.asList(
@@ -416,33 +387,23 @@ public class MPI2CIVLWorker extends BaseWorker {
 		TypeNode gcommType, gcommArrayType;
 		VariableDeclarationNode node;
 
-		gcommType = nodeFactory.newTypedefNameNode(this.identifier(GCOMM_TYPE),
-				null);
-		gcommArrayType = nodeFactory.newArrayTypeNode((Source) null, gcommType,
-				null);
+		gcommType = nodeFactory.newTypedefNameNode(this.identifier(GCOMM_TYPE), null);
+		gcommArrayType = nodeFactory.newArrayTypeNode((Source) null, gcommType, null);
 		node = this.variableDeclaration(GCOMMS, gcommArrayType);
 		return node;
 	}
 
-	private ExpressionStatementNode gcommsSeqInitCalling()
-			throws SyntaxException {
+	private ExpressionStatementNode gcommsSeqInitCalling() throws SyntaxException {
 		FunctionCallNode node;
 		OperatorNode gcommsPtrNode, gcommworldPtrNode;
 
-		gcommsPtrNode = nodeFactory.newOperatorNode(
-				this.newSource("&", CivlcTokenConstant.OPERATOR),
+		gcommsPtrNode = nodeFactory.newOperatorNode(this.newSource("&", CivlcTokenConstant.OPERATOR),
 				Operator.ADDRESSOF, this.identifierExpression(GCOMMS));
-		gcommworldPtrNode = nodeFactory.newOperatorNode(
-				this.newSource("&", CivlcTokenConstant.OPERATOR),
+		gcommworldPtrNode = nodeFactory.newOperatorNode(this.newSource("&", CivlcTokenConstant.OPERATOR),
 				Operator.ADDRESSOF, this.identifierExpression(GCOMM_WORLD));
-		node = nodeFactory.newFunctionCallNode(
-				this.newSource("function call " + SEQ_INIT,
-						CivlcTokenConstant.CALL),
+		node = nodeFactory.newFunctionCallNode(this.newSource("function call " + SEQ_INIT, CivlcTokenConstant.CALL),
 				this.identifierExpression(SEQ_INIT),
-				Arrays.asList(gcommsPtrNode,
-						nodeFactory.newIntegerConstantNode(null, "1"),
-						gcommworldPtrNode),
-				null);
+				Arrays.asList(gcommsPtrNode, nodeFactory.newIntegerConstantNode(null, "1"), gcommworldPtrNode), null);
 		return nodeFactory.newExpressionStatementNode(node);
 	}
 
@@ -468,8 +429,8 @@ public class MPI2CIVLWorker extends BaseWorker {
 	 * }
 	 * </pre>
 	 * 
-	 * @return The function definition node representing the main function of
-	 *         the final program.
+	 * @return The function definition node representing the main function of the
+	 *         final program.
 	 * @throws SyntaxException
 	 */
 	private FunctionDefinitionNode mainFunction() throws SyntaxException {
@@ -480,78 +441,55 @@ public class MPI2CIVLWorker extends BaseWorker {
 		SequenceNode<VariableDeclarationNode> formals;
 		FunctionTypeNode mainType;
 		FunctionDefinitionNode mainFunction;
-		ExpressionStatementNode gcommDestroy = this.commDestroy(GCOMM_DESTROY,
-				GCOMM_WORLD);
+		ExpressionStatementNode gcommDestroy = this.commDestroy(GCOMM_DESTROY, GCOMM_WORLD);
 		ExpressionNode domain;
 		FunctionCallNode callMPIprocess;
 		StatementNode parforMPIproc;
 
 		iterator = nodeFactory.newForLoopInitializerNode(
-				newSource("$parfor loop variable",
-						CivlcTokenConstant.INIT_DECLARATOR_LIST),
-				Arrays.asList(this.variableDeclaration("i",
-						this.basicType(BasicTypeKind.INT))));
-		upperBound = nodeFactory.newOperatorNode(
-				this.newSource("post increment",
-						CivlcTokenConstant.POST_INCREMENT),
-				Operator.MINUS, Arrays.asList(this.identifierExpression(NPROCS),
-						this.integerConstant(1)));
-		domain = nodeFactory.newRegularRangeNode(
-				this.newSource("regular range", CivlcTokenConstant.RANGE),
+				newSource("$parfor loop variable", CivlcTokenConstant.INIT_DECLARATOR_LIST),
+				Arrays.asList(this.variableDeclaration("i", this.basicType(BasicTypeKind.INT))));
+		upperBound = nodeFactory.newOperatorNode(this.newSource("post increment", CivlcTokenConstant.POST_INCREMENT),
+				Operator.MINUS, Arrays.asList(this.identifierExpression(NPROCS), this.integerConstant(1)));
+		domain = nodeFactory.newRegularRangeNode(this.newSource("regular range", CivlcTokenConstant.RANGE),
 				this.integerConstant(0), upperBound);
 		callMPIprocess = nodeFactory.newFunctionCallNode(
-				this.newSource("function call " + MPI_PROCESS,
-						CivlcTokenConstant.CALL),
-				this.identifierExpression(MPI_PROCESS),
-				Arrays.asList(this.identifierExpression("i")), null);
-		parforMPIproc = nodeFactory.newCivlForNode(
-				this.newSource("$parfor MPI_Process",
-						CivlcTokenConstant.PARFOR),
-				true, iterator, domain,
-				nodeFactory.newExpressionStatementNode(callMPIprocess), null);
+				this.newSource("function call " + MPI_PROCESS, CivlcTokenConstant.CALL),
+				this.identifierExpression(MPI_PROCESS), Arrays.asList(this.identifierExpression("i")), null);
+		parforMPIproc = nodeFactory.newCivlForNode(this.newSource("$parfor MPI_Process", CivlcTokenConstant.PARFOR),
+				true, iterator, domain, nodeFactory.newExpressionStatementNode(callMPIprocess), null);
 
 		ExpressionNode gcommCreate = nodeFactory.newFunctionCallNode(
-				this.newSource("function call " + GCOMM_CREATE,
-						CivlcTokenConstant.CALL),
+				this.newSource("function call " + GCOMM_CREATE, CivlcTokenConstant.CALL),
 				this.identifierExpression(GCOMM_CREATE),
-				Arrays.asList(this.identifierExpression(PROCESS_ROOT),
-						this.identifierExpression(NPROCS)),
-				null),
+				Arrays.asList(this.identifierExpression(PROCESS_ROOT), this.identifierExpression(NPROCS)), null),
 
-				assignGcomm = nodeFactory.newOperatorNode(
-						gcommCreate.getSource(), Operator.ASSIGN,
-						Arrays.asList(this.identifierExpression(GCOMM_WORLD),
-								gcommCreate));
+				assignGcomm = nodeFactory.newOperatorNode(gcommCreate.getSource(), Operator.ASSIGN,
+						Arrays.asList(this.identifierExpression(GCOMM_WORLD), gcommCreate));
 		items.add(nodeFactory.newExpressionStatementNode(assignGcomm));
 		items.add(this.gcommsSeqInitCalling());
 		items.add(parforMPIproc);
 		// destroying GCOMM_WROLD;
 		items.add(gcommDestroy);
 		// constructing the function definition node.
-		mainBody = nodeFactory.newCompoundStatementNode(this.newSource(
-				"main body", CivlcTokenConstant.COMPOUND_STATEMENT), items);
+		mainBody = nodeFactory
+				.newCompoundStatementNode(this.newSource("main body", CivlcTokenConstant.COMPOUND_STATEMENT), items);
 		formals = nodeFactory.newSequenceNode(
-				this.newSource(
-						"formal parameter of the declaration of the main function",
+				this.newSource("formal parameter of the declaration of the main function",
 						CivlcTokenConstant.DECLARATION_LIST),
-				"FormalParameterDeclarations",
-				new ArrayList<VariableDeclarationNode>());
-		mainType = nodeFactory.newFunctionTypeNode(
-				this.newSource("type of the main function",
-						CivlcTokenConstant.TYPE),
+				"FormalParameterDeclarations", new ArrayList<VariableDeclarationNode>());
+		mainType = nodeFactory.newFunctionTypeNode(this.newSource("type of the main function", CivlcTokenConstant.TYPE),
 				this.basicType(BasicTypeKind.INT), formals, true);
 		mainFunction = nodeFactory.newFunctionDefinitionNode(
-				this.newSource("definition of the main function",
-						CivlcTokenConstant.FUNCTION_DEFINITION),
+				this.newSource("definition of the main function", CivlcTokenConstant.FUNCTION_DEFINITION),
 				this.identifier("main"), mainType, null, mainBody);
 		return mainFunction;
 	}
 
 	/**
 	 * 
-	 * Constructs the function MPI_Process() from the original MPI program. It
-	 * is a wrapper of the original MPI program with some additional features:
-	 * <br>
+	 * Constructs the function MPI_Process() from the original MPI program. It is a
+	 * wrapper of the original MPI program with some additional features: <br>
 	 * 
 	 * <pre>
 	 * void _mpi_process(int _mpi_rank){
@@ -568,60 +506,58 @@ public class MPI2CIVLWorker extends BaseWorker {
 	 * }
 	 * </pre>
 	 * 
-	 * @param root
-	 *            The root node of the AST of the original MPI program.
-	 * @return The function definition node of MPI_Process, the list of AST
-	 *         nodes that are parsed from header files and will be moved up to
-	 *         the higher scope (i.e., the file scope of the final AST), and
-	 *         variable declaration nodes that are the arguments of the original
-	 *         main function which will be moved up to the higher scope (i.e.,
-	 *         the file scope of the final AST) and become $input variables of
-	 *         the final AST.
+	 * @param root The root node of the AST of the original MPI program.
+	 * @return The function definition node of MPI_Process, the list of AST nodes
+	 *         that are parsed from header files and will be moved up to the higher
+	 *         scope (i.e., the file scope of the final AST), and variable
+	 *         declaration nodes that are the arguments of the original main
+	 *         function which will be moved up to the higher scope (i.e., the file
+	 *         scope of the final AST) and become $input variables of the final AST.
 	 * @throws SyntaxException
 	 */
-	private Pair<FunctionDefinitionNode, List<BlockItemNode>> transformMPIProcess(
-			SequenceNode<BlockItemNode> root) throws SyntaxException {
+	private Pair<FunctionDefinitionNode, List<BlockItemNode>> transformMPIProcess(SequenceNode<BlockItemNode> root)
+			throws SyntaxException {
 		List<BlockItemNode> filescopeList = new LinkedList<>();
 		List<BlockItemNode> processList = new LinkedList<>();
 		int commTypeIndex = -1, mpiInitIndex = -1;
-		boolean commCreated = false, newMPIinitMoved = false,
-				commDestroyedMoved = false;
+		boolean commCreated = false, newMPIinitMoved = false, commDestroyedMoved = false;
 		String gcommStructName = null;
 		// If MPI_COMM_SELF is used, we create it:
 		boolean useMpiCommSelf = useMpiCommSelf(root);
 		// Need to move the declaration of the function $mpi_comm_self_create
 		// forward, so we take the decl off the tree:
 		BlockItemNode mpiCommSelfCreateFunDecl = null;
-		
+
 		for (BlockItemNode child : root) {
 			if (child == null)
 				continue;
 			child.remove();
 
-			String sourceName = child.getSource().getFirstToken()
-					.getSourceFile().getName();
+			String sourceName = child.getSource().getFirstToken().getSourceFile().getName();
 
+			// Any definition in a file listed here will be moved to file scope:
 			switch (sourceName) {
-				case "civlc.cvh" :
-				case "civlc.cvl" :
-				case "collate.cvh" :
-				case "collate.cvl" :
-				case "bundle.cvh" :
-				case "bundle.cvl" : // added by SFS
-				case "cmon.cvh" : // added by SFS
-				case "cmon.cvl" : // added by SFS
-				case "comm.cvh" :
-				case "comm.cvl" :
-				case "concurrency.cvh" :
-				case "concurrency.cvl" :
-				case "mpi-defs.cvh" : // added by SFS
-				case "op.h" :
-				case "pointer.cvh" :
-				case "seq.cvh" :
-				case "seq.cvl" :
-					filescopeList.add(child);
-					continue;
-				default :
+			case "civlc.cvh":
+			case "civlc.cvl":
+			case "collate.cvh":
+			case "collate.cvl":
+			case "bundle.cvh":
+			case "bundle.cvl": // added by SFS
+			case "cmon.cvh": // added by SFS
+			case "cmon.cvl": // added by SFS
+			case "comm.cvh":
+			case "comm.cvl":
+			case "concurrency.cvh":
+			case "concurrency.cvl":
+			case "mpi-defs.cvh": // added by SFS
+			case "mpi-defs.cvl": // added by SFS
+			case "op.h":
+			case "pointer.cvh":
+			case "seq.cvh":
+			case "seq.cvl":
+				filescopeList.add(child);
+				continue;
+			default:
 			}
 			if (child instanceof VariableDeclarationNode) {
 				VariableDeclarationNode variable = (VariableDeclarationNode) child;
@@ -632,16 +568,12 @@ public class MPI2CIVLWorker extends BaseWorker {
 					filescopeList.add(child);
 				else if (name.equals(MPI_SIZE_MAP)) {
 					filescopeList.add(variable);
-					filescopeList.add(nodeFactory.newExpressionStatementNode(
-							functionCall(variable.getSource(), SEQ_INIT,
-									Arrays.asList(
-											nodeFactory.newOperatorNode(
-													variable.getSource(),
-													Operator.ADDRESSOF,
-													this.identifierExpression(
-															variable.getName())),
-											this.integerConstant(0),
-											nullPointer()))));
+					filescopeList
+							.add(nodeFactory
+									.newExpressionStatementNode(functionCall(variable.getSource(), SEQ_INIT,
+											Arrays.asList(nodeFactory.newOperatorNode(variable.getSource(),
+													Operator.ADDRESSOF, this.identifierExpression(variable.getName())),
+													this.integerConstant(0), nullPointer()))));
 				} else if (name.equals(MPI_STATE_VAR)) {
 					processList.add(mpiInitIndex - 1, child);
 				} else if (name.equals(MPI_COMM_WORLD)) {
@@ -662,10 +594,8 @@ public class MPI2CIVLWorker extends BaseWorker {
 					ExpressionNode functionExpr = functionCall.getFunction();
 
 					if (functionExpr instanceof IdentifierExpressionNode
-							&& ((IdentifierExpressionNode) functionExpr)
-									.getIdentifier().name().equals(ASSUME)
-							&& this.refersInputVariable(
-									functionCall.getArguments())) {
+							&& ((IdentifierExpressionNode) functionExpr).getIdentifier().name().equals(ASSUME)
+							&& this.refersInputVariable(functionCall.getArguments())) {
 						assumptionOnInputs = true;
 					}
 				}
@@ -677,21 +607,18 @@ public class MPI2CIVLWorker extends BaseWorker {
 				FunctionDeclarationNode function = (FunctionDeclarationNode) child;
 				String name = function.getName();
 
-				if (name.equals(GCOMM_CREATE) || name.equals(GCOMM_DESTROY)
-						|| name.equals(MPI_COROUTINE_NAME)
+				if (name.equals(GCOMM_CREATE) || name.equals(GCOMM_DESTROY) || name.equals(MPI_COROUTINE_NAME)
 						|| name.equals(ASSUME))
 					filescopeList.add(child);
 				else if (!commCreated && name.equals(COMM_CREATE)) {
 					commCreated = true;
 					processList.add(commTypeIndex, child);
 					processList.add(commTypeIndex + 1, this.commDeclaration());
-				} else if (useMpiCommSelf && mpiCommSelfCreateFunDecl == null
-						&& name.equals(COMM_SELF_CREATE)) {
+				} else if (useMpiCommSelf && mpiCommSelfCreateFunDecl == null && name.equals(COMM_SELF_CREATE)) {
 					mpiCommSelfCreateFunDecl = child;
 					child.remove();
 				} else if (!commDestroyedMoved && name.equals(COMM_DESTROY)) {
-					int commDestroyIndex = commTypeIndex + 2,
-							mpiInitNextIndex = mpiInitIndex + 1;
+					int commDestroyIndex = commTypeIndex + 2, mpiInitNextIndex = mpiInitIndex + 1;
 
 					if (mpiInitNextIndex > commDestroyIndex)
 						commDestroyIndex = mpiInitNextIndex;
@@ -700,8 +627,7 @@ public class MPI2CIVLWorker extends BaseWorker {
 				} else if (!newMPIinitMoved && name.equals(MPI_INIT_NEW)) {
 					newMPIinitMoved = true;
 					processList.add(mpiInitIndex, child);
-				} else if (child.nodeKind() == NodeKind.FUNCTION_DEFINITION
-						&& name.equals(MAIN)) {
+				} else if (child.nodeKind() == NodeKind.FUNCTION_DEFINITION && name.equals(MAIN)) {
 					FunctionDefinitionNode functionNode = (FunctionDefinitionNode) child;
 
 					processList.add(functionNode.getBody().copy());
@@ -717,8 +643,7 @@ public class MPI2CIVLWorker extends BaseWorker {
 					filescopeList.add(child);
 				else if (name.equals(GCOMM_TYPE)) {
 					// gcommStructName
-					StructureOrUnionTypeNode struct = (StructureOrUnionTypeNode) typedef
-							.getTypeNode();
+					StructureOrUnionTypeNode struct = (StructureOrUnionTypeNode) typedef.getTypeNode();
 
 					gcommStructName = struct.getName();
 					filescopeList.add(child);
@@ -728,13 +653,11 @@ public class MPI2CIVLWorker extends BaseWorker {
 					processList.add(child);
 				if (commTypeIndex == -1 && name.equals(COMM_TYPE))
 					commTypeIndex = processList.size();
-			} else if (gcommStructName != null
-					&& child instanceof StructureOrUnionTypeNode) {
+			} else if (gcommStructName != null && child instanceof StructureOrUnionTypeNode) {
 				StructureOrUnionTypeNode struct = (StructureOrUnionTypeNode) child;
 				String name = struct.getName();
 
-				if (name.equals(gcommStructName)
-						|| name.equals(MPI_DATASIZE_STRUCT))
+				if (name.equals(gcommStructName) || name.equals(MPI_DATASIZE_STRUCT))
 					filescopeList.add(child);
 				else
 					processList.add(child);
@@ -749,29 +672,18 @@ public class MPI2CIVLWorker extends BaseWorker {
 			processList.add(commTypeIndex + 1, mpiCommSelfCreateFunDecl);
 		}
 
-		CompoundStatementNode mpiProcessBody = nodeFactory
-				.newCompoundStatementNode(
-						this.newSource("function body of " + MPI_PROCESS,
-								CivlcTokenConstant.COMPOUND_STATEMENT),
-						processList);
-		SequenceNode<VariableDeclarationNode> formals = nodeFactory
-				.newSequenceNode(
-						this.newSource(
-								"formal parameters of function " + MPI_PROCESS,
-								CivlcTokenConstant.DECLARATION_LIST),
-						"FormalParameterDeclarations",
-						Arrays.asList(this.variableDeclaration(MPI_RANK,
-								this.basicType(BasicTypeKind.INT))));
+		CompoundStatementNode mpiProcessBody = nodeFactory.newCompoundStatementNode(
+				this.newSource("function body of " + MPI_PROCESS, CivlcTokenConstant.COMPOUND_STATEMENT), processList);
+		SequenceNode<VariableDeclarationNode> formals = nodeFactory.newSequenceNode(
+				this.newSource("formal parameters of function " + MPI_PROCESS, CivlcTokenConstant.DECLARATION_LIST),
+				"FormalParameterDeclarations",
+				Arrays.asList(this.variableDeclaration(MPI_RANK, this.basicType(BasicTypeKind.INT))));
 		FunctionTypeNode mpiProcessType = nodeFactory.newFunctionTypeNode(
-				this.newSource("type of function " + MPI_PROCESS,
-						CivlcTokenConstant.TYPE),
-				this.voidType(), formals, true);
-		FunctionDefinitionNode mpiProcess = nodeFactory
-				.newFunctionDefinitionNode(
-						this.newSource("definition of function",
-								CivlcTokenConstant.FUNCTION_DEFINITION),
-						this.identifier(MPI_PROCESS), mpiProcessType, null,
-						mpiProcessBody);
+				this.newSource("type of function " + MPI_PROCESS, CivlcTokenConstant.TYPE), this.voidType(), formals,
+				true);
+		FunctionDefinitionNode mpiProcess = nodeFactory.newFunctionDefinitionNode(
+				this.newSource("definition of function", CivlcTokenConstant.FUNCTION_DEFINITION),
+				this.identifier(MPI_PROCESS), mpiProcessType, null, mpiProcessBody);
 
 		return new Pair<>(mpiProcess, filescopeList);
 	}
@@ -779,14 +691,11 @@ public class MPI2CIVLWorker extends BaseWorker {
 	/**
 	 * Declare a variable of a basic type with a specific name.
 	 * 
-	 * @param type
-	 *            The kind of basic type.
-	 * @param name
-	 *            The name of the variable.
+	 * @param type The kind of basic type.
+	 * @param name The name of the variable.
 	 * @return The variable declaration node.
 	 */
-	private VariableDeclarationNode basicTypeVariableDeclaration(
-			BasicTypeKind type, String name) {
+	private VariableDeclarationNode basicTypeVariableDeclaration(BasicTypeKind type, String name) {
 		TypeNode typeNode = this.basicType(type);
 
 		return this.variableDeclaration(name, typeNode);
@@ -809,9 +718,7 @@ public class MPI2CIVLWorker extends BaseWorker {
 	 * processing is performed, i.e., translating all <code>MPI_Init(...)</code>
 	 * function call into <code>$mpi_init()</code>.
 	 * 
-	 * @param node
-	 *            The AST node to be checked and all its children will be
-	 *            scanned.
+	 * @param node The AST node to be checked and all its children will be scanned.
 	 * @throws SyntaxException
 	 */
 	private void transformMPI_Init(ASTNode node) throws SyntaxException {
@@ -838,17 +745,12 @@ public class MPI2CIVLWorker extends BaseWorker {
 	 * @param functionCall
 	 */
 	private void transformMPI_InitCall(FunctionCallNode functionCall) {
-		if (functionCall.getFunction()
-				.expressionKind() == ExpressionKind.IDENTIFIER_EXPRESSION) {
-			IdentifierExpressionNode functionExpression = (IdentifierExpressionNode) functionCall
-					.getFunction();
+		if (functionCall.getFunction().expressionKind() == ExpressionKind.IDENTIFIER_EXPRESSION) {
+			IdentifierExpressionNode functionExpression = (IdentifierExpressionNode) functionCall.getFunction();
 			String functionName = functionExpression.getIdentifier().name();
-			SequenceNode<ExpressionNode> emptyArgNode = nodeFactory
-					.newSequenceNode(
-							newSource("empty parameter list of " + MPI_INIT_NEW,
-									CivlcTokenConstant.ARGUMENT_LIST),
-							"EmptyParameterList",
-							new LinkedList<ExpressionNode>());
+			SequenceNode<ExpressionNode> emptyArgNode = nodeFactory.newSequenceNode(
+					newSource("empty parameter list of " + MPI_INIT_NEW, CivlcTokenConstant.ARGUMENT_LIST),
+					"EmptyParameterList", new LinkedList<ExpressionNode>());
 
 			if (functionName.equals(MPI_INIT)) {
 				functionExpression.getIdentifier().setName(MPI_INIT_NEW);
@@ -869,15 +771,12 @@ public class MPI2CIVLWorker extends BaseWorker {
 	 * @throws SyntaxException
 	 */
 	private ExpressionStatementNode nprocsAssumption() throws SyntaxException {
-		return this.boundAssumption(NPROCS_LOWER_BOUND, NPROCS,
-				NPROCS_UPPER_BOUND);
+		return this.boundAssumption(NPROCS_LOWER_BOUND, NPROCS, NPROCS_UPPER_BOUND);
 	}
 
-	private VariableDeclarationNode getVariabledeclaration(ASTNode root,
-			String name) {
+	private VariableDeclarationNode getVariabledeclaration(ASTNode root, String name) {
 		for (ASTNode node : root.children()) {
-			if (node != null
-					&& node.nodeKind() == NodeKind.VARIABLE_DECLARATION) {
+			if (node != null && node.nodeKind() == NodeKind.VARIABLE_DECLARATION) {
 				VariableDeclarationNode varNode = (VariableDeclarationNode) node;
 
 				if (varNode.getName().equals(name)) {
@@ -891,25 +790,20 @@ public class MPI2CIVLWorker extends BaseWorker {
 	/**
 	 * transforms exit(k); to $mpi_destroy(MPI_COMM_WORLD, $mpi_state); exit(k);
 	 * 
-	 * @param node
-	 *            the node to be transformed
+	 * @param node the node to be transformed
 	 */
 	private void transformExit(ASTNode node) {
 		if (node instanceof ExpressionStatementNode) {
-			ExpressionNode expr = ((ExpressionStatementNode) node)
-					.getExpression();
+			ExpressionNode expr = ((ExpressionStatementNode) node).getExpression();
 
 			if (expr instanceof FunctionCallNode) {
-				ExpressionNode function = ((FunctionCallNode) expr)
-						.getFunction();
+				ExpressionNode function = ((FunctionCallNode) expr).getFunction();
 
 				if (function instanceof IdentifierExpressionNode) {
-					String funcName = ((IdentifierExpressionNode) function)
-							.getIdentifier().name();
+					String funcName = ((IdentifierExpressionNode) function).getIdentifier().name();
 
 					if (funcName.equals(EXIT)) {
-						BlockItemNode commDestroy = this
-								.commDestroy(COMM_DESTROY, MPI_COMM_WORLD);
+						BlockItemNode commDestroy = this.commDestroy(COMM_DESTROY, MPI_COMM_WORLD);
 						int nodeIndex = node.childIndex();
 						ASTNode parent = node.parent();
 						List<BlockItemNode> newItems = new LinkedList<>();
@@ -917,9 +811,7 @@ public class MPI2CIVLWorker extends BaseWorker {
 						node.remove();
 						newItems.add(commDestroy);
 						newItems.add((BlockItemNode) node);
-						parent.setChild(nodeIndex,
-								nodeFactory.newCompoundStatementNode(
-										node.getSource(), newItems));
+						parent.setChild(nodeIndex, nodeFactory.newCompoundStatementNode(node.getSource(), newItems));
 					}
 				}
 			}
@@ -929,7 +821,7 @@ public class MPI2CIVLWorker extends BaseWorker {
 					transformExit(child);
 			}
 	}
-	
+
 	/**
 	 * @return true iff ast contains an identifier expression of name
 	 *         "MPI_COMM_SELF".
@@ -937,8 +829,7 @@ public class MPI2CIVLWorker extends BaseWorker {
 	private boolean useMpiCommSelf(ASTNode node) {
 		while (node != null) {
 			if (node instanceof IdentifierExpressionNode) {
-				Entity entity = ((IdentifierExpressionNode) node)
-						.getIdentifier().getEntity();
+				Entity entity = ((IdentifierExpressionNode) node).getIdentifier().getEntity();
 				if (entity != null && entity.getName().equals(MPI_COMM_SELF))
 					return true;
 			}
@@ -950,8 +841,8 @@ public class MPI2CIVLWorker extends BaseWorker {
 	/* ********************* Methods From BaseTransformer ****************** */
 
 	/**
-	 * Transform an AST of a pure MPI program in C into an equivalent AST of
-	 * CIVL-C program.<br>
+	 * Transform an AST of a pure MPI program in C into an equivalent AST of CIVL-C
+	 * program.<br>
 	 * Given an MPI program:<br>
 	 * 
 	 * <pre>
@@ -1010,8 +901,7 @@ public class MPI2CIVLWorker extends BaseWorker {
 	 * }
 	 * </pre>
 	 * 
-	 * @param ast
-	 *            The AST of the original MPI program in C.
+	 * @param ast The AST of the original MPI program in C.
 	 * @return An AST of CIVL-C program equivalent to the original MPI program.
 	 * @throws SyntaxException
 	 */
@@ -1024,18 +914,16 @@ public class MPI2CIVLWorker extends BaseWorker {
 		AST newAst;
 		FunctionDefinitionNode mpiProcess, mainFunction;
 		VariableDeclarationNode gcommWorld;
-		List<BlockItemNode> externalList = new LinkedList<>();;
+		List<BlockItemNode> externalList = new LinkedList<>();
+		;
 		SequenceNode<BlockItemNode> newRootNode;
 		List<BlockItemNode> mainParametersAndAssumps = new ArrayList<>();
 		int count;
 		StatementNode nprocsAssumption = null;
 		Pair<FunctionDefinitionNode, List<BlockItemNode>> result;
-		VariableDeclarationNode nprocsVar = this.getVariabledeclaration(root,
-				NPROCS);
-		VariableDeclarationNode nprocsUpperBoundVar = this
-				.getVariabledeclaration(root, NPROCS_UPPER_BOUND);
-		VariableDeclarationNode nprocsLowerBoundVar = this
-				.getVariabledeclaration(root, NPROCS_LOWER_BOUND);
+		VariableDeclarationNode nprocsVar = this.getVariabledeclaration(root, NPROCS);
+		VariableDeclarationNode nprocsUpperBoundVar = this.getVariabledeclaration(root, NPROCS_UPPER_BOUND);
+		VariableDeclarationNode nprocsLowerBoundVar = this.getVariabledeclaration(root, NPROCS_LOWER_BOUND);
 		VariableDeclarationNode rootVar = this.variableDeclaration(PROCESS_ROOT,
 				this.typeNode(this.astFactory.getTypeFactory().scopeType()),
 				this.nodeFactory.newHereNode(this.newSource("root", 0)));
@@ -1054,30 +942,22 @@ public class MPI2CIVLWorker extends BaseWorker {
 			nprocsVar = this.nprocsDeclaration();
 			if (nprocsUpperBoundVar == null) {
 				// declaring $input int _mpi_nprocs_hi;
-				nprocsUpperBoundVar = this.basicTypeVariableDeclaration(
-						BasicTypeKind.INT, NPROCS_UPPER_BOUND);
+				nprocsUpperBoundVar = this.basicTypeVariableDeclaration(BasicTypeKind.INT, NPROCS_UPPER_BOUND);
 				nprocsUpperBoundVar.getTypeNode().setInputQualified(true);
 			} else {
-				nprocsUpperBoundVar.parent()
-						.removeChild(nprocsUpperBoundVar.childIndex());
+				nprocsUpperBoundVar.parent().removeChild(nprocsUpperBoundVar.childIndex());
 			}
 			if (nprocsLowerBoundVar == null) {
-				Source lowerBoundSource = this.newSource(
-						"constant integer: one", CivlcTokenConstant.INT);
-				Source intTypeSource = this.newSource("int",
-						CivlcTokenConstant.TYPE);
+				Source lowerBoundSource = this.newSource("constant integer: one", CivlcTokenConstant.INT);
+				Source intTypeSource = this.newSource("int", CivlcTokenConstant.TYPE);
 
 				// declaring $input int _mpi_nprocs_lo;
-				nprocsLowerBoundVar = this.variableDeclaration(
-						NPROCS_LOWER_BOUND,
-						nodeFactory.newBasicTypeNode(intTypeSource,
-								BasicTypeKind.INT),
-						this.nodeFactory
-								.newIntegerConstantNode(lowerBoundSource, "1"));
+				nprocsLowerBoundVar = this.variableDeclaration(NPROCS_LOWER_BOUND,
+						nodeFactory.newBasicTypeNode(intTypeSource, BasicTypeKind.INT),
+						this.nodeFactory.newIntegerConstantNode(lowerBoundSource, "1"));
 				nprocsLowerBoundVar.getTypeNode().setInputQualified(true);
 			} else {
-				nprocsLowerBoundVar.parent()
-						.removeChild(nprocsLowerBoundVar.childIndex());
+				nprocsLowerBoundVar.parent().removeChild(nprocsLowerBoundVar.childIndex());
 			}
 			// assuming _mpi_nprocs_lo <= _mpi_nprocs && _mpi_nprocs <=
 			// _mpi_nprocs_hi
@@ -1103,8 +983,7 @@ public class MPI2CIVLWorker extends BaseWorker {
 
 			// The _mpi_nprocs declaration must be inserted before it is
 			// referenced
-			if (!nprocsTouched
-					&& isRelatedAssumptionNode(node, Arrays.asList(NPROCS))) {
+			if (!nprocsTouched && isRelatedAssumptionNode(node, Arrays.asList(NPROCS))) {
 				externalList.add(nprocsVar);
 				nprocsTouched = true;
 			}
@@ -1125,10 +1004,8 @@ public class MPI2CIVLWorker extends BaseWorker {
 		externalList.add(this.gcommsSeqDeclaration());
 		externalList.add(mpiProcess);
 		externalList.add(mainFunction);
-		newRootNode = nodeFactory.newSequenceNode(null, "TranslationUnit",
-				externalList);
-		newAst = astFactory.newAST(newRootNode, ast.getSourceFiles(),
-				ast.isWholeProgram());
+		newRootNode = nodeFactory.newSequenceNode(null, "TranslationUnit", externalList);
+		newAst = astFactory.newAST(newRootNode, ast.getSourceFiles(), ast.isWholeProgram());
 		// newAst.prettyPrint(System.out, false);
 		return newAst;
 	}

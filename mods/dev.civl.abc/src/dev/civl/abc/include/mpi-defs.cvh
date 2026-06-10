@@ -1,8 +1,13 @@
 #ifndef _MPI_DEFS
 #define _MPI_DEFS
+#pragma CIVL ACSL
 
 #include <op.h>
+#include <stddef.h>
+#include <civlc.cvh>
 
+// Internal tags used to implement various MPI routines...
+// Collectives...
 #define ALLGATHER_TAG    1
 #define ALLGATHERV_TAG   2
 #define ALLREDUCE_TAG    3
@@ -20,6 +25,10 @@
 #define SCAN_TAG         15
 #define SCATTERV_TAG     16
 #define SCATTER_TAG      17
+// Other functions...
+#define COMMDUP_TAG      100
+#define COMMFREE_TAG     101
+
 
 typedef enum MPI_Datatype {
     MPI_CHAR,
@@ -110,7 +119,19 @@ typedef enum MPI_Datatype {
 #define MPI_SIMILAR   2
 #define MPI_UNEQUAL   3
 
+
 typedef enum Operation MPI_Op;
+
+/* The state of an MPI process: uninitialized before MPI_Init is
+   called, initialized after MPI_Init but before MPI_Finalize, and
+   finalized after MPI_Finalize.  There is a global variable of this
+   type declared in mpi.cvl. */
+typedef enum _mpi_state {
+  _MPI_UNINIT,
+  _MPI_INIT,
+  _MPI_FINALIZED
+} $mpi_state;
+
 
 /* Simple representation of a type signature: a count and MPI
    datatype.  TODO: generalize this to represent arbitrary type
@@ -121,5 +142,40 @@ typedef struct $mpi_tsig {
 } $mpi_tsig;
 
 #define MPI_TSIG_NULL (($mpi_tsig){.count=-1, .type=MPI_DATATYPE_NULL})
+
+/* Returns the string literal of certain MPI routine names by giving
+   the unique message tag. */
+char * $mpi_coroutine_name(int tag);
+
+/*@ pure;
+  @ depends_on \nothing;
+  @ executes_when \true;
+  @*/
+$state_f $atomic_f int sizeofDatatype(MPI_Datatype);
+
+/* Returns the number of chars of the given MPI_Datatype.  equivalent
+ * to returns (datatypeSizeof(datatype) / sizeof(char)) */
+$state_f size_t $mpi_extentof(MPI_Datatype);
+
+/* Allocate memory space with MPI type signitures. Returns a pointer
+   to the allocated memory space */
+void * $mpi_malloc($scope scope, int count, MPI_Datatype datatype);
+
+void* $mpi_pointer_add(const void*, int, MPI_Datatype);
+
+/* Assert that the basetype of the object pointed by 'buf' is sames as
+   the basetype of the 'datatype'. Here a basetype of an MPI_Datatype
+   means a indivisiable MPI_datatype, e.g. the basetype of MPI_2INT is
+   MPI_INT.*/
+/*@ depends_on \access(buf);
+  @ executes_when \true;
+  @*/
+$system[mpi] void $mpi_check_buffer(const void * buf, int count,
+				    MPI_Datatype datatype);
+
+/* Abstract function used to represent wall time. */
+$abstract double $mpi_time(int i);
+
+
 
 #endif

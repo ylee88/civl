@@ -713,6 +713,7 @@ public class CIVLConstants {
 	public final static String FORTRAN_SIGP = "fortran_sigp.cvh";
 	public final static String LOOP_ASSIGNS_GEN = "loop_assigns_gen.cvh";
 	public final static String MEM = "mem.cvh";
+	public final static String MPI_DEFS = "mpi-defs.cvh";
 	public final static String POINTER = "pointer.cvh";
 	public final static String SCOPE = "scope.cvh";
 	public final static String SEQ = "seq.cvh";
@@ -753,6 +754,7 @@ public class CIVLConstants {
 	public final static String INT_DIV_NO_CHECKING_SRC = "int_div_no_checking.cvl";
 	public final static String INT_DIV_SRC = "int_div.cvl";
 	public final static String LOOP_ASSIGNS_GEN_SRC = "loop_assigns_gen.cvl";
+	public final static String MPI_DEFS_SRC = "mpi-defs.cvl";
 	public final static String SEQ_SRC = "seq.cvl";
 	public final static String UNSIGNED_ARITH_SRC = "unsigned_arith.cvl";
 
@@ -771,10 +773,9 @@ public class CIVLConstants {
 	 * @return all CIVL-C library headers.
 	 */
 	public final static Set<String> getCivlLibHeaders() {
-		return new HashSet<String>(
-				Arrays.asList(BUNDLE, CIVLC, CIVL_CUDA, CIVL_MPI, CIVL_MPI_BLOCKING, CIVL_MPI_NONBLOCKING, CIVL_OMP,
-						CIVL_PTHREAD, CIVL_STDIO, CMON, COMM, COMM2, CONCURRENCY, DOMAIN,
-						FORTRAN_ARRAY, FORTRAN_SIGP, LOOP_ASSIGNS_GEN, MEM, POINTER, SCOPE, SEQ));
+		return new HashSet<String>(Arrays.asList(BUNDLE, CIVLC, CIVL_CUDA, CIVL_MPI, CIVL_MPI_BLOCKING,
+				CIVL_MPI_NONBLOCKING, CIVL_OMP, CIVL_PTHREAD, CIVL_STDIO, CMON, COMM, COMM2, CONCURRENCY, DOMAIN,
+				FORTRAN_ARRAY, FORTRAN_SIGP, LOOP_ASSIGNS_GEN, MEM, MPI_DEFS, POINTER, SCOPE, SEQ));
 	}
 
 	/**
@@ -796,7 +797,7 @@ public class CIVLConstants {
 		return new HashSet<String>(Arrays.asList(BUNDLE_SRC, CIVLC_SRC, CIVL_CUDA_SRC, CIVL_MPI_BLOCKING_SRC,
 				CIVL_MPI_NONBLOCKING_SRC, CIVL_OMP_SRC, CIVL_OMP2_SRC, CIVL_PTHREAD_SRC, CMON_SRC, COLLATE_SRC,
 				COMM_SRC, CONCURRENCY_SRC, FORTRAN_ARRAY_SRC, FORTRAN_SIGP_SRC, INT_DIV_NO_CHECKING_SRC, INT_DIV_SRC,
-				LOOP_ASSIGNS_GEN_SRC, SEQ_SRC, UNSIGNED_ARITH_SRC));
+				LOOP_ASSIGNS_GEN_SRC, MPI_DEFS_SRC, SEQ_SRC, UNSIGNED_ARITH_SRC));
 	}
 
 	/**

@@ -1,9 +1,9 @@
+#ifndef _POINTER_
+#define _POINTER_
 /* This header file contains the function prototypes for 
  * pointer operations.
  */
 
-#ifndef _POINTER_
-#define _POINTER_
 #pragma CIVL ACSL
 #include<civlc.cvh>
 #include<op.h>
