@@ -12,7 +12,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
 
-import dev.civl.mc.TestConstants;
 import dev.civl.mc.run.IF.UserInterface;
 
 public class MPICollectivePart1Test {

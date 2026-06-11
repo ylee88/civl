@@ -3,7 +3,7 @@
 
 #include <bundle.cvh>
 #include <civl-mpi.cvh>
-#include <cmon.cvh> // TODO: experiment in progress
+#include <cmon.cvh>
 #include <concurrency.cvh>
 #include <mpi.h>
 #include <pointer.cvh>
@@ -11,39 +11,46 @@
 #include <stdlib.h>
 #include <string.h>
 
-extern const int MPI_IN_PLACE_SPOT = 0;
-
+/* The state of MPI on this process: uninitialized, initialized, or
+   finalized.  This will become a process local variable. */
 $mpi_state _mpi_state=_MPI_UNINIT;
 
-/************************** MPI LIB Implementations *******************************/
+/* This variable is here just to create a unique pointer value
+   MPI_IN_PLACE, declared in mpi.h */
+extern const int MPI_IN_PLACE_SPOT = 0;
+
+
+// Helper functions...
+
+static void checkInit(void) {
+  $assert(_mpi_state == _MPI_INIT,
+	  "An MPI function was called when MPI was not initialized");
+}
+
+// Implementations of mpi.h functions ...
 
 int $mpi_init(void) {
-  $assert(_mpi_state == _MPI_UNINIT, "Process can only call MPI_Init() at most once.");
+  $assert(_mpi_state == _MPI_UNINIT, "Process can only call MPI_Init() once.");
   _mpi_state = _MPI_INIT;
   return 0;
 }
 
 int MPI_Type_size(MPI_Datatype datatype, int *size) {
-  $assert(_mpi_state == _MPI_INIT, "MPI_Type_size() cannot be invoked "
-    "without MPI_Init() being called before.\n");
+  checkInit();
   *size = sizeofDatatype(datatype);
   return 0;
 }
 
 int MPI_Finalize(void) {
-  $assert(_mpi_state == _MPI_INIT, "Process can only call MPI_Finalize() after "
-	  "MPI_Init() and before MPI_Finalize().");
+  checkInit();
   _mpi_state = _MPI_FINALIZED;
   return 0;
 }
 
 double MPI_Wtime() {
-  double result;
+  checkInit();
   int CMPI_time_count = $next_time_count();
-
-  $assert(_mpi_state == _MPI_INIT, "MPI_Wtime() cannot be invoked "
-    "without MPI_Init() being called before.\n");
-  result = $mpi_time(CMPI_time_count);
+  double result = $mpi_time(CMPI_time_count);
   if (CMPI_time_count > 0) {
     $assume(result > $mpi_time(CMPI_time_count-1));
   } else {
@@ -53,93 +60,78 @@ double MPI_Wtime() {
 }
 
 int MPI_Comm_size(MPI_Comm comm, int *size) {
-#ifndef _MPI_CONTRACT
-  $assert(_mpi_state == _MPI_INIT, "MPI_Comm_size() cannot be "
-    "invoked without MPI_Init() being called before.\n");
-#endif
+  checkInit();
   *size = $mpi_comm_size(comm);
   return 0;
 }
 
 int MPI_Comm_rank(MPI_Comm comm, int *rank) {
-#ifndef _MPI_CONTRACT
-  $assert(_mpi_state == _MPI_INIT, "MPI_Comm_rank() cannot be "
-    "invoked without MPI_Init() being called before.\n");
-#endif
+  checkInit();
   *rank = $mpi_comm_place(comm);
   return 0;
 }
 
 int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest,
 	     int tag, MPI_Comm comm) {
-  $assert(_mpi_state == _MPI_INIT, "MPI_Send() cannot be invoked "
-	  "without MPI_Init() being called before.\n");
-
+  checkInit();
 #ifdef _MPI_NON_BLOCKING
   MPI_Request request;
-
   $mpi_isend(buf, count, datatype, dest, tag, comm, &request);
   $mpi_wait(&request, MPI_STATUS_IGNORE);
 #elif defined(_MPI_BLOCKING)
   $mpi_send(buf, count, datatype, dest, tag, comm);
 #endif
-  return 1;
+  return 0;
 }
 
 int MPI_Isend(void *buf, int count, MPI_Datatype datatype, int dest,
 	      int tag, MPI_Comm comm, MPI_Request * request) {
-  $assert(_mpi_state == _MPI_INIT, "MPI_Isend() cannot be invoked "
-	  "without MPI_Init() being called before.\n");
+  checkInit();
 #ifdef _MPI_NON_BLOCKING
-  return $mpi_isend(buf, count, datatype, dest, tag, comm, request);
+  $mpi_isend(buf, count, datatype, dest, tag, comm, request);
 #elif defined(_MPI_BLOCKING)
   $assert(0, "MPI_Isend is not supported in the MPI blocking implementation.");
-  return 0;
 #endif
+  return 0;
 }
 
 int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source,
 	     int tag, MPI_Comm comm, MPI_Status *status) {
-  $assert(_mpi_state == _MPI_INIT, "MPI_Recv() cannot be invoked "
-	  "without MPI_Init() being called before.\n");
+  checkInit();
 #ifdef _MPI_NON_BLOCKING
   MPI_Request request;
-
   $mpi_irecv(buf, count, datatype, source, tag, comm, &request);
   $mpi_wait(&request, status);
 #elif defined(_MPI_BLOCKING)
   $mpi_recv(buf, count, datatype, source, tag, comm, status);
 #endif
-  return 1;
+  return 0;
 }
 
 int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source,
 	      int tag, MPI_Comm comm, MPI_Request * request) {
-  $assert(_mpi_state == _MPI_INIT, "MPI_Irecv() cannot be invoked "
-	  "without MPI_Init() being called before.\n");
+  checkInit();
 #ifdef _MPI_NON_BLOCKING
-  return $mpi_irecv(buf, count, datatype, source, tag, comm, request);
+  $mpi_irecv(buf, count, datatype, source, tag, comm, request);
 #elif  defined(_MPI_BLOCKING)
   $assert(0, "MPI_Irecv is not supported in the MPI blocking implementation.");
-  return 0;
 #endif
+  return 0;
 }
 
 int MPI_Wait(MPI_Request * request, MPI_Status * status) {
-  $assert(_mpi_state == _MPI_INIT, "MPI_Wait() cannot be invoked "
-	  "without MPI_Init() being called before.\n");
+  checkInit();
 #ifdef _MPI_NON_BLOCKING
   $mpi_wait(request, status);
-  return 1;
-#elif  defined(_MPI_BLOCKING)
+#elif defined(_MPI_BLOCKING)
   $assert(0, "MPI_Wait is not supported in the MPI blocking implementation.");
-  return 0;
 #endif
+  return 0;
 }
 
-int MPI_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of_statuses[]) {
-  $assert(_mpi_state == _MPI_INIT, "MPI_Waitall() cannot be invoked "
-	  "without MPI_Init() being called before.\n");
+int MPI_Waitall(int count, MPI_Request array_of_requests[],
+		MPI_Status array_of_statuses[]) {
+  checkInit();
 #ifdef _MPI_NON_BLOCKING
   $for (int i : 0 .. count-1) {
     MPI_Status * status = array_of_statuses == MPI_STATUSES_IGNORE ?
@@ -147,20 +139,18 @@ int MPI_Waitall(int count, MPI_Request array_of_requests[], MPI_Status array_of_
     MPI_Request * req = array_of_requests + i;
     $mpi_wait(req, status);
   }
-  return 1;
-#elif  defined(_MPI_BLOCKING)
+#elif defined(_MPI_BLOCKING)
   $assert(0, "MPI_Waitall is not supported in the MPI blocking implementation.");
-  return 0;
 #endif
+  return 0;
 }
 
 int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status) {
-  $assert(_mpi_state == _MPI_INIT, "MPI_Test() cannot be invoked "
-	  "without MPI_Init() being called before.\n");
+  checkInit();
 #ifdef _MPI_NON_BLOCKING
   if (*request == MPI_REQUEST_NULL) {
     *flag = 1;
-    return 1;
+    return 0;
   }
   $choose {
     $when ($true) {
@@ -170,37 +160,33 @@ int MPI_Test(MPI_Request *request, int *flag, MPI_Status *status) {
     $when ($true)
       *flag = 0;
   }
-  return 1;
 #elif defined(_MPI_BLOCKING)
   $assert(0, "MPI_Test is not supported in the MPI blocking implementation.");
-  return 0;
 #endif
+  return 0;
 }
 
 int MPI_Request_free(MPI_Request * request) {
+  checkInit();
   // The standard does not say this function accepts MPI_REQUEST_NULL
 #ifdef _MPI_NON_BLOCKING
   $free(*request);
   *request = MPI_REQUEST_NULL;
-  return 1;
 #elif defined(_MPI_BLOCKING)
   $assert(0, "MPI_Request_free is not supported in the MPI blocking implementation.");
-  return 0;
 #endif
+  return 0;
 }
 
 int MPI_Get_count(MPI_Status *status, MPI_Datatype datatype, int *count) {
-#ifndef _MPI_CONTRACT
-  $assert(_mpi_state == _MPI_INIT, "MPI_Get_count() cannot be invoked "
-    "without MPI_Init() being called before.\n");
-#endif
+  checkInit();
   *count = status->size/sizeofDatatype(datatype);
   return 0;
 }
 
 int MPI_Get_processor_name(char * name, int * resultlen) {
+  checkInit();
   $abstract int MPI_GET_PROCESSOR_NAME(char *, int *);
-
   return MPI_GET_PROCESSOR_NAME(name, resultlen);
 }
 
@@ -209,21 +195,13 @@ int MPI_Sendrecv(void *sendbuf, int sendcount, MPI_Datatype sendtype,
 		 void *recvbuf, int recvcount, MPI_Datatype recvtype,
 		 int source, int recvtag,
 		 MPI_Comm comm, MPI_Status *status) {
-  $assert(_mpi_state == _MPI_INIT, "MPI_Sendrecv() cannot be invoked "
-	  "without MPI_Init() being called before.\n");
-#ifdef _MPI_CONTRACT
-  $elaborate(dest);
-  $elaborate(source);
-#else
+  checkInit();
   $mpi_check_buffer(sendbuf, sendcount, sendtype);
-#endif
   // not correct for checking potential deadlock...rewrite:
   $mpi_sendrecv(sendbuf, sendcount, sendtype, dest, sendtag, recvbuf, recvcount,
 		recvtype, source, recvtag, comm, status);
   return 0;
 }
-
-
 
 /******************************** Collective ***********************************/
 
@@ -368,11 +346,6 @@ static void reduce
     }
     $free(tmpbuf);
   }
-}
-
-static void checkInit(void) {
-  $assert(_mpi_state == _MPI_INIT,
-	  "An MPI function was called when MPI was not initialized");
 }
 
 // Implementations of the (blocking) MPI collectives...
@@ -570,7 +543,7 @@ int MPI_Alltoallv
 		   ($mpi_tsig){ .count=sendcounts[i], .type=sendtype }),
 		  (($mpi_tsig[nprocs])$lambda (int i)
 		   ($mpi_tsig){ .count=recvcounts[i], .type=recvtype }));
-  // TODO: check buffer, but why?  
+  // TODO: check buffer
   void *sbuf;
   const int * scounts;
   int * sdisps;
@@ -854,28 +827,21 @@ int MPI_Exscan(const void *sendbuf, void *recvbuf, int count,
 /* ****************** End of collecitve routines  ********************* */
 
 int MPI_Comm_dup(MPI_Comm comm, MPI_Comm * newcomm) {
+  checkInit();
   $scope CMPI_PROC_SCOPE = $mpi_proc_scope(comm);
-
-#ifndef _MPI_CONTRACT
-  $assert(_mpi_state == _MPI_INIT, "MPI_Comm_dup() cannot be invoked without "
-    "MPI_Init() being called before.\n");
-#endif
   $mpi_comm_dup(CMPI_PROC_SCOPE, comm, newcomm, "MPI_Comm_dup");
   return 0;
 }
 
 int MPI_Comm_free(MPI_Comm * comm) {
-#ifndef _MPI_CONTRACT
-  $assert(_mpi_state == _MPI_INIT, "MPI_Comm_free() cannot be invoked without "
-    "MPI_Init() being called before.\n");
-#endif
+  checkInit();
   $assert($is_derefable_pointer(comm), "The argument of MPI_Comm_free is NULL.");
   $mpi_comm_free(comm, _mpi_state);
   return 0;
 }
 
-int MPI_Init_thread( int *argc, char ***argv, int required, int *provided ){
-  _mpi_state = _MPI_INIT; //TODO: why set initialized flag here ??
+int MPI_Init_thread( int *argc, char ***argv, int required, int *provided ) {
+  _mpi_state = _MPI_INIT;
   *provided = MPI_THREAD_MULTIPLE;
   return MPI_SUCCESS;
 }

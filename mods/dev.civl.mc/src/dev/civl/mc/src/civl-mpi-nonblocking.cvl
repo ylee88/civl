@@ -23,6 +23,8 @@ typedef struct _mpi_nb_record_t {
 } _mpi_nb_record_t;
 
 struct CIVL_MPI_Comm {
+  $scope gscope; // the shared (global) scope, scope of the gcomm
+  $scope scope; // the MPI process scope
   $comm p2p; // point-to-point communication
   $comm col; // collective communication
   $barrier barrier;
@@ -34,6 +36,7 @@ struct CIVL_MPI_Comm {
 /* Definition of CMPI_Gcomm (CMPI_Gcomm has a type of __CMPI_Gcomm) 
    and MPI_Comm */
 struct $mpi_gcomm {
+  $scope scope; // the shared scope containing the process scope
   $gcomm p2p; // point-to-point communication
   $gcomm col; // collective communication
   $gbarrier gbarrier;
@@ -91,7 +94,7 @@ static void gather
 
 $mpi_gcomm $mpi_gcomm_create($scope scope, int size) {
   $mpi_gcomm result;
-
+  result.scope = scope;
   result.p2p = $gcomm_create(scope, size);
   result.col = $gcomm_create(scope, size);
   result.gbarrier = $gbarrier_create(scope, size);
@@ -136,7 +139,8 @@ void $mpi_gcomm_destroy($mpi_gcomm gc) {
 
 MPI_Comm $mpi_comm_create($scope scope, $mpi_gcomm gc, int rank) {
   MPI_Comm result = (MPI_Comm)$malloc(scope, sizeof(*result));;
-  
+  result->gscope = gc.scope;
+  result->scope = scope;
   result->p2p = $comm_create(scope, gc.p2p, rank);
   result->col = $comm_create(scope, gc.col, rank);
   result->barrier = $barrier_create(scope, gc.gbarrier, rank);
@@ -160,21 +164,15 @@ void $mpi_comm_destroy(MPI_Comm comm, $mpi_state mpi_state) {
 
 /********************* Lower level MPI routines  *********************/
 
-/* CMPI_Send and CMPI_Recv are a pair of send receives functions that
-   help implementing MPI routines. They should never be block which
-   means no potential deadlocks related to these functions */
-int $mpi_send(const void *buf, int count, MPI_Datatype datatype, int dest,
-	      int tag, MPI_Comm comm) {
+void $mpi_send(const void *buf, int count, MPI_Datatype datatype, int dest,
+	       int tag, MPI_Comm comm) {
   if (dest >= 0) {
     int size = count*sizeofDatatype(datatype);
     int place = $comm_place(comm->p2p);
-    $message out;
-
     $elaborate(dest);
-    out = $message_pack(place, dest, tag, buf, size);
+    $message out = $message_pack(place, dest, tag, buf, size);
     $comm_enqueue(comm->p2p, out);   
   }
-  return 0;
 }
 
 /* This function 
@@ -194,8 +192,8 @@ int $mpi_send(const void *buf, int count, MPI_Datatype datatype, int dest,
 
    Step 2) may be skipped if only checking absolute deadlock.
 */
-int $mpi_isend(const void *buf, int count, MPI_Datatype datatype, int dest,
-	       int tag, MPI_Comm comm, MPI_Request * request) {
+void $mpi_isend(const void *buf, int count, MPI_Datatype datatype, int dest,
+		int tag, MPI_Comm comm, MPI_Request * request) {
   if (dest >= 0) {
     int place = $comm_place(comm->p2p);
     // Isend allocates an MPI_Request object (MPI-3.0 sec 3.7.2):
@@ -216,26 +214,20 @@ int $mpi_isend(const void *buf, int count, MPI_Datatype datatype, int dest,
     req->record->completed = 0;
     *request = req;
     $seq_append(&comm->send_records, &req->record, 1);
-    return $mpi_send(buf, count, datatype, dest, tag, comm);
+    $mpi_send(buf, count, datatype, dest, tag, comm);
   } else
     *request = MPI_REQUEST_NULL;
-  return 1;
 }
 
-int $mpi_recv(void *buf, int count, MPI_Datatype datatype, int source,
-	      int tag, MPI_Comm comm, MPI_Status *status) {
-  if ((source >= 0 || source == MPI_ANY_SOURCE)) {
-    $message in;
+void $mpi_recv(void *buf, int count, MPI_Datatype datatype, int source,
+	       int tag, MPI_Comm comm, MPI_Status *status) {
+  $assert(tag == MPI_ANY_TAG || tag >= 0,
+	  "Illegal MPI message receive tag %d.\n", tag);
+  if (source >= 0 || source == MPI_ANY_SOURCE) {
     int place = $comm_place(comm->p2p);
-    int deterministicTag;
- 
-    $assert(tag == -2 || tag >= 0, "Illegal MPI message receive tag %d.\n", tag);
-    deterministicTag = tag < 0 ? -2 : tag;
     $elaborate(source);
-    in = $comm_dequeue(comm->p2p, source, deterministicTag);
-
+    $message in = $comm_dequeue(comm->p2p, source, tag);
     int size = count*sizeofDatatype(datatype);
-
     $message_unpack(in, buf, size);
     if (status != MPI_STATUS_IGNORE) {
       status->size = $message_size(in);
@@ -244,7 +236,6 @@ int $mpi_recv(void *buf, int count, MPI_Datatype datatype, int source,
       status->MPI_ERROR = 0;
     }
   }
-  return 0;
 }
 
 /* This function 
@@ -259,9 +250,9 @@ int $mpi_recv(void *buf, int count, MPI_Datatype datatype, int source,
    A pointer to the created record is saved in the allocated MPI
    Request object.
 */
-int $mpi_irecv(void *buf, int count, MPI_Datatype datatype, int source,
-	       int tag, MPI_Comm comm, MPI_Request * request) {
-  if ((source >= 0 || source == MPI_ANY_SOURCE)) {  
+void $mpi_irecv(void *buf, int count, MPI_Datatype datatype, int source,
+		int tag, MPI_Comm comm, MPI_Request * request) {
+  if (source >= 0 || source == MPI_ANY_SOURCE) {  
     // Irecv allocates an MPI_Request object (MPI-3.0 sec 3.7.2):
     MPI_Request req = (MPI_Request) malloc(sizeof(struct MPI_Request));
     
@@ -278,21 +269,17 @@ int $mpi_irecv(void *buf, int count, MPI_Datatype datatype, int source,
     *request = req;
   } else
     *request = MPI_REQUEST_NULL;
-  return 1;
 }
 
 
-int $mpi_sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
-		  int dest, int sendtag, void *recvbuf, int recvcount, 
-		  MPI_Datatype recvtype, int source, int recvtag,
-		  MPI_Comm comm, MPI_Status *status) {
-  int deterministicRecvTag;
-
+void $mpi_sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+		   int dest, int sendtag, void *recvbuf, int recvcount, 
+		   MPI_Datatype recvtype, int source, int recvtag,
+		   MPI_Comm comm, MPI_Status *status) {
   $assert(sendtag >= 0, "MPI sendtag should be greater than or equal to zero");
-  $assert(recvtag == -2 || recvtag >= 0, "Illegal MPI message receive tag %d.\n", recvtag);
-  
-  deterministicRecvTag = recvtag < 0 ? -2 : recvtag;
-  if((dest >= 0) && ((source >= 0 || source == MPI_ANY_SOURCE))) {
+  $assert(recvtag == MPI_ANY_TAG || recvtag >= 0,
+	  "Illegal MPI message receive tag %d.\n", recvtag);
+  if (dest >= 0 && (source >= 0 || source == MPI_ANY_SOURCE)) {
     $message out, in;
     int size = sendcount*sizeofDatatype(sendtype);
     int place = $comm_place(comm->p2p);
@@ -301,18 +288,18 @@ int $mpi_sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
     $elaborate(source);
     $elaborate(dest);
     $choose {
-      $when($true){
+      $when ($true) {
 	$comm_enqueue(comm->p2p, out);
-	in = $comm_dequeue(comm->p2p, source, deterministicRecvTag);
+	in = $comm_dequeue(comm->p2p, source, recvtag);
       }
-      $when($false){
+      $when ($false) {
         /* This $choose branch plays a trick which correctly
 	   implements the sendrecv() semantically. Such a branch
 	   ensures that there is no chance of potential deadlocks when
 	   all processes do send then recv collectively. However,
 	   effectively, this branch is no need and never will be
 	   executed.*/
-	in = $comm_dequeue(comm->p2p, source, deterministicRecvTag);
+	in = $comm_dequeue(comm->p2p, source, recvtag);
 	$comm_enqueue(comm->p2p, out);
       }
     }
@@ -328,8 +315,7 @@ int $mpi_sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
   else if (dest >= 0)
     $mpi_send(sendbuf, sendcount, sendtype, dest, sendtag, comm);
   else if (source >= 0 || source == MPI_ANY_SOURCE) 
-    $mpi_recv(recvbuf, recvcount, recvtype, source, deterministicRecvTag, comm, status);
-  return 0;
+    $mpi_recv(recvbuf, recvcount, recvtype, source, recvtag, comm, status);
 }
 
 
@@ -342,7 +328,7 @@ int $mpi_sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
    requires "request" to be valid and "status" to be either valid or
    MPI_STATUS_IGNORE
  */
-int $mpi_wait_send(MPI_Request * request, MPI_Status * status) {
+void $mpi_wait_send(MPI_Request * request, MPI_Status * status) {
   // TODO: To check potential deadlock, need to look through the message
   // channel and the send record queue at the same time to determine
   // if there is (or was) a matching receive enabled for this send
@@ -362,7 +348,6 @@ int $mpi_wait_send(MPI_Request * request, MPI_Status * status) {
     }
   }  
   $free(req->record);
-  return 1;
 }
 
 /* 
@@ -372,7 +357,7 @@ int $mpi_wait_send(MPI_Request * request, MPI_Status * status) {
    requires "request" to be valid and "status" to be either valid or
    MPI_STATUS_IGNORE
  */
-int $mpi_wait_recv(MPI_Request * request, MPI_Status * status) {
+void $mpi_wait_recv(MPI_Request * request, MPI_Status * status) {
   MPI_Request req = *request;  
   _mpi_nb_record_t * record = req->record;
   MPI_Comm comm = req->comm;
@@ -393,8 +378,8 @@ int $mpi_wait_recv(MPI_Request * request, MPI_Status * status) {
 	break;
       }
     $free(record);
-    return 1;
-  }   
+    return;
+  }
   $elaborate(record->src_or_dest);
   /*
     For any wildcard record "wr", on which "record" depends, "wr" must
@@ -425,11 +410,13 @@ int $mpi_wait_recv(MPI_Request * request, MPI_Status * status) {
       $choose {
 	$when($comm_probe(comm->p2p, MPI_ANY_SOURCE, wr->tag))
 	  wr_enabled = 1;
-	$when(!$comm_probe(comm->p2p, MPI_ANY_SOURCE, wr->tag) && $comm_probe(comm->p2p, record->src_or_dest, record->tag))
+	$when(!$comm_probe(comm->p2p, MPI_ANY_SOURCE, wr->tag) &&
+	      $comm_probe(comm->p2p, record->src_or_dest, record->tag))
 	  ;
-      }     
+      }
       if (wr_enabled) {
-	$mpi_recv(wr->buf, wr->count, wr->datatype, wr->src_or_dest, wr->tag, comm, &tmp_status);
+	$mpi_recv(wr->buf, wr->count, wr->datatype, wr->src_or_dest,
+		  wr->tag, comm, &tmp_status);
 	wr->src_or_dest = tmp_status.MPI_SOURCE;
 	wr->tag = tmp_status.MPI_TAG;
 	wr->completed = 1;
@@ -454,8 +441,9 @@ int $mpi_wait_recv(MPI_Request * request, MPI_Status * status) {
 	continue;
       if (r == record)
 	idx = i;
-      if (r == record || (r->src_or_dest == $message_source(in) &&
-			  (r->tag == $message_tag(in) || r->tag == MPI_ANY_TAG))) {
+      if (r == record ||
+	  (r->src_or_dest == $message_source(in) &&
+	   (r->tag == $message_tag(in) || r->tag == MPI_ANY_TAG))) {
 	// this message belongs to r:
 	r->src_or_dest = $message_source(in);
 	r->tag = $message_tag(in);
@@ -474,19 +462,17 @@ int $mpi_wait_recv(MPI_Request * request, MPI_Status * status) {
   }
   $seq_remove(&comm->recv_records, idx, NULL, 1);
   free(record);
-  return 1;
 }
 
-int $mpi_wait(MPI_Request * request, MPI_Status * status) {
+void $mpi_wait(MPI_Request * request, MPI_Status * status) {
   if (*request == MPI_REQUEST_NULL) 
-    return 1;
+    return;
   if ((*request)->isSend)
     $mpi_wait_send(request, status);
   else
     $mpi_wait_recv(request, status);  
   $free(*request);
   *request = MPI_REQUEST_NULL;
-  return 1;
 }
 
 /********************* Collective helper functions ********************/
@@ -497,57 +483,46 @@ int $mpi_wait(MPI_Request * request, MPI_Status * status) {
    should throw errors (if encounters any) as if errors are thrown
    from MPI_Allreduce.
 */
-int $mpi_collective_send(const void *buf, int count, MPI_Datatype datatype, int dest,
-	      int tag, MPI_Comm comm) {
+void $mpi_collective_send
+(const void *buf, int count, MPI_Datatype datatype, int dest,
+ int tag, MPI_Comm comm)
+{
   if (dest >= 0) {
     int size = count*sizeofDatatype(datatype);
     int place = $comm_place(comm->col);
     $message out = $message_pack(place, dest, tag, buf, size);
-
     $elaborate(dest);
     $comm_enqueue(comm->col, out);   
   }
-  return 0;
 }
 
-int $mpi_collective_recv(void *buf, int count, MPI_Datatype datatype, 
-			 int source, int tag, MPI_Comm comm, 
-			 MPI_Status * status, char * routName) {
-  if(source >= 0 || source == MPI_ANY_SOURCE) {
+void $mpi_collective_recv(void *buf, int count, MPI_Datatype datatype, 
+			  int source, int tag, MPI_Comm comm, 
+			  MPI_Status * status, char * routName) {
+  if (source >= 0 || source == MPI_ANY_SOURCE) {
     $elaborate(source);
     $message in = $comm_dequeue(comm->col, source, MPI_ANY_TAG);
     int size = count*sizeofDatatype(datatype);
-    int recvTag;
-
-    /* This routine should only be used by collective routines, there
-       is no non-deterministic tags for collective routines.*/
-    recvTag = $message_tag(in);
-    $assert (recvTag == tag, "Collective routine %s receives a "
-	     "message with a mismatched tag\n", routName);
     $message_unpack(in, buf, size);
     if (status != MPI_STATUS_IGNORE) {
       status->size = $message_size(in);
       status->MPI_SOURCE = $message_source(in);
-      status->MPI_TAG = recvTag;
+      status->MPI_TAG = tag;
       status->MPI_ERROR = 0;
     }
   }
-  return 0;
 }
 
 // copy of the p2p version, modified for col
-int $mpi_collective_sendrecv
+void $mpi_collective_sendrecv
 (const void *sendbuf, int sendcount, MPI_Datatype sendtype,
  int dest, int sendtag, void *recvbuf, int recvcount, 
  MPI_Datatype recvtype, int source, int recvtag,
  MPI_Comm comm, MPI_Status *status)
 {
-  int deterministicRecvTag;
-
   $assert(sendtag >= 0, "MPI sendtag should be greater than or equal to zero");
   $assert(recvtag == MPI_ANY_TAG || recvtag >= 0,
 	  "Illegal MPI message receive tag %d.\n", recvtag);
-  deterministicRecvTag = recvtag < 0 ? MPI_ANY_TAG : recvtag;
   if (dest >= 0 && (source >= 0 || source == MPI_ANY_SOURCE)) {
     $message out, in;
     int size = sendcount*sizeofDatatype(sendtype);
@@ -559,7 +534,7 @@ int $mpi_collective_sendrecv
     $choose {
       $when ($true) {
 	$comm_enqueue(comm->col, out);
-	in = $comm_dequeue(comm->col, source, deterministicRecvTag);
+	in = $comm_dequeue(comm->col, source, recvtag);
       }
       $when ($false) {
         /* This $choose branch plays a trick which correctly
@@ -568,7 +543,7 @@ int $mpi_collective_sendrecv
 	   all processes do send then recv collectively. However,
 	   effectively, this branch is no need and never will be
 	   executed.  TODO: WTF??? */
-	in = $comm_dequeue(comm->col, source, deterministicRecvTag);
+	in = $comm_dequeue(comm->col, source, recvtag);
 	$comm_enqueue(comm->col, out);
       }
     }
@@ -584,13 +559,12 @@ int $mpi_collective_sendrecv
   else if (dest >= 0)
     $mpi_send(sendbuf, sendcount, sendtype, dest, sendtag, comm);
   else if (source >= 0 || source == MPI_ANY_SOURCE) 
-    $mpi_recv(recvbuf, recvcount, recvtype, source, deterministicRecvTag, comm, status);
-  return 0;
+    $mpi_recv(recvbuf, recvcount, recvtype, source, recvtag, comm, status);
 }
 
 /* ******************** End of collective routines  ********************* */
 
-int $mpi_comm_dup($scope scope, MPI_Comm comm, MPI_Comm * newcomm, char * routName) {
+void $mpi_comm_dup($scope scope, MPI_Comm comm, MPI_Comm * newcomm, char * routName) {
   int place = $comm_place(comm->col);
   $mpi_gcomm newgcomm;
   int idx;
@@ -610,7 +584,6 @@ int $mpi_comm_dup($scope scope, MPI_Comm comm, MPI_Comm * newcomm, char * routNa
   $gcomm_dup(comm->p2p, (*newcomm)->p2p);
   $gcomm_dup(comm->col, (*newcomm)->col);
   $barrier_call(comm->barrier);
-  return 0;
 }
 
 $mpi_gcomm $mpi_comm_self_create($scope scope, MPI_Comm * mpi_comm_self) {
@@ -619,7 +592,7 @@ $mpi_gcomm $mpi_comm_self_create($scope scope, MPI_Comm * mpi_comm_self) {
   return newgcomm;
 }
 
-int $mpi_comm_free(MPI_Comm *comm, $mpi_state mpi_state) {
+void $mpi_comm_free(MPI_Comm *comm, $mpi_state mpi_state) {
   int place = $comm_place((*comm)->col);
   int size = $comm_size((*comm)->col);
   int buf[size];
@@ -635,12 +608,10 @@ int $mpi_comm_free(MPI_Comm *comm, $mpi_state mpi_state) {
 
     $mpi_gcomm_destroy(temp);
   }
-  return 0;
 }
 
-int $mpi_barrier(MPI_Comm comm) {
+void $mpi_barrier(MPI_Comm comm) {
   $barrier_call(comm->barrier);
-  return 0;
 }
 
 /**************** Bridging MPI and the comm library *****************/
@@ -662,11 +633,11 @@ $atomic_f $state_f int $mpi_comm_place(MPI_Comm comm) {
 }
 
 $atomic_f $state_f $scope $mpi_root_scope(MPI_Comm comm) {
-  return $mpi_root_scope_system(comm->p2p);
+  return comm->gscope;
 }
 
 $atomic_f $state_f $scope $mpi_proc_scope(MPI_Comm comm) {
-  return $mpi_proc_scope_system(comm->p2p);
+  return comm->gscope;
 }
 
 #endif

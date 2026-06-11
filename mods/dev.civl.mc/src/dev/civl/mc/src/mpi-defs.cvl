@@ -103,3 +103,5 @@ void * $mpi_pointer_add(const void * ptr, int offset, MPI_Datatype datatype) {
   int type_size = sizeofDatatype(datatype);
   return $pointer_add(ptr, offset, type_size);
 }
+
+// TODO: add an mpi_memcpy

@@ -15,12 +15,11 @@
 #include <comm.cvh>
 #include <concurrency.cvh>
 #include <mpi.h>
-#include <mpi-defs.cvh>
 #include <stddef.h>
 
-// Note: the following header files are empty but are here to trigger
-// linkage with the appropriate implementation file, either
-// civl-mpi-nonblocking.cvl or civl-mpi-blocking.cvl...
+/* Note: the following header files are empty but are here to trigger
+   linkage with the appropriate implementation file, either
+   civl-mpi-nonblocking.cvl or civl-mpi-blocking.cvl... */
 #ifdef _MPI_NON_BLOCKING
 #include <civl-mpi-nonblocking.cvh>
 #elif defined(_MPI_BLOCKING)
@@ -28,10 +27,12 @@
 #endif
 #pragma CIVL ACSL // ACSL contracts are used in this file
 
+
+// TODO: change this to a pointer so the comm and other objects can
+// have references to it.
 /* This structure is used to store the global (shared) states of an
    MPI communicator. */
 typedef struct $mpi_gcomm $mpi_gcomm;
-
 
 // Communicator functions...
 
@@ -43,6 +44,7 @@ $mpi_gcomm $mpi_gcomm_create($scope, int);
    it was created. */
 void $mpi_gcomm_destroy($mpi_gcomm);
 
+// TODO: does this have to be a system function?
 /* Inserts the given gcomm into a list in a hidden variable
    _mpi_gcomms in the given scope (which should be the MPI root
    scope). */
@@ -65,13 +67,13 @@ MPI_Comm $mpi_comm_create($scope, $mpi_gcomm, int);
    value */
 void $mpi_comm_destroy(MPI_Comm, $mpi_state);
 
-int $mpi_comm_dup($scope, MPI_Comm, MPI_Comm *, char *);
+void $mpi_comm_dup($scope, MPI_Comm, MPI_Comm *, char *);
 
 /* Creates an MPI communicator MPI_COMM_SELF. The returned $mpi_gcomm
    needs to be explicitly destroyed. */
 $mpi_gcomm $mpi_comm_self_create($scope, MPI_Comm * mpi_comm_self);
 
-int $mpi_comm_free(MPI_Comm *, $mpi_state);
+void $mpi_comm_free(MPI_Comm *, $mpi_state);
 
 
 /*@ depends_on \nothing;
@@ -120,52 +122,42 @@ $atomic_f $state_f $scope $mpi_root_scope(MPI_Comm);
   @*/
 $atomic_f $state_f $scope $mpi_proc_scope(MPI_Comm);
 
-/*@ depends_on \nothing;
-  @ executes_when \true;
-  @*/
-$system[mpi] $scope $mpi_root_scope_system($comm);
-
-/*@ depends_on \nothing;
-  @ executes_when \true;
-  @*/
-$system[mpi] $scope $mpi_proc_scope_system($comm);
-
 // Point to point support functions...
 
-int $mpi_send(const void *, int, MPI_Datatype, int, int, MPI_Comm);
+void $mpi_send(const void *, int, MPI_Datatype, int, int, MPI_Comm);
 
-int $mpi_recv(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Status *);
+void $mpi_recv(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Status *);
 
-int $mpi_isend(const void *buf, int count, MPI_Datatype datatype, int dest,
-	       int tag, MPI_Comm comm, MPI_Request * request);
+void $mpi_isend(const void *buf, int count, MPI_Datatype datatype, int dest,
+		  int tag, MPI_Comm comm, MPI_Request * request);
 
-int $mpi_irecv(void *buf, int count, MPI_Datatype datatype, int source,
-	       int tag, MPI_Comm comm, MPI_Request * request);
+void $mpi_irecv(void *buf, int count, MPI_Datatype datatype, int source,
+		  int tag, MPI_Comm comm, MPI_Request * request);
 
-int $mpi_wait_send(MPI_Request * request, MPI_Status * status);
+void $mpi_wait_send(MPI_Request * request, MPI_Status * status);
 
-int $mpi_wait_recv(MPI_Request * request, MPI_Status * status);
+void $mpi_wait_recv(MPI_Request * request, MPI_Status * status);
 
-int $mpi_wait(MPI_Request * request, MPI_Status * status);
+void $mpi_wait(MPI_Request * request, MPI_Status * status);
 
-int $mpi_sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
-		  int dest, int sendtag, void *recvbuf, int recvcount, 
-		  MPI_Datatype recvtype, int source, int recvtag,
-		  MPI_Comm comm, MPI_Status *status);
+void $mpi_sendrecv(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+		     int dest, int sendtag, void *recvbuf, int recvcount, 
+		     MPI_Datatype recvtype, int source, int recvtag,
+		     MPI_Comm comm, MPI_Status *status);
 
 // Collective support functions...
 
-int $mpi_collective_send(const void *, int, MPI_Datatype, int, int, MPI_Comm);
+void $mpi_collective_send(const void *, int, MPI_Datatype, int, int, MPI_Comm);
 
-int $mpi_collective_recv(void *, int, MPI_Datatype, int, int,
-			 MPI_Comm, MPI_Status *, char *);
+void $mpi_collective_recv(void *, int, MPI_Datatype, int, int,
+			    MPI_Comm, MPI_Status *, char *);
 
-int $mpi_collective_sendrecv
+void $mpi_collective_sendrecv
 (const void *sendbuf, int sendcount, MPI_Datatype sendtype,
- int dest, int sendtag, void *recvbuf, int recvcount, 
- MPI_Datatype recvtype, int source, int recvtag,
- MPI_Comm comm, MPI_Status *status);
+   int dest, int sendtag, void *recvbuf, int recvcount, 
+   MPI_Datatype recvtype, int source, int recvtag,
+   MPI_Comm comm, MPI_Status *status);
 
-int $mpi_barrier(MPI_Comm);
+void $mpi_barrier(MPI_Comm);
 
 #endif
