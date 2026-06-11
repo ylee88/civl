@@ -1,6 +1,7 @@
 package dev.civl.mc.transform;
 
 import static dev.civl.mc.TestConstants.VERIFY;
+import static dev.civl.mc.TestConstants.QUIET;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -9,7 +10,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
 
-import dev.civl.mc.TestConstants;
 import dev.civl.mc.run.IF.UserInterface;
 
 public class SeqContractTest {
@@ -28,8 +28,7 @@ public class SeqContractTest {
 
 	@Test
 	public void sum() {
-		assertTrue(
-				ui.run(VERIFY, TestConstants.QUIET, "-mpiContract=_CIVL_CONTRACT_ALL", "-loop", filename("sum.cvl")));
+		assertTrue(ui.run(VERIFY, QUIET, "-mpiContract=_CIVL_CONTRACT_ALL", "-loop", filename("sum.cvl")));
 	}
 
 }

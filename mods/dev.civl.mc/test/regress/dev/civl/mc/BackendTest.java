@@ -10,7 +10,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 
 import org.junit.AfterClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
@@ -63,14 +62,12 @@ public class BackendTest {
 
 	@Test
 	public void simplifyAbstractFunction() {
-		assertTrue(ui.run(VERIFY, QUIET,
-				filename("simplifyAbstractFunction2Concrete.cvl")));
+		assertTrue(ui.run(VERIFY, QUIET, filename("simplifyAbstractFunction2Concrete.cvl")));
 	}
 
 	@Test
 	public void returnNull() throws ABCException {
-		assertFalse(ui.run(VERIFY, errorBound(2), NO_PRINTF, QUIET,
-				filename("returnNull.cvl")));
+		assertFalse(ui.run(VERIFY, errorBound(2), NO_PRINTF, QUIET, filename("returnNull.cvl")));
 	}
 
 	@Test
@@ -80,8 +77,7 @@ public class BackendTest {
 
 	@Test
 	public void mpiSumArray() {
-		assertTrue(ui.run("show", "-input_mpi_nprocs=3", QUIET, NO_PRINTF,
-				filename("mpiSumarray.cvl")));
+		assertTrue(ui.run("show", "-input_mpi_nprocs=3", QUIET, NO_PRINTF, filename("mpiSumarray.cvl")));
 	}
 
 	@Test
@@ -104,11 +100,6 @@ public class BackendTest {
 		assertFalse(ui.run(VERIFY, QUIET, filename("atomic2.c")));
 	}
 
-	@Ignore
-	public void valueAt_seq() {
-		assertTrue(ui.run(VERIFY, QUIET, filename("valueat_seq.cvl")));
-	}
-
 	@Test
 	public void arrayLambda() {
 		assertTrue(ui.run(VERIFY, QUIET, filename("arrayLambda.cvl")));
@@ -120,25 +111,18 @@ public class BackendTest {
 	}
 
 	@Test
-	public void original() {
-		ui.run(VERIFY, QUIET, filename("original.cvl"));
-	}
-
-	@Test
 	public void dynamicTypesCompatiableForAssignment() {
 		assertTrue(ui.run(VERIFY, QUIET, filename("nonscalar_assignment.cvl")));
 	}
 
 	@Test
 	public void dynamicTypesCompatiableForAssignment2() {
-		assertTrue(
-				ui.run(VERIFY, QUIET, filename("nonscalar_assignment2.cvl")));
+		assertTrue(ui.run(VERIFY, QUIET, filename("nonscalar_assignment2.cvl")));
 	}
 
 	@Test
 	public void dynamicTypesCompatiableForAssignmentBad() {
-		assertFalse(ui.run(VERIFY, QUIET,
-				filename("nonscalar_assignment-bad.cvl")));
+		assertFalse(ui.run(VERIFY, QUIET, filename("nonscalar_assignment-bad.cvl")));
 	}
 
 	@AfterClass

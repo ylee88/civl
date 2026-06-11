@@ -168,7 +168,7 @@ $atomic_f $system $mem $mem_unary_widening($mem m);
 /*@ depends_on \nothing;   // \access($mem_to_pointers($mem m))
   @ executes_when \true;
   @*/
-$atomic_f $system void $mem_assign_from($state s, $mem m);
+//$atomic_f $system void $mem_assign_from($state s, $mem m);
 
 /*@ depends_on \nothing;
   @ executes_when \true;

@@ -37,8 +37,6 @@ public class SpecialContractExpressionFinder {
 
 		List<ExpressionNode> nonderefPointers;
 
-		List<ExpressionNode> remoteExpressions;
-
 		List<ExpressionNode> acslOldExpressions;
 
 		List<ExpressionNode> acslValidExpressions;
@@ -47,7 +45,6 @@ public class SpecialContractExpressionFinder {
 
 		SpecialContractHub() {
 			nonderefPointers = new LinkedList<>();
-			remoteExpressions = new LinkedList<>();
 			acslOldExpressions = new LinkedList<>();
 			acslValidExpressions = new LinkedList<>();
 			acslResults = new LinkedList<>();
@@ -69,29 +66,10 @@ public class SpecialContractExpressionFinder {
 	}
 
 	static SpecialContractHub findSpecialExpressions(ExpressionNode expression, SpecialContractHub specials) {
-		specials.remoteExpressions.addAll(findRemoteExpressions(expression));
 		specials.acslOldExpressions.addAll(findOldExpressions(expression));
 		specials.acslValidExpressions.addAll(findAcslValid(expression));
 		specials.acslResults.addAll(findAcslResult(expression));
 		return specials;
-	}
-
-	private static List<ExpressionNode> findRemoteExpressions(ExpressionNode expr) {
-		List<ExpressionNode> results = new LinkedList<>();
-
-		if (expr.expressionKind() == ExpressionKind.REMOTE_REFERENCE) {
-			results.add(expr);
-		}
-
-		int numChildren = expr.numChildren();
-
-		for (int i = 0; i < numChildren;) {
-			ASTNode child = expr.child(i++);
-
-			if (child != null && child.nodeKind() == NodeKind.EXPRESSION)
-				results.addAll(findRemoteExpressions((ExpressionNode) child));
-		}
-		return results;
 	}
 
 	private static List<ExpressionNode> findOldExpressions(ExpressionNode expr) {

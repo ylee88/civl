@@ -27,9 +27,7 @@ import dev.civl.abc.ast.node.IF.statement.StatementNode;
 import dev.civl.abc.ast.node.IF.type.FunctionTypeNode;
 import dev.civl.abc.ast.node.IF.type.TypeNode;
 import dev.civl.abc.ast.type.IF.StandardBasicType.BasicTypeKind;
-import dev.civl.abc.ast.type.IF.StructureOrUnionType;
 import dev.civl.abc.ast.type.IF.Type;
-import dev.civl.abc.ast.type.IF.Type.TypeKind;
 import dev.civl.abc.front.IF.CivlcTokenConstant;
 import dev.civl.abc.token.IF.Source;
 import dev.civl.abc.token.IF.SyntaxException;
@@ -68,15 +66,6 @@ public class ContractTransformerWorker extends BaseWorker {
 	private final static String MAIN_NAME = "main";
 
 	/**
-	 * MPI_Comm typedef name:
-	 */
-	private final static String MPI_COMM_TYPE = "MPI_Comm";
-
-	/**
-	 * The default MPI communicator identifier:
-	 */
-
-	/**
 	 * A string source for a return statement:
 	 */
 	private final static String RETURN_RESULT = "return $result;";
@@ -99,23 +88,10 @@ public class ContractTransformerWorker extends BaseWorker {
 	 */
 	private final String targetFunctionName;
 
-	/**
-	 * {@link Source} of <code>int $mpi_comm_size, $mpi_comm_rank;</code>
-	 */
-	private Source mpiCommSizeSource, mpiCommRankSource;
-
-	/**
-	 * A int type node
-	 */
-	private TypeNode intTypeNode;
-
 	public ContractTransformerWorker(ASTFactory astFactory, String targetFunctionName, CIVLConfiguration civlConfig) {
 		super(ContractTransformer.LONG_NAME, astFactory);
 		identifierPrefix = MPIContractUtilities.CIVL_CONTRACT_PREFIX;
 		this.targetFunctionName = targetFunctionName;
-		intTypeNode = nodeFactory.newBasicTypeNode(newSource("int", CivlcTokenConstant.TYPE), BasicTypeKind.INT);
-		this.mpiCommRankSource = this.newSource("$mpi_comm_rank", CivlcTokenConstant.IDENTIFIER);
-		this.mpiCommSizeSource = this.newSource("$mpi_comm_size", CivlcTokenConstant.IDENTIFIER);
 	}
 
 	/* ************************* Protected methods: ************************** */
@@ -480,11 +456,6 @@ public class ContractTransformerWorker extends BaseWorker {
 		transformedRequirements.addAll(clauseTransformer.checkSideConditions(reqGuides4SideCond));
 		transformedEnsurances.addAll(clauseTransformer.checkSideConditions(ensGuides4SideCond));
 
-		/* inserts $mpi_comm_rank and $mpi_comm_size: */
-		transformedRequirements.add(0, nodeFactory.newVariableDeclarationNode(mpiCommRankSource,
-				identifier(MPIContractUtilities.MPI_COMM_RANK_CONST), intTypeNode.copy()));
-		transformedRequirements.add(0, nodeFactory.newVariableDeclarationNode(mpiCommSizeSource,
-				identifier(MPIContractUtilities.MPI_COMM_SIZE_CONST), intTypeNode.copy()));
 		List<BlockItemNode> bodyItems = new LinkedList<>();
 		boolean returnVoid = false;
 
@@ -664,24 +635,8 @@ public class ContractTransformerWorker extends BaseWorker {
 
 		// create an variable for each formal parameter
 		for (VariableDeclarationNode varDecl : formals) {
-			VariableDeclarationNode actualDecl;
-
-			// TODO: need a better way: currently for MPI_Comm type
-			// parameters, it is always replaced with MPI_COMM_WORLD:
-			if (varDecl.getTypeNode().getType().kind() == TypeKind.STRUCTURE_OR_UNION) {
-				StructureOrUnionType structType = (StructureOrUnionType) varDecl.getTypeNode().getType();
-
-				if (structType.getName().equals(MPI_COMM_TYPE)) {
-					results.add(nodeFactory.newVariableDeclarationNode(varDecl.getSource(),
-							identifier(varDecl.getName()), varDecl.getTypeNode().copy(),
-							identifierExpression(MPIContractUtilities.MPI_COMM_WORLD)));
-					continue;
-				}
-			}
-			actualDecl = varDecl.copy();
-
+			VariableDeclarationNode actualDecl = varDecl.copy();
 			StatementNode havoc;
-
 			results.add(actualDecl);
 			// $havoc for the actual parameter declaration:
 			havoc = nodeFactory.newExpressionStatementNode(

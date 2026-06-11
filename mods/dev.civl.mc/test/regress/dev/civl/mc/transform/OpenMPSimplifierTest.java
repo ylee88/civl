@@ -22,8 +22,7 @@ public class OpenMPSimplifierTest {
 
 	/* *************************** Static Fields *************************** */
 
-	private static File rootDir = new File(
-			new File(new File("examples"), "omp"), "simplifier");
+	private static File rootDir = new File(new File(new File("examples"), "omp"), "simplifier");
 
 	private static UserInterface ui = new UserInterface();
 
@@ -37,167 +36,139 @@ public class OpenMPSimplifierTest {
 
 	@Test
 	public void antidep1orig() {
-		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("DRB001-antidep1-orig-yes.c")));
+		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("DRB001-antidep1-orig-yes.c")));
 	}
 
 	@Test
 	public void antidep1origFix() {
-		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("DRB001-antidep1-orig-fix.c")));
+		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("DRB001-antidep1-orig-fix.c")));
 	}
 
 	@Test
 	public void antidep1var() {
-		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("DRB002-antidep1-var-yes.c")));
+		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("DRB002-antidep1-var-yes.c")));
 	}
 
 	@Test
 	public void antidep1varFix() {
-		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("DRB001-antidep1-orig-fix.c")));
+		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("DRB001-antidep1-orig-fix.c")));
 	}
 
 	@Test
 	public void antidep2orig() {
-		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("DRB003-antidep2-orig-yes.c")));
+		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("DRB003-antidep2-orig-yes.c")));
 	}
 
 	@Test
 	public void antidep2origFix() {
-		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("DRB003-antidep2-orig-fix.c")));
+		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("DRB003-antidep2-orig-fix.c")));
 	}
 
 	@Test
 	public void indirectaccess1orig() {
-		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("DRB005-indirectaccess1-orig-yes.c")));
+		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("DRB005-indirectaccess1-orig-yes.c")));
 	}
 
 	@Test
 	public void indirectaccess1origBadFix() {
-		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("DRB005-indirectaccess1-orig-badFix.c")));
+		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("DRB005-indirectaccess1-orig-badFix.c")));
 	}
 
 	@Test
 	public void indirectaccess1origFix() {
-		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("DRB005-indirectaccess1-orig-fix.c")));
+		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("DRB005-indirectaccess1-orig-fix.c")));
 	}
 
 	@Test
 	public void allocNoAlias() {
-		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("DRB066-pointernoaliasing-orig-no.c")));
+		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("DRB066-pointernoaliasing-orig-no.c")));
 	}
 
 	@Test
 	public void allocAlias() {
-		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("DRB066-pointernoaliasing-orig-bad.c")));
+		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("DRB066-pointernoaliasing-orig-bad.c")));
 	}
 
 	@Test
 	public void structAlias() {
-		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("structAlias.c")));
+		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("structAlias.c")));
 	}
 
 	@Test
 	public void structNoAlias() {
-		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("structNoAlias.c")));
+		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("structNoAlias.c")));
 	}
 
 	@Test
 	public void structAlias2() {
-		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("structAlias2.c")));
+		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("structAlias2.c")));
 	}
 
 	@Test
 	public void structNoAlias2() {
-		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("structNoAlias2.c")));
+		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("structNoAlias2.c")));
 	}
 
 	@Test
 	public void structAlias3() {
-		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("structAlias3.c")));
+		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("structAlias3.c")));
 	}
 
 	@Test
 	public void structAlias3_1() {
-		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("structAlias3.1.c")));
+		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("structAlias3.1.c")));
 	}
 
 	@Test
 	public void structNoAlias3() {
-		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("structNoAlias3.c")));
+		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("structNoAlias3.c")));
 	}
 
 	@Test
 	public void structNoAlias3_1() {
-		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("structNoAlias3.1.c")));
+		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("structNoAlias3.1.c")));
 	}
 
 	@Test
 	public void pointerAddAlias() {
-		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("pointerAddAlias.c")));
+		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("pointerAddAlias.c")));
 	}
 
 	@Test
 	public void pointerAddAlias2() {
-		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("pointerAddAlias2.c")));
+		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("pointerAddAlias2.c")));
 	}
 
 	@Test
 	public void pointerAddNoAlias() {
-		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("pointerAddNoAlias.c")));
+		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("pointerAddNoAlias.c")));
 	}
 
 	@Test
 	public void simdNoSafelen() {
-		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("simd_no_safelen.c")));
+		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("simd_no_safelen.c")));
 	}
 
 	@Test
 	public void simdNoSafelenFix() {
-		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("simd_no_safelen_fix.c")));
+		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("simd_no_safelen_fix.c")));
 	}
 
 	@Test
 	public void simdWithSafelen() {
-		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("simd_safelen.c")));
+		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("simd_safelen.c")));
 	}
 
 	@Test
 	public void arrayReshape() {
-		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("arrayReshape.c")));
+		assertTrue(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("arrayReshape.c")));
 	}
 
 	@Test
 	public void arrayReshape2Race() {
-		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP,
-				filename("arrayReshape2-yes.c")));
-		System.err.println(
-				"warning: this is a sound and expected result but not precise enough. "
-						+ "Improvement is expected in near future.");
+		assertFalse(ui.run(VERIFY, QUIET, OMP_SIMP, OMP_ONLY_SIMP, filename("arrayReshape2-yes.c")));
+		System.err.println("warning: this is a sound and expected result but not precise enough. "
+				+ "Improvement is expected in near future.");
 	}
 
 	@Ignore // TODO:

@@ -1,14 +1,13 @@
+#ifndef _CIVLC_
+#define _CIVLC_
 /* This header file contains the core definitions of the CIVL-C language,
  * including standard types and function prototypes.
  */
-
-#ifndef _CIVLC_
-#define _CIVLC_
-
 #pragma CIVL ACSL 
-/* *********************  Standard Constants and Types ********************* */
-#define $true 1
 
+/* *********************  Standard Constants and Types ********************* */
+
+#define $true 1
 #define $false 0
 
 #ifndef NULL
@@ -29,9 +28,6 @@ typedef struct $proc $proc;
 
 /* The CIVL-C scope type, used to represent a scope */
 typedef struct $scope $scope;
-
-/* The CIVL-C program state refrence type */
-typedef struct $state $state;
 
 /* The CIVL-C dynamic type, used to represent a symbolic type */
 typedef struct $dynamic $dynamic;
@@ -179,18 +175,6 @@ $system double $pow(double base, double exp);
   @ executes_when \true;
   @*/
 $system $state_f _Bool $is_derefable(void * ptr);
-
-/* Returns the reference to a snapshot of the current process from the
-   current state  */
-/*@ depends_on \nothing;
-  @ executes_when \true;
-  @*/
-$system $state_f $state $get_state();
-
-/* Returns the reference to the current state  */
-/*@ depends_on \nothing; */
-/*@ executes_when \true; */
-$system $state $get_full_state();
 
 // the types will be updated to $integer later
 /*@ pure;

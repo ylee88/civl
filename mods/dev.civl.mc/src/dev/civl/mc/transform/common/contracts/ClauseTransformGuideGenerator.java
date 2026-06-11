@@ -108,7 +108,7 @@ public class ClauseTransformGuideGenerator {
 	}
 
 	public static void transformAssume(ContractClause clause, ASTFactory astFactory, boolean isLocal,
-			boolean useRankAsPID, ExpressionNode civlcPreState, ClauseTransformGuide out) throws SyntaxException {
+			boolean useRankAsPID, ClauseTransformGuide out) throws SyntaxException {
 		if (clause.specialReferences != null) {
 			// TODO: need to find new way to translate \old, now that we got rid of
 			// value_at...
@@ -120,7 +120,7 @@ public class ClauseTransformGuideGenerator {
 	}
 
 	public static void transformAssert(ContractClause clause, ASTFactory astFactory, boolean isLocal,
-			boolean useRankAsPID, ExpressionNode civlcPreState, ClauseTransformGuide out) throws SyntaxException {
+			boolean useRankAsPID, ClauseTransformGuide out) throws SyntaxException {
 		if (clause.specialReferences != null) {
 			// transformAcslOldExpression(clause, astFactory, civlcPreState, isLocal,
 			// useRankAsPID, out);

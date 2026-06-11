@@ -12,14 +12,12 @@ import dev.civl.abc.ast.IF.ASTFactory;
 import dev.civl.abc.ast.node.IF.ASTNode;
 import dev.civl.abc.ast.node.IF.ASTNode.NodeKind;
 import dev.civl.abc.ast.node.IF.NodeFactory;
-import dev.civl.abc.ast.node.IF.declaration.VariableDeclarationNode;
 import dev.civl.abc.ast.node.IF.expression.ExpressionNode;
 import dev.civl.abc.ast.node.IF.expression.FunctionCallNode;
 import dev.civl.abc.ast.node.IF.expression.IdentifierExpressionNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode.Operator;
 import dev.civl.abc.ast.node.IF.statement.BlockItemNode;
 import dev.civl.abc.ast.node.IF.statement.StatementNode;
-import dev.civl.abc.ast.node.IF.type.TypeNode;
 import dev.civl.abc.token.IF.Source;
 import dev.civl.abc.token.IF.SyntaxException;
 import dev.civl.abc.token.IF.TokenFactory;
@@ -121,23 +119,21 @@ class ContractClauseTransformer {
 
 			if (isCallee)
 				ClauseTransformGuideGenerator.transformAssert(requires, astFactory, isLocal, !isPurelyLocalFunction,
-						null, reqTransGuide);
+						reqTransGuide);
 			else
 				ClauseTransformGuideGenerator.transformAssume(requires, astFactory, isLocal, !isPurelyLocalFunction,
-						null, reqTransGuide);
+						reqTransGuide);
 
 			nameCounter = reqTransGuide.nameCounter; // update name counter
 			ClauseTransformGuide ensTransGuide = new ClauseTransformGuide(ensures, condClause.getConditions(),
 					condClause.getWaitsfors(), mpiDatatype2intermediateName, nameCounter);
-			ExpressionNode civlcPreState = identifierExpressionNode(block.getContractBlockSource(),
-					MPIContractUtilities.PRE_STATE);
 
 			if (isCallee)
 				ClauseTransformGuideGenerator.transformAssume(ensures, astFactory, isLocal, !isPurelyLocalFunction,
-						civlcPreState, ensTransGuide);
+						ensTransGuide);
 			else
 				ClauseTransformGuideGenerator.transformAssert(ensures, astFactory, isLocal, !isPurelyLocalFunction,
-						civlcPreState, ensTransGuide);
+						ensTransGuide);
 			nameCounter = ensTransGuide.nameCounter; // update name counter
 			requiresGuides.add(reqTransGuide);
 			ensuresGuides.add(ensTransGuide);
@@ -200,8 +196,6 @@ class ContractClauseTransformer {
 				assignsTranslations.addAll(transformAssignsClause(!isCallee, condClause));
 		}
 		// TODO: check assigns for target (!isCallee)
-		// create pre-state:
-		reqTranslations.addAll(createState4PureLocalFunction(localBlock.getContractBlockSource()));
 		reqTranslations.addAll(assignsTranslations);
 		return new TransformedPair(reqTranslations, ensTranslations);
 	}
@@ -309,43 +303,6 @@ class ContractClauseTransformer {
 		FunctionCallNode assumeCall = nodeFactory.newFunctionCallNode(predicate.getSource(), assumeIdentifier,
 				Arrays.asList(predicate), null);
 		return nodeFactory.newExpressionStatementNode(assumeCall);
-	}
-
-	/**
-	 * Create a <code>$collate_state</code> which only contains one process:
-	 * 
-	 * <code>
-	 *    $state _s_pre_obj = $get_state();
-	 *    $state * _s_pre = &_s_pre_obj;
-	 * </code>
-	 * 
-	 * @return
-	 * @throws SyntaxException
-	 */
-	private List<BlockItemNode> createState4PureLocalFunction(Source source) throws SyntaxException {
-		TypeNode stateType = nodeFactory.newStateTypeNode(source);
-		TypeNode pointer2stateType = nodeFactory.newPointerTypeNode(source, nodeFactory.newStateTypeNode(source));
-		String PRE_STATE_OBJ = "_s_pre_obj";
-		VariableDeclarationNode stateObjectVarDecl = nodeFactory.newVariableDeclarationNode(source,
-				nodeFactory.newIdentifierNode(source, PRE_STATE_OBJ), stateType, createGetStateCall(source));
-		ExpressionNode addressofStateObj = nodeFactory.newOperatorNode(source, Operator.ADDRESSOF,
-				identifierExpressionNode(source, PRE_STATE_OBJ));
-		VariableDeclarationNode point2StateVarDecl = nodeFactory.newVariableDeclarationNode(source,
-				nodeFactory.newIdentifierNode(source, MPIContractUtilities.PRE_STATE), pointer2stateType,
-				addressofStateObj);
-		List<BlockItemNode> results = new LinkedList<>();
-
-		results.add(stateObjectVarDecl);
-		results.add(point2StateVarDecl);
-		return results;
-	}
-
-	/**
-	 * @return a function call expression: <code>$get_state()</code>
-	 */
-	private ExpressionNode createGetStateCall(Source source) {
-		return nodeFactory.newFunctionCallNode(source,
-				identifierExpressionNode(source, MPIContractUtilities.REGULAR_GET_STATE_CALL), Arrays.asList(), null);
 	}
 
 	private IdentifierExpressionNode identifierExpressionNode(Source source, String name) {

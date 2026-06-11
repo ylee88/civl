@@ -68,10 +68,6 @@ public class LoopContractTransformerWorker extends BaseWorker {
 	@Deprecated
 	private final static String MEM_HAVOC_SIDECOND = "$mem_havoc_sidecond";
 
-	// private final static String MEM_ASSIGN_FROM = "$mem_assign_from";
-	//
-	// private final static String GET_FULL_STATE = "$get_full_state";
-
 	/* *** Generated identifier prefixes: *** */
 	/**
 	 * Names for miscellaneous temporary variables that do not need to be passed
