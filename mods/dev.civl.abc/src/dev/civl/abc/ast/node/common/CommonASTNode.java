@@ -328,7 +328,15 @@ public abstract class CommonASTNode implements ASTNode {
 
 	protected ASTNode shiftRemoveChild(int index) {
 		removeChild(index);
-		return children.remove(index);
+		ASTNode result = children.remove(index);
+
+		for (int i = index; i < children.size(); i++) {
+			ASTNode child = children.get(i);
+
+			if (child != null)
+				((CommonASTNode) child).childIndex = i;
+		}
+		return result;
 	}
 	
 	@Override
