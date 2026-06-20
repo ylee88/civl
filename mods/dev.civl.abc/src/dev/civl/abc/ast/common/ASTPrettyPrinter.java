@@ -2076,9 +2076,6 @@ public class ASTPrettyPrinter {
 		case REGULAR_RANGE:
 			result.append(regularRange2Pretty((RegularRangeNode) expression, maxLength));
 			break;
-		// TODO
-		// case REMOTE_REFERENCE:
-		// break;
 		case SCOPEOF:
 			result.append("$scopeof(");
 			result.append(expression2Pretty(((ScopeOfNode) expression).expression(), vacantLength(maxLength, result)));
@@ -2138,7 +2135,6 @@ public class ASTPrettyPrinter {
 		}
 		return trimStringBuffer(result, maxLength);
 	}
-
 
 	private static StringBuffer lambda2Pretty(LambdaNode lambda, int maxLength) {
 		if (maxLength == 0)
@@ -2796,9 +2792,6 @@ public class ASTPrettyPrinter {
 			result.append(
 					expression2Pretty(((TypeofNode) type).getExpressionOperand(), vacantLength(maxLength, result)));
 			result.append(")");
-			break;
-		case STATE:
-			result.append("$state");
 			break;
 		default:
 			throw new ABCUnsupportedException("pretty print of type node of " + kind + " kind");

@@ -18,7 +18,7 @@ public interface TypeNode extends SizeableNode {
 		/**
 		 * $lambda_t TypeNode represents a {@link LambdaType}
 		 */
-		LAMBDA, POINTER, RANGE, SCOPE, STATE, STRUCTURE_OR_UNION, TYPEDEF_NAME, VOID,
+		LAMBDA, POINTER, RANGE, SCOPE, STRUCTURE_OR_UNION, TYPEDEF_NAME, VOID,
 		/**
 		 * typeof() of GNU C extension
 		 */
@@ -113,8 +113,7 @@ public interface TypeNode extends SizeableNode {
 	/**
 	 * Sets the type that will be returned by subsequent calls to getType().
 	 * 
-	 * @param type
-	 *            the type to associate to this node
+	 * @param type the type to associate to this node
 	 */
 	void setType(Type type);
 

@@ -36,7 +36,7 @@ import dev.civl.abc.ast.type.IF.ObjectType;
  * order. In a Cartesian domain literal, all the designation nodes are null, and
  * each initializer node is an expression of range type. Moreover, the method
  * {@link #getLiteralObject()} will return <code>null</code>, as there is not
- * object associated to a Caretesian domain literal, only a type. The method
+ * object associated to a Cartesian domain literal, only a type. The method
  * {@link #getType()} returns (after analysis) all the information you need
  * about the domain.
  * </p>

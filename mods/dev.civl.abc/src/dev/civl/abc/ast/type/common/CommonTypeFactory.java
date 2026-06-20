@@ -54,8 +54,8 @@ import dev.civl.abc.ast.value.IF.Value;
 public class CommonTypeFactory implements TypeFactory {
 
 	/**
-	 * Minimum value of CHAR_BITS, the number of bits for the smallest object
-	 * that is not a bit-field (i.e., one byte).
+	 * Minimum value of CHAR_BITS, the number of bits for the smallest object that
+	 * is not a bit-field (i.e., one byte).
 	 */
 	public static final BigInteger CHAR_BIT_MIN = new BigInteger("8");
 
@@ -66,8 +66,6 @@ public class CommonTypeFactory implements TypeFactory {
 	private ObjectType voidType = null;
 
 	private ObjectType processType = null;
-
-	private ObjectType stateType = null;
 
 	private ObjectType heapType = null;
 
@@ -109,120 +107,104 @@ public class CommonTypeFactory implements TypeFactory {
 		StandardBasicType result;
 
 		switch (kind) {
-			case CHAR :
-				result = new CommonCharType();
-				break;
-			case SIGNED_CHAR :
-				result = new CommonStandardSignedIntegerType(
-						SignedIntKind.SIGNED_CHAR);
-				break;
-			case UNSIGNED_CHAR :
-				result = new CommonStandardUnsignedIntegerType(
-						UnsignedIntKind.UNSIGNED_CHAR);
-				break;
-			case SHORT :
-				result = new CommonStandardSignedIntegerType(
-						SignedIntKind.SHORT);
-				break;
-			case UNSIGNED_SHORT :
-				result = new CommonStandardUnsignedIntegerType(
-						UnsignedIntKind.UNSIGNED_SHORT);
-				break;
-			case INT :
-				result = new CommonStandardSignedIntegerType(SignedIntKind.INT);
-				break;
-			case UNSIGNED :
-				result = new CommonStandardUnsignedIntegerType(
-						UnsignedIntKind.UNSIGNED);
-				break;
-			case LONG :
-				result = new CommonStandardSignedIntegerType(
-						SignedIntKind.LONG);
-				break;
-			case UNSIGNED_LONG :
-				result = new CommonStandardUnsignedIntegerType(
-						UnsignedIntKind.UNSIGNED_LONG);
-				break;
-			case LONG_LONG :
-				result = new CommonStandardSignedIntegerType(
-						SignedIntKind.LONG_LONG);
-				break;
-			case UNSIGNED_LONG_LONG :
-				result = new CommonStandardUnsignedIntegerType(
-						UnsignedIntKind.UNSIGNED_LONG_LONG);
-				break;
-			case FLOAT :
-				result = new CommonFloatingType(FloatKind.FLOAT, false);
-				break;
-			case DOUBLE :
-				result = new CommonFloatingType(FloatKind.DOUBLE, false);
-				break;
-			case LONG_DOUBLE :
-				result = new CommonFloatingType(FloatKind.LONG_DOUBLE, false);
-				break;
-			case REAL :
-				result = new CommonFloatingType(FloatKind.REAL, false);
-				break;
-			case BOOL :
-				result = new CommonStandardUnsignedIntegerType(
-						UnsignedIntKind.BOOL);
-				break;
-			case FLOAT_COMPLEX :
-				result = new CommonFloatingType(FloatKind.FLOAT, true);
-				break;
-			case DOUBLE_COMPLEX :
-				result = new CommonFloatingType(FloatKind.DOUBLE, true);
-				break;
-			case LONG_DOUBLE_COMPLEX :
-				result = new CommonFloatingType(FloatKind.LONG_DOUBLE, true);
-				break;
-			default :
-				throw new RuntimeException("unreachable");
+		case CHAR:
+			result = new CommonCharType();
+			break;
+		case SIGNED_CHAR:
+			result = new CommonStandardSignedIntegerType(SignedIntKind.SIGNED_CHAR);
+			break;
+		case UNSIGNED_CHAR:
+			result = new CommonStandardUnsignedIntegerType(UnsignedIntKind.UNSIGNED_CHAR);
+			break;
+		case SHORT:
+			result = new CommonStandardSignedIntegerType(SignedIntKind.SHORT);
+			break;
+		case UNSIGNED_SHORT:
+			result = new CommonStandardUnsignedIntegerType(UnsignedIntKind.UNSIGNED_SHORT);
+			break;
+		case INT:
+			result = new CommonStandardSignedIntegerType(SignedIntKind.INT);
+			break;
+		case UNSIGNED:
+			result = new CommonStandardUnsignedIntegerType(UnsignedIntKind.UNSIGNED);
+			break;
+		case LONG:
+			result = new CommonStandardSignedIntegerType(SignedIntKind.LONG);
+			break;
+		case UNSIGNED_LONG:
+			result = new CommonStandardUnsignedIntegerType(UnsignedIntKind.UNSIGNED_LONG);
+			break;
+		case LONG_LONG:
+			result = new CommonStandardSignedIntegerType(SignedIntKind.LONG_LONG);
+			break;
+		case UNSIGNED_LONG_LONG:
+			result = new CommonStandardUnsignedIntegerType(UnsignedIntKind.UNSIGNED_LONG_LONG);
+			break;
+		case FLOAT:
+			result = new CommonFloatingType(FloatKind.FLOAT, false);
+			break;
+		case DOUBLE:
+			result = new CommonFloatingType(FloatKind.DOUBLE, false);
+			break;
+		case LONG_DOUBLE:
+			result = new CommonFloatingType(FloatKind.LONG_DOUBLE, false);
+			break;
+		case REAL:
+			result = new CommonFloatingType(FloatKind.REAL, false);
+			break;
+		case BOOL:
+			result = new CommonStandardUnsignedIntegerType(UnsignedIntKind.BOOL);
+			break;
+		case FLOAT_COMPLEX:
+			result = new CommonFloatingType(FloatKind.FLOAT, true);
+			break;
+		case DOUBLE_COMPLEX:
+			result = new CommonFloatingType(FloatKind.DOUBLE, true);
+			break;
+		case LONG_DOUBLE_COMPLEX:
+			result = new CommonFloatingType(FloatKind.LONG_DOUBLE, true);
+			break;
+		default:
+			throw new RuntimeException("unreachable");
 		}
 		return (StandardBasicType) canonicalize(result);
 	}
 
 	@Override
 	public StandardSignedIntegerType signedIntegerType(SignedIntKind kind) {
-		return (StandardSignedIntegerType) canonicalize(
-				new CommonStandardSignedIntegerType(kind));
+		return (StandardSignedIntegerType) canonicalize(new CommonStandardSignedIntegerType(kind));
 	}
 
 	@Override
-	public StandardUnsignedIntegerType unsignedIntegerType(
-			UnsignedIntKind kind) {
-		return (StandardUnsignedIntegerType) canonicalize(
-				new CommonStandardUnsignedIntegerType(kind));
+	public StandardUnsignedIntegerType unsignedIntegerType(UnsignedIntKind kind) {
+		return (StandardUnsignedIntegerType) canonicalize(new CommonStandardUnsignedIntegerType(kind));
 	}
 
 	@Override
 	public FloatingType floatingType(FloatKind kind, boolean isReal) {
 		if (isReal) {
 			switch (kind) {
-				case LONG_DOUBLE :
-					return (FloatingType) basicType(BasicTypeKind.LONG_DOUBLE);
-				case DOUBLE :
-					return (FloatingType) basicType(BasicTypeKind.DOUBLE);
-				case FLOAT :
-					return (FloatingType) basicType(BasicTypeKind.FLOAT);
-				case REAL :
-					return (FloatingType) basicType(BasicTypeKind.REAL);
-				default :
-					throw new RuntimeException("unreachable");
+			case LONG_DOUBLE:
+				return (FloatingType) basicType(BasicTypeKind.LONG_DOUBLE);
+			case DOUBLE:
+				return (FloatingType) basicType(BasicTypeKind.DOUBLE);
+			case FLOAT:
+				return (FloatingType) basicType(BasicTypeKind.FLOAT);
+			case REAL:
+				return (FloatingType) basicType(BasicTypeKind.REAL);
+			default:
+				throw new RuntimeException("unreachable");
 			}
 		} else {
 			switch (kind) {
-				case LONG_DOUBLE :
-					return (FloatingType) basicType(
-							BasicTypeKind.LONG_DOUBLE_COMPLEX);
-				case DOUBLE :
-					return (FloatingType) basicType(
-							BasicTypeKind.DOUBLE_COMPLEX);
-				case FLOAT :
-					return (FloatingType) basicType(
-							BasicTypeKind.FLOAT_COMPLEX);
-				default :
-					throw new RuntimeException("unreachable");
+			case LONG_DOUBLE:
+				return (FloatingType) basicType(BasicTypeKind.LONG_DOUBLE_COMPLEX);
+			case DOUBLE:
+				return (FloatingType) basicType(BasicTypeKind.DOUBLE_COMPLEX);
+			case FLOAT:
+				return (FloatingType) basicType(BasicTypeKind.FLOAT_COMPLEX);
+			default:
+				throw new RuntimeException("unreachable");
 			}
 		}
 
@@ -240,8 +222,7 @@ public class CommonTypeFactory implements TypeFactory {
 
 	@Override
 	public PointerType pointerType(Type referencedType) {
-		return (PointerType) canonicalize(
-				new CommonPointerType(referencedType));
+		return (PointerType) canonicalize(new CommonPointerType(referencedType));
 	}
 
 	@Override
@@ -251,42 +232,33 @@ public class CommonTypeFactory implements TypeFactory {
 
 	@Override
 	public ArrayType incompleteArrayType(ObjectType elementType) {
-		return (ArrayType) canonicalize(
-				new CommonArrayType(elementType, false));
+		return (ArrayType) canonicalize(new CommonArrayType(elementType, false));
 	}
 
 	@Override
-	public ArrayType unspecifiedVariableLengthArrayType(
-			ObjectType elementType) {
+	public ArrayType unspecifiedVariableLengthArrayType(ObjectType elementType) {
 		return (ArrayType) canonicalize(new CommonArrayType(elementType, true));
 	}
 
 	@Override
-	public ArrayType variableLengthArrayType(ObjectType elementType,
-			ExpressionNode variableSize) {
-		return (ArrayType) canonicalize(
-				new CommonArrayType(elementType, variableSize));
+	public ArrayType variableLengthArrayType(ObjectType elementType, ExpressionNode variableSize) {
+		return (ArrayType) canonicalize(new CommonArrayType(elementType, variableSize));
 	}
 
 	@Override
-	public ArrayType arrayType(ObjectType elementType,
-			IntegerValue constantSize) {
-		return (ArrayType) canonicalize(
-				new CommonArrayType(elementType, constantSize));
+	public ArrayType arrayType(ObjectType elementType, IntegerValue constantSize) {
+		return (ArrayType) canonicalize(new CommonArrayType(elementType, constantSize));
 	}
 
 	@Override
-	public StructureOrUnionType structureOrUnionType(Object key,
-			boolean isStruct, String tag) {
-		StructureOrUnionType result = new CommonStructureOrUnionType(key, tag,
-				isStruct);
+	public StructureOrUnionType structureOrUnionType(Object key, boolean isStruct, String tag) {
+		StructureOrUnionType result = new CommonStructureOrUnionType(key, tag, isStruct);
 
 		return (StructureOrUnionType) canonicalize(result);
 	}
 
 	@Override
-	public Field newField(FieldDeclarationNode declaration, ObjectType type,
-			Value bitWidth) {
+	public Field newField(FieldDeclarationNode declaration, ObjectType type, Value bitWidth) {
 		return new CommonField(declaration, type, bitWidth);
 	}
 
@@ -298,8 +270,7 @@ public class CommonTypeFactory implements TypeFactory {
 	}
 
 	@Override
-	public Enumerator newEnumerator(EnumeratorDeclarationNode declaration,
-			EnumerationType enumeration, Value value) {
+	public Enumerator newEnumerator(EnumeratorDeclarationNode declaration, EnumerationType enumeration, Value value) {
 		return new CommonEnumerator(declaration, enumeration, value);
 	}
 
@@ -334,129 +305,113 @@ public class CommonTypeFactory implements TypeFactory {
 		if (kind == TypeKind.ARRAY)
 			return compositeArrayType((ArrayType) type1, (ArrayType) type2);
 		else if (kind == TypeKind.FUNCTION)
-			return compositeFunctionType((FunctionType) type1,
-					(FunctionType) type2);
+			return compositeFunctionType((FunctionType) type1, (FunctionType) type2);
 		else
 			return type1;
 	}
 
 	@Override
-	public Type compositeArrayTypeInDeclarationForCIVLC(Type varType,
-			Type compositeType) {
+	public Type compositeArrayTypeInDeclarationForCIVLC(Type varType, Type compositeType) {
 		switch (varType.kind()) {
-			case ATOMIC : {
-				AtomicType atomicVarType = (AtomicType) varType;
-				AtomicType atomicCompType = (AtomicType) compositeType;
-				Type base = compositeArrayTypeInDeclarationForCIVLC(
-						atomicVarType.getBaseType(),
-						atomicCompType.getBaseType());
-				if (base == atomicCompType.getBaseType())
+		case ATOMIC: {
+			AtomicType atomicVarType = (AtomicType) varType;
+			AtomicType atomicCompType = (AtomicType) compositeType;
+			Type base = compositeArrayTypeInDeclarationForCIVLC(atomicVarType.getBaseType(),
+					atomicCompType.getBaseType());
+			if (base == atomicCompType.getBaseType())
+				return compositeType;// unchange
+			return atomicType((UnqualifiedObjectType) base);
+		}
+		case ARRAY: {
+			ArrayType arrVarType = (ArrayType) varType;
+			ArrayType arrCompType = (ArrayType) compositeType;
+			ObjectType elementType = (ObjectType) compositeArrayTypeInDeclarationForCIVLC(arrVarType.getElementType(),
+					arrCompType.getElementType());
+
+			if (arrVarType.isVariableLengthArrayType())
+				return variableLengthArrayType(elementType, arrVarType.getVariableSize());
+			else {
+				if (elementType == arrCompType.getElementType())
 					return compositeType;// unchange
-				return atomicType((UnqualifiedObjectType) base);
+				return arrayType(elementType, arrCompType.getConstantSize());
 			}
-			case ARRAY : {
-				ArrayType arrVarType = (ArrayType) varType;
-				ArrayType arrCompType = (ArrayType) compositeType;
-				ObjectType elementType = (ObjectType) compositeArrayTypeInDeclarationForCIVLC(
-						arrVarType.getElementType(),
-						arrCompType.getElementType());
+		}
+		case QUALIFIED: {
+			QualifiedObjectType quaVarType = (QualifiedObjectType) varType;
+			Type deqVarType = ((QualifiedObjectType) varType).getBaseType();
+			Type deqCompType = ((QualifiedObjectType) compositeType).getBaseType();
+			Type result = compositeArrayTypeInDeclarationForCIVLC(deqVarType, deqCompType);
 
-				if (arrVarType.isVariableLengthArrayType())
-					return variableLengthArrayType(elementType,
-							arrVarType.getVariableSize());
+			if (result == deqCompType)
+				return compositeType; // unchange
+			return qualify((ObjectType) result, quaVarType.isConstantQualified(), quaVarType.isVolatileQualified(),
+					quaVarType.isRestrictQualified(), quaVarType.isInputQualified(), quaVarType.isOutputQualified());
+		}
+		case STRUCTURE_OR_UNION: {
+			StructureOrUnionType sOrUVar = (StructureOrUnionType) varType;
+			StructureOrUnionType sOrUComp = (StructureOrUnionType) compositeType;
+			List<Field> newFields = new LinkedList<>();
+
+			if (sOrUVar.getFields() == null)
+				return sOrUComp;
+
+			boolean changed = false;
+			int i = 0;
+			for (Field field : sOrUVar.getFields()) {
+				Type fieldType = compositeArrayTypeInDeclarationForCIVLC(field.getType(),
+						sOrUComp.getField(i).getType());
+
+				if (fieldType == sOrUComp.getField(i++))
+					newFields.add(field); // unchange
 				else {
-					if (elementType == arrCompType.getElementType())
-						return compositeType;// unchange
-					return arrayType(elementType,
-							arrCompType.getConstantSize());
+					newFields.add(newField(field.getDefinition(), (ObjectType) fieldType, field.getBitWidth()));
+					changed = true;
 				}
 			}
-			case QUALIFIED : {
-				QualifiedObjectType quaVarType = (QualifiedObjectType) varType;
-				Type deqVarType = ((QualifiedObjectType) varType).getBaseType();
-				Type deqCompType = ((QualifiedObjectType) compositeType)
-						.getBaseType();
-				Type result = compositeArrayTypeInDeclarationForCIVLC(
-						deqVarType, deqCompType);
 
-				if (result == deqCompType)
-					return compositeType; // unchange
-				return qualify((ObjectType) result,
-						quaVarType.isConstantQualified(),
-						quaVarType.isVolatileQualified(),
-						quaVarType.isRestrictQualified(),
-						quaVarType.isInputQualified(),
-						quaVarType.isOutputQualified());
-			}
-			case STRUCTURE_OR_UNION : {
-				StructureOrUnionType sOrUVar = (StructureOrUnionType) varType;
-				StructureOrUnionType sOrUComp = (StructureOrUnionType) compositeType;
-				List<Field> newFields = new LinkedList<>();
-
-				if (sOrUVar.getFields() == null)
-					return sOrUComp;
-
-				boolean changed = false;
-				int i = 0;
-				for (Field field : sOrUVar.getFields()) {
-					Type fieldType = compositeArrayTypeInDeclarationForCIVLC(
-							field.getType(), sOrUComp.getField(i).getType());
-
-					if (fieldType == sOrUComp.getField(i++))
-						newFields.add(field); // unchange
-					else {
-						newFields.add(newField(field.getDefinition(),
-								(ObjectType) fieldType, field.getBitWidth()));
-						changed = true;
-					}
-				}
-
-				if (!changed)
-					return compositeType;
-
-				StructureOrUnionType ret = structureOrUnionType(
-						sOrUVar.getKey(), sOrUVar.isStruct(), sOrUVar.getTag());
-
-				ret.complete(newFields);
-				return ret;
-			}
-			default :
+			if (!changed)
 				return compositeType;
+
+			StructureOrUnionType ret = structureOrUnionType(sOrUVar.getKey(), sOrUVar.isStruct(), sOrUVar.getTag());
+
+			ret.complete(newFields);
+			return ret;
+		}
+		default:
+			return compositeType;
 		}
 	}
 
 	/**
 	 * 
 	 * "If both types are array types, the following rules are applied: * If one
-	 * type is an array of known constant size, the composite type is an array
-	 * of that size. * Otherwise, if one type is a variable length array whose
-	 * size is specified by an expression that is not evaluated, the behavior is
-	 * undefined. * Otherwise, if one type is a variable length array whose size
-	 * is specified, the composite type is a variable length array of that size.
-	 * * Otherwise, if one type is a variable length array of unspecified size,
-	 * the composite type is a variable length array of unspecified size. *
-	 * Otherwise, both types are arrays of unknown size and the composite type
-	 * is an array of unknown size. The element type of the composite type is
-	 * the composite type of the two element types."
+	 * type is an array of known constant size, the composite type is an array of
+	 * that size. * Otherwise, if one type is a variable length array whose size is
+	 * specified by an expression that is not evaluated, the behavior is undefined.
+	 * * Otherwise, if one type is a variable length array whose size is specified,
+	 * the composite type is a variable length array of that size. * Otherwise, if
+	 * one type is a variable length array of unspecified size, the composite type
+	 * is a variable length array of unspecified size. * Otherwise, both types are
+	 * arrays of unknown size and the composite type is an array of unknown size.
+	 * The element type of the composite type is the composite type of the two
+	 * element types."
 	 * 
-	 * I'm not sure why you would not want to evaluate the size expression. It
-	 * seems to refer to this:
+	 * I'm not sure why you would not want to evaluate the size expression. It seems
+	 * to refer to this:
 	 * 
 	 * "Where a size expression is part of the operand of a sizeof operator and
-	 * changing the value of the size expression would not affect the result of
-	 * the operator, it is unspecified whether or not the size expression is
-	 * evaluated."
+	 * changing the value of the size expression would not affect the result of the
+	 * operator, it is unspecified whether or not the size expression is evaluated."
 	 * 
-	 * I can't think of an example where the changing the size expression would
-	 * not affect the result of the operator.
+	 * I can't think of an example where the changing the size expression would not
+	 * affect the result of the operator.
 	 * 
 	 * @param type1
 	 * @param type2
 	 * @return
 	 */
 	private ArrayType compositeArrayType(ArrayType type1, ArrayType type2) {
-		ObjectType elementType = (ObjectType) compositeType(
-				type1.getElementType(), type2.getElementType());
+		ObjectType elementType = (ObjectType) compositeType(type1.getElementType(), type2.getElementType());
 		IntegerValue constantSize1 = type1.getConstantSize(), constantSize2;
 		ExpressionNode sizeExpression1, sizeExpression2;
 
@@ -472,21 +427,17 @@ public class CommonTypeFactory implements TypeFactory {
 		sizeExpression2 = type2.getVariableSize();
 		if (sizeExpression2 != null)
 			return variableLengthArrayType(elementType, sizeExpression2);
-		if (type1.hasUnspecifiedVariableLength()
-				|| type2.hasUnspecifiedVariableLength())
+		if (type1.hasUnspecifiedVariableLength() || type2.hasUnspecifiedVariableLength())
 			return unspecifiedVariableLengthArrayType(elementType);
 		return incompleteArrayType(elementType);
 	}
 
 	private ObjectType returnType(FunctionType type1, FunctionType type2) {
-		return (ObjectType) compositeType(type1.getReturnType(),
-				type2.getReturnType());
+		return (ObjectType) compositeType(type1.getReturnType(), type2.getReturnType());
 	}
 
-	private FunctionType extractParameterTypes(FunctionType type,
-			ObjectType returnType) {
-		return functionType(returnType, type.fromIdentifierList(),
-				type.getParameterTypes(), type.hasVariableArgs());
+	private FunctionType extractParameterTypes(FunctionType type, ObjectType returnType) {
+		return functionType(returnType, type.fromIdentifierList(), type.getParameterTypes(), type.hasVariableArgs());
 	}
 
 	private FunctionType merge(FunctionType type1, FunctionType type2) {
@@ -494,8 +445,7 @@ public class CommonTypeFactory implements TypeFactory {
 		int numParameters = type1.getNumParameters();
 
 		for (int i = 0; i < numParameters; i++) {
-			ObjectType p1 = type1.getParameterType(i),
-					p2 = type2.getParameterType(i);
+			ObjectType p1 = type1.getParameterType(i), p2 = type2.getParameterType(i);
 
 			// C11 6.7.6.3(15):
 			// "In the determination of type compatibility and of a
@@ -508,30 +458,26 @@ public class CommonTypeFactory implements TypeFactory {
 				p2 = ((QualifiedObjectType) p2).getBaseType();
 			parameterTypes.add((ObjectType) compositeType(p1, p2));
 		}
-		return functionType(returnType(type1, type2),
-				type1.fromIdentifierList(), parameterTypes,
+		return functionType(returnType(type1, type2), type1.fromIdentifierList(), parameterTypes,
 				type1.hasVariableArgs());
 	}
 
 	/**
-	 * "If only one type is a function type with a parameter type list (a
-	 * function prototype), the composite type is a function prototype with the
-	 * parameter type list."
+	 * "If only one type is a function type with a parameter type list (a function
+	 * prototype), the composite type is a function prototype with the parameter
+	 * type list."
 	 * 
-	 * "If both types are function types with parameter type lists, the type of
-	 * each parameter in the composite parameter type list is the composite type
-	 * of the corresponding parameters."
+	 * "If both types are function types with parameter type lists, the type of each
+	 * parameter in the composite parameter type list is the composite type of the
+	 * corresponding parameters."
 	 * 
 	 * I assume the return type is the composite type of the two return types.
 	 * 
-	 * @param type1
-	 *            a function type
-	 * @param type2
-	 *            a function type compatible with type1
+	 * @param type1 a function type
+	 * @param type2 a function type compatible with type1
 	 * @return a composite type
 	 */
-	private FunctionType compositeFunctionType(FunctionType type1,
-			FunctionType type2) {
+	private FunctionType compositeFunctionType(FunctionType type1, FunctionType type2) {
 		if (!type1.fromIdentifierList() && type2.fromIdentifierList())
 			return extractParameterTypes(type1, returnType(type1, type2));
 		if (!type2.fromIdentifierList() && type1.fromIdentifierList())
@@ -553,51 +499,41 @@ public class CommonTypeFactory implements TypeFactory {
 	}
 
 	@Override
-	public FunctionType functionType(ObjectType returnType,
-			boolean fromIdentifierList, Iterable<ObjectType> parameterTypes,
-			boolean hasVariableArgs) {
-		return (FunctionType) canonicalize(new CommonFunctionType(returnType,
-				fromIdentifierList, parameterTypes, hasVariableArgs));
+	public FunctionType functionType(ObjectType returnType, boolean fromIdentifierList,
+			Iterable<ObjectType> parameterTypes, boolean hasVariableArgs) {
+		return (FunctionType) canonicalize(
+				new CommonFunctionType(returnType, fromIdentifierList, parameterTypes, hasVariableArgs));
 	}
 
 	@Override
-	public QualifiedObjectType qualifiedType(UnqualifiedObjectType baseType,
-			boolean constQualified, boolean volatileQualified,
-			boolean restrictQualified, boolean inputQualified,
-			boolean outputQualified) {
-		return (QualifiedObjectType) canonicalize(new CommonQualifiedObjectType(
-				baseType, constQualified, volatileQualified, restrictQualified,
-				inputQualified, outputQualified));
+	public QualifiedObjectType qualifiedType(UnqualifiedObjectType baseType, boolean constQualified,
+			boolean volatileQualified, boolean restrictQualified, boolean inputQualified, boolean outputQualified) {
+		return (QualifiedObjectType) canonicalize(new CommonQualifiedObjectType(baseType, constQualified,
+				volatileQualified, restrictQualified, inputQualified, outputQualified));
 	}
 
 	@Override
-	public ObjectType qualify(ObjectType startType, boolean constQualified,
-			boolean volatileQualified, boolean restrictQualified,
-			boolean inputQualified, boolean outputQualified) {
-		if (!constQualified && !volatileQualified && !restrictQualified
-				&& !inputQualified && !outputQualified)
+	public ObjectType qualify(ObjectType startType, boolean constQualified, boolean volatileQualified,
+			boolean restrictQualified, boolean inputQualified, boolean outputQualified) {
+		if (!constQualified && !volatileQualified && !restrictQualified && !inputQualified && !outputQualified)
 			return startType;
 		if (startType.kind() == TypeKind.QUALIFIED) {
 			QualifiedObjectType qualifiedType = (QualifiedObjectType) startType;
 			UnqualifiedObjectType unqualifiedType = qualifiedType.getBaseType();
 
-			return qualifiedType(unqualifiedType,
-					constQualified || qualifiedType.isConstQualified(),
+			return qualifiedType(unqualifiedType, constQualified || qualifiedType.isConstQualified(),
 					volatileQualified || qualifiedType.isVolatileQualified(),
 					restrictQualified || qualifiedType.isRestrictQualified(),
 					inputQualified || qualifiedType.isInputQualified(),
 					outputQualified || qualifiedType.isOutputQualified());
 		}
-		return qualifiedType((UnqualifiedObjectType) startType, constQualified,
-				volatileQualified, restrictQualified, inputQualified,
-				outputQualified);
+		return qualifiedType((UnqualifiedObjectType) startType, constQualified, volatileQualified, restrictQualified,
+				inputQualified, outputQualified);
 	}
 
 	@Override
-	public ObjectType qualify(ObjectType startType, boolean atomic,
-			boolean constQualified, boolean volatileQualified,
-			boolean restrictQualified, boolean inputQualified,
-			boolean outputQualified) {
+	public ObjectType qualify(ObjectType startType, boolean atomic, boolean constQualified, boolean volatileQualified,
+			boolean restrictQualified, boolean inputQualified, boolean outputQualified) {
 		boolean change = false;
 		UnqualifiedObjectType baseType;
 
@@ -636,8 +572,8 @@ public class CommonTypeFactory implements TypeFactory {
 		if (!change)
 			return startType;
 		if (constQualified || restrictQualified || volatileQualified)
-			return qualifiedType(baseType, constQualified, volatileQualified,
-					restrictQualified, inputQualified, outputQualified);
+			return qualifiedType(baseType, constQualified, volatileQualified, restrictQualified, inputQualified,
+					outputQualified);
 		return baseType;
 	}
 
@@ -673,39 +609,36 @@ public class CommonTypeFactory implements TypeFactory {
 	@Override
 	public IntegerType integerPromotion(IntegerType type) {
 		if (type instanceof StandardSignedIntegerType) {
-			SignedIntKind kind = ((StandardSignedIntegerType) type)
-					.getIntKind();
+			SignedIntKind kind = ((StandardSignedIntegerType) type).getIntKind();
 
 			switch (kind) {
-				case SIGNED_CHAR :
-				case SHORT :
-					return signedIntegerType(SignedIntKind.INT);
-				case INT :
-				case LONG :
-				case LONG_LONG :
-					return type;
-				default :
-					throw new RuntimeException("unreachable");
+			case SIGNED_CHAR:
+			case SHORT:
+				return signedIntegerType(SignedIntKind.INT);
+			case INT:
+			case LONG:
+			case LONG_LONG:
+				return type;
+			default:
+				throw new RuntimeException("unreachable");
 			}
 		}
 		if (type instanceof StandardUnsignedIntegerType) {
-			UnsignedIntKind kind = ((StandardUnsignedIntegerType) type)
-					.getIntKind();
+			UnsignedIntKind kind = ((StandardUnsignedIntegerType) type).getIntKind();
 
 			switch (kind) {
-				case BOOL :
-					return signedIntegerType(SignedIntKind.INT);
-				case UNSIGNED_CHAR :
-				case UNSIGNED_SHORT :
-					// either int or unsigned int, depending on widths
-					return (IntegerType) canonicalize(
-							new IntegerPromotionType(type));
-				case UNSIGNED :
-				case UNSIGNED_LONG :
-				case UNSIGNED_LONG_LONG :
-					return type;
-				default :
-					throw new RuntimeException("unreachable");
+			case BOOL:
+				return signedIntegerType(SignedIntKind.INT);
+			case UNSIGNED_CHAR:
+			case UNSIGNED_SHORT:
+				// either int or unsigned int, depending on widths
+				return (IntegerType) canonicalize(new IntegerPromotionType(type));
+			case UNSIGNED:
+			case UNSIGNED_LONG:
+			case UNSIGNED_LONG_LONG:
+				return type;
+			default:
+				throw new RuntimeException("unreachable");
 			}
 		}
 		// enumeration type: no way to know compatible integer type
@@ -713,8 +646,7 @@ public class CommonTypeFactory implements TypeFactory {
 	}
 
 	@Override
-	public ArithmeticType usualArithmeticConversion(ArithmeticType type1,
-			ArithmeticType type2) {
+	public ArithmeticType usualArithmeticConversion(ArithmeticType type1, ArithmeticType type2) {
 		ArithmeticType result = floatingArithmeticConversion(type1, type2);
 
 		if (result != null)
@@ -733,21 +665,18 @@ public class CommonTypeFactory implements TypeFactory {
 	}
 
 	/**
-	 * Returns the usual arithmetic conversion type in the case where at least
-	 * one of the two types is a floating type. If neither is a floating type,
-	 * returns null. Note that the CIVL-C type "$real" is considered a floating
-	 * type for these purposes.
+	 * Returns the usual arithmetic conversion type in the case where at least one
+	 * of the two types is a floating type. If neither is a floating type, returns
+	 * null. Note that the CIVL-C type "$real" is considered a floating type for
+	 * these purposes.
 	 * 
-	 * @param type1
-	 *            an arithmetic type
-	 * @param type2
-	 *            an arithmetic type
-	 * @return null (if neither type is floating) or the floating type which is
-	 *         the usual arithmetic conversion type if at least one of the types
-	 *         is floating
+	 * @param type1 an arithmetic type
+	 * @param type2 an arithmetic type
+	 * @return null (if neither type is floating) or the floating type which is the
+	 *         usual arithmetic conversion type if at least one of the types is
+	 *         floating
 	 */
-	private FloatingType floatingArithmeticConversion(ArithmeticType type1,
-			ArithmeticType type2) {
+	private FloatingType floatingArithmeticConversion(ArithmeticType type1, ArithmeticType type2) {
 		boolean isFloat1 = type1.isFloating();
 		boolean isFloat2 = type2.isFloating();
 
@@ -783,13 +712,11 @@ public class CommonTypeFactory implements TypeFactory {
 				kind = kind2;
 			else
 				throw new RuntimeException("unreachable");
-			return floatingType(kind,
-					type1.inRealDomain() && type2.inRealDomain());
+			return floatingType(kind, type1.inRealDomain() && type2.inRealDomain());
 		}
 	}
 
-	private IntegerType integerArithmeticConversion(IntegerType type1,
-			IntegerType type2) {
+	private IntegerType integerArithmeticConversion(IntegerType type1, IntegerType type2) {
 
 		if (type1.equals(type2))
 			return type1;
@@ -808,28 +735,23 @@ public class CommonTypeFactory implements TypeFactory {
 				if (rankComparison == 1)
 					return type1;
 				if (rankComparison == 0)
-					throw new RuntimeException(
-							"Internal error: two different unsigned integer types "
-									+ "have same conversion rank:\n" + type1
-									+ "\n" + type2);
+					throw new RuntimeException("Internal error: two different unsigned integer types "
+							+ "have same conversion rank:\n" + type1 + "\n" + type2);
 			} else if (isSigned1 && isUnsigned2 || isSigned2 && isUnsigned1) {
 				IntegerType signedType = (isSigned1 ? type1 : type2);
 				IntegerType unsignedType = (isUnsigned1 ? type1 : type2);
-				int rankComparison = compareConversionRanks(signedType,
-						unsignedType);
+				int rankComparison = compareConversionRanks(signedType, unsignedType);
 
 				if (rankComparison == -1 || rankComparison == 0) {
 					return unsignedType;
 				}
 			}
-			return (ArithmeticConversionType) canonicalize(
-					new ArithmeticConversionType(type1, type2));
+			return (ArithmeticConversionType) canonicalize(new ArithmeticConversionType(type1, type2));
 		}
 	}
 
 	@Override
-	public IntegerType rangeChoice(BigInteger value, IntegerType type1,
-			IntegerType type2) {
+	public IntegerType rangeChoice(BigInteger value, IntegerType type1, IntegerType type2) {
 		if (alwaysInRange(value, type1))
 			return type1;
 		return new RangeChoiceType(value, type1, type2);
@@ -840,8 +762,7 @@ public class CommonTypeFactory implements TypeFactory {
 		return rangeChoice(value, typeList, 0);
 	}
 
-	public IntegerType rangeChoice(int value, IntegerType type1,
-			IntegerType type2) {
+	public IntegerType rangeChoice(int value, IntegerType type1, IntegerType type2) {
 		return rangeChoice(new BigInteger("" + value), type1, type2);
 	}
 
@@ -849,34 +770,27 @@ public class CommonTypeFactory implements TypeFactory {
 		if (type instanceof StandardSignedIntegerType) {
 			StandardSignedIntegerType stype = (StandardSignedIntegerType) type;
 
-			if (value.compareTo(stype.getMinimumMinValue()) >= 0
-					&& value.compareTo(stype.getMinimumMaxValue()) <= 0)
+			if (value.compareTo(stype.getMinimumMinValue()) >= 0 && value.compareTo(stype.getMinimumMaxValue()) <= 0)
 				return true;
 		} else if (type instanceof StandardUnsignedIntegerType) {
-			if (value.signum() >= 0
-					&& value.compareTo(((StandardUnsignedIntegerType) type)
-							.getMinimumMaxValue()) <= 0)
+			if (value.signum() >= 0 && value.compareTo(((StandardUnsignedIntegerType) type).getMinimumMaxValue()) <= 0)
 				return true;
 		} else if (type instanceof StandardBasicType
-				&& ((StandardBasicType) type)
-						.getBasicTypeKind() == BasicTypeKind.CHAR) {
-			if (value.signum() >= 0 && value.compareTo(
-					CommonStandardSignedIntegerType.SCHAR_MAX_MIN) <= 0)
+				&& ((StandardBasicType) type).getBasicTypeKind() == BasicTypeKind.CHAR) {
+			if (value.signum() >= 0 && value.compareTo(CommonStandardSignedIntegerType.SCHAR_MAX_MIN) <= 0)
 				return true;
 		}
 		return false;
 	}
 
-	private IntegerType rangeChoice(BigInteger value, IntegerType[] typeList,
-			int index) {
+	private IntegerType rangeChoice(BigInteger value, IntegerType[] typeList, int index) {
 		IntegerType type1 = typeList[index];
 
 		if (alwaysInRange(value, type1))
 			return type1;
 		if (index == typeList.length - 1)
 			return new RangeChoiceType(value, type1, null);
-		return new RangeChoiceType(value, type1,
-				rangeChoice(value, typeList, index + 1));
+		return new RangeChoiceType(value, type1, rangeChoice(value, typeList, index + 1));
 	}
 
 	@Override
@@ -925,9 +839,8 @@ public class CommonTypeFactory implements TypeFactory {
 	}
 
 	/**
-	 * Attempts to integer compare conversion ranks and return a definitive
-	 * result, but may return "don't know". Possible return values and their
-	 * meaning:
+	 * Attempts to integer compare conversion ranks and return a definitive result,
+	 * but may return "don't know". Possible return values and their meaning:
 	 * 
 	 * <ul>
 	 * <li>-1: rank(type1) is less than rank(type2)</li>
@@ -961,27 +874,26 @@ public class CommonTypeFactory implements TypeFactory {
 			BasicTypeKind kind = ((StandardBasicType) type).getBasicTypeKind();
 
 			switch (kind) {
-				case BOOL :
-					return 1;
-				case CHAR :
-				case SIGNED_CHAR :
-				case UNSIGNED_CHAR :
-					return 2;
-				case SHORT :
-				case UNSIGNED_SHORT :
-					return 3;
-				case INT :
-				case UNSIGNED :
-					return 4;
-				case LONG :
-				case UNSIGNED_LONG :
-					return 5;
-				case LONG_LONG :
-				case UNSIGNED_LONG_LONG :
-					return 6;
-				default :
-					throw new RuntimeException(
-							"Unexpected basic integer type: " + type);
+			case BOOL:
+				return 1;
+			case CHAR:
+			case SIGNED_CHAR:
+			case UNSIGNED_CHAR:
+				return 2;
+			case SHORT:
+			case UNSIGNED_SHORT:
+				return 3;
+			case INT:
+			case UNSIGNED:
+				return 4;
+			case LONG:
+			case UNSIGNED_LONG:
+				return 5;
+			case LONG_LONG:
+			case UNSIGNED_LONG_LONG:
+				return 6;
+			default:
+				throw new RuntimeException("Unexpected basic integer type: " + type);
 			}
 		}
 		return null;
@@ -994,15 +906,6 @@ public class CommonTypeFactory implements TypeFactory {
 			insert(processType);
 		}
 		return processType;
-	}
-
-	@Override
-	public ObjectType stateType() {
-		if (stateType == null) {
-			stateType = new CommonStateType();
-			insert(stateType);
-		}
-		return stateType;
 	}
 
 	@Override
@@ -1034,8 +937,7 @@ public class CommonTypeFactory implements TypeFactory {
 			ObjectType elementType = ((ArrayType) type).getElementType();
 
 			if (elementType instanceof StandardBasicType) {
-				return ((StandardBasicType) elementType)
-						.getBasicTypeKind() == BasicTypeKind.CHAR;
+				return ((StandardBasicType) elementType).getBasicTypeKind() == BasicTypeKind.CHAR;
 			}
 		}
 		return false;
@@ -1051,8 +953,7 @@ public class CommonTypeFactory implements TypeFactory {
 		if (type instanceof StructureOrUnionType) {
 			StructureOrUnionType structOrUnionType = (StructureOrUnionType) type;
 
-			if (structOrUnionType.isStruct()
-					&& structOrUnionType.getName().equals(TypeFactory.BUNDLE)) {
+			if (structOrUnionType.isStruct() && structOrUnionType.getName().equals(TypeFactory.BUNDLE)) {
 				return true;
 			}
 		}
@@ -1064,19 +965,17 @@ public class CommonTypeFactory implements TypeFactory {
 		TypeKind typeKind = type.kind();
 
 		switch (typeKind) {
-			case POINTER :
-				return true;
-			case QUALIFIED :
-				return isPointerType(
-						((QualifiedObjectType) type).getBaseType());
-			default :
-				return false;
+		case POINTER:
+			return true;
+		case QUALIFIED:
+			return isPointerType(((QualifiedObjectType) type).getBaseType());
+		default:
+			return false;
 		}
 	}
 
 	@Override
-	public ObjectType lambdaType(Type freeVariableType,
-			Type lambdaFunctionType) {
+	public ObjectType lambdaType(Type freeVariableType, Type lambdaFunctionType) {
 		if (freeVariableType == null)
 			freeVariableType = voidType;
 		return new CommonLambdaType(freeVariableType, lambdaFunctionType);

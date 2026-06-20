@@ -328,6 +328,7 @@ public abstract class CommonASTNode implements ASTNode {
 
 	protected ASTNode shiftRemoveChild(int index) {
 		removeChild(index);
+		// TODO: don't we have to update the childIndex fields?
 		return children.remove(index);
 	}
 	
@@ -370,9 +371,6 @@ public abstract class CommonASTNode implements ASTNode {
 
 			if (child != null) {
 				if (keep.holds(child)) {
-					// // add the file name to the file name map
-					// TokenUtils.addFileName(TokenUtils.getShortFilename(this
-					// .getSource().getFirstToken(), false));
 					child.keepOnly(keep);
 				} else
 					removeChild(i);

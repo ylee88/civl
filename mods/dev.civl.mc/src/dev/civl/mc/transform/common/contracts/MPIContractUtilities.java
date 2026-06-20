@@ -35,10 +35,6 @@ public class MPIContractUtilities {
 
 	static final String MEM_HAVOC = "$mem_havoc";
 
-	static ExpressionNode getStateNullExpression(Source source, NodeFactory nodeFactory) {
-		return nodeFactory.newStatenullNode(source);
-	}
-
 	static ExpressionNode getProcNullExpression(Source source, NodeFactory nodeFactory) {
 		return nodeFactory.newProcnullNode(source);
 	}

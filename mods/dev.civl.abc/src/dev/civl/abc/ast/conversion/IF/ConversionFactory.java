@@ -354,7 +354,7 @@ public interface ConversionFactory {
 	 * {@link CompatiblePointerConversion}, {@link VoidPointerConversion},
 	 * {@link NullPointerConversion}, {@link PointerBoolConversion}.
 	 * 
-	 * The processing of a simple assignement expression then proceeds as
+	 * The processing of a simple assignment expression then proceeds as
 	 * follows:
 	 * 
 	 * <ol>

@@ -292,6 +292,7 @@ public class ModelTranslator {
 			task.addTransformRecord(
 					transformerFactory.getContractTransformerRecord(config.mpiContractFunction(), config));
 		task.addTransformRecord(transformerFactory.getGeneralTransformerRecord());
+		task.addTransformRecord(transformerFactory.getComplexTransformerRecord());
 		task.addTransformRecord(transformerFactory.getIOTransformerRecord(config));
 		// Add renamer for external-linkage variables that have declarations in
 		// block scope:

@@ -179,55 +179,51 @@ public interface TypeFactory {
 	 * Returns an instance of BasicType representing the type of the given basic
 	 * type kind and qualified as specified.
 	 * 
-	 * It is unspecified whether this method will return a new instance each
-	 * time it is invoked, or will use something like a flyweight pattern to
-	 * share instances. This choice should be invisible to the user, since the
-	 * basic types are immutable.
+	 * It is unspecified whether this method will return a new instance each time it
+	 * is invoked, or will use something like a flyweight pattern to share
+	 * instances. This choice should be invisible to the user, since the basic types
+	 * are immutable.
 	 * 
-	 * @param kind
-	 *            one of the basic type kinds
+	 * @param kind one of the basic type kinds
 	 * @return an instance of BasicType corresponding to the given parameters
 	 */
 	StandardBasicType basicType(BasicTypeKind kind);
 
 	/**
-	 * Returns the standard signed integer type of the given kind. While these
-	 * types are all basic types and can therefore be obtained by method
-	 * basicType, this method is sometimes more convenient.
+	 * Returns the standard signed integer type of the given kind. While these types
+	 * are all basic types and can therefore be obtained by method basicType, this
+	 * method is sometimes more convenient.
 	 * 
 	 * There are 5 standard signed integer types.
 	 * 
-	 * @param kind
-	 *            the signed integer type kind; note that the names of the
-	 *            elements of this enumerated type are exactly the same as the
-	 *            names of the corresponding types in BasicTypeKind
+	 * @param kind the signed integer type kind; note that the names of the elements
+	 *             of this enumerated type are exactly the same as the names of the
+	 *             corresponding types in BasicTypeKind
 	 * @return the signed integer type of that kind
 	 */
 	StandardSignedIntegerType signedIntegerType(SignedIntKind kind);
 
 	/**
 	 * Returns the standard unsigned integer type of the given kind. While these
-	 * types are all basic types and can therefore be obtained by method
-	 * basicType, this method is sometimes more convenient.
+	 * types are all basic types and can therefore be obtained by method basicType,
+	 * this method is sometimes more convenient.
 	 * 
 	 * There are 6 standard unsigned integer types (those corresponding to the
 	 * standard signed integer types, and _Bool).
 	 * 
-	 * @param kind
-	 *            the unsigned integer type kind; note that the names of the
-	 *            elements of this enumerated type are exactly the same as the
-	 *            names of the corresponding types in BasicTypeKind
+	 * @param kind the unsigned integer type kind; note that the names of the
+	 *             elements of this enumerated type are exactly the same as the
+	 *             names of the corresponding types in BasicTypeKind
 	 * @return the unsigned integer type of that kind
 	 */
 	StandardUnsignedIntegerType unsignedIntegerType(UnsignedIntKind kind);
 
 	/**
 	 * Returns an instance of PointerType with the given referenced type. It is
-	 * unspecified whether this returns a new instance each time it is called or
-	 * can return previously returned instances.
+	 * unspecified whether this returns a new instance each time it is called or can
+	 * return previously returned instances.
 	 * 
-	 * @param referencedType
-	 *            the base type of the pointer type
+	 * @param referencedType the base type of the pointer type
 	 * @return a pointer type as specified
 	 */
 	PointerType pointerType(Type referencedType);
@@ -235,12 +231,11 @@ public interface TypeFactory {
 	/**
 	 * The atomic type associated to a base type. This type may be denoted
 	 * <code>_Atomic(baseType)</code> or by using the type qualifier
-	 * <code>_Atomic</code> in a declaration. The base type cannot be an array
-	 * type, a function type, an atomic type, or a qualified type. However, the
-	 * resulting AtomicType can be qualified.
+	 * <code>_Atomic</code> in a declaration. The base type cannot be an array type,
+	 * a function type, an atomic type, or a qualified type. However, the resulting
+	 * AtomicType can be qualified.
 	 * 
-	 * @param baseType
-	 *            the base type
+	 * @param baseType the base type
 	 * @return the atomic type
 	 */
 	AtomicType atomicType(UnqualifiedObjectType baseType);
@@ -248,23 +243,20 @@ public interface TypeFactory {
 	/**
 	 * Returns an incomplete array type (i.e., the extent is not specified).
 	 * 
-	 * Note: according to the C standard, qualifiers applied to an array type
-	 * are actually applied to the element type.
+	 * Note: according to the C standard, qualifiers applied to an array type are
+	 * actually applied to the element type.
 	 * 
-	 * @param elementType
-	 *            a complete object type
+	 * @param elementType a complete object type
 	 * @return an incomplete array type with given element type
 	 */
 	ArrayType incompleteArrayType(ObjectType elementType);
 
 	/**
-	 * Returns a complete array type in which the size expression has been
-	 * evaluated to a known constant value.
+	 * Returns a complete array type in which the size expression has been evaluated
+	 * to a known constant value.
 	 * 
-	 * @param elementType
-	 *            the type of the elements of the array
-	 * @param constantExtent
-	 *            the constant array length
+	 * @param elementType    the type of the elements of the array
+	 * @param constantExtent the constant array length
 	 * @return the complete array type with constant extent
 	 */
 	ArrayType arrayType(ObjectType elementType, IntegerValue constantExtent);
@@ -283,137 +275,104 @@ public interface TypeFactory {
 	 * Returns a complete array type in which the size expression cannot be
 	 * evaluated to a known constant value.
 	 * 
-	 * @param elementType
-	 *            the type of the elements of the array
-	 * @param variableSize
-	 *            the expression which defines the extent (length) of the array
+	 * @param elementType  the type of the elements of the array
+	 * @param variableSize the expression which defines the extent (length) of the
+	 *                     array
 	 * @return a complete array type as specified
 	 */
-	ArrayType variableLengthArrayType(ObjectType elementType,
-			ExpressionNode variableSize);
+	ArrayType variableLengthArrayType(ObjectType elementType, ExpressionNode variableSize);
 
 	/**
-	 * Returns a new incomplete structure or union type with the given tag. The
-	 * type can be completed using methods in the resulting StructureOrUnionType
-	 * object.
+	 * Returns a new incomplete structure or union type with the given tag. The type
+	 * can be completed using methods in the resulting StructureOrUnionType object.
 	 * 
-	 * @param key
-	 *            a key to use to determine if two StructureOrUnionType
-	 *            instances with same tag and "isStruct" values are to be
-	 *            considered equal.
+	 * @param key      a key to use to determine if two StructureOrUnionType
+	 *                 instances with same tag and "isStruct" values are to be
+	 *                 considered equal.
 	 * 
-	 * @param isStruct
-	 *            is this a structure type (as opposed to union)?
-	 * @param tag
-	 *            the tag for the structure or union, as in "struct TAG ...";
-	 *            may be null for an anonymous structure or union
+	 * @param isStruct is this a structure type (as opposed to union)?
+	 * @param tag      the tag for the structure or union, as in "struct TAG ...";
+	 *                 may be null for an anonymous structure or union
 	 * @return a new, incomplete StructureOrUnion type
 	 */
-	StructureOrUnionType structureOrUnionType(Object key, boolean isStruct,
-			String tag);
+	StructureOrUnionType structureOrUnionType(Object key, boolean isStruct, String tag);
 
 	/**
-	 * Creates a new field entity. These correspond to the field declarations in
-	 * a complete structure or union definition.
+	 * Creates a new field entity. These correspond to the field declarations in a
+	 * complete structure or union definition.
 	 * 
-	 * @param declaration
-	 *            the field declaration
-	 * @param type
-	 *            the type of the field
-	 * @param bitWidth
-	 *            the optional bit width parameter
+	 * @param declaration the field declaration
+	 * @param type        the type of the field
+	 * @param bitWidth    the optional bit width parameter
 	 * @return the new field
 	 */
-	Field newField(FieldDeclarationNode declaration, ObjectType type,
-			Value bitWidth);
+	Field newField(FieldDeclarationNode declaration, ObjectType type, Value bitWidth);
 
 	/**
 	 * Returns an enumeration type with the given tag and key. The type can be
 	 * completed using methods in the resulting EnumerationType object.
 	 * 
-	 * @param key
-	 *            an object used to uniquely identify the enumeration type; it
-	 *            is used in the equals method
+	 * @param key an object used to uniquely identify the enumeration type; it is
+	 *            used in the equals method
 	 * 
-	 * @param tag
-	 *            the tag for the enumeration type, as in "enum TAG ..."; may be
+	 * @param tag the tag for the enumeration type, as in "enum TAG ..."; may be
 	 *            null for an anonymous enumeration type
 	 * @return a new, incomplete enumeration type
 	 */
 	EnumerationType enumerationType(Object key, String tag);
 
 	/**
-	 * Creates a new enumerator entity. These correspond to the enumerators in
-	 * the enumerator list of a complete enumeration definition.
+	 * Creates a new enumerator entity. These correspond to the enumerators in the
+	 * enumerator list of a complete enumeration definition.
 	 * 
-	 * @param declaration
-	 *            the declaration of the enumerator in the enuemrator list
-	 * @param enumeration
-	 *            the enumeration of which this enumerator is a part
-	 * @param value
-	 *            the constant integer value associated to the enumerator
+	 * @param declaration the declaration of the enumerator in the enuemrator list
+	 * @param enumeration the enumeration of which this enumerator is a part
+	 * @param value       the constant integer value associated to the enumerator
 	 * @return the new enumerator entity
 	 */
-	Enumerator newEnumerator(EnumeratorDeclarationNode declaration,
-			EnumerationType enumeration, Value value);
+	Enumerator newEnumerator(EnumeratorDeclarationNode declaration, EnumerationType enumeration, Value value);
 
 	/**
-	 * Returns a qualified type based on the given unqualified type. At least
-	 * one of the 3 qualifiers must be true.
+	 * Returns a qualified type based on the given unqualified type. At least one of
+	 * the 3 qualifiers must be true.
 	 * 
-	 * @param baseType
-	 *            an unqualified object type
-	 * @param constQualified
-	 *            should the resulting type be "const" qualified?
-	 * @param volatileQualified
-	 *            should the resulting type be "volatile" qualified?
-	 * @param restrictQualified
-	 *            should the resulting type be "restrict" qualified?
-	 * @param inputQualified
-	 *            should the result type be "_input" qualified?
-	 * @param outputQualified
-	 *            should the resulting type be "_output" qualified?
+	 * @param baseType          an unqualified object type
+	 * @param constQualified    should the resulting type be "const" qualified?
+	 * @param volatileQualified should the resulting type be "volatile" qualified?
+	 * @param restrictQualified should the resulting type be "restrict" qualified?
+	 * @param inputQualified    should the result type be "_input" qualified?
+	 * @param outputQualified   should the resulting type be "_output" qualified?
 	 * @return qualified version of given unqualified type
 	 */
-	QualifiedObjectType qualifiedType(UnqualifiedObjectType baseType,
-			boolean constQualified, boolean volatileQualified,
-			boolean restrictQualified, boolean inputQualified,
-			boolean outputQualified);
+	QualifiedObjectType qualifiedType(UnqualifiedObjectType baseType, boolean constQualified, boolean volatileQualified,
+			boolean restrictQualified, boolean inputQualified, boolean outputQualified);
 
 	/**
 	 * A more general algorithm for qualifying a type: for each true-valued
 	 * parameter, the corresponding qualifier is "added" to the resulting type,
-	 * i.e., if the type is already so-qualified, it is not changed, otherwise,
-	 * the result will be so qualified. The given type (startType) may or may
-	 * not already be a QualifiedObjectType. The 3 boolean parameters may or may
-	 * not be all false. The result may or may not be a QualifiedObjectType.
+	 * i.e., if the type is already so-qualified, it is not changed, otherwise, the
+	 * result will be so qualified. The given type (startType) may or may not
+	 * already be a QualifiedObjectType. The 3 boolean parameters may or may not be
+	 * all false. The result may or may not be a QualifiedObjectType.
 	 * 
-	 * @param startType
-	 *            an object type
-	 * @param constQualified
-	 *            should the resulting type be "const" qualified?
-	 * @param volatileQualified
-	 *            should the resulting type be "volatile" qualified?
-	 * @param restrictQualified
-	 *            should the resulting type be "restrict" qualified?
-	 * @param inputQualified
-	 *            should the result type be "_input" qualified?
-	 * @param outputQualified
-	 *            should the resulting type be "_output" qualified?
+	 * @param startType         an object type
+	 * @param constQualified    should the resulting type be "const" qualified?
+	 * @param volatileQualified should the resulting type be "volatile" qualified?
+	 * @param restrictQualified should the resulting type be "restrict" qualified?
+	 * @param inputQualified    should the result type be "_input" qualified?
+	 * @param outputQualified   should the resulting type be "_output" qualified?
 	 * @return the correct object type properly qualified, possibly the original
 	 *         type as given.
 	 */
-	ObjectType qualify(ObjectType startType, boolean constQualified,
-			boolean volatileQualified, boolean restrictQualified,
-			boolean inputQualified, boolean outputQualified);
+	ObjectType qualify(ObjectType startType, boolean constQualified, boolean volatileQualified,
+			boolean restrictQualified, boolean inputQualified, boolean outputQualified);
 
 	/**
 	 * <p>
 	 * Given two compatible types, returns the "composite type" obtained by
-	 * combining features of both types. If the two types are not compatible,
-	 * the behavior is undefined. Hence, you should always check compatibility
-	 * before invoking this method (i.e., check that type1.compatibleWith(type2)
-	 * is true).
+	 * combining features of both types. If the two types are not compatible, the
+	 * behavior is undefined. Hence, you should always check compatibility before
+	 * invoking this method (i.e., check that type1.compatibleWith(type2) is true).
 	 * </p>
 	 * 
 	 * <p>
@@ -422,73 +381,62 @@ public interface TypeFactory {
 	 * basically equivalent, so we just return type1.
 	 * </p>
 	 * 
-	 * @param type1
-	 *            a type
-	 * @param type2
-	 *            a type which is compatible with type1
+	 * @param type1 a type
+	 * @param type2 a type which is compatible with type1
 	 * @return the composite type
 	 */
 	Type compositeType(Type type1, Type type2);
 
 	/**
 	 * <p>
-	 * Given a variable <code>v</code> declaration with an initializer, the
-	 * declared type <code>t1</code> of <code>v</code> and the composite type
-	 * <code>t2</code> , which strictly conforms C11 standard, for
-	 * <code>t1</code> and the type of the initializer , returns the composite
-	 * type, which conforms CIVL-C extention, for <code>t1</code> and
-	 * <code>t2</code>.
+	 * Given a variable <code>v</code> declaration with an initializer, the declared
+	 * type <code>t1</code> of <code>v</code> and the composite type <code>t2</code>
+	 * , which strictly conforms C11 standard, for <code>t1</code> and the type of
+	 * the initializer , returns the composite type, which conforms CIVL-C
+	 * extention, for <code>t1</code> and <code>t2</code>.
 	 * </p>
 	 * 
 	 * <p>
 	 * The composite type conforming CIVL-C follows one rule: if a sub-type
-	 * <code>t</code> in <code>t1</code> is an array type with variable length,
-	 * the corresponding sub-type in the composite type has the same type as
+	 * <code>t</code> in <code>t1</code> is an array type with variable length, the
+	 * corresponding sub-type in the composite type has the same type as
 	 * <code>t</code>
 	 * </p>
 	 * 
-	 * @param varType
-	 *            the declared type of
-	 * @param compositeType
-	 *            the composite type for the declared type and the initializer
-	 *            type conforming C11 standard
+	 * @param varType       the declared type of
+	 * @param compositeType the composite type for the declared type and the
+	 *                      initializer type conforming C11 standard
 	 * @return the composite type conforming CIVL-C extention
 	 */
-	Type compositeArrayTypeInDeclarationForCIVLC(Type varType,
-			Type compositeType);
+	Type compositeArrayTypeInDeclarationForCIVLC(Type varType, Type compositeType);
 
 	/**
-	 * Returns the function type with the given return type but with no
-	 * information on the parameters.
+	 * Returns the function type with the given return type but with no information
+	 * on the parameters.
 	 * 
 	 * The return type cannot be an array type or a function type.
 	 * 
-	 * @param returnType
-	 *            the return type of the function
+	 * @param returnType the return type of the function
 	 * @return the function type
 	 */
 	FunctionType functionType(ObjectType returnType);
 
 	/**
-	 * Returns the function type with the given return type and parameter type
-	 * list.
+	 * Returns the function type with the given return type and parameter type list.
 	 * 
 	 * The return type cannot be an array type or a function type.
 	 * 
-	 * @param returnType
-	 *            the type returned by calls to the function
-	 * @param fromIdentifierList
-	 *            was this type generated from a function definition using an
-	 *            identifier list (as opposed to a parameter type list)?
-	 * @param parameterTypes
-	 *            the type of each parameter
-	 * @param hasVariableArgs
-	 *            is the "..." used in the declaration?
-	 * @return a function type as specified in which the types of the parameters
-	 *         is known
+	 * @param returnType         the type returned by calls to the function
+	 * @param fromIdentifierList was this type generated from a function definition
+	 *                           using an identifier list (as opposed to a parameter
+	 *                           type list)?
+	 * @param parameterTypes     the type of each parameter
+	 * @param hasVariableArgs    is the "..." used in the declaration?
+	 * @return a function type as specified in which the types of the parameters is
+	 *         known
 	 */
-	FunctionType functionType(ObjectType returnType, boolean fromIdentifierList,
-			Iterable<ObjectType> parameterTypes, boolean hasVariableArgs);
+	FunctionType functionType(ObjectType returnType, boolean fromIdentifierList, Iterable<ObjectType> parameterTypes,
+			boolean hasVariableArgs);
 
 	/**
 	 * Returns the number of distinct types controlled by this type factory.
@@ -500,8 +448,7 @@ public interface TypeFactory {
 	/**
 	 * Returns the id-th type conrolled by this type factory.
 	 * 
-	 * @param id
-	 *            an int in the range [0,numTypes-1]
+	 * @param id an int in the range [0,numTypes-1]
 	 * @return the id-th type
 	 */
 	Type getType(int id);
@@ -515,11 +462,10 @@ public interface TypeFactory {
 	Iterable<Type> getTypes();
 
 	/**
-	 * Prints a human-readable description of all the types controlled by this
-	 * type factory.
+	 * Prints a human-readable description of all the types controlled by this type
+	 * factory.
 	 * 
-	 * @param out
-	 *            a print stream to which the output should be sent
+	 * @param out a print stream to which the output should be sent
 	 */
 	void printTypes(PrintStream out);
 
@@ -528,29 +474,28 @@ public interface TypeFactory {
 	 * 
 	 * <blockquote>
 	 * <p>
-	 * The following may be used in an expression wherever an int or unsigned
-	 * int may be used:
+	 * The following may be used in an expression wherever an int or unsigned int
+	 * may be used:
 	 * 
 	 * <ul>
-	 * <li>An object or expression with an integer type (other than int or
-	 * unsigned int) whose integer conversion rank is less than or equal to the
-	 * rank of int and unsigned int.</li>
+	 * <li>An object or expression with an integer type (other than int or unsigned
+	 * int) whose integer conversion rank is less than or equal to the rank of int
+	 * and unsigned int.</li>
 	 * 
 	 * <li>A bit-field of type _Bool, int, signed int, or unsigned int.</li>
 	 * </ul>
 	 * </p>
 	 * 
 	 * <p>
-	 * If an int can represent all values of the original type (as restricted by
-	 * the width, for a bit-field), the value is converted to an int; otherwise,
-	 * it is converted to an unsigned int. These are called the integer
-	 * promotions. All other types are unchanged by the integer promotions.
+	 * If an int can represent all values of the original type (as restricted by the
+	 * width, for a bit-field), the value is converted to an int; otherwise, it is
+	 * converted to an unsigned int. These are called the integer promotions. All
+	 * other types are unchanged by the integer promotions.
 	 * </p>
 	 * 
 	 * <p>
-	 * The integer promotions preserve value including sign. As discussed
-	 * earlier, whether a "plain" char is treated as signed is
-	 * implementation-defined.
+	 * The integer promotions preserve value including sign. As discussed earlier,
+	 * whether a "plain" char is treated as signed is implementation-defined.
 	 * </p>
 	 * </blockquote>
 	 * 
@@ -560,47 +505,40 @@ public interface TypeFactory {
 	IntegerType integerPromotion(IntegerType type);
 
 	/**
-	 * Returns a integer type object T with the following semantics: if the
-	 * value falls within the range of type1, T represents type1, else T
-	 * represents type2. These expressions can be nested to form a sequence of
-	 * tests.
+	 * Returns a integer type object T with the following semantics: if the value
+	 * falls within the range of type1, T represents type1, else T represents type2.
+	 * These expressions can be nested to form a sequence of tests.
 	 * 
-	 * If it can be determined that value lies (resp., does not lie) in the
-	 * range of type1 for all conforming C implementations, then this method may
-	 * just return type1 (resp., type2).
+	 * If it can be determined that value lies (resp., does not lie) in the range of
+	 * type1 for all conforming C implementations, then this method may just return
+	 * type1 (resp., type2).
 	 * 
-	 * @param value
-	 *            an integer
-	 * @param type1
-	 *            an integer type
-	 * @param type2
-	 *            an integer type
+	 * @param value an integer
+	 * @param type1 an integer type
+	 * @param type2 an integer type
 	 * @return an integer type with the semantics described above
 	 */
-	IntegerType rangeChoice(BigInteger value, IntegerType type1,
-			IntegerType type2);
+	IntegerType rangeChoice(BigInteger value, IntegerType type1, IntegerType type2);
 
 	/**
 	 * Returns an IntegerType T with the following semantics: if the value falls
 	 * within the range of typeList[0] then typeList[0], else if the value falls
-	 * within the range of typeList[1] then typeList[1], else if ...., else if
-	 * the value falls within the range of typeList[n-1] then typeList[n-1],
-	 * else null. Here, n=typeList.length.
+	 * within the range of typeList[1] then typeList[1], else if ...., else if the
+	 * value falls within the range of typeList[n-1] then typeList[n-1], else null.
+	 * Here, n=typeList.length.
 	 * 
-	 * @param value
-	 *            an integer
-	 * @param typeList
-	 *            a sequence of integer types; it could have length 0, but this
-	 *            would not be very useful (result is equivalent to null).
+	 * @param value    an integer
+	 * @param typeList a sequence of integer types; it could have length 0, but this
+	 *                 would not be very useful (result is equivalent to null).
 	 * @return an IntegerType with the semantics defined above.
 	 */
 	IntegerType rangeChoice(BigInteger value, IntegerType[] typeList);
 
 	/**
-	 * Returns the type size_t. The C Standard specified that every C
-	 * implementation must define an unsigned integer type called size_t. It is
-	 * the return type of the sizeof operator. It may or may not be one of the
-	 * standard unsigned integer types.
+	 * Returns the type size_t. The C Standard specified that every C implementation
+	 * must define an unsigned integer type called size_t. It is the return type of
+	 * the sizeof operator. It may or may not be one of the standard unsigned
+	 * integer types.
 	 * 
 	 * Repeated calls to this method will always return the same type.
 	 * 
@@ -611,8 +549,8 @@ public interface TypeFactory {
 	/**
 	 * Returns the type ptrdiff_t,
 	 * 
-	 * <blockquote> which is the signed integer type of the result of
-	 * subtracting two pointers; </blockquote>
+	 * <blockquote> which is the signed integer type of the result of subtracting
+	 * two pointers; </blockquote>
 	 * 
 	 * (C11, Sec.7.19).
 	 * 
@@ -624,12 +562,11 @@ public interface TypeFactory {
 	 * Returns the type wchar_t:
 	 * 
 	 * <blockquote> an integer type whose range of values can represent distinct
-	 * codes for all members of the largest extended character set specified
-	 * among the supported locales; the null character shall have the code value
-	 * zero. Each member of the basic character set shall have a code value
-	 * equal to its value when used as the lone character in an integer
-	 * character constant if an implementation does not define _
-	 * _STDC_MB_MIGHT_NEQ_WC_ _. </blockquote>
+	 * codes for all members of the largest extended character set specified among
+	 * the supported locales; the null character shall have the code value zero.
+	 * Each member of the basic character set shall have a code value equal to its
+	 * value when used as the lone character in an integer character constant if an
+	 * implementation does not define _ _STDC_MB_MIGHT_NEQ_WC_ _. </blockquote>
 	 * 
 	 * (C11, Sec. 7.19).
 	 * 
@@ -639,8 +576,8 @@ public interface TypeFactory {
 
 	/**
 	 * Returns the type char16_t, "...an unsigned integer type used for 16-bit
-	 * characters and is the same type as uint_least16_t (described in
-	 * 7.20.1.2)", defined in Sec. 7.28, uchar.h.
+	 * characters and is the same type as uint_least16_t (described in 7.20.1.2)",
+	 * defined in Sec. 7.28, uchar.h.
 	 * 
 	 * @return the integer type char16_t
 	 */
@@ -656,10 +593,10 @@ public interface TypeFactory {
 	UnsignedIntegerType char32_t();
 
 	/**
-	 * Returns an instance of ObjectType representing the "void" type. This is
-	 * an incomplete object type which can never be completed. It is unspecified
-	 * whether this method always returns a new instance or the same instance.
-	 * The choice is invisible, since the type returned is immutable.
+	 * Returns an instance of ObjectType representing the "void" type. This is an
+	 * incomplete object type which can never be completed. It is unspecified
+	 * whether this method always returns a new instance or the same instance. The
+	 * choice is invisible, since the type returned is immutable.
 	 * 
 	 * @return an instance of the void type
 	 */
@@ -671,14 +608,11 @@ public interface TypeFactory {
 	 * basicType, but this method is provided because it is more convenient in
 	 * certain contexts.
 	 * 
-	 * @param kind
-	 *            the kind of floating type: LONG_DOUBLE, DOUBLE, or FLOAT
-	 *            (whether real or complex)
-	 * @param isReal
-	 *            is this a real type (not complex)?
+	 * @param kind   the kind of floating type: LONG_DOUBLE, DOUBLE, or FLOAT
+	 *               (whether real or complex)
+	 * @param isReal is this a real type (not complex)?
 	 * @return one of the basic types LONG_DOUBLE, DOUBLE, FLOAT,
-	 *         LONG_DOUBLE_COMPLEX, DOUBLE_COMPLEX, or FLOAT_COMPLEX, as
-	 *         specified
+	 *         LONG_DOUBLE_COMPLEX, DOUBLE_COMPLEX, or FLOAT_COMPLEX, as specified
 	 */
 	FloatingType floatingType(FloatKind kind, boolean isReal);
 
@@ -691,8 +625,7 @@ public interface TypeFactory {
 	/**
 	 * Creates the {@link MemType}
 	 *
-	 * @param the
-	 *            element tyoe of this mem type
+	 * @param the element tyoe of this mem type
 	 * @return the mem type
 	 */
 	MemType memType(PointerType elementType);
@@ -700,8 +633,7 @@ public interface TypeFactory {
 	/**
 	 * Creates a {@link SetType} with the given element type.
 	 * 
-	 * @param elementType
-	 *            the element type of the returned set type
+	 * @param elementType the element type of the returned set type
 	 * @return a {@link SetType}
 	 */
 	SetType theSetType(ObjectType elementType);
@@ -709,12 +641,9 @@ public interface TypeFactory {
 	/** Returns the scope type */
 	ObjectType scopeType();
 
-	/** Returns the state type */
-	ObjectType stateType();
-
 	/**
-	 * Returns the CIVL-C range type, denoted <code>$range</code>, which
-	 * represents a sequence of integers.
+	 * Returns the CIVL-C range type, denoted <code>$range</code>, which represents
+	 * a sequence of integers.
 	 * 
 	 * @return the range type
 	 */
@@ -727,13 +656,12 @@ public interface TypeFactory {
 	DomainType domainType();
 
 	/**
-	 * Returns the domain type with specified dimension, <code>$domain(n)</code>
-	 * . This is a sub-type of <code>$domain</code>, which is the union over all
+	 * Returns the domain type with specified dimension, <code>$domain(n)</code> .
+	 * This is a sub-type of <code>$domain</code>, which is the union over all
 	 * positive integers <code>n</code> <code>$domain(n)</code>.
 	 * 
-	 * @param dimension
-	 *            the dimension of the domain type, i.e., the arity of the
-	 *            tuples in the domain
+	 * @param dimension the dimension of the domain type, i.e., the arity of the
+	 *                  tuples in the domain
 	 * @return the domain type of the given dimension
 	 */
 	DomainType domainType(int dimension);
@@ -741,35 +669,35 @@ public interface TypeFactory {
 	/************************* Conversions *****************************/
 
 	/**
-	 * Computes the type resulting from the "usual arithmetic conversion". From
-	 * C11 Sec. 6.3.1.8:
+	 * Computes the type resulting from the "usual arithmetic conversion". From C11
+	 * Sec. 6.3.1.8:
 	 * 
 	 * <blockquote> Many operators that expect operands of arithmetic type cause
 	 * conversions and yield result types in a similar way. The purpose is to
-	 * determine a common real type for the operands and result. For the
-	 * specified operands, each operand is converted, without change of type
-	 * domain, to a type whose corresponding real type is the common real type.
-	 * Unless explicitly stated otherwise, the common real type is also the
-	 * corresponding real type of the result, whose type domain is the type
-	 * domain of the operands if they are the same, and complex otherwise. This
-	 * pattern is called the usual arithmetic conversions:
+	 * determine a common real type for the operands and result. For the specified
+	 * operands, each operand is converted, without change of type domain, to a type
+	 * whose corresponding real type is the common real type. Unless explicitly
+	 * stated otherwise, the common real type is also the corresponding real type of
+	 * the result, whose type domain is the type domain of the operands if they are
+	 * the same, and complex otherwise. This pattern is called the usual arithmetic
+	 * conversions:
 	 * 
 	 * <ul>
 	 * 
-	 * <li>First, if the corresponding real type of either operand is long
-	 * double, the other operand is converted, without change of type domain, to
-	 * a type whose corresponding real type is long double.</li>
-	 * 
-	 * <li>Otherwise, if the corresponding real type of either operand is
-	 * double, the other operand is converted, without change of type domain, to
-	 * a type whose corresponding real type is double.</li>
-	 * 
-	 * <li>Otherwise, if the corresponding real type of either operand is float,
+	 * <li>First, if the corresponding real type of either operand is long double,
 	 * the other operand is converted, without change of type domain, to a type
-	 * whose corresponding real type is float.</li>
+	 * whose corresponding real type is long double.</li>
 	 * 
-	 * <li>Otherwise, the integer promotions are performed on both operands.
-	 * Then the following rules are applied to the promoted operands:
+	 * <li>Otherwise, if the corresponding real type of either operand is double,
+	 * the other operand is converted, without change of type domain, to a type
+	 * whose corresponding real type is double.</li>
+	 * 
+	 * <li>Otherwise, if the corresponding real type of either operand is float, the
+	 * other operand is converted, without change of type domain, to a type whose
+	 * corresponding real type is float.</li>
+	 * 
+	 * <li>Otherwise, the integer promotions are performed on both operands. Then
+	 * the following rules are applied to the promoted operands:
 	 * 
 	 * <ul>
 	 * 
@@ -781,15 +709,15 @@ public interface TypeFactory {
 	 * conversion rank is converted to the type of the operand with greater
 	 * rank.</li>
 	 * 
-	 * <li>Otherwise, if the operand that has unsigned integer type has rank
-	 * greater or equal to the rank of the type of the other operand, then the
-	 * operand with signed integer type is converted to the type of the operand
-	 * with unsigned integer type.</li>
+	 * <li>Otherwise, if the operand that has unsigned integer type has rank greater
+	 * or equal to the rank of the type of the other operand, then the operand with
+	 * signed integer type is converted to the type of the operand with unsigned
+	 * integer type.</li>
 	 * 
 	 * <li>Otherwise, if the type of the operand with signed integer type can
-	 * represent all of the values of the type of the operand with unsigned
-	 * integer type, then the operand with unsigned integer type is converted to
-	 * the type of the operand with signed integer type.</li>
+	 * represent all of the values of the type of the operand with unsigned integer
+	 * type, then the operand with unsigned integer type is converted to the type of
+	 * the operand with signed integer type.</li>
 	 * 
 	 * <li>Otherwise, both operands are converted to the unsigned integer type
 	 * corresponding to the type of the operand with signed integer type.</li>
@@ -797,46 +725,38 @@ public interface TypeFactory {
 	 * </ul>
 	 * </li> </blockquote>
 	 * 
-	 * @param type1
-	 *            an arithmetic type
-	 * @param type2
-	 *            an arithmetic type
-	 * @return the type of the result of the "usual arithmetic conversion"
-	 *         applied to the two types
+	 * @param type1 an arithmetic type
+	 * @param type2 an arithmetic type
+	 * @return the type of the result of the "usual arithmetic conversion" applied
+	 *         to the two types
 	 */
-	ArithmeticType usualArithmeticConversion(ArithmeticType type1,
-			ArithmeticType type2);
+	ArithmeticType usualArithmeticConversion(ArithmeticType type1, ArithmeticType type2);
 
 	/**
 	 * Adds qualifiers and atomic designation as needed to the given type.
 	 * 
-	 * @param startType
-	 *            any object type (qualified or unqualified, atomic or
-	 *            non-atomic)
-	 * @param atomic
-	 *            add atomic qualification to type if not already present?
-	 * @param constQualified
-	 *            and const qualification to type if not already present?
-	 * @param volatileQualified
-	 *            add volatile qualification to type if not already present?
-	 * @param restrictQualified
-	 *            add restrict qualification to type if not already present?
+	 * @param startType         any object type (qualified or unqualified, atomic or
+	 *                          non-atomic)
+	 * @param atomic            add atomic qualification to type if not already
+	 *                          present?
+	 * @param constQualified    and const qualification to type if not already
+	 *                          present?
+	 * @param volatileQualified add volatile qualification to type if not already
+	 *                          present?
+	 * @param restrictQualified add restrict qualification to type if not already
+	 *                          present?
 	 * @return type with given qualifications added (none are removed)
 	 */
-	ObjectType qualify(ObjectType startType, boolean atomic,
-			boolean constQualified, boolean volatileQualified,
-			boolean restrictQualified, boolean inputQualified,
-			boolean outputQualified);
+	ObjectType qualify(ObjectType startType, boolean atomic, boolean constQualified, boolean volatileQualified,
+			boolean restrictQualified, boolean inputQualified, boolean outputQualified);
 
 	/**
-	 * Returns a {@link LambdaType} which consists of the type of the free
-	 * variable of the lambda term. (void if the free variable is absent); and
-	 * the type of the lambda function (the lambda function is an expression).
+	 * Returns a {@link LambdaType} which consists of the type of the free variable
+	 * of the lambda term. (void if the free variable is absent); and the type of
+	 * the lambda function (the lambda function is an expression).
 	 * 
-	 * @param freeVariableType
-	 *            The type of the free variable of the lambda term.
-	 * @param lambdaFunctionType
-	 *            The type of the lambda function expression.
+	 * @param freeVariableType   The type of the free variable of the lambda term.
+	 * @param lambdaFunctionType The type of the lambda function expression.
 	 * @return
 	 */
 	ObjectType lambdaType(Type freeVariableType, Type lambdaFunctionType);

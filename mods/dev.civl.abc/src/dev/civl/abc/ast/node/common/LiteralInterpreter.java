@@ -14,6 +14,7 @@ import dev.civl.abc.ast.type.IF.StandardSignedIntegerType.SignedIntKind;
 import dev.civl.abc.ast.type.IF.StandardUnsignedIntegerType;
 import dev.civl.abc.ast.type.IF.StandardUnsignedIntegerType.UnsignedIntKind;
 import dev.civl.abc.ast.type.IF.TypeFactory;
+import dev.civl.abc.ast.value.IF.FloatingValue;
 import dev.civl.abc.ast.value.IF.IntegerValue;
 import dev.civl.abc.ast.value.IF.RealFloatingValue;
 import dev.civl.abc.ast.value.IF.ValueFactory;
@@ -34,11 +35,10 @@ public class LiteralInterpreter {
 
 	private StandardUnsignedIntegerType UINT, ULONG, ULLONG;
 
-	private FloatingType FLOAT, DOUBLE, LDOUBLE;
+	private FloatingType FLOAT, DOUBLE, LDOUBLE, FLOAT_COMPLEX, DOUBLE_COMPLEX, LDOUBLE_COMPLEX;
 
 	/** The potential type lists for each kind of suffix. */
-	private IntegerType[] noneDec, noneHex, uDec, uHex, lDec, lHex, ulDec,
-			ulHex, llDec, llHex, ullDec, ullHex;
+	private IntegerType[] noneDec, noneHex, uDec, uHex, lDec, lHex, ulDec, ulHex, llDec, llHex, ullDec, ullHex;
 
 	public LiteralInterpreter(TypeFactory typeFactory, ValueFactory valueFactory) {
 		this.typeFactory = typeFactory;
@@ -54,12 +54,13 @@ public class LiteralInterpreter {
 		// .unsignedIntegerType(UnsignedIntKind.UNSIGNED_SHORT);
 		UINT = typeFactory.unsignedIntegerType(UnsignedIntKind.UNSIGNED);
 		ULONG = typeFactory.unsignedIntegerType(UnsignedIntKind.UNSIGNED_LONG);
-		ULLONG = typeFactory
-				.unsignedIntegerType(UnsignedIntKind.UNSIGNED_LONG_LONG);
+		ULLONG = typeFactory.unsignedIntegerType(UnsignedIntKind.UNSIGNED_LONG_LONG);
 		FLOAT = (FloatingType) typeFactory.basicType(BasicTypeKind.FLOAT);
 		DOUBLE = (FloatingType) typeFactory.basicType(BasicTypeKind.DOUBLE);
-		LDOUBLE = (FloatingType) typeFactory
-				.basicType(BasicTypeKind.LONG_DOUBLE);
+		LDOUBLE = (FloatingType) typeFactory.basicType(BasicTypeKind.LONG_DOUBLE);
+		FLOAT_COMPLEX = (FloatingType) typeFactory.basicType(BasicTypeKind.FLOAT_COMPLEX);
+		DOUBLE_COMPLEX = (FloatingType) typeFactory.basicType(BasicTypeKind.DOUBLE_COMPLEX);
+		LDOUBLE_COMPLEX = (FloatingType) typeFactory.basicType(BasicTypeKind.LONG_DOUBLE_COMPLEX);
 		noneDec = new IntegerType[] { SINT, SLONG, SLLONG };
 		noneHex = new IntegerType[] { SINT, UINT, SLONG, ULONG, SLLONG, ULLONG };
 		uDec = uHex = new IntegerType[] { UINT, ULONG, ULLONG };
@@ -71,8 +72,7 @@ public class LiteralInterpreter {
 		ullDec = ullHex = new IntegerType[] { ULLONG };
 	}
 
-	public IntegerConstantNode integerConstant(Source source, String text)
-			throws SyntaxException {
+	public IntegerConstantNode integerConstant(Source source, String text) throws SyntaxException {
 		String stripped, suffix;
 		int length = text.length();
 		IntegerConstantNode node;
@@ -103,8 +103,7 @@ public class LiteralInterpreter {
 				base = 10;
 			}
 		} catch (NumberFormatException e) {
-			throw new SyntaxException("Unable to extract integer value from "
-					+ text + ":\n" + e, source);
+			throw new SyntaxException("Unable to extract integer value from " + text + ":\n" + e, source);
 		}
 		bigIntValue = new BigInteger(stripped, base);
 		suffix = suffix.toLowerCase();
@@ -125,28 +124,23 @@ public class LiteralInterpreter {
 			throw new SyntaxException("Unknown suffix " + suffix, source);
 		type = typeFactory.rangeChoice(bigIntValue, typeList);
 		if (type == null)
-			throw new SyntaxException(
-					"Unable to find integer type to represent constant ",
-					source);
+			throw new SyntaxException("Unable to find integer type to represent constant ", source);
 		value = valueFactory.integerValue(type, bigIntValue);
 		node = new CommonIntegerConstantNode(source, text, value);
 		return node;
 	}
 
-	public FloatingConstantNode floatingConstant(Source source, String text)
-			throws SyntaxException {
+	public FloatingConstantNode floatingConstant(Source source, String text) throws SyntaxException {
 		int base, length, expPos, dotPos;
 		String stripped, suffix, significand, wholePart, fractionPart, exponent;
 		BigInteger wholePartValue, fractionPartValue, exponentValue;
-		FloatingType type;
-		RealFloatingValue value;
 
 		text = text.toLowerCase();
 		length = text.length();
 		while (length >= 1) {
 			char c = text.charAt(length - 1);
 
-			if (c != 'l' && c != 'f')
+			if (c != 'l' && c != 'f' && c != 'i' && c != 'j')
 				break;
 			length--;
 		}
@@ -174,15 +168,44 @@ public class LiteralInterpreter {
 			wholePart = significand;
 			fractionPart = "";
 		}
-		if (suffix.isEmpty())
-			type = DOUBLE;
-		else if ("f".equals(suffix))
-			type = FLOAT;
-		else if ("l".equals(suffix))
-			type = LDOUBLE;
-		else
-			throw new SyntaxException("Unknown floating suffix: " + suffix,
-					source);
+
+		FloatingType realType, complexType = null;
+		boolean isComplex;
+
+		switch (suffix) {
+		case "":
+			realType = DOUBLE;
+			isComplex = false;
+			break;
+		case "f":
+			realType = FLOAT;
+			isComplex = false;
+			break;
+		case "l":
+			realType = LDOUBLE;
+			isComplex = false;
+			break;
+		case "i":
+		case "j":
+			realType = DOUBLE;
+			complexType = DOUBLE_COMPLEX;
+			isComplex = true;
+			break;
+		case "if":
+		case "jf":
+			realType = FLOAT;
+			complexType = FLOAT_COMPLEX;
+			isComplex = true;
+			break;
+		case "il":
+		case "jl":
+			realType = LDOUBLE;
+			complexType = LDOUBLE_COMPLEX;
+			isComplex = true;
+			break;
+		default:
+			throw new SyntaxException("Unknown floating suffix: " + suffix, source);
+		}
 		if (wholePart.isEmpty())
 			wholePartValue = BigInteger.ZERO;
 		else
@@ -195,10 +218,20 @@ public class LiteralInterpreter {
 			exponentValue = BigInteger.ZERO;
 		else
 			exponentValue = new BigInteger(exponent, 10);
-		value = valueFactory.realFloatingValue(type, base, wholePartValue,
-				fractionPartValue, fractionPart.length(), exponentValue);
-		return new CommonFloatingConstantNode(source, text, wholePart,
-				fractionPart, exponent, value);
+
+		FloatingValue value;
+		if (isComplex) {
+			RealFloatingValue imag = valueFactory.realFloatingValue(realType, base, wholePartValue, fractionPartValue,
+					fractionPart.length(), exponentValue);
+			RealFloatingValue realZero = valueFactory.realFloatingValue(realType, base, BigInteger.ZERO,
+					BigInteger.ZERO, 1, BigInteger.ZERO);
+			value = valueFactory.complexFloatingValue(complexType, realZero, imag);
+
+		} else {
+			value = valueFactory.realFloatingValue(realType, base, wholePartValue, fractionPartValue,
+					fractionPart.length(), exponentValue);
+		}
+		return new CommonFloatingConstantNode(source, text, wholePart, fractionPart, exponent, value);
 	}
 
 }

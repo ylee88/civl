@@ -508,7 +508,7 @@ public abstract class BaseWorker {
 			executor.execute();
 		} catch (ABCException e) {
 			throw new CIVLSyntaxException(
-					"unable to parse system library " + file + " while applying " + this.transformerName);
+					"unable to parse system library " + file + " while applying " + this.transformerName + ":\n" + e);
 		}
 		return executor.getAST(0);
 	}
@@ -815,8 +815,6 @@ public abstract class BaseWorker {
 		}
 		case SCOPE:
 			return nodeFactory.newScopeTypeNode(source);
-		case STATE:
-			return nodeFactory.newStateTypeNode(source);
 		default:
 		}
 		return null;

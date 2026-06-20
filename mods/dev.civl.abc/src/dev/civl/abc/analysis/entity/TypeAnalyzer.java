@@ -662,9 +662,6 @@ public class TypeAnalyzer {
 			type = expression.getType();
 			break;
 		}
-		case STATE:
-			type = typeFactory.stateType();
-			break;
 		case MEM:
 			type = typeFactory.memType(typeFactory.pointerType(typeFactory.voidType()));
 			break;

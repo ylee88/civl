@@ -1,6 +1,6 @@
 package dev.civl.abc.ast.node.IF.expression;
 
-import dev.civl.abc.ast.value.IF.RealFloatingValue;
+import dev.civl.abc.ast.value.IF.FloatingValue;
 
 /**
  * A floating constant node represents an occurrence of a literal floating point
@@ -24,9 +24,16 @@ import dev.civl.abc.ast.value.IF.RealFloatingValue;
 public interface FloatingConstantNode extends ConstantNode {
 
 	/**
-	 * Returns the whole-number part of the significand. This is the digit
-	 * sequence preceding the "<code>.</code>" or just the entire significand if
-	 * the "<code>.</code>" is not present.
+	 * Is this a complex value (not real)?
+	 * 
+	 * @return {@code true} iff the value is a complex number, not a real number
+	 */
+	boolean isComplex();
+
+	/**
+	 * Returns the whole-number part of the significand. This is the digit sequence
+	 * preceding the "<code>.</code>" or just the entire significand if the
+	 * "<code>.</code>" is not present.
 	 * 
 	 * @return the whole-number part of the significand
 	 */
@@ -34,29 +41,29 @@ public interface FloatingConstantNode extends ConstantNode {
 
 	/**
 	 * Returns the fraction part of the significand. This is the digit sequence
-	 * following the "<code>.</code>". May return <code>null</code> if not
-	 * fraction part is present.
+	 * following the "<code>.</code>". May return <code>null</code> if not fraction
+	 * part is present.
 	 * 
 	 * @return the fraction part of the significand
 	 */
 	String fractionPart();
 
 	/**
-	 * Returns the exponent part of the constant, including the letter. May
-	 * return <code>null</code> if the exponent part is not present.
+	 * Returns the exponent part of the constant, including the letter. May return
+	 * <code>null</code> if the exponent part is not present.
 	 * 
 	 * @return the exponent part of the constant
 	 */
 	String exponent();
 
 	/**
-	 * Returns the real floating value obtained by interpreting the
+	 * Returns the floating (real or complex) value obtained by interpreting the
 	 * representation of the constant.
 	 * 
-	 * @return the real floating value
+	 * @return the floating value
 	 */
 	@Override
-	RealFloatingValue getConstantValue();
+	FloatingValue getConstantValue();
 
 	@Override
 	FloatingConstantNode copy();

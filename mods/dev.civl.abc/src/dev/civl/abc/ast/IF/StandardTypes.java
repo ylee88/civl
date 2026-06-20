@@ -8,9 +8,7 @@ import java.util.List;
 import dev.civl.abc.ast.entity.IF.EntityFactory;
 import dev.civl.abc.ast.entity.IF.Scope;
 import dev.civl.abc.ast.entity.IF.Typedef;
-import dev.civl.abc.ast.type.IF.StructureOrUnionType;
 import dev.civl.abc.ast.type.IF.Type;
-import dev.civl.abc.ast.type.IF.Type.TypeKind;
 import dev.civl.abc.ast.type.IF.TypeFactory;
 import dev.civl.abc.token.IF.UnsourcedException;
 
@@ -26,8 +24,6 @@ import dev.civl.abc.token.IF.UnsourcedException;
  * 
  */
 public class StandardTypes {
-
-	public final static String COLLATE_STATE_TYPE = "_collate_state";
 
 	private EntityFactory entityFactory;
 
@@ -58,22 +54,18 @@ public class StandardTypes {
 		add("char16_t", typeFactory.char16_t());
 		add("char32_t", typeFactory.char32_t());
 		add("$proc", typeFactory.processType());
-		add("$state", typeFactory.stateType());
 		add("$scope", typeFactory.scopeType());
-		add("$mem", typeFactory
-				.memType(typeFactory.pointerType(typeFactory.voidType())));
-		// add("$heap", typeFactory.heapType());
+		add("$mem", typeFactory.memType(typeFactory.pointerType(typeFactory.voidType())));
 	}
 
 	/**
-	 * Adds typdefs for all of the standard types to the given scope (usually
-	 * the file scope). Each type name is defined to be the type returned by the
-	 * type factory with the corresponding name.
+	 * Adds typdefs for all of the standard types to the given scope (usually the
+	 * file scope). Each type name is defined to be the type returned by the type
+	 * factory with the corresponding name.
 	 * 
-	 * @param scope
-	 *            a static program scope
-	 * @throws UnsourcedException
-	 *             if any typedefs with same name are already in the scope
+	 * @param scope a static program scope
+	 * @throws UnsourcedException if any typedefs with same name are already in the
+	 *                            scope
 	 */
 	public void addToScope(Scope scope) throws UnsourcedException {
 		for (Typedef typedef : standardTypedefs)
@@ -96,22 +88,5 @@ public class StandardTypes {
 	 */
 	public List<Typedef> getStandardTypedefs() {
 		return standardTypedefs;
-	}
-
-	/**
-	 * Is the given type a $collate_state type?
-	 * 
-	 * @param type
-	 * @return
-	 */
-	public boolean isCollateStateType(Type type) {
-		if (type.kind() == TypeKind.STRUCTURE_OR_UNION) {
-			StructureOrUnionType structType = (StructureOrUnionType) type;
-
-			if (structType.isStruct()) {
-				return structType.getName().equals(COLLATE_STATE_TYPE);
-			}
-		}
-		return false;
 	}
 }

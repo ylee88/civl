@@ -181,6 +181,7 @@ import dev.civl.abc.ast.node.common.expression.CommonDerivativeExpressionNode;
 import dev.civl.abc.ast.node.common.expression.CommonDotNode;
 import dev.civl.abc.ast.node.common.expression.CommonEnumerationConstantNode;
 import dev.civl.abc.ast.node.common.expression.CommonExpressionNode;
+import dev.civl.abc.ast.node.common.expression.CommonFloatingConstantNode;
 import dev.civl.abc.ast.node.common.expression.CommonFunctionCallNode;
 import dev.civl.abc.ast.node.common.expression.CommonGenericSelectionNode;
 import dev.civl.abc.ast.node.common.expression.CommonHereOrRootNode;
@@ -198,7 +199,6 @@ import dev.civl.abc.ast.node.common.expression.CommonSelfNode;
 import dev.civl.abc.ast.node.common.expression.CommonSizeofNode;
 import dev.civl.abc.ast.node.common.expression.CommonSpawnNode;
 import dev.civl.abc.ast.node.common.expression.CommonStatementExpressionNode;
-import dev.civl.abc.ast.node.common.expression.CommonStatenullNode;
 import dev.civl.abc.ast.node.common.expression.CommonStringLiteralNode;
 import dev.civl.abc.ast.node.common.expression.CommonWildcardNode;
 import dev.civl.abc.ast.node.common.label.CommonOrdinaryLabelNode;
@@ -241,7 +241,6 @@ import dev.civl.abc.ast.node.common.type.CommonMemTypeNode;
 import dev.civl.abc.ast.node.common.type.CommonPointerTypeNode;
 import dev.civl.abc.ast.node.common.type.CommonRangeTypeNode;
 import dev.civl.abc.ast.node.common.type.CommonScopeTypeNode;
-import dev.civl.abc.ast.node.common.type.CommonStateTypeNode;
 import dev.civl.abc.ast.node.common.type.CommonStructureOrUnionTypeNode;
 import dev.civl.abc.ast.node.common.type.CommonTypedefNameNode;
 import dev.civl.abc.ast.node.common.type.CommonTypeofNode;
@@ -254,6 +253,7 @@ import dev.civl.abc.ast.type.IF.StandardUnsignedIntegerType;
 import dev.civl.abc.ast.type.IF.StandardUnsignedIntegerType.UnsignedIntKind;
 import dev.civl.abc.ast.type.IF.TypeFactory;
 import dev.civl.abc.ast.value.IF.CharacterValue;
+import dev.civl.abc.ast.value.IF.FloatingValue;
 import dev.civl.abc.ast.value.IF.IntegerValue;
 import dev.civl.abc.ast.value.IF.StringValue;
 import dev.civl.abc.ast.value.IF.Value;
@@ -437,6 +437,12 @@ public class CommonNodeFactory implements NodeFactory {
 		IntegerValue intValue = valueFactory.integerValue(type, BigInteger.valueOf(value));
 
 		return new CommonIntegerConstantNode(source, String.valueOf(value), intValue);
+	}
+
+	@Override
+	public FloatingConstantNode newFloatingConstantNode(Source source, String representation, String wholePart,
+			String fractionPart, String exponent, FloatingValue value) {
+		return new CommonFloatingConstantNode(source, representation, wholePart, fractionPart, exponent, value);
 	}
 
 	@Override
@@ -866,14 +872,6 @@ public class CommonNodeFactory implements NodeFactory {
 		return result;
 	}
 
-	@Override
-	public ExpressionNode newStatenullNode(Source source) {
-		ExpressionNode result = new CommonStatenullNode(source, typeFactory.stateType());
-
-		result.setInitialType(typeFactory.stateType());
-		return result;
-	}
-
 	/* *************************** OpenMP Section ************************** */
 
 	@Override
@@ -1172,11 +1170,6 @@ public class CommonNodeFactory implements NodeFactory {
 	public AllocationNode newAllocationNode(Source source, boolean isAllocates,
 			SequenceNode<ExpressionNode> memoryList) {
 		return new CommonAllocationNode(source, isAllocates, memoryList);
-	}
-
-	@Override
-	public TypeNode newStateTypeNode(Source source) {
-		return new CommonStateTypeNode(source);
 	}
 
 	@Override

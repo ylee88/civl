@@ -761,7 +761,7 @@ public class IntOperationWorker extends BaseWorker {
 
 	/**
 	 * 
-	 * @return the uppper bound of integer.
+	 * @return the upper bound of integer.
 	 * @throws SyntaxException
 	 */
 	private IntegerConstantNode getBound() throws SyntaxException {

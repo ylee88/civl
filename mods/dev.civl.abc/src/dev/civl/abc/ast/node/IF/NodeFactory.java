@@ -125,6 +125,7 @@ import dev.civl.abc.ast.node.IF.type.TypedefNameNode;
 import dev.civl.abc.ast.node.IF.type.TypeofNode;
 import dev.civl.abc.ast.type.IF.StandardBasicType.BasicTypeKind;
 import dev.civl.abc.ast.type.IF.TypeFactory;
+import dev.civl.abc.ast.value.IF.FloatingValue;
 import dev.civl.abc.ast.value.IF.Value;
 import dev.civl.abc.ast.value.IF.ValueFactory;
 import dev.civl.abc.config.IF.Configuration;
@@ -362,14 +363,6 @@ public interface NodeFactory {
 	TypeNode newScopeTypeNode(Source source);
 
 	/**
-	 * Returns a new state type node ("<code>$state</code>"). This is a CIVL-C type.
-	 * 
-	 * @param source source information for the occurrence of <code>$state</code>
-	 * @return the new instance of state type node
-	 */
-	TypeNode newStateTypeNode(Source source);
-
-	/**
 	 * Returns a new mem type node ("<code>$mem</code>"). This is a CIVL-C type.
 	 * 
 	 * @param source source information for the occurrence of <code>$mem</code>
@@ -514,6 +507,16 @@ public interface NodeFactory {
 	/**
 	 * Constructs a new floating constant node. A floating constant is an occurrence
 	 * of a literal floating point number in the source, which encodes a concrete
+	 * floating point value. The C Standard specifies the format for floating
+	 * constants, which includes various letter suffixes that can occur at the end
+	 * of the constant, in Sec. 6.4.4.2.
+	 */
+	FloatingConstantNode newFloatingConstantNode(Source source, String representation, String wholePart,
+			String fractionPart, String exponent, FloatingValue value);
+
+	/**
+	 * Constructs a new floating constant node. A floating constant is an occurrence
+	 * of a literal floating point number in the source, which encodes a concrete
 	 * floating point value. The C11 Standard specifies the format for floating
 	 * constants, which includes various letter suffixes that can occur at the end
 	 * of the constant, in Sec. 6.4.4.2. The floating constant value is constructed
@@ -617,16 +620,6 @@ public interface NodeFactory {
 	 * @return the new expression node representing the constant
 	 */
 	ExpressionNode newProcnullNode(Source source);
-
-	/**
-	 * Constructs a new node representing an occurrence of the CIVL-C "null state"
-	 * constant, written <code>$state_null</code>
-	 * 
-	 * @param source source information for the occurrence of the constant
-	 *               <code>$state_null</code>
-	 * @return the new expression node representing the constant
-	 */
-	ExpressionNode newStatenullNode(Source source);
 
 	/**
 	 * Constructs a new node representing an occurrence of the CIVL-C expression
@@ -1251,7 +1244,7 @@ public interface NodeFactory {
 	/**
 	 * <p>
 	 * Constructs new compound initializer node. A compound initializer in C is used
-	 * to initialize an array or structure. It occurrs inside curly braces. It
+	 * to initialize an array or structure. It occurs inside curly braces. It
 	 * consists of a list of designation-initializer pairs; each designation
 	 * represents a "point" inside the structure or array; the initializer specifies
 	 * a value to assign to that point. The definition is recursive, since the

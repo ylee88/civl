@@ -160,7 +160,7 @@ public interface ValueFactory {
 			BigInteger wholePartValue, BigInteger fractionPartValue,
 			int fractionLength, BigInteger exponentValue);
 
-	ComplexValue complexValue(FloatingType type, RealFloatingValue realPart,
+	ComplexFloatingValue complexFloatingValue(FloatingType type, RealFloatingValue realPart,
 			RealFloatingValue imaginaryPart);
 
 	Value sizeofValue(Type type);

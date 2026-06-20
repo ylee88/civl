@@ -121,13 +121,6 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 	 */
 	private static String CIVLC_MEM_TYPEDEF_NAME = "$mem";
 
-	/**
-	 * The typedef name of the $state type, which is associated with
-	 * {@link TypeNode}s of {@link TypeNodeKind#STATE} and {@link Type}s of
-	 * {@link TypeKind#STATE}
-	 */
-	private static String CIVLC_STATE_TYPEDEF_NAME = "$state";
-
 	private final String PRAGMA_ID_NAME_CIVL = "civl";
 
 	private boolean debug = false;
@@ -814,8 +807,6 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 			return nodeFactory.newSelfNode(source);
 		case PROCNULL:
 			return nodeFactory.newProcnullNode(source);
-		case STATENULL:
-			return nodeFactory.newStatenullNode(source);
 		case HERE:
 			return nodeFactory.newHereNode(source);
 		case SPAWN:
@@ -1237,8 +1228,6 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 			// using typedefs, i.e. $state, $mem:
 			if (((TypedefNameNode) result).getName().name().equals(CIVLC_MEM_TYPEDEF_NAME))
 				result = nodeFactory.newMemTypeNode(identifierNode.getSource());
-			else if (((TypedefNameNode) result).getName().name().equals(CIVLC_STATE_TYPEDEF_NAME))
-				result = nodeFactory.newStateTypeNode(identifierNode.getSource());
 			break;
 		}
 		case TYPEOF: {

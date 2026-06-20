@@ -1,0 +1,137 @@
+#ifndef _COMPLEX_CVH_
+#define _COMPLEX_CVH_  
+
+// Types...
+
+typedef struct $float_complex $float_complex;
+typedef struct $double_complex $double_complex;
+typedef struct $ldouble_complex $ldouble_complex;
+
+// Macros...
+
+#define _Complex_I ($float_complex){0.0f, 1.0f}
+#define I _Complex_I
+
+// These are all specified as macros in the C Spec, but we use
+// functions...
+$double_complex CMPLX(double x, double y);
+$float_complex CMPLXF(float x, float y);
+$ldouble_complex CMPLXL(long double x, long double y);
+
+// CIVL functions not in C spec...
+
+void $cprint($double_complex x);
+void $cprintf($float_complex x);
+void $cprintl($ldouble_complex x);
+
+int $ceq($double_complex x, $double_complex y);
+int $cneq($double_complex x, $double_complex y);
+int $ceqf($float_complex x, $float_complex y);
+int $cneqf($float_complex x, $float_complex y);
+int $ceql($ldouble_complex x, $ldouble_complex y);
+int $cneql($ldouble_complex x, $ldouble_complex y);
+
+$double_complex $cadd($double_complex x, $double_complex y);
+$double_complex $csub($double_complex x, $double_complex y);
+$double_complex $cmul($double_complex x, $double_complex y);
+$double_complex $cdiv($double_complex x, $double_complex y);
+$double_complex $cneg($double_complex x);
+
+$float_complex $caddf($float_complex x, $float_complex y);
+$float_complex $csubf($float_complex x, $float_complex y);
+$float_complex $cmulf($float_complex x, $float_complex y);
+$float_complex $cdivf($float_complex x, $float_complex y);
+$float_complex $cnegf($float_complex x);
+
+$ldouble_complex $caddl($ldouble_complex x, $ldouble_complex y);
+$ldouble_complex $csubl($ldouble_complex x, $ldouble_complex y);
+$ldouble_complex $cmull($ldouble_complex x, $ldouble_complex y);
+$ldouble_complex $cdivl($ldouble_complex x, $ldouble_complex y);
+$ldouble_complex $cnegl($ldouble_complex x);
+
+$double_complex $cfloat2double($float_complex x);
+$ldouble_complex $cfloat2ldouble($float_complex x);
+$float_complex $cdouble2float($double_complex x);
+$ldouble_complex $cdouble2ldouble($double_complex x);
+$float_complex $cldouble2float($ldouble_complex x);
+$double_complex $cldouble2double($ldouble_complex x);
+
+_Bool $cfloat2bool($float_complex x);
+_Bool $cdouble2bool($double_complex x);
+_Bool $cldouble2bool($ldouble_complex x);
+
+// Functions from complex.h for which we provide CIVL
+// implementations...
+
+double               cabs($double_complex);
+float                cabsf($float_complex);
+long double          cabsl($ldouble_complex);
+double               cimag($double_complex);
+float                cimagf($float_complex);
+long double          cimagl($ldouble_complex);
+$double_complex      conj($double_complex);
+$float_complex       conjf($float_complex);
+$ldouble_complex     conjl($ldouble_complex);
+double               creal($double_complex);
+float                crealf($float_complex);
+long double          creall($ldouble_complex);
+
+// Functions from complex.h which will be kept abstract...
+
+$abstract $double_complex       cacos($double_complex);
+$abstract $float_complex        cacosf($float_complex);
+$abstract $double_complex       cacosh($double_complex);
+$abstract $float_complex        cacoshf($float_complex);
+$abstract $ldouble_complex      cacoshl($ldouble_complex);
+$abstract $ldouble_complex      cacosl($ldouble_complex);
+$abstract double                carg($double_complex);
+$abstract float                 cargf($float_complex);
+$abstract long double           cargl($ldouble_complex);
+$abstract $double_complex       casin($double_complex);
+$abstract $float_complex        casinf($float_complex);
+$abstract $double_complex       casinh($double_complex);
+$abstract $float_complex        casinhf($float_complex);
+$abstract $ldouble_complex      casinhl($ldouble_complex);
+$abstract $ldouble_complex      casinl($ldouble_complex);
+$abstract $double_complex       catan($double_complex);
+$abstract $float_complex        catanf($float_complex);
+$abstract $double_complex       catanh($double_complex);
+$abstract $float_complex        catanhf($float_complex);
+$abstract $ldouble_complex      catanhl($ldouble_complex);
+$abstract $ldouble_complex      catanl($ldouble_complex);
+$abstract $double_complex       ccos($double_complex);
+$abstract $float_complex        ccosf($float_complex);
+$abstract $double_complex       ccosh($double_complex);
+$abstract $float_complex        ccoshf($float_complex);
+$abstract $ldouble_complex      ccoshl($ldouble_complex);
+$abstract $ldouble_complex      ccosl($ldouble_complex);
+$abstract $double_complex       cexp($double_complex);
+$abstract $float_complex        cexpf($float_complex);
+$abstract $ldouble_complex      cexpl($ldouble_complex);
+$abstract $double_complex       clog($double_complex);
+$abstract $float_complex        clogf($float_complex);
+$abstract $ldouble_complex      clogl($ldouble_complex);
+$abstract $double_complex       cpow($double_complex, $double_complex);
+$abstract $float_complex        cpowf($float_complex, $float_complex);
+$abstract $ldouble_complex      cpowl($ldouble_complex, $ldouble_complex);
+$abstract $double_complex       cproj($double_complex);
+$abstract $float_complex        cprojf($float_complex);
+$abstract $ldouble_complex      cprojl($ldouble_complex);
+$abstract $double_complex       csin($double_complex);
+$abstract $float_complex        csinf($float_complex);
+$abstract $double_complex       csinh($double_complex);
+$abstract $float_complex        csinhf($float_complex);
+$abstract $ldouble_complex      csinhl($ldouble_complex);
+$abstract $ldouble_complex      csinl($ldouble_complex);
+$abstract $double_complex       csqrt($double_complex);
+$abstract $float_complex        csqrtf($float_complex);
+$abstract $ldouble_complex      csqrtl($ldouble_complex);
+$abstract $double_complex       ctan($double_complex);
+$abstract $float_complex        ctanf($float_complex);
+$abstract $double_complex       ctanh($double_complex);
+$abstract $float_complex        ctanhf($float_complex);
+$abstract $ldouble_complex      ctanhl($ldouble_complex);
+$abstract $ldouble_complex      ctanl($ldouble_complex);
+
+#endif
+

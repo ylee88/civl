@@ -9,7 +9,6 @@ import dev.civl.abc.ast.node.IF.ASTNode;
 import dev.civl.abc.ast.node.IF.expression.ExpressionNode.ExpressionKind;
 import dev.civl.abc.ast.node.IF.expression.FunctionCallNode;
 import dev.civl.abc.ast.node.IF.expression.IdentifierExpressionNode;
-import dev.civl.abc.front.IF.ASTBuilder;
 import dev.civl.abc.program.IF.Program;
 import dev.civl.abc.transform.IF.TransformRecord;
 import dev.civl.abc.transform.IF.Transformer;
@@ -49,6 +48,8 @@ public class TransformerFactory {
 	 * A cache for a created {@link LoopContractTransformer}
 	 */
 	private LoopContractTransformer loopContractTransformer = null;
+
+	private ComplexTransformer complexTransformer;
 
 	public TransformerFactory(ASTFactory astFactory) {
 		this.astFactory = astFactory;
@@ -196,6 +197,18 @@ public class TransformerFactory {
 			@Override
 			public Transformer create(ASTFactory astFactory) {
 				return new IntOperationTransformer(astFactory, macros, config);
+			}
+		};
+	}
+
+	public TransformRecord getComplexTransformerRecord() {
+		return new TransformRecord(ComplexTransformer.CODE, ComplexTransformer.LONG_NAME,
+				ComplexTransformer.SHORT_DESCRIPTION) {
+			@Override
+			public Transformer create(ASTFactory astFactory) {
+				if (complexTransformer == null)
+					complexTransformer = new ComplexTransformer(astFactory);
+				return complexTransformer;
 			}
 		};
 	}

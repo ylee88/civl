@@ -3,11 +3,11 @@ package dev.civl.abc.ast.node.common.expression;
 import java.io.PrintStream;
 
 import dev.civl.abc.ast.node.IF.expression.FloatingConstantNode;
-import dev.civl.abc.ast.value.IF.RealFloatingValue;
+import dev.civl.abc.ast.value.IF.ComplexFloatingValue;
+import dev.civl.abc.ast.value.IF.FloatingValue;
 import dev.civl.abc.token.IF.Source;
 
-public class CommonFloatingConstantNode extends CommonConstantNode implements
-		FloatingConstantNode {
+public class CommonFloatingConstantNode extends CommonConstantNode implements FloatingConstantNode {
 
 	private String wholePart;
 
@@ -15,9 +15,8 @@ public class CommonFloatingConstantNode extends CommonConstantNode implements
 
 	private String exponent;
 
-	public CommonFloatingConstantNode(Source source, String representation,
-			String wholePart, String fractionPart, String exponent,
-			RealFloatingValue value) {
+	public CommonFloatingConstantNode(Source source, String representation, String wholePart, String fractionPart,
+			String exponent, FloatingValue value) {
 		super(source, representation, value.getType());
 		this.wholePart = wholePart;
 		this.fractionPart = fractionPart;
@@ -26,8 +25,8 @@ public class CommonFloatingConstantNode extends CommonConstantNode implements
 	}
 
 	@Override
-	public RealFloatingValue getConstantValue() {
-		return (RealFloatingValue) super.getConstantValue();
+	public FloatingValue getConstantValue() {
+		return (FloatingValue) super.getConstantValue();
 	}
 
 	@Override
@@ -37,10 +36,8 @@ public class CommonFloatingConstantNode extends CommonConstantNode implements
 
 	@Override
 	public String toString() {
-		return "FloatingConstantNode[radix=" + getConstantValue().getRadix()
-				+ ", significand=" + wholePart + "." + fractionPart
-				+ ", exponent=" + exponent + ", doubleValue="
-				+ getConstantValue().getDoubleValue() + "]";
+		return "FloatingConstantNode[significand=" + wholePart + "." + fractionPart + ", exponent=" + exponent
+				+ ", value=" + getConstantValue() + "]";
 	}
 
 	@Override
@@ -60,13 +57,17 @@ public class CommonFloatingConstantNode extends CommonConstantNode implements
 
 	@Override
 	public FloatingConstantNode copy() {
-		return new CommonFloatingConstantNode(getSource(),
-				getStringRepresentation(), wholePart(), fractionPart(),
+		return new CommonFloatingConstantNode(getSource(), getStringRepresentation(), wholePart(), fractionPart(),
 				exponent(), getConstantValue());
 	}
 
 	@Override
 	public ConstantKind constantKind() {
 		return ConstantKind.FLOAT;
+	}
+
+	@Override
+	public boolean isComplex() {
+		return getConstantValue() instanceof ComplexFloatingValue;
 	}
 }

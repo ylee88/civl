@@ -1,19 +1,19 @@
 package dev.civl.abc.ast.value.common;
 
 import dev.civl.abc.ast.type.IF.FloatingType;
-import dev.civl.abc.ast.value.IF.ComplexValue;
+import dev.civl.abc.ast.value.IF.ComplexFloatingValue;
 import dev.civl.abc.ast.value.IF.RealFloatingValue;
 import dev.civl.abc.ast.value.IF.ValueFactory.Answer;
 
-public class CommonComplexValue extends CommonValue implements ComplexValue {
+public class CommonComplexFloatingValue extends CommonValue implements ComplexFloatingValue {
 
-	private final static int classCode = CommonComplexValue.class.hashCode();
+	private final static int classCode = CommonComplexFloatingValue.class.hashCode();
 
 	private RealFloatingValue realPart;
 
 	private RealFloatingValue imaginaryPart;
 
-	public CommonComplexValue(FloatingType complexType,
+	public CommonComplexFloatingValue(FloatingType complexType,
 			RealFloatingValue realPart, RealFloatingValue imaginaryPart) {
 		super(complexType);
 		assert realPart != null;
@@ -41,8 +41,8 @@ public class CommonComplexValue extends CommonValue implements ComplexValue {
 	public boolean equals(Object object) {
 		if (this == object)
 			return true;
-		if (object instanceof CommonComplexValue) {
-			CommonComplexValue that = (CommonComplexValue) object;
+		if (object instanceof CommonComplexFloatingValue) {
+			CommonComplexFloatingValue that = (CommonComplexFloatingValue) object;
 
 			return getType().equals(that.getType())
 					&& realPart.equals(that.realPart)

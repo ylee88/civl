@@ -105,8 +105,7 @@ public interface Type {
 		 */
 		BASIC,
 		/**
-		 * The CIVL-C domain type, <code>$domain</code> or
-		 * <code>$domain(n)</code>.
+		 * The CIVL-C domain type, <code>$domain</code> or <code>$domain(n)</code>.
 		 */
 		DOMAIN,
 		/**
@@ -130,9 +129,9 @@ public interface Type {
 		 */
 		MEM,
 		/**
-		 * An integer type which is not a standard basic type. The C Standard
-		 * allows a C implementation to provide additional integer types beyond
-		 * those specified in the Standard.
+		 * An integer type which is not a standard basic type. The C Standard allows a C
+		 * implementation to provide additional integer types beyond those specified in
+		 * the Standard.
 		 */
 		OTHER_INTEGER,
 		/**
@@ -152,7 +151,8 @@ public interface Type {
 		 */
 		RANGE,
 		/**
-		 * The CIVL-C set type. Expressions may have set type but one cannot declare a variable or a function has (or returns) a set type. 
+		 * The CIVL-C set type. Expressions may have set type but one cannot declare a
+		 * variable or a function has (or returns) a set type.
 		 */
 		SET,
 		/**
@@ -160,17 +160,12 @@ public interface Type {
 		 */
 		SCOPE,
 		/**
-		 * The CIVL-C state type, represented by <code>$state</code>
-		 */
-		STATE,
-		/**
-		 * A structure or union type; an instance of
-		 * {@link StructureOrUnionType}
+		 * A structure or union type; an instance of {@link StructureOrUnionType}
 		 */
 		STRUCTURE_OR_UNION,
 		/**
-		 * The <code>void</code> type, used to represent no type in places where
-		 * a type is syntactically required.
+		 * The <code>void</code> type, used to represent no type in places where a type
+		 * is syntactically required.
 		 */
 		VOID
 	};
@@ -182,33 +177,31 @@ public interface Type {
 	 * </p>
 	 * 
 	 * <p>
-	 * Special handling for tags that begin with "$anon"--all of these are
-	 * treated as identical. These are the names given to anonymous entities by
-	 * ABC for convenience.
+	 * Special handling for tags that begin with "$anon"--all of these are treated
+	 * as identical. These are the names given to anonymous entities by ABC for
+	 * convenience.
 	 * </p>
 	 * 
-	 * @param type
-	 *            the type to compare with this one for compatibility
+	 * @param type the type to compare with this one for compatibility
 	 * @return true iff the two types are compatible
 	 */
 	boolean compatibleWith(Type type);
 
 	/**
 	 * <p>
-	 * Is this type "equivalent to" the given type. Two equivalent types should
-	 * be interchangeable in any situation. Note that an incomplete struct type
-	 * (for example) will never be equivalent to a complete struct type, though
-	 * they may be compatible.
+	 * Is this type "equivalent to" the given type. Two equivalent types should be
+	 * interchangeable in any situation. Note that an incomplete struct type (for
+	 * example) will never be equivalent to a complete struct type, though they may
+	 * be compatible.
 	 * </p>
 	 * 
 	 * <p>
-	 * Special handling for tags that begin with "$anon"--all of these are
-	 * treated as identical. These are the names given to anonymous entities by
-	 * ABC for convenience.
+	 * Special handling for tags that begin with "$anon"--all of these are treated
+	 * as identical. These are the names given to anonymous entities by ABC for
+	 * convenience.
 	 * </p>
 	 * 
-	 * @param type
-	 *            any type
+	 * @param type any type
 	 * @return true iff the two types are equivalent.
 	 */
 	boolean equivalentTo(Type type);
@@ -231,27 +224,26 @@ public interface Type {
 	boolean isScalar();
 
 	/**
-	 * Is this type a "VM" type (variable modified type)? This is defined in the
-	 * C11 Standard Sec. 6.7.6:
+	 * Is this type a "VM" type (variable modified type)? This is defined in the C11
+	 * Standard Sec. 6.7.6:
 	 * 
-	 * <blockquote> If, in the nested sequence of declarators in a full
-	 * declarator, there is a declarator specifying a variable length array
-	 * type, the type specified by the full declarator is said to be variably
-	 * modified. Furthermore, any type derived by declarator type derivation
-	 * from a variably modified type is itself variably modified. </blockquote>
+	 * <blockquote> If, in the nested sequence of declarators in a full declarator,
+	 * there is a declarator specifying a variable length array type, the type
+	 * specified by the full declarator is said to be variably modified.
+	 * Furthermore, any type derived by declarator type derivation from a variably
+	 * modified type is itself variably modified. </blockquote>
 	 * 
 	 * The definition of "variable length array type" is given in Sec. 6.7.6.2:
 	 * 
 	 * <blockquote> If the size is not present, the array type is an incomplete
-	 * type. If the size is * instead of being an expression, the array type is
-	 * a variable length array type of unspecified size, which can only be used
-	 * in declarations or type names with function prototype scope;143) such
-	 * arrays are nonetheless complete types. If the size is an integer constant
-	 * expression and the element type has a known constant size, the array type
-	 * is not a variable length array type; otherwise, the array type is a
-	 * variable length array type. (Variable length arrays are a conditional
-	 * feature that implementations need not support; see
-	 * 6.10.8.3.) </blockquote>
+	 * type. If the size is * instead of being an expression, the array type is a
+	 * variable length array type of unspecified size, which can only be used in
+	 * declarations or type names with function prototype scope;143) such arrays are
+	 * nonetheless complete types. If the size is an integer constant expression and
+	 * the element type has a known constant size, the array type is not a variable
+	 * length array type; otherwise, the array type is a variable length array type.
+	 * (Variable length arrays are a conditional feature that implementations need
+	 * not support; see 6.10.8.3.) </blockquote>
 	 * 
 	 * @return true iff this type is a VM type
 	 */
@@ -266,17 +258,14 @@ public interface Type {
 	TypeKind kind();
 
 	/**
-	 * Prints the type in a tree-formatted style. The prefix string is prepended
-	 * to each line of output other than the first. Output for structure or
-	 * union types may leave out the fields by setting abbrv to true.
+	 * Prints the type in a tree-formatted style. The prefix string is prepended to
+	 * each line of output other than the first. Output for structure or union types
+	 * may leave out the fields by setting abbrv to true.
 	 * 
-	 * @param prefix
-	 *            string to preprend to lines after first
-	 * @param out
-	 *            PrintStream to which output should be sent
-	 * @param abbrv
-	 *            if true, abbreviate representations of structure or union
-	 *            types by leaving out their fields
+	 * @param prefix string to preprend to lines after first
+	 * @param out    PrintStream to which output should be sent
+	 * @param abbrv  if true, abbreviate representations of structure or union types
+	 *               by leaving out their fields
 	 */
 	void print(String prefix, PrintStream out, boolean abbrv);
 

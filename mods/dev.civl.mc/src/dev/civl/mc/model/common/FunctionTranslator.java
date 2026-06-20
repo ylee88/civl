@@ -3365,9 +3365,6 @@ public class FunctionTranslator {
 
 			result = modelFactory.hereOrRootExpression(source, scopeConstantNode.isRootNode());
 			break;
-		case STATE:
-			result = modelFactory.statenullExpression(source);
-			break;
 		case PROCESS:
 			String procValue = constantNode.getStringRepresentation();
 
@@ -4980,7 +4977,6 @@ public class FunctionTranslator {
 			case TYPEDEF_NAME:
 			case BASIC:
 			case SCOPE:
-			case STATE:
 			case VOID:
 			case RANGE:
 			case DOMAIN:
@@ -5064,9 +5060,6 @@ public class FunctionTranslator {
 				break;
 			case SCOPE:
 				result = typeFactory.scopeType();
-				break;
-			case STATE:
-				result = typeFactory.stateType();
 				break;
 			case QUALIFIED:
 				result = translateABCType(source, scope, ((QualifiedObjectType) abcType).getBaseType());

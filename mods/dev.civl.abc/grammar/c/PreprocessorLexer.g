@@ -306,7 +306,10 @@ fragment
 ExponentPart	:	('e' | 'E') ('+' | '-')? Digit+ ;
 
 fragment
-FloatingSuffix	:	'f' | 'l' | 'F' | 'L' ;
+FloatingSuffix
+		:	'f' | 'l' | 'F' | 'L' | 'i' | 'I' | 'j' | 'J'
+		|	'if' | 'IF' | 'jf' | 'JF' | 'il' | 'IL' | 'jl' | 'JL'
+		;
 
 fragment
 HexadecimalFloatingConstant

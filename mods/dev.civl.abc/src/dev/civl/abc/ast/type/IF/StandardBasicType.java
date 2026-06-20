@@ -8,10 +8,10 @@ package dev.civl.abc.ast.type.IF;
  * 
  * Sec. 6.7.2 of the C11 Standard covers "type specifiers". Each standard basic
  * type is specified by a sequence of type specifiers. The order in which these
- * specifiers appear does not matter, but the multiplicity does (e.g.
- * "long long int" specifies a different type than "long int"). Hence the
- * sequence may be thought of as a multiset (set with multiplicity). This is the
- * way it is described in the Standard.
+ * specifiers appear does not matter, but the multiplicity does (e.g. "long long
+ * int" specifies a different type than "long int"). Hence the sequence may be
+ * thought of as a multiset (set with multiplicity). This is the way it is
+ * described in the Standard.
  * 
  * A standard basic type may have more than one multiset that specifies it. For
  * example "long" and "long int" specify the same type.
@@ -50,7 +50,8 @@ package dev.civl.abc.ast.type.IF;
 public interface StandardBasicType extends ArithmeticType {
 
 	public static enum BasicTypeKind {
-		BOOL, CHAR, DOUBLE, DOUBLE_COMPLEX, FLOAT, FLOAT_COMPLEX, INT, LONG, LONG_DOUBLE, LONG_DOUBLE_COMPLEX, LONG_LONG, REAL, SHORT, SIGNED_CHAR, UNSIGNED, UNSIGNED_CHAR, UNSIGNED_LONG, UNSIGNED_LONG_LONG, UNSIGNED_SHORT
+		BOOL, CHAR, DOUBLE, DOUBLE_COMPLEX, FLOAT, FLOAT_COMPLEX, INT, LONG, LONG_DOUBLE, LONG_DOUBLE_COMPLEX,
+		LONG_LONG, REAL, SHORT, SIGNED_CHAR, UNSIGNED, UNSIGNED_CHAR, UNSIGNED_LONG, UNSIGNED_LONG_LONG, UNSIGNED_SHORT
 	};
 
 	/**

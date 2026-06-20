@@ -1,2 +1,9 @@
 dyscope
 datatypes
+lvalue
+unsequenced
+sizeof
+alignof
+significand
+siegel
+flyweight

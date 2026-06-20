@@ -44,7 +44,7 @@ import dev.civl.abc.ast.value.IF.ArrayElementReference;
 import dev.civl.abc.ast.value.IF.ArrayValue;
 import dev.civl.abc.ast.value.IF.CastValue;
 import dev.civl.abc.ast.value.IF.CharacterValue;
-import dev.civl.abc.ast.value.IF.ComplexValue;
+import dev.civl.abc.ast.value.IF.ComplexFloatingValue;
 import dev.civl.abc.ast.value.IF.FunctionReference;
 import dev.civl.abc.ast.value.IF.IntegerValue;
 import dev.civl.abc.ast.value.IF.MemberReference;
@@ -242,8 +242,8 @@ public class CommonValueFactory implements ValueFactory {
 	}
 
 	@Override
-	public ComplexValue complexValue(FloatingType type, RealFloatingValue realPart, RealFloatingValue imaginaryPart) {
-		return (ComplexValue) canonic(new CommonComplexValue(type, realPart, imaginaryPart));
+	public ComplexFloatingValue complexFloatingValue(FloatingType type, RealFloatingValue realPart, RealFloatingValue imaginaryPart) {
+		return (ComplexFloatingValue) canonic(new CommonComplexFloatingValue(type, realPart, imaginaryPart));
 	}
 
 	@Override
