@@ -1,7 +1,7 @@
 package dev.civl.abc.main;
 
 /**
- * A dynamic tasks specifies an action to be taken once all current unit tasks
+ * A dynamic task specifies an action to be taken once all current unit tasks
  * have been executed. It specifies possible new unit tasks to add to the
  * executor's work list. Typically, the class implementing {@link DynamicTask}
  * will have a reference to the {@link ABCExecutor} executing the tasks. The

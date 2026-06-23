@@ -47,11 +47,12 @@ import dev.civl.abc.ast.node.IF.statement.LoopNode;
 import dev.civl.abc.ast.node.IF.type.TypeNode;
 import dev.civl.abc.ast.node.IF.type.TypedefNameNode;
 import dev.civl.abc.ast.type.IF.ArithmeticType;
+import dev.civl.abc.ast.type.IF.AtomicType;
 import dev.civl.abc.ast.type.IF.FloatingType.FloatKind;
+import dev.civl.abc.ast.type.IF.QualifiedObjectType;
 import dev.civl.abc.ast.type.IF.StandardBasicType;
 import dev.civl.abc.ast.type.IF.StandardBasicType.BasicTypeKind;
 import dev.civl.abc.ast.type.IF.Type;
-import dev.civl.abc.ast.type.IF.Type.TypeKind;
 import dev.civl.abc.ast.type.IF.TypeFactory;
 import dev.civl.abc.ast.value.IF.ComplexFloatingValue;
 import dev.civl.abc.ast.value.IF.RealFloatingValue;
@@ -68,7 +69,19 @@ public class ComplexWorker extends BaseWorker {
 
 	private static String COMPLEX_CVL = "complex.cvl";
 
+	private static String MATH_H = "math.h";
+
+//	private static String MATH_H_MACRO = "_MATH_";
+//
+//	private static String COMPLEX_H_MACRO = "_COMPLEX_";
+
 	private TypeFactory typeFactory;
+
+	/**
+	 * The last index of a child node of root belong to math.h, or -1 if no math.h
+	 * is present. This is needed so that complex.cvl can be inserted after math.h.
+	 */
+	private int mathHIndex = -1;
 
 	public ComplexWorker(String transformerName, ASTFactory astFactory) {
 		super(transformerName, astFactory);
@@ -79,14 +92,52 @@ public class ComplexWorker extends BaseWorker {
 	 * Is the given type one of the 3 native C complex types: double _Complex, float
 	 * _Complex, or long double _Complex?
 	 * 
-	 * @param type the (non-null) type
+	 * @param type the type, which may be null
 	 * @return {@code} true iff {@code type} is one of the 3 native C complex types
 	 */
 	private boolean isComplex(Type type) {
-		if (type.kind() == TypeKind.BASIC) {
+		if (type == null)
+			return false;
+		switch (type.kind()) {
+		case BASIC: {
 			BasicTypeKind btk = ((StandardBasicType) type).getBasicTypeKind();
 			return btk == DOUBLE_COMPLEX || btk == FLOAT_COMPLEX || btk == LONG_DOUBLE_COMPLEX;
 		}
+		case QUALIFIED:
+			return isComplex(((QualifiedObjectType) type).getBaseType());
+		case ATOMIC:
+			return isComplex(((AtomicType) type).getBaseType());
+		default:
+			return false;
+		}
+	}
+
+	private boolean isBool(Type type) {
+		if (type == null)
+			return false;
+		switch (type.kind()) {
+		case BASIC: {
+			BasicTypeKind btk = ((StandardBasicType) type).getBasicTypeKind();
+			return btk == BOOL;
+		}
+		case QUALIFIED:
+			return isBool(((QualifiedObjectType) type).getBaseType());
+		case ATOMIC:
+			return isBool(((AtomicType) type).getBaseType());
+		default:
+			return false;
+		}
+	}
+
+	private boolean isReal(Type type) {
+		if (type == null)
+			return false;
+		if (type instanceof ArithmeticType)
+			return ((ArithmeticType) type).inRealDomain();
+		if (type instanceof QualifiedObjectType)
+			return isReal(((QualifiedObjectType) type).getBaseType());
+		if (type instanceof AtomicType)
+			return isReal(((AtomicType) type).getBaseType());
 		return false;
 	}
 
@@ -96,22 +147,35 @@ public class ComplexWorker extends BaseWorker {
 	 * @param complexType one of the complex types
 	 * @return the basic type kind of the given type
 	 */
-	private BasicTypeKind kind(ArithmeticType complexType) {
-		return ((StandardBasicType) complexType).getBasicTypeKind();
+	private BasicTypeKind kind(Type complexType) {
+		switch (complexType.kind()) {
+		case BASIC:
+			return ((StandardBasicType) complexType).getBasicTypeKind();
+		case QUALIFIED:
+			return kind(((QualifiedObjectType) complexType).getBaseType());
+		case ATOMIC:
+			return kind(((AtomicType) complexType).getBaseType());
+		default:
+			throw new RuntimeException("unreachable");
+		}
 	}
 
 	/**
-	 * Given a basic type kind for one of the three complex types, returns a new
-	 * typedef name node with the corresponding CIVL complex type: one of the
-	 * $*_complex types.
+	 * Given a type node for one of the complex types, returns a new type node for
+	 * the corresponding CIVL complex type: one of the $*_complex types. Type
+	 * qualifiers are preserved.
+	 * 
+	 * Note: a type node for a complex type must be one of the following: a
+	 * TypedefNameNode, BasicTypeNode, or AtomicTypeNode.
 	 * 
 	 * @param kind   a basic type kind, one of *_COMPLEX
 	 * @param source source for the type node for the new node
 	 * @return new typedef name node
 	 */
-	private TypedefNameNode replacementTypeNode(BasicTypeKind kind, Source source) {
+	private TypeNode replacementTypeNode(TypeNode complexTypeNode) {
+		Source source = complexTypeNode.getSource();
 		IdentifierNode idn;
-		switch (kind) {
+		switch (kind(complexTypeNode.getType())) {
 		case DOUBLE_COMPLEX:
 			idn = nodeFactory.newIdentifierNode(source, "$double_complex");
 			break;
@@ -125,7 +189,56 @@ public class ComplexWorker extends BaseWorker {
 			throw new RuntimeException("unreachable");
 		}
 		TypedefNameNode newtn = nodeFactory.newTypedefNameNode(idn, null);
+		newtn.setAtomicQualified(complexTypeNode.isAtomicQualified());
+		newtn.setConstQualified(complexTypeNode.isConstQualified());
+		newtn.setRestrictQualified(complexTypeNode.isRestrictQualified());
+		newtn.setVolatileQualified(complexTypeNode.isVolatileQualified());
+		newtn.setInputQualified(complexTypeNode.isInputQualified());
+		newtn.setOutputQualified(complexTypeNode.isOutputQualified());
 		return newtn;
+	}
+
+	private TypeNode replacementTypeNode(Type complexType, Source source) {
+		IdentifierNode idn;
+		switch (kind(complexType)) {
+		case DOUBLE_COMPLEX:
+			idn = nodeFactory.newIdentifierNode(source, "$double_complex");
+			break;
+		case FLOAT_COMPLEX:
+			idn = nodeFactory.newIdentifierNode(source, "$float_complex");
+			break;
+		case LONG_DOUBLE_COMPLEX:
+			idn = nodeFactory.newIdentifierNode(source, "$ldouble_complex");
+			break;
+		default:
+			throw new RuntimeException("unreachable");
+		}
+
+		TypedefNameNode newtn = nodeFactory.newTypedefNameNode(idn, null);
+
+		// Note: _Atomic(type) is a type specifier, represented by an AtomicType and an
+		// AtomicTypeNode.
+		// _Atomic ... is a type qualifier, represented by an AtomicType and an
+		// arbitrary TypeNode with the atomic-qualified bit set.
+		switch (complexType.kind()) {
+		case BASIC:
+			return newtn;
+		case QUALIFIED: {
+			QualifiedObjectType qot = (QualifiedObjectType) complexType;
+			newtn.setAtomicQualified(false);
+			newtn.setConstQualified(qot.isConstQualified());
+			newtn.setRestrictQualified(qot.isRestrictQualified());
+			newtn.setVolatileQualified(qot.isVolatileQualified());
+			newtn.setInputQualified(qot.isInputQualified());
+			newtn.setOutputQualified(qot.isOutputQualified());
+			return newtn;
+		}
+		case ATOMIC:
+			// choice: AtomicTypeNode, or just qualify the typedef name node.
+			return nodeFactory.newAtomicTypeNode(source, newtn);
+		default:
+			throw new RuntimeException("unreachable");
+		}
 	}
 
 	/**
@@ -153,22 +266,24 @@ public class ComplexWorker extends BaseWorker {
 				|| op == UNARYMINUS;
 	}
 
-	private ExpressionNode realToComplex(ExpressionNode realExpr, ArithmeticType complexType) {
-		// ($*_complex){ realExpr, 0 }
-		// the int 0 will be converted to the appropriate real type
+	private ExpressionNode realToComplex(ExpressionNode realExpr, Type complexType) {
+		// Result will look like: ($*_complex){ realExpr, 0 }
+		// The int 0 will be converted to the appropriate real type.
+		// Note: we already checked all the static type properties before getting to
+		// this Transformer, so we can assume they are all good.
 		Source source = realExpr.getSource();
 		ExpressionNode zeroNode = nodeFactory.newIntConstantNode(source, 0);
 		realExpr.remove();
 		PairNode<DesignationNode, InitializerNode> realPair = nodeFactory.newPairNode(source, null, realExpr),
 				imagPair = nodeFactory.newPairNode(source, null, zeroNode);
-		TypedefNameNode tdnn = replacementTypeNode(((StandardBasicType) complexType).getBasicTypeKind(), source);
+		TypeNode typeNode = replacementTypeNode(complexType, source);
 		CompoundInitializerNode cin = nodeFactory.newCompoundInitializerNode(source, Arrays.asList(realPair, imagPair));
-		CompoundLiteralNode cln = nodeFactory.newCompoundLiteralNode(source, tdnn, cin);
+		CompoundLiteralNode cln = nodeFactory.newCompoundLiteralNode(source, typeNode, cin);
 		cln.setInitialType(complexType);
 		return cln;
 	}
 
-	private ExpressionNode complexToBool(ExpressionNode node, ArithmeticType complexType) {
+	private ExpressionNode complexToBool(ExpressionNode node, Type complexType) {
 		Source source = node.getSource();
 		String name;
 
@@ -193,8 +308,7 @@ public class ComplexWorker extends BaseWorker {
 		return fcn;
 	}
 
-	private ExpressionNode complexToComplex(ExpressionNode node, ArithmeticType oldComplexType,
-			ArithmeticType newComplexType) {
+	private ExpressionNode complexToComplex(ExpressionNode node, Type oldComplexType, Type newComplexType) {
 		Source source = node.getSource();
 		BasicTypeKind kind1 = kind(oldComplexType), kind2 = kind(newComplexType);
 
@@ -224,7 +338,7 @@ public class ComplexWorker extends BaseWorker {
 		return fcn;
 	}
 
-	private ExpressionNode complexToReal(ExpressionNode node, ArithmeticType realType) {
+	private ExpressionNode complexToReal(ExpressionNode node, Type realType) {
 		Source source = node.getSource();
 		node.remove();
 		ExpressionNode result = nodeFactory.newDotNode(source, node, nodeFactory.newIdentifierNode(source, "real"));
@@ -234,17 +348,16 @@ public class ComplexWorker extends BaseWorker {
 
 	private ExpressionNode convert(ExpressionNode node, Type oldType, Type newType) {
 		if (isComplex(oldType)) {
-			if (newType instanceof StandardBasicType
-					&& ((StandardBasicType) newType).getBasicTypeKind() == BasicTypeKind.BOOL)
-				return complexToBool(node, (ArithmeticType) oldType);
-			else if (newType instanceof ArithmeticType && ((ArithmeticType) newType).inRealDomain())
-				return complexToReal(node, (ArithmeticType) newType);
+			if (isBool(newType))
+				return complexToBool(node, oldType);
+			else if (isReal(newType))
+				return complexToReal(node, newType);
 			else if (isComplex(newType))
-				return complexToComplex(node, (ArithmeticType) oldType, (ArithmeticType) newType);
+				return complexToComplex(node, oldType, newType);
 			else
 				throw new CIVLInternalException("No conversion from " + oldType + " to " + newType, node.getSource());
 		} else if (isComplex(newType)) { // non-complex -> complex
-			return realToComplex(node, (ArithmeticType) newType);
+			return realToComplex(node, newType);
 		}
 		// conversion does not involve complex type: ignore
 		return node;
@@ -285,7 +398,6 @@ public class ComplexWorker extends BaseWorker {
 		CompoundInitializerNode cin = nodeFactory.newCompoundInitializerNode(source, Arrays.asList(realPair, imagPair));
 		CompoundLiteralNode cln = nodeFactory.newCompoundLiteralNode(source, tdnn, cin);
 		cln.setInitialType(fcn.getInitialType());
-		// copyTypeInfo(cln, fcn);
 		return cln;
 	}
 
@@ -335,7 +447,8 @@ public class ComplexWorker extends BaseWorker {
 		default:
 			throw new RuntimeException("unreachable");
 		}
-		BasicTypeKind kind = ((StandardBasicType) arg0.getConvertedType()).getBasicTypeKind();
+
+		BasicTypeKind kind = kind(arg0.getConvertedType());
 		if (kind == FLOAT_COMPLEX)
 			funName += "f";
 		else if (kind == LONG_DOUBLE_COMPLEX)
@@ -392,10 +505,11 @@ public class ComplexWorker extends BaseWorker {
 		int idx = node.childIndex();
 
 		if (node instanceof TypeNode) {
+			// for reasons I don't understand, a TypedefNameNode may
+			// contain qualifiers but those are not present in its Type.
 			Type type = ((TypeNode) node).getType();
 			if (type != null && isComplex(type)) {
-				BasicTypeKind kind = kind((ArithmeticType) type);
-				node = replacementTypeNode(kind, node.getSource());
+				node = replacementTypeNode((TypeNode) node);
 				assert node != null;
 				parent.setChild(idx, node);
 				change = true;
@@ -451,7 +565,7 @@ public class ComplexWorker extends BaseWorker {
 			int condIdx = cond.childIndex();
 			Type type = cond.getType();
 			if (isComplex(type)) {
-				cond = complexToBool(cond, (ArithmeticType) type);
+				cond = complexToBool(cond, type);
 				node.setChild(condIdx, cond);
 				change = true;
 			}
@@ -461,14 +575,39 @@ public class ComplexWorker extends BaseWorker {
 
 	@Override
 	protected AST transformCore(AST ast) throws SyntaxException {
+		SequenceNode<BlockItemNode> root = ast.getRootNode();
+		boolean needsTransform = false;
+
+		for (ASTNode node = root; !needsTransform && node != null; node = node.nextDFS()) {
+			if (node instanceof ExpressionNode) {
+				ExpressionNode expr = (ExpressionNode) node;
+				if (isComplex(expr.getInitialType())) {
+					needsTransform = true;
+					break;
+				}
+				if (!needsTransform) {
+					int numConversions = expr.getNumConversions();
+					for (int i = 0; !needsTransform && i < numConversions; i++) {
+						if (isComplex(expr.getConversion(i).getNewType())) {
+							needsTransform = true;
+							break;
+						}
+					}
+				}
+			} else if (node instanceof TypeNode) {
+				if (isComplex(((TypeNode)node).getType())) {
+					needsTransform = true;
+					break;
+				}
+			}
+		}
+
+		if (!needsTransform)
+			return ast;
+
 		boolean isWhole = ast.isWholeProgram();
 		Collection<SourceFile> sourceFiles = ast.getSourceFiles();
 		boolean hasComplexCvl = false;
-		SequenceNode<BlockItemNode> root = ast.getRootNode();
-
-//		System.out.println("DEBUGGING: AST before ComplexTransformer:\n");
-//		ast.print(System.out);
-//		System.out.println();
 
 		// remove all items from complex.h...
 		ast.release();
@@ -481,24 +620,28 @@ public class ComplexWorker extends BaseWorker {
 				root.removeChild(i);
 			} else if (COMPLEX_CVL.equals(sourceName)) {
 				hasComplexCvl = true;
+			} else if (MATH_H.equals(sourceName)) {
+				mathHIndex = i;
 			}
 		}
 		// TODO: this only sets the child to null. get rid of the null gaps?
 
-		boolean change = process(root);
-
-//		if (change) {
-//			System.out.println("DEBUGGING: A complex change has occurred.\n");
-//		}
-
-		if (change && !hasComplexCvl) {
-			// Insert library complex.cvh/complex.cvl
-			// TODO: find a better way to do this using a linker.
+		process(root);
+		if (!hasComplexCvl) {
+			// remove old math.h if present:
+			if (mathHIndex >= 0) {
+				nchildren = root.numChildren();
+				for (int i = 0; i < nchildren; i++) {
+					ASTNode node = root.child(i);
+					if (node != null && MATH_H.equals(node.getSource().getFirstToken().getSourceFile().getName()))
+						root.removeChild(i);
+				}
+			}
+			// insert complex.cvl (which includes math.h and complex.cvh) at beginning:
 			File file = new File(CIVLConstants.CIVL_LIB_SRC_PATH, COMPLEX_CVL);
 			AST lib = this.parseSystemLibrary(file, EMPTY_MACRO_MAP);
 			SequenceNode<BlockItemNode> libRoot = lib.getRootNode();
 			lib.release();
-
 			List<BlockItemNode> libNodes = new LinkedList<BlockItemNode>();
 			for (BlockItemNode node : libRoot) {
 				node.remove();
@@ -507,9 +650,6 @@ public class ComplexWorker extends BaseWorker {
 			root.insertChildren(0, libNodes);
 		}
 		ast = astFactory.newAST(root, sourceFiles, isWhole);
-
-//		System.out.println("DEBUGGING: AST after ComplexTransformer:\n");
-//		ast.print(System.out);
 		return ast;
 	}
 }

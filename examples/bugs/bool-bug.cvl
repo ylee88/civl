@@ -1,0 +1,10 @@
+
+int f(void) {
+  return $true || $true;
+}
+
+int main(void) {
+  int x = f();
+  $print(x, "\n");
+  $assert(x!=0);
+}

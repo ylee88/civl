@@ -45,4 +45,9 @@ int main(void) {
   assert(a==1);
   long double _Complex x_l = x;
   assert(x_l == (long double)1.0 + ((long double)2.0)*I);
+
+  // Qualifiers...
+  const double _Complex z = CMPLX(3.333, -2.222);
+  assert(creal(z) == 3.333);
+  assert(cimag(z) == -2.222);
 }

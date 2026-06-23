@@ -1,0 +1,57 @@
+#include <complex.h>
+#include <math.h>
+typedef double _Complex dc;
+$input dc X, Y;
+$input double R;
+
+int main(void) {
+  $print("X=", X, ", Y=", Y, ", R=", R, "\n");
+
+  $assert(sqrt(R*R) == R);
+
+  $print("cabs(X) = ", cabs(X), "\n");
+  $assert(cabs(X) >= 0);
+
+  $print("R*X = ", R*X, "\n");
+  $print("cabs(R*X) = ", cabs(R*X), "\n");
+  $print("fabs(R) = ", fabs(R), "\n");
+  $print("cabs(X) = ", cabs(X), "\n");
+  $print("fabs(R) * cabs(X) = ", fabs(R)*cabs(X), "\n");
+
+  // commenting out for now due to bug in simplification of reals.
+  // CIVL simplifies sqrt(x*x) to x, not |x|.
+  //$assert(cabs(R*X) == fabs(R) * cabs(X));
+  
+  dc z = X*Y;
+  $print("X*Y = ", z, "\n");
+  $assert(creal(z) == creal(X)*creal(Y) - cimag(X)*cimag(Y));
+  $assert(cimag(z) == creal(X)*cimag(Y) + cimag(X)*creal(Y));
+
+  z = R*X;
+  $print("R*X = ", z, "\n");
+  $assert(creal(z) == R*creal(X));
+  $assert(cimag(z) == R*cimag(X));
+
+  $assume(R != 0);
+  z = X/R;
+  $print("X/R = ", z, "\n");
+  $assert(creal(z) == creal(X)/R);
+  $assert(cimag(z) == cimag(X)/R);
+  
+  z = X - Y;
+  $print("X - Y = ", z, "\n");
+  $assert(creal(z) == creal(X)-creal(Y));
+  $assert(cimag(z) == cimag(X)-cimag(Y));
+  
+  $print("cacos(X)=", cacos(X), ", cacos(Y)=", cacos(Y), "\n");
+  if (cacos(X) != cacos(Y))
+    $assert(X != Y);
+  
+  $assume(Y != 0);
+  $assert((X/Y)*Y == X);
+
+  $assert(cabs(Y/cabs(Y)) == 1);
+
+  $assume(X != 0);
+  $assert((X/Y)*(Y/X) == 1.0);
+}

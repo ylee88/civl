@@ -1,8 +1,11 @@
 #ifndef _COMPLEX_
-#define _COMPLEX_  
+#define _COMPLEX_
 /* The header complex.h defines macros and declares functions that support complex
  * arithmetic.  CIVL will transform these to use a struct type.
  */
+
+// includes to load libraries needed by ComplexTransformer:
+#include <math.h>
 
 /* Macros */
 #define complex _Complex

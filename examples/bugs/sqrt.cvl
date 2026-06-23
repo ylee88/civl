@@ -1,0 +1,6 @@
+#include <math.h>
+$input double x;
+
+int main(void) {
+  $assert(sqrt(x*x) == x); // should fail
+}

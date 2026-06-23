@@ -49,27 +49,27 @@ void $cprintl($ldouble_complex x) {
 // Eq and neq...
 
 int $ceq($double_complex x, $double_complex y) {
-  return x.real == y.real && x.imag == y.imag;
+  return (int)(x.real == y.real && x.imag == y.imag);
 }
 
 int $cneq($double_complex x, $double_complex y) {
-  return x.real != y.real || x.imag != y.imag;
+  return (int)(x.real != y.real || x.imag != y.imag);
 }
 
 int $ceqf($float_complex x, $float_complex y) {
-  return x.real == y.real && x.imag == y.imag;
+  return (int)(x.real == y.real && x.imag == y.imag);
 }
 
 int $cneqf($float_complex x, $float_complex y) {
-  return x.real != y.real || x.imag != y.imag;
+  return (int)(x.real != y.real || x.imag != y.imag);
 }
 
 int $ceql($ldouble_complex x, $ldouble_complex y) {
-  return x.real == y.real && x.imag == y.imag;
+  return (int)(x.real == y.real && x.imag == y.imag);
 }
 
 int $cneql($ldouble_complex x, $ldouble_complex y) {
-  return x.real != y.real || x.imag != y.imag;
+  return (int)(x.real != y.real || x.imag != y.imag);
 }
 
 // add, sub, mul, div, neg...
@@ -208,15 +208,15 @@ long double cimagl($ldouble_complex x) {
 }
 
 $double_complex conj($double_complex x) {
-  return ($double_complex){x.imag, x.real};
+  return ($double_complex){x.real, -x.imag};
 }
 
 $float_complex conjf($float_complex x) {
-  return ($float_complex){x.imag, x.real};
+  return ($float_complex){x.real, -x.imag};
 }
 
 $ldouble_complex conjl($ldouble_complex x) {
-  return ($ldouble_complex){x.imag, x.real};
+  return ($ldouble_complex){x.real, -x.imag};
 }
 
 double creal($double_complex x) {
