@@ -4,3 +4,5 @@ siegel
 wildcard
 arity
 preprocessing
+datatypes
+struct

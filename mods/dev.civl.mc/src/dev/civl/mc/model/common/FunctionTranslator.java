@@ -4895,26 +4895,12 @@ public class FunctionTranslator {
 				// modelBuilder.handledObjectTypes.add(result);
 				typeFactory.addSystemType(tag, result);
 				break;
-			case ModelConfiguration.GCOLLATOR_TYPE:
-				typeFactory.addSystemType(tag, result);
-				structType.setHandleObjectType(true);
-				modelBuilder.gcollatorType = result;
-				modelBuilder.handledObjectTypes.add(result);
-				break;
-			case ModelConfiguration.COLLATOR_TYPE:
-				typeFactory.addSystemType(tag, result);
-				structType.setHandleObjectType(true);
-				modelBuilder.collatorType = result;
-				modelBuilder.handledObjectTypes.add(result);
-				break;
-			case ModelConfiguration.GCOLLATE_STATE:
-				typeFactory.addSystemType(tag, result);
-				structType.setHandleObjectType(true);
-				modelBuilder.handledObjectTypes.add(result);
-				break;
-			case ModelConfiguration.COLLATE_STATE:
+			case ModelConfiguration.FLOAT_COMPLEX_TYPE:
+			case ModelConfiguration.DOUBLE_COMPLEX_TYPE:
+			case ModelConfiguration.LDOUBLE_COMPLEX_TYPE:
 				typeFactory.addSystemType(tag, result);
 				break;
+
 			default:
 				// TODO: set default case
 			}

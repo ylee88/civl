@@ -1,0 +1,20 @@
+#include <mpi.h>
+
+int nprocs, rank;
+
+int main(void) {
+  MPI_Init(NULL, NULL);
+  MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  $assert(nprocs >= 2);
+  if (rank == 0) {
+    double _Complex x = 3.14+2.718i;
+    MPI_Send(&x, 1, MPI_C_DOUBLE_COMPLEX, 1, 0, MPI_COMM_WORLD);
+  } else if (rank == 1) {
+    double _Complex y;
+    MPI_Recv(&y, 1, MPI_C_DOUBLE_COMPLEX, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    $print("Received: ", y, "\n");
+    $assert(y == 3.14 + 2.718i);
+  }
+  MPI_Finalize();
+}

@@ -29,7 +29,7 @@
 #define COMMDUP_TAG      100
 #define COMMFREE_TAG     101
 
-
+/* Note: this list must be copied verbatim into LibmpiEvaluator.java */
 typedef enum MPI_Datatype {
     MPI_CHAR,
     MPI_CHARACTER,

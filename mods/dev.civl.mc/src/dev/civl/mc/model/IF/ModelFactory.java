@@ -53,7 +53,6 @@ import dev.civl.mc.model.IF.expression.ScopeofExpression;
 import dev.civl.mc.model.IF.expression.SelfExpression;
 import dev.civl.mc.model.IF.expression.SizeofExpression;
 import dev.civl.mc.model.IF.expression.SizeofTypeExpression;
-import dev.civl.mc.model.IF.expression.StatenullExpression;
 import dev.civl.mc.model.IF.expression.SubscriptExpression;
 import dev.civl.mc.model.IF.expression.UnaryExpression;
 import dev.civl.mc.model.IF.expression.UnaryExpression.UNARY_OPERATOR;
@@ -332,14 +331,6 @@ public interface ModelFactory {
 	 * @return the new <code>$proc_null</code> constant expression
 	 */
 	ProcnullExpression procnullExpression(CIVLSource source);
-
-	/**
-	 * Creates a <code>$state_null</code> constant expression.
-	 * 
-	 * @param source The source of the <code>$state_null</code>
-	 * @return the new <code>$state_null</code> constant expression
-	 */
-	StatenullExpression statenullExpression(CIVLSource source);
 
 	/**
 	 * Creates a new quantified expression.
@@ -1348,12 +1339,6 @@ public interface ModelFactory {
 	 * @return
 	 */
 	Scope staticConstantScope();
-
-	/**
-	 * @return the value of the constant <code>$state_null</code> defined in CIVL
-	 *         model.
-	 */
-	SymbolicExpression statenullConstantValue();
 
 	ParallelAssignStatement parallelAssignStatement(CIVLSource source,
 			List<Pair<LHSExpression, Expression>> assignPairs);

@@ -75,7 +75,6 @@ import dev.civl.mc.model.IF.expression.ScopeofExpression;
 import dev.civl.mc.model.IF.expression.SelfExpression;
 import dev.civl.mc.model.IF.expression.SizeofExpression;
 import dev.civl.mc.model.IF.expression.SizeofTypeExpression;
-import dev.civl.mc.model.IF.expression.StatenullExpression;
 import dev.civl.mc.model.IF.expression.SubscriptExpression;
 import dev.civl.mc.model.IF.expression.SystemGuardExpression;
 import dev.civl.mc.model.IF.expression.UnaryExpression;
@@ -103,7 +102,6 @@ import dev.civl.mc.model.IF.type.CIVLPointerType;
 import dev.civl.mc.model.IF.type.CIVLPrimitiveType;
 import dev.civl.mc.model.IF.type.CIVLPrimitiveType.PrimitiveTypeKind;
 import dev.civl.mc.model.IF.type.CIVLSetType;
-import dev.civl.mc.model.IF.type.CIVLStateType;
 import dev.civl.mc.model.IF.type.CIVLStructOrUnionType;
 import dev.civl.mc.model.IF.type.CIVLType;
 import dev.civl.mc.model.IF.variable.Variable;
@@ -143,7 +141,6 @@ import dev.civl.mc.model.common.expression.CommonScopeofExpression;
 import dev.civl.mc.model.common.expression.CommonSelfExpression;
 import dev.civl.mc.model.common.expression.CommonSizeofExpression;
 import dev.civl.mc.model.common.expression.CommonSizeofTypeExpression;
-import dev.civl.mc.model.common.expression.CommonStatenullExpression;
 import dev.civl.mc.model.common.expression.CommonSubscriptExpression;
 import dev.civl.mc.model.common.expression.CommonSystemGuardExpression;
 import dev.civl.mc.model.common.expression.CommonUnaryExpression;
@@ -285,12 +282,6 @@ public class CommonModelFactory implements ModelFactory {
 	private SymbolicExpression nullProcessValue;
 
 	/**
-	 * The unique symbolic expression for the null state value, which has the
-	 * integer value -1.
-	 */
-	private final SymbolicExpression nullStateValue;
-
-	/**
 	 * The unique SARL symbolic universe used in the system.
 	 */
 	private SymbolicUniverse universe;
@@ -343,11 +334,6 @@ public class CommonModelFactory implements ModelFactory {
 				new Singleton<SymbolicExpression>(universe.integer(-1)));
 		this.nullProcessValue = universe.tuple(typeFactory.processSymbolicType,
 				new Singleton<SymbolicExpression>(universe.integer(-2)));
-
-		CIVLStateType stateType = typeFactory.stateType();
-
-		this.nullStateValue = stateType.buildStateValue(universe, -1,
-				universe.array(universe.integerType(), new SymbolicExpression[0]));
 		this.anonFragment = new CommonFragment();
 	}
 
@@ -760,16 +746,6 @@ public class CommonModelFactory implements ModelFactory {
 	@Override
 	public ProcnullExpression procnullExpression(CIVLSource source) {
 		return new CommonProcnullExpression(source, typeFactory.processType, this.nullProcessValue);
-	}
-
-	@Override
-	public StatenullExpression statenullExpression(CIVLSource source) {
-		return new CommonStatenullExpression(source, typeFactory.stateType, this.nullStateValue);
-	}
-
-	@Override
-	public SymbolicExpression statenullConstantValue() {
-		return this.nullStateValue;
 	}
 
 	@Override

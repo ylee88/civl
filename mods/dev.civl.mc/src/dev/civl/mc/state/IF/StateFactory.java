@@ -731,11 +731,6 @@ public interface StateFactory {
 	 */
 	boolean isScopeIdDefined(int sid);
 
-	/**
-	 * @return a reference to {@link StateValueHelper}
-	 */
-	StateValueHelper stateValueHelper();
-
 	void setConfiguration(CIVLConfiguration config);
 
 	public SymbolicExpression processValue(int pid);

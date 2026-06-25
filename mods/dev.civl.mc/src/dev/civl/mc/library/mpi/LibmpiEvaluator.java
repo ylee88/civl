@@ -6,8 +6,9 @@ import dev.civl.mc.library.common.BaseLibraryEvaluator;
 import dev.civl.mc.model.IF.CIVLSource;
 import dev.civl.mc.model.IF.CIVLTypeFactory;
 import dev.civl.mc.model.IF.CIVLUnimplementedFeatureException;
+import dev.civl.mc.model.IF.ModelConfiguration;
 import dev.civl.mc.model.IF.ModelFactory;
-import dev.civl.mc.model.IF.type.CIVLPrimitiveType;
+import dev.civl.mc.model.IF.type.CIVLType;
 import dev.civl.mc.semantics.IF.Evaluator;
 import dev.civl.mc.semantics.IF.LibraryEvaluator;
 import dev.civl.mc.semantics.IF.LibraryEvaluatorLoader;
@@ -92,9 +93,9 @@ public class LibmpiEvaluator extends BaseLibraryEvaluator implements LibraryEval
 		super(name, evaluator, modelFactory, symbolicUtil, symbolicAnalyzer, civlConfig, libEvaluatorLoader);
 	}
 
-	public static Pair<CIVLPrimitiveType, NumericExpression> mpiTypeToCIVLType(SymbolicUniverse universe,
+	public static Pair<CIVLType, NumericExpression> mpiTypeToCIVLType(SymbolicUniverse universe,
 			CIVLTypeFactory typeFactory, int mpiType, CIVLSource source) {
-		CIVLPrimitiveType primitiveType;
+		CIVLType elementType;
 		NumericExpression count = universe.oneInt();
 		Datatype datatype;
 
@@ -110,7 +111,7 @@ public class LibmpiEvaluator extends BaseLibraryEvaluator implements LibraryEval
 		case MPI_SIGNED_CHAR:
 		case MPI_UNSIGNED_CHAR:
 		case MPI_BYTE:
-			primitiveType = typeFactory.charType();
+			elementType = typeFactory.charType();
 			break;
 		case MPI_SHORT:
 		case MPI_UNSIGNED_SHORT:
@@ -139,7 +140,7 @@ public class LibmpiEvaluator extends BaseLibraryEvaluator implements LibraryEval
 		case MPI_UINT8_T:
 		case MPI_AINT:
 		case MPI_OFFSET:
-			primitiveType = typeFactory.integerType();
+			elementType = typeFactory.integerType();
 			break;
 		case MPI_FLOAT:
 		case MPI_DOUBLE:
@@ -149,19 +150,29 @@ public class LibmpiEvaluator extends BaseLibraryEvaluator implements LibraryEval
 		case MPI_REAL2:
 		case MPI_REAL4:
 		case MPI_REAL8:
-			primitiveType = typeFactory.realType();
+			elementType = typeFactory.realType();
 			break;
 		case MPI_2INT:
 		case MPI_2INTEGER:
 		case MPI_SHORT_INT:
 		case MPI_LONG_INT:
-			primitiveType = typeFactory.integerType();
+			elementType = typeFactory.integerType();
 			count = universe.integer(2);
+			break;
+		case MPI_C_COMPLEX:
+		case MPI_C_FLOAT_COMPLEX:
+			elementType = typeFactory.systemType(ModelConfiguration.FLOAT_COMPLEX_TYPE);
+			break;
+		case MPI_C_DOUBLE_COMPLEX:
+			elementType = typeFactory.systemType(ModelConfiguration.DOUBLE_COMPLEX_TYPE);
+			break;
+		case MPI_C_LONG_DOUBLE_COMPLEX:
+			elementType = typeFactory.systemType(ModelConfiguration.LDOUBLE_COMPLEX_TYPE);
 			break;
 		default:
 			throw new CIVLUnimplementedFeatureException("CIVL does not support datatype " + datatype, source);
 		}
-		return new Pair<>(primitiveType, count);
+		return new Pair<>(elementType, count);
 	}
 
 }

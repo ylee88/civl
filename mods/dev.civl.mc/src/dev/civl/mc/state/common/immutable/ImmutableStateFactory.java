@@ -41,7 +41,6 @@ import dev.civl.mc.state.IF.ProcessState;
 import dev.civl.mc.state.IF.StackEntry;
 import dev.civl.mc.state.IF.State;
 import dev.civl.mc.state.IF.StateFactory;
-import dev.civl.mc.state.IF.StateValueHelper;
 import dev.civl.mc.util.IF.Pair;
 import dev.civl.mc.util.IF.Singleton;
 import dev.civl.sarl.IF.CanonicalRenamer;
@@ -92,11 +91,6 @@ public class ImmutableStateFactory implements StateFactory {
 	protected ModelFactory modelFactory;
 
 	private CIVLTypeFactory typeFactory;
-
-	/**
-	 * A reference to a helper class for dealing with $state object values
-	 */
-	private StateValueHelper stateValueHelper;
 
 	/**
 	 * The map of canonic process states. The key and the corresponding value should
@@ -2071,7 +2065,6 @@ public class ImmutableStateFactory implements StateFactory {
 	@Override
 	public void setSymbolicUtility(SymbolicUtility symbolicUtility) {
 		this.symbolicUtil = symbolicUtility;
-		this.stateValueHelper = new ImmutableStateValueHelper(universe, typeFactory, symbolicUtil);
 	}
 
 	@Override
@@ -2114,10 +2107,5 @@ public class ImmutableStateFactory implements StateFactory {
 			dyscopeSubMap.putIfAbsent(key, substituter);
 		}
 		return substituter;
-	}
-
-	@Override
-	public StateValueHelper stateValueHelper() {
-		return this.stateValueHelper;
 	}
 }

@@ -36,15 +36,14 @@ public final class ModelConfiguration {
 
 	public final static String FILESYSTEM = "_io_filesystem";
 
-	public final static String GENERAL_ROOT = GeneralTransformer.PREFIX
-			+ "root";
+	public final static String GENERAL_ROOT = GeneralTransformer.PREFIX + "root";
 
 	/* Names of Symbolic Constants */
 
 	/**
 	 * The array of prefixes for symbolic constants.
 	 */
-	public static final String[] SYMBOL_PREFIXES = {"X", "Y", "H"};
+	public static final String[] SYMBOL_PREFIXES = { "X", "Y", "H" };
 
 	/**
 	 * The prefix of symbolic constants representing input variables.
@@ -70,14 +69,12 @@ public final class ModelConfiguration {
 	/**
 	 * the set of reserved names for symbolic constants
 	 */
-	public static Set<String> RESERVE_NAMES = new HashSet<>(
-			Arrays.asList(INVALID));
+	public static Set<String> RESERVE_NAMES = new HashSet<>(Arrays.asList(INVALID));
 
 	/**
 	 * add new name to the reserved name set
 	 * 
-	 * @param name
-	 *            name to be added to the reserved name set
+	 * @param name name to be added to the reserved name set
 	 */
 	public static void addReservedName(String name) {
 		RESERVE_NAMES.add(name);
@@ -124,8 +121,7 @@ public final class ModelConfiguration {
 
 	/**
 	 * The variable to store broken time information for the time library. This
-	 * variable is needed because some functions of time.h returns a pointer to
-	 * it.
+	 * variable is needed because some functions of time.h returns a pointer to it.
 	 */
 	public static final String BROKEN_TIME_VARIABLE = "_broken_time_var";
 
@@ -140,8 +136,8 @@ public final class ModelConfiguration {
 	public static final int HEAP_VARIABLE_INDEX = 0;
 
 	/**
-	 * The name of the file system variable, created when stdio transformation
-	 * is performed.
+	 * The name of the file system variable, created when stdio transformation is
+	 * performed.
 	 */
 	public static final String FILE_SYSTEM_TYPE = "CIVL_filesystem";
 
@@ -218,8 +214,7 @@ public final class ModelConfiguration {
 	public static final String GBARRIER_TYPE = "_gbarrier";
 
 	/**
-	 * The name of __gcomm__ type, which is the object type of the handle
-	 * $gcomm.
+	 * The name of __gcomm__ type, which is the object type of the handle $gcomm.
 	 */
 	public static final String GCOMM_TYPE = "$gcomm";
 
@@ -245,24 +240,19 @@ public final class ModelConfiguration {
 	public static final String TM_TYPE = "tm";
 
 	/**
-	 * The <code>$gcollator</code> type
+	 * The CIVL-C struct type corresponding to C's float _Complex.
 	 */
-	public static final String GCOLLATOR_TYPE = "$gcollator";
+	public static final String FLOAT_COMPLEX_TYPE = "$float_complex";
 
 	/**
-	 * The <code>$collator</code> type
+	 * The CIVL-C struct type corresponding to C's double _Complex.
 	 */
-	public static final String COLLATOR_TYPE = "$collator";
+	public static final String DOUBLE_COMPLEX_TYPE = "$double_complex";
 
 	/**
-	 * The <code>$gcollate_state</code> type
+	 * The CIVL-C struct type corresponding to C's long double _Complex.
 	 */
-	public static final String GCOLLATE_STATE = "$gcollate_state";
-
-	/**
-	 * The <code>$collate_state</code> type
-	 */
-	public static final String COLLATE_STATE = "$collate_state";
+	public static final String LDOUBLE_COMPLEX_TYPE = "$ldouble_complex";
 
 	/* libraries */
 
@@ -302,38 +292,38 @@ public final class ModelConfiguration {
 	public final static String GCOMM_WORLD = "_mpi_gcomm";
 
 	/**
-	 * The name of the identifier of the CMPI_Gcomm sequence variable in the
-	 * final CIVL-MPI program
+	 * The name of the identifier of the CMPI_Gcomm sequence variable in the final
+	 * CIVL-MPI program
 	 */
 	public final static String GCOMMS = "_mpi_gcomms";
 
 	/**
-	 * The name of the variable representing the status of an MPI process, which
-	 * is modified by MPI_Init() and MPI_Finalized().
+	 * The name of the variable representing the status of an MPI process, which is
+	 * modified by MPI_Init() and MPI_Finalized().
 	 */
 	public final static String MPI_SYS_STATUS = "_mpi_status";
 
 	/**
-	 * The name of the input variable denoting the number of MPI processes in
-	 * the final CIVL-C program.
+	 * The name of the input variable denoting the number of MPI processes in the
+	 * final CIVL-C program.
 	 */
 	public final static String NPROCS = "_mpi_nprocs";
 
 	/**
-	 * The name of the input variable denoting the upper bound of the number of
-	 * MPI processes in the final CIVL-C program.
+	 * The name of the input variable denoting the upper bound of the number of MPI
+	 * processes in the final CIVL-C program.
 	 */
 	public final static String NPROCS_UPPER_BOUND = "_mpi_nprocs_hi";
 
 	/**
-	 * The name of the input variable denoting the lower bound of the number of
-	 * MPI processes in the final CIVL-C program.
+	 * The name of the input variable denoting the lower bound of the number of MPI
+	 * processes in the final CIVL-C program.
 	 */
 	public final static String NPROCS_LOWER_BOUND = "_mpi_nprocs_lo";
 
 	/**
-	 * The "\result" constant used in ACSL contracts which stands for the
-	 * returned value.
+	 * The "\result" constant used in ACSL contracts which stands for the returned
+	 * value.
 	 */
 	public static final String ContractResultName = "$result";
 
@@ -353,22 +343,21 @@ public final class ModelConfiguration {
 	/**
 	 * For all abstract functions declared in the source programs, their values,
 	 * i.e. function type symbolic constants, should have names that starts with
-	 * this prefix. This is the naming convention for values of abstract
-	 * functions.
+	 * this prefix. This is the naming convention for values of abstract functions.
 	 */
 	private static final String CIVL_ABSTRACT_FUNCTION_PREFIX = "AF_";
 
 	/**
 	 * For all function type symbolic constants created by CIVL, their names all
 	 * start with this prefix. This is the naming convention for function type
-	 * symbolic constants that are generated by CIVL and are not values of
-	 * abstract functions or not bound variables.
+	 * symbolic constants that are generated by CIVL and are not values of abstract
+	 * functions or not bound variables.
 	 */
 	private static final String CIVL_FUNCTION_CONSTANT_PREFIX = "CIVL_";
 
 	/**
-	 * The name prefix of symbolic constants that represent the values of sizes
-	 * of primitive types:
+	 * The name prefix of symbolic constants that represent the values of sizes of
+	 * primitive types:
 	 */
 	private static String SIZEOF_PRIMITIVE_TYPE_PREFIX = "SIZEOF_";
 
@@ -390,49 +379,39 @@ public final class ModelConfiguration {
 	 * {@link #getFunctionConstantName(SymbolicUniverse, String)} decides to be.
 	 * </p>
 	 * 
-	 * @param universe
-	 *            a reference to the {@link SymbolicUniverse}
-	 * @param identifier
-	 *            an identifier that belongs to an abstract function
+	 * @param universe   a reference to the {@link SymbolicUniverse}
+	 * @param identifier an identifier that belongs to an abstract function
 	 * @return a {@link StringObject} which is the name of an abstract function
 	 */
-	public static StringObject getAbstractFunctionName(
-			SymbolicUniverse universe, String identifier) {
-		return universe
-				.stringObject(CIVL_ABSTRACT_FUNCTION_PREFIX + identifier);
+	public static StringObject getAbstractFunctionName(SymbolicUniverse universe, String identifier) {
+		return universe.stringObject(CIVL_ABSTRACT_FUNCTION_PREFIX + identifier);
 	}
 
 	/**
 	 * <p>
-	 * Returns a {@link StringObject} which is the name of a function type
-	 * symbolic constant. This symbolic constant is not the value of an abstract
-	 * function.
+	 * Returns a {@link StringObject} which is the name of a function type symbolic
+	 * constant. This symbolic constant is not the value of an abstract function.
 	 * </p>
 	 * 
 	 * <p>
-	 * The returned name follows CIVL's naming convention for function type
-	 * symbolic constants that are not values of abstract functions and is
-	 * uniquely associated with the given <code>identifier</code>.
+	 * The returned name follows CIVL's naming convention for function type symbolic
+	 * constants that are not values of abstract functions and is uniquely
+	 * associated with the given <code>identifier</code>.
 	 * </p>
 	 * 
-	 * @param universe
-	 *            a reference to the {@link SymbolicUniverse}
-	 * @param identifier
-	 *            an identifier that belongs to a symbolic constant
+	 * @param universe   a reference to the {@link SymbolicUniverse}
+	 * @param identifier an identifier that belongs to a symbolic constant
 	 * @return a {@link StringObject} which is the name of a symbolic constant
 	 */
-	public static StringObject getFunctionConstantName(
-			SymbolicUniverse universe, String identifier) {
-		return universe
-				.stringObject(CIVL_FUNCTION_CONSTANT_PREFIX + identifier);
+	public static StringObject getFunctionConstantName(SymbolicUniverse universe, String identifier) {
+		return universe.stringObject(CIVL_FUNCTION_CONSTANT_PREFIX + identifier);
 	}
 
 	/**
 	 * 
-	 * @param universe
-	 *            a reference to the {@link SymbolicUniverse}
-	 * @return the {@link StringObject} which is the name of the symbolic
-	 *         constant representing invalid heap object values.
+	 * @param universe a reference to the {@link SymbolicUniverse}
+	 * @return the {@link StringObject} which is the name of the symbolic constant
+	 *         representing invalid heap object values.
 	 */
 	public static StringObject getInvalidName(SymbolicUniverse universe) {
 		return universe.stringObject(INVALID);
@@ -440,19 +419,16 @@ public final class ModelConfiguration {
 
 	/**
 	 * <p>
-	 * Returns the name of the unique symbolic constant which represents the
-	 * value of the size of a specific {@link CIVLPrimitiveType}.
+	 * Returns the name of the unique symbolic constant which represents the value
+	 * of the size of a specific {@link CIVLPrimitiveType}.
 	 * </p>
 	 * 
-	 * @param universe
-	 *            a reference to the {@link SymbolicUniverse}
-	 * @param kind
-	 *            the kind of the given {@link CIVLPrimitiveType}
-	 * @return the name of the unique symbolic constant which represents the
-	 *         value of the size of a specific {@link CIVLPrimitiveType}
+	 * @param universe a reference to the {@link SymbolicUniverse}
+	 * @param kind     the kind of the given {@link CIVLPrimitiveType}
+	 * @return the name of the unique symbolic constant which represents the value
+	 *         of the size of a specific {@link CIVLPrimitiveType}
 	 */
-	public static StringObject getSizeofPrimitiveTypeName(
-			SymbolicUniverse universe, PrimitiveTypeKind kind) {
+	public static StringObject getSizeofPrimitiveTypeName(SymbolicUniverse universe, PrimitiveTypeKind kind) {
 		return universe.stringObject(SIZEOF_PRIMITIVE_TYPE_PREFIX + kind);
 	}
 
@@ -462,13 +438,11 @@ public final class ModelConfiguration {
 	 * non-primitive types to their size values.
 	 * </p>
 	 * 
-	 * @param universe
-	 *            a reference to the {@link SymbolicUniverse}
+	 * @param universe a reference to the {@link SymbolicUniverse}
 	 * @return the name of the unique function type symbolic constant which maps
 	 *         non-primitive types to their size values.
 	 */
-	public static StringObject getSizeofNonPrimitiveTypeFunctionName(
-			SymbolicUniverse universe) {
+	public static StringObject getSizeofNonPrimitiveTypeFunctionName(SymbolicUniverse universe) {
 		return getFunctionConstantName(universe, "SIZEOF");
 	}
 }

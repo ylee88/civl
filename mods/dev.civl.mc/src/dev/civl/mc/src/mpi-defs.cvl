@@ -69,6 +69,13 @@ int sizeofDatatype(MPI_Datatype datatype) {
     result =  sizeof(long long); break;
   case MPI_UNSIGNED_LONG_LONG:
     result =  sizeof(unsigned long long); break;
+  case MPI_C_COMPLEX:
+  case MPI_C_FLOAT_COMPLEX:
+    result = sizeof(float _Complex); break;
+  case MPI_C_DOUBLE_COMPLEX:
+    result = sizeof(double _Complex); break;
+  case MPI_C_LONG_DOUBLE_COMPLEX:
+    result = sizeof(long double _Complex); break;
   default:
     $assert(0, "Unreachable");
   }
@@ -93,6 +100,16 @@ void * $mpi_malloc($scope scope, int count, MPI_Datatype datatype) {
   case MPI_CHAR:
   case MPI_BYTE:
     return (char *)$malloc(scope, count * sizeof(char));
+  case MPI_C_COMPLEX:
+  case MPI_C_FLOAT_COMPLEX:
+    return (float _Complex *)
+      $malloc(scope, count * sizeof(float _Complex));
+  case MPI_C_DOUBLE_COMPLEX:
+    return (double _Complex *)
+      $malloc(scope, count * sizeof(double _Complex));
+  case MPI_C_LONG_DOUBLE_COMPLEX:
+    return (long double _Complex *)
+      $malloc(scope, count * sizeof (long double _Complex));
   default:
     $assert(0, "Unreachable");
   }

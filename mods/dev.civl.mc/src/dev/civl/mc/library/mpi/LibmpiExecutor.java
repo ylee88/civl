@@ -11,7 +11,6 @@ import dev.civl.mc.model.IF.CIVLSource;
 import dev.civl.mc.model.IF.ModelFactory;
 import dev.civl.mc.model.IF.contract.FunctionContract.ContractKind;
 import dev.civl.mc.model.IF.expression.Expression;
-import dev.civl.mc.model.IF.type.CIVLPrimitiveType;
 import dev.civl.mc.model.IF.type.CIVLType;
 import dev.civl.mc.model.IF.variable.Variable;
 import dev.civl.mc.semantics.IF.Evaluation;
@@ -195,7 +194,7 @@ public class LibmpiExecutor extends BaseLibraryExecutor implements LibraryExecut
 		Reasoner reasoner;
 		IntegerNumber assertedTypeEnum;
 		Pair<BooleanExpression, ResultType> checkPointer;
-		Pair<CIVLPrimitiveType, NumericExpression> mpiType2Civl = null;
+		Pair<CIVLType, NumericExpression> mpiType2Civl = null;
 		Evaluation eval;
 
 		count = (NumericExpression) argumentValues[1];

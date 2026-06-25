@@ -34,7 +34,6 @@ import dev.civl.mc.model.IF.type.CIVLPrimitiveType.PrimitiveTypeKind;
 import dev.civl.mc.model.IF.type.CIVLRegularRangeType;
 import dev.civl.mc.model.IF.type.CIVLScopeType;
 import dev.civl.mc.model.IF.type.CIVLSetType;
-import dev.civl.mc.model.IF.type.CIVLStateType;
 import dev.civl.mc.model.IF.type.CIVLStructOrUnionType;
 import dev.civl.mc.model.IF.type.CIVLType;
 import dev.civl.mc.model.IF.type.CIVLType.TypeKind;
@@ -176,11 +175,6 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	final SymbolicTupleType stateSymbolicType;
 
 	/**
-	 * The $state type in CIVL-C language
-	 */
-	CIVLStateType stateType;
-
-	/**
 	 * The regular range type, which is (int, int, int), corresponding to (low,
 	 * high, step).
 	 */
@@ -268,7 +262,6 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 		stateSymbolicType = universe.tupleType(universe.stringObject("$state"),
 				Arrays.asList(universe.symbolicUninterpretedType(UNINTERPRETED_STATE_TYPE_NAME),
 						universe.arrayType(scopeSymbolicType)));
-		stateType = (CIVLStateType) primitiveType(PrimitiveTypeKind.STATE, stateSymbolicType);
 		dynamicSymbolicType = universe.tupleType(universe.stringObject("dynamicType"), intTypeSingleton);
 		dynamicType = primitiveType(PrimitiveTypeKind.DYNAMIC, dynamicSymbolicType);
 		sizeofFunction = universe.symbolicConstant(ModelConfiguration.getSizeofNonPrimitiveTypeFunctionName(universe),
@@ -613,16 +606,6 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 		if (!ModelConfiguration.RESERVE_NAMES.contains(name.getString()))
 			ModelConfiguration.RESERVE_NAMES.add(name.getString());
 		return result;
-	}
-
-	@Override
-	public CIVLStateType stateType() {
-		return this.stateType;
-	}
-
-	@Override
-	public SymbolicType stateSymbolicType() {
-		return this.stateSymbolicType;
 	}
 
 	@Override
