@@ -142,7 +142,7 @@ public class LibpointerExecutor extends BaseLibraryExecutor implements LibraryEx
 	 * void $apply(void *obj1, $operation op, void *obj2, void *result);
 	 * </pre>
 	 * 
-	 * TODO: this method should be specified with some pre-conditions, currenly I
+	 * TODO: this method should be specified with some pre-conditions, currently I
 	 * assume "*obj1" or "obj2" points to a object that has a basic type which can
 	 * be applied an CIVL operation.
 	 * 

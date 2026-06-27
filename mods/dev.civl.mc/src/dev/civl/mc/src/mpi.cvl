@@ -27,6 +27,119 @@ static void checkInit(void) {
 	  "An MPI function was called when MPI was not initialized");
 }
 
+// Macro to apply a binary operator element-wise:
+#define BUF_APPLY(res, count, T, OP, buf1, buf2)		\
+  { T *_r = (T*)(res), *_b1 = (T*)(buf1), *_b2 = (T*)(buf2);	\
+    for (int _i=0; _i<count; _i++) _r[_i] = _b1[_i] OP _b2[_i];	\
+  }
+
+
+_Bool isIntegerDatatype(MPI_Datatype dt) {
+  switch (dt) {
+  case MPI_SHORT:
+  case MPI_UNSIGNED_SHORT:
+  case MPI_INT:
+  case MPI_INT16_T:
+  case MPI_INT32_T:
+  case MPI_INT64_T:
+  case MPI_INT8_T:
+  case MPI_INTEGER:
+  case MPI_INTEGER1:
+  case MPI_INTEGER16:
+  case MPI_INTEGER2:
+  case MPI_INTEGER4:
+  case MPI_INTEGER8:
+  case MPI_UNSIGNED:
+  case MPI_LONG:
+  case MPI_UNSIGNED_LONG:
+  case MPI_LONG_LONG_INT:
+  case MPI_UNSIGNED_LONG_LONG:
+  case MPI_LONG_LONG:
+  case MPI_LB:
+  case MPI_UB:
+  case MPI_UINT16_T:
+  case MPI_UINT32_T:
+  case MPI_UINT64_T:
+  case MPI_UINT8_T:
+  case MPI_AINT:
+  case MPI_OFFSET:
+    return $true;
+  default:
+    return $false;  
+  }
+}
+
+_Bool isRealDatatype(MPI_Datatype dt) {
+  switch (dt) {
+  case MPI_FLOAT:
+  case MPI_DOUBLE:
+  case MPI_LONG_DOUBLE:
+  case MPI_REAL:
+  case MPI_REAL16:
+  case MPI_REAL2:
+  case MPI_REAL4:
+  case MPI_REAL8:
+    return $true;
+  default:
+    return $false;
+  }
+}
+
+
+void apply_sum(void * result, int count, MPI_Datatype dt,
+	       void * buf1, void * buf2) {
+  // take advantage of the fact that for now, CIVL maps all real
+  // types to $real and all integer types to int...
+  if (isRealDatatype(dt))
+    BUF_APPLY(result, count, $real, +, buf1, buf2)
+  else if (isIntegerDatatype(dt))
+    BUF_APPLY(result, count, int, +, buf1, buf2)
+  else {
+    // however the _Complex types are mapped to 3 separate structs:
+    switch (dt) {
+    case MPI_C_COMPLEX:
+    case MPI_C_FLOAT_COMPLEX:
+      BUF_APPLY(result, count, float _Complex, +, buf1, buf2)
+      break;
+    case MPI_C_DOUBLE_COMPLEX:
+      BUF_APPLY(result, count, double _Complex, +, buf1, buf2)
+      break;
+    case MPI_C_LONG_DOUBLE_COMPLEX:
+      BUF_APPLY(result, count, long double _Complex, +, buf1, buf2)
+      break;
+    default:
+      $assert($false, "Cannot apply operator MPI_SUM to datatype %s", dt);
+    }
+  }
+}
+
+
+/* Applies binary operator element-wise to buf1 and buf2, storing
+   results in buffer result.
+
+   NOTE: this is an experiment: trying to move away from the system
+   function $apply to pure CIVL-C code.  For now, just trying it for
+   sums.  If it is successful, will continue to expand this and
+   eventually deprecate $apply.
+ */
+void apply(void * result, int count, MPI_Datatype dt, MPI_Op op,
+	   void * buf1, void * buf2) {
+  switch (op) {
+  case MPI_SUM:
+    apply_sum(result, count, dt, buf1, buf2);
+    break;
+  default: {
+    int sz = sizeofDatatype(dt);
+    for (int i=0; i<count; i++) {
+      void * r = $pointer_add(result, i, sz),
+	* b1 = $pointer_add(buf1, i, sz), * b2 = $pointer_add(buf2, i, sz);
+      $apply(b1, op, b2, r);
+    }
+  }
+  }
+}
+
+
 // Implementations of mpi.h functions ...
 
 int $mpi_init(void) {
@@ -335,6 +448,8 @@ static void reduce
       if (i != root) {
 	$mpi_collective_recv(tmpbuf, count, datatype, i, tag, comm,
 			     MPI_STATUS_IGNORE, "MPI_Reduce()");
+	apply(recvbuf, count, datatype, op, recvbuf, tmpbuf);
+	/*
 	for (int j=0; j<count; j++) {
 	  void * p = $pointer_add(recvbuf, j, elt_size);
 	  void * q = $pointer_add(tmpbuf, j, elt_size);
@@ -342,6 +457,7 @@ static void reduce
 	  $apply(p, op, q, p);
 	  //$print(*p, "\n");
 	}
+	*/
       }
     }
     $free(tmpbuf);
@@ -672,12 +788,15 @@ int MPI_Reduce_local(const void *inbuf, void *inoutbuf, int count,
   checkInit();
   $mpi_check_buffer(inbuf, count, datatype);
   $mpi_check_buffer(inoutbuf, count, datatype);
+  apply(inoutbuf, count, datatype, op, (void*)inbuf, inoutbuf);
+  /*
   int sz = sizeofDatatype(datatype);
   for (int i=0; i<count; i++) {
     void * p = $pointer_add(inbuf, i, sz);
     void * q = $pointer_add(inoutbuf, i, sz);
     $apply(p, op, q, q);
   }
+  */
   return 0;
 }
 
@@ -752,20 +871,12 @@ int MPI_Scan(const void *sendbuf, void *recvbuf, int count,
     void * tmpbuf = $mpi_malloc($mpi_proc_scope(comm), count, datatype);
     $mpi_collective_recv(tmpbuf, count, datatype, rank-1, SCAN_TAG, comm,
 			 MPI_STATUS_IGNORE, "MPI_Scan()");
-    for (int i=0; i<count; i++) {
-      void * p = $pointer_add(tmpbuf, i, sz),
-	* q = $pointer_add(recvbuf, i, sz);
-      $apply(p, op, q, q);
-    }
+    apply(recvbuf, count, datatype, op, tmpbuf, recvbuf);
     $free(tmpbuf);
   } else { // rank>0 && !inplace
     $mpi_collective_recv(recvbuf, count, datatype, rank-1, SCAN_TAG, comm,
 			 MPI_STATUS_IGNORE, "MPI_Scan()");
-    for (int i=0; i<count; i++) {
-      void * p = $pointer_add(recvbuf, i, sz),
-	* q = $pointer_add(sendbuf, i, sz);
-      $apply(p, op, q, p);
-    }
+    apply(recvbuf, count, datatype, op, (void*)sendbuf, recvbuf);
   }
   if (rank < nprocs - 1)
     $mpi_collective_send(recvbuf, count, datatype, rank+1, SCAN_TAG, comm);
@@ -798,24 +909,16 @@ int MPI_Exscan(const void *sendbuf, void *recvbuf, int count,
       memcpy(tmpbuf, recvbuf, count*sz);
       $mpi_collective_recv(recvbuf, count, datatype, rank-1, EXSCAN_TAG,
 			   comm, MPI_STATUS_IGNORE, "MPI_Exscan()");
-      for (int i=0; i<count; i++) {
-	void * p = $pointer_add(recvbuf, i, sz),
-	  * q = $pointer_add(tmpbuf, i, sz);
-	$apply(p, op, q, q);
-      }
-      $mpi_collective_send(tmpbuf, count, datatype, rank+1, EXSCAN_TAG,
-			   comm);
+      apply(tmpbuf, count, datatype, op, recvbuf, tmpbuf);
+      $mpi_collective_send(tmpbuf, count, datatype, rank+1, EXSCAN_TAG, comm);
       $free(tmpbuf);
     } else {
+      void * tmpbuf = $mpi_malloc($mpi_proc_scope(comm), count, datatype);
       $mpi_collective_recv(recvbuf, count, datatype, rank-1, EXSCAN_TAG,
 			   comm, MPI_STATUS_IGNORE, "MPI_Exscan()");
-      for (int i=0; i<count; i++) {
-	void * p = $pointer_add(recvbuf, i, sz),
-	  * q = $pointer_add(sendbuf, i, sz);
-	$apply(p, op, q, q);
-      }
-      $mpi_collective_send(sendbuf, count, datatype, rank+1, EXSCAN_TAG,
-			   comm);
+      apply(tmpbuf, count, datatype, op, recvbuf, (void*)sendbuf);
+      $mpi_collective_send(tmpbuf, count, datatype, rank+1, EXSCAN_TAG, comm);
+      $free(tmpbuf);
     }
   } else { // 0<rank==nprocs-1
     $mpi_collective_recv(recvbuf, count, datatype, rank-1, EXSCAN_TAG,

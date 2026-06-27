@@ -183,6 +183,70 @@ _Bool $cldouble2bool($ldouble_complex x) {
   return x.real != 0.0L || x.imag != 0.0L;
 }
 
+
+$double_complex $caddeq($double_complex * p, $double_complex x) {
+  *p = $cadd(*p, x);
+  return *p;
+}
+
+$double_complex $csubeq($double_complex * p, $double_complex x) {
+  *p = $csub(*p, x);
+  return *p;
+}
+
+$double_complex $cmuleq($double_complex * p, $double_complex x) {
+  *p = $cmul(*p, x);
+  return *p;
+}
+
+$double_complex $cdiveq($double_complex * p, $double_complex x) {
+  *p = $cdiv(*p, x);
+  return *p;
+}
+
+
+$float_complex $caddeqf($float_complex * p, $float_complex x) {
+  *p = $caddf(*p, x);
+  return *p;
+}
+
+$float_complex $csubeqf($float_complex * p, $float_complex x) {
+  *p = $csubf(*p, x);
+  return *p;
+}
+
+$float_complex $cmuleqf($float_complex * p, $float_complex x) {
+  *p = $cmulf(*p, x);
+  return *p;
+}
+
+$float_complex $cdiveqf($float_complex * p, $float_complex x) {
+  *p = $cdivf(*p, x);
+  return *p;
+}
+
+
+$ldouble_complex $caddeql($ldouble_complex * p, $ldouble_complex x) {
+  *p = $caddl(*p, x);
+  return *p;
+}
+
+$ldouble_complex $csubeql($ldouble_complex * p, $ldouble_complex x) {
+  *p = $csubl(*p, x);
+  return *p;
+}
+
+$ldouble_complex $cmuleql($ldouble_complex * p, $ldouble_complex x) {
+  *p = $cmull(*p, x);
+  return *p;
+}
+
+$ldouble_complex $cdiveql($ldouble_complex * p, $ldouble_complex x) {
+  *p = $cdivl(*p, x);
+  return *p;
+}
+
+
 double cabs($double_complex x) {
   return sqrt(x.real*x.real + x.imag*x.imag);
 }

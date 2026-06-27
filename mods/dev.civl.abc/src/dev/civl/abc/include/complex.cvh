@@ -60,6 +60,22 @@ _Bool $cfloat2bool($float_complex x);
 _Bool $cdouble2bool($double_complex x);
 _Bool $cldouble2bool($ldouble_complex x);
 
+$double_complex $caddeq($double_complex * p, $double_complex x);
+$double_complex $csubeq($double_complex * p, $double_complex x);
+$double_complex $cmuleq($double_complex * p, $double_complex x);
+$double_complex $cdiveq($double_complex * p, $double_complex x);
+
+$float_complex $caddeqf($float_complex * p, $float_complex x);
+$float_complex $csubeqf($float_complex * p, $float_complex x);
+$float_complex $cmuleqf($float_complex * p, $float_complex x);
+$float_complex $cdiveqf($float_complex * p, $float_complex x);
+
+$ldouble_complex $caddeql($ldouble_complex * p, $ldouble_complex x);
+$ldouble_complex $csubeql($ldouble_complex * p, $ldouble_complex x);
+$ldouble_complex $cmuleql($ldouble_complex * p, $ldouble_complex x);
+$ldouble_complex $cdiveql($ldouble_complex * p, $ldouble_complex x);
+
+
 // Functions from complex.h for which we provide CIVL
 // implementations...
 

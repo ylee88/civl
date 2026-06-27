@@ -1,6 +1,5 @@
 package dev.civl.mc.transform.common;
 
-import static dev.civl.abc.ast.node.IF.expression.OperatorNode.Operator.ASSIGN;
 import static dev.civl.abc.ast.node.IF.expression.OperatorNode.Operator.DIV;
 import static dev.civl.abc.ast.node.IF.expression.OperatorNode.Operator.DIVEQ;
 import static dev.civl.abc.ast.node.IF.expression.OperatorNode.Operator.EQUALS;
@@ -420,20 +419,28 @@ public class ComplexWorker extends BaseWorker {
 		String funName;
 		switch (op) {
 		case PLUS:
-		case PLUSEQ:
 			funName = "$cadd";
 			break;
+		case PLUSEQ:
+			funName = "$caddeq";
+			break;
 		case MINUS:
-		case MINUSEQ:
 			funName = "$csub";
 			break;
+		case MINUSEQ:
+			funName = "$csubeq";
+			break;
 		case TIMES:
-		case TIMESEQ:
 			funName = "$cmul";
 			break;
+		case TIMESEQ:
+			funName = "$cmuleq";
+			break;
 		case DIV:
-		case DIVEQ:
 			funName = "$cdiv";
+			break;
+		case DIVEQ:
+			funName = "$cdiveq";
 			break;
 		case EQUALS:
 			funName = "$ceq";
@@ -455,16 +462,26 @@ public class ComplexWorker extends BaseWorker {
 			funName += "l";
 		IdentifierNode funNameNode = nodeFactory.newIdentifierNode(source, funName);
 		IdentifierExpressionNode funExprNode = nodeFactory.newIdentifierExpressionNode(source, funNameNode);
-		// a+b ==> fun(a,b). a+=b ==> a = fun(a,b).
+
+		// Pattern: a+b ==> fun(a,b). a+=b ==> fun(&a,b).
+		// Note: have to use a pointer &a. Alternatives would require creating two
+		// copies of a, which would be wrong if evaluation of a has side-effects, e.g.,
+		// if a is array[++i].
+
 		List<ExpressionNode> argList = new LinkedList<>();
 		int numArgs = opNode.getNumberOfArguments();
+
 		for (int i = 0; i < numArgs; i++) {
 			ExpressionNode arg = opNode.getArgument(i);
 			arg.remove();
 			argList.add(arg);
 		}
-		FunctionCallNode fcn = nodeFactory.newFunctionCallNode(source, funExprNode, argList, null);
-		ExpressionNode result = isAssignOp(op) ? nodeFactory.newOperatorNode(source, ASSIGN, arg0, fcn) : fcn;
+		if (isAssignOp(op)) {
+			assert numArgs == 2;
+			arg0 = argList.get(0);
+			argList.set(0, nodeFactory.newOperatorNode(arg0.getSource(), Operator.ADDRESSOF, arg0));
+		}
+		ExpressionNode result = nodeFactory.newFunctionCallNode(source, funExprNode, argList, null);
 		result.setInitialType(opNode.getInitialType());
 		return result;
 	}
@@ -595,7 +612,7 @@ public class ComplexWorker extends BaseWorker {
 					}
 				}
 			} else if (node instanceof TypeNode) {
-				if (isComplex(((TypeNode)node).getType())) {
+				if (isComplex(((TypeNode) node).getType())) {
 					needsTransform = true;
 					break;
 				}
