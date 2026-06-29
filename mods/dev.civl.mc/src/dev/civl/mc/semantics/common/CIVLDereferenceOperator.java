@@ -43,13 +43,13 @@ public class CIVLDereferenceOperator {
 	 */
 	public class DereferencedResult {
 		/**
-		 * The resulting value of the dereference operanion, which is
+		 * The resulting value of the dereference operation, which is
 		 * significant if and only if {@link #validCondition} holds in a
 		 * specific state.
 		 */
 		public SymbolicExpression value;
 		/**
-		 * The condition that must be satisified otherwise the dereference
+		 * The condition that must be satisfied otherwise the dereference
 		 * operation is never valid.
 		 */
 		public BooleanExpression validCondition;

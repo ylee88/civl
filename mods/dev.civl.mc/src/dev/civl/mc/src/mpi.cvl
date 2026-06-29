@@ -27,12 +27,22 @@ static void checkInit(void) {
 	  "An MPI function was called when MPI was not initialized");
 }
 
-// Macro to apply a binary operator element-wise:
-#define BUF_APPLY(res, count, T, OP, buf1, buf2)		\
-  { T *_r = (T*)(res), *_b1 = (T*)(buf1), *_b2 = (T*)(buf2);	\
-    for (int _i=0; _i<count; _i++) _r[_i] = _b1[_i] OP _b2[_i];	\
+// Macro to apply a binary function element-wise:
+#define BUF_APPLY_F(res, count, T, F, buf1, buf2)			\
+  { T *_r = (T*)(res), *_b1 = (T*)(buf1), *_b2 = (T*)(buf2);		\
+    for (int _i=0; _i<count; _i++) _r[_i] = F(_b1[_i], _b2[_i]);	\
   }
 
+#define MAX(x,y) ((x)>=(y) ? (x) : (y))
+#define MIN(x,y) ((x)<=(y) ? (x) : (y))
+#define LAND(x,y) ((x)&&(y))
+#define LOR(x,y) ((x)||(y))
+#define LXOR(x,y) (!(x) != !(y))
+#define BAND(x,y) ((x)&(y))
+#define BOR(x,y) ((x)|(y))
+#define BXOR(x,y) ((x)^(y))
+#define ADD(x,y) ((x)+(y))
+#define MUL(x,y) ((x)*(y))
 
 _Bool isIntegerDatatype(MPI_Datatype dt) {
   switch (dt) {
@@ -85,33 +95,106 @@ _Bool isRealDatatype(MPI_Datatype dt) {
   }
 }
 
-
-void apply_sum(void * result, int count, MPI_Datatype dt,
-	       void * buf1, void * buf2) {
-  // take advantage of the fact that for now, CIVL maps all real
-  // types to $real and all integer types to int...
-  if (isRealDatatype(dt))
-    BUF_APPLY(result, count, $real, +, buf1, buf2)
-  else if (isIntegerDatatype(dt))
-    BUF_APPLY(result, count, int, +, buf1, buf2)
-  else {
-    // however the _Complex types are mapped to 3 separate structs:
-    switch (dt) {
-    case MPI_C_COMPLEX:
-    case MPI_C_FLOAT_COMPLEX:
-      BUF_APPLY(result, count, float _Complex, +, buf1, buf2)
-      break;
-    case MPI_C_DOUBLE_COMPLEX:
-      BUF_APPLY(result, count, double _Complex, +, buf1, buf2)
-      break;
-    case MPI_C_LONG_DOUBLE_COMPLEX:
-      BUF_APPLY(result, count, long double _Complex, +, buf1, buf2)
-      break;
-    default:
-      $assert($false, "Cannot apply operator MPI_SUM to datatype %s", dt);
-    }
+#define APPLY_OP(result, count, dt, op, buf1, buf2) {			\
+    if (isRealDatatype(dt))						\
+      BUF_APPLY_F(result, count, $real, op, buf1, buf2)	         	\
+    else if (isIntegerDatatype(dt))					\
+      BUF_APPLY_F(result, count, int, op, buf1, buf2)			\
+    else {								\
+      switch (dt) {							\
+      case MPI_C_COMPLEX:						\
+      case MPI_C_FLOAT_COMPLEX:						\
+	BUF_APPLY_F(result, count, float _Complex, op, buf1, buf2)	\
+	break;								\
+      case MPI_C_DOUBLE_COMPLEX:					\
+	BUF_APPLY_F(result, count, double _Complex, op, buf1, buf2)	\
+	break;								\
+      case MPI_C_LONG_DOUBLE_COMPLEX:					\
+	BUF_APPLY_F(result, count, long double _Complex, op, buf1, buf2) \
+	break;								\
+      default:								\
+        $assert($false,							\
+		"Cannot apply operator to datatype %s", dt);		\
+      }									\
+    }									\
   }
+
+#define APPLY_OP_REAL_INT(result, count, dt, op, buf1, buf2) {		\
+    if (isRealDatatype(dt))						\
+      BUF_APPLY_F(result, count, $real, op, buf1, buf2)	         	\
+    else if (isIntegerDatatype(dt))					\
+      BUF_APPLY_F(result, count, int, op, buf1, buf2)			\
+    else								\
+      $assert($false, "Cannot apply operator to datatype");		\
+  }
+
+#define APPLY_OP_INT(result, count, dt, op, buf1, buf2)			\
+  BUF_APPLY_F(result, count, int, op, buf1, buf2)
+
+
+  // Int pairs:
+  /*
+  case MPI_2INT:
+  case MPI_2INTEGER:
+  case MPI_SHORT_INT:
+  case MPI_LONG_INT:
+  */
+
+  // Real-int pairs:
+  /*
+    MPI_FLOAT_INT,        
+    MPI_DOUBLE_INT, 
+    MPI_LONG_DOUBLE_INT, 
+   */
+
+  // Real-real pairs:
+  /*
+    MPI_2REAL,
+    MPI_2DOUBLE_PRECISION,
+  */
+
+
+#define DO_MLOC(T1, T2, result, count, CMP, buf1, buf2) {	\
+  struct _PAIR {T1 val; T2 rank; };				\
+  struct _PAIR *r = (struct _PAIR *)result,			\
+    *b1 = (struct _PAIR *)buf1, *b2 = (struct _PAIR *)buf2;	\
+  for (int i=0; i<count; i++) {					\
+    T1 val1 = b1[i].val, val2 = b2[i].val;			\
+    T2 rank1 = b1[i].rank, rank2 = b2[i].rank;			\
+    if (val1 CMP val2) {					\
+      r[i].val = val1;						\
+      r[i].rank = rank1;					\
+    } else if (val1 == val2) {					\
+      r[i].val = val1;						\
+      r[i].rank = MIN(rank1, rank2);				\
+    } else {							\
+      r[i].val = val2;						\
+      r[i].rank = rank2;					\
+    }								\
+  }								\
 }
+
+
+#define APPLY_MLOC(result, count, dt, CMP, buf1, buf2) 	        \
+  switch (dt) {						        \
+  case MPI_2INT:					        \
+  case MPI_2INTEGER:					        \
+  case MPI_SHORT_INT:					        \
+  case MPI_LONG_INT:					        \
+    DO_MLOC(int, int, result, count, CMP, buf1, buf2)		\
+    break;                                                      \
+  case MPI_FLOAT_INT:				                \
+  case MPI_DOUBLE_INT:						\
+  case MPI_LONG_DOUBLE_INT:					\
+    DO_MLOC($real, int, result, count, CMP, buf1, buf2)		\
+    break;							\
+  case MPI_2REAL:						\
+  case MPI_2DOUBLE_PRECISION:					\
+    DO_MLOC($real, $real, result, count, CMP, buf1, buf2)	\
+    break;							\
+  default:							\
+    $assert($false, "Wrong datatype for MINLOC or MAXLOC");	\
+  }
 
 
 /* Applies binary operator element-wise to buf1 and buf2, storing
@@ -124,20 +207,58 @@ void apply_sum(void * result, int count, MPI_Datatype dt,
  */
 void apply(void * result, int count, MPI_Datatype dt, MPI_Op op,
 	   void * buf1, void * buf2) {
+  // TODO: user-defined reduction operators
   switch (op) {
   case MPI_SUM:
-    apply_sum(result, count, dt, buf1, buf2);
+    APPLY_OP(result, count, dt, ADD, buf1, buf2)
     break;
-  default: {
-    int sz = sizeofDatatype(dt);
-    for (int i=0; i<count; i++) {
-      void * r = $pointer_add(result, i, sz),
-	* b1 = $pointer_add(buf1, i, sz), * b2 = $pointer_add(buf2, i, sz);
-      $apply(b1, op, b2, r);
+  case MPI_PROD:
+    APPLY_OP(result, count, dt, MUL, buf1, buf2)
+    break;
+  case MPI_MAX:
+    APPLY_OP_REAL_INT(result, count, dt, MAX, buf1, buf2)
+    break;
+  case MPI_MIN:
+    APPLY_OP_REAL_INT(result, count, dt, MIN, buf1, buf2)
+    break;
+  case MPI_LAND:
+    APPLY_OP_INT(result, count, dt, LAND, buf1, buf2)
+    break;
+  case MPI_LOR:
+    APPLY_OP_INT(result, count, dt, LOR, buf1, buf2)
+    break;
+  case MPI_LXOR:
+    APPLY_OP_INT(result, count, dt, LXOR, buf1, buf2)
+    break;
+  case MPI_BAND:
+    APPLY_OP_INT(result, count, dt, BAND, buf1, buf2)
+    break;
+  case MPI_BOR:
+    APPLY_OP_INT(result, count, dt, BOR, buf1, buf2)
+    break;
+  case MPI_BXOR:
+    APPLY_OP_INT(result, count, dt, BXOR, buf1, buf2)
+    break;
+  case MPI_MINLOC:
+    APPLY_MLOC(result, count, dt, <, buf1, buf2)
+    break;
+  case MPI_MAXLOC:
+    APPLY_MLOC(result, count, dt, >, buf1, buf2)
+    break;
+  default:
+    $assert($false, "Unknown reduction operator: %s", op);
+    /*
+    {
+      int sz = sizeofDatatype(dt);
+      for (int i=0; i<count; i++) {
+	void * r = $pointer_add(result, i, sz),
+	  * b1 = $pointer_add(buf1, i, sz), * b2 = $pointer_add(buf2, i, sz);
+	$apply(b1, op, b2, r);
+      }
     }
-  }
-  }
-}
+    */
+  } // end of switch (op)
+} // end of function apply
 
 
 // Implementations of mpi.h functions ...
@@ -309,7 +430,7 @@ int MPI_Sendrecv(void *sendbuf, int sendcount, MPI_Datatype sendtype,
 		 int source, int recvtag,
 		 MPI_Comm comm, MPI_Status *status) {
   checkInit();
-  $mpi_check_buffer(sendbuf, sendcount, sendtype);
+  //$mpi_check_buffer(sendbuf, sendcount, sendtype);
   // not correct for checking potential deadlock...rewrite:
   $mpi_sendrecv(sendbuf, sendcount, sendtype, dest, sendtag, recvbuf, recvcount,
 		recvtype, source, recvtag, comm, status);
@@ -345,9 +466,12 @@ static void gather
 {
   int rank = $mpi_comm_place(comm), nprocs = $mpi_comm_size(comm);
   if (rank == root) {
-    if (sendbuf != MPI_IN_PLACE)
-      memcpy($mpi_pointer_add(recvbuf, root * recvcount, recvtype),
-	     sendbuf, recvcount * sizeofDatatype(recvtype));
+    if (sendbuf != MPI_IN_PLACE) {
+      $mpi_memcpy($mpi_pointer_add(recvbuf, root * recvcount, recvtype),
+		  sendbuf, recvcount, recvtype);
+      //memcpy($mpi_pointer_add(recvbuf, root * recvcount, recvtype),
+      //sendbuf, recvcount * sizeofDatatype(recvtype));
+    }
     for (int i=0; i<nprocs; i++) {
       if (i != root)
 	$mpi_collective_recv
@@ -369,9 +493,12 @@ static void gatherv
 {
   int rank = $mpi_comm_place(comm), nprocs = $mpi_comm_size(comm);
   if (rank == root) {
-    if (sendbuf != MPI_IN_PLACE)
-      memcpy($mpi_pointer_add(recvbuf, displs[rank], recvtype),
-	     sendbuf, sendcount * sizeofDatatype(recvtype));
+    if (sendbuf != MPI_IN_PLACE) {
+      $mpi_memcpy($mpi_pointer_add(recvbuf, displs[rank], recvtype),
+		  sendbuf, sendcount, recvtype);
+      //memcpy($mpi_pointer_add(recvbuf, displs[rank], recvtype),
+      //sendbuf, sendcount * sizeofDatatype(recvtype));
+    }
     for (int i=0; i<nprocs; i++) {
       if (i != root)
 	$mpi_collective_recv
@@ -390,9 +517,12 @@ static void scatter
 {
   int rank = $mpi_comm_place(comm), nprocs = $mpi_comm_size(comm);
   if (rank == root) {
-    if (recvbuf != MPI_IN_PLACE)
-      memcpy(recvbuf, $mpi_pointer_add(sendbuf, root*recvcount, sendtype),
-	     sizeofDatatype(recvtype)*recvcount);
+    if (recvbuf != MPI_IN_PLACE) {
+      $mpi_memcpy(recvbuf, $mpi_pointer_add(sendbuf, root*recvcount, sendtype),
+		  recvcount, recvtype);
+      //memcpy(recvbuf, $mpi_pointer_add(sendbuf, root*recvcount, sendtype),
+      //sizeofDatatype(recvtype)*recvcount);
+    }
     int offset;
     for (int i=0; i<nprocs; i++) {
       if (i != root)
@@ -414,9 +544,12 @@ static void scatterv
 {
   int rank = $mpi_comm_place(comm), nprocs = $mpi_comm_size(comm);
   if (rank == root) {
-    if (recvbuf != MPI_IN_PLACE)
-      memcpy(recvbuf, $mpi_pointer_add(sendbuf, displs[root], sendtype),
-	     recvcount*sizeofDatatype(recvtype));
+    if (recvbuf != MPI_IN_PLACE) {
+      $mpi_memcpy(recvbuf, $mpi_pointer_add(sendbuf, displs[root], sendtype),
+		  recvcount, recvtype);
+      //memcpy(recvbuf, $mpi_pointer_add(sendbuf, displs[root], sendtype),
+      //recvcount*sizeofDatatype(recvtype));
+    }
     for (int i=0; i<nprocs; i++) {
       if (i != root)
 	$mpi_collective_send
@@ -442,22 +575,15 @@ static void reduce
     int nprocs = $mpi_comm_size(comm);
     int elt_size = sizeofDatatype(datatype);
     void * tmpbuf = $mpi_malloc($mpi_proc_scope(comm), count, datatype);
-    if (sendbuf != MPI_IN_PLACE)
-      memcpy(recvbuf, sendbuf, count * elt_size);
+    if (sendbuf != MPI_IN_PLACE) {
+      $mpi_memcpy(recvbuf, sendbuf, count, datatype);
+      //memcpy(recvbuf, sendbuf, count * elt_size);
+    }
     for (int i=0; i<nprocs; i++) {
       if (i != root) {
 	$mpi_collective_recv(tmpbuf, count, datatype, i, tag, comm,
 			     MPI_STATUS_IGNORE, "MPI_Reduce()");
 	apply(recvbuf, count, datatype, op, recvbuf, tmpbuf);
-	/*
-	for (int j=0; j<count; j++) {
-	  void * p = $pointer_add(recvbuf, j, elt_size);
-	  void * q = $pointer_add(tmpbuf, j, elt_size);
-	  //$print("Applying op ", op, ": ", *p, " ", *q, " -> ");
-	  $apply(p, op, q, p);
-	  //$print(*p, "\n");
-	}
-	*/
       }
     }
     $free(tmpbuf);
@@ -479,8 +605,8 @@ int MPI_Bcast(void *buf, int count, MPI_Datatype datatype, int root,
   $cmon_check_1($mpi_get_cmon(comm), BCAST_TAG, $false,
 		($mpi_tsig){ .count=count, .type=datatype },
 		_NO_OP, root);
-  if ($mpi_comm_place(comm) == root)
-    $mpi_check_buffer(buf, count, datatype);
+  //  if ($mpi_comm_place(comm) == root)
+  //    $mpi_check_buffer(buf, count, datatype);
   bcast(buf, count, datatype, root, BCAST_TAG, comm, "MPI_Bcast()");
   return 0;
 }
@@ -493,8 +619,8 @@ int MPI_Gather(const void* sendbuf, int sendcount, MPI_Datatype sendtype,
 		  ($mpi_tsig){ .count=sendcount, .type=sendtype },
 		  ($mpi_tsig){ .count=recvcount, .type=recvtype },
 		  _NO_OP, root);
-  if (sendbuf != MPI_IN_PLACE)
-    $mpi_check_buffer(sendbuf, sendcount, sendtype);
+  //  if (sendbuf != MPI_IN_PLACE)
+  //    $mpi_check_buffer(sendbuf, sendcount, sendtype);
   gather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype,
 	 root, GATHER_TAG, comm, "MPI_Gather()");
   return 0;
@@ -516,8 +642,8 @@ int MPI_Gatherv(const void * sendbuf, int sendcount, MPI_Datatype sendtype,
     ($mpi_get_cmon(comm), GATHERV_TAG, sendbuf==MPI_IN_PLACE,
      ($mpi_tsig){ .count=sendcount, .type=sendtype },
      sigs2, _NO_OP, root);
-  if (sendbuf != MPI_IN_PLACE)
-    $mpi_check_buffer(sendbuf, sendcount, sendtype);
+  //  if (sendbuf != MPI_IN_PLACE)
+  //    $mpi_check_buffer(sendbuf, sendcount, sendtype);
   gatherv(sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs,
 	  recvtype, root, GATHERV_TAG, comm, "MPI_Gatherv()");
   return 0;
@@ -531,8 +657,8 @@ int MPI_Scatter(const void* sendbuf, int sendcount, MPI_Datatype sendtype,
 		  ($mpi_tsig){ .count=sendcount, .type=sendtype },
 		  ($mpi_tsig){ .count=recvcount, .type=recvtype },
 		  _NO_OP, root);
-  if ($mpi_comm_place(comm) == root)
-    $mpi_check_buffer(sendbuf, sendcount, sendtype);
+  //  if ($mpi_comm_place(comm) == root)
+  //    $mpi_check_buffer(sendbuf, sendcount, sendtype);
   scatter(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype,
 	  root, SCATTER_TAG, comm, "MPI_Scatter()");
   return 0;
@@ -574,8 +700,8 @@ int MPI_Allgather(const void * sendbuf, int sendcount, MPI_Datatype sendtype,
 		  ($mpi_tsig){ .count=recvcount, .type=recvtype },
 		  _NO_OP, -1);  
   int nprocs = $mpi_comm_size(comm), rank = $mpi_comm_place(comm);
-  if (sendbuf != MPI_IN_PLACE)
-    $mpi_check_buffer(sendbuf, sendcount, sendtype);
+  //  if (sendbuf != MPI_IN_PLACE)
+  //    $mpi_check_buffer(sendbuf, sendcount, sendtype);
   if (rank == 0 || sendbuf != MPI_IN_PLACE)
     gather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype,
 	   0, ALLGATHER_TAG, comm, "MPI_Allgather()");
@@ -602,8 +728,8 @@ int MPI_Allgatherv(const void * sendbuf, int sendcount,
 		  (($mpi_tsig[nprocs])$lambda (int i)
 		   ($mpi_tsig){ .count=recvcounts[i], .type=recvtype }),
 		  _NO_OP, -1);
-  if (sendbuf != MPI_IN_PLACE)
-    $mpi_check_buffer(sendbuf, sendcount, sendtype);
+  //  if (sendbuf != MPI_IN_PLACE)
+  //    $mpi_check_buffer(sendbuf, sendcount, sendtype);
   for (int i=0; i<nprocs; i++)
     gatherv(sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs,
 	    recvtype, i, ALLGATHERV_TAG, comm, "MPI_Allgatherv()");
@@ -622,10 +748,10 @@ int MPI_Alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
 		  ($mpi_tsig){ .count=sendcount, .type=sendtype },
 		  ($mpi_tsig){ .count=recvcount, .type=recvtype },
 		  _NO_OP, -1);
-  if (inplace)
-    $mpi_check_buffer(sendbuf, sendcount * nprocs, sendtype);
-  else
-    $mpi_check_buffer(recvbuf, recvcount * nprocs, recvtype);
+  //  if (inplace)
+  //    $mpi_check_buffer(sendbuf, sendcount * nprocs, sendtype);
+  //  else
+  //    $mpi_check_buffer(recvbuf, recvcount * nprocs, recvtype);
   void * sbuf;
   int scount;
   MPI_Datatype stype;
@@ -633,7 +759,8 @@ int MPI_Alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
     sbuf = $mpi_malloc($mpi_proc_scope(comm), recvcount, recvtype);
     scount = recvcount;
     stype = recvtype;
-    memcpy(sbuf, recvbuf, scount*sizeofDatatype(stype));
+    $mpi_memcpy(sbuf, recvbuf, scount, stype);
+    //memcpy(sbuf, recvbuf, scount*sizeofDatatype(stype));
   } else {
     sbuf = (void*)sendbuf;
     scount = sendcount;
@@ -675,10 +802,14 @@ int MPI_Alltoallv
     }
     sbuf = $mpi_malloc($mpi_proc_scope(comm), scountSum, stype);
     int dsz = sizeofDatatype(stype);
-    for (int i=0; i<nprocs; i++)
-      memcpy($mpi_pointer_add(sbuf, sdisps[i], stype),
-	     $mpi_pointer_add(recvbuf, rdispls[i], stype),
-	     scounts[i]*dsz);
+    for (int i=0; i<nprocs; i++) {
+      $mpi_memcpy($mpi_pointer_add(sbuf, sdisps[i], stype),
+		  $mpi_pointer_add(recvbuf, rdispls[i], stype),
+		  scounts[i], stype);
+      //memcpy($mpi_pointer_add(sbuf, sdisps[i], stype),
+      //$mpi_pointer_add(recvbuf, rdispls[i], stype),
+      //scounts[i]*dsz);
+    }
   } else {
     scounts = sendcounts;
     stype = sendtype;
@@ -723,8 +854,10 @@ int MPI_Alltoallw(const void* sendbuf, const int sendcounts[], const int sdispls
     void * rbuf = $pointer_add(recvbuf, rdispls[i], 1),
       * sbuf = $pointer_add(sendbuf, sdispls[i], 1);
     if (i == rank) {
-      if (!inplace)
-	memcpy(rbuf, sbuf, sizeofDatatype(sendtypes[i])*sendcounts[i]);
+      if (!inplace) {
+	$mpi_memcpy(rbuf, sbuf, sendcounts[i], sendtypes[i]);
+	//memcpy(rbuf, sbuf, sizeofDatatype(sendtypes[i])*sendcounts[i]);
+      }
     } else {
       int scount;
       MPI_Datatype stype;
@@ -732,7 +865,8 @@ int MPI_Alltoallw(const void* sendbuf, const int sendcounts[], const int sdispls
 	scount = recvcounts[i];
 	stype = recvtypes[i];
 	sbuf = $mpi_malloc($mpi_proc_scope(comm), scount, stype);
-	memcpy(sbuf, rbuf, scount*sizeofDatatype(stype));
+	$mpi_memcpy(sbuf, rbuf, scount, stype);
+	//memcpy(sbuf, rbuf, scount*sizeofDatatype(stype));
       } else {
 	scount = sendcounts[i];
 	stype = sendtypes[i];
@@ -755,7 +889,7 @@ int MPI_Reduce(const void* sendbuf, void* recvbuf, int count,
   $cmon_check_1($mpi_get_cmon(comm), REDUCE_TAG, $false,
 		($mpi_tsig){.count=count, .type=datatype},
 		op, root);
-  $mpi_check_buffer(sendbuf, count, datatype);
+  //  $mpi_check_buffer(sendbuf, count, datatype);
   $assert(0 <= op && op <= 13, "Unknown MPI reduction operation");
   // refer to op.h & mpi.h in ABC/src/include for how MPI_Op is defined
   reduce(sendbuf, recvbuf, count, datatype, op, root, REDUCE_TAG, comm,
@@ -773,7 +907,7 @@ int MPI_Allreduce(const void* sendbuf, void* recvbuf, int count,
 		op, -1);
   int root = 0;
   MPI_Status status;
-  $mpi_check_buffer(sendbuf, count, datatype);
+  //  $mpi_check_buffer(sendbuf, count, datatype);
   $assert(0 <= op && op <= 13, "unknown MPI reduce operation");
   // refer to op.h & mpi.h in ABC/src/include for how MPI_Op is defined
   reduce(sendbuf, recvbuf, count, datatype, op, root, ALLREDUCE_TAG, comm,
@@ -786,17 +920,9 @@ int MPI_Allreduce(const void* sendbuf, void* recvbuf, int count,
 int MPI_Reduce_local(const void *inbuf, void *inoutbuf, int count,
                      MPI_Datatype datatype, MPI_Op op) {
   checkInit();
-  $mpi_check_buffer(inbuf, count, datatype);
-  $mpi_check_buffer(inoutbuf, count, datatype);
+  //  $mpi_check_buffer(inbuf, count, datatype);
+  //  $mpi_check_buffer(inoutbuf, count, datatype);
   apply(inoutbuf, count, datatype, op, (void*)inbuf, inoutbuf);
-  /*
-  int sz = sizeofDatatype(datatype);
-  for (int i=0; i<count; i++) {
-    void * p = $pointer_add(inbuf, i, sz);
-    void * q = $pointer_add(inoutbuf, i, sz);
-    $apply(p, op, q, q);
-  }
-  */
   return 0;
 }
 
@@ -834,7 +960,7 @@ int MPI_Reduce_scatter
 		  (($mpi_tsig[nprocs])$lambda (int i)
 		   ($mpi_tsig){ .count=recvcounts[i], .type=datatype }),
 		  op, -1);
-  $mpi_check_buffer(sendbuf, recvcounts[rank], datatype);
+  //  $mpi_check_buffer(sendbuf, recvcounts[rank], datatype);
   for (int i = 0; i < nprocs; i++) {
     displs[i] = total_count;
     total_count += recvcounts[i];
@@ -862,11 +988,14 @@ int MPI_Scan(const void *sendbuf, void *recvbuf, int count,
   $cmon_check_1($mpi_get_cmon(comm), SCAN_TAG, inplace,
 		($mpi_tsig){.count=count, .type=datatype},
 		op, -1);
-  if (!inplace)
-    $mpi_check_buffer(sendbuf, count, datatype);
-  $mpi_check_buffer(recvbuf, count, datatype);
+  //  if (!inplace)
+  //    $mpi_check_buffer(sendbuf, count, datatype);
+  //  $mpi_check_buffer(recvbuf, count, datatype);
   if (rank == 0) {
-    if (!inplace) memcpy(recvbuf, sendbuf, count*sz);
+    if (!inplace) {
+      $mpi_memcpy(recvbuf, sendbuf, count, datatype);
+      //memcpy(recvbuf, sendbuf, count*sz);
+    }
   } else if (inplace) { // rank>0 && inplace
     void * tmpbuf = $mpi_malloc($mpi_proc_scope(comm), count, datatype);
     $mpi_collective_recv(tmpbuf, count, datatype, rank-1, SCAN_TAG, comm,
@@ -894,10 +1023,10 @@ int MPI_Exscan(const void *sendbuf, void *recvbuf, int count,
   $cmon_check_1($mpi_get_cmon(comm), EXSCAN_TAG, sendbuf==MPI_IN_PLACE,
 		($mpi_tsig){.count=count, .type=datatype},
 		op, -1);
-  if (inplace && rank < nprocs)
-    $mpi_check_buffer(sendbuf, count, datatype);
-  if (rank > 0 || inplace)
-    $mpi_check_buffer(recvbuf, count, datatype);
+  //  if (inplace && rank < nprocs)
+  //    $mpi_check_buffer(sendbuf, count, datatype);
+  //  if (rank > 0 || inplace)
+  //    $mpi_check_buffer(recvbuf, count, datatype);
   
   if (rank == 0) {
     if (nprocs > 1)
@@ -906,7 +1035,8 @@ int MPI_Exscan(const void *sendbuf, void *recvbuf, int count,
   } else if (rank < nprocs - 1) { // 0<rank<nprocs-1
     if (inplace) {
       void * tmpbuf = $mpi_malloc($mpi_proc_scope(comm), count, datatype);
-      memcpy(tmpbuf, recvbuf, count*sz);
+      $mpi_memcpy(tmpbuf, recvbuf, count, datatype);
+      //memcpy(tmpbuf, recvbuf, count*sz);
       $mpi_collective_recv(recvbuf, count, datatype, rank-1, EXSCAN_TAG,
 			   comm, MPI_STATUS_IGNORE, "MPI_Exscan()");
       apply(tmpbuf, count, datatype, op, recvbuf, tmpbuf);

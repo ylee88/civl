@@ -7,3 +7,4 @@ alignof
 significand
 siegel
 flyweight
+struct

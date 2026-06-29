@@ -32,9 +32,19 @@ scatterAllgather_bad: scatterAllgather_bad.c
 
 vectorSum: vectorSum.c
 	${VERIFY} -input_mpi_nprocs=5 vectorSum.c
-	
+
 vectorSum_bad: vectorSum_bad.c
 	${VERIFY} -input_mpi_nprocs=5 vectorSum_bad.c
+
+reduce_minloc: reduce_minloc.c
+	${VERIFY} -input_mpi_nprocs_lo=1 -input_mpi_nprocs_hi=4 reduce_minloc.c
+
+reduce_maxloc: reduce_maxloc.c
+	${VERIFY} -input_mpi_nprocs_lo=1 -input_mpi_nprocs_hi=4 reduce_maxloc.c
+
+reduce_maxloc_real: reduce_maxloc_real.c
+	${VERIFY} -input_mpi_nprocs_lo=1 -input_mpi_nprocs_hi=4 \
+   reduce_maxloc_real.c
 
 clean: 
 	rm -f -r CIVLREP

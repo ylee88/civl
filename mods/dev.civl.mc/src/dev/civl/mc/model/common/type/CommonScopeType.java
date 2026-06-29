@@ -18,25 +18,20 @@ import dev.civl.sarl.IF.type.SymbolicUninterpretedType;
  * @author ziqingluo
  *
  */
-public class CommonScopeType extends CommonPrimitiveType
-		implements
-			CIVLScopeType {
+public class CommonScopeType extends CommonPrimitiveType implements CIVLScopeType {
 
 	/**
 	 * An operator converts scope values to integral identities.
 	 * 
 	 * @author ziqingluo
 	 */
-	public class ScopeValueToIdentity
-			implements
-				Function<SymbolicExpression, IntegerNumber> {
+	public class ScopeValueToIdentity implements Function<SymbolicExpression, IntegerNumber> {
 
 		private Function<SymbolicExpression, IntObject> selector;
 
 		private SymbolicUniverse universe;
 
-		private ScopeValueToIdentity(SymbolicUniverse universe,
-				Function<SymbolicExpression, IntObject> selector) {
+		private ScopeValueToIdentity(SymbolicUniverse universe, Function<SymbolicExpression, IntObject> selector) {
 			this.selector = selector;
 			this.universe = universe;
 		}
@@ -57,9 +52,7 @@ public class CommonScopeType extends CommonPrimitiveType
 	 * 
 	 * @author ziqingluo
 	 */
-	public class ScopeIdentityToValue
-			implements
-				Function<Integer, SymbolicExpression> {
+	public class ScopeIdentityToValue implements Function<Integer, SymbolicExpression> {
 		private SymbolicUniverse universe;
 
 		private ScopeIdentityToValue(SymbolicUniverse universe) {
@@ -68,8 +61,7 @@ public class CommonScopeType extends CommonPrimitiveType
 
 		@Override
 		public SymbolicExpression apply(Integer t) {
-			return universe.concreteValueOfUninterpretedType(
-					(SymbolicUninterpretedType) getDynamicType(universe),
+			return universe.concreteValueOfUninterpretedType((SymbolicUninterpretedType) getDynamicType(universe),
 					universe.intObject(t));
 		}
 	}
@@ -79,8 +71,7 @@ public class CommonScopeType extends CommonPrimitiveType
 	 */
 	private ScopeIdentityToValue scopeIdentity2ValueOperator = null;
 
-	public CommonScopeType(SymbolicType symbolicType, NumericExpression sizeofExpression,
-			BooleanExpression facts) {
+	public CommonScopeType(SymbolicType symbolicType, NumericExpression sizeofExpression, BooleanExpression facts) {
 		super(PrimitiveTypeKind.SCOPE, symbolicType, sizeofExpression, facts);
 	}
 
@@ -90,14 +81,10 @@ public class CommonScopeType extends CommonPrimitiveType
 	}
 
 	/*
-	@Override
-	public SymbolicType getDynamicType(SymbolicUniverse universe) {
-		if (dynamicType == null)
-			dynamicType = universe
-					.symbolicUninterpretedType(DYNAMIC_SCOPE_TYPE_NAME);
-		return dynamicType;
-	}
-	*/
+	 * @Override public SymbolicType getDynamicType(SymbolicUniverse universe) { if
+	 * (dynamicType == null) dynamicType = universe
+	 * .symbolicUninterpretedType(DYNAMIC_SCOPE_TYPE_NAME); return dynamicType; }
+	 */
 
 	@Override
 	public boolean isNumericType() {
@@ -121,11 +108,6 @@ public class CommonScopeType extends CommonPrimitiveType
 
 	@Override
 	public boolean isProcessType() {
-		return false;
-	}
-
-	@Override
-	public boolean isStateType() {
 		return false;
 	}
 
@@ -195,24 +177,19 @@ public class CommonScopeType extends CommonPrimitiveType
 	}
 
 	@Override
-	public Function<SymbolicExpression, IntegerNumber> scopeValueToIdentityOperator(
-			SymbolicUniverse universe) {
+	public Function<SymbolicExpression, IntegerNumber> scopeValueToIdentityOperator(SymbolicUniverse universe) {
 		if (this.scopeValue2IdentityOperator == null) {
-			SymbolicUninterpretedType unintType = (SymbolicUninterpretedType) getDynamicType(
-					universe);
+			SymbolicUninterpretedType unintType = (SymbolicUninterpretedType) getDynamicType(universe);
 
-			this.scopeValue2IdentityOperator = new ScopeValueToIdentity(
-					universe, unintType.soleSelector());
+			this.scopeValue2IdentityOperator = new ScopeValueToIdentity(universe, unintType.soleSelector());
 		}
 		return this.scopeValue2IdentityOperator;
 	}
 
 	@Override
-	public Function<Integer, SymbolicExpression> scopeIdentityToValueOperator(
-			SymbolicUniverse universe) {
+	public Function<Integer, SymbolicExpression> scopeIdentityToValueOperator(SymbolicUniverse universe) {
 		if (this.scopeIdentity2ValueOperator == null)
-			this.scopeIdentity2ValueOperator = new ScopeIdentityToValue(
-					universe);
+			this.scopeIdentity2ValueOperator = new ScopeIdentityToValue(universe);
 		return this.scopeIdentity2ValueOperator;
 	}
 }

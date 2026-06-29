@@ -559,6 +559,8 @@ public class MPI2CIVLWorker extends BaseWorker {
 			case "pointer.cvh":
 			case "seq.cvh":
 			case "seq.cvl":
+			case "string.h": // added by SFS
+			case "string.cvl": // added by SFS
 				filescopeList.add(child);
 				continue;
 			default:

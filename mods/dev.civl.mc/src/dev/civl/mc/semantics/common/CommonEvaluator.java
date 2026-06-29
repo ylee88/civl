@@ -2688,9 +2688,6 @@ public class CommonEvaluator implements Evaluator {
 		case PROCESS:
 			return universe.tuple((SymbolicTupleType) type.getDynamicType(universe),
 					new Singleton<SymbolicExpression>(universe.integer(-2)));
-		case STATE:
-			return universe.tuple((SymbolicTupleType) type.getDynamicType(universe),
-					new Singleton<SymbolicExpression>(universe.integer(-1)));
 		case SCOPE:
 			return stateFactory.undefinedScopeValue();
 		case REAL:

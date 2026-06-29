@@ -14,17 +14,11 @@ import dev.civl.sarl.IF.expr.NumericExpression;
 public interface CIVLPrimitiveType extends CIVLType {
 
 	public enum PrimitiveTypeKind {
-		BOOL, DYNAMIC, INT, PROCESS, REAL, SCOPE,
-		/**
-		 * An object of a STATE type represents a canonicalized state in CIVL-C
-		 * language.
-		 */
-		STATE, VOID, CHAR,
+		BOOL, DYNAMIC, INT, PROCESS, REAL, SCOPE, VOID, CHAR,
 	};
 
 	/**
-	 * @return The kind of this primitive type, an element of the enumerated
-	 *         type
+	 * @return The kind of this primitive type, an element of the enumerated type
 	 */
 	PrimitiveTypeKind primitiveTypeKind();
 

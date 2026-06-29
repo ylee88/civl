@@ -18,9 +18,7 @@ import dev.civl.sarl.IF.type.SymbolicType;
  * @author Timothy K. Zirkel (zirkel)
  * 
  */
-public class CommonPrimitiveType extends CommonType
-		implements
-			CIVLPrimitiveType {
+public class CommonPrimitiveType extends CommonType implements CIVLPrimitiveType {
 
 	private PrimitiveTypeKind kind;
 
@@ -31,22 +29,18 @@ public class CommonPrimitiveType extends CommonType
 	/**
 	 * Constructs new primitive type instance with given parameters
 	 * 
-	 * @param kind
-	 *            the kind of primitive type; may not be null
-	 * @param symbolicType
-	 *            the symbolic type corresponding to this primitive type; may be
-	 *            null here but then must be set later
-	 * @param sizeofExpression
-	 *            the value that will be returned when evaluating "sizeof" this
-	 *            type; null indicates this type should never occur in a sizeof
-	 *            expression and if it does an exception will be thrown
-	 * @param facts
-	 *            boolean predicates concerned with this type which must hold,
-	 *            e.g., sizeof(t)>0 or sizeof(t)=1
+	 * @param kind             the kind of primitive type; may not be null
+	 * @param symbolicType     the symbolic type corresponding to this primitive
+	 *                         type; may be null here but then must be set later
+	 * @param sizeofExpression the value that will be returned when evaluating
+	 *                         "sizeof" this type; null indicates this type should
+	 *                         never occur in a sizeof expression and if it does an
+	 *                         exception will be thrown
+	 * @param facts            boolean predicates concerned with this type which
+	 *                         must hold, e.g., sizeof(t)>0 or sizeof(t)=1
 	 * 
 	 */
-	public CommonPrimitiveType(PrimitiveTypeKind kind,
-			SymbolicType symbolicType, NumericExpression sizeofExpression,
+	public CommonPrimitiveType(PrimitiveTypeKind kind, SymbolicType symbolicType, NumericExpression sizeofExpression,
 			BooleanExpression facts) {
 		super();
 		this.dynamicType = symbolicType;
@@ -63,8 +57,7 @@ public class CommonPrimitiveType extends CommonType
 	}
 
 	/**
-	 * @param The
-	 *            actual primitive type (int, bool, real, or string).
+	 * @param The actual primitive type (int, bool, real, or string).
 	 */
 	public void setPrimitiveType(PrimitiveTypeKind primitiveType) {
 		this.kind = primitiveType;
@@ -73,26 +66,22 @@ public class CommonPrimitiveType extends CommonType
 	@Override
 	public String toString() {
 		switch (kind) {
-			case INT :
-				return "int";
-			case BOOL :
-				return "$bool";
-			case REAL :
-				return "$real";
-			case STATE :
-				return "$state";
-			case PROCESS :
-				return "$proc";
-			case DYNAMIC :
-				return "$dynamicType";
-			case VOID :
-				return "void";
-			case CHAR :
-				return "char";
-			default :
-				throw new CIVLInternalException(
-						"Unknown primitive type kind: " + kind,
-						(CIVLSource) null);
+		case INT:
+			return "int";
+		case BOOL:
+			return "$bool";
+		case REAL:
+			return "$real";
+		case PROCESS:
+			return "$proc";
+		case DYNAMIC:
+			return "$dynamicType";
+		case VOID:
+			return "void";
+		case CHAR:
+			return "char";
+		default:
+			throw new CIVLInternalException("Unknown primitive type kind: " + kind, (CIVLSource) null);
 		}
 	}
 
@@ -114,11 +103,6 @@ public class CommonPrimitiveType extends CommonType
 	@Override
 	public boolean isProcessType() {
 		return kind == PrimitiveTypeKind.PROCESS;
-	}
-
-	@Override
-	public boolean isStateType() {
-		return kind == PrimitiveTypeKind.STATE;
 	}
 
 	@Override
@@ -158,9 +142,7 @@ public class CommonPrimitiveType extends CommonType
 	@Override
 	public SymbolicType getDynamicType(SymbolicUniverse universe) {
 		if (dynamicType == null && kind != PrimitiveTypeKind.VOID)
-			throw new CIVLInternalException(
-					"no dynamic type specified for primitive type " + kind,
-					(CIVLSource) null);
+			throw new CIVLInternalException("no dynamic type specified for primitive type " + kind, (CIVLSource) null);
 		return dynamicType;
 	}
 
@@ -185,8 +167,7 @@ public class CommonPrimitiveType extends CommonType
 	}
 
 	@Override
-	protected void addFreeVariables(Set<Variable> result,
-			Set<CIVLType> seenTypes) {
+	protected void addFreeVariables(Set<Variable> result, Set<CIVLType> seenTypes) {
 	}
 
 	@Override

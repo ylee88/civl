@@ -379,7 +379,7 @@ public class LibbundleExecutor extends BaseLibraryExecutor
 	 * 
 	 * void $bundle_unpack($bundle bundle, void *ptr); <br>
 	 * 
-	 * Pre-Condition : The data in bundle is in the form of an falttened one
+	 * Pre-Condition : The data in bundle is in the form of a flattened one
 	 * dimensional array.<br>
 	 * 
 	 * @see{executeBunldePack :post-condition.<br>

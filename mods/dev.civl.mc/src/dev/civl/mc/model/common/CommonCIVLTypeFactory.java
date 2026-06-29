@@ -40,7 +40,6 @@ import dev.civl.mc.model.IF.type.CIVLType.TypeKind;
 import dev.civl.mc.model.IF.type.StructOrUnionField;
 import dev.civl.mc.model.common.type.CommonArrayType;
 import dev.civl.mc.model.common.type.CommonBundleType;
-import dev.civl.mc.model.common.type.CommonCIVLStateType;
 import dev.civl.mc.model.common.type.CommonCompleteArrayType;
 import dev.civl.mc.model.common.type.CommonCompleteDomainType;
 import dev.civl.mc.model.common.type.CommonDomainType;
@@ -77,11 +76,6 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	 * The name of the dynamic scope type.
 	 */
 	private static final String UNINTERPRETED_SCOPE_TYPE_NAME = "scope";
-
-	/**
-	 * The name of an uninterpreted type that represents a unique ID of a state:
-	 */
-	private static final String UNINTERPRETED_STATE_TYPE_NAME = "$state_key";
 
 	/* *********************** Package-private Fields ********************** */
 
@@ -170,11 +164,6 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 	CIVLPrimitiveType processType;
 
 	/**
-	 * The dynamic type of {@link #stateType}
-	 */
-	final SymbolicTupleType stateSymbolicType;
-
-	/**
 	 * The regular range type, which is (int, int, int), corresponding to (low,
 	 * high, step).
 	 */
@@ -254,14 +243,6 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 		scopeSymbolicType = scopeType.getDynamicType(universe);
 		processSymbolicType = universe.tupleType(universe.stringObject("process"), intTypeSingleton);
 		processType = primitiveType(PrimitiveTypeKind.PROCESS, processSymbolicType);
-		/*
-		 * A CIVL-C $state type is a tuple of a unique uninterpreted type which refers
-		 * to a state s and an integer array which maps scope values from the state s to
-		 * the current state.
-		 */
-		stateSymbolicType = universe.tupleType(universe.stringObject("$state"),
-				Arrays.asList(universe.symbolicUninterpretedType(UNINTERPRETED_STATE_TYPE_NAME),
-						universe.arrayType(scopeSymbolicType)));
 		dynamicSymbolicType = universe.tupleType(universe.stringObject("dynamicType"), intTypeSingleton);
 		dynamicType = primitiveType(PrimitiveTypeKind.DYNAMIC, dynamicSymbolicType);
 		sizeofFunction = universe.symbolicConstant(ModelConfiguration.getSizeofNonPrimitiveTypeFunctionName(universe),
@@ -577,8 +558,6 @@ public class CommonCIVLTypeFactory implements CIVLTypeFactory {
 			fact = universe.lessThan(universe.zeroInt(), size);
 		if (kind == PrimitiveTypeKind.SCOPE)
 			result = new CommonScopeType(dynamicType, size, fact);
-		else if (kind == PrimitiveTypeKind.STATE)
-			result = new CommonCIVLStateType(dynamicType, size, fact);
 		else
 			result = new CommonPrimitiveType(kind, dynamicType, size, fact);
 

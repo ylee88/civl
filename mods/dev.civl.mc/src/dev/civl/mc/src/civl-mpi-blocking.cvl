@@ -320,7 +320,8 @@ void $mpi_collective_send(const void *buf, int count, MPI_Datatype datatype,
   if (dest >= 0) {
     int size = count*sizeofDatatype(datatype);
     int place = $comm_place(comm->col);
-    $message out = $message_pack(place, dest, tag, buf, size);
+    $message out = $mpi_convert_pack(place, buf, count, datatype, dest, tag);
+    //$message_pack(place, dest, tag, buf, size);
     $elaborate(dest);
     $comm_enqueue(comm->col, out);   
   }
@@ -332,9 +333,15 @@ void $mpi_collective_recv(void *buf, int count, MPI_Datatype datatype,
   if (source >= 0 || source == MPI_ANY_SOURCE) {
     $elaborate(source);
     $message in = $comm_dequeue(comm->col, source, tag);
-    int size = count*sizeofDatatype(datatype);
-    $message_unpack(in, buf, size);
+    $mpi_unpack_convert(in, buf, count, datatype);
+    //int size = count*sizeofDatatype(datatype);
+    //$message_unpack(in, buf, size);
     if (status != MPI_STATUS_IGNORE) {
+      // TODO: unfortunately, for the special MPI pair types, the size
+      // will be measured using sizeof the MPI special type, rather than
+      // the user's original type.  There is no way to get the user's type
+      // at this time.  Need a way to get the dynamic type of buf, and then
+      // get the element type.
       status->size = $message_size(in);
       status->MPI_SOURCE = $message_source(in);
       status->MPI_TAG = tag;

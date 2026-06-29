@@ -1,6 +1,23 @@
 
 #include <mpi-defs.cvh>
 #include <pointer.cvh>
+#include <string.h>
+
+
+struct IntInt {
+  int x;
+  int y;
+};
+
+struct RealInt {
+  $real x;
+  int y;
+};
+
+struct RealReal {
+  $real x;
+  $real y;
+};
 
 /* Returns the string literal of certain MPI routine names by giving
    the unique message tag. */
@@ -47,8 +64,6 @@ int sizeofDatatype(MPI_Datatype datatype) {
   switch (datatype) {
   case MPI_INT:
     result =  sizeof(int); break;
-  case MPI_2INT:
-    result =  (sizeof(int)*2); break;
   case MPI_FLOAT:
     result =  sizeof(float); break;
   case MPI_DOUBLE:
@@ -76,6 +91,18 @@ int sizeofDatatype(MPI_Datatype datatype) {
     result = sizeof(double _Complex); break;
   case MPI_C_LONG_DOUBLE_COMPLEX:
     result = sizeof(long double _Complex); break;
+  case MPI_2INT:
+  case MPI_2INTEGER:
+  case MPI_SHORT_INT:
+  case MPI_LONG_INT:
+    result = sizeof(struct IntInt); break;
+  case MPI_FLOAT_INT:
+  case MPI_DOUBLE_INT:
+  case MPI_LONG_DOUBLE_INT:
+    result = sizeof(struct RealInt); break;
+  case MPI_2REAL:
+  case MPI_2DOUBLE_PRECISION:
+    result = sizeof(struct RealReal); break;
   default:
     $assert(0, "Unreachable");
   }
@@ -91,8 +118,6 @@ void * $mpi_malloc($scope scope, int count, MPI_Datatype datatype) {
   case MPI_LONG_LONG:
   case MPI_UNSIGNED_LONG_LONG:
     return (int *)$malloc(scope, sizeof(int) * count);
-  case MPI_2INT:
-    return (int *)$malloc(scope, 2 * count * sizeof(int));
   case MPI_FLOAT:
   case MPI_DOUBLE:
   case MPI_LONG_DOUBLE:
@@ -109,7 +134,22 @@ void * $mpi_malloc($scope scope, int count, MPI_Datatype datatype) {
       $malloc(scope, count * sizeof(double _Complex));
   case MPI_C_LONG_DOUBLE_COMPLEX:
     return (long double _Complex *)
-      $malloc(scope, count * sizeof (long double _Complex));
+      $malloc(scope, count * sizeof(long double _Complex));
+  case MPI_2INT:
+  case MPI_2INTEGER:
+  case MPI_SHORT_INT:
+  case MPI_LONG_INT:
+    return (struct IntInt *)
+      $malloc(scope, count * sizeof(struct IntInt));
+  case MPI_FLOAT_INT:
+  case MPI_DOUBLE_INT:
+  case MPI_LONG_DOUBLE_INT:
+    return (struct RealInt *)
+      $malloc(scope, count * sizeof(struct RealInt));
+  case MPI_2REAL:
+  case MPI_2DOUBLE_PRECISION:
+    return (struct RealReal *)
+      $malloc(scope, count * sizeof(struct RealReal));
   default:
     $assert(0, "Unreachable");
   }
@@ -121,4 +161,125 @@ void * $mpi_pointer_add(const void * ptr, int offset, MPI_Datatype datatype) {
   return $pointer_add(ptr, offset, type_size);
 }
 
-// TODO: add an mpi_memcpy
+$message $mpi_convert_pack(int src, const void *buf, int count,
+			   MPI_Datatype datatype, int dest, int tag) {
+  switch (datatype) {
+  case MPI_2INT:
+  case MPI_2INTEGER:
+  case MPI_SHORT_INT:
+  case MPI_LONG_INT: {
+    struct IntInt * p = (struct IntInt *)buf;
+    struct IntInt tmp[count];
+    for (int i=0; i<count; i++) {
+      tmp[i].x = p[i].x;
+      tmp[i].y = p[i].y;
+    }
+    return $message_pack(src, dest, tag, tmp, count*sizeof(struct IntInt));
+  }
+  case MPI_FLOAT_INT:
+  case MPI_DOUBLE_INT:
+  case MPI_LONG_DOUBLE_INT: {
+    struct RealInt * p = (struct RealInt *)buf;
+    struct RealInt tmp[count];
+    for (int i=0; i<count; i++) {
+      tmp[i].x = p[i].x;
+      tmp[i].y = p[i].y;
+    }
+    return $message_pack(src, dest, tag, tmp, count*sizeof(struct RealInt));
+  }
+  case MPI_2REAL:
+  case MPI_2DOUBLE_PRECISION: {
+    struct RealReal * p = (struct RealReal *)buf;
+    struct RealReal tmp[count];
+    for (int i=0; i<count; i++) {
+      tmp[i].x = p[i].x;
+      tmp[i].y = p[i].y;
+    }
+    return $message_pack(src, dest, tag, tmp, count*sizeof(struct RealReal));
+  }
+  default:
+    return $message_pack(src, dest, tag, buf, count*sizeofDatatype(datatype));
+  } 
+}
+
+void $mpi_unpack_convert($message msg, void * buf, int count,
+			 MPI_Datatype datatype) {
+  switch (datatype) {
+  case MPI_2INT:
+  case MPI_2INTEGER:
+  case MPI_SHORT_INT:
+  case MPI_LONG_INT: {
+    struct IntInt * p = (struct IntInt *)buf;
+    struct IntInt tmp[count];
+    $message_unpack(msg, tmp, count*sizeof(struct IntInt));
+    for (int i=0; i<count; i++) {
+      p[i].x = tmp[i].x;
+      p[i].y = tmp[i].y;
+    }
+  }
+    break;
+  case MPI_FLOAT_INT:
+  case MPI_DOUBLE_INT:
+  case MPI_LONG_DOUBLE_INT: {
+    struct RealInt * p = (struct RealInt *)buf;
+    struct RealInt tmp[count];
+    $message_unpack(msg, tmp, count*sizeof(struct RealInt));
+    for (int i=0; i<count; i++) {
+      p[i].x = tmp[i].x;
+      p[i].y = tmp[i].y;
+    }
+  }
+    break;
+  case MPI_2REAL:
+  case MPI_2DOUBLE_PRECISION: {
+    struct RealReal * p = (struct RealReal *)buf;
+    struct RealReal tmp[count];
+    $message_unpack(msg, tmp, count*sizeof(struct RealReal));
+    for (int i=0; i<count; i++) {
+      p[i].x = tmp[i].x;
+      p[i].y = tmp[i].y;
+    }
+  }
+    break;
+  default:
+    $message_unpack(msg, buf, count*sizeofDatatype(datatype));
+  } 
+}
+
+void $mpi_memcpy(void * p, const void * q, int count,
+		 MPI_Datatype datatype) {
+  switch (datatype) {
+  case MPI_2INT:
+  case MPI_2INTEGER:
+  case MPI_SHORT_INT:
+  case MPI_LONG_INT: {
+    struct IntInt *p1 = (struct IntInt *)p, *q1 = (struct IntInt *)q;
+    for (int i=0; i<count; i++) {
+      p1[i].x = q1[i].x;
+      p1[i].y = q1[i].y;
+    }
+  }
+    break;
+  case MPI_FLOAT_INT:
+  case MPI_DOUBLE_INT:
+  case MPI_LONG_DOUBLE_INT: {
+    struct RealInt *p1 = (struct RealInt *)p, *q1 = (struct RealInt *)q;
+    for (int i=0; i<count; i++) {
+      p1[i].x = q1[i].x;
+      p1[i].y = q1[i].y;
+    }
+  }
+    break;
+  case MPI_2REAL:
+  case MPI_2DOUBLE_PRECISION: {
+    struct RealReal *p1 = (struct RealReal *)p, *q1 = (struct RealReal *)q;
+    for (int i=0; i<count; i++) {
+      p1[i].x = q1[i].x;
+      p1[i].y = q1[i].y;
+    }
+  }
+    break;
+  default:
+    memcpy(p, q, count*sizeofDatatype(datatype));
+  }
+}

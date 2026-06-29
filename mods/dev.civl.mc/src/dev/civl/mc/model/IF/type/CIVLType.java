@@ -31,18 +31,18 @@ public interface CIVLType {
 	TypeKind typeKind();
 
 	/**
-	 * Does this type contain a sub-type of pointer or mem type? A value of such
-	 * a type may contain references to memory locations and those references
-	 * can be used to read or modify that memory.
+	 * Does this type contain a sub-type of pointer or mem type? A value of such a
+	 * type may contain references to memory locations and those references can be
+	 * used to read or modify that memory.
 	 * 
-	 * @return {@code true} iff there is a sub-type of this type which is a
-	 *         pointer type or is the "$mem" type.
+	 * @return {@code true} iff there is a sub-type of this type which is a pointer
+	 *         type or is the "$mem" type.
 	 */
 	boolean hasReferences();
 
 	/**
-	 * If this type contains any array with non-constant extent, it "has state"
-	 * in the sense that the dynamic type may depend on the state.
+	 * If this type contains any array with non-constant extent, it "has state" in
+	 * the sense that the dynamic type may depend on the state.
 	 * 
 	 * @return true iff type contains array with non-constant extent
 	 */
@@ -61,34 +61,32 @@ public interface CIVLType {
 	/**
 	 * Sets this type's state variable to the given variable
 	 * 
-	 * @param variable
-	 *            a variable of type CIVLDynamicType used to store the dynamic
-	 *            type resulting from evaluating this type in a state
+	 * @param variable a variable of type CIVLDynamicType used to store the dynamic
+	 *                 type resulting from evaluating this type in a state
 	 */
 	void setStateVariable(Variable variable);
 
 	/**
-	 * This returns the dynamic type corresponding to this static type in which
-	 * all array extent expressions are ignored, i.e., all of the dynamic array
-	 * types are incomplete. May be null (only in the case of the primitive type
-	 * of kind {@link PrimitiveTypeKind.VOID}).
+	 * This returns the dynamic type corresponding to this static type in which all
+	 * array extent expressions are ignored, i.e., all of the dynamic array types
+	 * are incomplete. May be null (only in the case of the primitive type of kind
+	 * {@link PrimitiveTypeKind.VOID}).
 	 * 
-	 * @return the dynamic type corresponding to this static type with
-	 *         incomplete array type
+	 * @return the dynamic type corresponding to this static type with incomplete
+	 *         array type
 	 */
 	SymbolicType getDynamicType(SymbolicUniverse universe);
 
 	/**
 	 * 
-	 * All dynamic types occurring in a model are indexed. This returns the
-	 * index of the dynamic type corresponding to this type. CIVL associates a
-	 * single dynamic type to every CIVL type and does this once at compile
-	 * time. All the dynamic types which occur as dynamic types of CIVL types
-	 * are numbered from 0. This is used in particular to construct the bundle
-	 * type which is the union of all of the dynamic types. This field is the
-	 * dynamic type index to this one and it's initially be minus one and can be
-	 * set later by calling {@link #setDynamicTypeIndex(int)} and the getter is
-	 * this method.
+	 * All dynamic types occurring in a model are indexed. This returns the index of
+	 * the dynamic type corresponding to this type. CIVL associates a single dynamic
+	 * type to every CIVL type and does this once at compile time. All the dynamic
+	 * types which occur as dynamic types of CIVL types are numbered from 0. This is
+	 * used in particular to construct the bundle type which is the union of all of
+	 * the dynamic types. This field is the dynamic type index to this one and it's
+	 * initially be minus one and can be set later by calling
+	 * {@link #setDynamicTypeIndex(int)} and the getter is this method.
 	 * 
 	 * @return the dynamic type index
 	 */
@@ -123,12 +121,6 @@ public interface CIVLType {
 	 * @return true iff this type is process type
 	 */
 	boolean isProcessType();
-
-	/**
-	 * 
-	 * @return true iff this type is $state type
-	 */
-	boolean isStateType();
 
 	/**
 	 * 
@@ -186,17 +178,15 @@ public interface CIVLType {
 	boolean isRangeType();
 
 	/**
-	 * @param elementType
-	 *            the exptected element type of a CIVLSetType
-	 * @return true iff this type is a {@link CIVLSetType} with element of the
-	 *         given "elementType"
+	 * @param elementType the exptected element type of a CIVLSetType
+	 * @return true iff this type is a {@link CIVLSetType} with element of the given
+	 *         "elementType"
 	 */
 	boolean isSetTypeOf(CIVLType elementType);
 
 	/**
 	 * 
-	 * @return true iff this type is a {@link CIVLSetType} with some element
-	 *         type
+	 * @return true iff this type is a {@link CIVLSetType} with some element type
 	 */
 	boolean isSetType();
 
@@ -230,11 +220,10 @@ public interface CIVLType {
 	CIVLType copyAs(CIVLPrimitiveType type, SymbolicUniverse universe);
 
 	/**
-	 * Is this type the super type of the given sub-type? If subtype is the same
-	 * as this type, return true.
+	 * Is this type the super type of the given sub-type? If subtype is the same as
+	 * this type, return true.
 	 * 
-	 * @param subtype
-	 *            The type to be tested if it is the sub-type of this type.
+	 * @param subtype The type to be tested if it is the sub-type of this type.
 	 * @return
 	 */
 	boolean isSuperTypeOf(CIVLType subtype);
@@ -258,12 +247,12 @@ public interface CIVLType {
 	Set<Variable> freeVariables();
 
 	/**
-	 * This method should be called after all the types are complete; it
-	 * analyzes the completed type and caches certain information about them in
-	 * the instance fields.
+	 * This method should be called after all the types are complete; it analyzes
+	 * the completed type and caches certain information about them in the instance
+	 * fields.
 	 * 
-	 * @return {@code true} iff the analysis was successful. The analysis can
-	 *         feel, for example, because a sub-type is incomplete.
+	 * @return {@code true} iff the analysis was successful. The analysis can feel,
+	 *         for example, because a sub-type is incomplete.
 	 */
 	boolean analyze();
 }

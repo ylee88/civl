@@ -5,6 +5,7 @@
 #include <op.h>
 #include <stddef.h>
 #include <civlc.cvh>
+#include <comm.cvh>
 
 // Internal tags used to implement various MPI routines...
 // Collectives...
@@ -176,6 +177,18 @@ $system[mpi] void $mpi_check_buffer(const void * buf, int count,
 /* Abstract function used to represent wall time. */
 $abstract double $mpi_time(int i);
 
+/* Packs the buffer into a message, and for the special MPI pair
+   datatypes, like MPI_2INT, converts to the fixed MPI struct type. */
+$message $mpi_convert_pack(int src, const void *buf, int count,
+			   MPI_Datatype datatype, int dest, int tag);
 
+/* Unpacks the message into buf, but for the special MPI pair
+   datatypes, like MPI_2INT, first converts from the fixed MPI struct
+   type. */
+void $mpi_unpack_convert($message msg, void * buf, int count,
+			 MPI_Datatype datatype);
+
+void $mpi_memcpy(void * p, const void * q, int count,
+		 MPI_Datatype datatype);
 
 #endif
