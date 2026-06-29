@@ -1,0 +1,33 @@
+
+struct S1 {
+  double val;
+  int rank;
+};
+
+struct DoubleIntPair {
+  double x;
+  int y;
+};
+
+void convert(void * buf, int count) {
+  struct DoubleIntPair * p = (struct DoubleIntPair *)buf;
+  struct DoubleIntPair newbuf[count];
+  for (int i=0; i<count; i++) {
+    newbuf[i].x = p[i].x;
+    newbuf[i].y = p[i].y;
+  }
+  for (int i=0; i<count; i++) {
+    $assert(newbuf[i].x == 10.0*i);
+    $assert(newbuf[i].y == i);
+  }
+}
+
+int main(void) {
+  int n = 5;
+  struct S1 a[n];
+  for (int i=0; i<n; i++) {
+    a[i].val = 10.0*i;
+    a[i].rank = i;
+  }
+  convert(a, n);
+}
