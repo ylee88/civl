@@ -1,5 +1,6 @@
 *~
 *.tmp
+**/.DS_Store
 CIVLREP/
 /civl-runtime/
 /lib/
