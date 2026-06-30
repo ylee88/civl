@@ -67,7 +67,6 @@ import dev.civl.abc.ast.node.IF.statement.StatementNode.StatementKind;
 import dev.civl.abc.ast.node.IF.statement.SwitchNode;
 import dev.civl.abc.ast.node.IF.statement.WhenNode;
 import dev.civl.abc.ast.type.IF.ArrayType;
-import dev.civl.abc.ast.type.IF.AtomicType;
 import dev.civl.abc.ast.type.IF.Field;
 import dev.civl.abc.ast.type.IF.ObjectType;
 import dev.civl.abc.ast.type.IF.PointerType;
