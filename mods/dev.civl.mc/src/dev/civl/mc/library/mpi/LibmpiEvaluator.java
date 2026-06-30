@@ -93,6 +93,7 @@ public class LibmpiEvaluator extends BaseLibraryEvaluator implements LibraryEval
 		super(name, evaluator, modelFactory, symbolicUtil, symbolicAnalyzer, civlConfig, libEvaluatorLoader);
 	}
 
+	@Deprecated
 	public static Pair<CIVLType, NumericExpression> mpiTypeToCIVLType(SymbolicUniverse universe,
 			CIVLTypeFactory typeFactory, int mpiType, CIVLSource source) {
 		CIVLType elementType;

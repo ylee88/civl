@@ -321,7 +321,6 @@ void $mpi_collective_send(const void *buf, int count, MPI_Datatype datatype,
     int size = count*sizeofDatatype(datatype);
     int place = $comm_place(comm->col);
     $message out = $mpi_convert_pack(place, buf, count, datatype, dest, tag);
-    //$message_pack(place, dest, tag, buf, size);
     $elaborate(dest);
     $comm_enqueue(comm->col, out);   
   }
@@ -334,8 +333,6 @@ void $mpi_collective_recv(void *buf, int count, MPI_Datatype datatype,
     $elaborate(source);
     $message in = $comm_dequeue(comm->col, source, tag);
     $mpi_unpack_convert(in, buf, count, datatype);
-    //int size = count*sizeofDatatype(datatype);
-    //$message_unpack(in, buf, size);
     if (status != MPI_STATUS_IGNORE) {
       // TODO: unfortunately, for the special MPI pair types, the size
       // will be measured using sizeof the MPI special type, rather than

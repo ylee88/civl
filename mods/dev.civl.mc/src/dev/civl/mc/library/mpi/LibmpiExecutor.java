@@ -184,6 +184,7 @@ public class LibmpiExecutor extends BaseLibraryExecutor implements LibraryExecut
 	 * @return
 	 * @throws UnsatisfiablePathConditionException
 	 */
+	@Deprecated
 	private Evaluation executeMpiCheckBuffer(State state, int pid, String process, Expression[] arguments,
 			SymbolicExpression[] argumentValues, CIVLSource source) throws UnsatisfiablePathConditionException {
 		CIVLSource ptrSource = arguments[0].getSource();

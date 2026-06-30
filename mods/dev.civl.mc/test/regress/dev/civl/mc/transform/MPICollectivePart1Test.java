@@ -137,6 +137,21 @@ public class MPICollectivePart1Test {
 		assertTrue(ui.run("verify -input_mpi_nprocs=3 ", QUIET, NO_PRINTF, filename("scatterAllgather.c")));
 	}
 
+	@Test
+	public void reduce_maxloc_real() {
+		assertTrue(ui.run("verify -input_mpi_nprocs=4 ", QUIET, NO_PRINTF, filename("reduce_maxloc_real.c")));
+	}
+	
+	@Test
+	public void reduce_maxloc() {
+		assertTrue(ui.run("verify -input_mpi_nprocs=4 ", QUIET, NO_PRINTF, filename("reduce_maxloc.c")));
+	}
+	
+	@Test
+	public void reduce_minloc() {
+		assertTrue(ui.run("verify -input_mpi_nprocs=4 ", QUIET, NO_PRINTF, filename("reduce_minloc.c")));
+	}
+
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
 		ui = null;

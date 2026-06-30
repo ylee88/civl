@@ -2306,7 +2306,7 @@ public class FunctionTranslator {
 	}
 
 	/**
-	 * Build logic function. Defintions of logic functions will be translated in
+	 * Build logic function. Definitions of logic functions will be translated in
 	 * this method.
 	 */
 	private CIVLFunction buildLogicFunction(Function entity, Scope scope, Scope parameterScope,

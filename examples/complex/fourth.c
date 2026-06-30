@@ -9,7 +9,7 @@ int main(void) {
   MPI_Init(NULL, NULL);
   MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  assert(nprocs >= 4);
+  assert(nprocs == 4);
   long double _Complex x = 1.0il; // primitive 4-th root of unity
   long double _Complex y = 1.0l;
   for (int i=0; i<rank; i++)

@@ -50,10 +50,15 @@ public class ComplexTest {
 	public void complex1() {
 		check("complex1.cvl");
 	}
-	
+
 	@Test
 	public void complex_ops() {
 		check("complex_ops.c");
+	}
+
+	@Test
+	public void unity() {
+		check("unity.cvl");
 	}
 
 	@Test

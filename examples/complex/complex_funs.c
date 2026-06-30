@@ -2,7 +2,7 @@
 #include <assert.h>
 
 int main(void) {
-  double _Complex x = 3.0+4.0i;
+  double _Complex x = 3.0 + 4.0i;
   assert(cabs(x) == 5.0);
   float _Complex x_f = 3.0f + 4.0if;
   assert(cabsf(x_f) == 5.0f);

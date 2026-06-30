@@ -32,6 +32,9 @@ fourth: fourth.c
 complex_ops: complex_ops.c
 	civl verify $<
 
+unity: unity.cvl
+	civl verify -inputN=4 $<
+
 clean:
 	rm -rf *.exec *~ CIVLREP a.out
 
