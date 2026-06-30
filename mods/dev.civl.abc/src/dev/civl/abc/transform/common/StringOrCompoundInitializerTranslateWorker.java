@@ -1,6 +1,5 @@
 package dev.civl.abc.transform.common;
 
-import java.lang.invoke.VarHandle.AccessMode;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -25,7 +24,6 @@ import dev.civl.abc.ast.node.IF.statement.DeclarationListNode;
 import dev.civl.abc.ast.node.IF.statement.StatementNode;
 import dev.civl.abc.ast.node.IF.type.TypeNode;
 import dev.civl.abc.ast.type.IF.ArrayType;
-import dev.civl.abc.ast.type.IF.AtomicType;
 import dev.civl.abc.ast.type.IF.Field;
 import dev.civl.abc.ast.type.IF.QualifiedObjectType;
 import dev.civl.abc.ast.type.IF.StandardBasicType.BasicTypeKind;
@@ -183,6 +181,59 @@ public class StringOrCompoundInitializerTranslateWorker {
 	}
 
 	/**
+	 * Translates the initialization 'lhs = litObj' to a sequence of scalar-level
+	 * assignments,
+	 * breaking CompoundInitializers down to scalar-level.
+	 * 
+	 * @param lhs    the left-hand side of the initialization
+	 * @param litObj the {@link LiteralObject} representing the initializer value
+	 * @return a sequence of scalar-level assignments that is equivalent to the
+	 *         original initialization.
+	 */
+	private List<BlockItemNode> translateInitializerWorker(ExpressionNode lhs,
+			LiteralObject litObj) {
+		ArrayList<Pair<ArrayList<AccessPathNode>, ExpressionNode>> pairs = getAsAccessPathExpressionPairs(litObj);
+		List<BlockItemNode> result = new ArrayList<>(pairs.size());
+
+		for (var pair : pairs) {
+			var accessPath = pair.left;
+			ExpressionNode init = pair.right;
+			ExpressionNode lhsSubObj = lhs;
+			Type lhsSubObjType = litObj.getType();
+
+			for (AccessPathNode apNode : accessPath) {
+				Pair<ExpressionNode, Type> lhsSubObjAndType = applyAccessPathNode(lhsSubObj, lhsSubObjType, apNode);
+
+				// Note that applyAccessPathNode-returned ExpressionNodes may have getType() be
+				// null.
+				lhsSubObj = lhsSubObjAndType.left;
+				lhsSubObjType = lhsSubObjAndType.right;
+			}
+
+			StringLiteral initAsStringLiteral = null;
+
+			if (init.expressionKind() == ExpressionKind.CONSTANT) {
+				Value val = ((ConstantNode) init).getConstantValue();
+
+				// if (val != null && val.getType().kind() == TypeKind.BASIC)
+				// if (val.isZero() == Answer.YES)
+				// return results; [disagree --sfs]
+				if (val instanceof StringValue)
+					initAsStringLiteral = ((StringValue) val).getLiteral();
+			}
+			if (initAsStringLiteral != null)
+				result.addAll(translateStringLiteralInitializerWorker(lhsSubObj.copy(),
+						lhsSubObjType, initAsStringLiteral,
+						init.getSource()));
+			else
+				result.add(nodeFactory.newExpressionStatementNode(
+						nodeFactory.newOperatorNode(init.getSource(),
+								Operator.ASSIGN, lhsSubObj.copy(), init.copy())));
+		}
+		return result;
+	}
+
+	/**
 	 * Converts a {@link LiteralObject} to a sequence of access-path and
 	 * scalar-level expression pairs. If the LiteralObject is scalar, this function
 	 * returns a pair consists of an empty access-path and
@@ -276,59 +327,6 @@ public class StringOrCompoundInitializerTranslateWorker {
 			baseType = ((ArrayType) baseType).getElementType();
 		}
 		return new Pair<>(base, baseType);
-	}
-
-	/**
-	 * Translates the initialization 'lhs = litObj' to a sequence of scalar-level
-	 * assignments,
-	 * breaking CompoundInitializers down to scalar-level.
-	 * 
-	 * @param lhs    the left-hand side of the initialization
-	 * @param litObj the {@link LiteralObject} representing the initializer value
-	 * @return a sequence of scalar-level assignments that is equivalent to the
-	 *         original initialization.
-	 */
-	private List<BlockItemNode> translateInitializerWorker(ExpressionNode lhs,
-			LiteralObject litObj) {
-		ArrayList<Pair<ArrayList<AccessPathNode>, ExpressionNode>> pairs = getAsAccessPathExpressionPairs(litObj);
-		List<BlockItemNode> result = new ArrayList<>(pairs.size());
-
-		for (var pair : pairs) {
-			var accessPath = pair.left;
-			ExpressionNode init = pair.right;
-			ExpressionNode lhsSubObj = lhs;
-			Type lhsSubObjType = litObj.getType();
-
-			for (AccessPathNode apNode : accessPath) {
-				Pair<ExpressionNode, Type> lhsSubObjAndType = applyAccessPathNode(lhsSubObj, lhsSubObjType, apNode);
-
-				// Note that applyAccessPathNode-returned ExpressionNodes may have getType() be
-				// null.
-				lhsSubObj = lhsSubObjAndType.left;
-				lhsSubObjType = lhsSubObjAndType.right;
-			}
-
-			StringLiteral initAsStringLiteral = null;
-
-			if (init.expressionKind() == ExpressionKind.CONSTANT) {
-				Value val = ((ConstantNode) init).getConstantValue();
-
-				// if (val != null && val.getType().kind() == TypeKind.BASIC)
-				// if (val.isZero() == Answer.YES)
-				// return results; [disagree --sfs]
-				if (val instanceof StringValue)
-					initAsStringLiteral = ((StringValue) val).getLiteral();
-			}
-			if (initAsStringLiteral != null)
-				result.addAll(translateStringLiteralInitializerWorker(lhsSubObj.copy(),
-						lhsSubObjType, initAsStringLiteral,
-						init.getSource()));
-			else
-				result.add(nodeFactory.newExpressionStatementNode(
-						nodeFactory.newOperatorNode(init.getSource(),
-								Operator.ASSIGN, lhsSubObj.copy(), init.copy())));
-		}
-		return result;
 	}
 
 	/**
