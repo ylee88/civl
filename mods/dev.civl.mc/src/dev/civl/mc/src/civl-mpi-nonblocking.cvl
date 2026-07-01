@@ -31,6 +31,7 @@ struct CIVL_MPI_Comm {
   int gcommIndex; //the index of the corresponding global communicator.
   _mpi_nb_record_t * send_records[];
   _mpi_nb_record_t * recv_records[];
+  $cmon cm; // collective monitor
 };
 
 /* Definition of CMPI_Gcomm (CMPI_Gcomm has a type of __CMPI_Gcomm) 
@@ -40,6 +41,7 @@ struct $mpi_gcomm {
   $gcomm p2p; // point-to-point communication
   $gcomm col; // collective communication
   $gbarrier gbarrier;
+  $cmon_g cmg; // global collective monitor
 };
 
 struct MPI_Request{
@@ -98,6 +100,7 @@ $mpi_gcomm $mpi_gcomm_create($scope scope, int size) {
   result.p2p = $gcomm_create(scope, size);
   result.col = $gcomm_create(scope, size);
   result.gbarrier = $gbarrier_create(scope, size);
+  result.cmg = $cmon_g_create(scope, size);
   return result;
 }
 
@@ -135,6 +138,7 @@ void $mpi_gcomm_destroy($mpi_gcomm gc) {
 	    src, routine);
   }  
   $gbarrier_destroy(gc.gbarrier);
+  $cmon_g_destroy(gc.cmg);
 }
 
 MPI_Comm $mpi_comm_create($scope scope, $mpi_gcomm gc, int rank) {
@@ -145,20 +149,20 @@ MPI_Comm $mpi_comm_create($scope scope, $mpi_gcomm gc, int rank) {
   result->col = $comm_create(scope, gc.col, rank);
   result->barrier = $barrier_create(scope, gc.gbarrier, rank);
   result->gcommIndex = 0;
+  result->cm = $cmon_create(scope, gc.cmg, rank);
   $seq_init(&result->send_records, 0, NULL);
   $seq_init(&result->recv_records, 0, NULL);  
   return result;
 }
 
 void $mpi_comm_destroy(MPI_Comm comm, $mpi_state mpi_state) {
-#ifndef _MPI_CONTRACT
   if(comm->gcommIndex == 0)
     $assert(mpi_state == _MPI_FINALIZED, "Process terminates without "
 	    "calling MPI_Finalize() first.");
-#endif
   $comm_destroy(comm->p2p);
   $comm_destroy(comm->col);
   $barrier_destroy(comm->barrier);
+  $cmon_destroy(comm->cm);
   $free(comm);
 }
 
@@ -615,6 +619,10 @@ void $mpi_barrier(MPI_Comm comm) {
 }
 
 /**************** Bridging MPI and the comm library *****************/
+
+$atomic_f $state_f $cmon $mpi_get_cmon(MPI_Comm comm) {
+  return comm->cm;
+}
 
 $atomic_f $state_f $comm $mpi_get_p2p_channel(MPI_Comm comm) {
   return comm->p2p;
