@@ -8,3 +8,12 @@ significand
 siegel
 flyweight
 struct
+monomial
+canonic
+stephen
+refactoring
+int
+datatype
+bool
+unsat
+const

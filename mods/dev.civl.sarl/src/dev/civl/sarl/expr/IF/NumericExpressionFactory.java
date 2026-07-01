@@ -24,6 +24,7 @@ import java.util.List;
 import dev.civl.sarl.IF.expr.BooleanExpression;
 import dev.civl.sarl.IF.expr.NumericExpression;
 import dev.civl.sarl.IF.expr.NumericSymbolicConstant;
+import dev.civl.sarl.IF.expr.SymbolicExpression;
 import dev.civl.sarl.IF.expr.SymbolicExpression.SymbolicOperator;
 import dev.civl.sarl.IF.number.Number;
 import dev.civl.sarl.IF.number.NumberFactory;
@@ -329,6 +330,8 @@ public interface NumericExpressionFactory {
 	NumericExpression[] expand(NumericExpression expr);
 
 	NumericExpression floor(NumericExpression expr);
+	
+	boolean isFloor(SymbolicExpression expr);
 
 	NumericExpression ceil(NumericExpression expr);
 

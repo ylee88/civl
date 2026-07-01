@@ -2,7 +2,7 @@
 #include <complex.h>
 #include <stdbool.h>
 
-double _Complex x = 1+2.0i;
+double _Complex x = 1 + 2.0i;
 
 int main(void) {
   assert(x == 1 + 2.i);

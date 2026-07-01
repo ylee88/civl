@@ -1363,7 +1363,19 @@ public class SMTTranslator {
 		return result;
 	}
 
+	private FastList<String> translateFloor(SymbolicExpression expression) {
+		FastList<String> result = new FastList<String>("(to_int ");
+		SymbolicSequence<?> arguments = (SymbolicSequence<?>) expression.argument(1);
+		SymbolicExpression arg = arguments.getFirst();
+		result.append(translate(arg));
+		result.add(")");
+		return result;
+	}
+
 	private FastList<String> translateApply(SymbolicExpression expression) {
+		if (universe.isFloor(expression))
+			return translateFloor(expression);
+
 		SymbolicExpression function = (SymbolicExpression) expression.argument(0);
 		SymbolicSequence<?> arguments = (SymbolicSequence<?>) expression.argument(1);
 		FastList<String> result = new FastList<String>("(");

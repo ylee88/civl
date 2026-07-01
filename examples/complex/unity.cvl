@@ -20,8 +20,13 @@ int main(void) {
   double _Complex y = 0.0;
   for (int i=0; i<N; i++) {
     y += mypow(x, i);
-    $print("y = ", y, "\n");
   }
+  $print("y = ", y, "\n");
   $assert(y*(x-1) == 0.0); // ok for N<=10
   $assert(y == 0.0);  // ok for N<=4
 }
+
+//   (1+x+x^2+x^3+ .... + x^{n-1} + x^{n-1}) * (1-x)
+// =  1+x+x^2+x^3+ .... + x^{n-1} + x^{n-1} +
+//     -x-x^2-x^3 ......................... -x^n
+// =  1 - x^n = 1 - 1 = 0

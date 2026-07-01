@@ -97,29 +97,29 @@ public class CommonIdealFactory implements IdealFactory {
 	private BooleanExpressionFactory booleanFactory;
 
 	/**
-	 * The object factory used by this ideal factory to manipulate symbolic
-	 * objects, instances of {@link SymbolicObject}.
+	 * The object factory used by this ideal factory to manipulate symbolic objects,
+	 * instances of {@link SymbolicObject}.
 	 */
 	private ObjectFactory objectFactory;
 
 	/**
-	 * The symbolic type factory used by this ideal factory to create and
-	 * manipulate symbolic types, instances of {@link SymbolicType}.
+	 * The symbolic type factory used by this ideal factory to create and manipulate
+	 * symbolic types, instances of {@link SymbolicType}.
 	 */
 	private SymbolicTypeFactory typeFactory;
 
 	/**
-	 * Factory used to maintain sets of {@link PrimitivePower} objects indexed
-	 * by their {@link Primitive}s. A {@link Monic} is a product of
+	 * Factory used to maintain sets of {@link PrimitivePower} objects indexed by
+	 * their {@link Primitive}s. A {@link Monic} is a product of
 	 * {@link PrimitivePower}s and this factory is used to manipulate
 	 * {@link Monic}s.
 	 */
 	private KeySetFactory<Primitive, PrimitivePower> monicFactory;
 
 	/**
-	 * Factory used to maintain sets of {@link Monomial} objects indexed by
-	 * their {@link Monic}s. A {@link Polynomial} is a sum of {@link Monomial}s
-	 * and this factory is used to manipulate {@lik Polynomial}s.
+	 * Factory used to maintain sets of {@link Monomial} objects indexed by their
+	 * {@link Monic}s. A {@link Polynomial} is a sum of {@link Monomial}s and this
+	 * factory is used to manipulate {@lik Polynomial}s.
 	 */
 	private KeySetFactory<Monic, Monomial> polynomialFactory;
 
@@ -137,8 +137,7 @@ public class CommonIdealFactory implements IdealFactory {
 
 	/**
 	 * A comparator for {@link Primitive}s only. It is equivalent to restricting
-	 * {@link #comparator} to {@link Primitive}s only, but may be more
-	 * efficient.
+	 * {@link #comparator} to {@link Primitive}s only, but may be more efficient.
 	 */
 	private Comparator<Primitive> primitiveComparator;
 
@@ -153,16 +152,16 @@ public class CommonIdealFactory implements IdealFactory {
 	private SymbolicType realType;
 
 	/**
-	 * The integer 1, which in the ideal factory is represented as an instance
-	 * of {@link One}. A special class is needed here because 1 is both a
+	 * The integer 1, which in the ideal factory is represented as an instance of
+	 * {@link One}. A special class is needed here because 1 is both a
 	 * {@link Constant} and a {@link Monic} (the empty monic).
 	 */
 	private One oneInt;
 
 	/**
-	 * The real number 1, which in the ideal factory is represented as an
-	 * instance of {@link One}. A special class is needed here because 1 is both
-	 * a {@link Constant} and a {@link Monic} (the empty monic).
+	 * The real number 1, which in the ideal factory is represented as an instance
+	 * of {@link One}. A special class is needed here because 1 is both a
+	 * {@link Constant} and a {@link Monic} (the empty monic).
 	 */
 	private One oneReal;
 
@@ -172,32 +171,32 @@ public class CommonIdealFactory implements IdealFactory {
 	private IntObject oneIntObject;
 
 	/**
-	 * The integer 0 as a symbolic expression, which in this ideal universe is
-	 * an instance of {@link Constant}.
+	 * The integer 0 as a symbolic expression, which in this ideal universe is an
+	 * instance of {@link Constant}.
 	 */
 	private Constant zeroInt;
 
 	/**
-	 * The integer -1 as a symbolic expression, which in this ideal universe is
-	 * an instance of {@link Constant}.
+	 * The integer -1 as a symbolic expression, which in this ideal universe is an
+	 * instance of {@link Constant}.
 	 */
 	private Constant negOneInt;
 
 	/**
-	 * The real number 0 as a symbolic expression, which in this ideal universe
-	 * is an instance of {@link Constant}.
+	 * The real number 0 as a symbolic expression, which in this ideal universe is
+	 * an instance of {@link Constant}.
 	 */
 	private Constant zeroReal;
 
 	/**
-	 * The set of {@link Monomial}s consisting of the single element which is
-	 * the integer 1.
+	 * The set of {@link Monomial}s consisting of the single element which is the
+	 * integer 1.
 	 */
 	private Monomial[] oneTermListInt;
 
 	/**
-	 * The set of {@link Monomial}s consisting of the single element which is
-	 * the real number 1.
+	 * The set of {@link Monomial}s consisting of the single element which is the
+	 * real number 1.
 	 */
 	private Monomial[] oneTermListReal;
 
@@ -217,8 +216,7 @@ public class CommonIdealFactory implements IdealFactory {
 	private MonomialAdder monomialAdder;
 
 	/**
-	 * An object used to multiply two primitive powers over the same primitive
-	 * base.
+	 * An object used to multiply two primitive powers over the same primitive base.
 	 */
 	private PrimitivePowerMultiplier primitivePowerMultiplier;
 
@@ -240,8 +238,7 @@ public class CommonIdealFactory implements IdealFactory {
 	 * 
 	 * @author siegel
 	 */
-	private class MonicFactory
-			extends KeySetFactory<Primitive, PrimitivePower> {
+	private class MonicFactory extends KeySetFactory<Primitive, PrimitivePower> {
 
 		MonicFactory(Comparator<Primitive> primitiveComparator) {
 			super(primitiveComparator);
@@ -260,8 +257,8 @@ public class CommonIdealFactory implements IdealFactory {
 
 	/**
 	 * The polynomial factory, a key set factory in which the values are
-	 * {@link Monomial}s and the key is obtained by taking the {@link Monic} of
-	 * the {@link Monomial}.
+	 * {@link Monomial}s and the key is obtained by taking the {@link Monic} of the
+	 * {@link Monomial}.
 	 * 
 	 * @author siegel
 	 */
@@ -285,25 +282,21 @@ public class CommonIdealFactory implements IdealFactory {
 	/**
 	 * Constructs new factory based on the given factories.
 	 * 
-	 * @param numberFactory
-	 *            the number factory used by this ideal factory to create and
-	 *            manipulate infinite-precision concrete integer and rational
-	 *            numbers, instances of {@link Number}, {@link IntegerNumber},
-	 *            and {@link RationalNumber}
-	 * @param objectFactory
-	 *            the object factory used by this ideal factory to manipulate
-	 *            symbolic objects, instances of {@link SymbolicObject}.
-	 * @param typeFactory
-	 *            the symbolic type factory used by this ideal factory to create
-	 *            and manipulate symbolic types, instances of
-	 *            {@link SymbolicType}
-	 * @param booleanFactory
-	 *            the boolean expression factory used by this ideal factory to
-	 *            create and manipulate boolean expressions, instances of
-	 *            {@link BooleanExpression}
+	 * @param numberFactory  the number factory used by this ideal factory to create
+	 *                       and manipulate infinite-precision concrete integer and
+	 *                       rational numbers, instances of {@link Number},
+	 *                       {@link IntegerNumber}, and {@link RationalNumber}
+	 * @param objectFactory  the object factory used by this ideal factory to
+	 *                       manipulate symbolic objects, instances of
+	 *                       {@link SymbolicObject}.
+	 * @param typeFactory    the symbolic type factory used by this ideal factory to
+	 *                       create and manipulate symbolic types, instances of
+	 *                       {@link SymbolicType}
+	 * @param booleanFactory the boolean expression factory used by this ideal
+	 *                       factory to create and manipulate boolean expressions,
+	 *                       instances of {@link BooleanExpression}
 	 */
-	public CommonIdealFactory(NumberFactory numberFactory,
-			ObjectFactory objectFactory, SymbolicTypeFactory typeFactory,
+	public CommonIdealFactory(NumberFactory numberFactory, ObjectFactory objectFactory, SymbolicTypeFactory typeFactory,
 			BooleanExpressionFactory booleanFactory) {
 		this.numberFactory = numberFactory;
 		this.objectFactory = objectFactory;
@@ -321,102 +314,84 @@ public class CommonIdealFactory implements IdealFactory {
 	/**
 	 * Returns a {@link Constant} of real type with value the given integer.
 	 * 
-	 * @param value
-	 *            any Java <code>int</code>
+	 * @param value any Java <code>int</code>
 	 * @return a real {@link Constant} wrapping that value
 	 */
 	private Constant realConstant(int value) {
 		if (value == 1)
 			return oneReal;
 		return objectFactory.canonic(new NTConstant(realType,
-				objectFactory.numberObject(numberFactory
-						.integerToRational(numberFactory.integer(value)))));
+				objectFactory.numberObject(numberFactory.integerToRational(numberFactory.integer(value)))));
 	}
 
 	/**
 	 * Returns a {@link Constant} wrapping the given number object. The constant
-	 * will have either integer or real type, depending on the kind of the
-	 * number object.
+	 * will have either integer or real type, depending on the kind of the number
+	 * object.
 	 * 
-	 * @param object
-	 *            any number object
+	 * @param object any number object
 	 * @return an instance of {@link Constant} corresponding to that number
 	 */
 	private Constant constant(NumberObject object) {
 		if (object.isOne())
 			return object.isInteger() ? oneInt : oneReal;
-		return objectFactory.canonic(new NTConstant(
-				object.isInteger() ? integerType : realType, object));
+		return objectFactory.canonic(new NTConstant(object.isInteger() ? integerType : realType, object));
 	}
 
 	/**
 	 * Negates a constant <i>c</i>.
 	 * 
-	 * @param constant
-	 *            a non-<code>null</code> instance of {@link Constant}
+	 * @param constant a non-<code>null</code> instance of {@link Constant}
 	 * @return -<i>c</i>
 	 */
 	private Constant negate(Constant constant) {
-		return constant(objectFactory
-				.numberObject(numberFactory.negate(constant.number())));
+		return constant(objectFactory.numberObject(numberFactory.negate(constant.number())));
 	}
 
 	/**
 	 * Multiplies two constants.
 	 * 
-	 * @param c1
-	 *            a non-<code>null</code> instance of {@link Constant}
-	 * @param c2
-	 *            a non-<code>null</code> instance of {@link Constant} of the
-	 *            same type as <code>c1</code>
+	 * @param c1 a non-<code>null</code> instance of {@link Constant}
+	 * @param c2 a non-<code>null</code> instance of {@link Constant} of the same
+	 *           type as <code>c1</code>
 	 * @return the product c1*c2
 	 */
 	private Constant multiplyConstants(Constant c1, Constant c2) {
-		return constant(objectFactory.numberObject(
-				numberFactory.multiply(c1.number(), c2.number())));
+		return constant(objectFactory.numberObject(numberFactory.multiply(c1.number(), c2.number())));
 	}
 
 	/**
-	 * Divides two constants. The constants must have the same type. If the type
-	 * is integer, integer division is performed.
+	 * Divides two constants. The constants must have the same type. If the type is
+	 * integer, integer division is performed.
 	 * 
-	 * @param c1
-	 *            a constant
-	 * @param c2
-	 *            a constant of the same type as c1
+	 * @param c1 a constant
+	 * @param c2 a constant of the same type as c1
 	 * @return the constant c1/c2
 	 */
 	private Constant divideConstants(Constant c1, Constant c2) {
-		return constant(objectFactory
-				.numberObject(numberFactory.divide(c1.number(), c2.number())));
+		return constant(objectFactory.numberObject(numberFactory.divide(c1.number(), c2.number())));
 	}
 
 	/**
 	 * Performs integer division of two integer constants.
 	 * 
-	 * @param c1
-	 *            a non-<code>null</code> constant of integer type
-	 * @param c2
-	 *            a non-<code>null</code> non-0 constant of integer type
+	 * @param c1 a non-<code>null</code> constant of integer type
+	 * @param c2 a non-<code>null</code> non-0 constant of integer type
 	 * @return the result of integer division c1/c2
 	 */
 	private Constant intDivideConstants(Constant c1, Constant c2) {
-		return constant(numberFactory.divide((IntegerNumber) c1.number(),
-				(IntegerNumber) c2.number()));
+		return constant(numberFactory.divide((IntegerNumber) c1.number(), (IntegerNumber) c2.number()));
 	}
 
 	/**
 	 * Computes the integer modulus of two integer constants.
 	 * 
-	 * @param c1
-	 *            a non-<code>null</code> constant of integer type
-	 * @param c2
-	 *            a non-<code>null</code> non-0 constant of integer type
+	 * @param c1 a non-<code>null</code> constant of integer type
+	 * @param c2 a non-<code>null</code> non-0 constant of integer type
 	 * @return the result of integer modulus c1%c2
 	 */
 	private Constant intModuloConstants(Constant c1, Constant c2) {
-		return constant(numberFactory.mod((IntegerNumber) c1.number(),
-				(IntegerNumber) c2.number()));
+		return constant(numberFactory.mod((IntegerNumber) c1.number(), (IntegerNumber) c2.number()));
 	}
 
 	// Primitives...
@@ -426,19 +401,15 @@ public class CommonIdealFactory implements IdealFactory {
 	/**
 	 * Constructs a non-trivial primitive power with given base and exponent.
 	 * 
-	 * @param primitive
-	 *            a non-<code>null</code> instance of {@link Primitive} which
-	 *            will be the base in the new primitive power expression
-	 * @param exponent
-	 *            the exponent in the new expression, which must be a
-	 *            {@link NumberObject} representing an integer which is greater
-	 *            than or equal to 2
+	 * @param primitive a non-<code>null</code> instance of {@link Primitive} which
+	 *                  will be the base in the new primitive power expression
+	 * @param exponent  the exponent in the new expression, which must be a
+	 *                  {@link NumberObject} representing an integer which is
+	 *                  greater than or equal to 2
 	 * @return the non-trivial primitive power as specified
 	 */
-	private NTPrimitivePower ntPrimitivePower(Primitive primitive,
-			NumberObject exponent) {
-		NTPrimitivePower result = objectFactory
-				.canonic(new NTPrimitivePower(primitive, exponent));
+	private NTPrimitivePower ntPrimitivePower(Primitive primitive, NumberObject exponent) {
+		NTPrimitivePower result = objectFactory.canonic(new NTPrimitivePower(primitive, exponent));
 
 		comparator.insertMonic(result);
 		return result;
@@ -449,12 +420,10 @@ public class CommonIdealFactory implements IdealFactory {
 	/**
 	 * Constructs a non-trivial monic.
 	 * 
-	 * @param type
-	 *            either the integer or the real type
-	 * @param factorSet
-	 *            a monic map with at least two entries; this maps a primitive
-	 *            to a power of that primitive; all keys and values must have
-	 *            type consistent with <code>type</code>
+	 * @param type      either the integer or the real type
+	 * @param factorSet a monic map with at least two entries; this maps a primitive
+	 *                  to a power of that primitive; all keys and values must have
+	 *                  type consistent with <code>type</code>
 	 * @return the monic which represents the product of the values of the
 	 *         <code>monicMap</code>
 	 */
@@ -468,17 +437,14 @@ public class CommonIdealFactory implements IdealFactory {
 	/**
 	 * Multiplies two {@link Monic}s.
 	 * 
-	 * @param monic1
-	 *            a non-<code>null</code> {@link Monic}
-	 * @param monic2
-	 *            a non-<code>null</code> {@link Monic} of the same type as
-	 *            <code>monic1</code>
+	 * @param monic1 a non-<code>null</code> {@link Monic}
+	 * @param monic2 a non-<code>null</code> {@link Monic} of the same type as
+	 *               <code>monic1</code>
 	 * @return the product of the two monics
 	 */
 	private Monic multiplyMonics(Monic monic1, Monic monic2) {
 		return monic(monic1.type(),
-				monicFactory.combine(primitivePowerMultiplier,
-						monic1.monicFactors(this), monic2.monicFactors(this)));
+				monicFactory.combine(primitivePowerMultiplier, monic1.monicFactors(this), monic2.monicFactors(this)));
 	}
 
 	/**
@@ -487,16 +453,13 @@ public class CommonIdealFactory implements IdealFactory {
 	 * primitives in common. This implementation of extract commonality uses no
 	 * comparisons. Only hashing and equality are used.
 	 * 
-	 * @param monic1
-	 *            a non-<code>null</code> monic
-	 * @param monic2
-	 *            a monic of same type as <code>m1</code>
+	 * @param monic1 a non-<code>null</code> monic
+	 * @param monic2 a monic of same type as <code>m1</code>
 	 * @return array of length 3 consisting of p, g1, and g2, in that order
 	 */
 	private Monic[] extractCommonality_noCompare(Monic monic1, Monic monic2) {
 		SymbolicType type = monic1.type();
-		PrimitivePower[] set1 = monic1.monicFactors(this),
-				set2 = monic2.monicFactors(this);
+		PrimitivePower[] set1 = monic1.monicFactors(this), set2 = monic2.monicFactors(this);
 		List<PrimitivePower> newList1 = new LinkedList<>();
 		List<PrimitivePower> newList2 = new LinkedList<>();
 		List<PrimitivePower> common = new LinkedList<>();
@@ -531,12 +494,10 @@ public class CommonIdealFactory implements IdealFactory {
 					common.add(ppower1);
 				} else if (signum > 0) {
 					common.add(ppower1);
-					newList2.add(primitivePower(base,
-							objectFactory.numberObject(delta)));
+					newList2.add(primitivePower(base, objectFactory.numberObject(delta)));
 				} else {
 					common.add(ppower2);
-					newList1.add(primitivePower(base, objectFactory
-							.numberObject(numberFactory.negate(delta))));
+					newList1.add(primitivePower(base, objectFactory.numberObject(numberFactory.negate(delta))));
 				}
 			} else {
 				newList1.add(ppower1);
@@ -547,13 +508,11 @@ public class CommonIdealFactory implements IdealFactory {
 			index2++;
 		}
 
-		PrimitivePower[] array1 = newList1
-				.toArray(new PrimitivePower[newList1.size()]),
+		PrimitivePower[] array1 = newList1.toArray(new PrimitivePower[newList1.size()]),
 				array2 = newList2.toArray(new PrimitivePower[newList2.size()]),
 				arrayCommon = common.toArray(new PrimitivePower[common.size()]);
 
-		return new Monic[] { monic(type, arrayCommon), monic(type, array1),
-				monic(type, array2) };
+		return new Monic[] { monic(type, arrayCommon), monic(type, array1), monic(type, array2) };
 	}
 
 	/**
@@ -561,10 +520,8 @@ public class CommonIdealFactory implements IdealFactory {
 	 * computes the monic p such that: f1=p*g1, f2=p*g2, and g1 and g2 have no
 	 * primitives in common.
 	 * 
-	 * @param monic1
-	 *            a non-<code>null</code> monic
-	 * @param monic2
-	 *            a monic of same type as <code>m1</code>
+	 * @param monic1 a non-<code>null</code> monic
+	 * @param monic2 a monic of same type as <code>m1</code>
 	 * @return array of length 3 consisting of p, g1, and g2, in that order
 	 */
 	private Monic[] extractCommonality(Monic monic1, Monic monic2) {
@@ -588,8 +545,7 @@ public class CommonIdealFactory implements IdealFactory {
 			return extractCommonality_noCompare(monic1, monic2);
 
 		SymbolicType type = monic1.type();
-		PrimitivePower[] set1 = monic1.monicFactors(this),
-				set2 = monic2.monicFactors(this),
+		PrimitivePower[] set1 = monic1.monicFactors(this), set2 = monic2.monicFactors(this),
 				common = monicFactory.emptySet();
 		PrimitivePower[] newSet1 = set1, newSet2 = set2;
 
@@ -602,41 +558,32 @@ public class CommonIdealFactory implements IdealFactory {
 				NumberObject exponent2 = ppower2.primitivePowerExponent(this);
 				Number exp1Num = exponent1.getNumber();
 				Number exp2Num = exponent2.getNumber();
-				NumberObject minExponent = exp1Num
-						.numericalCompareTo(exp2Num) <= 0 ? exponent1
-								: exponent2;
-				NumberObject newExponent1 = objectFactory
-						.numberObject(numberFactory.subtract(exp1Num, exp2Num));
-				NumberObject newExponent2 = objectFactory
-						.numberObject(numberFactory.subtract(exp2Num, exp1Num));
+				NumberObject minExponent = exp1Num.numericalCompareTo(exp2Num) <= 0 ? exponent1 : exponent2;
+				NumberObject newExponent1 = objectFactory.numberObject(numberFactory.subtract(exp1Num, exp2Num));
+				NumberObject newExponent2 = objectFactory.numberObject(numberFactory.subtract(exp2Num, exp1Num));
 
-				common = monicFactory.put(common,
-						primitivePower(base, minExponent));
+				common = monicFactory.put(common, primitivePower(base, minExponent));
 				if (newExponent1.getNumber().signum() > 0)
-					newSet1 = monicFactory.put(newSet1,
-							primitivePower(base, newExponent1));
+					newSet1 = monicFactory.put(newSet1, primitivePower(base, newExponent1));
 				else
 					newSet1 = monicFactory.removeKey(newSet1, base);
 				if (newExponent2.getNumber().signum() > 0)
-					newSet2 = monicFactory.put(newSet2,
-							primitivePower(base, newExponent2));
+					newSet2 = monicFactory.put(newSet2, primitivePower(base, newExponent2));
 				else
 					newSet2 = monicFactory.removeKey(newSet2, base);
 			}
 		}
-		return new Monic[] { monic(type, common), monic(type, newSet1),
-				monic(type, newSet2) };
+		return new Monic[] { monic(type, common), monic(type, newSet1), monic(type, newSet2) };
 	}
 
 	/**
 	 * Extracts a common divisor from a nonempty sequence of {@link Monic}s and
-	 * modifies the array of monics by replacing each entry with the quotient of
-	 * the original entry with the common divisor.
+	 * modifies the array of monics by replacing each entry with the quotient of the
+	 * original entry with the common divisor.
 	 * 
 	 * This implementation optimized to avoid using comparisons.
 	 * 
-	 * @param monics
-	 *            non-empty array of {@link Monic}s which all have the same type
+	 * @param monics non-empty array of {@link Monic}s which all have the same type
 	 * @return the common divisor
 	 * 
 	 * @see {@link #extractCommonality(Monic, Monic)}
@@ -707,17 +654,14 @@ public class CommonIdealFactory implements IdealFactory {
 				Number diff0 = numberFactory.subtract(exp0.getNumber(), minNum);
 
 				if (!diff0.isZero())
-					newLists[0].add(primitivePower(p0,
-							objectFactory.numberObject(diff0)));
+					newLists[0].add(primitivePower(p0, objectFactory.numberObject(diff0)));
 				for (int i = 1; i < numMonics; i++) {
 					if (mark[i]) {
-						Number oldExp = oldLists[i][indexes[i] - 1]
-								.primitivePowerExponent(this).getNumber();
+						Number oldExp = oldLists[i][indexes[i] - 1].primitivePowerExponent(this).getNumber();
 						Number diff = numberFactory.subtract(oldExp, minNum);
 
 						if (!diff.isZero())
-							newLists[i].add(primitivePower(p0,
-									objectFactory.numberObject(diff)));
+							newLists[i].add(primitivePower(p0, objectFactory.numberObject(diff)));
 					}
 				}
 			}
@@ -737,25 +681,22 @@ public class CommonIdealFactory implements IdealFactory {
 		// form new Monics...
 		for (int i = 0; i < numMonics; i++) {
 			List<PrimitivePower> newList = newLists[i];
-			PrimitivePower[] newArray = newList
-					.toArray(new PrimitivePower[newList.size()]);
+			PrimitivePower[] newArray = newList.toArray(new PrimitivePower[newList.size()]);
 
 			monics[i] = monic(type, newArray);
 		}
 
-		Monic result = monic(type,
-				commonList.toArray(new PrimitivePower[commonList.size()]));
+		Monic result = monic(type, commonList.toArray(new PrimitivePower[commonList.size()]));
 
 		return result;
 	}
 
 	/**
 	 * Extracts a common divisor from a nonempty sequence of {@link Monic}s and
-	 * modifies the array of monics by replacing each entry with the quotient of
-	 * the original entry with the common divisor.
+	 * modifies the array of monics by replacing each entry with the quotient of the
+	 * original entry with the common divisor.
 	 * 
-	 * @param monics
-	 *            non-empty array of {@link Monic}s which all have the same type
+	 * @param monics non-empty array of {@link Monic}s which all have the same type
 	 * @return the common divisor
 	 * 
 	 * @see {@link #extractCommonality(Monic, Monic)}
@@ -773,8 +714,7 @@ public class CommonIdealFactory implements IdealFactory {
 			factorSets[i] = monics[i].monicFactors(this);
 		for (PrimitivePower pp0 : factorSets[0]) {
 			Primitive primitive = pp0.primitive(this);
-			IntegerNumber min = (IntegerNumber) pp0.primitivePowerExponent(this)
-					.getNumber();
+			IntegerNumber min = (IntegerNumber) pp0.primitivePowerExponent(this).getNumber();
 
 			assert min.numericalCompareTo(numberFactory.oneInteger()) >= 0;
 			for (int i = 1; i < length; i++) {
@@ -785,30 +725,25 @@ public class CommonIdealFactory implements IdealFactory {
 					break;
 				}
 
-				IntegerNumber exponent = (IntegerNumber) pp1
-						.primitivePowerExponent(this).getNumber();
+				IntegerNumber exponent = (IntegerNumber) pp1.primitivePowerExponent(this).getNumber();
 
 				if (exponent.numericalCompareTo(min) < 0)
 					min = exponent;
 			}
 			if (min.isZero())
 				continue;
-			common = monicFactory.put(common,
-					primitivePower(primitive, objectFactory.numberObject(min)));
+			common = monicFactory.put(common, primitivePower(primitive, objectFactory.numberObject(min)));
 			for (int i = 0; i < length; i++) {
 				PrimitivePower[] set = factorSets[i];
 				PrimitivePower pp1 = monicFactory.get(set, primitive);
-				IntegerNumber exponent = (IntegerNumber) pp1
-						.primitivePowerExponent(this).getNumber();
-				IntegerNumber newExponent = numberFactory.subtract(exponent,
-						min);
+				IntegerNumber exponent = (IntegerNumber) pp1.primitivePowerExponent(this).getNumber();
+				IntegerNumber newExponent = numberFactory.subtract(exponent, min);
 
 				if (newExponent.isZero())
 					factorSets[i] = monicFactory.removeKey(set, primitive);
 				else
 					factorSets[i] = monicFactory.put(set,
-							primitivePower(primitive,
-									objectFactory.numberObject(newExponent)));
+							primitivePower(primitive, objectFactory.numberObject(newExponent)));
 			}
 			for (int i = 0; i < length; i++)
 				monics[i] = monic(type, factorSets[i]);
@@ -821,10 +756,8 @@ public class CommonIdealFactory implements IdealFactory {
 	/**
 	 * Constructs an instance of {@link NTMonomial}, a non-trivial monomial.
 	 * 
-	 * @param constant
-	 *            a {@link Constant} which is neither 0 nor 1
-	 * @param monic
-	 *            a non-empty {@link Monic} (i.e., not 1)
+	 * @param constant a {@link Constant} which is neither 0 nor 1
+	 * @param monic    a non-empty {@link Monic} (i.e., not 1)
 	 * @return new instance of {@link NTMonomial} as specified
 	 */
 	private NTMonomial ntMonomial(Constant constant, Monic monic) {
@@ -832,49 +765,40 @@ public class CommonIdealFactory implements IdealFactory {
 	}
 
 	/**
-	 * Divides the monomial by the non-zero constant. The monomial and constant
-	 * must have the same type. If type is integer, integer division is
-	 * performed on the coefficient.
+	 * Divides the monomial by the non-zero constant. The monomial and constant must
+	 * have the same type. If type is integer, integer division is performed on the
+	 * coefficient.
 	 * 
-	 * @param monomial
-	 *            a monomial
-	 * @param constant
-	 *            a non-zero constant
+	 * @param monomial a monomial
+	 * @param constant a non-zero constant
 	 * @return the quotient monomial/constant
 	 */
-	private Monomial divideMonomialConstant(Monomial monomial,
-			Constant constant) {
-		return monomial(
-				divideConstants(monomial.monomialConstant(this), constant),
-				monomial.monic(this));
+	private Monomial divideMonomialConstant(Monomial monomial, Constant constant) {
+		return monomial(divideConstants(monomial.monomialConstant(this), constant), monomial.monic(this));
 	}
 
 	/**
-	 * Given two {@link Monomial}s <code>m1</code> and <code>m2</code>, this
-	 * returns an array of length 3 containing 3 {@link Monomial}s a, g1, g2 (in
-	 * that order), satisfying m1=a*g1, m2=a*g2, g1 and g2 have no factors in
-	 * common, and a is a {@link Monic}.
+	 * Given two {@link Monomial}s <code>m1</code> and <code>m2</code>, this returns
+	 * an array of length 3 containing 3 {@link Monomial}s a, g1, g2 (in that
+	 * order), satisfying m1=a*g1, m2=a*g2, g1 and g2 have no factors in common, and
+	 * a is a {@link Monic}.
 	 * 
-	 * @param m1
-	 *            a non-<code>null</code> {@link Monomial}
-	 * @param m2
-	 *            a non-<code>null</code> {@link Monomial} of the same type as
-	 *            <code>m1</code>
+	 * @param m1 a non-<code>null</code> {@link Monomial}
+	 * @param m2 a non-<code>null</code> {@link Monomial} of the same type as
+	 *           <code>m1</code>
 	 * @return the array {a,g1,g2}
 	 */
 	private Monomial[] extractCommonality(Monomial m1, Monomial m2) {
-		Monic[] monicTriple = extractCommonality(m1.monic(this),
-				m2.monic(this));
+		Monic[] monicTriple = extractCommonality(m1.monic(this), m2.monic(this));
 
-		return new Monomial[] { monicTriple[0],
-				monomial(m1.monomialConstant(this), monicTriple[1]),
+		return new Monomial[] { monicTriple[0], monomial(m1.monomialConstant(this), monicTriple[1]),
 				monomial(m2.monomialConstant(this), monicTriple[2]) };
 	}
 
 	/**
-	 * Given two non-zero {@link Monomial}s m1 and m2 of integer type, factor
-	 * out common factors, including a positive constant. Returns a triple
-	 * (r,q1,q2) of {@link Monomial}s such that:
+	 * Given two non-zero {@link Monomial}s m1 and m2 of integer type, factor out
+	 * common factors, including a positive constant. Returns a triple (r,q1,q2) of
+	 * {@link Monomial}s such that:
 	 * 
 	 * <ul>
 	 * <li>m1=r*q1 and m2=r*q2</li>
@@ -887,10 +811,8 @@ public class CommonIdealFactory implements IdealFactory {
 	 * This is used in integer division and modulus operations. For integer
 	 * division: m1/m2 = q1/q2. For modulus: m1%m2 = r*(q1%q2).
 	 * 
-	 * @param m1
-	 *            a non-0 {@link Monomial} of integer type
-	 * @param m2
-	 *            a non-0 {@link Monomial} of integer type
+	 * @param m1 a non-0 {@link Monomial} of integer type
+	 * @param m2 a non-0 {@link Monomial} of integer type
 	 * @return the triple (r,q1,q2) described above
 	 */
 	private Monomial[] intFactor(Monomial m1, Monomial m2) {
@@ -907,10 +829,8 @@ public class CommonIdealFactory implements IdealFactory {
 			q2 = triple[2];
 			r = triple[0];
 		}
-		c1 = (IntegerNumber) numberFactory
-				.abs(m1.monomialConstant(this).number());
-		c2 = (IntegerNumber) numberFactory
-				.abs(m2.monomialConstant(this).number());
+		c1 = (IntegerNumber) numberFactory.abs(m1.monomialConstant(this).number());
+		c2 = (IntegerNumber) numberFactory.abs(m2.monomialConstant(this).number());
 		if (!c1.isOne() && !c2.isOne()) {
 			IntegerNumber gcd = numberFactory.gcd(c1, c2);
 
@@ -945,21 +865,17 @@ public class CommonIdealFactory implements IdealFactory {
 	 * Example : (2u)%2 = (u%1)2 = 0.
 	 * </p>
 	 * 
-	 * @param numerator
-	 *            an integer monomial assumed to be nonnegative
-	 * @param denominator
-	 *            an integer monomial assumed to be positive
+	 * @param numerator   an integer monomial assumed to be nonnegative
+	 * @param denominator an integer monomial assumed to be positive
 	 * @return the monomial representing numerator%denominator
 	 */
-	private Monomial intModulusMonomials(Monomial numerator,
-			Monomial denominator) {
+	private Monomial intModulusMonomials(Monomial numerator, Monomial denominator) {
 		if (numerator.isZero())
 			return numerator;
 		if (denominator.isOne())
 			return zeroInt;
 		if (numerator instanceof Constant && denominator instanceof Constant)
-			return intModuloConstants((Constant) numerator,
-					(Constant) denominator);
+			return intModuloConstants((Constant) numerator, (Constant) denominator);
 		else {
 			Monomial[] triple = intFactor(numerator, denominator);
 
@@ -967,32 +883,25 @@ public class CommonIdealFactory implements IdealFactory {
 			denominator = triple[2];
 			if (denominator.isOne())
 				return zeroInt;
-			if (numerator instanceof Constant
-					&& denominator instanceof Constant)
-				return multiplyConstantMonomial(
-						intModuloConstants((Constant) numerator,
-								(Constant) denominator),
+			if (numerator instanceof Constant && denominator instanceof Constant)
+				return multiplyConstantMonomial(intModuloConstants((Constant) numerator, (Constant) denominator),
 						triple[0]);
 			else
 				return multiplyMonomials(triple[0],
-						expression(SymbolicOperator.MODULO, integerType,
-								numerator, denominator));
+						expression(SymbolicOperator.MODULO, integerType, numerator, denominator));
 		}
 	}
 
 	/**
 	 * Divides two {@link Monomial}s of real type. Result is a
-	 * {@link RationalExpression}. Simplifications are performed by canceling
-	 * common factors as possible.
+	 * {@link RationalExpression}. Simplifications are performed by canceling common
+	 * factors as possible.
 	 * 
-	 * @param numerator
-	 *            a non-<code>null</code> monomial of real type
-	 * @param denominator
-	 *            a non-<code>null</code> non-0 monomial of real type
+	 * @param numerator   a non-<code>null</code> monomial of real type
+	 * @param denominator a non-<code>null</code> non-0 monomial of real type
 	 * @return numerator/denominator
 	 */
-	private RationalExpression divideRealMonomials(Monomial numerator,
-			Monomial denominator) {
+	private RationalExpression divideRealMonomials(Monomial numerator, Monomial denominator) {
 		assert numerator.type().isReal();
 		assert denominator.type().isReal();
 		if (numerator.isZero())
@@ -1010,8 +919,7 @@ public class CommonIdealFactory implements IdealFactory {
 			Constant denomConstant = denominator.monomialConstant(this);
 
 			if (!denomConstant.isOne()) {
-				denominator = divideMonomialConstant(denominator,
-						denomConstant);
+				denominator = divideMonomialConstant(denominator, denomConstant);
 				numerator = divideMonomialConstant(numerator, denomConstant);
 			}
 			if (denominator.isOne())
@@ -1023,11 +931,9 @@ public class CommonIdealFactory implements IdealFactory {
 	/**
 	 * Given a {@link Monomial} <i>m</i>, returns an expression equivalent to
 	 * <i>m</i>&gt;0. Basic simplifications are performed, e.g., if
-	 * <code>monomial</code> is concrete, a concrete boolean expression is
-	 * returned.
+	 * <code>monomial</code> is concrete, a concrete boolean expression is returned.
 	 * 
-	 * @param monomial
-	 *            a non-<code>null</code> {@link Monomial}
+	 * @param monomial a non-<code>null</code> {@link Monomial}
 	 * @return an expression equivalent to <code>monomial&gt;0</code>
 	 */
 	private BooleanExpression isPositive(Monomial monomial) {
@@ -1041,13 +947,11 @@ public class CommonIdealFactory implements IdealFactory {
 		Monic monic = monomial.monic(this);
 		int signum = monomial.monomialConstant(this).number().signum();
 		PrimitivePower[] factors = monic.monicFactors(this);
-		List<Primitive> positives = new LinkedList<>(),
-				nonzeros = new LinkedList<>();
+		List<Primitive> positives = new LinkedList<>(), nonzeros = new LinkedList<>();
 
 		for (PrimitivePower primitivePower : factors) {
 			Primitive primitive = primitivePower.primitive(this);
-			IntegerNumber exponent = (IntegerNumber) primitivePower
-					.primitivePowerExponent(this).getNumber();
+			IntegerNumber exponent = (IntegerNumber) primitivePower.primitivePowerExponent(this).getNumber();
 
 			if (numberFactory.mod(exponent, intNumTwo).isZero())
 				nonzeros.add(primitive);
@@ -1063,27 +967,21 @@ public class CommonIdealFactory implements IdealFactory {
 				return falseExpr;
 			result = trueExpr;
 		} else {
-			PrimitivePower[] reducedEntries = positives
-					.toArray(new PrimitivePower[numPositives]);
+			PrimitivePower[] reducedEntries = positives.toArray(new PrimitivePower[numPositives]);
 			Monic reducedMonic = monic(type, reducedEntries);
 
 			if (type.isInteger()) {
 				// 0<reducedMonic <=> 0<=reducedMonic-1
 				// reducedMonic<0 <=> reducedMonic+1<=0
-				result = signum > 0
-						? isNonnegative(addNoCommon(reducedMonic, negOneInt))
+				result = signum > 0 ? isNonnegative(addNoCommon(reducedMonic, negOneInt))
 						: isNonpositive(addNoCommon(reducedMonic, oneInt));
 			} else {
-				result = signum > 0
-						? booleanFactory.booleanExpression(
-								SymbolicOperator.LESS_THAN, zero, reducedMonic)
-						: booleanFactory.booleanExpression(
-								SymbolicOperator.LESS_THAN, reducedMonic, zero);
+				result = signum > 0 ? booleanFactory.booleanExpression(SymbolicOperator.LESS_THAN, zero, reducedMonic)
+						: booleanFactory.booleanExpression(SymbolicOperator.LESS_THAN, reducedMonic, zero);
 			}
 		}
 		for (Primitive p : nonzeros) {
-			result = booleanFactory.and(result, booleanFactory
-					.booleanExpression(SymbolicOperator.NEQ, zero, p));
+			result = booleanFactory.and(result, booleanFactory.booleanExpression(SymbolicOperator.NEQ, zero, p));
 		}
 		return result;
 	}
@@ -1091,11 +989,9 @@ public class CommonIdealFactory implements IdealFactory {
 	/**
 	 * Given a <code>monomial</code>, returns an expression equivalent to
 	 * <code>monomial&lt;0</code>. Basic simplifications are performed, e.g., if
-	 * <code>monomial</code> is concrete, a concrete boolean expression is
-	 * returned.
+	 * <code>monomial</code> is concrete, a concrete boolean expression is returned.
 	 * 
-	 * @param monomial
-	 *            a non-<code>null</code> {@link Monomial}
+	 * @param monomial a non-<code>null</code> {@link Monomial}
 	 * @return an expression equivalent to <code>polynomial&lt;0</code>
 	 */
 	private BooleanExpression isNegative(Monomial monomial) {
@@ -1110,8 +1006,7 @@ public class CommonIdealFactory implements IdealFactory {
 	 * Basic simplifications are performed, e.g., if <code>monomial</code> is
 	 * concrete, a concrete boolean expression is returned.
 	 * 
-	 * @param monomial
-	 *            a non-<code>null</code> {@link Monomial}
+	 * @param monomial a non-<code>null</code> {@link Monomial}
 	 * @return an expression equivalent to <<code>monomial&ge;0</code> or
 	 *         <code>monomial&le;0</code>
 	 */
@@ -1140,8 +1035,7 @@ public class CommonIdealFactory implements IdealFactory {
 		assert signum != 0;
 		for (PrimitivePower primitivePower : factors) {
 			Primitive p = primitivePower.primitive(this);
-			IntegerNumber exponent = (IntegerNumber) primitivePower
-					.primitivePowerExponent(this).getNumber();
+			IntegerNumber exponent = (IntegerNumber) primitivePower.primitivePowerExponent(this).getNumber();
 
 			if (numberFactory.mod(exponent, intNumTwo).isZero())
 				evens.add(p);
@@ -1157,21 +1051,14 @@ public class CommonIdealFactory implements IdealFactory {
 		BooleanExpression result = falseExpr;
 
 		for (Primitive p : evens)
-			result = booleanFactory.or(result, booleanFactory
-					.booleanExpression(SymbolicOperator.EQUALS, zero, p));
+			result = booleanFactory.or(result, booleanFactory.booleanExpression(SymbolicOperator.EQUALS, zero, p));
 		if (numOdds > 0) {
-			PrimitivePower[] reducedEntries = odds
-					.toArray(new PrimitivePower[numOdds]);
+			PrimitivePower[] reducedEntries = odds.toArray(new PrimitivePower[numOdds]);
 			Monic reducedMonic = monic(type, reducedEntries);
 
 			result = booleanFactory.or(result,
-					direction
-							? booleanFactory.booleanExpression(
-									SymbolicOperator.LESS_THAN_EQUALS, zero,
-									reducedMonic)
-							: booleanFactory.booleanExpression(
-									SymbolicOperator.LESS_THAN_EQUALS,
-									reducedMonic, zero));
+					direction ? booleanFactory.booleanExpression(SymbolicOperator.LESS_THAN_EQUALS, zero, reducedMonic)
+							: booleanFactory.booleanExpression(SymbolicOperator.LESS_THAN_EQUALS, reducedMonic, zero));
 		}
 		return result;
 	}
@@ -1179,11 +1066,9 @@ public class CommonIdealFactory implements IdealFactory {
 	/**
 	 * Given a <code>monomial</code>, returns an expression equivalent to
 	 * <code>0&le;monomial</code>. Basic simplifications are performed, e.g., if
-	 * <code>monomial</code> is concrete, a concrete boolean expression is
-	 * returned.
+	 * <code>monomial</code> is concrete, a concrete boolean expression is returned.
 	 * 
-	 * @param monomial
-	 *            a non-<code>null</code> {@link Monomial}
+	 * @param monomial a non-<code>null</code> {@link Monomial}
 	 * @return an expression equivalent to <code>0&le;monomial</code>
 	 */
 	private BooleanExpression isNonnegative(Monomial monomial) {
@@ -1193,8 +1078,7 @@ public class CommonIdealFactory implements IdealFactory {
 	/**
 	 * Computes an expression equivalent to <code>monomial</code> &le; 0.
 	 * 
-	 * @param monomial
-	 *            any non-<code>null</code> {@link Monomial}
+	 * @param monomial any non-<code>null</code> {@link Monomial}
 	 * @return an expression equivalent to <code>monomial</code> &le; 0
 	 */
 	private BooleanExpression isNonpositive(Monomial monomial) {
@@ -1205,11 +1089,9 @@ public class CommonIdealFactory implements IdealFactory {
 	 * Given two monomials <code>p1</code> and <code>p2</code>, returns an
 	 * expression equivalent to <code>p1&gt;0 && p2&gt;0</code>.
 	 * 
-	 * @param p1
-	 *            a non-<code>null</code> {@link Monomial}
-	 * @param p2
-	 *            a non-<code>null</code> {@link Monomial} of same type as
-	 *            <code>p1</code>
+	 * @param p1 a non-<code>null</code> {@link Monomial}
+	 * @param p2 a non-<code>null</code> {@link Monomial} of same type as
+	 *           <code>p1</code>
 	 * @return an expression equivalent to <code>p1&gt;0 && p2&gt;0</code>
 	 */
 	private BooleanExpression arePositive(Monomial p1, Monomial p2) {
@@ -1224,11 +1106,9 @@ public class CommonIdealFactory implements IdealFactory {
 	 * Given two polynomials <code>p1</code> and <code>p2</code>, returns an
 	 * expression equivalent to <code>p1&lt;0 && p2&lt;0</code>.
 	 * 
-	 * @param p1
-	 *            a non-<code>null</code> {@link Monomial}
-	 * @param p2
-	 *            a non-<code>null</code> {@link Monomial} of same type as
-	 *            <code>p1</code>
+	 * @param p1 a non-<code>null</code> {@link Monomial}
+	 * @param p2 a non-<code>null</code> {@link Monomial} of same type as
+	 *           <code>p1</code>
 	 * @return an expression equivalent to <code>p1&lt;0 && p2&lt;0</code>
 	 */
 	private BooleanExpression areNegative(Monomial p1, Monomial p2) {
@@ -1240,8 +1120,7 @@ public class CommonIdealFactory implements IdealFactory {
 	}
 
 	private Monomial addNoCommon(Monomial m1, Monomial m2) {
-		Monomial[] t1 = m1.termMap(this), t2 = m2.termMap(this),
-				t = addTermMaps(t1, t2);
+		Monomial[] t1 = m1.termMap(this), t2 = m2.termMap(this), t = addTermMaps(t1, t2);
 
 		if (t.length == 0)
 			return zero(m1.type());
@@ -1253,31 +1132,30 @@ public class CommonIdealFactory implements IdealFactory {
 
 	/**
 	 * <p>
-	 * Computes the constant that should be factored out of every term in a term
-	 * map in order to produce a polynomial in normal form. For integer type,
-	 * this is the GCD (greatest common divisor) of the absolute values of the
-	 * coefficients, multiplied by the sign of the leading coefficient. For real
-	 * type, it is just the coefficient of the leading term.
+	 * Computes the constant that should be factored out of every term in a term map
+	 * in order to produce a polynomial in normal form. For integer type, this is
+	 * the GCD (greatest common divisor) of the absolute values of the coefficients,
+	 * multiplied by the sign of the leading coefficient. For real type, it is just
+	 * the coefficient of the leading term.
 	 * </p>
 	 * 
 	 * <p>
-	 * Note that in any case, after dividing every term by the constant factor,
-	 * the leading term will have a positive coefficient. For real type, the
-	 * leading coefficient will be 1. For integer type, the GCD of the absolute
-	 * values of the coefficients will be 1.
+	 * Note that in any case, after dividing every term by the constant factor, the
+	 * leading term will have a positive coefficient. For real type, the leading
+	 * coefficient will be 1. For integer type, the GCD of the absolute values of
+	 * the coefficients will be 1.
 	 * </p>
 	 * 
 	 * <p>
 	 * Precondition: <code>termMap</code> is non-empty
 	 * </p>
 	 * 
-	 * @param terms
-	 *            a term map: a map from {@link Monic} to {@link Monomial} with
-	 *            the property that a {@link Monic} <i>m</i> maps to a
-	 *            {@link Monomial} of the form <i>c</i>*<i>m</i>, for some non-0
-	 *            {@link Constant} <i>c</i>
-	 * @return the constant that should be factored out of the entire term map
-	 *         in order to bring the term map into a normal form
+	 * @param terms a term map: a map from {@link Monic} to {@link Monomial} with
+	 *              the property that a {@link Monic} <i>m</i> maps to a
+	 *              {@link Monomial} of the form <i>c</i>*<i>m</i>, for some non-0
+	 *              {@link Constant} <i>c</i>
+	 * @return the constant that should be factored out of the entire term map in
+	 *         order to bring the term map into a normal form
 	 */
 	private Constant getConstantFactor(Monomial[] terms) {
 		int n = terms.length;
@@ -1287,41 +1165,33 @@ public class CommonIdealFactory implements IdealFactory {
 
 		if (type.isInteger()) {
 			Number leadingNumber = leadingConstant.number();
-			IntegerNumber gcd = (IntegerNumber) numberFactory
-					.abs(leadingNumber);
+			IntegerNumber gcd = (IntegerNumber) numberFactory.abs(leadingNumber);
 
 			for (int i = 1; i < n; i++) {
-				IntegerNumber coefficient = (IntegerNumber) terms[i]
-						.monomialConstant(this).number();
+				IntegerNumber coefficient = (IntegerNumber) terms[i].monomialConstant(this).number();
 
-				gcd = numberFactory.gcd(gcd,
-						(IntegerNumber) numberFactory.abs(coefficient));
+				gcd = numberFactory.gcd(gcd, (IntegerNumber) numberFactory.abs(coefficient));
 				if (gcd.isOne())
 					break;
 			}
-			return constant(
-					leadingNumber.signum() < 0 ? numberFactory.negate(gcd)
-							: gcd);
+			return constant(leadingNumber.signum() < 0 ? numberFactory.negate(gcd) : gcd);
 		} else {
 			return leadingConstant;
 		}
 	}
 
 	/**
-	 * Multiplies a monomial with every element in a term map, producing a new
-	 * term map. If the given term map is sorted using the
-	 * {@link #monicComparator}, so will the new one be.
+	 * Multiplies a monomial with every element in a term map, producing a new term
+	 * map. If the given term map is sorted using the {@link #monicComparator}, so
+	 * will the new one be.
 	 * 
-	 * @param monomial
-	 *            a non-zero monomial
-	 * @param terms
-	 *            a term map: map from Monic to Monomial such that each monic m
-	 *            is mapped to a non-zero constant times m
-	 * @return the term map obtained by multiplying the monic by every element
-	 *         of the given term map
+	 * @param monomial a non-zero monomial
+	 * @param terms    a term map: map from Monic to Monomial such that each monic m
+	 *                 is mapped to a non-zero constant times m
+	 * @return the term map obtained by multiplying the monic by every element of
+	 *         the given term map
 	 */
-	private Monomial[] multiplyMonomialTermMap(Monomial monomial,
-			Monomial[] terms) {
+	private Monomial[] multiplyMonomialTermMap(Monomial monomial, Monomial[] terms) {
 		Number number = monomial.monomialConstant(this).number();
 		Monic monic = monomial.monic(this);
 		int n = terms.length;
@@ -1329,8 +1199,7 @@ public class CommonIdealFactory implements IdealFactory {
 
 		for (int i = 0; i < n; i++) {
 			Monomial term = terms[i];
-			Number newNumber = numberFactory.multiply(number,
-					term.monomialConstant(this).number());
+			Number newNumber = numberFactory.multiply(number, term.monomialConstant(this).number());
 			Monic newMonic = multiplyMonics(monic, term.monic(this));
 
 			newTerms[i] = monomial(constant(newNumber), newMonic);
@@ -1343,10 +1212,8 @@ public class CommonIdealFactory implements IdealFactory {
 	 * {@link #multiplyMonomialTermMap(Monomial, SymbolicMap)} and
 	 * {@link #add(SymbolicMap, SymbolicMap)}.
 	 * 
-	 * @param terms1
-	 *            a non-empty term map
-	 * @param terms2
-	 *            a non-empty term map of same type
+	 * @param terms1 a non-empty term map
+	 * @param terms2 a non-empty term map of same type
 	 * @return result of multiplying the two term maps
 	 */
 	private Monomial[] multiplyTermMaps2(Monomial[] terms1, Monomial[] terms2) {
@@ -1365,8 +1232,8 @@ public class CommonIdealFactory implements IdealFactory {
 	/**
 	 * <p>
 	 * Adds two rational expressions. The factorizations are used so that in the
-	 * resulting rational expression, the numerator and denominator have not
-	 * common factors.
+	 * resulting rational expression, the numerator and denominator have not common
+	 * factors.
 	 * </p>
 	 * 
 	 * <p>
@@ -1374,21 +1241,17 @@ public class CommonIdealFactory implements IdealFactory {
 	 * Then result = (a1*(b2/d)+a2*(b1/d))/(b1*b2/d)
 	 * </p>
 	 * 
-	 * @param r1
-	 *            a non-<code>null</code> rational expression
-	 * @param r2
-	 *            a non-<code>null</code> rational expression of the same type
-	 *            as <code>r1</code>
+	 * @param r1 a non-<code>null</code> rational expression
+	 * @param r2 a non-<code>null</code> rational expression of the same type as
+	 *           <code>r1</code>
 	 * @return the sum r1+r2
 	 */
-	private RationalExpression addRational(RationalExpression r1,
-			RationalExpression r2) {
+	private RationalExpression addRational(RationalExpression r1, RationalExpression r2) {
 		Monomial a1 = r1.numerator(this), a2 = r2.numerator(this);
 		Monomial b1 = r1.denominator(this), b2 = r2.denominator(this);
 		Monomial[] triple = extractCommonality(b1, b2);
 		Monomial b1divgcd = triple[1], b2divgcd = triple[2];
-		Monomial numerator = addMonomials(multiplyMonomials(a1, b2divgcd),
-				multiplyMonomials(a2, b1divgcd));
+		Monomial numerator = addMonomials(multiplyMonomials(a1, b2divgcd), multiplyMonomials(a2, b1divgcd));
 		Monomial denominator = multiplyMonomials(b1, b2divgcd);
 
 		return divideRealMonomials(numerator, denominator);
@@ -1405,15 +1268,12 @@ public class CommonIdealFactory implements IdealFactory {
 	/**
 	 * Multiplies two rational expressions.
 	 * 
-	 * @param r1
-	 *            a non-<code>null</code> {@link RationalExpression}
-	 * @param r2
-	 *            a non-<code>null</code> {@link RationalExpression} of the same
-	 *            type as <code>r1</code>
+	 * @param r1 a non-<code>null</code> {@link RationalExpression}
+	 * @param r2 a non-<code>null</code> {@link RationalExpression} of the same type
+	 *           as <code>r1</code>
 	 * @return the product of <code>r1</code> and <code>r2</code>
 	 */
-	private RationalExpression multiplyRational(RationalExpression r1,
-			RationalExpression r2) {
+	private RationalExpression multiplyRational(RationalExpression r1, RationalExpression r2) {
 		// (n1/d1)*(n2/d2)
 		if (r1.isZero())
 			return r1;
@@ -1423,17 +1283,15 @@ public class CommonIdealFactory implements IdealFactory {
 			return r2;
 		if (r2.isOne())
 			return r1;
-		return divideRealMonomials(
-				multiplyMonomials(r1.numerator(this), r2.numerator(this)),
+		return divideRealMonomials(multiplyMonomials(r1.numerator(this), r2.numerator(this)),
 				multiplyMonomials(r1.denominator(this), r2.denominator(this)));
 	}
 
 	/**
-	 * Returns 1/r, where r is a rational expression (which must necessarily
-	 * have real type).
+	 * Returns 1/r, where r is a rational expression (which must necessarily have
+	 * real type).
 	 * 
-	 * @param r
-	 *            a rational expression
+	 * @param r a rational expression
 	 * @return 1/r
 	 */
 	private RationalExpression invert(RationalExpression r) {
@@ -1445,29 +1303,24 @@ public class CommonIdealFactory implements IdealFactory {
 	 * 
 	 * Precondition: type is real.
 	 * 
-	 * @param r1
-	 *            a rational expression of real type
-	 * @param r2
-	 *            a rational expression of real type
+	 * @param r1 a rational expression of real type
+	 * @param r2 a rational expression of real type
 	 * @return r1/r2 as rational expression
 	 */
-	private RationalExpression divideRationals(RationalExpression r1,
-			RationalExpression r2) {
+	private RationalExpression divideRationals(RationalExpression r1, RationalExpression r2) {
 		assert r1.type().isReal();
 		return multiplyRational(r1, invert(r2));
 	}
 
 	/**
-	 * Negates a rational expression, i.e., given a rational expression p/q,
-	 * returns the rational expression -p/q.
+	 * Negates a rational expression, i.e., given a rational expression p/q, returns
+	 * the rational expression -p/q.
 	 * 
-	 * @param rational
-	 *            a non-<code>null</code> {@link RationalExpression}
+	 * @param rational a non-<code>null</code> {@link RationalExpression}
 	 * @return negation of that rational expression in normal form
 	 */
 	private RationalExpression negate(RationalExpression rational) {
-		return divideRealMonomials(negate(rational.numerator(this)),
-				rational.denominator(this));
+		return divideRealMonomials(negate(rational.numerator(this)), rational.denominator(this));
 	}
 
 	// General numeric expressions...
@@ -1476,11 +1329,10 @@ public class CommonIdealFactory implements IdealFactory {
 	 * Computes the sum of the results of casting the elements in a symbolic
 	 * collection to real..
 	 * 
-	 * @param args
-	 *            a non-<code>null</code> {@link SymbolicCollection} in which
-	 *            every element is an instance of
-	 * @return an expression equivalent to the result of summing the casts to
-	 *         real of the elements of the collection
+	 * @param args a non-<code>null</code> {@link SymbolicCollection} in which every
+	 *             element is an instance of
+	 * @return an expression equivalent to the result of summing the casts to real
+	 *         of the elements of the collection
 	 */
 	private NumericExpression addWithCast(Monomial[] args) {
 		int n = args.length;
@@ -1498,22 +1350,20 @@ public class CommonIdealFactory implements IdealFactory {
 
 	/**
 	 * Computes the product of the results of casting the elements in a symbolic
-	 * collection to real. The elements of the collection must all be instances
-	 * of {@link IdealExpression}.
+	 * collection to real. The elements of the collection must all be instances of
+	 * {@link IdealExpression}.
 	 * 
-	 * @param args
-	 *            a non-<code>null</code> {@link SymbolicCollection} in which
-	 *            every element is an instance of {@link IdealExpression}
-	 * @return an expression equivalent to the result of multiplying the casts
-	 *         to real of the elements of the collection
+	 * @param args a non-<code>null</code> {@link SymbolicCollection} in which every
+	 *             element is an instance of {@link IdealExpression}
+	 * @return an expression equivalent to the result of multiplying the casts to
+	 *         real of the elements of the collection
 	 */
 	private Monomial multiplyWithCast(Monomial[] args) {
 		int n = args.length;
 		Monomial result = null;
 
 		if (n == 0)
-			throw new IllegalArgumentException(
-					"Collection must contain at least one element");
+			throw new IllegalArgumentException("Collection must contain at least one element");
 		for (Monomial arg : args) {
 			if (result == null)
 				result = (Monomial) castToReal(arg);
@@ -1527,15 +1377,12 @@ public class CommonIdealFactory implements IdealFactory {
 	 * Computes result of raising <code>base</code> to the <code>exponent</code>
 	 * power.
 	 * 
-	 * @param base
-	 *            a non-<code>null</code> {@link IdealExpression}
+	 * @param base     a non-<code>null</code> {@link IdealExpression}
 	 * 
-	 * @param exponent
-	 *            the exponent, which must be positive
+	 * @param exponent the exponent, which must be positive
 	 * @return the result of raising base to the power exponent
 	 */
-	private RationalExpression powerNumericInteger(NumericExpression base,
-			IntegerNumber exponent) {
+	private RationalExpression powerNumericInteger(NumericExpression base, IntegerNumber exponent) {
 		// nothing can be done if exponent is larger than max int because
 		// the canonical form uses Java ints for exponents...
 		return ((RationalExpression) base).powerInt(this, exponent);
@@ -1551,15 +1398,12 @@ public class CommonIdealFactory implements IdealFactory {
 	 * <code>base</code> is not 0 or 1.
 	 * </p>
 	 *
-	 * @param base
-	 *            the base is the power operation
-	 * @param exponent
-	 *            the exponent in the power operation
+	 * @param base     the base is the power operation
+	 * @param exponent the exponent in the power operation
 	 * @return expression equivalent to raising <code>base</code> to the
 	 *         <code>exponent</code> power
 	 */
-	private RationalExpression powerGeneral(RationalExpression base,
-			RationalExpression exponent) {
+	private RationalExpression powerGeneral(RationalExpression base, RationalExpression exponent) {
 		IntegerNumber c1 = getConcreteExponent(exponent);
 
 		if (c1.isOne())
@@ -1568,8 +1412,7 @@ public class CommonIdealFactory implements IdealFactory {
 		// now c1 is not 1. It might be -1.
 
 		RationalExpression newExponent = divide(exponent,
-				constant(exponent.type().isInteger() ? c1
-						: numberFactory.integerToRational(c1)));
+				constant(exponent.type().isInteger() ? c1 : numberFactory.integerToRational(c1)));
 		RationalExpression result = base.powerRational(this, newExponent);
 		boolean invert;
 
@@ -1591,21 +1434,20 @@ public class CommonIdealFactory implements IdealFactory {
 
 	/**
 	 * <p>
-	 * Computes the result of casting any {@link IdealExpression} to real type.
-	 * If <code>numericExpression</code> already has real type, it is returned
-	 * as is. Otherwise, it has integer type, and the result depends on the
-	 * operator of the expression.
+	 * Computes the result of casting any {@link IdealExpression} to real type. If
+	 * <code>numericExpression</code> already has real type, it is returned as is.
+	 * Otherwise, it has integer type, and the result depends on the operator of the
+	 * expression.
 	 * </p>
 	 * 
 	 * <p>
-	 * For ideal arithmetic, casting commutes with most operations, i.e., cast(a
-	 * O p) = cast(a) O cast(p), for O=+,-,*. However, not integer division. Not
-	 * integer modulus. Primitives get a {@link SymbolicOperator#CAST} in front
-	 * of them. {@link Constant}s get cast by the {@link #numberFactory}.
+	 * For ideal arithmetic, casting commutes with most operations, i.e., cast(a O
+	 * p) = cast(a) O cast(p), for O=+,-,*. However, not integer division. Not
+	 * integer modulus. Primitives get a {@link SymbolicOperator#CAST} in front of
+	 * them. {@link Constant}s get cast by the {@link #numberFactory}.
 	 * </p>
 	 * 
-	 * @param numericExpression
-	 *            a non-<code>null</code> {@link IdealExpression}
+	 * @param numericExpression a non-<code>null</code> {@link IdealExpression}
 	 */
 	private NumericExpression castToReal(NumericExpression numericExpression) {
 		if (numericExpression.type().isReal())
@@ -1617,31 +1459,24 @@ public class CommonIdealFactory implements IdealFactory {
 		case ADD:
 			return addWithCast(((Polynomial) numericExpression).termMap(this));
 		case CONCRETE:
-			return constant(numberFactory
-					.rational(((NumberObject) numericExpression.argument(0))
-							.getNumber()));
+			return constant(numberFactory.rational(((NumberObject) numericExpression.argument(0)).getNumber()));
 		case COND:
 			return expression(operator, realType, numericExpression.argument(0),
-					castToReal(
-							(NumericExpression) numericExpression.argument(1)),
-					castToReal(
-							(NumericExpression) numericExpression.argument(2)));
+					castToReal((NumericExpression) numericExpression.argument(1)),
+					castToReal((NumericExpression) numericExpression.argument(2)));
 		case MULTIPLY: {
 			Monomial monomial = (Monomial) numericExpression;
 			Constant constant = monomial.monomialConstant(this);
 			Monic monic = monomial.monic(this);
 			Monomial result = (Monomial) castToReal(constant);
 
-			result = multiplyMonomials(result,
-					multiplyWithCast(monic.monicFactors(this)));
+			result = multiplyMonomials(result, multiplyWithCast(monic.monicFactors(this)));
 			return result;
 		}
 		case NEGATIVE:
-			return minus(castToReal(
-					(NumericExpression) numericExpression.argument(0)));
+			return minus(castToReal((NumericExpression) numericExpression.argument(0)));
 		case POWER: {
-			NumericExpression realBase = castToReal(
-					(NumericExpression) numericExpression.argument(0));
+			NumericExpression realBase = castToReal((NumericExpression) numericExpression.argument(0));
 			SymbolicObject arg1 = numericExpression.argument(1);
 
 			if (arg1.symbolicObjectKind() == SymbolicObjectKind.NUMBER)
@@ -1650,11 +1485,8 @@ public class CommonIdealFactory implements IdealFactory {
 				return power(realBase, castToReal((NumericExpression) arg1));
 		}
 		case SUBTRACT:
-			return subtract(
-					castToReal(
-							(NumericExpression) numericExpression.argument(0)),
-					castToReal(
-							(NumericExpression) numericExpression.argument(1)));
+			return subtract(castToReal((NumericExpression) numericExpression.argument(0)),
+					castToReal((NumericExpression) numericExpression.argument(1)));
 		// Primitives...
 		case APPLY:
 		case ARRAY_READ:
@@ -1665,8 +1497,7 @@ public class CommonIdealFactory implements IdealFactory {
 		case SYMBOLIC_CONSTANT:
 		case TUPLE_READ:
 		case UNION_EXTRACT:
-			return expression(SymbolicOperator.CAST, realType,
-					numericExpression);
+			return expression(SymbolicOperator.CAST, realType, numericExpression);
 		default:
 			throw new SARLInternalException("Should be unreachable");
 		}
@@ -1679,67 +1510,56 @@ public class CommonIdealFactory implements IdealFactory {
 	 * Implementation uses {@link #isNonnegative(Monomial)} and
 	 * {@link #isNonnegative(RationalExpression)}.
 	 * 
-	 * @param arg0
-	 *            a non-<code>null</code> {@link IdealExpression}
-	 * @param arg1
-	 *            a non-<code>null</code> {@link IdealExpression} of the same
-	 *            type as <code>arg0</code>
+	 * @param arg0 a non-<code>null</code> {@link IdealExpression}
+	 * @param arg1 a non-<code>null</code> {@link IdealExpression} of the same type
+	 *             as <code>arg0</code>
 	 * @return an expression equivalent to <code>0&le;arg1-arg0</code>
 	 */
-	private BooleanExpression lessThanEqualsMain(NumericExpression arg0,
-			NumericExpression arg1) {
+	private BooleanExpression lessThanEqualsMain(NumericExpression arg0, NumericExpression arg1) {
 		NumericExpression difference = subtract(arg1, arg0);
 
-		return difference instanceof Monomial
-				? isNonnegative((Monomial) difference)
+		return difference instanceof Monomial ? isNonnegative((Monomial) difference)
 				: isNonnegative((RationalExpression) difference);
 	}
 
 	// ***************** Package-private methods **********************
 
 	/**
-	 * Returns the sum of two constants. The two constants must have the same
-	 * type (both integer, or both real).
+	 * Returns the sum of two constants. The two constants must have the same type
+	 * (both integer, or both real).
 	 * 
-	 * @param c1
-	 *            any non-<code>null</code> {@link Constant}
-	 * @param c2
-	 *            a non-<code>null</code> {@link Constant} of same type as
-	 *            <code>c1</code>
+	 * @param c1 any non-<code>null</code> {@link Constant}
+	 * @param c2 a non-<code>null</code> {@link Constant} of same type as
+	 *           <code>c1</code>
 	 * @return the sum of the two constants
 	 */
 	Constant add(Constant c1, Constant c2) {
-		return constant(objectFactory
-				.numberObject(numberFactory.add(c1.number(), c2.number())));
+		return constant(objectFactory.numberObject(numberFactory.add(c1.number(), c2.number())));
 	}
 
 	/**
 	 * Computes the negation of a monomial (i.e., multiplication by -1).
 	 * 
-	 * @param monomial
-	 *            any non-<code>null</code> {@link Monomial}
+	 * @param monomial any non-<code>null</code> {@link Monomial}
 	 * @return the monomial which is the negation of the given one
 	 */
 	private Monomial negate(Monomial monomial) {
-		return monomial(negate(monomial.monomialConstant(this)),
-				monomial.monic(this));
+		return monomial(negate(monomial.monomialConstant(this)), monomial.monic(this));
 	}
 
 	/**
 	 * Given expression of real type, attempts to determine whether it must be a
 	 * real integer, and, if so, returns the integer expression.
 	 * 
-	 * @param expr
-	 *            an expression of real type
-	 * @return an integer expression that is equal to the real expression under
-	 *         the natural injection from integers to reals, or {@code null} is
-	 *         such an integer expression could not be found
+	 * @param expr an expression of real type
+	 * @return an integer expression that is equal to the real expression under the
+	 *         natural injection from integers to reals, or {@code null} is such an
+	 *         integer expression could not be found
 	 */
 	private Monomial getInteger(RationalExpression expr) {
 		switch (expr.operator()) {
 		case CONCRETE: {
-			RationalNumber number = (RationalNumber) ((NumberObject) expr
-					.argument(0)).getNumber();
+			RationalNumber number = (RationalNumber) ((NumberObject) expr.argument(0)).getNumber();
 
 			if (numberFactory.isIntegral(number))
 				return constant(numberFactory.integerValue(number));
@@ -1750,8 +1570,7 @@ public class CommonIdealFactory implements IdealFactory {
 			Monomial[] intTerms = new Monomial[numArgs];
 
 			for (int i = 0; i < numArgs; i++) {
-				Monomial intTerm = getInteger(
-						(RationalExpression) expr.argument(i));
+				Monomial intTerm = getInteger((RationalExpression) expr.argument(i));
 
 				if (intTerm == null)
 					return null;
@@ -1793,8 +1612,7 @@ public class CommonIdealFactory implements IdealFactory {
 
 			if (m2 == null)
 				return null;
-			return expression(expr.operator(), integerType, expr.argument(0),
-					m1, m2);
+			return expression(expr.operator(), integerType, expr.argument(0), m1, m2);
 		}
 		case NEGATIVE: {
 			Monomial m = getInteger((RationalExpression) expr.argument(0));
@@ -1809,8 +1627,7 @@ public class CommonIdealFactory implements IdealFactory {
 			if (m0 == null)
 				return null;
 			if (expr.argument(1) instanceof IntObject) {
-				return expression(expr.operator(), integerType, m0,
-						expr.argument(1));
+				return expression(expr.operator(), integerType, m0, expr.argument(1));
 			}
 			// could try to check that exponent is an integer and is
 			// nonnegative, but for now will just give up...
@@ -1838,11 +1655,11 @@ public class CommonIdealFactory implements IdealFactory {
 		this.integerType = typeFactory.integerType();
 		this.realType = typeFactory.realType();
 		this.oneIntObject = objectFactory.oneIntObj();
-		this.oneInt = objectFactory.canonic(new One(integerType,
-				objectFactory.numberObject(numberFactory.oneInteger())));
+		this.oneInt = objectFactory
+				.canonic(new One(integerType, objectFactory.numberObject(numberFactory.oneInteger())));
 		comparator.insertMonic(oneInt);
-		this.oneReal = objectFactory.canonic(new One(realType,
-				objectFactory.numberObject(numberFactory.oneRational())));
+		this.oneReal = objectFactory
+				.canonic(new One(realType, objectFactory.numberObject(numberFactory.oneRational())));
 		comparator.insertMonic(oneReal);
 		this.zeroInt = intConstant(0);
 		this.negOneInt = intConstant(-1);
@@ -1854,11 +1671,8 @@ public class CommonIdealFactory implements IdealFactory {
 		this.monicFactory = new MonicFactory(primitiveComparator);
 		this.polynomialFactory = new PolynomialFactory(monicComparator);
 		this.intNumTwo = numberFactory.integer(2);
-		this.floorFunction = objectFactory.canonic(
-				new CommonSymbolicConstant(objectFactory.stringObject("floor"),
-						typeFactory.functionType(
-								typeFactory.sequence(Arrays.asList(realType)),
-								integerType)));
+		this.floorFunction = objectFactory.canonic(new CommonSymbolicConstant(objectFactory.stringObject("floor"),
+				typeFactory.functionType(typeFactory.sequence(Arrays.asList(realType)), integerType)));
 	}
 
 	@Override
@@ -1887,10 +1701,9 @@ public class CommonIdealFactory implements IdealFactory {
 	}
 
 	@Override
-	public NumericPrimitive expression(SymbolicOperator operator,
-			SymbolicType numericType, SymbolicObject... arguments) {
-		NumericPrimitive result = objectFactory.canonic(
-				new NumericPrimitive(operator, numericType, arguments));
+	public NumericPrimitive expression(SymbolicOperator operator, SymbolicType numericType,
+			SymbolicObject... arguments) {
+		NumericPrimitive result = objectFactory.canonic(new NumericPrimitive(operator, numericType, arguments));
 
 		comparator.insertMonic(result);
 		return result;
@@ -1911,8 +1724,7 @@ public class CommonIdealFactory implements IdealFactory {
 
 		for (Primitive p : monicFactory.getKeys(monic.monicFactors(this))) {
 			// consider expanding p
-			result = booleanFactory.or(result, booleanFactory
-					.booleanExpression(SymbolicOperator.EQUALS, zero, p));
+			result = booleanFactory.or(result, booleanFactory.booleanExpression(SymbolicOperator.EQUALS, zero, p));
 		}
 		return result;
 	}
@@ -1932,45 +1744,38 @@ public class CommonIdealFactory implements IdealFactory {
 
 		for (Primitive p : monicFactory.getKeys(monic.monicFactors(this))) {
 			// consider expanding p
-			result = booleanFactory.and(result, booleanFactory
-					.booleanExpression(SymbolicOperator.NEQ, zero, p));
+			result = booleanFactory.and(result, booleanFactory.booleanExpression(SymbolicOperator.NEQ, zero, p));
 		}
 		return result;
 	}
 
 	@Override
-	public RationalExpression add(NumericExpression arg0,
-			NumericExpression arg1) {
+	public RationalExpression add(NumericExpression arg0, NumericExpression arg1) {
 		if (arg0 instanceof Constant && arg1 instanceof Constant)
 			return add((Constant) arg0, (Constant) arg1);
 		if (arg0.type().isInteger())
 			return addMonomials((Monomial) arg0, (Monomial) arg1);
 		else
-			return addRational((RationalExpression) arg0,
-					(RationalExpression) arg1);
+			return addRational((RationalExpression) arg0, (RationalExpression) arg1);
 	}
 
 	@Override
-	public RationalExpression subtract(NumericExpression arg0,
-			NumericExpression arg1) {
+	public RationalExpression subtract(NumericExpression arg0, NumericExpression arg1) {
 		return add(arg0, minus(arg1));
 	}
 
 	@Override
-	public RationalExpression multiply(NumericExpression arg0,
-			NumericExpression arg1) {
+	public RationalExpression multiply(NumericExpression arg0, NumericExpression arg1) {
 		if (arg0 instanceof Constant && arg1 instanceof Constant)
 			return multiplyConstants((Constant) arg0, (Constant) arg1);
 		if (arg0.type().isInteger())
 			return multiplyMonomials((Monomial) arg0, (Monomial) arg1);
 		else
-			return multiplyRational((RationalExpression) arg0,
-					(RationalExpression) arg1);
+			return multiplyRational((RationalExpression) arg0, (RationalExpression) arg1);
 	}
 
 	@Override
-	public Monomial divideIntegerMonomials(Monomial numerator,
-			Monomial denominator) {
+	public Monomial divideIntegerMonomials(Monomial numerator, Monomial denominator) {
 		assert numerator.type().isInteger();
 		assert denominator.type().isInteger();
 		if (numerator.isZero())
@@ -1978,8 +1783,7 @@ public class CommonIdealFactory implements IdealFactory {
 		if (denominator.isOne())
 			return numerator;
 		if (numerator instanceof Constant && denominator instanceof Constant)
-			return intDivideConstants((Constant) numerator,
-					(Constant) denominator);
+			return intDivideConstants((Constant) numerator, (Constant) denominator);
 		else {
 			Monomial[] triple = intFactor(numerator, denominator);
 
@@ -1987,26 +1791,21 @@ public class CommonIdealFactory implements IdealFactory {
 			denominator = triple[2];
 			if (denominator.isOne())
 				return numerator;
-			if (numerator instanceof Constant
-					&& denominator instanceof Constant)
-				return intDivideConstants((Constant) numerator,
-						(Constant) denominator);
-			return expression(SymbolicOperator.INT_DIVIDE, integerType,
-					numerator, denominator);
+			if (numerator instanceof Constant && denominator instanceof Constant)
+				return intDivideConstants((Constant) numerator, (Constant) denominator);
+			return expression(SymbolicOperator.INT_DIVIDE, integerType, numerator, denominator);
 		}
 	}
 
 	@Override
-	public RationalExpression divide(NumericExpression arg0,
-			NumericExpression arg1) {
+	public RationalExpression divide(NumericExpression arg0, NumericExpression arg1) {
 		if (arg0 instanceof Constant && arg1 instanceof Constant)
 			return divideConstants((Constant) arg0, (Constant) arg1);
 		if (arg0.type().isInteger())
 			return divideIntegerMonomials((Monomial) arg0, (Monomial) arg1);
 		if (arg0 instanceof Monomial && arg1 instanceof Monomial)
 			return divideRealMonomials((Monomial) arg0, (Monomial) arg1);
-		return divideRationals((RationalExpression) arg0,
-				(RationalExpression) arg1);
+		return divideRationals((RationalExpression) arg0, (RationalExpression) arg1);
 	}
 
 	@Override
@@ -2027,8 +1826,7 @@ public class CommonIdealFactory implements IdealFactory {
 	}
 
 	@Override
-	public NumericExpression power(NumericExpression base,
-			NumberObject exponent) {
+	public NumericExpression power(NumericExpression base, NumberObject exponent) {
 		IntegerNumber n = (IntegerNumber) exponent.getNumber();
 
 		assert n.signum() >= 0;
@@ -2052,8 +1850,7 @@ public class CommonIdealFactory implements IdealFactory {
 	}
 
 	@Override
-	public RationalExpression power(NumericExpression base,
-			NumericExpression exponent) {
+	public RationalExpression power(NumericExpression base, NumericExpression exponent) {
 		Number exponentNumber = extractNumber(exponent);
 		boolean isInteger = base.type().isInteger();
 
@@ -2073,10 +1870,9 @@ public class CommonIdealFactory implements IdealFactory {
 				else if (signum < 0) {
 					if (isInteger)
 						throw new SARLException(
-								"Power expression with integer base and negative exponent:\n"
-										+ base + "\n" + exponent);
-					return invert((RationalExpression) powerNumericInteger(base,
-							numberFactory.negate(exponentInteger)));
+								"Power expression with integer base and negative exponent:\n" + base + "\n" + exponent);
+					return invert(
+							(RationalExpression) powerNumericInteger(base, numberFactory.negate(exponentInteger)));
 				} else { // exponent = 0
 					if (base.isZero())
 						throw new SARLException("0^0 is undefined");
@@ -2092,8 +1888,7 @@ public class CommonIdealFactory implements IdealFactory {
 		if (base.isOne())
 			return isInteger ? oneInt : oneReal;
 
-		return powerGeneral((RationalExpression) base,
-				(RationalExpression) exponent);
+		return powerGeneral((RationalExpression) base, (RationalExpression) exponent);
 	}
 
 	@Override
@@ -2112,11 +1907,9 @@ public class CommonIdealFactory implements IdealFactory {
 			NumericExpression arg0 = exprs.get(0);
 			NumericExpression arg1 = exprs.get(1);
 			assert (arg0.type().equals(arg1.type()));
-			return expression(SymbolicOperator.COND, arg0.type(),
-					lessThanEquals(arg0, arg1), arg0, arg1);
+			return expression(SymbolicOperator.COND, arg0.type(), lessThanEquals(arg0, arg1), arg0, arg1);
 		}
-		NumericExpression minOfEnd = minWork(new ArrayList<>(
-				Arrays.asList(exprs.get(size - 2), exprs.get(size - 1))));
+		NumericExpression minOfEnd = minWork(new ArrayList<>(Arrays.asList(exprs.get(size - 2), exprs.get(size - 1))));
 		exprs.remove(size - 1);
 		exprs.set(size - 2, minOfEnd);
 		return minWork(exprs);
@@ -2138,19 +1931,16 @@ public class CommonIdealFactory implements IdealFactory {
 			NumericExpression arg0 = exprs.get(0);
 			NumericExpression arg1 = exprs.get(1);
 			assert (arg0.type().equals(arg1.type()));
-			return expression(SymbolicOperator.COND, arg0.type(),
-					lessThanEquals(arg0, arg1), arg1, arg0);
+			return expression(SymbolicOperator.COND, arg0.type(), lessThanEquals(arg0, arg1), arg1, arg0);
 		}
-		NumericExpression minOfEnd = maxWork(new ArrayList<>(
-				Arrays.asList(exprs.get(size - 2), exprs.get(size - 1))));
+		NumericExpression minOfEnd = maxWork(new ArrayList<>(Arrays.asList(exprs.get(size - 2), exprs.get(size - 1))));
 		exprs.remove(size - 1);
 		exprs.set(size - 2, minOfEnd);
 		return maxWork(exprs);
 	}
 
 	@Override
-	public NumericExpression cast(NumericExpression numericExpression,
-			SymbolicType newType) {
+	public NumericExpression cast(NumericExpression numericExpression, SymbolicType newType) {
 		SymbolicType oldType = numericExpression.type();
 
 		if (newType.equals(oldType))
@@ -2160,17 +1950,13 @@ public class CommonIdealFactory implements IdealFactory {
 		if (oldType.isReal() && newType.equals(integerType)) {
 			// return roundToZero --- that is the C way to cast from real to int
 			return roundToZero(numericExpression);
-		} else if (newType.isIdeal()
-				&& numericExpression.operator() == SymbolicOperator.CAST
-				&& oldType.isHerbrand()) {
+		} else if (newType.isIdeal() && numericExpression.operator() == SymbolicOperator.CAST && oldType.isHerbrand()) {
 			// if numericExpression is a cast from ideal to herbrand,
 			// and the new type is ideal, the two casts cancel...
-			NumericExpression originalExpression = (NumericExpression) numericExpression
-					.argument(0);
+			NumericExpression originalExpression = (NumericExpression) numericExpression.argument(0);
 			SymbolicType originalType = originalExpression.type();
 
-			if (originalType.equals(newType)
-					&& oldType.isInteger() == newType.isInteger())
+			if (originalType.equals(newType) && oldType.isInteger() == newType.isInteger())
 				return originalExpression;
 		}
 		return expression(SymbolicOperator.CAST, newType, numericExpression);
@@ -2194,10 +1980,8 @@ public class CommonIdealFactory implements IdealFactory {
 	}
 
 	@Override
-	public NumericSymbolicConstant symbolicConstant(StringObject name,
-			SymbolicType type) {
-		IdealSymbolicConstant result = objectFactory
-				.canonic(new IdealSymbolicConstant(name, type));
+	public NumericSymbolicConstant symbolicConstant(StringObject name, SymbolicType type) {
+		IdealSymbolicConstant result = objectFactory.canonic(new IdealSymbolicConstant(name, type));
 
 		comparator.insertMonic(result);
 		return result;
@@ -2215,55 +1999,47 @@ public class CommonIdealFactory implements IdealFactory {
 	}
 
 	@Override
-	public BooleanExpression lessThan(NumericExpression arg0,
-			NumericExpression arg1) {
+	public BooleanExpression lessThan(NumericExpression arg0, NumericExpression arg1) {
 		Number num0 = extractNumber(arg0);
 
 		if (num0 != null) {
 			Number num1 = extractNumber(arg1);
 
 			if (num1 != null) // num0-num1<0 <=> num0<num1
-				return numberFactory.compare(num0, num1) < 0 ? this.trueExpr
-						: this.falseExpr;
+				return numberFactory.compare(num0, num1) < 0 ? this.trueExpr : this.falseExpr;
 		}
 
 		NumericExpression difference = subtract(arg1, arg0);
 
-		return difference instanceof Monomial
-				? isPositive((Monomial) difference)
+		return difference instanceof Monomial ? isPositive((Monomial) difference)
 				: isPositive((RationalExpression) difference);
 	}
 
 	@Override
-	public BooleanExpression lessThanEquals(NumericExpression arg0,
-			NumericExpression arg1) {
+	public BooleanExpression lessThanEquals(NumericExpression arg0, NumericExpression arg1) {
 		Number num0 = extractNumber(arg0);
 
 		if (num0 != null) {
 			Number num1 = extractNumber(arg1);
 
 			if (num1 != null) // num0-num1<=0 <=> num0<=num1
-				return numberFactory.compare(num0, num1) <= 0 ? this.trueExpr
-						: falseExpr;
+				return numberFactory.compare(num0, num1) <= 0 ? this.trueExpr : falseExpr;
 		}
 		return lessThanEqualsMain(arg0, arg1);
 	}
 
 	@Override
-	public BooleanExpression notLessThan(NumericExpression arg0,
-			NumericExpression arg1) {
+	public BooleanExpression notLessThan(NumericExpression arg0, NumericExpression arg1) {
 		return lessThanEquals(arg1, arg0);
 	}
 
 	@Override
-	public BooleanExpression notLessThanEquals(NumericExpression arg0,
-			NumericExpression arg1) {
+	public BooleanExpression notLessThanEquals(NumericExpression arg0, NumericExpression arg1) {
 		return lessThan(arg1, arg0);
 	}
 
 	@Override
-	public BooleanExpression equals(NumericExpression arg0,
-			NumericExpression arg1) {
+	public BooleanExpression equals(NumericExpression arg0, NumericExpression arg1) {
 		if (arg0.equals(arg1))
 			return trueExpr;
 		// if they are constants but not equal, return false:
@@ -2276,8 +2052,7 @@ public class CommonIdealFactory implements IdealFactory {
 	}
 
 	@Override
-	public BooleanExpression neq(NumericExpression arg0,
-			NumericExpression arg1) {
+	public BooleanExpression neq(NumericExpression arg0, NumericExpression arg1) {
 		if (arg0.equals(arg1))
 			return falseExpr;
 		if (arg0 instanceof Constant && arg1 instanceof Constant)
@@ -2299,8 +2074,8 @@ public class CommonIdealFactory implements IdealFactory {
 	public Constant intConstant(int value) {
 		if (value == 1)
 			return oneInt;
-		return objectFactory.canonic(new NTConstant(integerType,
-				objectFactory.numberObject(numberFactory.integer(value))));
+		return objectFactory
+				.canonic(new NTConstant(integerType, objectFactory.numberObject(numberFactory.integer(value))));
 	}
 
 	@Override
@@ -2371,9 +2146,7 @@ public class CommonIdealFactory implements IdealFactory {
 		Monomial[] newTerms = new Monomial[size];
 
 		for (int i = 0; i < size; i++)
-			newTerms[i] = monomial(
-					divideConstants(terms[i].monomialConstant(this), constant),
-					monics[i]);
+			newTerms[i] = monomial(divideConstants(terms[i].monomialConstant(this), constant), monics[i]);
 
 		Polynomial polynomial = polynomial(type, newTerms);
 		Monomial result = monomial(constant, multiplyMonics(monic, polynomial));
@@ -2406,17 +2179,13 @@ public class CommonIdealFactory implements IdealFactory {
 
 		for (int i = 1; i < size; i++)
 			terms = addTermMaps(terms, monomials[i].termMap(this));
-		return terms.length == 0 ? zero(monomials[0].type())
-				: factorTermMap(terms);
+		return terms.length == 0 ? zero(monomials[0].type()) : factorTermMap(terms);
 	}
 
 	@Override
-	public PrimitivePower primitivePower(Primitive primitive,
-			NumberObject exponent) {
+	public PrimitivePower primitivePower(Primitive primitive, NumberObject exponent) {
 		if (exponent.isZero())
-			throw new IllegalArgumentException(
-					"Exponent to primitive power must be positive: "
-							+ primitive);
+			throw new IllegalArgumentException("Exponent to primitive power must be positive: " + primitive);
 		if (exponent.isOne())
 			return primitive;
 		return ntPrimitivePower(primitive, exponent);
@@ -2424,8 +2193,7 @@ public class CommonIdealFactory implements IdealFactory {
 
 	@Override
 	public NTPolynomial polynomial(SymbolicType type, Monomial[] terms) {
-		NTPolynomial result = objectFactory
-				.canonic(new NTPolynomial(type, terms));
+		NTPolynomial result = objectFactory.canonic(new NTPolynomial(type, terms));
 
 		comparator.insertMonic(result);
 		return result;
@@ -2437,8 +2205,7 @@ public class CommonIdealFactory implements IdealFactory {
 	}
 
 	@Override
-	public Monomial[] multiplyConstantTermMap(Constant constant,
-			Monomial[] terms) {
+	public Monomial[] multiplyConstantTermMap(Constant constant, Monomial[] terms) {
 		if (constant.isOne())
 			return terms;
 
@@ -2453,21 +2220,17 @@ public class CommonIdealFactory implements IdealFactory {
 
 	@Override
 	public Monomial multiplyMonomials(Monomial m1, Monomial m2) {
-		return monomial(
-				multiplyConstants(m1.monomialConstant(this),
-						m2.monomialConstant(this)),
+		return monomial(multiplyConstants(m1.monomialConstant(this), m2.monomialConstant(this)),
 				multiplyMonics(m1.monic(this), m2.monic(this)));
 	}
 
 	@Override
-	public Monomial[] multiplyTermMaps(Monomial[] termMap1,
-			Monomial[] termMap2) {
+	public Monomial[] multiplyTermMaps(Monomial[] termMap1, Monomial[] termMap2) {
 		Monomial[] result;
 		int n1 = termMap1.length, n2 = termMap2.length;
 
 		if (debug) {
-			System.out.println(
-					"Debug: multiplying maps of size: " + n1 + ", " + n2);
+			System.out.println("Debug: multiplying maps of size: " + n1 + ", " + n2);
 			System.out.flush();
 		}
 		if (n1 <= n2)
@@ -2475,20 +2238,15 @@ public class CommonIdealFactory implements IdealFactory {
 		else
 			result = multiplyTermMaps2(termMap2, termMap1);
 		if (debug) {
-			System.out.println(
-					"Debug: completed multiplication with result size: "
-							+ result.length);
+			System.out.println("Debug: completed multiplication with result size: " + result.length);
 			System.out.flush();
 		}
 		return result;
 	}
 
 	@Override
-	public Monomial multiplyConstantMonomial(Constant constant,
-			Monomial monomial) {
-		return monomial(
-				multiplyConstants(constant, monomial.monomialConstant(this)),
-				monomial.monic(this));
+	public Monomial multiplyConstantMonomial(Constant constant, Monomial monomial) {
+		return monomial(multiplyConstants(constant, monomial.monomialConstant(this)), monomial.monic(this));
 	}
 
 	@Override
@@ -2510,8 +2268,7 @@ public class CommonIdealFactory implements IdealFactory {
 
 			if (result.isTrue())
 				return result;
-			return booleanFactory.or(result,
-					areNegative(numerator, denominator));
+			return booleanFactory.or(result, areNegative(numerator, denominator));
 		}
 		return number.signum() > 0 ? trueExpr : falseExpr;
 	}
@@ -2523,20 +2280,18 @@ public class CommonIdealFactory implements IdealFactory {
 		if (number == null) {
 			Monomial numerator = rational.numerator(this);
 			Monomial denominator = rational.denominator(this);
-			BooleanExpression result = booleanFactory
-					.and(isNonnegative(numerator), isPositive(denominator));
+			BooleanExpression result = booleanFactory.and(isNonnegative(numerator), isPositive(denominator));
 
 			if (result.isTrue())
 				return result;
-			return booleanFactory.or(result, booleanFactory.and(
-					isNonnegative(negate(numerator)), isNegative(denominator)));
+			return booleanFactory.or(result,
+					booleanFactory.and(isNonnegative(negate(numerator)), isNegative(denominator)));
 		}
 		return number.signum() >= 0 ? trueExpr : falseExpr;
 	}
 
 	@Override
-	public Monomial[] powerTermMap(SymbolicType type, Monomial[] map,
-			NumberObject exponent) {
+	public Monomial[] powerTermMap(SymbolicType type, Monomial[] map, NumberObject exponent) {
 		Monomial[] result = oneTermMap(type);
 		IntegerNumber n = (IntegerNumber) exponent.getNumber();
 
@@ -2545,8 +2300,7 @@ public class CommonIdealFactory implements IdealFactory {
 			while (true) {
 				if (!numberFactory.mod(n, intNumTwo).isZero()) {
 					result = multiplyTermMaps(result, map);
-					n = (IntegerNumber) numberFactory.subtract(n,
-							numberFactory.oneInteger());
+					n = (IntegerNumber) numberFactory.subtract(n, numberFactory.oneInteger());
 					if (n.isZero())
 						break;
 				}
@@ -2574,8 +2328,7 @@ public class CommonIdealFactory implements IdealFactory {
 		if (count == n)
 			return monic;
 
-		PrimitivePower[] factors = monic.monicFactors(this),
-				newFactors = new PrimitivePower[count];
+		PrimitivePower[] factors = monic.monicFactors(this), newFactors = new PrimitivePower[count];
 		int j = 0;
 
 		assert n == factors.length;
@@ -2591,10 +2344,8 @@ public class CommonIdealFactory implements IdealFactory {
 	// Rational expressions...
 
 	@Override
-	public NTRationalExpression ntRationalExpression(Monomial numerator,
-			Monomial denominator) {
-		return objectFactory
-				.canonic(new NTRationalExpression(numerator, denominator));
+	public NTRationalExpression ntRationalExpression(Monomial numerator, Monomial denominator) {
+		return objectFactory.canonic(new NTRationalExpression(numerator, denominator));
 	}
 
 	@Override
@@ -2622,12 +2373,10 @@ public class CommonIdealFactory implements IdealFactory {
 	}
 
 	/**
-	 * Given an expression s of real type, returns expression of integer type
-	 * which is the floor of x, i.e., the greatest integer less than or equal to
-	 * x.
+	 * Given an expression s of real type, returns expression of integer type which
+	 * is the floor of x, i.e., the greatest integer less than or equal to x.
 	 * 
-	 * @param expr
-	 *            the expression of real type
+	 * @param expr the expression of real type
 	 * @return the floor of that expression
 	 */
 	@Override
@@ -2645,10 +2394,15 @@ public class CommonIdealFactory implements IdealFactory {
 		else {
 			// can probably do more things (like factor out constants),
 			// but for now just apply the uninterpreted function "floor"...
-			result = expression(SymbolicOperator.APPLY, integerType,
-					floorFunction, objectFactory.singletonSequence(expr));
+			result = expression(SymbolicOperator.APPLY, integerType, floorFunction,
+					objectFactory.singletonSequence(expr));
 		}
 		return result;
+	}
+
+	@Override
+	public boolean isFloor(SymbolicExpression expr) {
+		return expr.operator() == SymbolicOperator.APPLY && expr.argument(0) == floorFunction;
 	}
 
 	@Override
@@ -2670,7 +2424,6 @@ public class CommonIdealFactory implements IdealFactory {
 			if (result != null)
 				return result;
 		}
-		return expression(SymbolicOperator.COND, integerType, notNeg,
-				floor(expr), ceil(expr));
+		return expression(SymbolicOperator.COND, integerType, notNeg, floor(expr), ceil(expr));
 	}
 }

@@ -125,9 +125,7 @@ public class MPITranslationTest {
 	@Test
 	public void mpiPrime() {
 		assertTrue(ui.run("verify", "-enablePrintf=false", "-input_mpi_nprocs_hi=2", "-inputLIMITB=13",
-				TestConstants.QUIET,
-				// "-showProverQueries",
-				filename("mpi_prime.c")));
+				TestConstants.QUIET, filename("mpi_prime.c")));
 	}
 
 	@Test

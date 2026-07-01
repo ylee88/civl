@@ -552,6 +552,7 @@ public class MPI2CIVLWorker extends BaseWorker {
 			case "complex.h": // added by SFS
 			case "concurrency.cvh": // added by SFS
 			case "concurrency.cvl": // added by SFS
+			case "math.cvl": // added by SFS
 			case "math.h": // added by SFS
 			case "mpi-defs.cvh": // added by SFS
 			case "mpi-defs.cvl": // added by SFS

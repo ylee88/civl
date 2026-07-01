@@ -468,7 +468,7 @@ public interface CoreUniverse {
 	 *         given String.
 	 */
 	SymbolicUninterpretedType symbolicUninterpretedType(String name);
-	
+
 	// Other...
 
 	/**
@@ -2176,6 +2176,18 @@ public interface CoreUniverse {
 	 *         {@code expr}
 	 */
 	NumericExpression floor(NumericExpression expr);
+
+	/**
+	 * Is the given symbolic expression a "floor" expression, i.e., an application
+	 * of the floor function, which returns the greatest integer less than or equal
+	 * to its argument. Note that method {@link #floor(NumericExpression)} will not
+	 * necessarily return a floor expression. For example, if given a concrete real
+	 * number it may return a concrete integer.
+	 * 
+	 * @param expr a non-null expression
+	 * @return {@code true} iff {@code expr} is an floor expression
+	 */
+	boolean isFloor(SymbolicExpression expr);
 
 	/**
 	 * Given an expression x of real type, returns an expression of integer type
