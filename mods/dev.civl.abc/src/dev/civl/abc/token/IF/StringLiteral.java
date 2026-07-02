@@ -3,12 +3,12 @@ package dev.civl.abc.token.IF;
 /**
  * A string literal object results from processing a string literal in the
  * source code. It consists of a sequence of execution characters. The execution
- * charcters are obtained by interpreting the source characters in the source
+ * characters are obtained by interpreting the source characters in the source
  * literal. Multiple source characters may encode a single execution character,
- * using escape sequences and unicode encodings.
+ * using escape sequences and Unicode encodings.
  * 
  * The C11 Standard also specifies various kinds of strings, distinguished by
- * the kind of chacters they contain.
+ * the kind of characters they contain.
  * 
  * @author siegel
  * 
@@ -16,8 +16,7 @@ package dev.civl.abc.token.IF;
 public interface StringLiteral {
 
 	/**
-	 * The different kinds of strings, based on the kind of characters they
-	 * contain.
+	 * The different kinds of strings, based on the kind of characters they contain.
 	 * 
 	 * @author siegel
 	 * 
@@ -36,9 +35,8 @@ public interface StringLiteral {
 	/**
 	 * Returns the index-th execution character in the string.
 	 * 
-	 * @param index
-	 *            the character index, an integer in the range [0,n), where n is
-	 *            number of execution characters
+	 * @param index the character index, an integer in the range [0,n), where n is
+	 *              number of execution characters
 	 * @return the index-th execution character
 	 */
 	public ExecutionCharacter getCharacter(int index);

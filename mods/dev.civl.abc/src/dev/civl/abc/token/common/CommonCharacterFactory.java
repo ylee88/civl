@@ -71,7 +71,7 @@ public class CommonCharacterFactory {
 	private TokenFactory tokenFactory;
 
 	/**
-	 * A map used to implement the Flyweight Patten on ExecutionCharacters.
+	 * A map used to implement the Flyweight Pattern on ExecutionCharacters.
 	 */
 	private Map<ExecutionCharacter, ExecutionCharacter> characterMap = new HashMap<ExecutionCharacter, ExecutionCharacter>();
 

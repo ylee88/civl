@@ -74,6 +74,11 @@ public class CIVLConstants {
 	}
 
 	/**
+	 * The maximum number of MPI processes a user can request.
+	 */
+	public final static int MPI_NPROCS_MAX = 1024;
+
+	/**
 	 * The common root of the paths of all resources.
 	 */
 	public final static String ROOT_RESOURCE_PATH_STR = "dev/civl/";

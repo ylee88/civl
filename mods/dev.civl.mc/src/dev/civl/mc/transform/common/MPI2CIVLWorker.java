@@ -5,6 +5,8 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
+import static dev.civl.mc.config.IF.CIVLConstants.MPI_NPROCS_MAX;
+
 import dev.civl.abc.ast.IF.AST;
 import dev.civl.abc.ast.IF.ASTFactory;
 import dev.civl.abc.ast.entity.IF.Entity;
@@ -21,6 +23,7 @@ import dev.civl.abc.ast.node.IF.expression.FunctionCallNode;
 import dev.civl.abc.ast.node.IF.expression.IdentifierExpressionNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode;
 import dev.civl.abc.ast.node.IF.expression.OperatorNode.Operator;
+import dev.civl.abc.ast.node.IF.expression.StringLiteralNode;
 import dev.civl.abc.ast.node.IF.statement.BlockItemNode;
 import dev.civl.abc.ast.node.IF.statement.CompoundStatementNode;
 import dev.civl.abc.ast.node.IF.statement.DeclarationListNode;
@@ -33,6 +36,7 @@ import dev.civl.abc.ast.type.IF.StandardBasicType.BasicTypeKind;
 import dev.civl.abc.front.IF.CivlcTokenConstant;
 import dev.civl.abc.token.IF.Source;
 import dev.civl.abc.token.IF.SyntaxException;
+import dev.civl.mc.config.IF.CIVLConstants;
 import dev.civl.mc.transform.IF.MPI2CIVLTransformer;
 import dev.civl.mc.util.IF.Pair;
 
@@ -446,6 +450,18 @@ public class MPI2CIVLWorker extends BaseWorker {
 		FunctionCallNode callMPIprocess;
 		StatementNode parforMPIproc;
 
+		Source boundSource = newSource("$assert(_mpi_nprocs <= " + MPI_NPROCS_MAX + ");", CivlcTokenConstant.CALL);
+		ExpressionNode boundExpr = nodeFactory.newOperatorNode(boundSource, Operator.LTE, identifierExpression(NPROCS),
+				integerConstant(MPI_NPROCS_MAX));
+		StringLiteralNode boundMsg = stringLiteral(
+				"An upper bound or exact value for the number of MPI processes must be specified.\n"
+						+ "This number can be at most " + MPI_NPROCS_MAX + ".\n"
+						+ "Type \"civl help\" to see how to specify this information on the command line.");
+		ExpressionNode boundAssertion = nodeFactory.newFunctionCallNode(boundSource, identifierExpression("$assert"),
+				Arrays.asList(boundExpr, boundMsg), null);
+		StatementNode boundStmt = nodeFactory.newExpressionStatementNode(boundAssertion);
+		items.add(boundStmt);
+
 		iterator = nodeFactory.newForLoopInitializerNode(
 				newSource("$parfor loop variable", CivlcTokenConstant.INIT_DECLARATOR_LIST),
 				Arrays.asList(this.variableDeclaration("i", this.basicType(BasicTypeKind.INT))));
@@ -715,13 +731,6 @@ public class MPI2CIVLWorker extends BaseWorker {
 	 */
 	private VariableDeclarationNode nprocsDeclaration() {
 		TypeNode nprocsType = this.basicType(BasicTypeKind.INT);
-		
-		// TODO: if no specification of _mpi_nprocs or _mpi_nprocs_hi
-		// error: need an upper bound.    Try inserting an assertion
-		// like $assert(NPROCS <= 32767,
-		// "Need to specify _mpi_nprocs exactly or place an upper bound on it at most 32767").
-		// Put this constant MAX_MPI_NPROCS in CIVL constants.
-
 		nprocsType.setInputQualified(true);
 		return this.variableDeclaration(NPROCS, nprocsType);
 	}
@@ -928,7 +937,6 @@ public class MPI2CIVLWorker extends BaseWorker {
 		FunctionDefinitionNode mpiProcess, mainFunction;
 		VariableDeclarationNode gcommWorld;
 		List<BlockItemNode> externalList = new LinkedList<>();
-		;
 		SequenceNode<BlockItemNode> newRootNode;
 		List<BlockItemNode> mainParametersAndAssumps = new ArrayList<>();
 		int count;

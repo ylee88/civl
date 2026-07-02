@@ -20,8 +20,7 @@ public class SimpleMPITest {
 
 	/* *************************** Static Fields *************************** */
 
-	private static File rootDir = new File(
-			new File(new File("examples"), "mpi"), "simple");
+	private static File rootDir = new File(new File(new File("examples"), "mpi"), "simple");
 
 	private static UserInterface ui = new UserInterface();
 
@@ -34,155 +33,139 @@ public class SimpleMPITest {
 	/* **************************** Test Methods *************************** */
 
 	@Test
+	public void emptyMPIBad() {
+		assertFalse(ui.run("verify", QUIET, filename("mpi_empty.c")));
+	}
+
+	@Test
+	public void emptyMPIGood() {
+		assertFalse(ui.run("verify -input_mpi_nprocs=10", QUIET, filename("mpi_empty.c")));
+	}
+
+	@Test
+	public void emptyMPIGood2() {
+		assertFalse(ui.run("verify -input_mpi_nprocs_lo=2 -input_mpi_nprocs_hi=9", QUIET, filename("mpi_empty.c")));
+	}
+
+	@Test
 	public void simpleMPI() {
-		assertTrue(ui.run("verify -input_mpi_nprocs=2", QUIET,
-				filename("simpleMPI.c")));
+		assertTrue(ui.run("verify -input_mpi_nprocs=2", QUIET, filename("simpleMPI.c")));
 	}
 
 	@Test
 	public void commDup() {
-		assertTrue(ui.run("verify",
-				// "-showModel",
-				"-input_mpi_nprocs=6",
-				// "-showAmpleSetWtStates",
-				QUIET,
-				// "-showStates",
-				filename("commDup.c")));
+		assertTrue(ui.run("verify", "-input_mpi_nprocs=6", QUIET, filename("commDup.c")));
 	}
 
 	@Test
 	public void commDupBad() {
-		assertFalse(ui.run("verify -showAmpleSet -input_mpi_nprocs=6", QUIET,
-				filename("commDupBad.c")));
+		assertFalse(ui.run("verify -showAmpleSet -input_mpi_nprocs=6", QUIET, filename("commDupBad.c")));
 	}
 
 	@Test
 	public void anysource() {
-		assertTrue(ui.run("verify -input_mpi_nprocs=2", QUIET,
-				filename("anysource.c")));
+		assertTrue(ui.run("verify -input_mpi_nprocs=2", QUIET, filename("anysource.c")));
 	}
 
 	@Test
 	public void ranks() {
-		assertTrue(ui.run("verify -input_mpi_nprocs=2", QUIET,
-				// "-showAmpleSetWtStates",
-				// "-showStates ",
-				// "-showTransitions",
-				filename("ranks.c")));
+		assertTrue(ui.run("verify -input_mpi_nprocs=2", QUIET, filename("ranks.c")));
 	}
 
 	@Test
 	public void noInit() {
-		assertFalse(ui.run("verify -input_mpi_nprocs=5", QUIET,
-				filename("noInit.c")));
+		assertFalse(ui.run("verify -input_mpi_nprocs=5", QUIET, filename("noInit.c")));
 	}
 
 	@Test
 	public void noFinalize() {
-		assertFalse(ui.run("verify -input_mpi_nprocs=5", QUIET, NO_PRINTF,
-				filename("noFinalize.c")));
+		assertFalse(ui.run("verify -input_mpi_nprocs=5", QUIET, NO_PRINTF, filename("noFinalize.c")));
 	}
 
 	@Test
 	public void count() {
-		assertTrue(ui.run("verify -input_mpi_nprocs=2", QUIET,
-				filename("count.c")));
+		assertTrue(ui.run("verify -input_mpi_nprocs=2", QUIET, filename("count.c")));
 	}
 
 	@Test
 	public void unreceived() {
-		assertFalse(ui.run("verify -input_mpi_nprocs=2", QUIET,
-				filename("unreceived.c")));
+		assertFalse(ui.run("verify -input_mpi_nprocs=2", QUIET, filename("unreceived.c")));
 	}
 
 	@Test
 	public void bcast() {
-		assertTrue(ui.run("verify -input_mpi_nprocs=5", QUIET,
-				filename("bcast.c")));
+		assertTrue(ui.run("verify -input_mpi_nprocs=5", QUIET, filename("bcast.c")));
 	}
 
 	@Test
 	public void bcast_int() {
-		assertTrue(ui.run("verify -input_mpi_nprocs=5", QUIET,
-				filename("bcast_int.c")));
+		assertTrue(ui.run("verify -input_mpi_nprocs=5", QUIET, filename("bcast_int.c")));
 	}
 
 	@Test
 	public void ooobcast() {
-		assertFalse(ui.run("verify -input_mpi_nprocs=5", QUIET,
-				filename("ooobcast.c")));
+		assertFalse(ui.run("verify -input_mpi_nprocs=5", QUIET, filename("ooobcast.c")));
 	}
 
 	@Test
 	public void reduce() {
-		assertTrue(ui.run("verify -input_mpi_nprocs=5", QUIET,
-				filename("reduce.c")));
+		assertTrue(ui.run("verify -input_mpi_nprocs=5", QUIET, filename("reduce.c")));
 	}
 
 	@Test
 	public void reduce_max() {
-		assertTrue(ui.run("verify -input_mpi_nprocs=5", QUIET,
-				filename("reduce_max.c")));
+		assertTrue(ui.run("verify -input_mpi_nprocs=5", QUIET, filename("reduce_max.c")));
 	}
 
 	@Test
 	public void allreduce() {
-		assertTrue(ui.run("verify -input_mpi_nprocs=5", QUIET,
-				filename("allreduce.c")));
+		assertTrue(ui.run("verify -input_mpi_nprocs=5", QUIET, filename("allreduce.c")));
 	}
 
 	@Test
 	public void scatter() {
-		assertTrue(ui.run("verify -input_mpi_nprocs=5", QUIET,
-				filename("scatter.c")));
+		assertTrue(ui.run("verify -input_mpi_nprocs=5", QUIET, filename("scatter.c")));
 	}
 
 	@Test
 	public void gather() {
-		assertTrue(ui.run("verify -input_mpi_nprocs=5", QUIET,
-				filename("gather.c")));
+		assertTrue(ui.run("verify -input_mpi_nprocs=5", QUIET, filename("gather.c")));
 	}
 
 	@Test
 	public void allgather() {
-		assertTrue(ui.run("verify -input_mpi_nprocs=5", QUIET,
-				filename("allgather.c")));
+		assertTrue(ui.run("verify -input_mpi_nprocs=5", QUIET, filename("allgather.c")));
 	}
 
 	@Test
 	public void ooogather() {
-		assertFalse(ui.run("verify -input_mpi_nprocs=5", QUIET,
-				filename("ooogather.c")));
+		assertFalse(ui.run("verify -input_mpi_nprocs=5", QUIET, filename("ooogather.c")));
 	}
 
 	@Test
 	public void noninterference() {
-		assertFalse(ui.run("verify -input_mpi_nprocs=2", QUIET,
-				filename("noninterference.c")));
+		assertFalse(ui.run("verify -input_mpi_nprocs=2", QUIET, filename("noninterference.c")));
 	}
 
 	@Test
 	public void bcastgather1() {
-		assertTrue(ui.run("verify -input_mpi_nprocs=5", QUIET,
-				filename("bcastgather1.c")));
+		assertTrue(ui.run("verify -input_mpi_nprocs=5", QUIET, filename("bcastgather1.c")));
 	}
 
 	/* ******************* Examples from ISP test examples ***************** */
+
 	@Test
 	public void basicDeadlockCommDup() {
-		assertFalse(ui.run("verify -input_mpi_nprocs=3", QUIET,
-				filename("basic-deadlock-comm_dup.c")));
+		assertFalse(ui.run("verify -input_mpi_nprocs=3", QUIET, filename("basic-deadlock-comm_dup.c")));
 	}
 
 	@Test
 	public void commDupNoError() {
-		assertTrue(ui.run("verify -input_mpi_nprocs=3", QUIET,
-				filename("comm-dup-no-error.c")));
+		assertTrue(ui.run("verify -input_mpi_nprocs=3", QUIET, filename("comm-dup-no-error.c")));
 	}
 
 	@Test
 	public void commDupNoFree() {
-		assertFalse(ui.run("verify -input_mpi_nprocs=3", QUIET,
-				filename("comm-dup-no-free.c")));
+		assertFalse(ui.run("verify -input_mpi_nprocs=3", QUIET, filename("comm-dup-no-free.c")));
 	}
 }
