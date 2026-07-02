@@ -148,7 +148,7 @@ MPI_Comm $mpi_comm_create($scope scope, $mpi_gcomm gc, int rank) {
 
 void $mpi_comm_destroy(MPI_Comm comm, $mpi_state mpi_state) {
   if (comm->gcommIndex == 0)
-    $assert(mpi_state == _MPI_FINALIZED, "Process terminates without "
+    $assert(mpi_state != _MPI_INIT, "Process terminates without "
 	    "calling MPI_Finalize() first.");
   $comm_destroy(comm->p2p);
   $comm_destroy(comm->col);

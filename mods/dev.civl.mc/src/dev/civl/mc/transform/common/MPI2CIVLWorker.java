@@ -715,6 +715,12 @@ public class MPI2CIVLWorker extends BaseWorker {
 	 */
 	private VariableDeclarationNode nprocsDeclaration() {
 		TypeNode nprocsType = this.basicType(BasicTypeKind.INT);
+		
+		// TODO: if no specification of _mpi_nprocs or _mpi_nprocs_hi
+		// error: need an upper bound.    Try inserting an assertion
+		// like $assert(NPROCS <= 32767,
+		// "Need to specify _mpi_nprocs exactly or place an upper bound on it at most 32767").
+		// Put this constant MAX_MPI_NPROCS in CIVL constants.
 
 		nprocsType.setInputQualified(true);
 		return this.variableDeclaration(NPROCS, nprocsType);
