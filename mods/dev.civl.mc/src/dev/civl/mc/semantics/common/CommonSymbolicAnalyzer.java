@@ -765,6 +765,10 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 
 		if (dyscopeId == ModelConfiguration.NULL_POINTER_DYSCOPE && vid == ModelConfiguration.NULL_POINTER_VID) {
 			result.append("(void*)0");
+			if (reference != null && !reference.isIdentityReference()) {
+				result.append("+");
+				result.append(reference);
+			}
 		} else if (dyscopeId == ModelConfiguration.DYNAMIC_CONSTANT_SCOPE) {
 			result.append(this.stringLiteralToString(source,
 					this.modelFactory.model().staticConstantScope().variable(vid).constantValue()));

@@ -36,7 +36,6 @@ import dev.civl.abc.ast.type.IF.StandardBasicType.BasicTypeKind;
 import dev.civl.abc.front.IF.CivlcTokenConstant;
 import dev.civl.abc.token.IF.Source;
 import dev.civl.abc.token.IF.SyntaxException;
-import dev.civl.mc.config.IF.CIVLConstants;
 import dev.civl.mc.transform.IF.MPI2CIVLTransformer;
 import dev.civl.mc.util.IF.Pair;
 
