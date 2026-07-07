@@ -2504,7 +2504,6 @@ public class CommonEvaluator implements Evaluator {
 			for (int i = 0; i < numFields; i++) {
 				StructOrUnionField field = structType.getField(i);
 				TypeEvaluation componentEval = getDynamicType(state, pid, field.type(), source, false);
-
 				state = componentEval.state;
 				componentTypes.add(componentEval.type);
 			}
