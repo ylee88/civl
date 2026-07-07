@@ -157,7 +157,7 @@ void * $mpi_malloc($scope scope, int count, MPI_Datatype datatype) {
 }
 
 void * $mpi_pointer_add(const void * ptr, int offset, MPI_Datatype datatype) {
-  if (ptr == NULL) return NULL;
+  if (offset == 0) return (void*)ptr;
   int type_size = sizeofDatatype(datatype);
   return $pointer_add(ptr, offset, type_size);
 }

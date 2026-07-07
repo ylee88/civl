@@ -163,9 +163,9 @@ $state_f size_t $mpi_extentof(MPI_Datatype);
 void * $mpi_malloc($scope scope, int count, MPI_Datatype datatype);
 
 /* Computes the point that is count units after p, where a unit is one
-   element of type datatype.  Special case: if p is NULL, the result
-   is always NULL.  This is to handle nice the special case where a
-   send or receive buffer is NULL. */
+   element of type datatype.  Special case: if count is 0, this
+   function returns p, even if p is NULL.  This is to handle nicely
+   the special case where a send or receive buffer is NULL. */
 void* $mpi_pointer_add(const void * p, int count, MPI_Datatype datatype);
 
 /* Assert that the basetype of the object pointed by 'buf' is sames as
