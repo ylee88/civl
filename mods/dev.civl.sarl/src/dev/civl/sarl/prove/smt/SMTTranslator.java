@@ -146,18 +146,6 @@ public class SMTTranslator {
 	public static final int EXP_THRESHOLD = 10;
 
 	/**
-	 * If the size of the context or a predicate exceeds this threshold, this
-	 * translator is working in a compressed way.
-	 */
-	//public static final int FULL_EXPR_SIZE_THRESHOLD = 100;
-
-	/**
-	 * If the size of a single symbolic expression exceeds this threshold, it will
-	 * be translated into a binding and keep being used in a compressed way.
-	 */
-	//public static final int SINGLE_EXPR_SIZE_THRESHOLD = 10;
-
-	/**
 	 * The length of bit-vector represents an integer. TODO: this constant should be
 	 * obtained from somewhere else.
 	 */
@@ -190,9 +178,8 @@ public class SMTTranslator {
 
 	/**
 	 * Mapping of SARL symbolic expression to corresponding SMT expression. Used to
-	 * cache the results of translation.
-	 * 
-	 * TODO: does this really help?  Do some experiments.
+	 * cache the results of translation. Also needed so that symbolic constants or
+	 * logic functions are not defined more than once.
 	 */
 	private Map<SymbolicExpression, FastList<String>> expressionMap;
 
@@ -269,13 +256,14 @@ public class SMTTranslator {
 	 * way. If this map is instantiated, this translator is working in this
 	 * compressed way.
 	 */
-	//private Map<SymbolicExpression, FastList<String>> subExpressionsBindingNames = null;
+	// private Map<SymbolicExpression, FastList<String>> subExpressionsBindingNames
+	// = null;
 
 	/**
 	 * All binding translations. Eventually, these bindings will be added on the
 	 * head of the translation as <code>(let (bindings) (translation))</code>
 	 */
-	//private List<FastList<String>> subExpressionBindings = null;
+	// private List<FastList<String>> subExpressionBindings = null;
 
 	/**
 	 * A stack of bound variables. A new entry will be pushed onto this stack once
@@ -289,7 +277,7 @@ public class SMTTranslator {
 	 * form (if the size of the formula exceeds some threshold). By default it is
 	 * on.
 	 */
-	//private boolean enableCompression = false;
+	// private boolean enableCompression = false;
 
 	// Constructors...
 
@@ -305,10 +293,6 @@ public class SMTTranslator {
 		this.typeMap = new HashMap<>();
 		this.functionSet = new HashSet<>();
 		this.smtDeclarations = new FastList<>();
-//		if (theExpression.size() >= FULL_EXPR_SIZE_THRESHOLD) {
-//			this.subExpressionsBindingNames = new HashMap<>();
-//			this.subExpressionBindings = new LinkedList<>();
-//		}
 		// translate logic functions:
 		for (ProverFunctionInterpretation logicFunction : logicFunctions)
 			translateLogicFunction(logicFunction);
@@ -325,19 +309,6 @@ public class SMTTranslator {
 		this.functionSet = new HashSet<>(startingContext.functionSet);
 		this.expressionMap = new HashMap<>(startingContext.expressionMap);
 		this.variableSet = new HashSet<>(startingContext.variableSet);
-//		if (theExpression.size() >= FULL_EXPR_SIZE_THRESHOLD || startingContext.subExpressionBindings != null) {
-//			this.subExpressionsBindingNames = new HashMap<>();
-//			this.subExpressionBindings = new LinkedList<>();
-//			// add bindings from context to this translation since some binding
-//			// symbols created in context will be used again:
-//
-//			// TODO: reconsider this. It can end up repeating a long string of "lets"
-//			// for each query, even though many or most of those bindings are not
-//			// used in the query.
-//
-//			if (startingContext.subExpressionBindings != null)
-//				this.subExpressionBindings.addAll(startingContext.subExpressionBindings);
-//		}
 		this.bigArrayDefined = startingContext.bigArrayDefined;
 		this.smtDeclarations = new FastList<>();
 		this.smtTranslation = translate(theExpression);
@@ -1208,7 +1179,6 @@ public class SMTTranslator {
 		SymbolicExpression leftExpression = (SymbolicExpression) expr.argument(0);
 		SymbolicExpression rightExpression = (SymbolicExpression) expr.argument(1);
 		FastList<String> result = processEquality(leftExpression, rightExpression);
-
 		return result;
 	}
 
@@ -1924,52 +1894,9 @@ public class SMTTranslator {
 		if (result == null) {
 			result = translateWork(expression);
 			expressionMap.put(expression, result);
-//			if (useCompressedName(expression)) {
-//				// in compressed translation mode:
-//				result = translateExpression2binding(expression, result);
-//			}
 		}
-//		else if (useCompressedName(expression)) {
-//			// expression has been translated but has no alias (when the context
-//			// translator is reused for translating predicate):
-//			result = subExpressionsBindingNames.get(expression);
-//			if (result == null)
-//				result = translateExpression2binding(expression, expressionMap.get(expression));
-//		}
 		return result.clone();
 	}
-
-//	private boolean useCompressedName(SymbolicExpression expression) {
-//		return subExpressionsBindingNames != null && expression.size() > SINGLE_EXPR_SIZE_THRESHOLD
-//				&& boundVariableStack.isEmpty() && enableCompression;
-//	}
-
-	/**
-	 * For a translated sub-expression, creating an alias for it. The aliasing is
-	 * implemented using <code>(let binding term)</code>.
-	 */
-//	private FastList<String> translateExpression2binding(SymbolicExpression expression, FastList<String> translation) {
-//		// in compressed translation mode:
-//		FastList<String> tmpVarName = new FastList<>(newSmtVarName());
-//		FastList<String> binding = letTempVarRepresentExpression(tmpVarName.clone(), translation.clone());
-//		subExpressionBindings.add(binding);
-//		subExpressionsBindingNames.put(expression, tmpVarName.clone());
-//		return tmpVarName;
-//	}
-
-	/**
-	 * Add a alias binding for the sub-expression: <code>(symbol term)</code>
-	 */
-//	private FastList<String> letTempVarRepresentExpression(FastList<String> var, FastList<String> subExpr) {
-//		FastList<String> result = new FastList<String>();
-//
-//		result.add("(");
-//		result.append(var);
-//		result.add(" ");
-//		result.append(subExpr);
-//		result.add(") ");
-//		return result;
-//	}
 
 	// Exported methods...
 
@@ -1984,23 +1911,7 @@ public class SMTTranslator {
 	 * @return result of translation of the specified symbolic expression
 	 */
 	public FastList<String> getTranslation() {
-//		FastList<String> result = new FastList<>();
-//		FastList<String> suffixes = new FastList<>();
-//
-//		if (subExpressionBindings != null) {
-//			// add compressed sub-expression bindings
-//			for (FastList<String> binding : subExpressionBindings) {
-//				result.add("(let (");
-//				result.append(binding.clone());
-//				result.add(") ");
-//				suffixes.add(")");
-//			}
-//			result.add(" ");
-//			result.append(smtTranslation.clone());
-//			result.append(suffixes);
-//			return result;
-//		} else
-			return smtTranslation;
+		return smtTranslation;
 	}
 
 	/**
@@ -2044,15 +1955,10 @@ public class SMTTranslator {
 			smtSymbolicConstants.append(translateType(inputVar.type()));
 			smtSymbolicConstants.add(")");
 		}
+
 		FastList<String> smtOutputType = translateType(functionType.outputType());
-//		boolean oldCompressionOption = this.enableCompression;
-
-		// no compression should be performed for the function body:
-//		enableCompression = false;
-
 		FastList<String> smtBody = translate(body);
 
-//		enableCompression = oldCompressionOption;
 		smtDeclarations.addAll("(define-fun ", name, "(");
 		smtDeclarations.append(smtSymbolicConstants);
 		smtDeclarations.add(") ");
