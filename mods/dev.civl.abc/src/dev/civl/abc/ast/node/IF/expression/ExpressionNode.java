@@ -5,7 +5,6 @@ import dev.civl.abc.ast.node.IF.acsl.ExtendedQuantifiedExpressionNode;
 import dev.civl.abc.ast.node.IF.acsl.NothingNode;
 import dev.civl.abc.ast.node.IF.declaration.InitializerNode;
 import dev.civl.abc.ast.node.IF.statement.ForLoopInitializerNode;
-import dev.civl.abc.ast.node.IF.statement.UpdateNode;
 import dev.civl.abc.ast.type.IF.Type;
 
 /**
@@ -164,11 +163,6 @@ public interface ExpressionNode extends InitializerNode, SizeableNode, ForLoopIn
 		 * A GNU C statement expression; can be cast to {@link StatementExpressionNode}
 		 */
 		STATEMENT_EXPRESSION,
-		/**
-		 * An <code>$update($collator) f() </code> expression. It may be cast to
-		 * {@link UpdateNode}.
-		 */
-		UPDATE,
 		/**
 		 * An ACSL-CIVL-C wildcard expression (<code>...</code>); can be cast to
 		 * {@link WildcardNode}.

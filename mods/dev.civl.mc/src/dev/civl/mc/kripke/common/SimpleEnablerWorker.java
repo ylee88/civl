@@ -66,7 +66,6 @@ import dev.civl.mc.model.IF.statement.ParallelAssignStatement;
 import dev.civl.mc.model.IF.statement.ReturnStatement;
 import dev.civl.mc.model.IF.statement.Statement;
 import dev.civl.mc.model.IF.statement.Statement.StatementKind;
-import dev.civl.mc.model.IF.statement.UpdateStatement;
 import dev.civl.mc.model.IF.type.CIVLArrayType;
 import dev.civl.mc.model.IF.type.CIVLCompleteArrayType;
 import dev.civl.mc.model.IF.type.CIVLFunctionType;
@@ -1103,16 +1102,6 @@ public class SimpleEnablerWorker {
 			ReturnStatement rs = (ReturnStatement) statement;
 
 			findObjects(resultAll, theState, pid, rs.expression());
-			break;
-		}
-		case UPDATE: {
-			UpdateStatement us = (UpdateStatement) statement;
-
-			for (Expression arg : us.arguments()) {
-				findObjects(resultAll, theState, pid, arg);
-			}
-			findObjects(resultAll, theState, pid, us.collator());
-			computeMem(resultAll, resultWrite, pid, us.call());
 			break;
 		}
 		default:

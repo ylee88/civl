@@ -113,7 +113,6 @@ public class PP2CivlcTokenCConverter implements PP2CivlcTokenConverter {
 		cKeywordTokenTypeMap.put("$spawn", CivlCParser.SPAWN);
 		cKeywordTokenTypeMap.put("$system", CivlCParser.SYSTEM);
 		cKeywordTokenTypeMap.put("$uniform", CivlCParser.UNIFORM);
-		cKeywordTokenTypeMap.put("$update", CivlCParser.UPDATE);
 		cKeywordTokenTypeMap.put("$when", CivlCParser.WHEN);
 		cKeywordTokenTypeMap.put("$sum", CivlCParser.SUM);
 		cKeywordTokenTypeMap.put("__device__", CivlCParser.DEVICE);

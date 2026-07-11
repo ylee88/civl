@@ -95,7 +95,6 @@ import dev.civl.mc.model.IF.statement.MallocStatement;
 import dev.civl.mc.model.IF.statement.NoopStatement;
 import dev.civl.mc.model.IF.statement.ParallelAssignStatement;
 import dev.civl.mc.model.IF.statement.Statement;
-import dev.civl.mc.model.IF.statement.UpdateStatement;
 import dev.civl.mc.model.IF.type.CIVLArrayType;
 import dev.civl.mc.model.IF.type.CIVLFunctionType;
 import dev.civl.mc.model.IF.type.CIVLPointerType;
@@ -164,7 +163,6 @@ import dev.civl.mc.model.common.statement.CommonNoopStatement;
 import dev.civl.mc.model.common.statement.CommonParallelAssignStatement;
 import dev.civl.mc.model.common.statement.CommonReturnStatement;
 import dev.civl.mc.model.common.statement.CommonSwitchBranchStatement;
-import dev.civl.mc.model.common.statement.CommonUpdateStatement;
 import dev.civl.mc.model.common.variable.CommonVariable;
 import dev.civl.mc.util.IF.Pair;
 import dev.civl.mc.util.IF.Singleton;
@@ -1777,22 +1775,6 @@ public class CommonModelFactory implements ModelFactory {
 	@Override
 	public Scope staticConstantScope() {
 		return this.staticScope;
-	}
-
-	@Override
-	public UpdateStatement updateStatement(CIVLSource source, Location sourceLoc, Expression guard, Expression collator,
-			CallOrSpawnStatement call) {
-		if (guard == null)
-			guard = this.trueExpression(source);
-		return new CommonUpdateStatement(source, sourceLoc, guard, collator, call);
-	}
-
-	@Override
-	public UpdateStatement updateStatement(CIVLSource source, Location srcLoc, Expression guard, Expression collator,
-			CIVLFunction function, Expression[] arguments) {
-		if (guard == null)
-			guard = this.trueExpression(source);
-		return new CommonUpdateStatement(source, srcLoc, guard, collator, function, arguments);
 	}
 
 	@Override

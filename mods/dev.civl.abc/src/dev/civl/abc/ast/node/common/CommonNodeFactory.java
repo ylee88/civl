@@ -123,7 +123,6 @@ import dev.civl.abc.ast.node.IF.statement.ReturnNode;
 import dev.civl.abc.ast.node.IF.statement.RunNode;
 import dev.civl.abc.ast.node.IF.statement.StatementNode;
 import dev.civl.abc.ast.node.IF.statement.SwitchNode;
-import dev.civl.abc.ast.node.IF.statement.UpdateNode;
 import dev.civl.abc.ast.node.IF.statement.WhenNode;
 import dev.civl.abc.ast.node.IF.type.ArrayTypeNode;
 import dev.civl.abc.ast.node.IF.type.AtomicTypeNode;
@@ -229,7 +228,6 @@ import dev.civl.abc.ast.node.common.statement.CommonNullStatementNode;
 import dev.civl.abc.ast.node.common.statement.CommonReturnNode;
 import dev.civl.abc.ast.node.common.statement.CommonRunNode;
 import dev.civl.abc.ast.node.common.statement.CommonSwitchNode;
-import dev.civl.abc.ast.node.common.statement.CommonUpdateNode;
 import dev.civl.abc.ast.node.common.statement.CommonWhenNode;
 import dev.civl.abc.ast.node.common.type.CommonArrayTypeNode;
 import dev.civl.abc.ast.node.common.type.CommonAtomicTypeNode;
@@ -1144,11 +1142,6 @@ public class CommonNodeFactory implements NodeFactory {
 	public LambdaNode newLambdaNode(Source source, VariableDeclarationNode boundVariableDeclaration,
 			ExpressionNode restriction, ExpressionNode expression) {
 		return new CommonLambdaNode(source, boundVariableDeclaration, restriction, expression);
-	}
-
-	@Override
-	public UpdateNode newUpdateNode(Source source, ExpressionNode collator, FunctionCallNode call) {
-		return new CommonUpdateNode(source, collator, call);
 	}
 
 	@Override

@@ -72,7 +72,6 @@ import dev.civl.abc.ast.node.IF.statement.ReturnNode;
 import dev.civl.abc.ast.node.IF.statement.RunNode;
 import dev.civl.abc.ast.node.IF.statement.StatementNode;
 import dev.civl.abc.ast.node.IF.statement.SwitchNode;
-import dev.civl.abc.ast.node.IF.statement.UpdateNode;
 import dev.civl.abc.ast.node.IF.statement.WhenNode;
 import dev.civl.abc.ast.node.IF.type.EnumerationTypeNode;
 import dev.civl.abc.ast.node.IF.type.StructureOrUnionTypeNode;
@@ -2496,29 +2495,9 @@ public class SideEffectRemover extends BaseTransformer {
 			return translateSwitch((SwitchNode) statement);
 		case WHEN:
 			return translateWhen((WhenNode) statement);
-		case UPDATE:
-			return translateUpdate((UpdateNode) statement);
 		default:
 			throw new ABCRuntimeException("unreachable");
 		}
-	}
-
-	private List<BlockItemNode> translateUpdate(UpdateNode update) {
-		ExpressionNode collator = update.getCollator();
-		ExpressionNode functionCall = update.getFunctionCall();
-		int collatorIndex = collator.childIndex(), functionCallIndex = functionCall.childIndex();
-		ExprTriple collatorTriple = this.translate(collator, false);
-		ExprTriple funcCallTriple = this.translate(functionCall, false);
-		List<BlockItemNode> result = new LinkedList<>();
-
-		purify(collatorTriple);
-		result.addAll(collatorTriple.getBefore());
-		result.addAll(funcCallTriple.getBefore());
-		update.setChild(collatorIndex, collatorTriple.getNode());
-		update.setChild(functionCallIndex, funcCallTriple.getNode());
-		result.add(update);
-		result.addAll(funcCallTriple.getAfter());
-		return result;
 	}
 
 	/**

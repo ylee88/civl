@@ -720,8 +720,6 @@ public class CommonExecutor implements Executor {
 			return executeCivlParFor(state, pid, (CivlParForSpawnStatement) statement);
 		case PARALLEL_ASSIGN:
 			return executeParallelAssign(state, pid, process, (ParallelAssignStatement) statement);
-		case UPDATE:
-			throw new CIVLInternalException("unreachable", statement);
 		default:
 			throw new CIVLInternalException("Unknown statement kind: " + kind, statement);
 		}

@@ -401,7 +401,6 @@ public class CommonInsensitiveFlow implements InsensitiveFlow {
 			case OMP :
 				processOmpNode((OmpNode) stmt);
 				break;
-			case UPDATE :
 			case PRAGMA :
 				throw unimplemented("statement " + stmt.prettyRepresentation()
 						+ " of kind " + kind);
@@ -526,7 +525,6 @@ public class CommonInsensitiveFlow implements InsensitiveFlow {
 				return new TempExprAbstraction(aux, null);
 			}
 			case REMOTE_REFERENCE :
-			case UPDATE :
 			case QUANTIFIED_EXPRESSION :
 			case LAMBDA :
 			case SPAWN :

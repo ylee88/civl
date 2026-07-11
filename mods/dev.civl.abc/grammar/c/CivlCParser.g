@@ -1438,7 +1438,6 @@ statement
     | chooseStatement -> ^(STATEMENT chooseStatement)
     | atomicStatement -> ^(STATEMENT atomicStatement)
     | runStatement -> ^(STATEMENT runStatement)
-    | updateStatement -> ^(STATEMENT updateStatement)
     | asmStatement -> ^(STATEMENT asmStatement)
     ;
 
@@ -1685,14 +1684,6 @@ annotationBody : (~ ANNOTATION_END)+ ;
 runStatement
    	: RUN statement -> ^(RUN statement)
     ;
-
-updateStatement
-	: UPDATE LPAREN assignmentExpression RPAREN
-	  postfixExpressionRoot LPAREN argumentExpressionList RPAREN SEMI
-	  -> ^(UPDATE assignmentExpression
-	  	   ^(CALL ABSENT postfixExpressionRoot ABSENT argumentExpressionList RPAREN)
-	      )
-	;
 
 balancedToken
 	: ~(LPAREN | RPAREN)

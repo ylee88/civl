@@ -109,7 +109,6 @@ import dev.civl.abc.ast.node.IF.statement.ReturnNode;
 import dev.civl.abc.ast.node.IF.statement.RunNode;
 import dev.civl.abc.ast.node.IF.statement.StatementNode;
 import dev.civl.abc.ast.node.IF.statement.SwitchNode;
-import dev.civl.abc.ast.node.IF.statement.UpdateNode;
 import dev.civl.abc.ast.node.IF.statement.WhenNode;
 import dev.civl.abc.ast.node.IF.type.ArrayTypeNode;
 import dev.civl.abc.ast.node.IF.type.AtomicTypeNode;
@@ -2216,16 +2215,6 @@ public interface NodeFactory {
 	 * @return
 	 */
 	TypeFactory typeFactory();
-
-	/**
-	 * Create a new {@link UpdateNode}
-	 * 
-	 * @param source   The {@link Source} attached to the $update expression
-	 * @param collator The expression has the $collator type
-	 * @param call     The {@link FunctionCallNode} attached with this expression.
-	 * @return A new {@link UpdateNode}
-	 */
-	UpdateNode newUpdateNode(Source source, ExpressionNode collator, FunctionCallNode call);
 
 	/**
 	 * Create a new {@link RunNode}

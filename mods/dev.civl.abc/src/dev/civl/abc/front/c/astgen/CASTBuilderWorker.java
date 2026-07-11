@@ -2071,16 +2071,6 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 				translateStatement((CommonTree) statementTree.getChild(1), new SimpleScope(loopScope)), getContract());
 	}
 
-	private StatementNode translateUpdate(CommonTree statementTree, SimpleScope scope) throws SyntaxException {
-		Source source = this.newSource(statementTree);
-		CommonTree operandTree = (CommonTree) statementTree.getChild(0);
-		CommonTree callTree = (CommonTree) statementTree.getChild(1);
-
-		return this.nodeFactory.newUpdateNode(source,
-				this.translateExpression(newSource(operandTree), operandTree, scope),
-				translateCall(newSource(callTree), callTree, scope));
-	}
-
 	private StatementNode translateSwitch(CommonTree statementTree, SimpleScope scope) throws SyntaxException {
 		Source statementSource = newSource(statementTree);
 		CommonTree expressionTree = (CommonTree) statementTree.getChild(0);
@@ -2427,8 +2417,6 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 					translateStatement((CommonTree) statementTree.getChild(1), scope));
 		case WHILE:
 			return translateWhile(statementTree, scope);
-		case UPDATE:
-			return translateUpdate(statementTree, scope);
 		default:
 			throw error("Unknown statement type " + kind, statementTree);
 		}

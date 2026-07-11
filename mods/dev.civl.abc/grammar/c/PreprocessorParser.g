@@ -121,7 +121,6 @@ tokens {
 	SPAWN;
 	SYSTEM;
 	UNIFORM;
-	UPDATE;
 	WHEN;
 	/* */
 	DEVICE;

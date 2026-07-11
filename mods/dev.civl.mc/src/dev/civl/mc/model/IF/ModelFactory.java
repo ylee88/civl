@@ -71,7 +71,6 @@ import dev.civl.mc.model.IF.statement.MallocStatement;
 import dev.civl.mc.model.IF.statement.NoopStatement;
 import dev.civl.mc.model.IF.statement.ParallelAssignStatement;
 import dev.civl.mc.model.IF.statement.Statement;
-import dev.civl.mc.model.IF.statement.UpdateStatement;
 import dev.civl.mc.model.IF.type.CIVLArrayType;
 import dev.civl.mc.model.IF.type.CIVLFunctionType;
 import dev.civl.mc.model.IF.type.CIVLPointerType;
@@ -856,22 +855,6 @@ public interface ModelFactory {
 	 * @return the new switch branch statement for the specified case
 	 */
 	NoopStatement switchBranchStatement(CIVLSource civlSource, Location source, Expression guard, Expression label);
-
-	/**
-	 * Creates an <code>$update</code> statement.
-	 * 
-	 * @param source   the source code information of the statement
-	 * @param srcLoc   the source location of the <code>$update</code> statement
-	 * @param guard    the guard of the <code>$update</code> statement.
-	 * @param collator the collator of the <code>$update</code> statement.
-	 * @param call     the function call of the <code>$update</code> statement.
-	 * @return the new <code>$update</code> statement.
-	 */
-	UpdateStatement updateStatement(CIVLSource source, Location srcLoc, Expression guard, Expression collator,
-			CallOrSpawnStatement call);
-
-	UpdateStatement updateStatement(CIVLSource source, Location srcLoc, Expression guard, Expression collator,
-			CIVLFunction function, Expression[] arguments);
 
 	/*
 	 * ********************************************************************* CIVL

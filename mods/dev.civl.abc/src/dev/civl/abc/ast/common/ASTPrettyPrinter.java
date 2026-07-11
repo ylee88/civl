@@ -113,7 +113,6 @@ import dev.civl.abc.ast.node.IF.statement.RunNode;
 import dev.civl.abc.ast.node.IF.statement.StatementNode;
 import dev.civl.abc.ast.node.IF.statement.StatementNode.StatementKind;
 import dev.civl.abc.ast.node.IF.statement.SwitchNode;
-import dev.civl.abc.ast.node.IF.statement.UpdateNode;
 import dev.civl.abc.ast.node.IF.statement.WhenNode;
 import dev.civl.abc.ast.node.IF.type.ArrayTypeNode;
 import dev.civl.abc.ast.node.IF.type.BasicTypeNode;
@@ -1160,8 +1159,6 @@ public class ASTPrettyPrinter {
 			return run2Pretty(prefix, (RunNode) statement, maxLength);
 		case SWITCH:
 			return switch2Pretty(prefix, (SwitchNode) statement, maxLength);
-		case UPDATE:
-			return update2Pretty(prefix, (UpdateNode) statement, maxLength);
 		case WHEN:
 			return when2Pretty(prefix, (WhenNode) statement, maxLength);
 		default:
@@ -1828,19 +1825,6 @@ public class ASTPrettyPrinter {
 		result.append(bodyStatement2Pretty(prefix, when.getBody(), false, vacantLength(maxLength, result)));
 		return trimStringBuffer(result, maxLength);
 
-	}
-
-	private static StringBuffer update2Pretty(String prefix, UpdateNode update, int maxLength) {
-		ExpressionNode call;
-		StringBuffer result = new StringBuffer();
-
-		result.append(prefix);
-		result.append("$update(");
-		result.append(expression2Pretty(update.getCollator(), vacantLength(maxLength, result)));
-		result.append(") ");
-		call = update.getFunctionCall();
-		result.append(expression2Pretty(call, vacantLength(maxLength, result)));
-		return result;
 	}
 
 	/**

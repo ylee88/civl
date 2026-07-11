@@ -46,7 +46,6 @@ import dev.civl.mc.model.IF.statement.ParallelAssignStatement;
 import dev.civl.mc.model.IF.statement.ReturnStatement;
 import dev.civl.mc.model.IF.statement.Statement;
 import dev.civl.mc.model.IF.statement.Statement.StatementKind;
-import dev.civl.mc.model.IF.statement.UpdateStatement;
 import dev.civl.mc.model.IF.type.CIVLArrayType;
 import dev.civl.mc.model.IF.type.CIVLHeapType;
 import dev.civl.mc.model.IF.type.CIVLMemType;
@@ -1914,15 +1913,6 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 					}
 				}
 			}
-			break;
-		}
-		case UPDATE: {
-			UpdateStatement update = (UpdateStatement) statement;
-
-			result.append("$update (");
-			result.append(this.expressionEvaluation(state, pid, update.collator()).right);
-			result.append(") ");
-			result.append(this.statementEvaluation(state, postState, pid, update.call()));
 			break;
 		}
 		default:

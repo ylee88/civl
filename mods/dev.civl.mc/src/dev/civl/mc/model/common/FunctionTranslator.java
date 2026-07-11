@@ -88,7 +88,6 @@ import dev.civl.abc.ast.node.IF.statement.ReturnNode;
 import dev.civl.abc.ast.node.IF.statement.RunNode;
 import dev.civl.abc.ast.node.IF.statement.StatementNode;
 import dev.civl.abc.ast.node.IF.statement.SwitchNode;
-import dev.civl.abc.ast.node.IF.statement.UpdateNode;
 import dev.civl.abc.ast.node.IF.statement.WhenNode;
 import dev.civl.abc.ast.node.IF.type.ArrayTypeNode;
 import dev.civl.abc.ast.node.IF.type.EnumerationTypeNode;
@@ -161,7 +160,6 @@ import dev.civl.mc.model.IF.statement.MallocStatement;
 import dev.civl.mc.model.IF.statement.NoopStatement;
 import dev.civl.mc.model.IF.statement.ReturnStatement;
 import dev.civl.mc.model.IF.statement.Statement;
-import dev.civl.mc.model.IF.statement.UpdateStatement;
 import dev.civl.mc.model.IF.type.CIVLArrayType;
 import dev.civl.mc.model.IF.type.CIVLCompleteArrayType;
 import dev.civl.mc.model.IF.type.CIVLCompleteDomainType;
@@ -198,8 +196,6 @@ public class FunctionTranslator {
 	private static final String PAR_FUNC_NAME = "_par_proc";
 
 	private static final String RUN_FUNC_NAME = "_run_proc";
-
-	private static final String UPDATE_FUNC_NAME = "_update_proc";
 
 	/* ************************** Instance Fields ************************** */
 
@@ -503,9 +499,6 @@ public class FunctionTranslator {
 		case SWITCH:
 			result = translateSwitchNode(scope, (SwitchNode) statementNode);
 			break;
-		case UPDATE:
-			result = translateUpdateNodeNew(scope, (UpdateNode) statementNode);
-			break;
 		case WHEN:
 			result = translateWhenNode(scope, (WhenNode) statementNode);
 			break;
@@ -519,79 +512,6 @@ public class FunctionTranslator {
 			modelFactory.clearAnonFragment();
 		}
 		return result;
-	}
-
-	private Fragment translateUpdateNodeNew(Scope scope, UpdateNode update) {
-		CIVLSource source = modelFactory.sourceOf(update);
-		Expression collator = this.translateExpressionNode(update.getCollator(), scope, true);
-		FunctionCallNode funcCall = update.getFunctionCall();
-		CIVLSource udpateFuncSource = modelFactory.sourceOf(funcCall);
-		CallOrSpawnStatement call = (CallOrSpawnStatement) this
-				.translateFunctionCallNodeAsExpressionWithnoLHS(scope, update.getFunctionCall(), udpateFuncSource)
-				.uniqueFinalStatement();
-		CIVLFunction updateFunc;
-		Location location = modelFactory.location(source, scope);
-		CIVLSource updateFuncStartSource = modelFactory.sourceOfBeginning(funcCall),
-				updateFuncEndSource = modelFactory.sourceOfEnd(funcCall);
-		UpdateStatement updateStatement;
-		CIVLFunction function = call.function();
-		Expression[] actualParameters;
-		String NAME = "_arg";
-		List<Expression> oldParameters = call.arguments();
-		int numParameters = oldParameters.size();
-
-		actualParameters = new Expression[numParameters];
-		for (int i = 0; i < numParameters; i++)
-			actualParameters[i] = oldParameters.get(i);
-		if (function == null || function.isSystemFunction()) {
-			// needs transformation
-			Scope parameterScope = this.modelFactory.scope(udpateFuncSource, scope, new ArrayList<>(0), null);
-			List<Variable> procFuncParameters = new ArrayList<>(0);
-			List<Expression> arguments = new ArrayList<>();
-			// if (function != null) {
-
-			procFuncParameters = new ArrayList<>(numParameters);
-			for (int i = 0; i < numParameters; i++) {
-				Expression oldParameter = oldParameters.get(i);
-				Variable parameter = modelFactory.variable(oldParameter.getSource(), oldParameter.getExpressionType(),
-						modelFactory.identifier(oldParameter.getSource(), NAME + i), i + 1);
-
-				procFuncParameters.add(parameter);
-				parameterScope.addVariable(parameter);
-				arguments.add(modelFactory.variableExpression(parameter.getSource(), parameter));
-			}
-			// }
-			updateFunc = modelFactory.function(udpateFuncSource, false,
-					modelFactory.identifier(updateFuncStartSource,
-							UPDATE_FUNC_NAME + modelBuilder.runProcFunctions.size()),
-					parameterScope, procFuncParameters, typeFactory.voidType(), scope, null);
-			scope.addFunction(updateFunc);
-			parameterScope.setFunction(updateFunc);
-
-			// complete function body
-			// modelBuilder.runProcFunctions.put(updateFunc, update.getBody());
-
-			Scope updateFuncBodyScope = modelFactory.scope(updateFuncStartSource, parameterScope, new ArrayList<>(0),
-					updateFunc);
-			Location updateFuncStart = modelFactory.location(updateFuncStartSource, parameterScope);
-			Location updateFuncReturn = modelFactory.location(updateFuncEndSource, updateFuncBodyScope);
-			Fragment returnFragment;
-
-			updateFunc.addLocation(updateFuncStart);
-			updateFunc.addLocation(updateFuncReturn);
-			updateFunc.setStartLocation(updateFuncStart);
-			call.setSource(updateFuncStart);
-			call.setArguments(arguments);
-			call.setTarget(updateFuncReturn);
-			returnFragment = modelFactory.returnFragment(updateFuncEndSource, updateFuncReturn, null, updateFunc);
-			updateFunc.addStatement(call);
-			updateFunc.addStatement(returnFragment.uniqueFinalStatement());
-			modelBuilder.runProcFunctions.put(updateFunc, null);
-			function = updateFunc;
-		}
-		updateStatement = modelFactory.updateStatement(updateFuncEndSource, location, null, collator, function,
-				actualParameters);
-		return new CommonFragment(updateStatement);
 	}
 
 	private Fragment translateParForNode(Scope scope, CivlForNode civlForNode) {

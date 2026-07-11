@@ -553,7 +553,6 @@ public class ModelBuilderWorker {
 			CIVLFunction function = working.pop();
 			StatementNode bodyNode = runProcFunctions.get(function);
 
-			// body node of functions for $update doesn't contain a body node
 			if (bodyNode == null)
 				continue;
 

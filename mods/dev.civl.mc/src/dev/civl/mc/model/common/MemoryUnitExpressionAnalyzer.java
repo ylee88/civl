@@ -45,7 +45,6 @@ import dev.civl.mc.model.IF.statement.MallocStatement;
 import dev.civl.mc.model.IF.statement.ReturnStatement;
 import dev.civl.mc.model.IF.statement.Statement;
 import dev.civl.mc.model.IF.statement.Statement.StatementKind;
-import dev.civl.mc.model.IF.statement.UpdateStatement;
 import dev.civl.mc.model.IF.variable.Variable;
 import dev.civl.mc.util.IF.Pair;
 
@@ -276,16 +275,6 @@ public class MemoryUnitExpressionAnalyzer {
 
 			if (returnStatement.expression() != null)
 				computeImpactMemoryUnitsOfExpression(writableVars, returnStatement.expression(), result);
-			break;
-		}
-		case UPDATE: {// the body of the function called by $update is
-						// independent because it only affects the collate
-						// state
-			UpdateStatement updateStatement = (UpdateStatement) statement;
-
-			computeImpactMemoryUnitsOfExpression(writableVars, updateStatement.collator(), result);
-			for (Expression arg : updateStatement.arguments())
-				computeImpactMemoryUnitsOfExpression(writableVars, arg, result);
 			break;
 		}
 		default:
