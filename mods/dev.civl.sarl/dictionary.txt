@@ -26,3 +26,4 @@ inlining
 preprocess
 vampire
 stdout
+gaussian

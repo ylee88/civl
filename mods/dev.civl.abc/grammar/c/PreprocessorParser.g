@@ -122,9 +122,7 @@ tokens {
 	SYSTEM;
 	UNIFORM;
 	UPDATE;
-	VALUE_AT;
 	WHEN;
-	WITH;
 	/* */
 	DEVICE;
 	GLOBAL;

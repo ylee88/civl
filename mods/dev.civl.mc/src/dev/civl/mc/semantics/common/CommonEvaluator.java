@@ -147,12 +147,6 @@ public class CommonEvaluator implements Evaluator {
 	public static String INT_TO_CHAR_FUNCTION = "_int2char";
 
 	/**
-	 * A bounded process identifier identifies the bound variable in the lambda
-	 * expression which represents a value of a {@link ValueAtExpression}
-	 */
-	protected static String BOUNDED_PROCESS_IDENTIFIER = "_p";
-
-	/**
 	 * A bounded offset identifier identifies the bound variable in the quantified
 	 * expression which represents an offset in a pointer representation:
 	 * <code>base-address + _offset</code>

@@ -406,11 +406,6 @@ scope DeclarationScope;
         -> ^(SCOPEOF unaryExpression)
 	| ALIGNOF LPAREN typeName RPAREN
         -> ^(ALIGNOF typeName)
-	| VALUE_AT LPAREN
-        b+=assignmentExpression COMMA
-        b+=assignmentExpression COMMA
-        (b+=assignmentExpression | b+=quantifiedExpression) RPAREN
-        -> ^(VALUE_AT $b+ RPAREN)
 	| spawnExpression
     | callsExpression
 	| sumExpression
@@ -1443,7 +1438,6 @@ statement
     | chooseStatement -> ^(STATEMENT chooseStatement)
     | atomicStatement -> ^(STATEMENT atomicStatement)
     | runStatement -> ^(STATEMENT runStatement)
-    | withStatement -> ^(STATEMENT withStatement)
     | updateStatement -> ^(STATEMENT updateStatement)
     | asmStatement -> ^(STATEMENT asmStatement)
     ;
@@ -1691,14 +1685,6 @@ annotationBody : (~ ANNOTATION_END)+ ;
 runStatement
    	: RUN statement -> ^(RUN statement)
     ;
-
-/* CIVL-C $with statement.    This statement is used to execute
- * a statement in an alternative state.
- */
-withStatement
-	: WITH LPAREN assignmentExpression RPAREN statement
-      -> ^(WITH assignmentExpression statement)
-	;
 
 updateStatement
 	: UPDATE LPAREN assignmentExpression RPAREN
