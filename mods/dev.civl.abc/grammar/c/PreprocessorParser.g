@@ -117,7 +117,6 @@ tokens {
 	SCOPEOF;
 	SELF;
 	STATE_F;
-	STATE_NULL;
 	READS;
 	SPAWN;
 	SYSTEM;

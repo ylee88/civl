@@ -109,7 +109,6 @@ public class PP2CivlcTokenCConverter implements PP2CivlcTokenConverter {
 		cKeywordTokenTypeMap.put("$scopeof", CivlCParser.SCOPEOF);
 		cKeywordTokenTypeMap.put("$self", CivlCParser.SELF);
 		cKeywordTokenTypeMap.put("$state_f", CivlCParser.STATE_F);
-		cKeywordTokenTypeMap.put("$state_null", CivlCParser.STATE_NULL);
 		cKeywordTokenTypeMap.put("$reads", CivlCParser.READS);
 		cKeywordTokenTypeMap.put("$spawn", CivlCParser.SPAWN);
 		cKeywordTokenTypeMap.put("$system", CivlCParser.SYSTEM);

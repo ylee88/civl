@@ -213,7 +213,6 @@ public interface CivlcTokenConstant {
 	public static final int STAREQ = CivlCParser.STAREQ;
 	public static final int STATEMENT = CivlCParser.STATEMENT;
 	public static final int STATEMENT_EXPRESSION = CivlCParser.STATEMENT_EXPRESSION;
-	public static final int STATENULL = CivlCParser.STATE_NULL;
 	public static final int STATIC = CivlCParser.STATIC;
 	public static final int STATICASSERT = CivlCParser.STATICASSERT;
 	public static final int STRING_LITERAL = CivlCParser.STRING_LITERAL;

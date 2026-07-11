@@ -243,7 +243,7 @@ quantifiedExpression
 	;
 
 /* Constants from A.1.5.  
- * Includes several CIVL-C constants: $self, $proc_null, $state_null,
+ * Includes several CIVL-C constants: $self, $proc_null,
  * $result, $here.
  * TODO: why does this include ELLIPSIS?
  */
@@ -254,7 +254,6 @@ constant
 	| CHARACTER_CONSTANT
 	| SELF
     | PROCNULL
-    | STATE_NULL
 	| RESULT
 	| HERE
     | ELLIPSIS

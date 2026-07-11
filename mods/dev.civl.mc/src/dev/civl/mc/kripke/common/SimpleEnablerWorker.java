@@ -1561,8 +1561,6 @@ public class SimpleEnablerWorker {
 		case SIZEOF_TYPE:
 			findObjects(result, state, pid, ((SizeofTypeExpression) expr).getTypeArgument());
 			break;
-		case STATE_NULL: // nothing
-			break;
 		case STRING_LITERAL: // nothing
 			break;
 		case COMPOUND_LITERAL:

@@ -2144,7 +2144,6 @@ public class CommonSymbolicAnalyzer implements SymbolicAnalyzer {
 			case SYSTEM_GUARD:
 			case UNDEFINED_PROC:
 			case PROC_NULL:
-			case STATE_NULL:
 				result.append(expression.toString());
 				break;
 			default:

@@ -513,7 +513,6 @@ public class MemoryUnitExpressionAnalyzer {
 		case HERE_OR_ROOT:
 			break;
 		case PROC_NULL:
-		case STATE_NULL:
 			break;
 		case FUNC_CALL: {
 			CallOrSpawnStatement callStmt = ((FunctionCallExpression) expression).callStatement();

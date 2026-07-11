@@ -44,10 +44,6 @@ public interface Expression extends Sourceable {
 		REGULAR_RANGE, RESULT, SCOPEOF, SELF, SIZEOF_TYPE, SIZEOF_EXPRESSION, STRING_LITERAL, COMPOUND_LITERAL,
 		SUBSCRIPT, SYSTEM_GUARD, UNARY, UNDEFINED_PROC, VARIABLE, HERE_OR_ROOT, PROC_NULL,
 		/**
-		 * A $state_null constant, instance of {@link StatenullExpression}
-		 */
-		STATE_NULL,
-		/**
 		 * instance of {@link FunctionCallExpression}
 		 */
 		FUNC_CALL, REC_DOMAIN_LITERAL, WILDCARD, NOTHING,

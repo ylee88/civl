@@ -278,7 +278,6 @@ public class ReadSetAnalyzer {
 		case REAL_LITERAL:
 		case RESULT:
 		case SELF:
-		case STATE_NULL:
 		case STRING_LITERAL:
 		case UNDEFINED_PROC:
 		case WILDCARD:
