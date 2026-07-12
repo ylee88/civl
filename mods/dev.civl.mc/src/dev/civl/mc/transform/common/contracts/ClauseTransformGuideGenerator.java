@@ -259,7 +259,7 @@ public class ClauseTransformGuideGenerator {
 	private static StatementNode createAssumption(NodeFactory nf, ExpressionNode pred) {
 		ExpressionNode assumeIdentifier = identifierExpression(nf, BaseWorker.ASSUME, pred.getSource());
 		FunctionCallNode assumeCall = nf.newFunctionCallNode(pred.getSource(), assumeIdentifier,
-				Arrays.asList(pred.copy()), null);
+				Arrays.asList(pred.copy()));
 
 		return nf.newExpressionStatementNode(assumeCall);
 	}

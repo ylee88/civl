@@ -300,7 +300,7 @@ public class MPI2CIVLWorker extends BaseWorker {
 		commCreateArgs.add(this.identifierExpression(MPI_RANK));
 		commCreate = nodeFactory.newFunctionCallNode(
 				this.newSource("function call " + COMM_CREATE, CivlcTokenConstant.CALL),
-				this.identifierExpression(COMM_CREATE), commCreateArgs, null);
+				this.identifierExpression(COMM_CREATE), commCreateArgs);
 		commVar = this.variableDeclaration(MPI_COMM_WORLD, commType, commCreate);
 		// commVar.setExternStorage(true);
 		return commVar;
@@ -331,7 +331,7 @@ public class MPI2CIVLWorker extends BaseWorker {
 				identifierExpression(MPI_COMM_SELF));
 		ExpressionNode commSelfCreate = nodeFactory.newFunctionCallNode(
 				newSource("function call " + COMM_SELF_CREATE, CivlcTokenConstant.CALL),
-				identifierExpression(COMM_SELF_CREATE), Arrays.asList(hereNode(), addrOfCommSelfVar), null);
+				identifierExpression(COMM_SELF_CREATE), Arrays.asList(hereNode(), addrOfCommSelfVar));
 		TypeNode gcommType = nodeFactory.newTypedefNameNode(
 				nodeFactory.newIdentifierNode(this.newSource("$gcomm type", CivlcTokenConstant.IDENTIFIER), GCOMM_TYPE),
 				null);
@@ -363,7 +363,7 @@ public class MPI2CIVLWorker extends BaseWorker {
 		} else
 			arguments = Arrays.asList(this.identifierExpression(commName));
 		return nodeFactory.newExpressionStatementNode(nodeFactory.newFunctionCallNode(
-				this.newSource("function call " + destroy, CivlcTokenConstant.CALL), function, arguments, null));
+				this.newSource("function call " + destroy, CivlcTokenConstant.CALL), function, arguments));
 	}
 
 	/**
@@ -406,7 +406,7 @@ public class MPI2CIVLWorker extends BaseWorker {
 				Operator.ADDRESSOF, this.identifierExpression(GCOMM_WORLD));
 		node = nodeFactory.newFunctionCallNode(this.newSource("function call " + SEQ_INIT, CivlcTokenConstant.CALL),
 				this.identifierExpression(SEQ_INIT),
-				Arrays.asList(gcommsPtrNode, nodeFactory.newIntegerConstantNode(null, "1"), gcommworldPtrNode), null);
+				Arrays.asList(gcommsPtrNode, nodeFactory.newIntegerConstantNode(null, "1"), gcommworldPtrNode));
 		return nodeFactory.newExpressionStatementNode(node);
 	}
 
@@ -457,7 +457,7 @@ public class MPI2CIVLWorker extends BaseWorker {
 						+ "This number can be at most " + MPI_NPROCS_MAX + ".\n"
 						+ "Type \"civl help\" to see how to specify this information on the command line.");
 		ExpressionNode boundAssertion = nodeFactory.newFunctionCallNode(boundSource, identifierExpression("$assert"),
-				Arrays.asList(boundExpr, boundMsg), null);
+				Arrays.asList(boundExpr, boundMsg));
 		StatementNode boundStmt = nodeFactory.newExpressionStatementNode(boundAssertion);
 		items.add(boundStmt);
 
@@ -470,14 +470,14 @@ public class MPI2CIVLWorker extends BaseWorker {
 				this.integerConstant(0), upperBound);
 		callMPIprocess = nodeFactory.newFunctionCallNode(
 				this.newSource("function call " + MPI_PROCESS, CivlcTokenConstant.CALL),
-				this.identifierExpression(MPI_PROCESS), Arrays.asList(this.identifierExpression("i")), null);
+				this.identifierExpression(MPI_PROCESS), Arrays.asList(this.identifierExpression("i")));
 		parforMPIproc = nodeFactory.newCivlForNode(this.newSource("$parfor MPI_Process", CivlcTokenConstant.PARFOR),
 				true, iterator, domain, nodeFactory.newExpressionStatementNode(callMPIprocess), null);
 
 		ExpressionNode gcommCreate = nodeFactory.newFunctionCallNode(
 				this.newSource("function call " + GCOMM_CREATE, CivlcTokenConstant.CALL),
 				this.identifierExpression(GCOMM_CREATE),
-				Arrays.asList(this.identifierExpression(PROCESS_ROOT), this.identifierExpression(NPROCS)), null),
+				Arrays.asList(this.identifierExpression(PROCESS_ROOT), this.identifierExpression(NPROCS))),
 
 				assignGcomm = nodeFactory.newOperatorNode(gcommCreate.getSource(), Operator.ASSIGN,
 						Arrays.asList(this.identifierExpression(GCOMM_WORLD), gcommCreate));

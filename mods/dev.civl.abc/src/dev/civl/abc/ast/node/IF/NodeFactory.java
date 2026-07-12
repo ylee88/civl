@@ -682,12 +682,9 @@ public interface NodeFactory {
 	 *                  pointer to function type
 	 * @param arguments the list of actual arguments to be evaluated and passed to
 	 *                  the function in this function call
-	 * @param scopeList the optional scope list (to be deprecated)
 	 * @return the new function call node
 	 */
-	// TODO get rid of scopeList
-	FunctionCallNode newFunctionCallNode(Source source, ExpressionNode function, List<ExpressionNode> arguments,
-			SequenceNode<ExpressionNode> scopeList);
+	FunctionCallNode newFunctionCallNode(Source source, ExpressionNode function, List<ExpressionNode> arguments);
 
 	/**
 	 * Constructs a new kernel function call node. A kernel function call in Cuda-C
@@ -708,12 +705,10 @@ public interface NodeFactory {
 	 *                         programs]
 	 * @param arguments        the list of actual arguments to be evaluated and
 	 *                         passed to the function in this function call
-	 * @param scopeList        the optional scope list (to be deprecated)
 	 * @return the new function call node
 	 */
-	// TODO get rid of scopeList
-	FunctionCallNode newFunctionCallNode(Source source, ExpressionNode function, List<ExpressionNode> contextArguments,
-			List<ExpressionNode> arguments, SequenceNode<ExpressionNode> scopeList);
+	FunctionCallNode newContextFunctionCallNode(Source source, ExpressionNode function,
+			List<ExpressionNode> contextArguments, List<ExpressionNode> arguments);
 
 	/**
 	 * Constructs a new generic selection node, used to select an expression to

@@ -101,8 +101,7 @@ public class SimpleCudaAST {
 						nodeF.newIdentifierExpressionNode(source,
 								newId("blockDim")),
 						nodeF.newIdentifierExpressionNode(source,
-								newId("_thread"))),
-				null);
+								newId("_thread"))));
 		CompoundStatementNode blockBody = nodeF.newCompoundStatementNode(source,
 				Arrays.asList(threadDef,
 						nodeF.newExpressionStatementNode(runThreadsCall)));
@@ -131,23 +130,20 @@ public class SimpleCudaAST {
 				Arrays.<ExpressionNode> asList(
 						nodeF.newIdentifierExpressionNode(source,
 								newId("this")),
-						nodeF.newIdentifierExpressionNode(source, newId("e"))),
-				null);
+						nodeF.newIdentifierExpressionNode(source, newId("e"))));
 		final FunctionCallNode runBlocksCall = nodeF.newFunctionCallNode(source,
 				nodeF.newIdentifierExpressionNode(source, newId("_runProcs")),
 				Arrays.<ExpressionNode> asList(
 						nodeF.newIdentifierExpressionNode(source,
 								newId("gridDim")),
 						nodeF.newIdentifierExpressionNode(source,
-								newId("_block"))),
-				null);
+								newId("_block"))));
 		final FunctionCallNode kernelFinishCall = nodeF.newFunctionCallNode(
 				source,
 				nodeF.newIdentifierExpressionNode(source,
 						newId("_kernelFinish")),
 				Arrays.<ExpressionNode> asList(nodeF
-						.newIdentifierExpressionNode(source, newId("this"))),
-				null);
+						.newIdentifierExpressionNode(source, newId("this"))));
 		CompoundStatementNode innerKernelBody = nodeF.newCompoundStatementNode(
 				source,
 				Arrays.asList(blockDef,
@@ -182,8 +178,7 @@ public class SimpleCudaAST {
 				Arrays.<ExpressionNode> asList(
 						nodeF.newIdentifierExpressionNode(source, newId("s")),
 						nodeF.newIdentifierExpressionNode(source,
-								newId("_kernel"))),
-				null);
+								newId("_kernel"))));
 		CompoundStatementNode kernelBody = nodeF
 				.newCompoundStatementNode(source, Arrays.asList(innerKernelDef,
 						nodeF.newExpressionStatementNode(enqueueKernelCall)));
@@ -200,16 +195,14 @@ public class SimpleCudaAST {
 		FunctionCallNode t1Init = nodeF.newFunctionCallNode(source,
 				nodeF.newIdentifierExpressionNode(source, newId("_toDim3")),
 				Arrays.<ExpressionNode> asList(
-						nodeF.newIntegerConstantNode(source, "1")),
-				null);
+						nodeF.newIntegerConstantNode(source, "1")));
 		final VariableDeclarationNode t1Decl = nodeF.newVariableDeclarationNode(
 				source, newId("_t1"),
 				nodeF.newTypedefNameNode(newId("dim3"), null), t1Init);
 		FunctionCallNode t2Init = nodeF.newFunctionCallNode(source,
 				nodeF.newIdentifierExpressionNode(source, newId("_toDim3")),
 				Arrays.<ExpressionNode> asList(
-						nodeF.newIntegerConstantNode(source, "1")),
-				null);
+						nodeF.newIntegerConstantNode(source, "1")));
 		final VariableDeclarationNode t2Decl = nodeF.newVariableDeclarationNode(
 				source, newId("_t2"),
 				nodeF.newTypedefNameNode(newId("dim3"), null), t2Init);
@@ -219,8 +212,7 @@ public class SimpleCudaAST {
 				Arrays.asList(
 						nodeF.newIdentifierExpressionNode(source, newId("_t1")),
 						nodeF.newIdentifierExpressionNode(source, newId("_t2")),
-						nodeF.newIntegerConstantNode(source, "0")),
-				null);
+						nodeF.newIntegerConstantNode(source, "0")));
 		CompoundStatementNode innerMainBody = nodeF.newCompoundStatementNode(
 				source,
 				Arrays.asList(t1Decl, t2Decl,
@@ -239,15 +231,15 @@ public class SimpleCudaAST {
 				nodeF.newVoidTypeNode(source), mainFormals, false);
 		final FunctionCallNode cudaInitCall = nodeF.newFunctionCallNode(source,
 				nodeF.newIdentifierExpressionNode(source, newId("_cudaInit")),
-				new ArrayList<ExpressionNode>(), null);
+				new ArrayList<ExpressionNode>());
 		final FunctionCallNode innerMainCall = nodeF.newFunctionCallNode(source,
 				nodeF.newIdentifierExpressionNode(source, newId("_main")),
-				new ArrayList<ExpressionNode>(), null);
+				new ArrayList<ExpressionNode>());
 		final FunctionCallNode cudaFinalizeCall = nodeF.newFunctionCallNode(
 				source,
 				nodeF.newIdentifierExpressionNode(source,
 						newId("_cudaFinalize")),
-				new ArrayList<ExpressionNode>(), null);
+				new ArrayList<ExpressionNode>());
 		CompoundStatementNode mainBody = nodeF.newCompoundStatementNode(source,
 				Arrays.asList(innerMainDef,
 						nodeF.newExpressionStatementNode(cudaInitCall),

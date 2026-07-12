@@ -456,7 +456,7 @@ public abstract class BaseWorker {
 	}
 
 	protected FunctionCallNode functionCall(Source source, String name, List<ExpressionNode> arguments) {
-		return nodeFactory.newFunctionCallNode(source, this.identifierExpression(source, name), arguments, null);
+		return nodeFactory.newFunctionCallNode(source, this.identifierExpression(source, name), arguments);
 	}
 
 	/**
@@ -879,7 +879,7 @@ public abstract class BaseWorker {
 	/** @return {@link FunctionCallNode} */
 	protected FunctionCallNode nodeExprCall(String srcMethod, String funcName, ExpressionNode... argExprs) {
 		return nodeFactory.newFunctionCallNode(newSource(srcMethod, CivlcTokenConstant.CALL),
-				nodeExprId(srcMethod, funcName), Arrays.asList(argExprs), null);
+				nodeExprId(srcMethod, funcName), Arrays.asList(argExprs));
 	}
 
 	/** @return {@link ExpressionNode}: <code>(type) expr</code> */

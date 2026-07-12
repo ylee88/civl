@@ -475,11 +475,11 @@ public class CommonNodeFactory implements NodeFactory {
 	}
 
 	@Override
-	public FunctionCallNode newFunctionCallNode(Source source, ExpressionNode function, List<ExpressionNode> arguments,
-			SequenceNode<ExpressionNode> scopeList) {
+	public FunctionCallNode newFunctionCallNode(Source source, ExpressionNode function,
+			List<ExpressionNode> arguments) {
 		SequenceNode<ExpressionNode> argumentSequenceNode = newSequenceNode(source, "ActualParameterList", arguments);
 
-		return new CommonFunctionCallNode(source, function, null, argumentSequenceNode, scopeList);
+		return new CommonFunctionCallNode(source, function, null, argumentSequenceNode);
 	}
 
 	@Override
@@ -495,15 +495,13 @@ public class CommonNodeFactory implements NodeFactory {
 	}
 
 	@Override
-	public FunctionCallNode newFunctionCallNode(Source source, ExpressionNode function,
-			List<ExpressionNode> contextArguments, List<ExpressionNode> arguments,
-			SequenceNode<ExpressionNode> scopeList) {
+	public FunctionCallNode newContextFunctionCallNode(Source source, ExpressionNode function,
+			List<ExpressionNode> contextArguments, List<ExpressionNode> arguments) {
 		SequenceNode<ExpressionNode> contextArgumentSequenceNode = newSequenceNode(source, "ActualContextParameterList",
 				contextArguments);
 		SequenceNode<ExpressionNode> argumentSequenceNode = newSequenceNode(source, "ActualParameterList", arguments);
 
-		return new CommonFunctionCallNode(source, function, contextArgumentSequenceNode, argumentSequenceNode,
-				scopeList);
+		return new CommonFunctionCallNode(source, function, contextArgumentSequenceNode, argumentSequenceNode);
 	}
 
 	@Override

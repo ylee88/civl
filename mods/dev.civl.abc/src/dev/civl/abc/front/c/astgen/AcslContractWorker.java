@@ -465,7 +465,7 @@ public class AcslContractWorker {
 		Source source = parseTree.source(assertTree);
 		ExpressionNode assertCall = nodeFactory.newFunctionCallNode(source,
 				nodeFactory.newIdentifierExpressionNode(source, nodeFactory.newIdentifierNode(source, CIVL_ASSERT)),
-				Arrays.asList(translateExpression(predicate, scope)), null);
+				Arrays.asList(translateExpression(predicate, scope)));
 
 		return nodeFactory.newExpressionStatementNode(assertCall);
 	}
@@ -1537,8 +1537,7 @@ public class AcslContractWorker {
 
 			argumentList.add(argumentNode);
 		}
-		return nodeFactory.newFunctionCallNode(source, functionNode, new LinkedList<ExpressionNode>(), argumentList,
-				null);
+		return nodeFactory.newFunctionCallNode(source, functionNode, argumentList);
 	}
 
 	/**

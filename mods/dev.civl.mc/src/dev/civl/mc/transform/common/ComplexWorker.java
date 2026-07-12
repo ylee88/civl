@@ -302,7 +302,7 @@ public class ComplexWorker extends BaseWorker {
 		node.remove();
 		FunctionCallNode fcn = nodeFactory.newFunctionCallNode(source,
 				nodeFactory.newIdentifierExpressionNode(source, nodeFactory.newIdentifierNode(source, name)),
-				Arrays.asList(node), null);
+				Arrays.asList(node));
 		fcn.setInitialType(typeFactory.basicType(BOOL));
 		return fcn;
 	}
@@ -332,7 +332,7 @@ public class ComplexWorker extends BaseWorker {
 		node.remove();
 		FunctionCallNode fcn = nodeFactory.newFunctionCallNode(source,
 				nodeFactory.newIdentifierExpressionNode(source, nodeFactory.newIdentifierNode(source, name)),
-				Arrays.asList(node), null);
+				Arrays.asList(node));
 		fcn.setInitialType(newComplexType);
 		return fcn;
 	}
@@ -481,7 +481,7 @@ public class ComplexWorker extends BaseWorker {
 			arg0 = argList.get(0);
 			argList.set(0, nodeFactory.newOperatorNode(arg0.getSource(), Operator.ADDRESSOF, arg0));
 		}
-		ExpressionNode result = nodeFactory.newFunctionCallNode(source, funExprNode, argList, null);
+		ExpressionNode result = nodeFactory.newFunctionCallNode(source, funExprNode, argList);
 		result.setInitialType(opNode.getInitialType());
 		return result;
 	}

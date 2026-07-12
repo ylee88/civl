@@ -522,7 +522,7 @@ public class CASTBuilderWorker extends ASTBuilderWorker {
 
 			argumentList.add(argumentNode);
 		}
-		return nodeFactory.newFunctionCallNode(source, functionNode, contextArgumentList, argumentList, null);
+		return nodeFactory.newContextFunctionCallNode(source, functionNode, contextArgumentList, argumentList);
 	}
 
 	/**
