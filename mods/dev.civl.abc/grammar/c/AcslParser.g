@@ -300,7 +300,7 @@ logic_function_body
     ;
 
 pure_function
-    : pure_key SEMI
+    : pure_key SEMI -> pure_key
     ;
 
 /* a full contract block non-terminal represents an ACSL contract

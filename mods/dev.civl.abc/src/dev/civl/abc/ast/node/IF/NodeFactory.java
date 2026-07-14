@@ -31,6 +31,7 @@ import dev.civl.abc.ast.node.IF.acsl.NoactNode;
 import dev.civl.abc.ast.node.IF.acsl.NothingNode;
 import dev.civl.abc.ast.node.IF.acsl.ObjectOrRegionOfNode;
 import dev.civl.abc.ast.node.IF.acsl.PredicateNode;
+import dev.civl.abc.ast.node.IF.acsl.PureNode;
 import dev.civl.abc.ast.node.IF.acsl.RequiresNode;
 import dev.civl.abc.ast.node.IF.compound.ArrayDesignatorNode;
 import dev.civl.abc.ast.node.IF.compound.CompoundInitializerNode;
@@ -1710,6 +1711,17 @@ public interface NodeFactory {
 	 * @return the new <code>reads</code> clause node
 	 */
 	AssignsOrReadsNode newReadsNode(Source source, SequenceNode<ExpressionNode> expressionList);
+
+	/**
+	 * Constructs a new "pure" node representing the CIVL-extended ACSL "pure;"
+	 * clause which may occur as the first line of a function contract, indicating
+	 * the function is a pure function (side-effect-free and the output is a
+	 * deterministic function of the input).
+	 * 
+	 * @param source source specifying the clause
+	 * @return the new contract node for "pure"
+	 */
+	PureNode newPureNode(Source source);
 
 	// external definitions...
 

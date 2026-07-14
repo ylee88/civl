@@ -112,6 +112,7 @@ import dev.civl.abc.ast.node.IF.acsl.FocusAssertTransformNode;
 import dev.civl.abc.ast.node.IF.acsl.FocusLoopTransformNode;
 import dev.civl.abc.ast.node.IF.acsl.GuardsNode;
 import dev.civl.abc.ast.node.IF.acsl.MemoryEventNode.MemoryEventNodeKind;
+import dev.civl.abc.ast.node.IF.acsl.PureNode;
 import dev.civl.abc.ast.node.IF.acsl.RequiresNode;
 import dev.civl.abc.ast.node.IF.acsl.TransformNode;
 import dev.civl.abc.ast.node.IF.declaration.FunctionDeclarationNode;
@@ -267,10 +268,27 @@ public class AcslContractWorker {
 		List<TransformNode> translatedTransformNodes = new LinkedList<>();
 		List<BlockItemNode> translatedBlockItems = new LinkedList<>();
 
+		if (contractTree.getTokenStartIndex() < 0 && contractTree.getTokenStopIndex() < 0) {
+			// empty contract.  we have no source.   fix to include /*@ */ in tree.
+			return new ACSLSpecTranslation(null, translatedContractNodes,
+					translatedTransformNodes, translatedBlockItems);
+		}
 		switch (contractTree.getType()) {
 		case AcslParser.FUNC_CONTRACT:
 			translatedContractNodes
 					.addAll(translateFunctionContractBlock((CommonTree) contractTree.getChild(0), scope));
+			if (contractTree.getChildCount() >= 2) {
+				CommonTree tree1 = (CommonTree) contractTree.getChild(1);
+				int type1 = tree1.getType();
+				if (type1 == AcslParser.PURE) {
+					PureNode pureNode = nodeFactory.newPureNode(newSource(tree1));
+					translatedContractNodes.add(pureNode);
+				} else {
+					throw error("Unknown kind of function contract child", tree1);
+				}
+				if (contractTree.getChildCount() >= 3)
+					throw error("Extra children in function contract tree", contractTree);
+			}
 			break;
 		case AcslParser.LOOP_CONTRACT:
 			for (ContractNode node : translateLoopContractBlock((CommonTree) contractTree.getChild(0), scope)) {

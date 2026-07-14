@@ -42,6 +42,7 @@ import dev.civl.abc.ast.node.IF.acsl.NoactNode;
 import dev.civl.abc.ast.node.IF.acsl.NothingNode;
 import dev.civl.abc.ast.node.IF.acsl.ObjectOrRegionOfNode;
 import dev.civl.abc.ast.node.IF.acsl.PredicateNode;
+import dev.civl.abc.ast.node.IF.acsl.PureNode;
 import dev.civl.abc.ast.node.IF.acsl.RequiresNode;
 import dev.civl.abc.ast.node.IF.compound.ArrayDesignatorNode;
 import dev.civl.abc.ast.node.IF.compound.CompoundInitializerNode;
@@ -158,6 +159,7 @@ import dev.civl.abc.ast.node.common.acsl.CommonNoactNode;
 import dev.civl.abc.ast.node.common.acsl.CommonNothingNode;
 import dev.civl.abc.ast.node.common.acsl.CommonObjectOrRegionOfNode;
 import dev.civl.abc.ast.node.common.acsl.CommonPredicateNode;
+import dev.civl.abc.ast.node.common.acsl.CommonPureNode;
 import dev.civl.abc.ast.node.common.acsl.CommonRequiresNode;
 import dev.civl.abc.ast.node.common.compound.CommonArrayDesignatorNode;
 import dev.civl.abc.ast.node.common.compound.CommonCompoundInitializerNode;
@@ -1084,6 +1086,11 @@ public class CommonNodeFactory implements NodeFactory {
 	public CallEventNode newCallEventNode(Source source, IdentifierExpressionNode function,
 			SequenceNode<ExpressionNode> args) {
 		return new CommonCallEventNode(source, function, args);
+	}
+
+	@Override
+	public PureNode newPureNode(Source source) {
+		return new CommonPureNode(source);
 	}
 
 	@Override

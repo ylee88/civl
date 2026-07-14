@@ -6,3 +6,4 @@ arity
 preprocessing
 datatypes
 struct
+dyscope
